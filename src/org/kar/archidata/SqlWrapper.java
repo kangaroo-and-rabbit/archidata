@@ -34,6 +34,7 @@ import org.kar.archidata.annotation.SQLDefault;
 public class SqlWrapper {
 	
 	public static class ExceptionDBInterface extends Exception {
+		private static final long serialVersionUID = 1L;
 		public int errorID;
 		ExceptionDBInterface(int errorId, String message) {
 			super(message);
@@ -692,6 +693,18 @@ public class SqlWrapper {
    		 		ps.setShort(iii++, (Short)value);
         	} else if (value.getClass() == Byte.class) {
    		 		ps.setByte(iii++, (Byte)value);
+        	} else if (value.getClass() == Float.class) {
+   		 		ps.setFloat(iii++, (Float)value);
+        	} else if (value.getClass() == Double.class) {
+   		 		ps.setDouble(iii++, (Double)value);
+        	} else if (value.getClass() == Boolean.class) {
+   		 		ps.setBoolean(iii++, (Boolean)value);
+        	} else if (value.getClass() == Boolean.class) {
+   		 		ps.setBoolean(iii++, (Boolean)value);
+        	} else if (value.getClass() == Timestamp.class) {
+   		 		ps.setTimestamp(iii++, (Timestamp)value);
+        	} else if (value.getClass() == Date.class) {
+   		 		ps.setDate(iii++, (Date)value);
         	} else {
         		throw new Exception("Not manage type ==> need to add it ...");
         	}

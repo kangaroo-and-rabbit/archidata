@@ -15,3 +15,12 @@ generic interface for all KAR web application
 
 
 
+Read instruction for tocken in ~/.m2/setting.xml
+
+release:
+
+mvn install
+mvn deploy
+
+
+

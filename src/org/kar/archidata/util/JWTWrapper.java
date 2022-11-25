@@ -110,11 +110,17 @@ public class JWTWrapper {
 	 * @param timeOutInMunites Expiration of the token.
 	 * @return the encoded token
 	 */
-	public static String generateJWToken(long userID, String userLogin, String isuer, int timeOutInMunites) {
+	public static String generateJWToken(long userID, String userLogin, String isuer, String application, int timeOutInMunites) {
 		if (rsaJWK == null) {
 			System.out.println("JWT private key is not present !!!");
 			return null;
 		}
+		/*
+		System.out.println(" ===> expire in : " + timeOutInMunites);
+		System.out.println(" ===>" + new Date().getTime());
+		System.out.println(" ===>" + new Date(new Date().getTime()));
+		System.out.println(" ===>" + new Date(new Date().getTime() - 60 * timeOutInMunites * 1000));
+		*/
 		try {
 			// Create RSA-signer with the private key
 			JWSSigner signer = new RSASSASigner(rsaJWK);
@@ -122,9 +128,10 @@ public class JWTWrapper {
 			JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
 			    .subject(Long.toString(userID))
 			    .claim("login", userLogin)
+			    .claim("application", application)
 			    .issuer(isuer)
 			    .issueTime(new Date())
-			    .expirationTime(new Date(new Date().getTime() + 60 * timeOutInMunites * 1000 /* millisecond */))
+			    .expirationTime(new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */)) // Do not ask why we need a "-" here ... this have no meaning
 			    .build();
 	
 			SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
@@ -139,7 +146,7 @@ public class JWTWrapper {
 		return null;
 	}
 
-	public static JWTClaimsSet validateToken(String signedToken, String isuer) {
+	public static JWTClaimsSet validateToken(String signedToken, String isuer, String application) {
 		if (rsaPublicJWK == null) {
 			System.out.println("JWT public key is not present !!!");
 			return null;
@@ -160,6 +167,9 @@ public class JWTWrapper {
 			if (!isuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
 				System.out.println("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'" );
 				return null;
+			}
+			if (application != null) {
+				// TODO: verify the token is used for the correct application.
 			}
 			// the element must be validated outside ...
 			//System.out.println("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");

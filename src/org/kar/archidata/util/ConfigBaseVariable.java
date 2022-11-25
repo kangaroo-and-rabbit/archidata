@@ -1,78 +1,77 @@
 package org.kar.archidata.util;
 
 public class ConfigBaseVariable {
-
+    static public String tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
+    static public String dataFolder = System.getenv("DATA_FOLDER");
+    static public String dbHost = System.getenv("DB_HOST");
+    static public String dbPort = System.getenv("DB_PORT");
+    static public String dbUser = System.getenv("DB_USER");
+    static public String dbPassword = System.getenv("DB_PASSWORD");
+    static public String bdDatabase = System.getenv("DB_DATABASE");
+    static public String apiAdress = System.getenv("API_ADDRESS");
+    static public String ssoAdress = System.getenv("SSO_ADDRESS");
+    
     public static String getTmpDataFolder() {
-        String out = System.getenv("DATA_TMP_FOLDER");
-        if (out == null) {
+        if (tmpDataFolder == null) {
             return "/application/data/tmp";
         }
-        return out;
+        return tmpDataFolder;
     }
 
     public static String getMediaDataFolder() {
-        String out = System.getenv("DATA_FOLDER");
-        if (out == null) {
+        if (dataFolder == null) {
             return "/application/data/media";
         }
-        return out;
+        return dataFolder;
     }
     
     public static String getDBHost() {
-        String out = System.getenv("DB_HOST");
-        if (out == null) {
+        if (dbHost == null) {
             return "localhost";
         }
-        return out;
+        return dbHost;
     }
 
     public static String getDBPort() {
-        String out = System.getenv("DB_PORT");
-        if (out == null) {
-            return "80";
-            //return "17036";
+        if (dbPort == null) {
+            return "3306";
         }
-        return out;
+        return dbPort;
     }
 
     public static String getDBLogin() {
-        String out = System.getenv("DB_USER");
-        if (out == null) {
+        if (dbUser == null) {
             return "root";
         }
-        return out;
+        return dbUser;
     }
 
     public static String getDBPassword() {
-        String out = System.getenv("DB_PASSWORD");
-        if (out == null) {
-            return "archidata_password";
+        if (dbPassword == null) {
+            return "base_db_password";
         }
-        return out;
+        return dbPassword;
     }
 
     public static String getDBName() {
-        String out = System.getenv("DB_DATABASE");
-        if (out == null) {
+        if (bdDatabase == null) {
             return "unknown";
         }
-        return out;
+        return bdDatabase;
     }
 
     public static String getlocalAddress() {
-        String out = System.getenv("API_ADDRESS");
-        if (out == null) {
+        if (apiAdress == null) {
             return "http://0.0.0.0:80/api/";
         }
-        return out;
+        return apiAdress;
     }
     
     public static String getSSOAddress() {
-        String out = System.getenv("SSO_ADDRESS");
-        if (out == null) {
-            return "http://sso_host/karauth/api/";
-            //return "http://192.168.1.156/karauth/api/";
+        if (ssoAdress == null) {
+            //return "http://sso_host/api/";
+            return "http://192.168.1.156/karauth/api/";
         }
-        return out;
+        return ssoAdress;
     }
 }

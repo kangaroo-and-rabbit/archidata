@@ -36,7 +36,7 @@ public class User {
     @SQLNotNull
     @SQLComment("Primary key of the base")
     public Long id = null;
-    @SQLLimitSize(256)
+    @SQLLimitSize(128)
     public String login = null;
     
     public Timestamp lastConnection = null;
@@ -49,5 +49,9 @@ public class User {
     @SQLDefault("'0'")
     @SQLNotNull
     public boolean removed = false;
+	@Override
+	public String toString() {
+		return "User [login=" + login + ", last=" + lastConnection + ", admin=" + admin + "]";
+	}
 
 }

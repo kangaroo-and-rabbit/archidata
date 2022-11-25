@@ -1,28 +1,25 @@
 package org.kar.archidata.filter;
 
 import java.lang.reflect.Method;
-import javax.annotation.security.DenyAll;
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
+import org.kar.archidata.annotation.security.DenyAll;
+import org.kar.archidata.annotation.security.PermitAll;
+import org.kar.archidata.annotation.security.RolesAllowed;
 
 
 import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ResourceInfo;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
 import org.kar.archidata.UserDB;
-import org.kar.archidata.annotation.PermitTokenInURI;
+import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.model.User;
-import org.kar.archidata.model.UserSmall;
 import org.kar.archidata.util.JWTWrapper;
 
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -68,10 +65,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
         // this is a security guard, all the API must define their access level:
         if(!method.isAnnotationPresent(RolesAllowed.class)) {
-        	System.out.println("   ==> missin @RolesAllowed " + requestContext.getUriInfo().getPath());
+        	System.out.println("   ==> missing @RolesAllowed " + requestContext.getUriInfo().getPath());
             requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Access ILLEGAL !!!").build());
             return;
-        	
         }
 
         // Get the Authorization header from the request
@@ -133,10 +129,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         try {
             user = validateToken(token);
         } catch (Exception e) {
+        	System.out.println("Fail to validate token: " + e.getMessage());
             abortWithUnauthorized(requestContext);
+            return;
         }
         if (user == null) {
+        	System.out.println("get a NULL user ...");
             abortWithUnauthorized(requestContext);
+            return;
         }
         // create the security context model:
         String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
@@ -183,7 +183,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private User validateToken(String authorization) throws Exception {
         System.out.println(" validate token : " + authorization);
-        JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth");
+        JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
         // check the token is valid !!! (signed and coherent issuer...
         if (ret == null) {
             System.out.println("The token is not valid: '" + authorization + "'");
