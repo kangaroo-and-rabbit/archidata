@@ -6,12 +6,6 @@ import org.kar.archidata.util.JWTWrapper;
 public class UpdateJwtPublicKey extends Thread {
 	boolean kill = false;
 	public void run() {
-		try {
-			Thread.sleep(1000*20, 0);
-		} catch (InterruptedException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
     	while (this.kill == false) {
     		// need to uppgrade when server call us...
 			try {

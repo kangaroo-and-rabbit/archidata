@@ -520,9 +520,42 @@ public class SqlWrapper {
         }
 	}
 
+	static void addElement(PreparedStatement ps, Object value, int iii) throws Exception {
+	    if (value.getClass() == Long.class) {
+		 		ps.setLong(iii, (Long)value);
+		} else if (value.getClass() == Integer.class) {
+		 		ps.setInt(iii, (Integer)value);
+		} else if (value.getClass() == String.class) {
+		 		ps.setString(iii, (String)value);
+		} else if (value.getClass() == Short.class) {
+		 		ps.setShort(iii, (Short)value);
+		} else if (value.getClass() == Byte.class) {
+		 		ps.setByte(iii, (Byte)value);
+		} else if (value.getClass() == Float.class) {
+		 		ps.setFloat(iii, (Float)value);
+		} else if (value.getClass() == Double.class) {
+		 		ps.setDouble(iii, (Double)value);
+		} else if (value.getClass() == Boolean.class) {
+		 		ps.setBoolean(iii, (Boolean)value);
+		} else if (value.getClass() == Boolean.class) {
+		 		ps.setBoolean(iii, (Boolean)value);
+		} else if (value.getClass() == Timestamp.class) {
+		 		ps.setTimestamp(iii, (Timestamp)value);
+		} else if (value.getClass() == Date.class) {
+		 		ps.setDate(iii, (Date)value);
+		} else {
+			throw new Exception("Not manage type ==> need to add it ...");
+		}
+	}
+	
 	public static <T> T getWith(Class<T> clazz, String key, String value) throws Exception {
-		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
-		
+		return getWhere(clazz, key, "=", value);
+	}
+
+	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
+		return getWhere(clazz, key, operator, value, null, null, null);
+	}
+	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, String key2, String operator2, Object value2 ) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         T out = null;
         // real add in the BDD:
@@ -535,13 +568,8 @@ public class SqlWrapper {
         	//query.append(" SET ");
 
    		 	boolean firstField = true;
-            Field primaryKeyField = null;
    		 	int count = 0;
    		 	for (Field elem : clazz.getFields()) {
-   		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
-				if (primaryKey) {
-					primaryKeyField = elem;
-				}
 				ModelLink linkGeneric = getLinkMode(elem);
 				if (linkGeneric != ModelLink.NONE) {
 					continue;
@@ -564,17 +592,28 @@ public class SqlWrapper {
 		        query.append(" ");
 		        query.append(tableName);
 		        query.append(".");
+		        
 		        query.append(name);
    		 	}
-   			query.append("\n FROM `");
+   			query.append(" FROM `");
 	        query.append(tableName);
    			query.append("` ");
-   		 	query.append("\n WHERE ");
+   		 	query.append(" WHERE ");
 	        query.append(tableName);
 	        query.append(".");
    			query.append(key);
-   			query.append(" = ?");
-   		 	query.append("\n LIMIT 1 ");
+   			query.append(" ");
+   			query.append(operator);
+   			query.append(" ?");
+   			if (key2 != null) {
+   		        query.append(" AND ");
+   		        query.append(tableName);
+   		        query.append(".");
+   	   			query.append(key2);
+   	   			query.append(" ");
+   	   			query.append(operator2);
+   	   			query.append(" ?");
+   			}
    			/*
    			query.append(" AND ");
 	        query.append(tableName);
@@ -585,7 +624,10 @@ public class SqlWrapper {
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
-   		 	ps.setString(iii++, value);
+            addElement(ps, value, iii++);
+   			if (key2 != null) {
+                addElement(ps, value2, iii++);
+   			}
             // execute the request
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -621,11 +663,9 @@ public class SqlWrapper {
         entry = null;
         return out;
 	}
-	
-	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
-
+	public static <T> List<T> getsWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        T out = null;
+        List<T> outs = new ArrayList<>();
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
@@ -683,31 +723,7 @@ public class SqlWrapper {
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
-            if (value.getClass() == Long.class) {
-   		 		ps.setLong(iii++, (Long)value);
-        	} else if (value.getClass() == Integer.class) {
-   		 		ps.setInt(iii++, (Integer)value);
-        	} else if (value.getClass() == String.class) {
-   		 		ps.setString(iii++, (String)value);
-        	} else if (value.getClass() == Short.class) {
-   		 		ps.setShort(iii++, (Short)value);
-        	} else if (value.getClass() == Byte.class) {
-   		 		ps.setByte(iii++, (Byte)value);
-        	} else if (value.getClass() == Float.class) {
-   		 		ps.setFloat(iii++, (Float)value);
-        	} else if (value.getClass() == Double.class) {
-   		 		ps.setDouble(iii++, (Double)value);
-        	} else if (value.getClass() == Boolean.class) {
-   		 		ps.setBoolean(iii++, (Boolean)value);
-        	} else if (value.getClass() == Boolean.class) {
-   		 		ps.setBoolean(iii++, (Boolean)value);
-        	} else if (value.getClass() == Timestamp.class) {
-   		 		ps.setTimestamp(iii++, (Timestamp)value);
-        	} else if (value.getClass() == Date.class) {
-   		 		ps.setDate(iii++, (Date)value);
-        	} else {
-        		throw new Exception("Not manage type ==> need to add it ...");
-        	}
+            addElement(ps, value, iii++);
             // execute the request
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -733,7 +749,8 @@ public class SqlWrapper {
     	           	setValueFromDb(elem.getType(), data, count, elem, rs);
     				count++;
        		 	}
-				out = (T)data;
+       		 	T out = (T)data;
+				outs.add(out);
             }
             
         } catch (SQLException ex) {
@@ -741,7 +758,7 @@ public class SqlWrapper {
         }
         entry.disconnect();
         entry = null;
-        return out;
+        return outs;
 	}
 	
 	public static <T> T get(Class<T> clazz, long id) throws Exception {
@@ -1009,6 +1026,22 @@ public class SqlWrapper {
     	String tableName = getTableName(clazz);
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         String query = "UPDATE `" + tableName + "` SET `modify_date`=now(3), `deleted`=true WHERE `id` = ?";
+        try {
+            PreparedStatement ps = entry.connection.prepareStatement(query);
+            int iii = 1;
+            ps.setLong(iii++, id);
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
+        } finally {
+            entry.disconnect();
+        }
+	}
+	public static void unsetDelete(Class<?> clazz, long id) throws Exception {
+    	String tableName = getTableName(clazz);
+        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        String query = "UPDATE `" + tableName + "` SET `modify_date`=now(3), `deleted`=false WHERE `id` = ?";
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query);
             int iii = 1;

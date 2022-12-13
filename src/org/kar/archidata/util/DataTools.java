@@ -73,43 +73,23 @@ public class DataTools {
     }
 
     public static Data getWithSha512(String sha512) {
-        System.out.println("find sha512 = " + sha512);
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "SELECT `id`, `deleted`, `sha512`, `mime_type`, `size` FROM `data` WHERE `sha512` = ?";
-        try {
-            PreparedStatement ps = entry.connection.prepareStatement(query);
-            ps.setString(1, sha512);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Data out = new Data(rs);
-                entry.disconnect();
-                return out;
-            }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        entry.disconnect();
-        return null;
-
+    	try {
+			return SqlWrapper.getWhere(Data.class, "sha512", "=", sha512);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return null;
     }
 
     public static Data getWithId(long id) {
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "SELECT `id`, `deleted`, `sha512`, `mime_type`, `size` FROM `data` WHERE `deleted` = false AND `id` = ?";
-        try {
-            PreparedStatement ps = entry.connection.prepareStatement(query);
-            ps.setLong(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                Data out = new Data(rs);
-                entry.disconnect();
-                return out;
-            }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        entry.disconnect();
-        return null;
+    	try {
+			return SqlWrapper.getWhere(Data.class, "deleted", "=", false, "id", "=", id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	return null;
     }
 
     public static Data createNewData(long tmpUID, String originalFileName, String sha512) throws IOException, SQLException {
@@ -141,41 +121,20 @@ public class DataTools {
         }
         String tmpPath = getTmpFileInData(tmpUID);
         long fileSize = Files.size(Paths.get(tmpPath));
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        long uniqueSQLID = -1;
+        Data out = new Data();;
         try {
-            // prepare the request:
-            String query = "INSERT INTO `data` (`sha512`, `mime_type`, `size`, `original_name`) VALUES (?, ?, ?, ?)";
-            PreparedStatement ps = entry.connection.prepareStatement(query,
-                    Statement.RETURN_GENERATED_KEYS);
-            int iii = 1;
-            ps.setString(iii++, sha512);
-            ps.setString(iii++, mimeType);
-            ps.setLong(iii++, fileSize);
-            ps.setString(iii++, originalFileName);
-            // execute the request
-            int affectedRows = ps.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Creating data failed, no rows affected.");
-            }
-            // retreive uid inserted
-            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    uniqueSQLID = generatedKeys.getLong(1);
-                } else {
-                    throw new SQLException("Creating user failed, no ID obtained (1).");
-                }
-            } catch (Exception ex) {
-                System.out.println("Can not get the UID key inserted ... ");
-                ex.printStackTrace();
-                throw new SQLException("Creating user failed, no ID obtained (2).");
-            }
+        	out.sha512 = sha512;
+        	out.mimeType = mimeType;
+        	out.size = fileSize;
+        	out = SqlWrapper.insert(out);
         } catch (SQLException ex) {
             ex.printStackTrace();
-        }
-        entry.disconnect();
-        System.out.println("Add Data raw done. uid data=" + uniqueSQLID);
-        Data out = getWithId(uniqueSQLID);
+            return null;
+        } catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+            return null;
+		}
 
         String mediaPath = getFileData(out.id);
         System.out.println("src = " + tmpPath);
@@ -183,22 +142,17 @@ public class DataTools {
         Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
 
         System.out.println("Move done");
-        // all is done the file is corectly installed...
-
+        // all is done the file is correctly installed...
         return out;
     }
 
     public static void undelete(Long id) {
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "UPDATE `data` SET `deleted` = false WHERE `id` = ?";
-        try {
-            PreparedStatement ps = entry.connection.prepareStatement(query);
-            ps.setLong(1, id);
-            ps.execute();
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
-        }
-        entry.disconnect();
+		try {
+			SqlWrapper.unsetDelete(Data.class, id);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     public static String saveTemporaryFile(InputStream uploadedInputStream, long idData) {

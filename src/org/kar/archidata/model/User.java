@@ -30,12 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @SQLTableName ("user")
 @SQLIfNotExists
 @JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
-public class User {
-    @SQLAutoIncrement // Add AUTO_INCREMENT modifier
-    @SQLPrimaryKey // Create a PRIMARY KEY based on this field
-    @SQLNotNull
-    @SQLComment("Primary key of the base")
-    public Long id = null;
+public class User extends GenericTable {
     @SQLLimitSize(128)
     public String login = null;
     

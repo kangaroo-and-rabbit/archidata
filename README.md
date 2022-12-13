@@ -19,6 +19,7 @@ Read instruction for tocken in ~/.m2/setting.xml
 
 release:
 
+export PATH=/usr/lib/jvm/java-18-openjdk/bin:$PATH
 mvn install
 mvn deploy
 
