@@ -277,19 +277,18 @@ public class DataResource {
                     build();
         }
         String filePathName = ConfigBaseVariable.getMediaDataFolder() + File.separator + id + File.separator + "data";
+        File inputFile = new File(filePathName);
+        if (!inputFile.exists()) {
+            return Response.status(404).
+                    entity("{\"error\":\"media Does not exist: " + id + "\"}").
+                    type("application/json").
+                    build();
+        }
         if (    value.mimeType.contentEquals("image/jpeg")
                 || value.mimeType.contentEquals("image/png")
         //        || value.mimeType.contentEquals("image/webp")
         ) {
             // reads input image
-        	//System.out.println("Read path: " + filePathName);
-            File inputFile = new File(filePathName);
-        	if (!inputFile.exists()) {
-                return Response.status(500).
-                        entity("Internal Error: Media is NOT FOUNDABLE: " + id).
-                        type("text/plain").
-                        build();
-        	}
             BufferedImage inputImage = ImageIO.read(inputFile);
             int scaledWidth = 250;
             int scaledHeight = (int)((float)inputImage.getHeight() / (float)inputImage.getWidth() * (float) scaledWidth);
@@ -305,7 +304,7 @@ public class DataResource {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try {
             	// TODO: check how to remove buffer file !!! here, it is not needed at all...
-				ImageIO.write( outputImage, "JPG", baos);
+			ImageIO.write( outputImage, "JPG", baos);
 			} catch (IOException e) {
 				e.printStackTrace();
                 return Response.status(500).

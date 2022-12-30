@@ -552,10 +552,16 @@ public class SqlWrapper {
 		return getWhere(clazz, key, "=", value);
 	}
 
+	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, boolean full ) throws Exception {
+		return getWhere(clazz, key, operator, value, null, null, null, full);
+	}
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
-		return getWhere(clazz, key, operator, value, null, null, null);
+		return getWhere(clazz, key, operator, value, null, null, null, false);
 	}
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, String key2, String operator2, Object value2 ) throws Exception {
+		return getWhere(clazz, key, operator, value, key2, operator2, value2, false);
+	}
+	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, String key2, String operator2, Object value2, boolean full ) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         T out = null;
         // real add in the BDD:
@@ -575,12 +581,12 @@ public class SqlWrapper {
 					continue;
 				}
 				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-				if (createTime) {
+				if (!full && createTime) {
 					continue;
 				}
 				String name = elem.getName();
 				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-				if (updateTime) {
+				if (!full && updateTime) {
 					continue;
 				}
 				count++;
@@ -639,12 +645,12 @@ public class SqlWrapper {
     					continue;
     				}
     				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-    				if (createTime) {
+    				if (!full && createTime) {
     					continue;
     				}
     				String name = elem.getName();
     				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-    				if (updateTime) {
+    				if (!full && updateTime) {
     					continue;
     				}
     	            //this.name = rs.getString(iii++);
@@ -785,7 +791,7 @@ public class SqlWrapper {
 		 return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
 	}
 	
-	public static <T> List<T> gets(Class<T> clazz, boolean fool) throws Exception {
+	public static <T> List<T> gets(Class<T> clazz, boolean full) throws Exception {
 		System.out.println("request get " + clazz.getCanonicalName() + " start @" + getCurrentTimeStamp());
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> out = new ArrayList<>();
@@ -805,7 +811,7 @@ public class SqlWrapper {
    		 	for (Field elem : clazz.getFields()) {
 				
 				boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
-				if (!fool && notRead) {
+				if (!full && notRead) {
 					autoClasify[indexAutoClasify++] = StateLoad.DISABLE;
 					continue;
 				}
@@ -899,7 +905,7 @@ public class SqlWrapper {
     				boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
     				*/
        		 		boolean notRead = autoClasify[indexAutoClasify] == StateLoad.DISABLE;
-    				if (!fool && notRead) {
+    				if (!full && notRead) {
     					indexAutoClasify++;
     					continue;
     				}
