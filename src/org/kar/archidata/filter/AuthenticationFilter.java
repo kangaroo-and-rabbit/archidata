@@ -59,7 +59,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         
         //Access allowed for all
         if( method.isAnnotationPresent(PermitAll.class)) {
-        	System.out.println("   ==> permit all " + requestContext.getUriInfo().getPath());
+        	//System.out.println("   ==> permit all " + requestContext.getUriInfo().getPath());
         	// no control ...
         	return;
         }

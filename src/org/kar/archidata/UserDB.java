@@ -3,6 +3,7 @@ package org.kar.archidata;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -25,7 +26,7 @@ public class UserDB {
         return getUsers(userId);
     }
 
-    private static void createUsersInfoFromOAuth(long userId, String login) {
+    private static void createUsersInfoFromOAuth(long userId, String login) throws IOException {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         String query = "INSERT INTO `user` (`id`, `login`, `lastConnection`, `admin`, `blocked`, `removed`) VALUE (?,?,now(3),'0','0','0')";
         try {
@@ -35,8 +36,9 @@ public class UserDB {
             ps.executeUpdate();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+        } finally {
+        	entry.close();
         }
-        entry.disconnect();
     }
 
 }

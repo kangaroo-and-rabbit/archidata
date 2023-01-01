@@ -2,9 +2,11 @@ package org.kar.archidata.db;
 
 import org.kar.archidata.model.User;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.sql.*;
 
-public class DBEntry {
+public class DBEntry implements Closeable {
     public DBConfig config;
     public Connection connection;
 
@@ -21,15 +23,6 @@ public class DBEntry {
         }
 
     }
-
-    public void disconnect() {
-        try {
-            //connection.commit();
-            connection.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-    }
 /*
     public void test() throws SQLException {
         String query = "SELECT * FROM user";
@@ -42,4 +35,15 @@ public class DBEntry {
         }
     }
    */
+
+	@Override
+	public void close() throws IOException {
+        try {
+            //connection.commit();
+            connection.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+		
+	}
 }

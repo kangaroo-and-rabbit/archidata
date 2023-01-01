@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -307,7 +306,7 @@ public class SqlWrapper {
 				query.append("?");
    		 	}
    		    query.append(")");
-   		    System.out.println("generate the querry: '" + query.toString() + "'");
+   		    // System.out.println("generate the querry: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             Field primaryKeyField = null;
@@ -382,6 +381,9 @@ public class SqlWrapper {
             //ps.execute();
         } catch (SQLException ex) {
             ex.printStackTrace();
+        } finally {
+        	entry.close();
+        	entry = null;
         }
         return data;
 	}
@@ -466,7 +468,7 @@ public class SqlWrapper {
    			query.append(primaryKeyField.getName());
    			query.append("` = ?");
    		 	firstField = true;
-   		    System.out.println("generate the querry: '" + query.toString() + "'");
+   		    // System.out.println("generate the querry: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
@@ -517,6 +519,9 @@ public class SqlWrapper {
             //ps.execute();
         } catch (SQLException ex) {
             ex.printStackTrace();
+        } finally {
+        	entry.close();
+        	entry = null;
         }
 	}
 
@@ -626,7 +631,7 @@ public class SqlWrapper {
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    System.out.println("generate the querry: '" + query.toString() + "'");
+   		    //System.out.println("generate the querry: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
@@ -664,12 +669,16 @@ public class SqlWrapper {
             
         } catch (SQLException ex) {
             ex.printStackTrace();
+        } finally {
+        	entry.close();
+        	entry = null;
         }
-        entry.disconnect();
-        entry = null;
         return out;
 	}
 	public static <T> List<T> getsWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
+		return getsWhere(clazz, key, operator, value, false);
+	}
+	public static <T> List<T> getsWhere(Class<T> clazz, String key, String operator, Object value, boolean full ) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
         // real add in the BDD:
@@ -689,12 +698,12 @@ public class SqlWrapper {
 					continue;
 				}
 				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-				if (createTime) {
+				if (!full && createTime) {
 					continue;
 				}
 				String name = elem.getName();
 				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-				if (updateTime) {
+				if (!full && updateTime) {
 					continue;
 				}
 				count++;
@@ -741,12 +750,12 @@ public class SqlWrapper {
     					continue;
     				}
     				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-    				if (createTime) {
+    				if (!full && createTime) {
     					continue;
     				}
     				String name = elem.getName();
     				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-    				if (updateTime) {
+    				if (!full && updateTime) {
     					continue;
     				}
     	            //this.name = rs.getString(iii++);
@@ -761,9 +770,10 @@ public class SqlWrapper {
             
         } catch (SQLException ex) {
             ex.printStackTrace();
+        } finally {
+        	entry.close();
+        	entry = null;
         }
-        entry.disconnect();
-        entry = null;
         return outs;
 	}
 	
@@ -929,9 +939,10 @@ public class SqlWrapper {
             
         } catch (SQLException ex) {
             ex.printStackTrace();
+        } finally {
+        	entry.close();
+        	entry = null;
         }
-        entry.disconnect();
-        entry = null;
         return out;
 	}
 
@@ -970,7 +981,8 @@ public class SqlWrapper {
             ex.printStackTrace();
             throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
         } finally {
-            entry.disconnect();
+        	entry.close();
+        	entry = null;
         }
 	}
 	public static void removeLink(Class<?> clazz, long localKey, String table, long remoteKey) throws Exception {
@@ -987,7 +999,8 @@ public class SqlWrapper {
         	ex.printStackTrace();
             throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
         } finally {
-            entry.disconnect();
+        	entry.close();
+        	entry = null;
         }
 	}
 
@@ -1041,7 +1054,8 @@ public class SqlWrapper {
             ex.printStackTrace();
             throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
         } finally {
-            entry.disconnect();
+        	entry.close();
+        	entry = null;
         }
 	}
 	public static void unsetDelete(Class<?> clazz, long id) throws Exception {
@@ -1057,7 +1071,8 @@ public class SqlWrapper {
             ex.printStackTrace();
             throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
         } finally {
-            entry.disconnect();
+        	entry.close();
+        	entry = null;
         }
 	}
 	
