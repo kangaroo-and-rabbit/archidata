@@ -552,139 +552,72 @@ public class SqlWrapper {
 			throw new Exception("Not manage type ==> need to add it ...");
 		}
 	}
-	
+	@Deprecated
 	public static <T> T getWith(Class<T> clazz, String key, String value) throws Exception {
-		return getWhere(clazz, key, "=", value);
+		return getWhere(clazz, List.of(new WhereCondition(key, "=", value)), false);
 	}
 
+	@Deprecated
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, boolean full ) throws Exception {
-		return getWhere(clazz, key, operator, value, null, null, null, full);
+		return getWhere(clazz, List.of(new WhereCondition(key, operator, value)), full);
 	}
+	@Deprecated
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
-		return getWhere(clazz, key, operator, value, null, null, null, false);
+		return getWhere(clazz, List.of(new WhereCondition(key, operator, value)), false);
 	}
+	@Deprecated
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, String key2, String operator2, Object value2 ) throws Exception {
-		return getWhere(clazz, key, operator, value, key2, operator2, value2, false);
+		return getWhere(clazz,
+				List.of(
+						new WhereCondition(key, operator, value),
+						new WhereCondition(key2, operator2, value2)
+						), false);
 	}
+	@Deprecated
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, String key2, String operator2, Object value2, boolean full ) throws Exception {
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+		return getWhere(clazz,
+				List.of(
+						new WhereCondition(key, operator, value),
+						new WhereCondition(key2, operator2, value2)
+						), full);
+	}
+	
+	public static <T> T getWhere(Class<T> clazz, List<WhereCondition> condition, boolean full ) throws Exception {
+		DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         T out = null;
         // real add in the BDD:
-        try {
-        	String tableName = getTableName(clazz);
-        	boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
-        	StringBuilder query = new StringBuilder();
-        	query.append("SELECT ");
-        	//query.append(tableName);
-        	//query.append(" SET ");
-
-   		 	boolean firstField = true;
-   		 	int count = 0;
-   		 	for (Field elem : clazz.getFields()) {
-				ModelLink linkGeneric = getLinkMode(elem);
-				if (linkGeneric != ModelLink.NONE) {
-					continue;
-				}
-				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-				if (!full && createTime) {
-					continue;
-				}
-				String name = elem.getName();
-				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-				if (!full && updateTime) {
-					continue;
-				}
-				count++;
-				if (firstField) {
-		        	firstField = false;
-				} else {
-		        	query.append(",");
-				}
-		        query.append(" ");
-		        query.append(tableName);
-		        query.append(".");
-		        
-		        query.append(name);
-   		 	}
-   			query.append(" FROM `");
-	        query.append(tableName);
-   			query.append("` ");
-   		 	query.append(" WHERE ");
-	        query.append(tableName);
-	        query.append(".");
-   			query.append(key);
-   			query.append(" ");
-   			query.append(operator);
-   			query.append(" ?");
-   			if (key2 != null) {
-   		        query.append(" AND ");
-   		        query.append(tableName);
-   		        query.append(".");
-   	   			query.append(key2);
-   	   			query.append(" ");
-   	   			query.append(operator2);
-   	   			query.append(" ?");
-   			}
-   			/*
-   			query.append(" AND ");
-	        query.append(tableName);
-   			query.append(".deleted = false ");
-   			*/
-   		 	firstField = true;
-   		    //System.out.println("generate the querry: '" + query.toString() + "'");
-            // prepare the request:
-            PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
-            int iii = 1;
-            addElement(ps, value, iii++);
-   			if (key2 != null) {
-                addElement(ps, value2, iii++);
-   			}
-            // execute the request
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-            	Object data = clazz.getConstructors()[0].newInstance();
-            	count = 1;
-       		 	for (Field elem : clazz.getFields()) {
-    				ModelLink linkGeneric = getLinkMode(elem);
-    				if (linkGeneric != ModelLink.NONE) {
-    					continue;
-    				}
-    				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
-    				if (!full && createTime) {
-    					continue;
-    				}
-    				String name = elem.getName();
-    				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
-    				if (!full && updateTime) {
-    					continue;
-    				}
-    	            //this.name = rs.getString(iii++);
-    	            //this.description = rs.getString(iii++);
-    	           	//this.covers = getListOfIds(rs, iii++);
-    	           	setValueFromDb(elem.getType(), data, count, elem, rs);
-    				count++;
-       		 	}
-				out = (T)data;
-            }
-            
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        } finally {
-        	entry.close();
-        	entry = null;
+        
+        List<T> values = getsWhere(clazz, condition, full, 1);
+        if (values.size() == 0) {
+        	return null;
         }
-        return out;
+        return values.get(0);
 	}
+	@Deprecated
 	public static <T> List<T> getsWhere(Class<T> clazz, String key, String operator, Object value ) throws Exception {
-		return getsWhere(clazz, key, operator, value, false);
+		return getsWhere(clazz, List.of(new WhereCondition(key, operator, value)), null, false, null);	
 	}
+	@Deprecated
 	public static <T> List<T> getsWhere(Class<T> clazz, String key, String operator, Object value, boolean full ) throws Exception {
+		return getsWhere(clazz, List.of(new WhereCondition(key, operator, value)), null, full, null);	
+	}
+
+	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition) throws Exception {
+		return getsWhere(clazz, condition, null, false, null);
+	}
+	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, boolean full ) throws Exception {
+		return getsWhere(clazz, condition, null, full, null);
+	}
+	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, boolean full, Integer linit) throws Exception {
+		return getsWhere(clazz, condition, null, full, linit);
+	}
+	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, String orderBy, boolean full, Integer linit) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
-        	boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+        	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
         	query.append("SELECT ");
         	//query.append(tableName);
@@ -722,23 +655,45 @@ public class SqlWrapper {
 	        query.append(tableName);
    			query.append("` ");
    		 	query.append(" WHERE ");
-	        query.append(tableName);
-	        query.append(".");
-   			query.append(key);
-   			query.append(" ");
-   			query.append(operator);
-   			query.append(" ?");
+   		 	if (condition.size() == 0) {
+   		 		throw new ExceptionDBInterface(4575643, tableName + " ==> request where without parameters");
+   		 	}
+   		 	boolean first = true;
+   		 	for (WhereCondition elem : condition) {
+   		 		if (first) {
+   		 			first = false;
+   		 		} else {
+   		 			query.append(" AND ");
+   		 		}
+		        query.append(tableName);
+		        query.append(".");
+	   			query.append(elem.key());
+	   			query.append(" ");
+	   			query.append(elem.comparator());
+	   			query.append(" ?");
+   		 	}
+   		 	if (orderBy != null && orderBy.length() >= 1) {
+   		 		query.append(" ORDER BY ");
+		        //query.append(tableName);
+		        //query.append(".");
+   		 		query.append(orderBy);
+   		 	}
+   		 	if (linit != null && linit >= 1) {
+   		 		query.append(" LIMIT " + linit);
+   		 	}
    			/*
    			query.append(" AND ");
 	        query.append(tableName);
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    System.out.println("generate the querry: '" + query.toString() + "'");
+   		    System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
-            addElement(ps, value, iii++);
+   		 	for (WhereCondition elem : condition) {
+   		 		addElement(ps, elem.Value(), iii++);   		 		
+   		 	}
             // execute the request
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -758,17 +713,16 @@ public class SqlWrapper {
     				if (!full && updateTime) {
     					continue;
     				}
-    	            //this.name = rs.getString(iii++);
-    	            //this.description = rs.getString(iii++);
-    	           	//this.covers = getListOfIds(rs, iii++);
     	           	setValueFromDb(elem.getType(), data, count, elem, rs);
     				count++;
        		 	}
        		 	T out = (T)data;
 				outs.add(out);
             }
-            
+
         } catch (SQLException ex) {
+            ex.printStackTrace();
+        } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
         	entry.close();
