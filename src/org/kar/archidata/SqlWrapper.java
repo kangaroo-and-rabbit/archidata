@@ -557,7 +557,7 @@ public class SqlWrapper {
 		return getWhere(clazz, List.of(new WhereCondition(key, "=", value)), false);
 	}
 
-	@Deprecated
+	// keep the simple ... 
 	public static <T> T getWhere(Class<T> clazz, String key, String operator, Object value, boolean full ) throws Exception {
 		return getWhere(clazz, List.of(new WhereCondition(key, operator, value)), full);
 	}
@@ -687,7 +687,7 @@ public class SqlWrapper {
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    System.out.println("generate the query: '" + query.toString() + "'");
+   		    //System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
