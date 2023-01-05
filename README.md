@@ -49,9 +49,10 @@ edit file: ```~/.m2/settings.xml```
 release:
 ========
 
+```
 export PATH=/usr/lib/jvm/java-18-openjdk/bin:$PATH
 mvn install
 mvn deploy
-
+```
 
 

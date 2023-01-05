@@ -583,10 +583,6 @@ public class SqlWrapper {
 	}
 	
 	public static <T> T getWhere(Class<T> clazz, List<WhereCondition> condition, boolean full ) throws Exception {
-		DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        T out = null;
-        // real add in the BDD:
-        
         List<T> values = getsWhere(clazz, condition, full, 1);
         if (values.size() == 0) {
         	return null;
