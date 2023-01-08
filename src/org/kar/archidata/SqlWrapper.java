@@ -395,7 +395,7 @@ public class SqlWrapper {
         return insert(data);
 	}
     
-	public static <T> void update(Class<T> clazz, long id, String jsonData) throws Exception {
+	public static <T> int update(Class<T> clazz, long id, String jsonData) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         // parse the object to be sure the data are valid:
         T data = mapper.readValue(jsonData, clazz);
@@ -404,10 +404,19 @@ public class SqlWrapper {
         List<String> keys = new ArrayList<>();
         Iterator<String> iterator = root.fieldNames();
         iterator.forEachRemaining(e -> keys.add(e));
-        update(data, id, keys);
+        return update(data, id, keys);
 	}
 	
-	public static <T> void update(T data, long id, List<String> filterValue) throws Exception {
+	/**
+	 * 
+	 * @param <T>
+	 * @param data
+	 * @param id
+	 * @param filterValue
+	 * @return the affected rows.
+	 * @throws Exception
+	 */
+	public static <T> int update(T data, long id, List<String> filterValue) throws Exception {
 		Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
 		
@@ -515,14 +524,14 @@ public class SqlWrapper {
    		 	ps.setLong(iii++, id);
             // execute the request
             int affectedRows = ps.executeUpdate();
-            // todo manage the list of element is valid ...
-            //ps.execute();
+            return affectedRows;
         } catch (SQLException ex) {
             ex.printStackTrace();
         } finally {
         	entry.close();
         	entry = null;
         }
+        return 0;
 	}
 
 	static void addElement(PreparedStatement ps, Object value, int iii) throws Exception {

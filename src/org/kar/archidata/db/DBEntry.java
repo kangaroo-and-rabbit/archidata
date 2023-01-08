@@ -1,7 +1,5 @@
 package org.kar.archidata.db;
 
-import org.kar.archidata.model.User;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.*;
@@ -10,16 +8,16 @@ public class DBEntry implements Closeable {
     public DBConfig config;
     public Connection connection;
 
-    public DBEntry(DBConfig config) {
+    public DBEntry(DBConfig config) throws IOException {
         this.config = config;
         connect();
     }
 
-    public void connect() {
+    public void connect() throws IOException {
         try {
             connection = DriverManager.getConnection(config.getUrl(), config.getLogin(), config.getPassword());
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            throw new IOException("Connection db fail: " + ex.getMessage());
         }
 
     }
@@ -42,7 +40,7 @@ public class DBEntry implements Closeable {
             //connection.commit();
             connection.close();
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            throw new IOException("Dis-connection db fail: " + ex.getMessage());
         }
 		
 	}

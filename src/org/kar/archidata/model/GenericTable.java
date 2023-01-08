@@ -26,10 +26,12 @@ public class GenericTable {
     @SQLCreateTime
     @SQLNotNull
     @SQLComment("Create time of the object")
+    @SQLDefault("now()")
 	public Timestamp create_date = null;
     @SQLNotRead
     @SQLUpdateTime
     @SQLNotNull
     @SQLComment("When update the object")
+    @SQLDefault("now()")
 	public Timestamp modify_date = null;
 }
