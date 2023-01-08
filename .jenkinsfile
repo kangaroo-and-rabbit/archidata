@@ -1,0 +1,31 @@
+pipeline {
+  agent any
+  environment {
+    REGISTRY_ADDRESS = "gitea.atria-soft.org"
+    REGISTRY_ADDRESS_FULL = "https://${REGISTRY_ADDRESS}"
+    REPOSITORY_BASE_NAME = 'kangaroo-and-rabbit/archidata'
+    TAG_DOCKER = getEnvName(env.BRANCH_NAME)
+  }
+  stages {
+    stage('save-evironment') {
+      steps {
+        sh 'ls -la'
+        sh 'pwd'
+        sh 'uname -a'
+        sh 'printenv | sort'
+        //sh 'cat version.txt'
+        sh 'git log -n 20'
+        sh 'javac --version'
+      }
+    }
+  }
+}
+
+def getEnvName(branchName) {
+  if("master".equals(branchName)) {
+    return "latest";
+  } else if("dev".equals(branchName)) {
+    return "dev";
+  }
+  return "other";
+}
