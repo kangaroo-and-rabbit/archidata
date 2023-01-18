@@ -22,11 +22,11 @@ import org.kar.archidata.annotation.SQLLimitSize;
 import org.kar.archidata.annotation.SQLNotNull;
 import org.kar.archidata.annotation.SQLTableName;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @SQLTableName ("user")
 @SQLIfNotExists
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class User extends GenericTable {
     @SQLLimitSize(128)
     public String login = null;

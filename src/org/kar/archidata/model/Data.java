@@ -1,20 +1,17 @@
 package org.kar.archidata.model;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import org.kar.archidata.annotation.SQLComment;
 import org.kar.archidata.annotation.SQLIfNotExists;
 import org.kar.archidata.annotation.SQLLimitSize;
 import org.kar.archidata.annotation.SQLNotNull;
 import org.kar.archidata.annotation.SQLTableName;
-import org.kar.archidata.model.GenericTable;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @SQLTableName ("data")
 @SQLIfNotExists
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends GenericTable {
 
     @SQLNotNull

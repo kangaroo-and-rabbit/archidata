@@ -244,7 +244,7 @@ public class SqlWrapper {
 		}
 		return decorators[0].value();
 	}
-	
+
 	public static <T> T insert(T data) throws Exception {
 		Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String descrition, Long parentId) {
@@ -306,7 +306,7 @@ public class SqlWrapper {
 				query.append("?");
    		 	}
    		    query.append(")");
-   		    // System.out.println("generate the querry: '" + query.toString() + "'");
+   		    // System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             Field primaryKeyField = null;
@@ -357,7 +357,7 @@ public class SqlWrapper {
                 throw new SQLException("Creating node failed, no rows affected.");
             }
             Long uniqueSQLID = null;
-            // retreive uid inserted
+            // Retrieve uid inserted
             try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     uniqueSQLID = generatedKeys.getLong(1);
