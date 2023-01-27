@@ -10,6 +10,7 @@ public class ConfigBaseVariable {
     static public String bdDatabase = System.getenv("DB_DATABASE");
     static public String apiAdress = System.getenv("API_ADDRESS");
     static public String ssoAdress = System.getenv("SSO_ADDRESS");
+    static public String ssoToken = System.getenv("SSO_TOKEN");
     
     public static String getTmpDataFolder() {
         if (tmpDataFolder == null) {
@@ -73,5 +74,8 @@ public class ConfigBaseVariable {
             return "http://192.168.1.156/karso/api/";
         }
         return ssoAdress;
+    }
+    public static String ssoToken() {
+        return ssoToken;
     }
 }

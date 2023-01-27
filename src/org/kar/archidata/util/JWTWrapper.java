@@ -46,6 +46,10 @@ public class JWTWrapper {
         con.setRequestProperty("Cache-Control", "no-cache");
         con.setRequestProperty("Content-Type", "application/json");
         con.setRequestProperty("Accept", "application/json");
+        String ssoToken = ConfigBaseVariable.ssoToken();
+        if (ssoToken != null) {
+        	con.setRequestProperty("Authorization", "Zota " + ssoToken);
+        }
         int responseCode = con.getResponseCode();
 
         System.out.println("GET Response Code :: " + responseCode);
@@ -95,11 +99,18 @@ public class JWTWrapper {
 		}
 		
 	}
-	public static String getPublicKey() {
+	public static String getPublicKeyJson() {
 		if (rsaPublicJWK == null) {
 			return null;
 		}
 		return rsaPublicJWK.toJSONString();
+	}
+	public static java.security.interfaces.RSAPublicKey getPublicKeyJava() throws JOSEException {
+		if (rsaPublicJWK == null) {
+			return null;
+		}
+		// Convert back to std Java interface
+		return rsaPublicJWK.toRSAPublicKey();
 	}
 	
 	/**

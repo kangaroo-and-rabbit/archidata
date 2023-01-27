@@ -2,6 +2,7 @@ package org.kar.archidata.filter;
 
 
 import org.kar.archidata.model.User;
+import org.kar.archidata.model.UserByToken;
 
 import javax.ws.rs.core.SecurityContext;
 import java.security.Principal;
@@ -12,8 +13,8 @@ class MySecurityContext implements SecurityContext {
     private final GenericContext contextPrincipale;
     private final String sheme;
 
-    public MySecurityContext(User user, String sheme) {
-        this.contextPrincipale = new GenericContext(user);
+    public MySecurityContext(User user, UserByToken userByToken, String sheme) {
+        this.contextPrincipale = new GenericContext(user, userByToken);
         this.sheme = sheme;
     }
 
@@ -24,24 +25,36 @@ class MySecurityContext implements SecurityContext {
 
     @Override
     public boolean isUserInRole(String role) {
-        if (role.contentEquals("ADMIN")) {
-            return contextPrincipale.user.admin == true;
+    	if (contextPrincipale.user != null) {
+	        if (role.contentEquals("ADMIN")) {
+	            return contextPrincipale.user.admin == true;
+	        }
+	        if (role.contentEquals("USER")) {
+	        	// if not an admin, this is a user...
+	            return true; //contextPrincipale.user.admin == false;
+	        }
         }
-        if (role.contentEquals("USER")) {
-        	// if not an admin, this is a user...
-            return true; //contextPrincipale.user.admin == false;
-        }
+    	if (contextPrincipale.userByToken != null) {
+    		Boolean value = this.contextPrincipale.userByToken.right.get(role);
+    		return value == true;
+    	}
         return false;
     }
 
     @Override
     public boolean isSecure() {
-        return true;
+        return sheme.equalsIgnoreCase("https");
     }
 
     @Override
     public String getAuthenticationScheme() {
-        return "Yota";
+    	if (contextPrincipale.user != null) {
+    		return "Yota";
+    	}
+    	if (contextPrincipale.userByToken != null) {
+    		return "Zota";
+    	}
+        return null;
     }
 
 }

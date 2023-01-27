@@ -20,6 +20,7 @@ import javax.ws.rs.ext.Provider;
 import org.kar.archidata.UserDB;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.model.User;
+import org.kar.archidata.model.UserByToken;
 import org.kar.archidata.util.JWTWrapper;
 
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -40,6 +41,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	private ResourceInfo resourceInfo;
     
     private static final String AUTHENTICATION_SCHEME = "Yota";
+    private static final String AUTHENTICATION_TOKEN_SCHEME = "Zota";
 
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
@@ -84,63 +86,68 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             	}
             }
         }
-        //System.out.println("authorizationHeader: " + authorizationHeader);
-        
-        
-        /*
-        System.out.println("   -------------------------------");
-        // this get the parameters inside the pre-parsed element in the request ex: @Path("thumbnail/{id}") generate a map with "id"
-        MultivaluedMap<String, String> pathparam = requestContext.getUriInfo().getPathParameters(); 
-        for (Entry<String, List<String>> item: pathparam.entrySet()) {
-            System.out.println("  param: " + item.getKey() + " ==>" + item.getValue());
-        }
-        System.out.println("   -------------------------------");
-        // need to add "@QueryParam("p") String token, " in the model
-        //MultivaluedMap<String, String> quaryparam = requestContext.getUriInfo().getQueryParameters();
-        for (Entry<String, List<String>> item: quaryparam.entrySet()) {
-            System.out.println("  query: " + item.getKey() + " ==>" + item.getValue());
-        }
-        System.out.println("   -------------------------------");
-        List<PathSegment> segments = requestContext.getUriInfo().getPathSegments();
-        for (final PathSegment item: segments) {
-            System.out.println("  query: " + item.getPath() + " ==>" + item.getMatrixParameters());
-        }
-        System.out.println("   -------------------------------");
-        MultivaluedMap<String, String> headers = requestContext.getHeaders(); 
-        for (Entry<String, List<String>> item: headers.entrySet()) {
-            System.out.println("  headers: " + item.getKey() + " ==>" + item.getValue());
-        }
-        System.out.println("   -------------------------------");
-		*/
-        // Validate the Authorization header data Model "Yota userId:token"
-        if (!isTokenBasedAuthentication(authorizationHeader)) {
+        // System.out.println("authorizationHeader: " + authorizationHeader);
+        boolean isApplicationToken = isApplicationTokenBasedAuthentication(authorizationHeader);
+        boolean isJwtToken = isTokenBasedAuthentication(authorizationHeader);
+        // Validate the Authorization header data Model "Yota jwt.to.ken" "Zota tokenId:hash(token)"
+        if (!isApplicationToken && !isJwtToken) {
         	System.out.println("REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
             abortWithUnauthorized(requestContext);
             return;
         }
-        // check JWT token (basic:)
-
-        // Extract the token from the Authorization header (Remove "Yota ")
-        String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
-        System.out.println("token: " + token);
-        
-        
         User user = null;
-        try {
-            user = validateToken(token);
-        } catch (Exception e) {
-        	System.out.println("Fail to validate token: " + e.getMessage());
-            abortWithUnauthorized(requestContext);
-            return;
-        }
-        if (user == null) {
-        	System.out.println("get a NULL user ...");
-            abortWithUnauthorized(requestContext);
-            return;
+        UserByToken userByToken = null;
+        if (isJwtToken) {
+            // Extract the token from the Authorization header (Remove "Yota ")
+        	String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
+            //System.out.println("token: " + token);
+	        try {
+	            user = validateJwtToken(token);
+	        } catch (Exception e) {
+	        	System.out.println("Fail to validate token: " + e.getMessage());
+	            abortWithUnauthorized(requestContext);
+	            return;
+	        }
+	        if (user == null) {
+	        	System.out.println("get a NULL user ...");
+	            abortWithUnauthorized(requestContext);
+	            return;
+	        }
+	        // We are in transition phase the user element will be removed
+            userByToken = new UserByToken();
+            userByToken.id = user.id;
+            userByToken.name = user.login;
+            userByToken.parentId = null;
+            userByToken.type = UserByToken.TYPE_USER;
+            if (user.removed || user.blocked) {
+	            userByToken.type = null;
+        	} else if (user.admin) { 
+        		userByToken.right.put("ADMIN", true);
+        		userByToken.right.put("USER", true);
+        	} else {
+        		userByToken.right.put("USER", true);
+        	}
+        } else {
+            // Extract the token from the Authorization header (Remove "Zota ")
+        	String token = authorizationHeader.substring(AUTHENTICATION_TOKEN_SCHEME.length()).trim();
+            //System.out.println("token: " + token);
+	        try {
+	        	userByToken = validateToken(token);
+	        } catch (Exception e) {
+	        	System.out.println("Fail to validate token: " + e.getMessage());
+	            abortWithUnauthorized(requestContext);
+	            return;
+	        }
+	        if (userByToken == null) {
+	        	System.out.println("get a NULL application ...");
+	            abortWithUnauthorized(requestContext);
+	            return;
+	        }
+        	
         }
         // create the security context model:
         String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
-        MySecurityContext userContext = new MySecurityContext(user, scheme);
+        MySecurityContext userContext = new MySecurityContext(user, userByToken, scheme);
         // retrieve the allowed right:
         RolesAllowed rolesAnnotation = method.getAnnotation(RolesAllowed.class);
         List<String> roles = Arrays.asList(rolesAnnotation.value());
@@ -152,7 +159,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         		break;
         	}
         }
-        
         //Is user valid?
         if( ! haveRight) {
         	System.out.println("REJECTED not enought right : " + requestContext.getUriInfo().getPath() + " require: " + roles);
@@ -160,7 +166,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return;
         }
         requestContext.setSecurityContext(userContext);
-        System.out.println("Get local user : " + user);
+        // System.out.println("Get local user : " + user + " / " + userByToken);
     }
     
     private boolean isTokenBasedAuthentication(String authorizationHeader) {
@@ -169,6 +175,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // The authentication scheme comparison must be case-insensitive
         return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
     }
+    
+    private boolean isApplicationTokenBasedAuthentication(String authorizationHeader) {
+        // Check if the Authorization header is valid
+        // It must not be null and must be prefixed with "Bearer" plus a whitespace
+        // The authentication scheme comparison must be case-insensitive
+        return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_TOKEN_SCHEME.toLowerCase() + " ");
+    }
+
 
     private void abortWithUnauthorized(ContainerRequestContext requestContext) {
 
@@ -181,7 +195,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                         .build());
     }
 
-    private User validateToken(String authorization) throws Exception {
+    protected UserByToken validateToken(String authorization) throws Exception {
+    	System.out.println("dsfgsdgsdfgsdgf");
+    	return null;
+    }
+    // must be override to be good implemenres
+    protected User validateJwtToken(String authorization) throws Exception {
         System.out.println(" validate token : " + authorization);
         JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
         // check the token is valid !!! (signed and coherent issuer...

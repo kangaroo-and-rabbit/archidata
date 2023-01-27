@@ -3,16 +3,7 @@ package org.kar.archidata.model;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/*
-CREATE TABLE `token` (
-  `id` bigint NOT NULL COMMENT 'Unique ID of the TOKEN' AUTO_INCREMENT PRIMARY KEY,
-  `userId` bigint NOT NULL COMMENT 'Unique ID of the user',
-  `token` varchar(128) COLLATE 'latin1_bin' NOT NULL COMMENT 'Token (can be not unique)',
-  `createTime` datetime NOT NULL COMMENT 'Time the token has been created',
-  `endValidityTime` datetime NOT NULL COMMENT 'Time of the token end validity'
-) AUTO_INCREMENT=10;
 
- */
 public class Token {
     public Long id;
     public Long userId;

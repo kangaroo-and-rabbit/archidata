@@ -616,6 +616,45 @@ public class SqlWrapper {
 	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, boolean full, Integer linit) throws Exception {
 		return getsWhere(clazz, condition, null, full, linit);
 	}
+	public static void whereAppendQuery(StringBuilder query, String tableName, List<WhereCondition> condition, boolean exclude_deleted) throws ExceptionDBInterface {
+		// Check if we have a condition to generate
+		if (condition == null || condition.size() == 0)	{
+			return;
+		}
+		query.append(" WHERE ");
+	 	boolean first = true;
+	 	for (WhereCondition elem : condition) {
+	 		if (first) {
+	 			first = false;
+	 		} else {
+	 			query.append(" AND ");
+	 		}
+	        query.append(tableName);
+	        query.append(".");
+   			query.append(elem.key());
+   			query.append(" ");
+   			query.append(elem.comparator());
+   			query.append(" ?");
+	 	}
+	 	if (exclude_deleted) {
+		 	if (!first) {
+	 			query.append(" AND ");
+	 		}
+	        query.append(tableName);
+	        query.append(".deleted = false ");
+	 	}	
+	}
+	public static void whereInjectValue(PreparedStatement ps, List<WhereCondition> condition) throws Exception {
+		// Check if we have a condition to generate
+		if (condition == null || condition.size() == 0)	{
+			return;
+		}
+		int iii = 1;
+	 	for (WhereCondition elem : condition) {
+	 		addElement(ps, elem.Value(), iii++);   		 		
+	 	}
+	}
+	
 	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, String orderBy, boolean full, Integer linit) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
@@ -659,24 +698,7 @@ public class SqlWrapper {
    			query.append(" FROM `");
 	        query.append(tableName);
    			query.append("` ");
-   		 	query.append(" WHERE ");
-   		 	if (condition.size() == 0) {
-   		 		throw new ExceptionDBInterface(4575643, tableName + " ==> request where without parameters");
-   		 	}
-   		 	boolean first = true;
-   		 	for (WhereCondition elem : condition) {
-   		 		if (first) {
-   		 			first = false;
-   		 		} else {
-   		 			query.append(" AND ");
-   		 		}
-		        query.append(tableName);
-		        query.append(".");
-	   			query.append(elem.key());
-	   			query.append(" ");
-	   			query.append(elem.comparator());
-	   			query.append(" ?");
-   		 	}
+   			whereAppendQuery(query, tableName, condition, true);
    		 	if (orderBy != null && orderBy.length() >= 1) {
    		 		query.append(" ORDER BY ");
 		        //query.append(tableName);
@@ -695,10 +717,7 @@ public class SqlWrapper {
    		    //System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
-            int iii = 1;
-   		 	for (WhereCondition elem : condition) {
-   		 		addElement(ps, elem.Value(), iii++);   		 		
-   		 	}
+            whereInjectValue(ps, condition);
             // execute the request
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -1000,35 +1019,51 @@ public class SqlWrapper {
 	public static void delete(Class<?> clazz, long id) throws Exception {
 		// TODO: I am not sure this is a real good idea.
 	}
-	public static void setDelete(Class<?> clazz, long id) throws Exception {
+	public static int setDelete(Class<?> clazz, long id) throws Exception {
+        return setDeleteWhere(clazz, List.of(
+        		new WhereCondition("id", "=", id)
+        	));
+	}
+
+	public static int setDeleteWhere(Class<?> clazz, List<WhereCondition> condition) throws Exception {
     	String tableName = getTableName(clazz);
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "UPDATE `" + tableName + "` SET `modify_date`=now(3), `deleted`=true WHERE `id` = ?";
+        StringBuilder query = new StringBuilder();
+        query.append("UPDATE `");
+        query.append(tableName);
+        query.append("` SET `modify_date`=now(3), `deleted`=true ");
+        whereAppendQuery(query, tableName, condition, false);
         try {
-            PreparedStatement ps = entry.connection.prepareStatement(query);
-            int iii = 1;
-            ps.setLong(iii++, id);
-            ps.executeUpdate();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
+            PreparedStatement ps = entry.connection.prepareStatement(query.toString());
+            whereInjectValue(ps, condition);
+            int affectedRows = ps.executeUpdate();
+            return affectedRows;
         } finally {
         	entry.close();
         	entry = null;
         }
 	}
-	public static void unsetDelete(Class<?> clazz, long id) throws Exception {
+    
+	
+	public static int unsetDelete(Class<?> clazz, long id) throws Exception {
+        return unsetDeleteWhere(clazz, List.of(
+        		new WhereCondition("id", "=", id)
+        	));
+	}
+	
+	public static int unsetDeleteWhere(Class<?> clazz, List<WhereCondition> condition) throws Exception {
     	String tableName = getTableName(clazz);
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "UPDATE `" + tableName + "` SET `modify_date`=now(3), `deleted`=false WHERE `id` = ?";
+        StringBuilder query = new StringBuilder();
+        query.append("UPDATE `");
+        query.append(tableName);
+        query.append("` SET `modify_date`=now(3), `deleted`=false ");
+        whereAppendQuery(query, tableName, condition, false);
         try {
-            PreparedStatement ps = entry.connection.prepareStatement(query);
-            int iii = 1;
-            ps.setLong(iii++, id);
-            ps.executeUpdate();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            throw new ExceptionDBInterface(500, "SQL error: " + ex.getMessage());
+            PreparedStatement ps = entry.connection.prepareStatement(query.toString());
+            whereInjectValue(ps, condition);
+            int affectedRows = ps.executeUpdate();
+            return affectedRows;
         } finally {
         	entry.close();
         	entry = null;
@@ -1227,5 +1262,6 @@ public class SqlWrapper {
 		}
 		return ((SQLLimitSize) annotation[0]).value();
 	}
+
 
 }
