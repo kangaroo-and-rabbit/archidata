@@ -387,11 +387,12 @@ public class SqlWrapper {
         }
         return data;
 	}
-
+	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
 	public static <T> T insertWithJson(Class<T> clazz, String jsonData) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         // parse the object to be sure the data are valid:
         T data = mapper.readValue(jsonData, clazz);
+        
         return insert(data);
 	}
     
