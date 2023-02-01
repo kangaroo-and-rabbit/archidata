@@ -1,5 +1,6 @@
 package org.kar.archidata;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import org.kar.archidata.annotation.SQLTableLinkGeneric.ModelLink;
 import org.kar.archidata.annotation.SQLTableName;
 import org.kar.archidata.annotation.SQLUpdateTime;
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.util.ConfigBaseVariable;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,29 +48,56 @@ public class SqlWrapper {
 	}
 	
 	public static String convertTypeInSQL(Class<?> type) throws Exception {
-		if (type == Long.class || type == long.class ) {
-			return "bigint";
-		}
-		if (type == Integer.class || type == int.class ) {
-			return "int";
-		}
-		if (type == Boolean.class || type == boolean.class) {
-			return "tinyint(1)";
-		}
-		if (type == Float.class || type == float.class) {
-			return "float";
-		}
-		if (type == Double.class || type == double.class) {
-			return "double";
-		}
-		if (type == Timestamp.class) {
-			return "timestamp(3)";
-		}
-		if (type == Date.class) {
-			return "date";
-		}
-		if (type == String.class) {
-			return "text";
+		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+			if (type == Long.class || type == long.class ) {
+				return "bigint";
+			}
+			if (type == Integer.class || type == int.class ) {
+				return "int";
+			}
+			if (type == Boolean.class || type == boolean.class) {
+				return "tinyint(1)";
+			}
+			if (type == Float.class || type == float.class) {
+				return "float";
+			}
+			if (type == Double.class || type == double.class) {
+				return "double";
+			}
+			if (type == Timestamp.class) {
+				return "timestamp(3)";
+			}
+			if (type == Date.class) {
+				return "date";
+			}
+			if (type == String.class) {
+				return "text";
+			}
+		} else {
+			if (type == Long.class || type == long.class ) {
+				return "INTEGER";
+			}
+			if (type == Integer.class || type == int.class ) {
+				return "INTEGER";
+			}
+			if (type == Boolean.class || type == boolean.class) {
+				return "INTEGER";
+			}
+			if (type == Float.class || type == float.class) {
+				return "REAL";
+			}
+			if (type == Double.class || type == double.class) {
+				return "REAL";
+			}
+			if (type == Timestamp.class) {
+				return "INTEGER";
+			}
+			if (type == Date.class) {
+				return "NUMERIC";
+			}
+			if (type == String.class) {
+				return "text";
+			}
 		}
 		throw new Exception("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
@@ -76,11 +105,11 @@ public class SqlWrapper {
 	protected static <T> void setValuedb(Class<?> type, T data, int index, Field field, PreparedStatement ps) throws IllegalArgumentException, IllegalAccessException, SQLException {
 		if (type == Long.class) {
 			Object tmp = field.get(data);
-            if (tmp == null) {
-            	ps.setNull(index++, Types.BIGINT);
-            } else {
-            	ps.setLong(index++, (Long)tmp);
-            }
+	        if (tmp == null) {
+	        	ps.setNull(index++, Types.BIGINT);
+	        } else {
+	        	ps.setLong(index++, (Long)tmp);
+	        }
 		} else if (type == long.class ) {
 			ps.setLong(index++, field.getLong(data));
 		} else if (type == Integer.class) {
@@ -656,6 +685,12 @@ public class SqlWrapper {
 	 	}
 	}
 	
+	public static void executeSimpleQuerry(String querry) throws SQLException, IOException {
+		DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+		Statement stmt = entry.connection.createStatement();
+        stmt.executeUpdate(querry);
+	}
+	
 	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, String orderBy, boolean full, Integer linit) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
@@ -1111,34 +1146,55 @@ public class SqlWrapper {
 			}
 			// special case with external link table:
 			if (linkGeneric == ModelLink.EXTERNAL) {
-				 String localName = name;
-				 if (name.endsWith("s")) {
-					 localName = name.substring(0, name.length()-1);
-				 }
-				 if (createIfNotExist) {
-					 otherTable.append("DROP TABLE IF EXISTS `");
-					 otherTable.append(tableName);
-					 otherTable.append("_link_");
-					 otherTable.append(localName);
-					 otherTable.append("`;\n");
-				 }
-				 otherTable.append("CREATE TABLE `");
-				 otherTable.append(tableName);
-				 otherTable.append("_link_");
-				 otherTable.append(localName);
-				 otherTable.append("`(\n");
-				 otherTable.append("\t\t`id` bigint NOT NULL AUTO_INCREMENT,\n");
-				 otherTable.append("\t\t`deleted` tinyint(1) NOT NULL DEFAULT '0',\n");
-				 otherTable.append("\t\t`create_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
-				 otherTable.append("\t\t`modify_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
-				 otherTable.append("\t\t`");
-				 otherTable.append(tableName);
-				 otherTable.append("_id` bigint NOT NULL,\n");
-				 otherTable.append("\t\t`");
-				 otherTable.append(localName);
-				 otherTable.append("_id` bigint NOT NULL,\n");
-				 otherTable.append("\tPRIMARY KEY (`id`)\n");
-				 otherTable.append("\t) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;\n\n");
+				String localName = name;
+				if (name.endsWith("s")) {
+					localName = name.substring(0, name.length()-1);
+				}
+				if (createIfNotExist) {
+					otherTable.append("DROP TABLE IF EXISTS `");
+					otherTable.append(tableName);
+					otherTable.append("_link_");
+					otherTable.append(localName);
+					otherTable.append("`;\n");
+				}
+				otherTable.append("CREATE TABLE `");
+				otherTable.append(tableName);
+				otherTable.append("_link_");
+				otherTable.append(localName);
+				otherTable.append("`(\n");
+				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					otherTable.append("\t\t`id` bigint NOT NULL AUTO_INCREMENT,\n");
+					otherTable.append("\t\t`deleted` tinyint(1) NOT NULL DEFAULT '0',\n");
+					otherTable.append("\t\t`create_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+					otherTable.append("\t\t`modify_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+				} else {
+					otherTable.append("\t\t`id` INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+					otherTable.append("\t\t`deleted` INTEGER NOT NULL DEFAULT '0',\n");
+					otherTable.append("\t\t`create_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+					otherTable.append("\t\t`modify_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+				}
+				otherTable.append("\t\t`");
+				otherTable.append(tableName);
+				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					otherTable.append("_id` bigint NOT NULL,\n");
+				} else {
+					otherTable.append("_id` INTEGER NOT NULL,\n");
+				}
+				otherTable.append("\t\t`");
+				otherTable.append(localName);
+				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					otherTable.append("_id` bigint NOT NULL,\n");
+				} else {
+					otherTable.append("_id` INTEGER NOT NULL,\n");
+				}
+				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					otherTable.append("\tPRIMARY KEY (`id`)\n");
+				}
+				otherTable.append("\t)");
+				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					otherTable.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;\n\n");
+				}
+				otherTable.append(";\n\n");
 			} else {
 				if (firstField) {
 					out.append("\n\t\t`");
@@ -1154,13 +1210,16 @@ public class SqlWrapper {
 					out.append(typeValue);
 				} else {
 					typeValue = convertTypeInSQL(elem.getType());
-					if (typeValue.equals("text")) {
+					if (typeValue.equals("text") && !ConfigBaseVariable.getDBType().equals("sqlite")) {
 						if (limitSize != null) {
 							out.append("varchar(");
 							out.append(limitSize);
 							out.append(")");
 						} else {
-							out.append("text CHARACTER SET utf8");
+							out.append("text");
+							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append(" CHARACTER SET utf8");
+							}
 						}
 					} else {
 						out.append(typeValue);
@@ -1168,14 +1227,20 @@ public class SqlWrapper {
 				}
 				out.append(" ");
 				if (notNull) {
-					out.append("NOT NULL ");
+					if (!name.equals(primaryKeyValue) || !ConfigBaseVariable.getDBType().equals("sqlite")) {
+						out.append("NOT NULL ");
+					}
 					if (defaultValue == null) {
 						if (updateTime || createTime) {
 							out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
 						}
 					} else {
 						out.append("DEFAULT ");
-						out.append(defaultValue);
+						if ("CURRENT_TIMESTAMP(3)".equals(defaultValue) && ConfigBaseVariable.getDBType().equals("sqlite")) {
+							out.append("CURRENT_TIMESTAMP");
+						} else {
+							out.append(defaultValue);
+						}
 						out.append(" ");
 					}
 				} else if (defaultValue == null) {
@@ -1190,23 +1255,35 @@ public class SqlWrapper {
 					out.append(" ");
 					 
 				}
+				if (name.equals(primaryKeyValue) && ConfigBaseVariable.getDBType().equals("sqlite")) {
+					out.append("PRIMARY KEY ");
+					
+				}
 				if (autoIncrement) {
-					out.append("AUTO_INCREMENT ");
+					if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+						out.append("AUTO_INCREMENT ");
+					} else {
+						out.append("AUTOINCREMENT ");
+					}
 				}
 				 
-				if (comment != null) {
+				if (comment != null && !ConfigBaseVariable.getDBType().equals("sqlite")) {
 					out.append("COMMENT '");
 					out.append(comment.replaceAll("'", "\'"));
 					out.append("' ");
 				}
 			 }
 		 }
-		 if (primaryKeyValue != null) {
+		 if (primaryKeyValue != null && !ConfigBaseVariable.getDBType().equals("sqlite")) {
 			 out.append(",\n\tPRIMARY KEY (`");
 			 out.append(primaryKeyValue);
 			 out.append("`)");
 		 }
-		 out.append("\n\t) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;\n");
+		 out.append("\n\t)");
+		 if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+			 out.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
+		 }
+		 out.append(";\n");
 		 return out.toString() + otherTable.toString();
 	}
 	

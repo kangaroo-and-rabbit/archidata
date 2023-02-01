@@ -3,6 +3,7 @@ package org.kar.archidata.util;
 public class ConfigBaseVariable {
     static public String tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
     static public String dataFolder = System.getenv("DATA_FOLDER");
+    static public String dbType = System.getenv("DB_TYPE");
     static public String dbHost = System.getenv("DB_HOST");
     static public String dbPort = System.getenv("DB_PORT");
     static public String dbUser = System.getenv("DB_USER");
@@ -24,6 +25,13 @@ public class ConfigBaseVariable {
             return "/application/data/media";
         }
         return dataFolder;
+    }
+    
+    public static String getDBType() {
+        if (dbType == null) {
+            return "mysql";
+        }
+        return dbType;
     }
     
     public static String getDBHost() {

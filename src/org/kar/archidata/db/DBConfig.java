@@ -1,13 +1,19 @@
 package org.kar.archidata.db;
 
 public class DBConfig {
+    private final String type;
     private final String hostname;
     private final int port;
     private final String login;
     private final String password;
     private final String dbName;
 
-    public DBConfig(String hostname, Integer port, String login, String password, String dbName) {
+    public DBConfig(String type, String hostname, Integer port, String login, String password, String dbName) {
+    	if (type == null) {
+    		this.type = "mysql";
+    	} else {
+    		this.type = type;
+    	}
         if (hostname == null) {
             this.hostname = "localhost";
         } else {
@@ -26,7 +32,8 @@ public class DBConfig {
     @Override
     public String toString() {
         return "DBConfig{" +
-                "hostname='" + hostname + '\'' +
+                "type='" + type + '\'' +
+                ", hostname='" + hostname + '\'' +
                 ", port=" + port +
                 ", login='" + login + '\'' +
                 ", password='" + password + '\'' +
@@ -55,6 +62,9 @@ public class DBConfig {
     }
 
     public String getUrl() {
-		return "jdbc:mysql://" + this.hostname + ":" + this.port + "/" + this.dbName + "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+    	if (type.equals("sqlite")) {
+    		return "jdbc:sqlite:" + this.hostname + ".db";
+    	}
+		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName + "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
     }
 }
