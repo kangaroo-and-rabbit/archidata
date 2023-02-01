@@ -3,7 +3,7 @@ package org.kar.archidata.catcher;
 import java.time.Instant;
 import java.util.UUID;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public class RestErrorResponse {
 	public UUID uuid = UUID.randomUUID();

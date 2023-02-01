@@ -1,6 +1,6 @@
 package org.kar.archidata.exception;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public class SystemException extends Exception {
 	private static final long serialVersionUID = 1L;

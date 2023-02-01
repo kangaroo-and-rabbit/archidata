@@ -4,7 +4,7 @@ package org.kar.archidata.filter;
 import org.kar.archidata.model.User;
 import org.kar.archidata.model.UserByToken;
 
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 import java.security.Principal;
 
 // https://simplapi.wordpress.com/2015/09/19/jersey-jax-rs-securitycontext-in-action/

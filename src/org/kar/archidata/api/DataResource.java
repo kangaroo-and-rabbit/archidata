@@ -9,15 +9,24 @@ import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.annotation.security.RolesAllowed;
 import org.kar.archidata.util.ConfigBaseVariable;
 
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.StreamingOutput;
+
 import javax.imageio.ImageIO;
-import javax.ws.rs.*;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import javax.ws.rs.core.StreamingOutput;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -33,7 +42,7 @@ import java.util.Date;
 // https://gist.github.com/aitoroses/4f7a2b197b732a6a691d
 
 @Path("/data")
-@Produces({MediaType.APPLICATION_JSON})
+@Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
     private final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
