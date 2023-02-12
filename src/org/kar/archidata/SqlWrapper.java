@@ -498,7 +498,8 @@ public class SqlWrapper {
 		        query.append(name);
 		        query.append("` = ");
 		        if (updateTime) {
-			        query.append(" now(3) ");
+		        	query.append(getDBNow());
+			        query.append(" ");
 		        } else {
 		        	query.append("? ");
 		        }
@@ -968,7 +969,7 @@ public class SqlWrapper {
         try {
             // prepare the request:
             String query = "INSERT INTO " + tableName + "_link_" + table + " (create_date, modify_date, " + tableName + "_id, " + table + "_id)" +
-                    " VALUES (now(3), now(3), ?, ?)";
+                    " VALUES (" + getDBNow() + ", " + getDBNow() + ", ?, ?)";
             PreparedStatement ps = entry.connection.prepareStatement(query,
                     Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
@@ -1002,7 +1003,7 @@ public class SqlWrapper {
 	public static void removeLink(Class<?> clazz, long localKey, String table, long remoteKey) throws Exception {
     	String tableName = getTableName(clazz);
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
-        String query = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=now(3), `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table + "_id` = ?";
+        String query = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table + "_id` = ?";
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query);
             int iii = 1;
@@ -1060,14 +1061,21 @@ public class SqlWrapper {
         		new WhereCondition("id", "=", id)
         	));
 	}
-
+	public static String getDBNow() {
+		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+			return "now(3)";
+		}
+		return "DATE()";
+	}
 	public static int setDeleteWhere(Class<?> clazz, List<WhereCondition> condition) throws Exception {
     	String tableName = getTableName(clazz);
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         StringBuilder query = new StringBuilder();
         query.append("UPDATE `");
         query.append(tableName);
-        query.append("` SET `modify_date`=now(3), `deleted`=true ");
+        query.append("` SET `modify_date`=");
+        query.append(getDBNow());
+        query.append(", `deleted`=true ");
         whereAppendQuery(query, tableName, condition, false);
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query.toString());
@@ -1093,7 +1101,9 @@ public class SqlWrapper {
         StringBuilder query = new StringBuilder();
         query.append("UPDATE `");
         query.append(tableName);
-        query.append("` SET `modify_date`=now(3), `deleted`=false ");
+        query.append("` SET `modify_date`=");
+        query.append(getDBNow());
+        query.append(", `deleted`=false ");
         whereAppendQuery(query, tableName, condition, false);
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query.toString());
