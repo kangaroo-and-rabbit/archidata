@@ -142,7 +142,7 @@ public class JWTWrapper {
 			    .claim("application", application)
 			    .issuer(isuer)
 			    .issueTime(new Date())
-			    .expirationTime(new Date(new Date().getTime() + 60 * timeOutInMunites * 1000 /* millisecond */)) // Do not ask why we need a "-" here ... this have no meaning
+			    .expirationTime(new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */)) // Do not ask why we need a "-" here ... this have no meaning
 			    .build();
 	
 			SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
