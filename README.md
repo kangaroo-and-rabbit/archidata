@@ -50,7 +50,7 @@ release:
 ========
 
 ```
-export PATH=/usr/lib/jvm/java-18-openjdk/bin:$PATH
+export PATH=/usr/lib/jvm/java-19-openjdk/bin:$PATH
 mvn install
 mvn deploy
 ```
