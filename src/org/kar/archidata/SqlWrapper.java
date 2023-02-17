@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.kar.archidata.annotation.SQLCreateTime;
 import org.kar.archidata.annotation.SQLDefault;
+import org.kar.archidata.annotation.SQLDeleted;
 
 
 public class SqlWrapper {
@@ -706,6 +707,7 @@ public class SqlWrapper {
 
    		 	boolean firstField = true;
    		 	int count = 0;
+   		 	boolean hasDeleted = false;
    		 	for (Field elem : clazz.getFields()) {
 				ModelLink linkGeneric = getLinkMode(elem);
 				if (linkGeneric != ModelLink.NONE) {
@@ -714,6 +716,9 @@ public class SqlWrapper {
 				boolean createTime = elem.getDeclaredAnnotationsByType(SQLCreateTime.class).length != 0;
 				if (!full && createTime) {
 					continue;
+				}
+				if (!hasDeleted) {
+					hasDeleted = elem.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0;
 				}
 				String name = elem.getName();
 				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
@@ -735,7 +740,7 @@ public class SqlWrapper {
    			query.append(" FROM `");
 	        query.append(tableName);
    			query.append("` ");
-   			whereAppendQuery(query, tableName, condition, true);
+   			whereAppendQuery(query, tableName, condition, firstField);
    		 	if (orderBy != null && orderBy.length() >= 1) {
    		 		query.append(" ORDER BY ");
 		        //query.append(tableName);
@@ -751,7 +756,7 @@ public class SqlWrapper {
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    //System.out.println("generate the query: '" + query.toString() + "'");
+   		    System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             whereInjectValue(ps, condition);

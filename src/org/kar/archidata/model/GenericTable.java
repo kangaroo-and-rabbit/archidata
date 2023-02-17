@@ -6,6 +6,7 @@ import org.kar.archidata.annotation.SQLAutoIncrement;
 import org.kar.archidata.annotation.SQLComment;
 import org.kar.archidata.annotation.SQLCreateTime;
 import org.kar.archidata.annotation.SQLDefault;
+import org.kar.archidata.annotation.SQLDeleted;
 import org.kar.archidata.annotation.SQLNotNull;
 import org.kar.archidata.annotation.SQLNotRead;
 import org.kar.archidata.annotation.SQLPrimaryKey;
@@ -20,6 +21,7 @@ public class GenericTable {
     @SQLNotRead
     @SQLNotNull
     @SQLDefault("'0'")
+    @SQLDeleted
     @SQLComment("When delete, they are not removed, they are just set in a deleted state")
 	public Boolean deleted = null;
     @SQLNotRead
