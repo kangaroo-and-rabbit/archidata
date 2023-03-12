@@ -77,10 +77,6 @@ public class ConfigBaseVariable {
     }
     
     public static String getSSOAddress() {
-        if (ssoAdress == null) {
-            //return "http://sso_host/api/";
-            return "http://192.168.1.156/karso/api/";
-        }
         return ssoAdress;
     }
     public static String ssoToken() {

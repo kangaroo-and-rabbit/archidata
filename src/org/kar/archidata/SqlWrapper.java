@@ -756,7 +756,7 @@ public class SqlWrapper {
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    System.out.println("generate the query: '" + query.toString() + "'");
+   		    //System.out.println("generate the query: '" + query.toString() + "'");
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             whereInjectValue(ps, condition);
