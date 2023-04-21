@@ -28,6 +28,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 // https://stackoverflow.com/questions/26777083/best-practice-for-rest-token-based-authentication-with-jax-rs-and-jersey
 // https://stackoverflow.com/questions/26777083/best-practice-for-rest-token-based-authentication-with-jax-rs-and-jersey/45814178#45814178
@@ -39,11 +40,19 @@ import java.util.Map.Entry;
 public class AuthenticationFilter implements ContainerRequestFilter {
 	@Context
 	private ResourceInfo resourceInfo;
+	protected final String applicationName;
     
     private static final String AUTHENTICATION_SCHEME = "Yota";
     private static final String AUTHENTICATION_TOKEN_SCHEME = "Zota";
 
-    @Override
+    
+    
+    public AuthenticationFilter(String applicationName) {
+		super();
+		this.applicationName = applicationName;
+	}
+
+	@Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         /*
         System.out.println("-----------------------------------------------------");
@@ -95,38 +104,23 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             abortWithUnauthorized(requestContext);
             return;
         }
-        User user = null;
         UserByToken userByToken = null;
         if (isJwtToken) {
             // Extract the token from the Authorization header (Remove "Yota ")
         	String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
             //System.out.println("token: " + token);
 	        try {
-	            user = validateJwtToken(token);
+	        	userByToken = validateJwtToken(token);
 	        } catch (Exception e) {
 	        	System.out.println("Fail to validate token: " + e.getMessage());
 	            abortWithUnauthorized(requestContext);
 	            return;
 	        }
-	        if (user == null) {
+	        if (userByToken == null) {
 	        	System.out.println("get a NULL user ...");
 	            abortWithUnauthorized(requestContext);
 	            return;
 	        }
-	        // We are in transition phase the user element will be removed
-            userByToken = new UserByToken();
-            userByToken.id = user.id;
-            userByToken.name = user.login;
-            userByToken.parentId = null;
-            userByToken.type = UserByToken.TYPE_USER;
-            if (user.removed || user.blocked) {
-	            userByToken.type = null;
-        	} else if (user.admin) { 
-        		userByToken.right.put("ADMIN", true);
-        		userByToken.right.put("USER", true);
-        	} else {
-        		userByToken.right.put("USER", true);
-        	}
         } else {
             // Extract the token from the Authorization header (Remove "Zota ")
         	String token = authorizationHeader.substring(AUTHENTICATION_TOKEN_SCHEME.length()).trim();
@@ -147,7 +141,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
         // create the security context model:
         String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
-        MySecurityContext userContext = new MySecurityContext(user, userByToken, scheme);
+        MySecurityContext userContext = new MySecurityContext(userByToken, scheme);
         // retrieve the allowed right:
         RolesAllowed rolesAnnotation = method.getAnnotation(RolesAllowed.class);
         List<String> roles = Arrays.asList(rolesAnnotation.value());
@@ -196,11 +190,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
 
     protected UserByToken validateToken(String authorization) throws Exception {
-    	System.out.println("dsfgsdgsdfgsdgf");
+    	System.out.println("Must be Override by the application implmentation, otherwise it dose not work");
     	return null;
     }
-    // must be override to be good implemenres
-    protected User validateJwtToken(String authorization) throws Exception {
+    // must be override to be good implementation
+    protected UserByToken validateJwtToken(String authorization) throws Exception {
         System.out.println(" validate token : " + authorization);
         JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
         // check the token is valid !!! (signed and coherent issuer...
@@ -211,7 +205,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // check userID
         String userUID = ret.getSubject();
         long id = Long.parseLong(userUID);
-        System.out.println("request user: '" + userUID + "'");
-        return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
+        UserByToken user = new UserByToken();
+        user.id = id;
+        user.name = (String)ret.getClaim("login");
+        user.type = UserByToken.TYPE_USER;
+        Object rowRight = ret.getClaim("right");
+        if (rowRight != null) {
+	        Map<String, Map<String,Object>> rights = (Map<String, Map<String,Object>>) ret.getClaim("right");
+	        if (rights.containsKey(this.applicationName)) {
+	        	user.right = rights.get(this.applicationName);
+	        } else {
+	        	System.out.println("Connect with no right for this application '" + this.applicationName + "' full Right='" + rights + "'");
+	        }
+        } 
+        System.out.println("request user: '" + userUID + "' right: '" + user.right + "' row='" +rowRight + "'");
+        return user;
+        //return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
     }
 }

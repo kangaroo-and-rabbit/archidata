@@ -7,6 +7,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -72,11 +74,14 @@ public class JWTWrapper {
         System.out.println("GET JWT validator token not worked");
     }
 
-	public static void initLocalToken() throws Exception{
+	public static void initLocalToken(String baseUUID) throws Exception{
 		// RSA signatures require a public and private RSA key pair, the public key 
 		// must be made known to the JWS recipient in order to verify the signatures
 		try {
-			String generatedStringForKey = UUID.randomUUID().toString();
+			String generatedStringForKey = baseUUID;
+			if (generatedStringForKey == null) {
+				generatedStringForKey = UUID.randomUUID().toString();
+			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
 			//System.out.println("RSA key (all): " + rsaJWK.toJSONString());
@@ -121,7 +126,7 @@ public class JWTWrapper {
 	 * @param timeOutInMunites Expiration of the token.
 	 * @return the encoded token
 	 */
-	public static String generateJWToken(long userID, String userLogin, String isuer, String application, int timeOutInMunites) {
+	public static String generateJWToken(long userID, String userLogin, String isuer, String application, Map<String, Object> rights, int timeOutInMunites) {
 		if (rsaJWK == null) {
 			System.out.println("JWT private key is not present !!!");
 			return null;
@@ -134,17 +139,20 @@ public class JWTWrapper {
 		*/
 		try {
 			// Create RSA-signer with the private key
-			JWSSigner signer = new RSASSASigner(rsaJWK);
-			// Prepare JWT with claims set
-			JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+			JWSSigner signer = new RSASSASigner(rsaJWK); 
+			JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
 			    .subject(Long.toString(userID))
 			    .claim("login", userLogin)
 			    .claim("application", application)
 			    .issuer(isuer)
 			    .issueTime(new Date())
-			    .expirationTime(new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */)) // Do not ask why we need a "-" here ... this have no meaning
-			    .build();
-	
+			    .expirationTime(new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */)); // Do not ask why we need a "-" here ... this have no meaning
+			// add right if needed:
+			if (rights != null && !rights.isEmpty()) {
+				builder.claim("right", rights);
+			}
+			// Prepare JWT with claims set
+			JWTClaimsSet claimsSet = builder.build();
 			SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
 	
 			// Compute the RSA signature

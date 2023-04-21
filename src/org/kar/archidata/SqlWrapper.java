@@ -283,7 +283,7 @@ public class SqlWrapper {
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
-        	boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+        	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
         	query.append("INSERT INTO ");
         	query.append(tableName);
@@ -455,7 +455,7 @@ public class SqlWrapper {
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
-        	boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+        	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
         	query.append("UPDATE ");
         	query.append(tableName);
@@ -463,7 +463,6 @@ public class SqlWrapper {
 
    		 	boolean firstField = true;
             Field primaryKeyField = null;
-   		 	int count = 0;
    		 	for (Field elem : clazz.getFields()) {
    		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 				if (primaryKey) {
@@ -489,7 +488,6 @@ public class SqlWrapper {
 						continue;
 					}
 				}
-				count++;
 				if (firstField) {
 		        	firstField = false;
 				} else {
@@ -551,7 +549,6 @@ public class SqlWrapper {
 		            	ps.setString(iii++, dataTmp);
 		            }
 				}
-				count++;
    		 	}
    		 	ps.setLong(iii++, id);
             // execute the request
@@ -693,6 +690,7 @@ public class SqlWrapper {
         stmt.executeUpdate(querry);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, String orderBy, boolean full, Integer linit) throws Exception {
         DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
@@ -774,7 +772,7 @@ public class SqlWrapper {
     				if (!full && createTime) {
     					continue;
     				}
-    				String name = elem.getName();
+    				//String name = elem.getName();
     				boolean updateTime = elem.getDeclaredAnnotationsByType(SQLUpdateTime.class).length != 0;
     				if (!full && updateTime) {
     					continue;
@@ -806,7 +804,7 @@ public class SqlWrapper {
 			}
 	 	}
 		if (primaryKeyField != null) {
-			return getWhere(clazz, primaryKeyField.getName(), "=",  id);
+			return SqlWrapper.getWhere(clazz, List.of(new WhereCondition(primaryKeyField.getName(), "=", id)), false);
 		}
 		throw new Exception("Missing primary Key...");
 	}
@@ -828,7 +826,7 @@ public class SqlWrapper {
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
-        	boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+        	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
         	query.append("SELECT ");
         	//query.append(tableName);
@@ -985,7 +983,7 @@ public class SqlWrapper {
             if (affectedRows == 0) {
                 throw new SQLException("Creating data failed, no rows affected.");
             }
-            // retreive uid inserted
+            // retrieve uid inserted
             try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
                     uniqueSQLID = generatedKeys.getLong(1);
@@ -1045,7 +1043,7 @@ public class SqlWrapper {
         return out;
     }
     /**
-     * Convert the list if external Ids in a string '-' separated
+     * Convert the list if external id in a string '-' separated
      * @param ids List of value (null are removed)
      * @return '-' string separated
      */

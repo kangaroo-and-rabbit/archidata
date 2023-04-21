@@ -11,9 +11,9 @@ public class UserByToken {
 	public Integer type = null;
 	
 	public Long id = null;
-    public Long parentId = null;
+    public Long parentId = null; // FOr application, this is the id of the application, and of user token, this is the USERID
     public String name = null;
     // Right map
-    public Map<String, Boolean> right = new HashMap<>();
+    public Map<String, Object> right = new HashMap<>();
   
 }

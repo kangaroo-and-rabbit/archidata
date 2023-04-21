@@ -229,7 +229,7 @@ public class DataResource {
     public Response uploadFile(@Context SecurityContext sc, @FormDataParam("file") InputStream fileInputStream, @FormDataParam("file") FormDataContentDisposition fileMetaData) {
     	GenericContext gc = (GenericContext) sc.getUserPrincipal();
         System.out.println("===================================================");
-        System.out.println("== DATA uploadFile " + (gc==null?"null":gc.user));
+        System.out.println("== DATA uploadFile " + (gc==null?"null":gc.userByToken));
         System.out.println("===================================================");
         //public NodeSmall uploadFile(final FormDataMultiPart form) {
         System.out.println("Upload file: ");
@@ -252,7 +252,7 @@ public class DataResource {
     public Response retriveDataId(@Context SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) String token, @HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception {
     	GenericContext gc = (GenericContext) sc.getUserPrincipal();
         //System.out.println("===================================================");
-        System.out.println("== DATA retriveDataId ? id=" + id + " user=" + (gc==null?"null":gc.user));
+        System.out.println("== DATA retriveDataId ? id=" + id + " user=" + (gc==null?"null":gc.userByToken));
         //System.out.println("===================================================");
         Data value = getSmall(id);
         if (value == null) {
@@ -344,7 +344,7 @@ public class DataResource {
     public Response retriveDataFull(@Context SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) String token, @HeaderParam("Range") String range, @PathParam("id") Long id, @PathParam("name") String name) throws Exception {
         GenericContext gc = (GenericContext) sc.getUserPrincipal();
         //System.out.println("===================================================");
-        System.out.println("== DATA retriveDataFull ? id=" + id + " user=" + (gc==null?"null":gc.user));
+        System.out.println("== DATA retriveDataFull ? id=" + id + " user=" + (gc==null?"null":gc.userByToken));
         //System.out.println("===================================================");
         Data value = getSmall(id);
         if (value == null) {
