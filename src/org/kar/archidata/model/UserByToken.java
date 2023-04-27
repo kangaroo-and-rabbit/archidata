@@ -15,5 +15,45 @@ public class UserByToken {
     public String name = null;
     // Right map
     public Map<String, Object> right = new HashMap<>();
+    
+    public boolean hasRight(String key, Object value) {
+    	if (! this.right.containsKey(key)) {
+    		return false;
+    	}
+    	Object data = this.right.get(key);
+    	if (data instanceof Boolean elem) {
+    		if (value instanceof Boolean castVal) {
+    			if (elem == castVal) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	}
+    	if (data instanceof String elem) {
+    		if (value instanceof String castVal) {
+    			if (elem.equals(castVal)) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	}
+    	if (data instanceof Long elem) {
+    		if (value instanceof Long castVal) {
+    			if (elem == castVal) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	}
+    	if (data instanceof Double elem) {
+    		if (value instanceof Double castVal) {
+    			if (elem == castVal) {
+    				return true;
+    			}
+    		}
+    		return false;
+    	}
+    	return false;
+    }
   
 }
