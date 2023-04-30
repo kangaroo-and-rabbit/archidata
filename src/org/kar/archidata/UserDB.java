@@ -27,7 +27,7 @@ public class UserDB {
     }
 
     private static void createUsersInfoFromOAuth(long userId, String login) throws IOException {
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         String query = "INSERT INTO `user` (`id`, `login`, `lastConnection`, `admin`, `blocked`, `removed`) VALUE (?,?,now(3),'0','0','0')";
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query);

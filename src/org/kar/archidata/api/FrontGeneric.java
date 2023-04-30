@@ -49,10 +49,7 @@ public class FrontGeneric {
 	    	} else if (extention.equalsIgnoreCase("css")) {
 	    		mineType = "text/css";
 	    	} else {
-	            return Response.status(403).
-	            		entity("Not supported model: '" + fileName + "'").
-	            		type("text/plain").
-	            		build();
+	    		throw new NotSupportedException("Not supported model: '" + fileName + "'");
 	    	}
     	} else {
     		mineType = "text/html";
@@ -62,10 +59,7 @@ public class FrontGeneric {
     	// reads input image
         File download = new File(filePathName);
         if (!download.exists()) {
-            return Response.status(404).
-            		entity("Not Found: '" + fileName + "' extension='" + extention + "'").
-            		type("text/plain").
-            		build();
+    		throw new NotFoundException("Not Found: '" + fileName + "' extension='" + extention + "'");
         }
         ResponseBuilder response = Response.ok((Object)download);
         // use this if I want to download the file:

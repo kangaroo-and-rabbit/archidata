@@ -274,7 +274,7 @@ public class DataResource {
     		@QueryParam(HttpHeaders.AUTHORIZATION) String token,
     		@HeaderParam("Range") String range,
     		@PathParam("id") Long id) throws Exception {
-        GenericContext gc = (GenericContext) sc.getUserPrincipal();
+        //GenericContext gc = (GenericContext) sc.getUserPrincipal();
         //System.out.println("===================================================");
         //System.out.println("== DATA retriveDataThumbnailId ? " + (gc==null?"null":gc.user));
         //System.out.println("===================================================");

@@ -12,6 +12,7 @@ public class RestErrorResponse {
 	public String message;
 	final public int status;
 	final public String statusMessage;
+	
 	public RestErrorResponse(Response.Status status, String time, String error, String message) {
 		this.time = time;
 		this.error = error;

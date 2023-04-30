@@ -24,6 +24,8 @@ import org.kar.archidata.annotation.SQLTableName;
 import org.kar.archidata.annotation.SQLUpdateTime;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.util.ConfigBaseVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +36,7 @@ import org.kar.archidata.annotation.SQLDeleted;
 
 
 public class SqlWrapper {
+	static final Logger logger = LoggerFactory.getLogger(SqlWrapper.class);
 	
 	public static class ExceptionDBInterface extends Exception {
 		private static final long serialVersionUID = 1L;
@@ -178,7 +181,7 @@ public class SqlWrapper {
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
-				//System.out.println("       ==> " + tmp);
+				//logger.debug("       ==> {}", tmp);
 				field.set(data, tmp);
 			}
 		} else if (type == long.class ) {
@@ -279,7 +282,7 @@ public class SqlWrapper {
 		Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String descrition, Long parentId) {
 		
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
@@ -336,7 +339,7 @@ public class SqlWrapper {
 				query.append("?");
    		 	}
    		    query.append(")");
-   		    // System.out.println("generate the query: '" + query.toString() + "'");
+   		    // logger.debug("generate the query: '{}'", query.toString());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             Field primaryKeyField = null;
@@ -395,7 +398,7 @@ public class SqlWrapper {
                     throw new SQLException("Creating node failed, no ID obtained (1).");
                 }
             } catch (Exception ex) {
-                System.out.println("Can not get the UID key inserted ... ");
+                logger.error("Can not get the UID key inserted ... ");
                 ex.printStackTrace();
                 throw new SQLException("Creating node failed, no ID obtained (2).");
             }
@@ -405,7 +408,7 @@ public class SqlWrapper {
             	} else if (primaryKeyField.getType() == long.class) {
             		primaryKeyField.setLong(data, uniqueSQLID);
             	} else {
-            		System.out.println("Can not manage the primary filed !!!");
+            		logger.error("Can not manage the primary filed !!!");
             	}
             }
             //ps.execute();
@@ -451,7 +454,7 @@ public class SqlWrapper {
 		Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
 		
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         // real add in the BDD:
         try {
         	String tableName = getTableName(clazz);
@@ -507,7 +510,7 @@ public class SqlWrapper {
    			query.append(primaryKeyField.getName());
    			query.append("` = ?");
    		 	firstField = true;
-   		    // System.out.println("generate the querry: '" + query.toString() + "'");
+   		    // logger.debug("generate the querry: '{}'", query.toString());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
@@ -685,14 +688,14 @@ public class SqlWrapper {
 	}
 	
 	public static void executeSimpleQuerry(String querry) throws SQLException, IOException {
-		DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		Statement stmt = entry.connection.createStatement();
         stmt.executeUpdate(querry);
 	}
 	
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(Class<T> clazz, List<WhereCondition> condition, String orderBy, boolean full, Integer linit) throws Exception {
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         List<T> outs = new ArrayList<>();
         // real add in the BDD:
         try {
@@ -754,7 +757,7 @@ public class SqlWrapper {
    			query.append(".deleted = false ");
    			*/
    		 	firstField = true;
-   		    //System.out.println("generate the query: '" + query.toString() + "'");
+   		    //logger.debug("generate the query: '{}'", query.toString());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             whereInjectValue(ps, condition);
@@ -820,8 +823,8 @@ public class SqlWrapper {
 	}
 	
 	public static <T> List<T> gets(Class<T> clazz, boolean full) throws Exception {
-		System.out.println("request get " + clazz.getCanonicalName() + " start @" + getCurrentTimeStamp());
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+		logger.debug("request get {} start @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         List<T> out = new ArrayList<>();
         // real add in the BDD:
         try {
@@ -914,15 +917,15 @@ public class SqlWrapper {
 	        query.append(tableName);
    			query.append(".deleted = false ");
    		 	firstField = true;
-   		    System.out.println("generate the querry: '" + query.toString() + "'");
-   			System.out.println("request get " + clazz.getCanonicalName() + " prepare @" + getCurrentTimeStamp());
+   		    logger.info("generate the querry: '{}'", query.toString());
+   			logger.info("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 
-    		System.out.println("request get " + clazz.getCanonicalName() + " query @" + getCurrentTimeStamp());
+    		logger.info("request get {} query @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // execute the request
             ResultSet rs = ps.executeQuery();
-    		System.out.println("request get " + clazz.getCanonicalName() + " transform @" + getCurrentTimeStamp());
+    		logger.info("request get {} transform @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
             while (rs.next()) {
                 indexAutoClasify = 0;
@@ -949,11 +952,11 @@ public class SqlWrapper {
     				indexAutoClasify++;
     				count++;
        		 	}
-       		 	//System.out.println("Read: " + (T)data);
+       		 	//logger.debug("Read: {}", (T)data);
 				out.add((T)data);
             }
 
-    		System.out.println("request get " + clazz.getCanonicalName() + " ready @" + getCurrentTimeStamp());
+    		logger.info("request get {} ready @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -966,7 +969,7 @@ public class SqlWrapper {
 
 	public static void addLink(Class<?> clazz, long localKey, String table, long remoteKey) throws Exception {
     	String tableName = getTableName(clazz);
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         long uniqueSQLID = -1;
         // real add in the BDD:
         try {
@@ -991,7 +994,7 @@ public class SqlWrapper {
                     throw new SQLException("Creating user failed, no ID obtained (1).");
                 }
             } catch (Exception ex) {
-                System.out.println("Can not get the UID key inserted ... ");
+                logger.debug("Can not get the UID key inserted ... ");
                 ex.printStackTrace();
                 throw new SQLException("Creating user failed, no ID obtained (2).");
             }
@@ -1005,7 +1008,7 @@ public class SqlWrapper {
 	}
 	public static void removeLink(Class<?> clazz, long localKey, String table, long remoteKey) throws Exception {
     	String tableName = getTableName(clazz);
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         String query = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table + "_id` = ?";
         try {
             PreparedStatement ps = entry.connection.prepareStatement(query);
@@ -1072,7 +1075,7 @@ public class SqlWrapper {
 	}
 	public static int setDeleteWhere(Class<?> clazz, List<WhereCondition> condition) throws Exception {
     	String tableName = getTableName(clazz);
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         StringBuilder query = new StringBuilder();
         query.append("UPDATE `");
         query.append(tableName);
@@ -1100,7 +1103,7 @@ public class SqlWrapper {
 	
 	public static int unsetDeleteWhere(Class<?> clazz, List<WhereCondition> condition) throws Exception {
     	String tableName = getTableName(clazz);
-        DBEntry entry = new DBEntry(GlobalConfiguration.dbConfig);
+        DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         StringBuilder query = new StringBuilder();
         query.append("UPDATE `");
         query.append(tableName);
@@ -1135,7 +1138,7 @@ public class SqlWrapper {
 		out.append(tableName);
 		out.append("` (");
 		boolean firstField = true;
-		System.out.println("===> TABLE `" + tableName + "`");
+		logger.debug("===> TABLE `{}`", tableName);
 		String primaryKeyValue = null;
 		for (Field elem : clazz.getFields()) {
 		
@@ -1151,7 +1154,7 @@ public class SqlWrapper {
 			ModelLink linkGeneric = getLinkMode(elem);
 			String comment = getComment(elem);
 			String defaultValue = getDefault(elem);
-			//System.out.println("      ==> elem `" + name + "`     primaryKey=" + primaryKey + "       linkGeneric=" + linkGeneric);
+			//logger.debug("      ==> elem `" + name + "`     primaryKey=" + primaryKey + "       linkGeneric=" + linkGeneric);
 			 
 			 
 			if (primaryKey) {
@@ -1183,8 +1186,8 @@ public class SqlWrapper {
 				} else {
 					otherTable.append("\t\t`id` INTEGER PRIMARY KEY AUTOINCREMENT,\n");
 					otherTable.append("\t\t`deleted` INTEGER NOT NULL DEFAULT '0',\n");
-					otherTable.append("\t\t`create_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
-					otherTable.append("\t\t`modify_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+					otherTable.append("\t\t`create_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
+					otherTable.append("\t\t`modify_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
 				}
 				otherTable.append("\t\t`");
 				otherTable.append(tableName);
@@ -1196,12 +1199,12 @@ public class SqlWrapper {
 				otherTable.append("\t\t`");
 				otherTable.append(localName);
 				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
-					otherTable.append("_id` bigint NOT NULL,\n");
+					otherTable.append("_id` bigint NOT NULL\n");
 				} else {
-					otherTable.append("_id` INTEGER NOT NULL,\n");
+					otherTable.append("_id` INTEGER NOT NULL\n");
 				}
 				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
-					otherTable.append("\tPRIMARY KEY (`id`)\n");
+					otherTable.append("\t, PRIMARY KEY (`id`)\n");
 				}
 				otherTable.append("\t)");
 				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
@@ -1245,7 +1248,11 @@ public class SqlWrapper {
 					}
 					if (defaultValue == null) {
 						if (updateTime || createTime) {
-							out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
+							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append("DEFAULT CURRENT_TIMESTAMP ");
+							} else {
+								out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
+							}
 						}
 					} else {
 						out.append("DEFAULT ");
@@ -1258,7 +1265,11 @@ public class SqlWrapper {
 					}
 				} else if (defaultValue == null) {
 					if (updateTime || createTime) {
-						out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
+						if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+							out.append("DEFAULT CURRENT_TIMESTAMP ");
+						}else {
+							out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
+						}
 					} else {
 						out.append("DEFAULT NULL ");
 					}

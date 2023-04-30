@@ -7,9 +7,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -26,6 +28,8 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
 public class JWTWrapper {
+	static final Logger logger = LoggerFactory.getLogger(JWTWrapper.class);
+	
 	private static RSAKey rsaJWK = null;;
 	private static RSAKey rsaPublicJWK = null;
 
@@ -41,7 +45,7 @@ public class JWTWrapper {
     public static void initLocalTokenRemote(String ssoUri, String application) throws IOException, ParseException {
         // check Token:
         URL obj = new URL(ssoUri + "public_key");
-        System.out.println("Request token from:" + obj);
+        logger.debug("Request token from: {}", obj);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
         con.setRequestMethod("GET");
         con.setRequestProperty("User-Agent", application);
@@ -54,7 +58,7 @@ public class JWTWrapper {
         }
         int responseCode = con.getResponseCode();
 
-        System.out.println("GET Response Code :: " + responseCode);
+        logger.debug("GET Response Code :: {}", responseCode);
         if (responseCode == HttpURLConnection.HTTP_OK) { // success
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
@@ -65,13 +69,13 @@ public class JWTWrapper {
             }
             in.close();
             // print result
-            //System.out.println(response.toString());
+            //logger.debug(response.toString());
             ObjectMapper mapper = new ObjectMapper();
             PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
             rsaPublicJWK = RSAKey.parse(values.key);
             return;
         }
-        System.out.println("GET JWT validator token not worked");
+        logger.debug("GET JWT validator token not worked");
     }
 
 	public static void initLocalToken(String baseUUID) throws Exception{
@@ -84,12 +88,12 @@ public class JWTWrapper {
 			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
-			//System.out.println("RSA key (all): " + rsaJWK.toJSONString());
-			//System.out.println("RSA key (pub): " + rsaPublicJWK.toJSONString());
+			//logger.debug("RSA key (all): " + rsaJWK.toJSONString());
+			//logger.debug("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (JOSEException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			System.out.println("Can not generate teh  public abnd private keys ...");
+			logger.debug("Can not generate teh  public abnd private keys ...");
 			rsaJWK = null;
 			rsaPublicJWK = null;
 		}
@@ -100,7 +104,7 @@ public class JWTWrapper {
 			rsaPublicJWK = RSAKey.parse(publicKey);
 		} catch (ParseException e) {
 			e.printStackTrace();
-			System.out.println("Can not retrieve public Key !!!!!!!! RSAKey='" + publicKey + "'");
+			logger.debug("Can not retrieve public Key !!!!!!!! RSAKey='{}'", publicKey);
 		}
 		
 	}
@@ -128,14 +132,14 @@ public class JWTWrapper {
 	 */
 	public static String generateJWToken(long userID, String userLogin, String isuer, String application, Map<String, Object> rights, int timeOutInMunites) {
 		if (rsaJWK == null) {
-			System.out.println("JWT private key is not present !!!");
+			logger.warn("JWT private key is not present !!!");
 			return null;
 		}
 		/*
-		System.out.println(" ===> expire in : " + timeOutInMunites);
-		System.out.println(" ===>" + new Date().getTime());
-		System.out.println(" ===>" + new Date(new Date().getTime()));
-		System.out.println(" ===>" + new Date(new Date().getTime() - 60 * timeOutInMunites * 1000));
+		logger.debug(" ===> expire in : " + timeOutInMunites);
+		logger.debug(" ===>" + new Date().getTime());
+		logger.debug(" ===>" + new Date(new Date().getTime()));
+		logger.debug(" ===>" + new Date(new Date().getTime() - 60 * timeOutInMunites * 1000));
 		*/
 		try {
 			// Create RSA-signer with the private key
@@ -167,7 +171,7 @@ public class JWTWrapper {
 
 	public static JWTClaimsSet validateToken(String signedToken, String isuer, String application) {
 		if (rsaPublicJWK == null) {
-			System.out.println("JWT public key is not present !!!");
+			logger.warn("JWT public key is not present !!!");
 			return null;
 		}
 		try {
@@ -176,23 +180,23 @@ public class JWTWrapper {
 	
 			JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
 			if (!signedJWT.verify(verifier)) {
-				System.out.println("JWT token is NOT verified ");
+				logger.error("JWT token is NOT verified ");
 				return null;
 			}
 			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
-				System.out.println("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime() );
+				logger.error("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime() );
 				return null;
 			}
 			if (!isuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
-				System.out.println("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'" );
+				logger.error("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'" );
 				return null;
 			}
 			if (application != null) {
 				// TODO: verify the token is used for the correct application.
 			}
 			// the element must be validated outside ...
-			//System.out.println("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
-			//System.out.println("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
+			//logger.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
+			//logger.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 			return signedJWT.getJWTClaimsSet();
 		} catch (JOSEException ex) {
 			ex.printStackTrace();

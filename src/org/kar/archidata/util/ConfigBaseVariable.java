@@ -7,6 +7,7 @@ public class ConfigBaseVariable {
     static public String dbHost = System.getenv("DB_HOST");
     static public String dbPort = System.getenv("DB_PORT");
     static public String dbUser = System.getenv("DB_USER");
+    static public String dbKeepConnected = System.getenv("DB_KEEP_CONNECTED");
     static public String dbPassword = System.getenv("DB_PASSWORD");
     static public String bdDatabase = System.getenv("DB_DATABASE");
     static public String apiAdress = System.getenv("API_ADDRESS");
@@ -69,6 +70,12 @@ public class ConfigBaseVariable {
         return bdDatabase;
     }
 
+    public static boolean getDBKeepConnected() {
+        if (dbKeepConnected == null) {
+            return false;
+        }
+        return Boolean.parseBoolean(dbKeepConnected);
+    }
     public static String getlocalAddress() {
         if (apiAdress == null) {
             return "http://0.0.0.0:80/api/";

@@ -10,20 +10,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 import jakarta.ws.rs.core.Response;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.SqlWrapper;
 import org.kar.archidata.model.Data;
-import org.kar.archidata.db.DBEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataTools {
+	static final Logger logger = LoggerFactory.getLogger(DataTools.class);
 
     public final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     public final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
@@ -34,7 +32,7 @@ public class DataTools {
 
     public static void createFolder(String path) throws IOException {
         if (!Files.exists(java.nio.file.Path.of(path))) {
-            System.out.println("Create folder: " + path);
+        	logger.info("Create folder: " + path);
             Files.createDirectories(java.nio.file.Path.of(path));
         }
     }
@@ -137,11 +135,11 @@ public class DataTools {
 		}
 
         String mediaPath = getFileData(out.id);
-        System.out.println("src = " + tmpPath);
-        System.out.println("dst = " + mediaPath);
+        logger.info("src = {}", tmpPath);
+        logger.info("dst = {}", mediaPath);
         Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
 
-        System.out.println("Move done");
+        logger.info("Move done");
         // all is done the file is correctly installed...
         return out;
     }
@@ -165,7 +163,7 @@ public class DataTools {
             try {
                 Files.delete(Paths.get(filepath));
             } catch (IOException e) {
-                System.out.println("can not delete temporary file : " + Paths.get(filepath));
+            	logger.info("can not delete temporary file : {}", Paths.get(filepath));
                 e.printStackTrace();
             }
         }
@@ -183,12 +181,11 @@ public class DataTools {
 
             outpuStream = new FileOutputStream(new File(serverLocation));
             while ((read = uploadedInputStream.read(bytes)) != -1) {
-                //System.out.println("write " + read);
+                //logger.debug("write {}", read);
                 md.update(bytes, 0, read);
                 outpuStream.write(bytes, 0, read);
             }
-            System.out.println("Flush input stream ... " + serverLocation);
-            System.out.flush();
+            logger.info("Flush input stream ... {}", serverLocation);
             outpuStream.flush();
             outpuStream.close();
             // create the end of sha512
@@ -197,10 +194,10 @@ public class DataTools {
             out = bytesToHex(sha512Digest);
             uploadedInputStream.close();
         } catch (IOException ex) {
-            System.out.println("Can not write in temporary file ... ");
+        	logger.error("Can not write in temporary file ... ");
             ex.printStackTrace();
         } catch (NoSuchAlgorithmException ex) {
-            System.out.println("Can not find sha512 algorithms");
+        	logger.error("Can not find sha512 algorithms");
             ex.printStackTrace();
         }
         return out;
@@ -250,12 +247,11 @@ public class DataTools {
             fileName = multipartCorrection(fileName);
 
             //public NodeSmall uploadFile(final FormDataMultiPart form) {
-            System.out.println("Upload media file: " + fileMetaData);
-            System.out.println("    - id: " + id);
-            System.out.println("    - file_name: " + fileName);
-            System.out.println("    - fileInputStream: " + fileInputStream);
-            System.out.println("    - fileMetaData: " + fileMetaData);
-            System.out.flush();
+            logger.info("Upload media file: {}", fileMetaData);
+            logger.info("    - id: {}", id);
+            logger.info("    - file_name: ", fileName);
+            logger.info("    - fileInputStream: {}", fileInputStream);
+            logger.info("    - fileMetaData: {}", fileMetaData);
             T media = SqlWrapper.get(clazz, id);
             if (media == null) {
                 return Response.notModified("Media Id does not exist or removed...").build();
@@ -265,8 +261,7 @@ public class DataTools {
             String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
             Data data = getWithSha512(sha512);
             if (data == null) {
-                System.out.println("Need to add the data in the BDD ... ");
-                System.out.flush();
+                logger.info("Need to add the data in the BDD ... ");
                 try {
                     data = createNewData(tmpUID, fileName, sha512);
                 } catch (IOException ex) {
@@ -279,16 +274,14 @@ public class DataTools {
                     return Response.notModified("Error in SQL insertion ...").build();
                 }
             } else if (data.deleted == true) {
-                System.out.println("Data already exist but deleted");
-                System.out.flush();
+            	logger.error("Data already exist but deleted");
                 undelete(data.id);
                 data.deleted = false;
             } else {
-                System.out.println("Data already exist ... all good");
-                System.out.flush();
+                logger.error("Data already exist ... all good");
             }
             // Fist step: retrieve all the Id of each parents:...
-            System.out.println("Find typeNode");
+            logger.info("Find typeNode");
             SqlWrapper.addLink(clazz, id, "cover", data.id);
             return Response.ok(SqlWrapper.get(clazz, id)).build();
         } catch (Exception ex) {

@@ -3,14 +3,39 @@ package org.kar.archidata.db;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DBEntry implements Closeable {
+	final static Logger LOGGER = LoggerFactory.getLogger(DBEntry.class);
     public DBConfig config;
     public Connection connection;
+    private static List<DBEntry> stored = new ArrayList<>();
 
-    public DBEntry(DBConfig config) throws IOException {
+    private DBEntry(DBConfig config) throws IOException {
         this.config = config;
         connect();
+    }
+    
+    public static DBEntry createInterface(DBConfig config) throws IOException {
+    	if (config.getKeepConnected()) {
+    		for (DBEntry elem : stored) {
+    			if (elem == null) {
+    				continue;
+    			}
+    			if (elem.config.getUrl().equals(config.getUrl())) {
+    				return elem;
+    			}
+    		}
+    		DBEntry tmp =  new DBEntry(config);
+    		stored.add(tmp);
+    		return tmp;
+    	} else {
+    		return new DBEntry(config);
+    	}
     }
 
     public void connect() throws IOException {
@@ -21,21 +46,12 @@ public class DBEntry implements Closeable {
         }
 
     }
-/*
-    public void test() throws SQLException {
-        String query = "SELECT * FROM user";
-        Statement st = connection.createStatement();
-        ResultSet rs = st.executeQuery(query);
-        System.out.println("List of user:");
-        if (rs.next()) {
-            User user = new User(rs);
-            System.out.println("    - " + user);
-        }
-    }
-   */
 
 	@Override
 	public void close() throws IOException {
+		if (config.getKeepConnected()) {
+			return;
+		}
         try {
             //connection.commit();
             connection.close();

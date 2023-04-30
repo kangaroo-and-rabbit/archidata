@@ -12,6 +12,7 @@ public class GlobalConfiguration {
 				Integer.parseInt(ConfigBaseVariable.getDBPort()),
 				ConfigBaseVariable.getDBLogin(),
 				ConfigBaseVariable.getDBPassword(),
-				ConfigBaseVariable.getDBName());
+				ConfigBaseVariable.getDBName(),
+				ConfigBaseVariable.getDBKeepConnected());
     }
 }
