@@ -1,6 +1,11 @@
 package org.kar.archidata.db;
 
+import org.kar.archidata.SqlWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DBConfig {
+	static final Logger LOGGER = LoggerFactory.getLogger(SqlWrapper.class);
     private final String type;
     private final String hostname;
     private final int port;
@@ -67,11 +72,20 @@ public class DBConfig {
     }
 
     public String getUrl() {
+    	return getUrl(false);
+    }
+    public String getUrl(boolean isRoot) {
     	if (type.equals("sqlite")) {
+    		if (isRoot == true) {
+    			LOGGER.error("Can not manage root connection on SQLite...");
+    		}
     		if (this.hostname.equals("memory")) {
     			return "jdbc:sqlite::memory:";
     		}
     		return "jdbc:sqlite:" + this.hostname + ".db";
+    	}
+    	if (isRoot) {
+    		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
     	}
 		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName + "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
     }

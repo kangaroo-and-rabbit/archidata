@@ -15,12 +15,19 @@ public class DBEntry implements Closeable {
     public Connection connection;
     private static List<DBEntry> stored = new ArrayList<>();
 
-    private DBEntry(DBConfig config) throws IOException {
+    private DBEntry(DBConfig config, boolean root) throws IOException {
         this.config = config;
-        connect();
+        if (root) {
+        	connectRoot();
+        } else {
+        	connect();
+        }
     }
-    
+
     public static DBEntry createInterface(DBConfig config) throws IOException {
+    	return createInterface(config, false);
+    }
+    public static DBEntry createInterface(DBConfig config, boolean root) throws IOException {
     	if (config.getKeepConnected()) {
     		for (DBEntry elem : stored) {
     			if (elem == null) {
@@ -30,12 +37,21 @@ public class DBEntry implements Closeable {
     				return elem;
     			}
     		}
-    		DBEntry tmp =  new DBEntry(config);
+    		DBEntry tmp =  new DBEntry(config, root);
     		stored.add(tmp);
     		return tmp;
     	} else {
-    		return new DBEntry(config);
+    		return new DBEntry(config, root);
     	}
+    }
+
+    public void connectRoot() throws IOException {
+        try {
+            connection = DriverManager.getConnection(config.getUrl(true), config.getLogin(), config.getPassword());
+        } catch (SQLException ex) {
+            throw new IOException("Connection db fail: " + ex.getMessage());
+        }
+
     }
 
     public void connect() throws IOException {

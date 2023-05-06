@@ -30,13 +30,14 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.ws.rs.InternalServerErrorException;
+
 import org.kar.archidata.annotation.SQLCreateTime;
 import org.kar.archidata.annotation.SQLDefault;
 import org.kar.archidata.annotation.SQLDeleted;
 
-
 public class SqlWrapper {
-	static final Logger logger = LoggerFactory.getLogger(SqlWrapper.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(SqlWrapper.class);
 	
 	public static class ExceptionDBInterface extends Exception {
 		private static final long serialVersionUID = 1L;
@@ -50,6 +51,112 @@ public class SqlWrapper {
 	public SqlWrapper() {
 		
 	}
+
+	public static boolean isDBExist(String name) throws InternalServerErrorException {
+		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+			// no base manage in sqLite ...
+			// TODO: check if the file exist or not ...
+			return true;
+		}
+		DBEntry entry;
+		try {
+			entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, true);
+		} catch (IOException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
+			return false;
+		}
+		try {
+			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
+			PreparedStatement ps = entry.connection.prepareStatement("show databases");
+	        ResultSet rs = ps.executeQuery();
+	        while (rs.next()) {
+	        	String data = rs.getString(1);
+	        	if (name.equals(data)) {
+	        		return true;
+	        	}
+	        }
+	        //int count = ret.getInt("total");
+			return false;
+		} catch (SQLException ex) {
+			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
+		} finally {
+        	try {
+				entry.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	entry = null;
+		}
+		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}
+	public static boolean createDB(String name) throws InternalServerErrorException {
+		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+			// no base manage in sqLite ...
+			// TODO: check if the file exist or not ...
+			return true;
+		}
+		DBEntry entry;
+		try {
+			entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, true);
+		} catch (IOException ex) {
+			// TODO Auto-generated catch block
+			ex.printStackTrace();
+			LOGGER.error("Can not Create the DB {}", ex.getMessage());
+			return false;
+		}
+		try {
+			PreparedStatement ps = entry.connection.prepareStatement("CREATE DATABASE ?");
+			ps.setString(1, name);
+	        int ret = ps.executeUpdate();
+	        return ret == 1;
+		} catch (SQLException ex) {
+			LOGGER.error("Can not Create the DB SQL-error !!! {}", ex.getMessage());
+		} finally {
+        	try {
+				entry.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+        	entry = null;
+		}
+		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}
+	public static boolean isTableExist(String name) throws InternalServerErrorException {
+		try {
+			String request = "";
+			if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+				request = """
+						SELECT count(*) AS total
+						FROM information_schema.tables
+						WHERE table_name = ?;
+						LIMIT 1;
+						""";
+			} else {
+				request = """
+						SELECT COUNT(*) AS total
+						FROM sqlite_master
+						WHERE type = 'table'
+						AND name = ?;
+						""";
+			}
+
+			//  PreparedStatement ps = entry.connection.prepareStatement("show tables");
+			DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+			PreparedStatement ps = entry.connection.prepareStatement(request);
+			ps.setString(1, name);
+	        ResultSet ret = ps.executeQuery();
+	        int count = ret.getInt("total");
+			return count == 1;
+		} catch (SQLException ex) {
+			LOGGER.error("Can not check if the table exist SQL-error !!! {}", ex.getMessage());
+		} catch (IOException ex) {
+			LOGGER.error("Can not check if the table exist!!! {}", ex.getMessage());
+		}
+		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}	
 	
 	public static String convertTypeInSQL(Class<?> type) throws Exception {
 		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
@@ -398,7 +505,7 @@ public class SqlWrapper {
                     throw new SQLException("Creating node failed, no ID obtained (1).");
                 }
             } catch (Exception ex) {
-                logger.error("Can not get the UID key inserted ... ");
+                LOGGER.error("Can not get the UID key inserted ... ");
                 ex.printStackTrace();
                 throw new SQLException("Creating node failed, no ID obtained (2).");
             }
@@ -408,7 +515,7 @@ public class SqlWrapper {
             	} else if (primaryKeyField.getType() == long.class) {
             		primaryKeyField.setLong(data, uniqueSQLID);
             	} else {
-            		logger.error("Can not manage the primary filed !!!");
+            		LOGGER.error("Can not manage the primary filed !!!");
             	}
             }
             //ps.execute();
@@ -823,7 +930,7 @@ public class SqlWrapper {
 	}
 	
 	public static <T> List<T> gets(Class<T> clazz, boolean full) throws Exception {
-		logger.debug("request get {} start @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+		LOGGER.debug("request get {} start @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
         DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
         List<T> out = new ArrayList<>();
         // real add in the BDD:
@@ -917,15 +1024,15 @@ public class SqlWrapper {
 	        query.append(tableName);
    			query.append(".deleted = false ");
    		 	firstField = true;
-   		    logger.info("generate the querry: '{}'", query.toString());
-   			logger.info("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+   		    LOGGER.info("generate the querry: '{}'", query.toString());
+   			LOGGER.info("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 
-    		logger.info("request get {} query @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.info("request get {} query @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // execute the request
             ResultSet rs = ps.executeQuery();
-    		logger.info("request get {} transform @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.info("request get {} transform @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
             while (rs.next()) {
                 indexAutoClasify = 0;
@@ -956,7 +1063,7 @@ public class SqlWrapper {
 				out.add((T)data);
             }
 
-    		logger.info("request get {} ready @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.info("request get {} ready @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
         } catch (SQLException ex) {
             ex.printStackTrace();
@@ -994,7 +1101,7 @@ public class SqlWrapper {
                     throw new SQLException("Creating user failed, no ID obtained (1).");
                 }
             } catch (Exception ex) {
-                logger.debug("Can not get the UID key inserted ... ");
+                LOGGER.debug("Can not get the UID key inserted ... ");
                 ex.printStackTrace();
                 throw new SQLException("Creating user failed, no ID obtained (2).");
             }
@@ -1138,7 +1245,7 @@ public class SqlWrapper {
 		out.append(tableName);
 		out.append("` (");
 		boolean firstField = true;
-		logger.debug("===> TABLE `{}`", tableName);
+		LOGGER.debug("===> TABLE `{}`", tableName);
 		String primaryKeyValue = null;
 		for (Field elem : clazz.getFields()) {
 		

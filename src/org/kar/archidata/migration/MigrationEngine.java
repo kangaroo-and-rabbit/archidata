@@ -35,6 +35,14 @@ public class MigrationEngine {
 	 * @return String represent the last migration. If null then no migration has been done.
 	 */
 	public String getCurrentVersion() {
+		// TODO: check if the DB exist :
+		if (SqlWrapper.isTableExist("migration")) {
+			
+		}
+		
+		// check if migration table exist:
+		
+		// get the current migration
 		try {
 			List<MigrationModel> data = SqlWrapper.gets(MigrationModel.class, false);
 			if (data == null) {
