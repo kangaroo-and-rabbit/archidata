@@ -16,7 +16,7 @@ implements ExceptionMapper<ClientErrorException> {
 	  public Response toResponse(ClientErrorException exception) {
 		  RestErrorResponse ret = build(exception);
 		  logger.error("Error UUID={}", ret.uuid);
-	      return Response.status(Response.Status.NOT_FOUND)
+	      return Response.status(exception.getResponse().getStatusInfo().toEnum())
 	        .entity(ret)
 	        .type(MediaType.APPLICATION_JSON)
 	        .build();

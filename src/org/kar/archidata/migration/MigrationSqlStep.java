@@ -20,28 +20,45 @@ public class MigrationSqlStep implements MigrationInterface{
 	}
 
 	@Override
-	public boolean applyMigration(DBEntry entry, StringBuilder log) {
+	public boolean applyMigration(DBEntry entry, StringBuilder log, MigrationModel model) {
 		for (int iii=0; iii<actions.size(); iii++) {
 			log.append("action [" + iii + "/" + actions.size() + "]\n");
-			LOGGER.debug(" >>>> SQL ACTION : {}/{}", iii, actions.size());
+			LOGGER.info(" >>>> SQL ACTION : {}/{}", iii, actions.size());
 			String action = actions.get(iii);
-			LOGGER.debug("SQL request: ```{}```", action);
+			LOGGER.info("SQL request: ```{}```", action);
 			log.append("SQL: " + action + "\n");
 			try {
-				SqlWrapper.executeSimpleQuerry(action);
-			} catch (SQLException ex) {
+				SqlWrapper.executeQuerry(action);
+			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
-				LOGGER.debug("SQL request ERROR: ", ex.getMessage());
+				LOGGER.info("SQL request ERROR: ", ex.getMessage());
 				log.append("SQL request ERROR: " + ex.getMessage() + "\n");
-				return false;
-			} catch (IOException ex) {
-				ex.printStackTrace();
-				LOGGER.debug("IO request ERROR: ", ex.getMessage());
-				log.append("IO request ERROR: " + ex.getMessage() + "\n");
+				model.stepId = iii+1;
+				model.log = log.toString();
+			    try {
+			    	SqlWrapper.update(model, model.id, List.of("stepId", "log"));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				return false;
 			}
 			log.append("action [" + iii + "/" + actions.size() + "] ==> DONE\n");
-			LOGGER.debug(" >>>> SQL ACTION : {}/{} ==> DONE", iii, actions.size());
+			LOGGER.info(" >>>> SQL ACTION : {}/{} ==> DONE", iii, actions.size());
+			model.stepId = iii+1;
+			model.log = log.toString();
+		    try {
+		    	SqlWrapper.update(model, model.id, List.of("stepId", "log"));
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		    try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		return true;
 	}
@@ -55,7 +72,13 @@ public class MigrationSqlStep implements MigrationInterface{
 		actions.add(action);
 	}
 	public void addClass(Class<?> clazz) throws Exception {
-		actions.add(SqlWrapper.createTable(clazz));
+		List<String> tmp = SqlWrapper.createTable(clazz, false);
+		actions.addAll(tmp);
+	}
+
+	@Override
+	public int getNumberOfStep() {
+		return actions.size();
 	}
 
 }

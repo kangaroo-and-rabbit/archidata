@@ -71,13 +71,14 @@ public class SqlWrapper {
 			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
 			PreparedStatement ps = entry.connection.prepareStatement("show databases");
 	        ResultSet rs = ps.executeQuery();
+	        //LOGGER.info("List all tables:      equals? '{}'", name);
 	        while (rs.next()) {
 	        	String data = rs.getString(1);
+		        //LOGGER.info("  - '{}'", data);
 	        	if (name.equals(data)) {
 	        		return true;
 	        	}
 	        }
-	        //int count = ret.getInt("total");
 			return false;
 		} catch (SQLException ex) {
 			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
@@ -92,64 +93,56 @@ public class SqlWrapper {
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
-	public static boolean createDB(String name) throws InternalServerErrorException {
+	public static boolean createDB(String name) {
 		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
 			return true;
 		}
-		DBEntry entry;
 		try {
-			entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, true);
-		} catch (IOException ex) {
-			// TODO Auto-generated catch block
+			return 1 == SqlWrapper.executeSimpleQuerry("CREATE DATABASE `" + name + "`;", true);
+		} catch (SQLException ex) {
 			ex.printStackTrace();
-			LOGGER.error("Can not Create the DB {}", ex.getMessage());
+			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
+			return false;
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
 			return false;
 		}
-		try {
-			PreparedStatement ps = entry.connection.prepareStatement("CREATE DATABASE ?");
-			ps.setString(1, name);
-	        int ret = ps.executeUpdate();
-	        return ret == 1;
-		} catch (SQLException ex) {
-			LOGGER.error("Can not Create the DB SQL-error !!! {}", ex.getMessage());
-		} finally {
-        	try {
-				entry.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-        	entry = null;
-		}
-		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 	public static boolean isTableExist(String name) throws InternalServerErrorException {
 		try {
 			String request = "";
-			if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
-				request = """
-						SELECT count(*) AS total
-						FROM information_schema.tables
-						WHERE table_name = ?;
-						LIMIT 1;
-						""";
-			} else {
+			if (ConfigBaseVariable.getDBType().equals("sqlite")) {
 				request = """
 						SELECT COUNT(*) AS total
 						FROM sqlite_master
 						WHERE type = 'table'
 						AND name = ?;
 						""";
+				//  PreparedStatement ps = entry.connection.prepareStatement("show tables");
+				DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+				PreparedStatement ps = entry.connection.prepareStatement(request);
+				ps.setString(1, name);
+		        ResultSet ret = ps.executeQuery();
+		        int count = ret.getInt("total");
+				return count == 1;
+			} else {
+				DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
+				PreparedStatement ps = entry.connection.prepareStatement("show tables");
+		        ResultSet rs = ps.executeQuery();
+		        //LOGGER.info("List all tables:      equals? '{}'", name);
+		        while (rs.next()) {
+		        	String data = rs.getString(1);
+			        //LOGGER.info("  - '{}'", data);
+		        	if (name.equals(data)) {
+		        		return true;
+		        	}
+		        }
+				return false;
 			}
-
-			//  PreparedStatement ps = entry.connection.prepareStatement("show tables");
-			DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-			PreparedStatement ps = entry.connection.prepareStatement(request);
-			ps.setString(1, name);
-	        ResultSet ret = ps.executeQuery();
-	        int count = ret.getInt("total");
-			return count == 1;
 		} catch (SQLException ex) {
 			LOGGER.error("Can not check if the table exist SQL-error !!! {}", ex.getMessage());
 		} catch (IOException ex) {
@@ -793,11 +786,23 @@ public class SqlWrapper {
 	 		addElement(ps, elem.Value(), iii++);   		 		
 	 	}
 	}
-	
-	public static void executeSimpleQuerry(String querry) throws SQLException, IOException {
-		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+	public static int executeSimpleQuerry(String querry, boolean root) throws SQLException, IOException {
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		Statement stmt = entry.connection.createStatement();
-        stmt.executeUpdate(querry);
+        return stmt.executeUpdate(querry);
+	}
+	
+	public static int executeSimpleQuerry(String querry) throws SQLException, IOException {
+		return executeSimpleQuerry(querry, false);
+	}
+	public static boolean executeQuerry(String querry, boolean root) throws SQLException, IOException {
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
+		Statement stmt = entry.connection.createStatement();
+        return stmt.execute(querry);
+	}
+	
+	public static boolean executeQuerry(String querry) throws SQLException, IOException {
+		return executeQuerry(querry, false);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -939,9 +944,6 @@ public class SqlWrapper {
         	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
         	query.append("SELECT ");
-        	//query.append(tableName);
-        	//query.append(" SET ");
-
    		 	boolean firstField = true;
    		 	int count = 0;
    		 	StateLoad[] autoClasify = new StateLoad[clazz.getFields().length];
@@ -1228,17 +1230,22 @@ public class SqlWrapper {
         	entry = null;
         }
 	}
-	
-	public static String createTable(Class<?> clazz) throws Exception {
+
+	public static List<String> createTable(Class<?> clazz) throws Exception {
+		return createTable(clazz, true);
+	}
+	public static List<String> createTable(Class<?> clazz, boolean createDrop) throws Exception {
 		String tableName = getTableName(clazz);
 		boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+		List<String> outList = new ArrayList<>();
 		StringBuilder out = new StringBuilder();
-		StringBuilder otherTable = new StringBuilder();
 		// Drop Table
-		if (createIfNotExist) {
-			 out.append("DROP TABLE IF EXISTS `");
-			 out.append(tableName);
-			 out.append("`;\n");
+		if (createIfNotExist && createDrop) {
+			StringBuilder tableTmp = new StringBuilder();
+			tableTmp.append("DROP TABLE IF EXISTS `");
+			tableTmp.append(tableName);
+			tableTmp.append("`;");
+			outList.add(tableTmp.toString());
 		}
 		// create Table:
 		out.append("CREATE TABLE `");
@@ -1273,13 +1280,16 @@ public class SqlWrapper {
 				if (name.endsWith("s")) {
 					localName = name.substring(0, name.length()-1);
 				}
-				if (createIfNotExist) {
-					otherTable.append("DROP TABLE IF EXISTS `");
-					otherTable.append(tableName);
-					otherTable.append("_link_");
-					otherTable.append(localName);
-					otherTable.append("`;\n");
+				if (createIfNotExist && createDrop) {
+					StringBuilder tableTmp = new StringBuilder();
+					tableTmp.append("DROP TABLE IF EXISTS `");
+					tableTmp.append(tableName);
+					tableTmp.append("_link_");
+					tableTmp.append(localName);
+					tableTmp.append("`;");
+					outList.add(tableTmp.toString());
 				}
+				StringBuilder otherTable = new StringBuilder();
 				otherTable.append("CREATE TABLE `");
 				otherTable.append(tableName);
 				otherTable.append("_link_");
@@ -1317,7 +1327,8 @@ public class SqlWrapper {
 				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 					otherTable.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;\n\n");
 				}
-				otherTable.append(";\n\n");
+				otherTable.append(";");
+				outList.add(otherTable.toString());
 			} else {
 				if (firstField) {
 					out.append("\n\t\t`");
@@ -1355,11 +1366,18 @@ public class SqlWrapper {
 					}
 					if (defaultValue == null) {
 						if (updateTime || createTime) {
+							out.append("DEFAULT CURRENT_TIMESTAMP");
 							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
-								out.append("DEFAULT CURRENT_TIMESTAMP ");
-							} else {
-								out.append("DEFAULT CURRENT_TIMESTAMP(3) ");
-							}
+								out.append("(3)");
+							} 
+							out.append(" ");
+						}
+						if (updateTime) {
+							out.append("ON UPDATE CURRENT_TIMESTAMP");
+							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append("(3)");
+							} 
+							out.append(" ");
 						}
 					} else {
 						out.append("DEFAULT ");
@@ -1369,6 +1387,13 @@ public class SqlWrapper {
 							out.append(defaultValue);
 						}
 						out.append(" ");
+						if (updateTime) {
+							out.append("ON UPDATE CURRENT_TIMESTAMP");
+							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append("(3)");
+							} 
+							out.append(" ");
+						}
 					}
 				} else if (defaultValue == null) {
 					if (updateTime || createTime) {
@@ -1414,8 +1439,9 @@ public class SqlWrapper {
 		 if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 			 out.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 		 }
-		 out.append(";\n");
-		 return out.toString() + otherTable.toString();
+		 out.append(";");
+		 outList.add( out.toString());
+		 return outList;
 	}
 	
 
