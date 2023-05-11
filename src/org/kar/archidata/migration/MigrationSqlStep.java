@@ -38,7 +38,6 @@ public class MigrationSqlStep implements MigrationInterface{
 			    try {
 			    	SqlWrapper.update(model, model.id, List.of("stepId", "log"));
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				return false;
@@ -54,7 +53,7 @@ public class MigrationSqlStep implements MigrationInterface{
 				e.printStackTrace();
 			}
 		    try {
-				Thread.sleep(1000);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

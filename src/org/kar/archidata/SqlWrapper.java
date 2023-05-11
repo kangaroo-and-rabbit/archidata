@@ -1026,15 +1026,15 @@ public class SqlWrapper {
 	        query.append(tableName);
    			query.append(".deleted = false ");
    		 	firstField = true;
-   		    LOGGER.info("generate the querry: '{}'", query.toString());
-   			LOGGER.info("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+   		    LOGGER.debug("generate the querry: '{}'", query.toString());
+   			LOGGER.debug("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 
-    		LOGGER.info("request get {} query @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.debug("request get {} query @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             // execute the request
             ResultSet rs = ps.executeQuery();
-    		LOGGER.info("request get {} transform @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.debug("request get {} transform @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
             while (rs.next()) {
                 indexAutoClasify = 0;
@@ -1065,7 +1065,7 @@ public class SqlWrapper {
 				out.add((T)data);
             }
 
-    		LOGGER.info("request get {} ready @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
+    		LOGGER.debug("request get {} ready @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
             
         } catch (SQLException ex) {
             ex.printStackTrace();

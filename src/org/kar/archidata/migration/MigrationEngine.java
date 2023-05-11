@@ -101,9 +101,8 @@ public class MigrationEngine {
 			}
 			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
 			try {
-				SqlWrapper.executeQuerry(sqlQuery.get(0));//.replace("`", "").replace("\t", ""));
+				SqlWrapper.executeQuerry(sqlQuery.get(0));
 			} catch (SQLException | IOException ex) {
-				// TODO Auto-generated catch block
 				ex.printStackTrace();
 				while (true) {
 					LOGGER.error("Fail to create the local DB model for migaration ==> wait administrator interventions");
@@ -121,6 +120,24 @@ public class MigrationEngine {
 			} else {
 				toApply.add(this.init);
 			}
+			if (this.datas.size() == 0) {
+				// nothing to do the initialization model is alone and it is the first time 
+			} else {
+				// we insert a placeholder to simulate all migration is well done.
+				String placeholderName = this.datas.get(this.datas.size()-1).getName();
+				MigrationModel migrationResult = new MigrationModel();
+			    migrationResult.name = placeholderName;
+				migrationResult.stepId = 0;
+				migrationResult.terminated = true;
+			    migrationResult.count = 0;
+			    migrationResult.log = "Place-holder for first initialization";
+			    try {
+			    	migrationResult = SqlWrapper.insert(migrationResult);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		} else {
 			if (currentVersion.terminated == false) {
 				while(true) {
@@ -129,7 +146,7 @@ public class MigrationEngine {
 				}
 			}
 			LOGGER.info("Upgrade the system Current version: {}", currentVersion);
-			boolean find = false;
+			boolean find = this.init != null && this.init.getName() == currentVersion.name;
 			for (int iii=0; iii<this.datas.size(); iii++) {
 				if ( ! find) {	
 					if (this.datas.get(iii).getName() == currentVersion.name) {
@@ -170,8 +187,24 @@ public class MigrationEngine {
 		    try {
 		    	SqlWrapper.update(migrationResult, migrationResult.id, List.of("terminated"));
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+			}
+		} else {
+		    try {
+		    	log.append("Fail in the migration engine...");
+		    	migrationResult.log = log.toString();
+		    	SqlWrapper.update(migrationResult, migrationResult.id, List.of("log"));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			while(true) {
+				LOGGER.error("An error occured in the migration (OUTSIDE detection): '{}' defect @{}/{} ==> wait administrator interventions", migrationResult.name , migrationResult.stepId, migrationResult.count);
+				try {
+					Thread.sleep(60*60*1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
