@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>kangaroo-and-rabbit</groupId>
   <artifactId>archidata</artifactId>
-  <version>0.3.5</version>
+  <version>0.3.6</version>
 	<properties>
 		<jersey.version>3.1.1</jersey.version>
 		<jaxb.version>2.3.1</jaxb.version>

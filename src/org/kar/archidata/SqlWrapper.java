@@ -388,9 +388,9 @@ public class SqlWrapper {
         	String tableName = getTableName(clazz);
         	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
-        	query.append("INSERT INTO ");
+        	query.append("INSERT INTO `");
         	query.append(tableName);
-        	query.append(" (");
+        	query.append("` (");
 
    		 	boolean firstField = true;
    		 	int count = 0;
@@ -439,7 +439,7 @@ public class SqlWrapper {
 				query.append("?");
    		 	}
    		    query.append(")");
-   		    // logger.debug("generate the query: '{}'", query.toString());
+   		    //LOGGER.warn("generate the query: '{}'", query.toString());
             // prepare the request:
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             Field primaryKeyField = null;
@@ -560,9 +560,9 @@ public class SqlWrapper {
         	String tableName = getTableName(clazz);
         	//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
         	StringBuilder query = new StringBuilder();
-        	query.append("UPDATE ");
+        	query.append("UPDATE `");
         	query.append(tableName);
-        	query.append(" SET ");
+        	query.append("` SET ");
 
    		 	boolean firstField = true;
             Field primaryKeyField = null;

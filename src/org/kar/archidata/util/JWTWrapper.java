@@ -84,12 +84,15 @@ public class JWTWrapper {
 		try {
 			String generatedStringForKey = baseUUID;
 			if (generatedStringForKey == null) {
+				logger.error(" Generate new UUID : {}", generatedStringForKey);
 				generatedStringForKey = UUID.randomUUID().toString();
+			} else {
+				logger.error("USE UUID : {}", generatedStringForKey);
 			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
-			//logger.debug("RSA key (all): " + rsaJWK.toJSONString());
-			//logger.debug("RSA key (pub): " + rsaPublicJWK.toJSONString());
+			logger.error("RSA key (all): " + rsaJWK.toJSONString());
+			logger.error("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (JOSEException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
