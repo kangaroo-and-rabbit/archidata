@@ -7,14 +7,18 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class MediaStreamer implements StreamingOutput {
+	static final Logger logger = LoggerFactory.getLogger(MediaStreamer.class);
     private final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     final byte[] buf = new byte[CHUNK_SIZE];
     private long length;
     private RandomAccessFile raf;
 
     public MediaStreamer(long length, RandomAccessFile raf) throws IOException {
-        //System.out.println("request stream of " + length / 1024 + " data");
+        //logger.info("request stream of {} data", length / 1024);
         if (length<0) {
             throw new IOException("Wrong size of the file to stream: " + length);
         }
@@ -30,7 +34,7 @@ public class MediaStreamer implements StreamingOutput {
                 try {
                     outputStream.write(buf, 0, read);
                 } catch (IOException ex) {
-                    System.out.println("remote close connection");
+                	logger.info("remote close connection");
                     break;
                 }
                 length -= read;

@@ -8,6 +8,8 @@ import org.kar.archidata.SqlWrapper;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.annotation.security.RolesAllowed;
 import org.kar.archidata.util.ConfigBaseVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -44,6 +46,7 @@ import java.util.Date;
 @Path("/data")
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
+	static final Logger logger = LoggerFactory.getLogger(MediaType.class);
     private final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
     private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
     /**
@@ -83,7 +86,7 @@ public class DataResource {
     }
 
     public static Data getWithSha512(String sha512) {
-        System.out.println("find sha512 = " + sha512);
+    	logger.info("find sha512 = {}", sha512);
         try {
 			return SqlWrapper.getWhere(Data.class, "sha512", "=", sha512);
 		} catch (Exception e) {
@@ -94,7 +97,7 @@ public class DataResource {
     }
 
     public static Data getWithId(long id) {
-        System.out.println("find id = " + id);
+    	logger.info("find id = {}", id);
         try {
 			return SqlWrapper.get(Data.class, id);
 		} catch (Exception e) {
@@ -145,10 +148,10 @@ public class DataResource {
 			return null;
 		}
         String mediaPath = getFileData(injectedData.id);
-        System.out.println("src = " + tmpPath);
-        System.out.println("dst = " + mediaPath);
+        logger.info("src = {}", tmpPath);
+        logger.info("dst = {}", mediaPath);
         Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
-        System.out.println("Move done");
+        logger.info("Move done");
         return injectedData;
     }
 
@@ -162,7 +165,7 @@ public class DataResource {
             try {
                 Files.delete(Paths.get(filepath));
             } catch (IOException e) {
-                System.out.println("can not delete temporary file : " + Paths.get(filepath));
+            	logger.info("can not delete temporary file : {}", Paths.get(filepath));
                 e.printStackTrace();
             }
         }
@@ -180,11 +183,11 @@ public class DataResource {
 
             outpuStream = new FileOutputStream(new File(serverLocation));
             while ((read = uploadedInputStream.read(bytes)) != -1) {
-                //System.out.println("write " + read);
+                //logger.info("write {}", read);
                 md.update(bytes, 0, read);
                 outpuStream.write(bytes, 0, read);
             }
-            System.out.println("Flush input stream ... " + serverLocation);
+            logger.info("Flush input stream ... {}", serverLocation);
             System.out.flush();
             outpuStream.flush();
             outpuStream.close();
@@ -194,10 +197,10 @@ public class DataResource {
             out = bytesToHex(sha512Digest);
             uploadedInputStream.close();
         } catch (IOException ex) {
-            System.out.println("Can not write in temporary file ... ");
+        	logger.info("Can not write in temporary file ... ");
             ex.printStackTrace();
         } catch (NoSuchAlgorithmException ex) {
-            System.out.println("Can not find sha512 algorithms");
+        	logger.info("Can not find sha512 algorithms");
             ex.printStackTrace();
         }
         return out;
@@ -228,11 +231,11 @@ public class DataResource {
     @RolesAllowed("ADMIN")
     public Response uploadFile(@Context SecurityContext sc, @FormDataParam("file") InputStream fileInputStream, @FormDataParam("file") FormDataContentDisposition fileMetaData) {
     	GenericContext gc = (GenericContext) sc.getUserPrincipal();
-        System.out.println("===================================================");
-        System.out.println("== DATA uploadFile " + (gc==null?"null":gc.userByToken));
-        System.out.println("===================================================");
+    	logger.info("===================================================");
+    	logger.info("== DATA uploadFile {}", (gc==null?"null":gc.userByToken));
+    	logger.info("===================================================");
         //public NodeSmall uploadFile(final FormDataMultiPart form) {
-        System.out.println("Upload file: ");
+    	logger.info("Upload file: ");
         String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
         try {
             createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
@@ -251,9 +254,9 @@ public class DataResource {
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response retriveDataId(@Context SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) String token, @HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception {
     	GenericContext gc = (GenericContext) sc.getUserPrincipal();
-        //System.out.println("===================================================");
-        System.out.println("== DATA retriveDataId ? id=" + id + " user=" + (gc==null?"null":gc.userByToken));
-        //System.out.println("===================================================");
+        //logger.info("===================================================");
+    	logger.info("== DATA retriveDataId ? id={} user={}", id, (gc==null?"null":gc.userByToken));
+        //logger.info("===================================================");
         Data value = getSmall(id);
         if (value == null) {
             Response.status(404).
@@ -275,9 +278,9 @@ public class DataResource {
     		@HeaderParam("Range") String range,
     		@PathParam("id") Long id) throws Exception {
         //GenericContext gc = (GenericContext) sc.getUserPrincipal();
-        //System.out.println("===================================================");
-        //System.out.println("== DATA retriveDataThumbnailId ? " + (gc==null?"null":gc.user));
-        //System.out.println("===================================================");
+        //logger.info("===================================================");
+        //logger.info("== DATA retriveDataThumbnailId ? {}", (gc==null?"null":gc.user));
+        //logger.info("===================================================");
         Data value = getSmall(id);
         if (value == null) {
             return Response.status(404).
@@ -343,9 +346,9 @@ public class DataResource {
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     public Response retriveDataFull(@Context SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) String token, @HeaderParam("Range") String range, @PathParam("id") Long id, @PathParam("name") String name) throws Exception {
         GenericContext gc = (GenericContext) sc.getUserPrincipal();
-        //System.out.println("===================================================");
-        System.out.println("== DATA retriveDataFull ? id=" + id + " user=" + (gc==null?"null":gc.userByToken));
-        //System.out.println("===================================================");
+        //logger.info("===================================================");
+        logger.info("== DATA retriveDataFull ? id={} user={}", id, (gc==null?"null":gc.userByToken));
+        //logger.info("===================================================");
         Data value = getSmall(id);
         if (value == null) {
             Response.status(404).
@@ -365,7 +368,7 @@ public class DataResource {
      */
     private Response buildStream(final String filename, final String range, String mimeType) throws Exception {
         File file = new File(filename);
-        //System.out.println("request range : " + range);
+        //logger.info("request range : {}", range);
         // range not requested : Firefox does not send range headers
         if (range == null) {
             final StreamingOutput output = new StreamingOutput() {
@@ -378,9 +381,9 @@ public class DataResource {
                             try {
                                 out.write(buf, 0, len);
                                 out.flush();
-                                //System.out.println("---- wrote " + len + " bytes file ----");
+                                //logger.info("---- wrote {} bytes file ----", len);
                             } catch (IOException ex) {
-                                System.out.println("remote close connection");
+                            	logger.info("remote close connection");
                                 break;
                             }
                         }
@@ -401,7 +404,7 @@ public class DataResource {
         String[] ranges = range.split("=")[1].split("-");
         final long from = Long.parseLong(ranges[0]);
 
-        //System.out.println("request range : " + ranges.length);
+        //logger.info("request range : {}", ranges.length);
         //Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
         long to = CHUNK_SIZE + from;
         if (ranges.length == 1) {
@@ -412,7 +415,7 @@ public class DataResource {
             }
         }
         final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
-        //System.out.println("responseRange : " + responseRange);
+        //logger.info("responseRange: {}", responseRange);
         final RandomAccessFile raf = new RandomAccessFile(file, "r");
         raf.seek(from);
 

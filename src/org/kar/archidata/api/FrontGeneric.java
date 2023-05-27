@@ -10,9 +10,12 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 
 import org.kar.archidata.annotation.security.PermitAll;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class FrontGeneric {
+	static final Logger logger = LoggerFactory.getLogger(FrontGeneric.class);
 	
 	protected String baseFrontFolder = "/data/front";
 	
@@ -26,7 +29,7 @@ public class FrontGeneric {
         String filePathName = baseFrontFolder + File.separator + fileName;
     	String extention = getExtension(filePathName);
     	String mineType = null;
-    	System.out.println("try retrive : '" + filePathName + "' '" + extention + "'");
+    	logger.debug("try retrive : '{}' '{}'", filePathName, extention);
     	if (extention.length() !=0 && extention.length() <= 5) {
 	    	if (extention.equalsIgnoreCase("jpg") || extention.equalsIgnoreCase("jpeg")) {
 	    		mineType = "image/jpeg";
@@ -55,7 +58,7 @@ public class FrontGeneric {
     		mineType = "text/html";
     		filePathName = baseFrontFolder + File.separator + "index.html";
     	}
-    	System.out.println("    ==> '" + filePathName + "'");
+    	logger.debug("    ==> '[}'", filePathName);
     	// reads input image
         File download = new File(filePathName);
         if (!download.exists()) {

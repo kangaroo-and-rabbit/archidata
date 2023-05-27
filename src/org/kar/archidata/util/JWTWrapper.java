@@ -147,13 +147,20 @@ public class JWTWrapper {
 		try {
 			// Create RSA-signer with the private key
 			JWSSigner signer = new RSASSASigner(rsaJWK); 
+
+	        logger.warn("timeOutInMunites= {}", timeOutInMunites);
+	        Date now = new Date();
+	        logger.warn("now       = {}", now);
+	        Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
+	        
+	        logger.warn("expiration= {}", expiration);
 			JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
 			    .subject(Long.toString(userID))
 			    .claim("login", userLogin)
 			    .claim("application", application)
 			    .issuer(isuer)
-			    .issueTime(new Date())
-			    .expirationTime(new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */)); // Do not ask why we need a "-" here ... this have no meaning
+			    .issueTime(now)
+			    .expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
 			if (rights != null && !rights.isEmpty()) {
 				builder.claim("right", rights);
