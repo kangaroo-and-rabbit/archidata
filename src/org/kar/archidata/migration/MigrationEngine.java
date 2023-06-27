@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.kar.archidata.SqlWrapper;
-import org.kar.archidata.annotation.SQLComment;
-import org.kar.archidata.annotation.SQLLimitSize;
 import org.kar.archidata.db.DBConfig;
 import org.kar.archidata.db.DBEntry;
 import org.slf4j.Logger;
@@ -21,23 +19,38 @@ public class MigrationEngine {
 	// initialization of the migration if the DB is not present...
 	private MigrationInterface init;
 	
+	/**
+	 * Migration engine constructor (empty).
+	 */
 	public MigrationEngine() {
 		this(new ArrayList<MigrationInterface>(), null);
 	}
+	/**
+	 * Migration engine constructor (specific mode).
+	 * @param datas All the migration ordered.
+	 * @param init Initialization migration model.
+	 */
 	public MigrationEngine( List<MigrationInterface> datas, MigrationInterface init) {
 		this.datas = datas;
 		this.init = init;
 	}
-
+	/**
+	 * Add a Migration in the list
+	 * @param migration Migration to add.
+	 */
 	public void add(MigrationInterface migration) {
 		datas.add(migration);
 	}
+	/**
+	 * Set first initialization class
+	 * @param migration migration class for first init.
+	 */
 	public void setInit(MigrationInterface migration) {
 		init = migration;
 	}
 	/**
 	 * Get the current version/migration name
-	 * @return String represent the last migration. If null then no migration has been done.
+	 * @return Model represent the last migration. If null then no migration has been done.
 	 */
 	public MigrationModel getCurrentVersion() {
 		if (!SqlWrapper.isTableExist("KAR_migration")) {
@@ -64,7 +77,12 @@ public class MigrationEngine {
 		}
 		return null;
 	}
-	
+	/**
+	 * Process the automatic migration of the system
+	 * @param config SQL connection for the migration
+	 * @throws InterruptedException user interrupt the migration
+	 * @throws IOException Error if access on the DB
+	 */
 	public void migrate(DBConfig config) throws InterruptedException, IOException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 
