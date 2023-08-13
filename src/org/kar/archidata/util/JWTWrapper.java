@@ -45,7 +45,7 @@ public class JWTWrapper {
     public static void initLocalTokenRemote(String ssoUri, String application) throws IOException, ParseException {
         // check Token:
         URL obj = new URL(ssoUri + "public_key");
-        logger.debug("Request token from: {}", obj);
+        //logger.debug("Request token from: {}", obj);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
         con.setRequestMethod("GET");
         con.setRequestProperty("User-Agent", application);
@@ -58,7 +58,7 @@ public class JWTWrapper {
         }
         int responseCode = con.getResponseCode();
 
-        logger.debug("GET Response Code :: {}", responseCode);
+        //logger.debug("GET Response Code :: {}", responseCode);
         if (responseCode == HttpURLConnection.HTTP_OK) { // success
             BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
@@ -75,7 +75,7 @@ public class JWTWrapper {
             rsaPublicJWK = RSAKey.parse(values.key);
             return;
         }
-        logger.debug("GET JWT validator token not worked");
+        logger.debug("GET JWT validator token not worked response code {} from {} ", responseCode, obj);
     }
 
 	public static void initLocalToken(String baseUUID) throws Exception{

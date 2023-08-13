@@ -39,7 +39,7 @@ public class MigrationEngine {
 	 * @param migration Migration to add.
 	 */
 	public void add(MigrationInterface migration) {
-		datas.add(migration);
+		this.datas.add(migration);
 	}
 	/**
 	 * Set first initialization class
@@ -68,7 +68,7 @@ public class MigrationEngine {
 			}
 			LOGGER.debug("List of migrations:");
 			for (MigrationModel elem : data) {
-				LOGGER.debug("    - date={} name={} end{}", elem.modify_date, elem.name, elem.terminated);				
+				LOGGER.debug("    - date={} name={} end={}", elem.modify_date, elem.name, elem.terminated);				
 			}
 			return data.get(data.size()-1);
 		} catch (Exception ex) {
@@ -163,16 +163,20 @@ public class MigrationEngine {
 					Thread.sleep(60*60*1000);
 				}
 			}
-			LOGGER.info("Upgrade the system Current version: {}", currentVersion);
+			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
 			boolean find = this.init != null && this.init.getName() == currentVersion.name;
-			for (int iii=0; iii<this.datas.size(); iii++) {
-				if ( ! find) {	
-					if (this.datas.get(iii).getName() == currentVersion.name) {
-						find = true;
+			if (currentVersion.name.equals(this.init.getName())) {
+				toApply = this.datas;
+			} else {
+				for (int iii=0; iii<this.datas.size(); iii++) {
+					if ( ! find) {	
+						if (this.datas.get(iii).getName() == currentVersion.name) {
+							find = true;
+						}
+						continue;
 					}
-					continue;
+					toApply.add(this.datas.get(iii));
 				}
-				toApply.add(this.datas.get(iii));
 			}
 		}
 		DBEntry entry = DBEntry.createInterface(config);

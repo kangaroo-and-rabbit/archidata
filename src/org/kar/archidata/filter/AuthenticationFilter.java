@@ -201,7 +201,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     }
     // must be override to be good implementation
     protected UserByToken validateJwtToken(String authorization) throws Exception {
-    	logger.debug(" validate token : " + authorization);
+    	//logger.debug(" validate token : " + authorization);
         JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
         // check the token is valid !!! (signed and coherent issuer...
         if (ret == null) {
@@ -224,7 +224,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	        	logger.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName, rights);
 	        }
         } 
-        logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
+        //logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
         return user;
         //return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
     }

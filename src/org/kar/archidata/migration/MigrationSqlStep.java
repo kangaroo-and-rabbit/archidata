@@ -10,7 +10,7 @@ import org.kar.archidata.db.DBEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MigrationSqlStep implements MigrationInterface{
+public class MigrationSqlStep implements MigrationInterface {
 	final static Logger LOGGER = LoggerFactory.getLogger(MigrationSqlStep.class);
 	private List<String> actions = new ArrayList<>();
 	
