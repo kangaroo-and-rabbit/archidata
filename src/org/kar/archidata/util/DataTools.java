@@ -15,8 +15,8 @@ import java.sql.SQLException;
 import jakarta.ws.rs.core.Response;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.kar.archidata.SqlWrapper;
 import org.kar.archidata.model.Data;
+import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

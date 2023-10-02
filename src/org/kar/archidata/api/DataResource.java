@@ -4,7 +4,7 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.filter.GenericContext;
 import org.kar.archidata.model.Data;
-import org.kar.archidata.SqlWrapper;
+import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.annotation.security.RolesAllowed;
 import org.kar.archidata.util.ConfigBaseVariable;

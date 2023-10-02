@@ -1,4 +1,4 @@
-package org.kar.archidata;
+package org.kar.archidata.sqlWrapper;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -11,6 +11,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.SQLAutoIncrement;
 import org.kar.archidata.annotation.SQLComment;
 import org.kar.archidata.annotation.SQLIfNotExists;
@@ -38,6 +39,11 @@ import org.kar.archidata.annotation.SQLDeleted;
 
 public class SqlWrapper {
 	static final Logger LOGGER = LoggerFactory.getLogger(SqlWrapper.class);
+	static final List<SqlWrapperAddOn> addOn = new ArrayList<>();
+	
+	public static void addAddOn(SqlWrapperAddOn addOn) {
+		SqlWrapper.addOn.add(addOn);
+	};
 	
 	public static class ExceptionDBInterface extends Exception {
 		private static final long serialVersionUID = 1L;
@@ -395,6 +401,10 @@ public class SqlWrapper {
    		 	boolean firstField = true;
    		 	int count = 0;
    		 	for (Field elem : clazz.getFields()) {
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
    		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 				if (primaryKey) {
 					continue;
@@ -445,6 +455,10 @@ public class SqlWrapper {
             Field primaryKeyField = null;
             int iii = 1;
    		 	for (Field elem : clazz.getFields()) {
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
    		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 				if (primaryKey) {
 					primaryKeyField = elem;
@@ -567,6 +581,10 @@ public class SqlWrapper {
    		 	boolean firstField = true;
             Field primaryKeyField = null;
    		 	for (Field elem : clazz.getFields()) {
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
    		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 				if (primaryKey) {
 					primaryKeyField = elem;
@@ -615,6 +633,10 @@ public class SqlWrapper {
             PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
             int iii = 1;
    		 	for (Field elem : clazz.getFields()) {
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
    		 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 				if (primaryKey) {
 					continue;
@@ -822,6 +844,10 @@ public class SqlWrapper {
    		 	int count = 0;
    		 	boolean hasDeleted = false;
    		 	for (Field elem : clazz.getFields()) {
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
 				ModelLink linkGeneric = getLinkMode(elem);
 				if (linkGeneric != ModelLink.NONE) {
 					continue;
@@ -879,6 +905,10 @@ public class SqlWrapper {
             	Object data = clazz.getConstructors()[0].newInstance();
             	count = 1;
        		 	for (Field elem : clazz.getFields()) {
+       		 		// static field is only for internal global declaration ==> remove it ..
+    	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+    	   		 		continue;
+    	   		 	}
     				ModelLink linkGeneric = getLinkMode(elem);
     				if (linkGeneric != ModelLink.NONE) {
     					continue;
@@ -913,6 +943,10 @@ public class SqlWrapper {
 	public static <T> T get(Class<T> clazz, long id) throws Exception {
         Field primaryKeyField = null;
 	 	for (Field elem : clazz.getFields()) {
+		 		// static field is only for internal global declaration ==> remove it ..
+   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+   		 		continue;
+   		 	}
 	 		boolean primaryKey = elem.getDeclaredAnnotationsByType(SQLPrimaryKey.class).length != 0;
 			if (primaryKey) {
 				primaryKeyField = elem;
@@ -948,12 +982,19 @@ public class SqlWrapper {
    		 	int count = 0;
    		 	StateLoad[] autoClasify = new StateLoad[clazz.getFields().length];
    		 	int indexAutoClasify = 0; 
+   		 	boolean hasDeleted = false;
    		 	for (Field elem : clazz.getFields()) {
-				
+   		 		// static field is only for internal global declaration ==> remove it ..
+	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+	   		 		continue;
+	   		 	}
 				boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
 				if (!full && notRead) {
 					autoClasify[indexAutoClasify++] = StateLoad.DISABLE;
 					continue;
+				}
+				if (!hasDeleted) {
+					hasDeleted = elem.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0;
 				}
 				String name = elem.getName();
 				count++;
@@ -962,6 +1003,8 @@ public class SqlWrapper {
 				} else {
 		        	query.append(",");
 				}
+				
+				
 				ModelLink linkGeneric = getLinkMode(elem);
 				if (linkGeneric == ModelLink.EXTERNAL) {
 					autoClasify[indexAutoClasify++] = StateLoad.ARRAY;
@@ -1017,14 +1060,16 @@ public class SqlWrapper {
    			query.append(" FROM `");
 	        query.append(tableName);
    			query.append("` ");
-   		 	query.append(" WHERE ");
-	        //query.append(tableName);
-	        //query.append(".");
-   			//query.append(primaryKeyField.getName());
-   			//query.append(" = ?");
-   			//query.append(" AND ");
-	        query.append(tableName);
-   			query.append(".deleted = false ");
+   			if (hasDeleted) {
+	   		 	query.append(" WHERE ");
+		        //query.append(tableName);
+		        //query.append(".");
+	   			//query.append(primaryKeyField.getName());
+	   			//query.append(" = ?");
+	   			//query.append(" AND ");
+		        query.append(tableName);
+	   			query.append(".deleted = false ");
+   			}
    		 	firstField = true;
    		    LOGGER.debug("generate the querry: '{}'", query.toString());
    			LOGGER.debug("request get {} prepare @{}", clazz.getCanonicalName(), getCurrentTimeStamp());
@@ -1041,6 +1086,9 @@ public class SqlWrapper {
             	Object data = clazz.getConstructors()[0].newInstance();
             	count = 1;
        		 	for (Field elem : clazz.getFields()) {
+    	   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+    	   		 		continue;
+    	   		 	}
     				/*
     				boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
     				*/
@@ -1255,6 +1303,10 @@ public class SqlWrapper {
 		LOGGER.debug("===> TABLE `{}`", tableName);
 		String primaryKeyValue = null;
 		for (Field elem : clazz.getFields()) {
+		 	// static field is only for internal global declaration ==> remove it ..
+   		 	if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+   		 		continue;
+   		 	}
 		
 			String name = elem.getName();
 			Integer limitSize = getLimitSize(elem);
@@ -1373,8 +1425,8 @@ public class SqlWrapper {
 							out.append(" ");
 						}
 						if (updateTime) {
-							out.append("ON UPDATE CURRENT_TIMESTAMP");
 							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append("ON UPDATE CURRENT_TIMESTAMP");
 								out.append("(3)");
 							} 
 							out.append(" ");
@@ -1388,8 +1440,8 @@ public class SqlWrapper {
 						}
 						out.append(" ");
 						if (updateTime) {
-							out.append("ON UPDATE CURRENT_TIMESTAMP");
 							if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+								out.append("ON UPDATE CURRENT_TIMESTAMP");
 								out.append("(3)");
 							} 
 							out.append(" ");

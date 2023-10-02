@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kar.archidata.SqlWrapper;
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

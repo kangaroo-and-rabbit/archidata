@@ -1,4 +1,4 @@
-package org.kar.archidata;
+package org.kar.archidata.sqlWrapper;
 
 public record WhereCondition(
 		String key,

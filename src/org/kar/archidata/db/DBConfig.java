@@ -1,6 +1,6 @@
 package org.kar.archidata.db;
 
-import org.kar.archidata.SqlWrapper;
+import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

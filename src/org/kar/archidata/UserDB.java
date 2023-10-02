@@ -2,6 +2,7 @@ package org.kar.archidata;
 
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
+import org.kar.archidata.sqlWrapper.SqlWrapper;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
