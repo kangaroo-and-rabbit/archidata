@@ -31,6 +31,7 @@ public class RESTApi {
 	public void setToken(String token) {
 		this.token = token;
 	}
+	
 	public <T> List<T> gets(Class<T> clazz, String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
@@ -44,9 +45,10 @@ public class RESTApi {
 			RESTErrorResponseExeption out = mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
 			throw out;
 		}
-		List<T> out = mapper.readValue(httpResponse.body(), new TypeReference<List<T>>(){});
+		List<T> out = mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
 		return out;
 	}
+	
 	public <T> T get(Class<T> clazz, String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
@@ -59,20 +61,21 @@ public class RESTApi {
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			//LOGGER.error("catch error from REST API: {}", httpResponse.body());
 			RESTErrorResponseExeption out = mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status,out.statusMessage);
+			throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
 		}
 		//LOGGER.error("status code: {}", httpResponse.statusCode());
 		//LOGGER.error("data: {}", httpResponse.body());
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;
 	}
+	
 	public <T, U> T post(Class<T> clazz, String urlOffset, U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
-		String body =  mapper.writeValueAsString(data);
+		String body = mapper.writeValueAsString(data);
 		Builder requestBuilding = HttpRequest.newBuilder().uri(URI.create(this.baseUrl + urlOffset));
 		if (token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + token);
@@ -87,15 +90,16 @@ public class RESTApi {
 			throw out;
 		}
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;
 	}
+	
 	public <T> T postMap(Class<T> clazz, String urlOffset, Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
-		String body =  mapper.writeValueAsString(data);
+		String body = mapper.writeValueAsString(data);
 		Builder requestBuilding = HttpRequest.newBuilder().uri(URI.create(this.baseUrl + urlOffset));
 		if (token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + token);
@@ -108,15 +112,16 @@ public class RESTApi {
 			throw out;
 		}
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;
 	}
+	
 	public <T, U> T put(Class<T> clazz, String urlOffset, U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
-		String body =  mapper.writeValueAsString(data);
+		String body = mapper.writeValueAsString(data);
 		Builder requestBuilding = HttpRequest.newBuilder().uri(URI.create(this.baseUrl + urlOffset));
 		if (token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + token);
@@ -129,15 +134,16 @@ public class RESTApi {
 			throw out;
 		}
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;
 	}
+	
 	public <T> T putMap(Class<T> clazz, String urlOffset, Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
-		String body =  mapper.writeValueAsString(data);
+		String body = mapper.writeValueAsString(data);
 		Builder requestBuilding = HttpRequest.newBuilder().uri(URI.create(this.baseUrl + urlOffset));
 		if (token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + token);
@@ -150,11 +156,12 @@ public class RESTApi {
 			throw out;
 		}
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;
 	}
+	
 	public <T, U> T delete(Class<T> clazz, String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		ObjectMapper mapper = new ObjectMapper();
 		HttpClient client = HttpClient.newHttpClient();
@@ -169,7 +176,7 @@ public class RESTApi {
 			throw out;
 		}
 		if (clazz.equals(String.class)) {
-			return (T)httpResponse.body();
+			return (T) httpResponse.body();
 		}
 		T out = mapper.readValue(httpResponse.body(), clazz);
 		return out;

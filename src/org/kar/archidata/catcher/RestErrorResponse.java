@@ -7,7 +7,7 @@ import jakarta.ws.rs.core.Response;
 
 public class RestErrorResponse {
 	public UUID uuid = UUID.randomUUID();
-	public String time; 
+	public String time;
 	public String error;
 	public String message;
 	final public int status;
@@ -20,6 +20,7 @@ public class RestErrorResponse {
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
+	
 	public RestErrorResponse(Response.Status status, String error, String message) {
 		this.time = Instant.now().toString();
 		this.error = error;
@@ -27,6 +28,7 @@ public class RestErrorResponse {
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
+	
 	public RestErrorResponse(Response.Status status) {
 		this.time = Instant.now().toString();
 		this.status = status.getStatusCode();

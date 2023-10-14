@@ -15,35 +15,43 @@ CREATE TABLE `user` (
  */
 
 import java.sql.Timestamp;
+import java.util.List;
 
 import org.kar.archidata.annotation.SQLDefault;
 import org.kar.archidata.annotation.SQLIfNotExists;
-import org.kar.archidata.annotation.SQLLimitSize;
-import org.kar.archidata.annotation.SQLNotNull;
-import org.kar.archidata.annotation.SQLTableName;
+import org.kar.archidata.sqlWrapper.Foreign;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-@SQLTableName ("user")
+import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+@Table(name = "user")
 @SQLIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User extends GenericTable {
-    @SQLLimitSize(128)
-    public String login = null;
-    
-    public Timestamp lastConnection = null;
-    @SQLDefault("'0'")
-    @SQLNotNull
-    public boolean admin = false;
-    @SQLDefault("'0'")
-    @SQLNotNull
-    public boolean blocked = false;
-    @SQLDefault("'0'")
-    @SQLNotNull
-    public boolean removed = false;
+	@Column(length = 128)
+	public String login = null;
+	
+	public Timestamp lastConnection = null;
+	@SQLDefault("'0'")
+	@Column(nullable = false)
+	public boolean admin = false;
+	@SQLDefault("'0'")
+	@Column(nullable = false)
+	public boolean blocked = false;
+	@SQLDefault("'0'")
+	@Column(nullable = false)
+	public boolean removed = false;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	public List<Foreign<Data>> covers;
+
 	@Override
 	public String toString() {
-		return "User [login=" + login + ", last=" + lastConnection + ", admin=" + admin + "]";
+		return "User [login=" + this.login + ", last=" + this.lastConnection + ", admin=" + this.admin + "]";
 	}
-
+	
 }

@@ -16,3 +16,4 @@ public class GlobalConfiguration {
 				ConfigBaseVariable.getDBKeepConnected());
     }
 }
+ 

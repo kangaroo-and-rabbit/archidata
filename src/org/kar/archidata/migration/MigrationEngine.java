@@ -25,15 +25,17 @@ public class MigrationEngine {
 	public MigrationEngine() {
 		this(new ArrayList<MigrationInterface>(), null);
 	}
+	
 	/**
 	 * Migration engine constructor (specific mode).
 	 * @param datas All the migration ordered.
 	 * @param init Initialization migration model.
 	 */
-	public MigrationEngine( List<MigrationInterface> datas, MigrationInterface init) {
+	public MigrationEngine(List<MigrationInterface> datas, MigrationInterface init) {
 		this.datas = datas;
 		this.init = init;
 	}
+	
 	/**
 	 * Add a Migration in the list
 	 * @param migration Migration to add.
@@ -41,6 +43,7 @@ public class MigrationEngine {
 	public void add(MigrationInterface migration) {
 		this.datas.add(migration);
 	}
+	
 	/**
 	 * Set first initialization class
 	 * @param migration migration class for first init.
@@ -48,6 +51,7 @@ public class MigrationEngine {
 	public void setInit(MigrationInterface migration) {
 		init = migration;
 	}
+	
 	/**
 	 * Get the current version/migration name
 	 * @return Model represent the last migration. If null then no migration has been done.
@@ -59,7 +63,7 @@ public class MigrationEngine {
 		try {
 			List<MigrationModel> data = SqlWrapper.gets(MigrationModel.class, false);
 			if (data == null) {
-				LOGGER.error("Can not collect the migration table in the DB:{}" );
+				LOGGER.error("Can not collect the migration table in the DB:{}");
 				return null;
 			}
 			if (data.size() == 0) {
@@ -68,15 +72,16 @@ public class MigrationEngine {
 			}
 			LOGGER.debug("List of migrations:");
 			for (MigrationModel elem : data) {
-				LOGGER.debug("    - date={} name={} end={}", elem.modify_date, elem.name, elem.terminated);				
+				LOGGER.debug("    - date={} name={} end={}", elem.modify_date, elem.name, elem.terminated);
 			}
-			return data.get(data.size()-1);
+			return data.get(data.size() - 1);
 		} catch (Exception ex) {
 			LOGGER.error("Fail to Request migration table in the DB:{}", ex.getMessage());
 			ex.printStackTrace();
 		}
 		return null;
 	}
+	
 	/**
 	 * Process the automatic migration of the system
 	 * @param config SQL connection for the migration
@@ -85,11 +90,11 @@ public class MigrationEngine {
 	 */
 	public void migrate(DBConfig config) throws InterruptedException, IOException {
 		LOGGER.info("Execute migration ... [BEGIN]");
-
+		
 		// STEP 1: Check the DB exist:
 		LOGGER.info("Verify existance of '{}'", config.getDbName());
 		boolean exist = SqlWrapper.isDBExist(config.getDbName());
-		if(!exist) {
+		if (!exist) {
 			LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", config.getDbName());
 			// create the local DB:
 			SqlWrapper.createDB(config.getDbName());
@@ -114,7 +119,7 @@ public class MigrationEngine {
 				ex.printStackTrace();
 				while (true) {
 					LOGGER.error("Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
-					Thread.sleep(60*60*1000);
+					Thread.sleep(60 * 60 * 1000);
 				}
 			}
 			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
@@ -124,7 +129,7 @@ public class MigrationEngine {
 				ex.printStackTrace();
 				while (true) {
 					LOGGER.error("Fail to create the local DB model for migaration ==> wait administrator interventions");
-					Thread.sleep(60*60*1000);
+					Thread.sleep(60 * 60 * 1000);
 				}
 			}
 		}
@@ -142,15 +147,15 @@ public class MigrationEngine {
 				// nothing to do the initialization model is alone and it is the first time 
 			} else {
 				// we insert a placeholder to simulate all migration is well done.
-				String placeholderName = this.datas.get(this.datas.size()-1).getName();
+				String placeholderName = this.datas.get(this.datas.size() - 1).getName();
 				MigrationModel migrationResult = new MigrationModel();
-			    migrationResult.name = placeholderName;
+				migrationResult.name = placeholderName;
 				migrationResult.stepId = 0;
 				migrationResult.terminated = true;
-			    migrationResult.count = 0;
-			    migrationResult.log = "Place-holder for first initialization";
-			    try {
-			    	migrationResult = SqlWrapper.insert(migrationResult);
+				migrationResult.count = 0;
+				migrationResult.log = "Place-holder for first initialization";
+				try {
+					migrationResult = SqlWrapper.insert(migrationResult);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -158,9 +163,9 @@ public class MigrationEngine {
 			}
 		} else {
 			if (currentVersion.terminated == false) {
-				while(true) {
-					LOGGER.error("An error occured in the last migration: '{}' defect @{}/{} ==> wait administrator interventions", currentVersion.name , currentVersion.stepId, currentVersion.count);
-					Thread.sleep(60*60*1000);
+				while (true) {
+					LOGGER.error("An error occured in the last migration: '{}' defect @{}/{} ==> wait administrator interventions", currentVersion.name, currentVersion.stepId, currentVersion.count);
+					Thread.sleep(60 * 60 * 1000);
 				}
 			}
 			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
@@ -168,8 +173,8 @@ public class MigrationEngine {
 			if (currentVersion.name.equals(this.init.getName())) {
 				toApply = this.datas;
 			} else {
-				for (int iii=0; iii<this.datas.size(); iii++) {
-					if ( ! find) {	
+				for (int iii = 0; iii < this.datas.size(); iii++) {
+					if (!find) {
 						if (this.datas.get(iii).getName() == currentVersion.name) {
 							find = true;
 						}
@@ -187,18 +192,19 @@ public class MigrationEngine {
 		}
 		LOGGER.info("Execute migration ... [ END ]");
 	}
+	
 	public void migrateSingle(DBEntry entry, MigrationInterface elem, int id, int count) {
 		LOGGER.info("Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
 		StringBuilder log = new StringBuilder();
 		log.append("Start migration");
 		MigrationModel migrationResult = new MigrationModel();
-	    migrationResult.name = elem.getName();
+		migrationResult.name = elem.getName();
 		migrationResult.stepId = 0;
 		migrationResult.terminated = false;
-	    migrationResult.count = elem.getNumberOfStep();
-	    migrationResult.log = log.toString();
-	    try {
-	    	migrationResult = SqlWrapper.insert(migrationResult);
+		migrationResult.count = elem.getNumberOfStep();
+		migrationResult.log = log.toString();
+		try {
+			migrationResult = SqlWrapper.insert(migrationResult);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -206,23 +212,24 @@ public class MigrationEngine {
 		
 		if (elem.applyMigration(entry, log, migrationResult)) {
 			migrationResult.terminated = true;
-		    try {
-		    	SqlWrapper.update(migrationResult, migrationResult.id, List.of("terminated"));
+			try {
+				SqlWrapper.update(migrationResult, migrationResult.id, List.of("terminated"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		} else {
-		    try {
-		    	log.append("Fail in the migration engine...");
-		    	migrationResult.log = log.toString();
-		    	SqlWrapper.update(migrationResult, migrationResult.id, List.of("log"));
+			try {
+				log.append("Fail in the migration engine...");
+				migrationResult.log = log.toString();
+				SqlWrapper.update(migrationResult, migrationResult.id, List.of("log"));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			while(true) {
-				LOGGER.error("An error occured in the migration (OUTSIDE detection): '{}' defect @{}/{} ==> wait administrator interventions", migrationResult.name , migrationResult.stepId, migrationResult.count);
+			while (true) {
+				LOGGER.error("An error occured in the migration (OUTSIDE detection): '{}' defect @{}/{} ==> wait administrator interventions", migrationResult.name, migrationResult.stepId,
+						migrationResult.count);
 				try {
-					Thread.sleep(60*60*1000);
+					Thread.sleep(60 * 60 * 1000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -231,13 +238,13 @@ public class MigrationEngine {
 		}
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
-
+	
 	public void revertTo(DBEntry entry, String migrationName) {
 		MigrationModel currentVersion = getCurrentVersion();
 		List<MigrationInterface> toApply = new ArrayList<>();
 		boolean find = false;
-		for (int iii=this.datas.size()-1; iii>=0; iii--) {
-			if ( ! find) {	
+		for (int iii = this.datas.size() - 1; iii >= 0; iii--) {
+			if (!find) {
 				if (this.datas.get(iii).getName() == currentVersion.name) {
 					find = true;
 				}
@@ -254,6 +261,7 @@ public class MigrationEngine {
 			revertSingle(entry, elem, id, count);
 		}
 	}
+	
 	public void revertSingle(DBEntry entry, MigrationInterface elem, int id, int count) {
 		LOGGER.info("Revert migration: {} [BEGIN]", elem.getName());
 		

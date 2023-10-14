@@ -8,6 +8,7 @@ public interface MigrationInterface {
 	 * @return Migration name
 	 */
 	String getName();
+	
 	/**
 	 * Migrate the system to a new version.
 	 * @param entry DB interface for the migration.
@@ -16,6 +17,7 @@ public interface MigrationInterface {
 	 * @return true if migration is finished.
 	 */
 	boolean applyMigration(DBEntry entry, StringBuilder log, MigrationModel model);
+	
 	/**
 	 * Remove a migration the system to the previous version.
 	 * @param entry DB interface for the migration.

@@ -4,12 +4,12 @@ import java.util.UUID;
 
 public class RESTErrorResponseExeption extends Exception {
 	public UUID uuid;
-	public String time; 
+	public String time;
 	public String error;
 	public String message;
 	public int status;
 	public String statusMessage;
-
+	
 	public RESTErrorResponseExeption() {
 		super();
 		this.uuid = null;
@@ -19,8 +19,8 @@ public class RESTErrorResponseExeption extends Exception {
 		this.status = 0;
 		this.statusMessage = null;
 	}
-	public RESTErrorResponseExeption(UUID uuid, String time, String error, String message, int status,
-			String statusMessage) {
+	
+	public RESTErrorResponseExeption(UUID uuid, String time, String error, String message, int status, String statusMessage) {
 		super();
 		this.uuid = uuid;
 		this.time = time;
@@ -29,13 +29,10 @@ public class RESTErrorResponseExeption extends Exception {
 		this.status = status;
 		this.statusMessage = statusMessage;
 	}
-
+	
 	@Override
 	public String toString() {
-		return "RESTErrorResponseExeption [uuid=" + uuid + ", time=" + time + ", error=" + error + ", message="
-				+ message + ", status=" + status + ", statusMessage=" + statusMessage + "]";
+		return "RESTErrorResponseExeption [uuid=" + uuid + ", time=" + time + ", error=" + error + ", message=" + message + ", status=" + status + ", statusMessage=" + statusMessage + "]";
 	}
 	
-	
-
 }

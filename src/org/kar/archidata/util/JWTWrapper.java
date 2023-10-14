@@ -32,53 +32,54 @@ public class JWTWrapper {
 	
 	private static RSAKey rsaJWK = null;;
 	private static RSAKey rsaPublicJWK = null;
-
+	
 	public static class PublicKey {
 		public String key;
-
+		
 		public PublicKey(String key) {
 			this.key = key;
 		}
-		public PublicKey() {
-		}
+		
+		public PublicKey() {}
 	}
-    public static void initLocalTokenRemote(String ssoUri, String application) throws IOException, ParseException {
-        // check Token:
-        URL obj = new URL(ssoUri + "public_key");
-        //logger.debug("Request token from: {}", obj);
-        HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-        con.setRequestMethod("GET");
-        con.setRequestProperty("User-Agent", application);
-        con.setRequestProperty("Cache-Control", "no-cache");
-        con.setRequestProperty("Content-Type", "application/json");
-        con.setRequestProperty("Accept", "application/json");
-        String ssoToken = ConfigBaseVariable.ssoToken();
-        if (ssoToken != null) {
-        	con.setRequestProperty("Authorization", "Zota " + ssoToken);
-        }
-        int responseCode = con.getResponseCode();
-
-        //logger.debug("GET Response Code :: {}", responseCode);
-        if (responseCode == HttpURLConnection.HTTP_OK) { // success
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            // print result
-            //logger.debug(response.toString());
-            ObjectMapper mapper = new ObjectMapper();
-            PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
-            rsaPublicJWK = RSAKey.parse(values.key);
-            return;
-        }
-        logger.debug("GET JWT validator token not worked response code {} from {} ", responseCode, obj);
-    }
-
-	public static void initLocalToken(String baseUUID) throws Exception{
+	
+	public static void initLocalTokenRemote(String ssoUri, String application) throws IOException, ParseException {
+		// check Token:
+		URL obj = new URL(ssoUri + "public_key");
+		//logger.debug("Request token from: {}", obj);
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+		con.setRequestMethod("GET");
+		con.setRequestProperty("User-Agent", application);
+		con.setRequestProperty("Cache-Control", "no-cache");
+		con.setRequestProperty("Content-Type", "application/json");
+		con.setRequestProperty("Accept", "application/json");
+		String ssoToken = ConfigBaseVariable.ssoToken();
+		if (ssoToken != null) {
+			con.setRequestProperty("Authorization", "Zota " + ssoToken);
+		}
+		int responseCode = con.getResponseCode();
+		
+		//logger.debug("GET Response Code :: {}", responseCode);
+		if (responseCode == HttpURLConnection.HTTP_OK) { // success
+			BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+			
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+			// print result
+			//logger.debug(response.toString());
+			ObjectMapper mapper = new ObjectMapper();
+			PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
+			rsaPublicJWK = RSAKey.parse(values.key);
+			return;
+		}
+		logger.debug("GET JWT validator token not worked response code {} from {} ", responseCode, obj);
+	}
+	
+	public static void initLocalToken(String baseUUID) throws Exception {
 		// RSA signatures require a public and private RSA key pair, the public key 
 		// must be made known to the JWS recipient in order to verify the signatures
 		try {
@@ -111,12 +112,14 @@ public class JWTWrapper {
 		}
 		
 	}
+	
 	public static String getPublicKeyJson() {
 		if (rsaPublicJWK == null) {
 			return null;
 		}
 		return rsaPublicJWK.toJSONString();
 	}
+	
 	public static java.security.interfaces.RSAPublicKey getPublicKeyJava() throws JOSEException {
 		if (rsaPublicJWK == null) {
 			return null;
@@ -146,21 +149,16 @@ public class JWTWrapper {
 		*/
 		try {
 			// Create RSA-signer with the private key
-			JWSSigner signer = new RSASSASigner(rsaJWK); 
-
-	        logger.warn("timeOutInMunites= {}", timeOutInMunites);
-	        Date now = new Date();
-	        logger.warn("now       = {}", now);
-	        Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
-	        
-	        logger.warn("expiration= {}", expiration);
-			JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-			    .subject(Long.toString(userID))
-			    .claim("login", userLogin)
-			    .claim("application", application)
-			    .issuer(isuer)
-			    .issueTime(now)
-			    .expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
+			JWSSigner signer = new RSASSASigner(rsaJWK);
+			
+			logger.warn("timeOutInMunites= {}", timeOutInMunites);
+			Date now = new Date();
+			logger.warn("now       = {}", now);
+			Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
+			
+			logger.warn("expiration= {}", expiration);
+			JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID)).claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
+					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
 			if (rights != null && !rights.isEmpty()) {
 				builder.claim("right", rights);
@@ -168,7 +166,7 @@ public class JWTWrapper {
 			// Prepare JWT with claims set
 			JWTClaimsSet claimsSet = builder.build();
 			SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
-	
+			
 			// Compute the RSA signature
 			signedJWT.sign(signer);
 			// serialize the output...
@@ -178,7 +176,7 @@ public class JWTWrapper {
 		}
 		return null;
 	}
-
+	
 	public static JWTClaimsSet validateToken(String signedToken, String isuer, String application) {
 		if (rsaPublicJWK == null) {
 			logger.warn("JWT public key is not present !!!");
@@ -187,18 +185,18 @@ public class JWTWrapper {
 		try {
 			// On the consumer side, parse the JWS and verify its RSA signature
 			SignedJWT signedJWT = SignedJWT.parse(signedToken);
-	
+			
 			JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
 			if (!signedJWT.verify(verifier)) {
 				logger.error("JWT token is NOT verified ");
 				return null;
 			}
 			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
-				logger.error("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime() );
+				logger.error("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime());
 				return null;
 			}
 			if (!isuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
-				logger.error("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'" );
+				logger.error("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 				return null;
 			}
 			if (application != null) {
