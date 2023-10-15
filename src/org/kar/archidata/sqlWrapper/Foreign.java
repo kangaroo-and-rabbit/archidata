@@ -1,5 +1,7 @@
 package org.kar.archidata.sqlWrapper;
 
+// Mark as deprecated while the concept is not ready ...
+@Deprecated
 public class Foreign<T> {
 	public final Long id;
 	public final T data;

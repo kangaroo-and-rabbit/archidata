@@ -14,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+//@SQLWhere(clause = "deleted=false")
 public class GenericTable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,12 +31,25 @@ public class GenericTable {
 	@CreationTimestamp
 	@Column(nullable = false)
 	@SQLComment("Create time of the object")
-	@SQLDefault("CURRENT_TIMESTAMP(3)")
-	public Timestamp create_date = null;
+	public Timestamp createdAt = null;
 	@SQLNotRead
 	@UpdateTimestamp
 	@Column(nullable = false)
 	@SQLComment("When update the object")
-	@SQLDefault("CURRENT_TIMESTAMP(3)")
-	public Timestamp modify_date = null;
+	public Timestamp updatedAt = null;
 }
+/* TODO Later:
+	@SQLNotRead
+	@CreationTimestamp
+	@Column(nullable = false)
+	@Temporal(TemporalType.TIMESTAMP)
+	@SQLComment("Create time of the object")
+	public Date createdAt = null;
+
+	@SQLNotRead
+	@UpdateTimestamp
+	@Column(nullable = false)
+	@Temporal(TemporalType.TIMESTAMP)
+	@SQLComment("When update the object")
+	public Date updatedAt = null;
+*/

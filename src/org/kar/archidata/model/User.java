@@ -19,13 +19,12 @@ import java.util.List;
 
 import org.kar.archidata.annotation.SQLDefault;
 import org.kar.archidata.annotation.SQLIfNotExists;
-import org.kar.archidata.sqlWrapper.Foreign;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Table(name = "user")
@@ -45,10 +44,10 @@ public class User extends GenericTable {
 	@SQLDefault("'0'")
 	@Column(nullable = false)
 	public boolean removed = false;
-
-	@ManyToOne(fetch = FetchType.LAZY)
-	public List<Foreign<Data>> covers;
-
+	
+	@ManyToMany(fetch = FetchType.LAZY, targetEntity = Data.class)
+	public List<Long> covers;
+	
 	@Override
 	public String toString() {
 		return "User [login=" + this.login + ", last=" + this.lastConnection + ", admin=" + this.admin + "]";

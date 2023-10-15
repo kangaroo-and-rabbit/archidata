@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.kar.archidata.db.DBConfig;
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +62,7 @@ public class MigrationEngine {
 			return null;
 		}
 		try {
-			List<MigrationModel> data = SqlWrapper.gets(MigrationModel.class, false);
+			List<MigrationModel> data = SqlWrapper.gets(MigrationModel.class, new QuerryOptions("SQLNotRead_disable", true));
 			if (data == null) {
 				LOGGER.error("Can not collect the migration table in the DB:{}");
 				return null;
@@ -72,7 +73,7 @@ public class MigrationEngine {
 			}
 			LOGGER.debug("List of migrations:");
 			for (MigrationModel elem : data) {
-				LOGGER.debug("    - date={} name={} end={}", elem.modify_date, elem.name, elem.terminated);
+				LOGGER.debug("    - date={} name={} end={}", elem.updatedAt, elem.name, elem.terminated);
 			}
 			return data.get(data.size() - 1);
 		} catch (Exception ex) {
@@ -111,6 +112,7 @@ public class MigrationEngine {
 		LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
 		exist = SqlWrapper.isTableExist("KAR_migration");
 		if (!exist) {
+			LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");
 			// create the table:
 			List<String> sqlQuery;
 			try {

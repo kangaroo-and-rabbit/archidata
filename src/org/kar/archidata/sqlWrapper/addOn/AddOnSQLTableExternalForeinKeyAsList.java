@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.kar.archidata.annotation.addOn.SQLTableExternalLink;
+import org.kar.archidata.annotation.addOn.SQLTableExternalForeinKeyAsList;
+import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
 import org.kar.archidata.sqlWrapper.StateLoad;
@@ -17,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnSQLTableExternalLink.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 	
 	/**
 	 * Convert the list if external id in a string '-' separated
@@ -55,15 +56,21 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	
 	@Override
 	public Class<?> getAnnotationClass() {
-		return SQLTableExternalLink.class;
+		return SQLTableExternalForeinKeyAsList.class;
 	}
 	
 	public String getSQLFieldType(Field elem) {
-		return "STRING";
+		try {
+			return SqlWrapper.convertTypeInSQL(String.class);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	public boolean isCompatibleField(Field elem) {
-		SQLTableExternalLink decorators = elem.getDeclaredAnnotation(SQLTableExternalLink.class);
+		SQLTableExternalForeinKeyAsList decorators = elem.getDeclaredAnnotation(SQLTableExternalForeinKeyAsList.class);
 		return decorators != null;
 	}
 	
@@ -85,7 +92,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify) {
+	public int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify, QuerryOptions options) {
 		autoClasify.add(StateLoad.ARRAY);
 		querry.append(" ");
 		querry.append(tableName);
@@ -95,7 +102,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int fillFromQuerry(ResultSet rs, Field elem, Object data, int count) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		List<Long> idList = getListOfIds(rs, count);
 		elem.set(data, idList);
 		return 1;

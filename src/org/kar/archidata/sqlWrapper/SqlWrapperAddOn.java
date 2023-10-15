@@ -32,9 +32,9 @@ public interface SqlWrapperAddOn {
 	// External mean that the type of the object is absolutely not obvious...
 	boolean isExternal();
 	
-	int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify);
+	int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify, QuerryOptions options);
 	
-	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count) throws SQLException, IllegalArgumentException, IllegalAccessException;
+	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
 	
 	boolean canUpdate();
 	

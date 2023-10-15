@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
-import org.kar.archidata.annotation.addOn.SQLTableExternalLink;
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.sqlWrapper.SqlWrapper.ExceptionDBInterface;
 import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
@@ -22,8 +22,10 @@ import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnSQLTableExternalLink.class);
+import jakarta.persistence.ManyToMany;
+
+public class AddOnManyToMany implements SqlWrapperAddOn {
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 	
 	/**
 	 * Convert the list if external id in a string '-' separated
@@ -58,17 +60,17 @@ public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
 	
 	@Override
 	public Class<?> getAnnotationClass() {
-		return SQLTableExternalLink.class;
+		return ManyToMany.class;
 	}
 	
 	@Override
 	public String getSQLFieldType(final Field elem) {
-		return "STRING";
+		return null;
 	}
 	
 	@Override
 	public boolean isCompatibleField(final Field elem) {
-		final SQLTableExternalLink decorators = elem.getDeclaredAnnotation(SQLTableExternalLink.class);
+		final ManyToMany decorators = elem.getDeclaredAnnotation(ManyToMany.class);
 		return decorators != null;
 	}
 	
@@ -92,7 +94,7 @@ public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(final String tableName, final Field elem, final StringBuilder querry, final String name, final List<StateLoad> autoClasify) {
+	public int generateQuerry(final String tableName, final Field elem, final StringBuilder querry, final String name, final List<StateLoad> autoClasify, QuerryOptions options) {
 		
 		autoClasify.add(StateLoad.ARRAY);
 		String localName = name;
@@ -136,7 +138,7 @@ public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		throw new IllegalAccessException("This Add-on has not the capability to insert data directly in DB");
 	}
 	
@@ -204,10 +206,11 @@ public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
 		}
 	}
 	
+	// TODO : refacto this table to manage a generic table with dynamic name to be serializable with the default system
 	@Override
 	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> ListOtherTables, final boolean createIfNotExist,
 			final boolean createDrop, final int fieldId) throws Exception {
-		final String name = elem.getName();
+		final String name = AnnotationTools.getFieldName(elem);
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);
@@ -230,13 +233,13 @@ public class AddOnSQLTableExternalLink implements SqlWrapperAddOn {
 		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 			otherTable.append("\t\t`id` bigint NOT NULL AUTO_INCREMENT,\n");
 			otherTable.append("\t\t`deleted` tinyint(1) NOT NULL DEFAULT '0',\n");
-			otherTable.append("\t\t`create_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
-			otherTable.append("\t\t`modify_date` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+			otherTable.append("\t\t`createdAt` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
+			otherTable.append("\t\t`updatedAt` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n");
 		} else {
 			otherTable.append("\t\t`id` INTEGER PRIMARY KEY AUTOINCREMENT,\n");
 			otherTable.append("\t\t`deleted` INTEGER NOT NULL DEFAULT '0',\n");
-			otherTable.append("\t\t`create_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
-			otherTable.append("\t\t`modify_date` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
+			otherTable.append("\t\t`createdAt` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
+			otherTable.append("\t\t`updatedAt` INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,\n");
 		}
 		otherTable.append("\t\t`");
 		otherTable.append(tableName);

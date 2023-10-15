@@ -18,7 +18,7 @@ import org.kar.archidata.model.Data;
 import org.kar.archidata.sqlWrapper.QuerryAnd;
 import org.kar.archidata.sqlWrapper.QuerryCondition;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
-import org.kar.archidata.sqlWrapper.addOn.AddOnSQLTableExternalLink;
+import org.kar.archidata.sqlWrapper.addOn.AddOnManyToMany;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -282,7 +282,7 @@ public class DataTools {
 			}
 			// Fist step: retrieve all the Id of each parents:...
 			LOGGER.info("Find typeNode");
-			AddOnSQLTableExternalLink.addLink(clazz, id, "cover", data.id);
+			AddOnManyToMany.addLink(clazz, id, "cover", data.id);
 			return Response.ok(SqlWrapper.get(clazz, id)).build();
 		} catch (Exception ex) {
 			System.out.println("Cat ann unexpected error ... ");

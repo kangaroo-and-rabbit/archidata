@@ -58,7 +58,7 @@ public class AnnotationTools {
 		}
 		return tmp;
 	}
-
+	
 	public static Integer getLimitSize(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
@@ -69,7 +69,7 @@ public class AnnotationTools {
 		}
 		return ((Column) annotation[0]).length();
 	}
-
+	
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
 		try {
 			final Annotation[] anns = field.getAnnotations();
@@ -92,22 +92,37 @@ public class AnnotationTools {
 		}
 		return false;
 	}
-
-	public static boolean getNotNull(final Field element) throws Exception {
+	
+	public static String getFieldName(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
-			return true;
+			return element.getName();
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
-		return ((Column) annotation[0]).nullable();
+		String name = ((Column) annotation[0]).name();
+		if (name.isBlank()) {
+			return element.getName();
+		}
+		return name;
+	}
+	
+	public static boolean getNotNull(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+		}
+		return !((Column) annotation[0]).nullable();
 	}
 	
 	public static boolean isPrimaryKey(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
-			return true;
+			return false;
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
@@ -125,5 +140,5 @@ public class AnnotationTools {
 		}
 		return ((GeneratedValue) annotation[0]).strategy();
 	}
-
+	
 }

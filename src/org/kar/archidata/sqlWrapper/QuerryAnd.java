@@ -19,8 +19,10 @@ public class QuerryAnd implements QuerryItem {
 	}
 	
 	public void generateQuerry(StringBuilder querry, String tableName) {
-		querry.append(" (");
-		boolean first = false;
+		if (this.childs.size() >= 1) {
+			querry.append(" (");
+		}
+		boolean first = true;
 		for (QuerryItem elem : this.childs) {
 			if (first) {
 				first = false;
@@ -29,7 +31,9 @@ public class QuerryAnd implements QuerryItem {
 			}
 			elem.generateQuerry(querry, tableName);
 		}
-		querry.append(")");
+		if (this.childs.size() >= 1) {
+			querry.append(")");
+		}
 	}
 	
 	@Override
