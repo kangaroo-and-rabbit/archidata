@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.addOn.DataAddOnManyToManyOrdered;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
@@ -18,16 +19,19 @@ import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.persistence.ManyToMany;
 import jakarta.validation.constraints.NotNull;
 
-public class AddOnManyToMany implements SqlWrapperAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
+/**
+ * Manage the decorator element @DataAddOnManyToManyOrdered to be injected in the DB.
+ * The objective of this table is to manage a link between 2 table that have a specific order (Only work in 1 direction)
+ */
+public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyOrdered.class);
 	static final String SEPARATOR = "-";
 	
 	@Override
 	public Class<?> getAnnotationClass() {
-		return ManyToMany.class;
+		return DataAddOnManyToManyOrdered.class;
 	}
 	
 	@Override
@@ -37,7 +41,7 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 	
 	@Override
 	public boolean isCompatibleField(final Field elem) {
-		final ManyToMany decorators = elem.getDeclaredAnnotation(ManyToMany.class);
+		final DataAddOnManyToManyOrdered decorators = elem.getDeclaredAnnotation(DataAddOnManyToManyOrdered.class);
 		return decorators != null;
 	}
 	
@@ -53,8 +57,7 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(@NotNull final String tableName, @NotNull final Field elem, @NotNull final StringBuilder querry, @NotNull final String name, @NotNull final int elemCount,
-			QuerryOptions options) {
+	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options) {
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);
@@ -86,28 +89,23 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 		querry.append(tmpVariable);
 		querry.append(".");
 		querry.append(tableName);
-		querry.append("_id GROUP BY ");
+		querry.append("_id ORDER BY ");
+		querry.append(tmpVariable);
+		querry.append(".order ASC");
+		querry.append(" GROUP BY ");
 		querry.append(tmpVariable);
 		querry.append(".");
 		querry.append(tableName);
 		querry.append("_id ) AS ");
 		querry.append(name);
 		querry.append(" ");
-		/*
-		"              (SELECT GROUP_CONCAT(tmp.data_id SEPARATOR '-')" +
-		"                      FROM cover_link_node tmp" +
-		"                      WHERE tmp.deleted = false" +
-		"                            AND node.id = tmp.node_id" +
-		"                      GROUP BY tmp.node_id) AS covers" +
-		*/
 		return 1;
 	}
 	
 	@Override
 	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
-		List<Long> idList = SqlWrapper.getListOfIds(rs, count, SEPARATOR);
-		elem.set(data, idList);
-		return 1;
+		//throw new IllegalAccessException("This Add-on has not the capability to insert data directly in DB");
+		return 0;
 	}
 	
 	@Override
@@ -216,6 +214,7 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 		} else {
 			otherTable.append("_id` INTEGER NOT NULL,\n");
 		}
+		otherTable.append("\t\t`order` INTEGER NOT NULL DEFAULT 0,\n");
 		otherTable.append("\t\t`");
 		otherTable.append(localName);
 		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {

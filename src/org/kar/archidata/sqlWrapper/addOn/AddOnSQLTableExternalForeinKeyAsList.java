@@ -13,12 +13,14 @@ import org.kar.archidata.annotation.addOn.SQLTableExternalForeinKeyAsList;
 import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
-import org.kar.archidata.sqlWrapper.StateLoad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.validation.constraints.NotNull;
+
 public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
+	static final String SEPARATOR = "-";
 	
 	/**
 	 * Convert the list if external id in a string '-' separated
@@ -30,28 +32,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 		for (Long elem : ids) {
 			tmp.add(elem);
 		}
-		return tmp.stream().map(x -> String.valueOf(x)).collect(Collectors.joining("-"));
-	}
-	
-	/**
-	 * extract a list of "-" separated element from a SQL input data.
-	 * @param rs Result Set of the BDD
-	 * @param iii Id in the result set
-	 * @return The list  of Long value
-	 * @throws SQLException if an error is generated in the sql request.
-	 */
-	protected static List<Long> getListOfIds(ResultSet rs, int iii) throws SQLException {
-		String trackString = rs.getString(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		List<Long> out = new ArrayList<>();
-		String[] elements = trackString.split("-");
-		for (String elem : elements) {
-			Long tmp = Long.parseLong(elem);
-			out.add(tmp);
-		}
-		return out;
+		return tmp.stream().map(x -> String.valueOf(x)).collect(Collectors.joining(SEPARATOR));
 	}
 	
 	@Override
@@ -92,8 +73,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify, QuerryOptions options) {
-		autoClasify.add(StateLoad.ARRAY);
+	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options) {
 		querry.append(" ");
 		querry.append(tableName);
 		querry.append(".");
@@ -103,7 +83,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	
 	@Override
 	public int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
-		List<Long> idList = getListOfIds(rs, count);
+		List<Long> idList = SqlWrapper.getListOfIds(rs, count, SEPARATOR);
 		elem.set(data, idList);
 		return 1;
 	}
@@ -114,9 +94,10 @@ public class AddOnSQLTableExternalForeinKeyAsList implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> ListOtherTables, boolean createIfNotExist, boolean createDrop, int fieldId) throws Exception {
+	public void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop,
+			int fieldId) throws Exception {
 		// TODO Auto-generated method stub
 		
-		SqlWrapper.createTablesSpecificType(tableName, elem, mainTableBuilder, ListOtherTables, createIfNotExist, createDrop, fieldId, String.class);
+		SqlWrapper.createTablesSpecificType(tableName, elem, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, String.class);
 	}
 }

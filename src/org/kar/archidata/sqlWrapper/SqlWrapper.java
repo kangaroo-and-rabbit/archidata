@@ -169,6 +169,27 @@ public class SqlWrapper {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 	
+	/**
+	 * extract a list of "-" separated element from a SQL input data.
+	 * @param rs Result Set of the BDD
+	 * @param iii Id in the result set
+	 * @return The list  of Long value
+	 * @throws SQLException if an error is generated in the sql request.
+	 */
+	public static List<Long> getListOfIds(ResultSet rs, int iii, String separator) throws SQLException {
+		String trackString = rs.getString(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		List<Long> out = new ArrayList<>();
+		String[] elements = trackString.split("-");
+		for (String elem : elements) {
+			Long tmp = Long.parseLong(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+	
 	public static String convertTypeInSQL(final Class<?> type) throws Exception {
 		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 			if (type == Long.class || type == long.class) {
@@ -212,10 +233,10 @@ public class SqlWrapper {
 				return "REAL";
 			}
 			if (type == Timestamp.class) {
-				return "INTEGER";
+				return "DATETIME";
 			}
 			if (type == Date.class) {
-				return "NUMERIC";
+				return "DATETIME";
 			}
 			if (type == String.class) {
 				return "text";
@@ -369,11 +390,26 @@ public class SqlWrapper {
 				field.setBoolean(data, tmp);
 			}
 		} else if (type == Timestamp.class) {
-			final Timestamp tmp = rs.getTimestamp(index);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, tmp);
+			try {
+				final Timestamp tmp = rs.getTimestamp(index);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					field.set(data, tmp);
+				}
+			} catch (java.sql.SQLException ex) {
+				try {
+					final Date tmp = rs.getDate(index);
+					if (rs.wasNull()) {
+						
+						field.set(data, null);
+					} else {
+						field.set(data, new Timestamp(tmp.toInstant().toEpochMilli()));
+					}
+				} catch (java.sql.SQLException ex2) {
+					final String tmp = rs.getString(index);
+					LOGGER.error("plop {}", tmp);
+				}
 			}
 		} else if (type == Date.class) {
 			final Date tmp = rs.getDate(index);
@@ -853,7 +889,7 @@ public class SqlWrapper {
 					continue;
 				}
 				final SqlWrapperAddOn addOn = findAddOnforField(elem);
-				if (addOn != null) {
+				if (addOn != null && addOn.isExternal()) {
 					continue;
 				}
 				// TODO: Manage it with AddOn
@@ -872,10 +908,13 @@ public class SqlWrapper {
 					querry.append(",");
 				}
 				querry.append(" ");
-				querry.append(tableName);
-				querry.append(".");
-				
-				querry.append(name);
+				if (addOn != null) {
+					addOn.generateQuerry(tableName, elem, querry, name, count, options);
+				} else {
+					querry.append(tableName);
+					querry.append(".");
+					querry.append(name);
+				}
 			}
 			querry.append(" FROM `");
 			querry.append(tableName);
@@ -906,7 +945,7 @@ public class SqlWrapper {
 						continue;
 					}
 					final SqlWrapperAddOn addOn = findAddOnforField(elem);
-					if (addOn != null) {
+					if (addOn != null && addOn.isExternal()) {
 						continue;
 					}
 					// TODO: Manage it with AddOn
@@ -914,8 +953,13 @@ public class SqlWrapper {
 					if (!readAllfields && notRead) {
 						continue;
 					}
-					setValueFromDb(elem.getType(), data, count, elem, rs);
-					count++;
+					if (addOn != null) {
+						int nbRowRead = addOn.fillFromQuerry(rs, elem, data, count, options);
+						count += nbRowRead;
+					} else {
+						setValueFromDb(elem.getType(), data, count, elem, rs);
+						count++;
+					}
 				}
 				final T out = (T) data;
 				outs.add(out);
@@ -1063,8 +1107,8 @@ public class SqlWrapper {
 		return createTable(clazz, true);
 	}
 	
-	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> ListOtherTables, final boolean createIfNotExist,
-			final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
+	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
+			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
 		final Integer limitSize = AnnotationTools.getLimitSize(elem);
 		final boolean notNull = AnnotationTools.getNotNull(elem);
@@ -1117,7 +1161,29 @@ public class SqlWrapper {
 					if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
 						mainTableBuilder.append("(3)");
+					} else {
+						// TODO: add trigger: 
+						/*
+						CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table
+						 BEGIN
+						  update your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id;
+						 END;
+						*/
+						StringBuilder triggerBuilder = new StringBuilder();
+						triggerBuilder.append("CREATE TRIGGER ");
+						triggerBuilder.append(tableName);
+						triggerBuilder.append("_update_trigger AFTER UPDATE ON ");
+						triggerBuilder.append(tableName);
+						triggerBuilder.append(" \nBEGIN \n    update ");
+						triggerBuilder.append(tableName);
+						triggerBuilder.append(" SET ");
+						triggerBuilder.append(name);
+						triggerBuilder.append(" = datetime('now') WHERE  id = NEW.id; \n");
+						triggerBuilder.append("END;");
+						
+						postOtherTables.add(triggerBuilder.toString());
 					}
+					
 					mainTableBuilder.append(" ");
 				}
 			} else {
@@ -1178,7 +1244,8 @@ public class SqlWrapper {
 	public static List<String> createTable(final Class<?> clazz, final boolean createDrop) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
-		final List<String> outList = new ArrayList<>();
+		final List<String> preActionList = new ArrayList<>();
+		final List<String> postActionList = new ArrayList<>();
 		final StringBuilder out = new StringBuilder();
 		// Drop Table
 		if (createIfNotExist && createDrop) {
@@ -1186,7 +1253,7 @@ public class SqlWrapper {
 			tableTmp.append("DROP TABLE IF EXISTS `");
 			tableTmp.append(tableName);
 			tableTmp.append("`;");
-			outList.add(tableTmp.toString());
+			postActionList.add(tableTmp.toString());
 		}
 		// create Table:
 		out.append("CREATE TABLE `");
@@ -1212,13 +1279,13 @@ public class SqlWrapper {
 				final SqlWrapperAddOn addOn = findAddOnforField(elem);
 				LOGGER.info("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
 				if (addOn != null) {
-					addOn.createTables(tableName, elem, out, outList, createIfNotExist, createDrop, fieldId);
+					addOn.createTables(tableName, elem, out, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
 				} else {
 					throw new Exception("Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());
 				}
 			} else {
 				LOGGER.info("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-				SqlWrapper.createTablesSpecificType(tableName, elem, out, outList, createIfNotExist, createDrop, fieldId, elem.getType());
+				SqlWrapper.createTablesSpecificType(tableName, elem, out, preActionList, postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
 			}
 			fieldId++;
 		}
@@ -1237,8 +1304,9 @@ public class SqlWrapper {
 			out.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 		}
 		out.append(";");
-		outList.add(out.toString());
-		return outList;
+		preActionList.add(out.toString());
+		preActionList.addAll(postActionList);
+		return preActionList;
 	}
 	
 }

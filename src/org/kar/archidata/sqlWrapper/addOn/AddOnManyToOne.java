@@ -12,11 +12,11 @@ import java.util.stream.Collectors;
 import org.kar.archidata.sqlWrapper.QuerryOptions;
 import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
-import org.kar.archidata.sqlWrapper.StateLoad;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
 
 public class AddOnManyToOne implements SqlWrapperAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
@@ -93,8 +93,7 @@ public class AddOnManyToOne implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(final String tableName, final Field elem, final StringBuilder querry, final String name, final List<StateLoad> autoClasify, QuerryOptions options) {
-		autoClasify.add(StateLoad.NORMAL);
+	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options) {
 		querry.append(" ");
 		querry.append(tableName);
 		querry.append(".");
@@ -119,8 +118,8 @@ public class AddOnManyToOne implements SqlWrapperAddOn {
 	
 	// TODO : refacto this table to manage a generic table with dynamic name to be serializable with the default system
 	@Override
-	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> ListOtherTables, final boolean createIfNotExist,
-			final boolean createDrop, final int fieldId) throws Exception {
-		SqlWrapper.createTablesSpecificType(tableName, elem, mainTableBuilder, ListOtherTables, createIfNotExist, createDrop, fieldId, Long.class);
+	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preActionList, List<String> postActionList,
+			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
+		SqlWrapper.createTablesSpecificType(tableName, elem, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, Long.class);
 	}
 }

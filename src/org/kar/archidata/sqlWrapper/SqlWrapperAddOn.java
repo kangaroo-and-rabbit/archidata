@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import jakarta.validation.constraints.NotNull;
+
 public interface SqlWrapperAddOn {
 	/**
 	 * Get the Class of the declaration annotation
@@ -27,17 +29,38 @@ public interface SqlWrapperAddOn {
 	 */
 	boolean isCompatibleField(Field elem);
 	
+	/**
+	 * Insert data in the specific field (the field must be in the current db, otherwiise it does not work at all.
+	 * @param ps DB statement interface.
+	 * @param data The date to inject.
+	 * @param iii The index of injection
+	 * @return the new index of injection in case of multiple value management
+	 * @throws SQLException
+	 */
 	int insertData(PreparedStatement ps, Object data, int iii) throws SQLException;
 	
 	// External mean that the type of the object is absolutely not obvious...
 	boolean isExternal();
 	
-	int generateQuerry(String tableName, Field elem, StringBuilder querry, String name, List<StateLoad> autoClasify, QuerryOptions options);
+	int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options);
 	
+	// Return the number of colomn read
 	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
 	
 	boolean canUpdate();
 	
-	void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> ListOtherTables, boolean createIfNotExist, boolean createDrop, int fieldId) throws Exception;
+	/**
+	 * Create associated table of the specific element.
+	 * @param tableName
+	 * @param elem
+	 * @param mainTableBuilder
+	 * @param ListOtherTables
+	 * @param createIfNotExist
+	 * @param createDrop
+	 * @param fieldId
+	 * @throws Exception
+	 */
+	void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
+			throws Exception;
 	
 }
