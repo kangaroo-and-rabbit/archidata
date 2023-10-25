@@ -1,19 +1,39 @@
 package org.kar.archidata.util;
 
 public class ConfigBaseVariable {
-	static public String tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
-	static public String dataFolder = System.getenv("DATA_FOLDER");
-	static public String dbType = System.getenv("DB_TYPE");
-	static public String dbHost = System.getenv("DB_HOST");
-	static public String dbPort = System.getenv("DB_PORT");
-	static public String dbUser = System.getenv("DB_USER");
-	static public String dbKeepConnected = System.getenv("DB_KEEP_CONNECTED");
-	static public String dbPassword = System.getenv("DB_PASSWORD");
-	static public String bdDatabase = System.getenv("DB_DATABASE");
-	static public String apiAdress = System.getenv("API_ADDRESS");
-	static public String ssoAdress = System.getenv("SSO_ADDRESS");
-	static public String ssoToken = System.getenv("SSO_TOKEN");
+	static public String tmpDataFolder;
+	static public String dataFolder;
+	static public String dbType;
+	static public String dbHost;
+	static public String dbPort;
+	static public String dbUser;
+	static public String dbKeepConnected;
+	static public String dbPassword;
+	static public String bdDatabase;
+	static public String apiAdress;
+	static public String ssoAdress;
+	static public String ssoToken;
 	
+	// For test only
+	public static void clearAllValue() {
+		tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
+		dataFolder = System.getenv("DATA_FOLDER");
+		dbType = System.getenv("DB_TYPE");
+		dbHost = System.getenv("DB_HOST");
+		dbPort = System.getenv("DB_PORT");
+		dbUser = System.getenv("DB_USER");
+		dbKeepConnected = System.getenv("DB_KEEP_CONNECTED");
+		dbPassword = System.getenv("DB_PASSWORD");
+		bdDatabase = System.getenv("DB_DATABASE");
+		apiAdress = System.getenv("API_ADDRESS");
+		ssoAdress = System.getenv("SSO_ADDRESS");
+		ssoToken = System.getenv("SSO_TOKEN");
+	}
+
+	static {
+		clearAllValue();
+	}
+
 	public static String getTmpDataFolder() {
 		if (tmpDataFolder == null) {
 			return "/application/data/tmp";

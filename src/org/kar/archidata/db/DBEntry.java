@@ -17,7 +17,7 @@ public class DBEntry implements Closeable {
 	public Connection connection;
 	private static List<DBEntry> stored = new ArrayList<>();
 	
-	private DBEntry(DBConfig config, boolean root) throws IOException {
+	private DBEntry(final DBConfig config, final boolean root) throws IOException {
 		this.config = config;
 		if (root) {
 			connectRoot();
@@ -26,13 +26,13 @@ public class DBEntry implements Closeable {
 		}
 	}
 	
-	public static DBEntry createInterface(DBConfig config) throws IOException {
+	public static DBEntry createInterface(final DBConfig config) throws IOException {
 		return createInterface(config, false);
 	}
 	
-	public static DBEntry createInterface(DBConfig config, boolean root) throws IOException {
+	public static DBEntry createInterface(final DBConfig config, final boolean root) throws IOException {
 		if (config.getKeepConnected()) {
-			for (DBEntry elem : stored) {
+			for (final DBEntry elem : stored) {
 				if (elem == null) {
 					continue;
 				}
@@ -40,7 +40,7 @@ public class DBEntry implements Closeable {
 					return elem;
 				}
 			}
-			DBEntry tmp = new DBEntry(config, root);
+			final DBEntry tmp = new DBEntry(config, root);
 			stored.add(tmp);
 			return tmp;
 		} else {
@@ -50,8 +50,8 @@ public class DBEntry implements Closeable {
 	
 	public void connectRoot() throws IOException {
 		try {
-			connection = DriverManager.getConnection(config.getUrl(true), config.getLogin(), config.getPassword());
-		} catch (SQLException ex) {
+			this.connection = DriverManager.getConnection(this.config.getUrl(true), this.config.getLogin(), this.config.getPassword());
+		} catch (final SQLException ex) {
 			throw new IOException("Connection db fail: " + ex.getMessage());
 		}
 		
@@ -59,8 +59,8 @@ public class DBEntry implements Closeable {
 	
 	public void connect() throws IOException {
 		try {
-			connection = DriverManager.getConnection(config.getUrl(), config.getLogin(), config.getPassword());
-		} catch (SQLException ex) {
+			this.connection = DriverManager.getConnection(this.config.getUrl(), this.config.getLogin(), this.config.getPassword());
+		} catch (final SQLException ex) {
 			throw new IOException("Connection db fail: " + ex.getMessage());
 		}
 		
@@ -68,15 +68,24 @@ public class DBEntry implements Closeable {
 	
 	@Override
 	public void close() throws IOException {
-		if (config.getKeepConnected()) {
+		if (this.config.getKeepConnected()) {
 			return;
 		}
+		closeForce();
+	}
+
+	public void closeForce() throws IOException {
 		try {
 			//connection.commit();
-			connection.close();
-		} catch (SQLException ex) {
+			this.connection.close();
+		} catch (final SQLException ex) {
 			throw new IOException("Dis-connection db fail: " + ex.getMessage());
 		}
-		
+	}
+	
+	public static void closeAllForceMode() throws IOException {
+		for (final DBEntry entry : stored) {
+			entry.closeForce();
+		}
 	}
 }
