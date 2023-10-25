@@ -1,35 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>kangaroo-and-rabbit</groupId>
-  <artifactId>archidata</artifactId>
-  <version>0.4.0</version>
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>kangaroo-and-rabbit</groupId>
+	<artifactId>archidata</artifactId>
+	<version>0.4.0</version>
 	<properties>
-		<jersey.version>3.1.1</jersey.version>
-		<jaxb.version>2.3.1</jaxb.version>
-		<istack.version>4.1.1</istack.version>
-		
 		<maven.compiler.version>3.1</maven.compiler.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 
 		<maven.dependency.version>3.1.1</maven.dependency.version>
+
+		<jersey.version>3.1.1</jersey.version>
+		<jaxb.version>2.3.1</jaxb.version>
+		<istack.version>4.1.1</istack.version>
 	</properties>
 
 	<repositories>
-	  <repository>
-	    <id>gitea</id>
-	    <url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
-	  </repository>
+		<repository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
 	</repositories>
 	<distributionManagement>
-	  <repository>
-	    <id>gitea</id>
-	    <url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
-	  </repository>
-	  <snapshotRepository>
-	    <id>gitea</id>
-	    <url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
-	  </snapshotRepository>
+		<repository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+		<snapshotRepository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</snapshotRepository>
 	</distributionManagement>
 
 	<dependencyManagement>
@@ -47,9 +48,15 @@
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		    <version>2.0.7</version>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>2.0.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>2.0.7</version>
+			<scope>test</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-multipart -->
 		<dependency>
@@ -128,25 +135,41 @@
 		<dependency>
 		    <groupId>com.nimbusds</groupId>
 		    <artifactId>nimbus-jose-jwt</artifactId>
-		    <version>9.30</version>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.7.2</version>
-			<scope>test</scope>
+		    <version>9.37</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
 			<version>3.1.0</version>
 		</dependency>
+		<!--
+		************************************************************ 
+		** TEST dependency                                        **
+		************************************************************
+		-->
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.10.0</version>
+			<scope>test</scope>
+		</dependency>
+	    <dependency>
+	        <groupId>org.junit.jupiter</groupId>
+	        <artifactId>junit-jupiter-engine</artifactId>
+			<version>5.10.0</version>
+	        <scope>test</scope>
+	    </dependency>
     </dependencies>
 
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test/src</testSourceDirectory>
     	<directory>${project.basedir}/out/maven/</directory>
+		<testResources>
+			<testResource>
+				<directory>${basedir}/test/resources</directory>
+			</testResource>
+		</testResources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

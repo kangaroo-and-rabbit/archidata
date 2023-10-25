@@ -20,9 +20,7 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataAddOn;
 import org.kar.archidata.annotation.SQLDefault;
-import org.kar.archidata.annotation.SQLDeleted;
 import org.kar.archidata.annotation.SQLIfNotExists;
-import org.kar.archidata.annotation.SQLNotRead;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.sqlWrapper.addOn.AddOnManyToMany;
@@ -52,7 +50,7 @@ public class SqlWrapper {
 	
 	public static void addAddOn(final SqlWrapperAddOn addOn) {
 		SqlWrapper.addOn.add(addOn);
-	};
+	}
 	
 	public static class ExceptionDBInterface extends Exception {
 		private static final long serialVersionUID = 1L;
@@ -69,7 +67,7 @@ public class SqlWrapper {
 	}
 	
 	public static boolean isDBExist(final String name) throws InternalServerErrorException {
-		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
 			return true;
@@ -111,18 +109,14 @@ public class SqlWrapper {
 	}
 	
 	public static boolean createDB(final String name) {
-		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
 			return true;
 		}
 		try {
 			return 1 == SqlWrapper.executeSimpleQuerry("CREATE DATABASE `" + name + "`;", true);
-		} catch (final SQLException ex) {
-			ex.printStackTrace();
-			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
-			return false;
-		} catch (final IOException ex) {
+		} catch (final SQLException | IOException ex) {
 			ex.printStackTrace();
 			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
 			return false;
@@ -132,7 +126,7 @@ public class SqlWrapper {
 	public static boolean isTableExist(final String name) throws InternalServerErrorException {
 		try {
 			String request = "";
-			if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+			if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 				request = """
 						SELECT COUNT(*) AS total
 						FROM sqlite_master
@@ -191,7 +185,7 @@ public class SqlWrapper {
 	}
 	
 	public static String convertTypeInSQL(final Class<?> type) throws Exception {
-		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			if (type == Long.class || type == long.class) {
 				return "bigint";
 			}
@@ -430,7 +424,7 @@ public class SqlWrapper {
 	
 	public static boolean isAddOnField(final Field field) {
 		boolean ret = AnnotationTools.isAnnotationGroup(field, DataAddOn.class);
-		if (ret == true) {
+		if (ret) {
 			return true;
 		}
 		// The specific element of the JPA manage fy generic add-on system:
@@ -728,9 +722,7 @@ public class SqlWrapper {
 				}
 			}
 			ps.setLong(iii++, id);
-			// execute the request
-			final int affectedRows = ps.executeUpdate();
-			return affectedRows;
+			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -768,24 +760,27 @@ public class SqlWrapper {
 		}
 	}
 	
-	public static void whereAppendQuery(final StringBuilder querry, final String tableName, final QuerryItem condition, final QuerryOptions options) throws ExceptionDBInterface {
+	public static void whereAppendQuery(final StringBuilder querry, final String tableName, final QuerryItem condition, final QuerryOptions options, String deletedFieldName)
+			throws ExceptionDBInterface {
 		boolean exclude_deleted = true;
 		if (options != null) {
-			Object data = options.get("SQLDeleted_disable");
+			Object data = options.get(QuerryOptions.SQL_DELETED_DISABLE);
 			if (data instanceof Boolean elem) {
-				exclude_deleted = !(elem == true);
+				exclude_deleted = !elem;
 			} else {
 				if (data != null) {
-					LOGGER.error("'SQLDeleted_disable' ==> has not a boolean value: {}", data);
+					LOGGER.error("'{}' ==> has not a boolean value: {}", QuerryOptions.SQL_DELETED_DISABLE, data);
 				}
 			}
 		}
 		// Check if we have a condition to generate
 		if (condition == null) {
-			if (exclude_deleted) {
+			if (exclude_deleted && deletedFieldName != null) {
 				querry.append(" WHERE ");
 				querry.append(tableName);
-				querry.append(".deleted = false ");
+				querry.append(".");
+				querry.append(deletedFieldName);
+				querry.append(" = false ");
 			}
 			return;
 		}
@@ -793,10 +788,12 @@ public class SqlWrapper {
 		condition.generateQuerry(querry, tableName);
 		
 		querry.append(") ");
-		if (exclude_deleted) {
+		if (exclude_deleted && deletedFieldName != null) {
 			querry.append("AND ");
 			querry.append(tableName);
-			querry.append(".deleted = false ");
+			querry.append(".");
+			querry.append(deletedFieldName);
+			querry.append(" = false ");
 		}
 	}
 	
@@ -859,12 +856,12 @@ public class SqlWrapper {
 		
 		boolean readAllfields = false;
 		if (options != null) {
-			Object data = options.get("SQLNotRead_disable");
+			Object data = options.get(QuerryOptions.SQL_NOT_READ_DISABLE);
 			if (data instanceof Boolean elem) {
 				readAllfields = elem;
 			} else {
 				if (data != null) {
-					LOGGER.error("'SQLNotRead_disable' ==> has not a boolean value: {}", data);
+					LOGGER.error("'{}' ==> has not a boolean value: {}", QuerryOptions.SQL_NOT_READ_DISABLE, data);
 				}
 			}
 		}
@@ -882,7 +879,7 @@ public class SqlWrapper {
 			
 			boolean firstField = true;
 			int count = 0;
-			boolean hasDeleted = false;
+			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
@@ -893,12 +890,9 @@ public class SqlWrapper {
 					continue;
 				}
 				// TODO: Manage it with AddOn
-				final boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
+				final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
 				if (!readAllfields && notRead) {
 					continue;
-				}
-				if (!hasDeleted) {
-					hasDeleted = elem.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0;
 				}
 				final String name = AnnotationTools.getFieldName(elem);
 				count++;
@@ -919,7 +913,7 @@ public class SqlWrapper {
 			querry.append(" FROM `");
 			querry.append(tableName);
 			querry.append("` ");
-			whereAppendQuery(querry, tableName, condition, options);
+			whereAppendQuery(querry, tableName, condition, options, deletedFieldName);
 			if (orderBy != null && orderBy.length() >= 1) {
 				querry.append(" ORDER BY ");
 				//querry.append(tableName);
@@ -937,6 +931,7 @@ public class SqlWrapper {
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
+				// TODO: manage class that is defined inside a class ==> Not manage for now...
 				final Object data = clazz.getConstructors()[0].newInstance();
 				count = 1;
 				for (final Field elem : clazz.getFields()) {
@@ -949,7 +944,7 @@ public class SqlWrapper {
 						continue;
 					}
 					// TODO: Manage it with AddOn
-					final boolean notRead = elem.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
+					final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
 					if (!readAllfields && notRead) {
 						continue;
 					}
@@ -979,6 +974,10 @@ public class SqlWrapper {
 	
 	// TODO : detect the @Id
 	public static <T> T get(final Class<T> clazz, final long id) throws Exception {
+		return get(clazz, id, null);
+	}
+	
+	public static <T> T get(final Class<T> clazz, final long id, final QuerryOptions options) throws Exception {
 		Field primaryKeyField = null;
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
@@ -990,7 +989,7 @@ public class SqlWrapper {
 			}
 		}
 		if (primaryKeyField != null) {
-			return SqlWrapper.getWhere(clazz, new QuerryCondition(AnnotationTools.getFieldName(primaryKeyField), "=", id));
+			return SqlWrapper.getWhere(clazz, new QuerryCondition(AnnotationTools.getFieldName(primaryKeyField), "=", id), options);
 		}
 		throw new Exception("Missing primary Key...");
 	}
@@ -1007,64 +1006,95 @@ public class SqlWrapper {
 		return getsWhere(clazz, null, options);
 	}
 	
-	public static boolean hasDeletedField(final Class<?> clazz) throws Exception {
-		try {
-			boolean hasDeleted = false;
-			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-					continue;
-				}
-				if (elem.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0) {
-					return true;
-				}
-			}
-		} catch (final Exception ex) {
-			ex.printStackTrace();
-		}
-		return false;
-	}
-	
 	// TODO : detect the @Id
-	public static void delete(final Class<?> clazz, final long id) throws Exception {
-		boolean hasDeleted = hasDeletedField(clazz);
-		if (hasDeleted == true) {
-			deleteSoft(clazz, id);
+	public static int delete(final Class<?> clazz, final long id) throws Exception {
+		String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		if (hasDeletedFieldName != null) {
+			return deleteSoft(clazz, id);
 		} else {
-			deleteHard(clazz, id);
+			return deleteHard(clazz, id);
 		}
 	}
 	
-	public static void deleteHard(final Class<?> clazz, final long id) throws Exception {
-		throw new Exception("Not implemented  delete hard ...");
+	public static int delete(final Class<?> clazz, final QuerryItem condition) throws Exception {
+		String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		if (hasDeletedFieldName != null) {
+			return deleteSoftWhere(clazz, condition);
+		} else {
+			return deleteHardWhere(clazz, condition);
+		}
+	}
+	
+	public static int deleteHard(final Class<?> clazz, final long id) throws Exception {
+		return deleteHardWhere(clazz, new QuerryCondition("id", "=", id));
+	}
+	
+	public static int deleteHardWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
+		final String tableName = AnnotationTools.getTableName(clazz);
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		// find the deleted field
+		
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final StringBuilder querry = new StringBuilder();
+		querry.append("DELETE FROM `");
+		querry.append(tableName);
+		querry.append("` ");
+		whereAppendQuery(querry, tableName, condition, null, deletedFieldName);
+		try {
+			LOGGER.debug("APPLY: {}", querry.toString());
+			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
+			whereInjectValue(ps, condition);
+			return ps.executeUpdate();
+		} finally {
+			entry.close();
+			entry = null;
+		}
 	}
 	
 	private static int deleteSoft(final Class<?> clazz, final long id) throws Exception {
-		return setDeleteWhere(clazz, new QuerryCondition("id", "=", id));
+		return deleteSoftWhere(clazz, new QuerryCondition("id", "=", id));
 	}
 	
 	public static String getDBNow() {
-		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			return "now(3)";
 		}
 		return "DATE()";
 	}
 	
-	public static int setDeleteWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
+	public static int deleteSoftWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		/*
+		String updateFieldName = null;
+		if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) {
+			updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
+		}
+		*/
+		// find the deleted field
+		
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder querry = new StringBuilder();
 		querry.append("UPDATE `");
 		querry.append(tableName);
-		querry.append("` SET `modify_date`=");
-		querry.append(getDBNow());
-		querry.append(", `deleted`=true ");
-		whereAppendQuery(querry, tableName, condition, null);
+		querry.append("` SET `");
+		querry.append(deletedFieldName);
+		querry.append("`=true ");
+		/*
+		 * The trigger work well, but the timestamp is store @ seconds...
+		if (updateFieldName != null) {
+			// done only in SQLite (the trigger does not work...
+			querry.append(", `");
+			querry.append(updateFieldName);
+			querry.append("`=DATE()");
+		}
+		*/
+		whereAppendQuery(querry, tableName, condition, null, deletedFieldName);
 		try {
+			LOGGER.debug("APPLY UPDATE: {}", querry.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
 			whereInjectValue(ps, condition);
-			final int affectedRows = ps.executeUpdate();
-			return affectedRows;
+			return ps.executeUpdate();
 		} finally {
 			entry.close();
 			entry = null;
@@ -1077,26 +1107,30 @@ public class SqlWrapper {
 	
 	public static int unsetDeleteWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		if (deletedFieldName == null) {
+			throw new Exception("The class " + clazz.getCanonicalName() + " has no deleted field");
+		}
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder querry = new StringBuilder();
 		querry.append("UPDATE `");
 		querry.append(tableName);
-		querry.append("` SET ");
+		querry.append("` SET `");
+		querry.append(deletedFieldName);
+		querry.append("`=false ");
 		/*
 		 * is is needed only for SQLite ???
 		querry.append("`modify_date`=");
 		querry.append(getDBNow());
 		querry.append(", ");
 		*/
-		querry.append("`deleted`=false ");
 		// need to disable the deleted false because the model must be unselected to be updated.
-		QuerryOptions options = new QuerryOptions("SQLDeleted_disable", true);
-		whereAppendQuery(querry, tableName, condition, options);
+		QuerryOptions options = new QuerryOptions(QuerryOptions.SQL_DELETED_DISABLE, true);
+		whereAppendQuery(querry, tableName, condition, options, deletedFieldName);
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
 			whereInjectValue(ps, condition);
-			final int affectedRows = ps.executeUpdate();
-			return affectedRows;
+			return ps.executeUpdate();
 		} finally {
 			entry.close();
 			entry = null;
@@ -1105,6 +1139,26 @@ public class SqlWrapper {
 	
 	public static List<String> createTable(final Class<?> clazz) throws Exception {
 		return createTable(clazz, true);
+	}
+	
+	private static boolean isFieldFromSuperClass(Class<?> model, String filedName) {
+		Class<?> superClass = model.getSuperclass();
+		if (superClass == null) {
+			return false;
+		}
+		for (Field field : superClass.getFields()) {
+			String name;
+			try {
+				name = AnnotationTools.getFieldName(field);
+				if (filedName.equals(name)) {
+					return true;
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				LOGGER.trace("Catch error field name in parent create data table: {}", e.getMessage());
+			}
+		}
+		return false;
 	}
 	
 	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
@@ -1130,14 +1184,14 @@ public class SqlWrapper {
 		mainTableBuilder.append("` ");
 		String typeValue = null;
 		typeValue = convertTypeInSQL(classModel);
-		if (typeValue.equals("text") && !ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if ("text".equals(typeValue) && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			if (limitSize != null) {
 				mainTableBuilder.append("varchar(");
 				mainTableBuilder.append(limitSize);
 				mainTableBuilder.append(")");
 			} else {
 				mainTableBuilder.append("text");
-				if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+				if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 					mainTableBuilder.append(" CHARACTER SET utf8");
 				}
 			}
@@ -1146,19 +1200,19 @@ public class SqlWrapper {
 		}
 		mainTableBuilder.append(" ");
 		if (notNull) {
-			if (!primaryKey || !ConfigBaseVariable.getDBType().equals("sqlite")) {
+			if (!primaryKey || !"sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) {
 				mainTableBuilder.append("NOT NULL ");
 			}
 			if (defaultValue == null) {
 				if (updateTime || createTime) {
 					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP");
-					if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 						mainTableBuilder.append("(3)");
 					}
 					mainTableBuilder.append(" ");
 				}
 				if (updateTime) {
-					if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
 						mainTableBuilder.append("(3)");
 					} else {
@@ -1188,14 +1242,14 @@ public class SqlWrapper {
 				}
 			} else {
 				mainTableBuilder.append("DEFAULT ");
-				if ("CURRENT_TIMESTAMP(3)".equals(defaultValue) && ConfigBaseVariable.getDBType().equals("sqlite")) {
+				if ("CURRENT_TIMESTAMP(3)".equals(defaultValue) && "sqlite".equals(ConfigBaseVariable.getDBType())) {
 					mainTableBuilder.append("CURRENT_TIMESTAMP");
 				} else {
 					mainTableBuilder.append(defaultValue);
 				}
 				mainTableBuilder.append(" ");
 				if (updateTime) {
-					if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
 						mainTableBuilder.append("(3)");
 					}
@@ -1204,7 +1258,7 @@ public class SqlWrapper {
 			}
 		} else if (defaultValue == null) {
 			if (updateTime || createTime) {
-				if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+				if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP ");
 				} else {
 					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP(3) ");
@@ -1220,12 +1274,12 @@ public class SqlWrapper {
 			mainTableBuilder.append(" ");
 			
 		}
-		if (primaryKey && ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (primaryKey && "sqlite".equals(ConfigBaseVariable.getDBType())) {
 			mainTableBuilder.append("PRIMARY KEY ");
 			
 		}
 		if (strategy == GenerationType.IDENTITY) {
-			if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+			if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 				mainTableBuilder.append("AUTO_INCREMENT ");
 			} else {
 				mainTableBuilder.append("AUTOINCREMENT ");
@@ -1234,7 +1288,7 @@ public class SqlWrapper {
 			throw new Exception("Can not generate a stategy different of IDENTITY");
 		}
 		
-		if (comment != null && !ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (comment != null && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			mainTableBuilder.append("COMMENT '");
 			mainTableBuilder.append(comment.replace('\'', '\''));
 			mainTableBuilder.append("' ");
@@ -1269,27 +1323,62 @@ public class SqlWrapper {
 				primaryKeys.add(AnnotationTools.getFieldName(elem));
 			}
 		}
-		
-		for (final Field elem : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-				continue;
-			}
-			if (isAddOnField(elem)) {
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
-				LOGGER.info("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
-				if (addOn != null) {
-					addOn.createTables(tableName, elem, out, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
-				} else {
-					throw new Exception("Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());
+		// Here we insert the data in the reverse mode ==> the parent class add there parameter at the start (we reorder the field with the parenting). 
+		StringBuilder tmpOut = new StringBuilder();
+		StringBuilder reverseOut = new StringBuilder();
+		List<String> alreadyAdded = new ArrayList<>();
+		Class<?> currentClazz = clazz;
+		while (currentClazz != null) {
+			fieldId = 0;
+			LOGGER.info("parse class: '{}'", currentClazz.getCanonicalName());
+			for (final Field elem : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+					continue;
 				}
-			} else {
-				LOGGER.info("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-				SqlWrapper.createTablesSpecificType(tableName, elem, out, preActionList, postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
+				final String dataName = AnnotationTools.getFieldName(elem);
+				if (isFieldFromSuperClass(currentClazz, dataName)) {
+					LOGGER.trace("        SKIP:  '{}'", elem.getName());
+					continue;
+				}
+				if (alreadyAdded.contains(dataName)) {
+					LOGGER.trace("        SKIP2: '{}'", elem.getName());
+					continue;
+				}
+				alreadyAdded.add(dataName);
+				LOGGER.info("        + '{}'", elem.getName());
+				if (isAddOnField(elem)) {
+					final SqlWrapperAddOn addOn = findAddOnforField(elem);
+					LOGGER.info("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
+					if (addOn != null) {
+						addOn.createTables(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
+					} else {
+						throw new Exception(
+								"Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());
+					}
+				} else {
+					LOGGER.info("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
+					SqlWrapper.createTablesSpecificType(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
+				}
+				fieldId++;
 			}
-			fieldId++;
+			boolean dataInThisObject = tmpOut.toString().length() > 0;
+			if (dataInThisObject) {
+				boolean dataInPreviousObject = reverseOut.toString().length() > 0;
+				if (dataInPreviousObject) {
+					tmpOut.append(", ");
+					tmpOut.append(reverseOut.toString());
+				}
+				reverseOut = tmpOut;
+				tmpOut = new StringBuilder();
+			}
+			currentClazz = currentClazz.getSuperclass();
+			if (currentClazz == Object.class) {
+				break;
+			}
 		}
-		if (primaryKeys.size() != 0 && !ConfigBaseVariable.getDBType().equals("sqlite")) {
+		out.append(reverseOut.toString());
+		if (primaryKeys.size() != 0 && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			out.append(",\n\tPRIMARY KEY (`");
 			for (int iii = 0; iii < primaryKeys.size(); iii++) {
 				if (iii != 0) {
@@ -1300,7 +1389,7 @@ public class SqlWrapper {
 			out.append("`)");
 		}
 		out.append("\n\t)");
-		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			out.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
 		}
 		out.append(";");

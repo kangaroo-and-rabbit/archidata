@@ -30,7 +30,7 @@ import jakarta.persistence.Table;
 @Table(name = "user")
 @SQLIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class User extends GenericTable {
+public class User extends GenericDataSoftDelete {
 	@Column(length = 128)
 	public String login = null;
 	
@@ -50,7 +50,7 @@ public class User extends GenericTable {
 	
 	@Override
 	public String toString() {
-		return "User [login=" + this.login + ", last=" + this.lastConnection + ", admin=" + this.admin + "]";
+		return "User [login=" + login + ", last=" + lastConnection + ", admin=" + admin + "]";
 	}
 	
 }

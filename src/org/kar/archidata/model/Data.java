@@ -11,8 +11,8 @@ import jakarta.persistence.Table;
 @Table(name = "data")
 @SQLIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Data extends GenericTable {
-
+public class Data extends GenericDataSoftDelete {
+	
 	@Column(length = 128, nullable = false)
 	@SQLComment("Sha512 of the data")
 	public String sha512;

@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 @Table(name = "applicationToken")
 @SQLIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class GenericToken extends GenericTable {
+public class GenericToken extends GenericDataSoftDelete {
 	@Column(nullable = false)
 	public Long parentId;
 	@Column(nullable = false)
