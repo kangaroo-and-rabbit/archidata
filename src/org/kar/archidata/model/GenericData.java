@@ -1,6 +1,6 @@
 package org.kar.archidata.model;
 
-import java.sql.Timestamp;
+import java.util.Date;
 
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.SQLComment;
@@ -11,6 +11,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 
 public class GenericData {
 	@Id
@@ -21,26 +23,13 @@ public class GenericData {
 	@SQLNotRead
 	@CreationTimestamp
 	@Column(nullable = false)
-	@SQLComment("Create time of the object")
-	public Timestamp createdAt = null;
-	@SQLNotRead
-	@UpdateTimestamp
-	@Column(nullable = false)
-	@SQLComment("When update the object")
-	public Timestamp updatedAt = null;
-}
-/* TODO Later:
-	@SQLNotRead
-	@CreationTimestamp
-	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
 	@SQLComment("Create time of the object")
 	public Date createdAt = null;
-
 	@SQLNotRead
 	@UpdateTimestamp
 	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
 	@SQLComment("When update the object")
 	public Date updatedAt = null;
-*/
+}

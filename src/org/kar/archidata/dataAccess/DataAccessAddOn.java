@@ -1,4 +1,4 @@
-package org.kar.archidata.sqlWrapper;
+package org.kar.archidata.dataAccess;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -8,27 +8,27 @@ import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
 
-public interface SqlWrapperAddOn {
+public interface DataAccessAddOn {
 	/**
 	 * Get the Class of the declaration annotation
 	 * @return The annotation class
 	 */
 	Class<?> getAnnotationClass();
-	
+
 	/**
 	 * Get the SQL type that is needed to declare for the specific Field Type.
 	 * @param elem Field to declare.
 	 * @return SQL type to create.
 	 */
-	String getSQLFieldType(Field elem);
-	
+	String getSQLFieldType(Field elem) throws Exception;
+
 	/**
 	 * Check if the field is manage by the local add-on
 	 * @param elem Field to inspect.
 	 * @return True of the field is manage by the current Add-on.
 	 */
 	boolean isCompatibleField(Field elem);
-	
+
 	/**
 	 * Insert data in the specific field (the field must be in the current db, otherwiise it does not work at all.
 	 * @param ps DB statement interface.
@@ -38,17 +38,17 @@ public interface SqlWrapperAddOn {
 	 * @throws SQLException
 	 */
 	int insertData(PreparedStatement ps, Object data, int iii) throws SQLException;
-	
+
 	// External mean that the type of the object is absolutely not obvious...
 	boolean isExternal();
-	
-	int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options);
-	
+
+	int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options);
+
 	// Return the number of colomn read
-	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
-	
+	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
+
 	boolean canUpdate();
-	
+
 	/**
 	 * Create associated table of the specific element.
 	 * @param tableName
@@ -62,5 +62,5 @@ public interface SqlWrapperAddOn {
 	 */
 	void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
 			throws Exception;
-	
+
 }

@@ -1,46 +1,47 @@
-package org.kar.archidata.sqlWrapper;
+package org.kar.archidata.dataAccess;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Date;
 
+import org.aopalliance.reflect.Class;
+import org.glassfish.jaxb.runtime.v2.schemagen.xmlschema.List;
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataAddOn;
 import org.kar.archidata.annotation.SQLDefault;
-import org.kar.archidata.annotation.SQLIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
+import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
 import org.kar.archidata.db.DBEntry;
-import org.kar.archidata.sqlWrapper.addOn.AddOnManyToMany;
-import org.kar.archidata.sqlWrapper.addOn.AddOnManyToOne;
-import org.kar.archidata.sqlWrapper.addOn.AddOnSQLTableExternalForeinKeyAsList;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Timestamp;
+import com.mysql.cj.x.protobuf.MysqlxDatatypes.Scalar.String;
+import com.mysql.cj.xdevapi.Statement;
 
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.ws.rs.InternalServerErrorException;
+import javassist.bytecode.Descriptor.Iterator;
 
-public class SqlWrapper {
-	static final Logger LOGGER = LoggerFactory.getLogger(SqlWrapper.class);
-	static final List<SqlWrapperAddOn> addOn = new ArrayList<>();
+public class DataAccess {
+	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
+	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 	
 	static {
 		addOn.add(new AddOnManyToMany());
@@ -48,8 +49,8 @@ public class SqlWrapper {
 		addOn.add(new AddOnSQLTableExternalForeinKeyAsList());
 	}
 	
-	public static void addAddOn(final SqlWrapperAddOn addOn) {
-		SqlWrapper.addOn.add(addOn);
+	public static void addAddOn(final DataAccessAddOn addOn) {
+		DataAccess.addOn.add(addOn);
 	}
 	
 	public static class ExceptionDBInterface extends Exception {
@@ -62,7 +63,7 @@ public class SqlWrapper {
 		}
 	}
 	
-	public SqlWrapper() {
+	public DataAccess() {
 		
 	}
 	
@@ -115,7 +116,7 @@ public class SqlWrapper {
 			return true;
 		}
 		try {
-			return 1 == SqlWrapper.executeSimpleQuerry("CREATE DATABASE `" + name + "`;", true);
+			return 1 == DataAccess.executeSimpleQuerry("CREATE DATABASE `" + name + "`;", true);
 		} catch (final SQLException | IOException ex) {
 			ex.printStackTrace();
 			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
@@ -170,77 +171,21 @@ public class SqlWrapper {
 	 * @return The list  of Long value
 	 * @throws SQLException if an error is generated in the sql request.
 	 */
-	public static List<Long> getListOfIds(ResultSet rs, int iii, String separator) throws SQLException {
-		String trackString = rs.getString(iii);
+	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator) throws SQLException {
+		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
 			return null;
 		}
-		List<Long> out = new ArrayList<>();
-		String[] elements = trackString.split("-");
-		for (String elem : elements) {
-			Long tmp = Long.parseLong(elem);
+		final List<Long> out = new ArrayList<>();
+		final String[] elements = trackString.split("-");
+		for (final String elem : elements) {
+			final Long tmp = Long.parseLong(elem);
 			out.add(tmp);
 		}
 		return out;
 	}
 	
-	public static String convertTypeInSQL(final Class<?> type) throws Exception {
-		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			if (type == Long.class || type == long.class) {
-				return "bigint";
-			}
-			if (type == Integer.class || type == int.class) {
-				return "int";
-			}
-			if (type == Boolean.class || type == boolean.class) {
-				return "tinyint(1)";
-			}
-			if (type == Float.class || type == float.class) {
-				return "float";
-			}
-			if (type == Double.class || type == double.class) {
-				return "double";
-			}
-			if (type == Timestamp.class) {
-				return "timestamp(3)";
-			}
-			if (type == Date.class) {
-				return "date";
-			}
-			if (type == String.class) {
-				return "text";
-			}
-		} else {
-			if (type == Long.class || type == long.class) {
-				return "INTEGER";
-			}
-			if (type == Integer.class || type == int.class) {
-				return "INTEGER";
-			}
-			if (type == Boolean.class || type == boolean.class) {
-				return "INTEGER";
-			}
-			if (type == Float.class || type == float.class) {
-				return "REAL";
-			}
-			if (type == Double.class || type == double.class) {
-				return "REAL";
-			}
-			if (type == Timestamp.class) {
-				return "DATETIME";
-			}
-			if (type == Date.class) {
-				return "DATETIME";
-			}
-			if (type == String.class) {
-				return "text";
-			}
-		}
-		throw new Exception("Imcompatible type of element in object for: " + type.getCanonicalName());
-	}
-	
-	protected static <T> void setValuedb(final Class<?> type, final T data, int index, final Field field, final PreparedStatement ps)
-			throws IllegalArgumentException, IllegalAccessException, SQLException {
+	protected static <T> void setValuedb(final Class<?> type, final T data, int index, final Field field, final PreparedStatement ps) throws Exception {
 		if (type == Long.class) {
 			final Object tmp = field.get(data);
 			if (tmp == null) {
@@ -298,7 +243,24 @@ public class SqlWrapper {
 			if (tmp == null) {
 				ps.setNull(index++, Types.INTEGER);
 			} else {
-				ps.setDate(index++, (Date) tmp);
+				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
+				ps.setTimestamp(index++, sqlDate);
+			}
+		} else if (type == LocalDate.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(index++, Types.INTEGER);
+			} else {
+				final java.sql.Date sqlDate = java.sql.Date.valueOf((LocalDate) tmp);
+				ps.setDate(index++, sqlDate);
+			}
+		} else if (type == LocalTime.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(index++, Types.INTEGER);
+			} else {
+				final java.sql.Time sqlDate = java.sql.Time.valueOf((LocalTime) tmp);
+				ps.setTime(index++, sqlDate);
 			}
 		} else if (type == String.class) {
 			final Object tmp = field.get(data);
@@ -307,11 +269,20 @@ public class SqlWrapper {
 			} else {
 				ps.setString(index++, (String) tmp);
 			}
+		} else if (type.isEnum()) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(index++, Types.VARCHAR);
+			} else {
+				ps.setString(index++, tmp.toString());
+			}
+		} else {
+			throw new Exception("Unknown Field Type");
 		}
 	}
-	
-	protected static <T> void setValueFromDb(final Class<?> type, final T data, final int index, final Field field, final ResultSet rs)
-			throws IllegalArgumentException, IllegalAccessException, SQLException {
+
+	// TODO: maybe wrap this if the use of sqlite ==> maybe some problems came with sqlite ...
+	protected static <T> void setValueFromDb(final Class<?> type, final T data, final int index, final Field field, final ResultSet rs) throws Exception {
 		if (type == Long.class) {
 			final Long tmp = rs.getLong(index);
 			if (rs.wasNull()) {
@@ -384,33 +355,32 @@ public class SqlWrapper {
 				field.setBoolean(data, tmp);
 			}
 		} else if (type == Timestamp.class) {
-			try {
-				final Timestamp tmp = rs.getTimestamp(index);
-				if (rs.wasNull()) {
-					field.set(data, null);
-				} else {
-					field.set(data, tmp);
-				}
-			} catch (java.sql.SQLException ex) {
-				try {
-					final Date tmp = rs.getDate(index);
-					if (rs.wasNull()) {
-						
-						field.set(data, null);
-					} else {
-						field.set(data, new Timestamp(tmp.toInstant().toEpochMilli()));
-					}
-				} catch (java.sql.SQLException ex2) {
-					final String tmp = rs.getString(index);
-					LOGGER.error("plop {}", tmp);
-				}
-			}
-		} else if (type == Date.class) {
-			final Date tmp = rs.getDate(index);
+			final Timestamp tmp = rs.getTimestamp(index);
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
 				field.set(data, tmp);
+			}
+		} else if (type == Date.class) {
+			final Timestamp tmp = rs.getTimestamp(index);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, Date.from(tmp.toInstant()));
+			}
+		} else if (type == LocalDate.class) {
+			final java.sql.Date tmp = rs.getDate(index);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp.toLocalDate());
+			}
+		} else if (type == LocalTime.class) {
+			final java.sql.Time tmp = rs.getTime(index);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp.toLocalTime());
 			}
 		} else if (type == String.class) {
 			final String tmp = rs.getString(index);
@@ -419,11 +389,27 @@ public class SqlWrapper {
 			} else {
 				field.set(data, tmp);
 			}
+		} else if (type.isEnum()) {
+			final String tmp = rs.getString(index);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				final Object[] arr = type.getEnumConstants();
+				for (final Object elem : arr) {
+					if (elem.toString().equals(tmp)) {
+						field.set(data, elem);
+						break;
+					}
+				}
+				// TODO: maybe do something stupid if not exist ???
+			}
+		} else {
+			throw new Exception("Unknown Field Type");
 		}
 	}
 	
 	public static boolean isAddOnField(final Field field) {
-		boolean ret = AnnotationTools.isAnnotationGroup(field, DataAddOn.class);
+		final boolean ret = AnnotationTools.isAnnotationGroup(field, DataAddOn.class);
 		if (ret) {
 			return true;
 		}
@@ -437,8 +423,8 @@ public class SqlWrapper {
 		return ret;
 	}
 	
-	public static SqlWrapperAddOn findAddOnforField(final Field field) {
-		for (final SqlWrapperAddOn elem : addOn) {
+	public static DataAccessAddOn findAddOnforField(final Field field) {
+		for (final DataAccessAddOn elem : addOn) {
 			if (elem.isCompatibleField(field)) {
 				return elem;
 			}
@@ -470,7 +456,7 @@ public class SqlWrapper {
 				if (AnnotationTools.isPrimaryKey(elem)) {
 					continue;
 				}
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
+				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && addOn.isExternal()) {
 					continue;
 				}
@@ -524,7 +510,7 @@ public class SqlWrapper {
 					primaryKeyField = elem;
 					continue;
 				}
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
+				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && addOn.isExternal()) {
 					continue;
 				}
@@ -599,7 +585,22 @@ public class SqlWrapper {
 		return insert(data);
 	}
 	
-	public static <T> int update(final Class<T> clazz, final long id, final String jsonData) throws Exception {
+	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData) throws Exception {
+		// Find the ID field type ....
+		final Field idField = AnnotationTools.getIdField(clazz);
+		if (idField == null) {
+			throw new Exception("The class have no annotation @Id ==> can not determine the default type searching");
+		}
+		// check the compatibility of the id and the declared ID
+		if (id instanceof idField.getType()) {
+			throw new Exception("Request update with the wriong type ...");
+		}
+
+		// Udpade Json Value
+		return updateWithJson(clazz, QueryCondition(AnnotationTools.getFieldName(idField), "=", id), jsonData);
+	}
+	
+	public static <T> int updateWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData) throws Exception {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
@@ -609,8 +610,14 @@ public class SqlWrapper {
 		final Iterator<String> iterator = root.fieldNames();
 		iterator.forEachRemaining(e -> keys.add(e));
 		return update(data, id, keys);
+		return 0;
 	}
-	
+
+	public static <T> int update(final T data, final QueryItem condition) throws Exception {
+		
+		return 0;
+	}
+
 	/**
 	 *
 	 * @param <T>
@@ -645,16 +652,16 @@ public class SqlWrapper {
 					primaryKeyField = elem;
 					continue;
 				}
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
+				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && addOn.isExternal()) {
 					continue;
 				}
-				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+				final boolean createTime = AnnotationTools.isCreatedAtField(elem);
 				if (createTime) {
 					continue;
 				}
 				final String name = AnnotationTools.getFieldName(elem);
-				final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+				final boolean updateTime = AnnotationTools.isUpdateAtField(elem);
 				if (!updateTime && !filterValue.contains(name)) {
 					continue;
 				}
@@ -695,7 +702,7 @@ public class SqlWrapper {
 				if (AnnotationTools.isPrimaryKey(elem)) {
 					continue;
 				}
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
+				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && !addOn.canUpdate()) {
 					continue;
 				}
@@ -733,44 +740,48 @@ public class SqlWrapper {
 	}
 	
 	static void addElement(final PreparedStatement ps, final Object value, final int iii) throws Exception {
-		if (value.getClass() == Long.class) {
-			ps.setLong(iii, (Long) value);
-		} else if (value.getClass() == Integer.class) {
-			ps.setInt(iii, (Integer) value);
-		} else if (value.getClass() == String.class) {
-			ps.setString(iii, (String) value);
-		} else if (value.getClass() == Short.class) {
-			ps.setShort(iii, (Short) value);
-		} else if (value.getClass() == Byte.class) {
-			ps.setByte(iii, (Byte) value);
-		} else if (value.getClass() == Float.class) {
-			ps.setFloat(iii, (Float) value);
-		} else if (value.getClass() == Double.class) {
-			ps.setDouble(iii, (Double) value);
-		} else if (value.getClass() == Boolean.class) {
-			ps.setBoolean(iii, (Boolean) value);
-		} else if (value.getClass() == Boolean.class) {
-			ps.setBoolean(iii, (Boolean) value);
-		} else if (value.getClass() == Timestamp.class) {
-			ps.setTimestamp(iii, (Timestamp) value);
-		} else if (value.getClass() == Date.class) {
-			ps.setDate(iii, (Date) value);
+		if (value instanceof final Long tmp) {
+			ps.setLong(iii, tmp);
+		} else if (value instanceof final Integer tmp) {
+			ps.setInt(iii, tmp);
+		} else if (value instanceof final String tmp) {
+			ps.setString(iii, tmp);
+		} else if (value instanceof final Short tmp) {
+			ps.setShort(iii, tmp);
+		} else if (value instanceof final Byte tmp) {
+			ps.setByte(iii, tmp);
+		} else if (value instanceof final Float tmp) {
+			ps.setFloat(iii, tmp);
+		} else if (value instanceof final Double tmp) {
+			ps.setDouble(iii, tmp);
+		} else if (value instanceof final Boolean tmp) {
+			ps.setBoolean(iii, tmp);
+		} else if (value instanceof final Boolean tmp) {
+			ps.setBoolean(iii, tmp);
+		} else if (value instanceof final Timestamp tmp) {
+			ps.setTimestamp(iii, tmp);
+		} else if (value instanceof final Date tmp) {
+			ps.setTimestamp(iii, java.sql.Timestamp.from((tmp).toInstant()));
+		} else if (value instanceof final LocalDate tmp) {
+			ps.setDate(iii, java.sql.Date.valueOf(tmp));
+		} else if (value instanceof final LocalTime tmp) {
+			ps.setTime(iii, java.sql.Time.valueOf(tmp));
+		} else if (value.getClass().isEnum()) {
+			ps.setString(iii, value.toString());
 		} else {
 			throw new Exception("Not manage type ==> need to add it ...");
 		}
 	}
 	
-	public static void whereAppendQuery(final StringBuilder querry, final String tableName, final QuerryItem condition, final QuerryOptions options, String deletedFieldName)
+	public static void whereAppendQuery(final StringBuilder querry, final String tableName, final QueryItem condition, final QueryOptions options, final String deletedFieldName)
 			throws ExceptionDBInterface {
 		boolean exclude_deleted = true;
 		if (options != null) {
-			Object data = options.get(QuerryOptions.SQL_DELETED_DISABLE);
-			if (data instanceof Boolean elem) {
+			final Object data = options.get(QueryOptions.SQL_DELETED_DISABLE);
+			if (data instanceof final Boolean elem) {
 				exclude_deleted = !elem;
-			} else {
-				if (data != null) {
-					LOGGER.error("'{}' ==> has not a boolean value: {}", QuerryOptions.SQL_DELETED_DISABLE, data);
-				}
+			} else if (data != null) {
+				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_DELETED_DISABLE, data);
 			}
 		}
 		// Check if we have a condition to generate
@@ -797,7 +808,7 @@ public class SqlWrapper {
 		}
 	}
 	
-	public static void whereInjectValue(final PreparedStatement ps, final QuerryItem condition) throws Exception {
+	public static void whereInjectValue(final PreparedStatement ps, final QueryItem condition) throws Exception {
 		// Check if we have a condition to generate
 		if (condition == null) {
 			return;
@@ -826,11 +837,11 @@ public class SqlWrapper {
 		return executeQuerry(querry, false);
 	}
 	
-	public static <T> T getWhere(final Class<T> clazz, final QuerryItem condition) throws Exception {
+	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
 		return getWhere(clazz, condition, null);
 	}
 	
-	public static <T> T getWhere(final Class<T> clazz, final QuerryItem condition, final QuerryOptions options) throws Exception {
+	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final List<T> values = getsWhere(clazz, condition, options, 1);
 		if (values.size() == 0) {
 			return null;
@@ -838,31 +849,29 @@ public class SqlWrapper {
 		return values.get(0);
 	}
 	
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QuerryItem condition) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
 		return getsWhere(clazz, condition, null, null, null);
 	}
 	
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QuerryItem condition, final QuerryOptions options) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		return getsWhere(clazz, condition, null, options, null);
 	}
 	
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QuerryItem condition, final QuerryOptions options, final Integer linit) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options, final Integer linit) throws Exception {
 		return getsWhere(clazz, condition, null, options, linit);
 	}
 	
 	// TODO: set limit as an querry Option...
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QuerryItem condition, final String orderBy, final QuerryOptions options, final Integer linit) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final String orderBy, final QueryOptions options, final Integer linit) throws Exception {
 		
 		boolean readAllfields = false;
 		if (options != null) {
-			Object data = options.get(QuerryOptions.SQL_NOT_READ_DISABLE);
-			if (data instanceof Boolean elem) {
+			final Object data = options.get(QueryOptions.SQL_NOT_READ_DISABLE);
+			if (data instanceof final Boolean elem) {
 				readAllfields = elem;
-			} else {
-				if (data != null) {
-					LOGGER.error("'{}' ==> has not a boolean value: {}", QuerryOptions.SQL_NOT_READ_DISABLE, data);
-				}
+			} else if (data != null) {
+				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_NOT_READ_DISABLE, data);
 			}
 		}
 		
@@ -885,7 +894,7 @@ public class SqlWrapper {
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
-				final SqlWrapperAddOn addOn = findAddOnforField(elem);
+				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && addOn.isExternal()) {
 					continue;
 				}
@@ -939,7 +948,7 @@ public class SqlWrapper {
 					if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 						continue;
 					}
-					final SqlWrapperAddOn addOn = findAddOnforField(elem);
+					final DataAccessAddOn addOn = findAddOnforField(elem);
 					if (addOn != null && addOn.isExternal()) {
 						continue;
 					}
@@ -949,7 +958,7 @@ public class SqlWrapper {
 						continue;
 					}
 					if (addOn != null) {
-						int nbRowRead = addOn.fillFromQuerry(rs, elem, data, count, options);
+						final int nbRowRead = addOn.fillFromQuerry(rs, elem, data, count, options);
 						count += nbRowRead;
 					} else {
 						setValueFromDb(elem.getType(), data, count, elem, rs);
@@ -977,7 +986,7 @@ public class SqlWrapper {
 		return get(clazz, id, null);
 	}
 	
-	public static <T> T get(final Class<T> clazz, final long id, final QuerryOptions options) throws Exception {
+	public static <T> T get(final Class<T> clazz, final long id, final QueryOptions options) throws Exception {
 		Field primaryKeyField = null;
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
@@ -989,7 +998,7 @@ public class SqlWrapper {
 			}
 		}
 		if (primaryKeyField != null) {
-			return SqlWrapper.getWhere(clazz, new QuerryCondition(AnnotationTools.getFieldName(primaryKeyField), "=", id), options);
+			return DataAccess.getWhere(clazz, new QueryCondition(AnnotationTools.getFieldName(primaryKeyField), "=", id), options);
 		}
 		throw new Exception("Missing primary Key...");
 	}
@@ -1002,13 +1011,13 @@ public class SqlWrapper {
 		return getsWhere(clazz, null);
 	}
 	
-	public static <T> List<T> gets(final Class<T> clazz, final QuerryOptions options) throws Exception {
+	public static <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws Exception {
 		return getsWhere(clazz, null, options);
 	}
 	
 	// TODO : detect the @Id
 	public static int delete(final Class<?> clazz, final long id) throws Exception {
-		String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
 			return deleteSoft(clazz, id);
 		} else {
@@ -1016,8 +1025,8 @@ public class SqlWrapper {
 		}
 	}
 	
-	public static int delete(final Class<?> clazz, final QuerryItem condition) throws Exception {
-		String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+	public static int deleteWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
+		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
 			return deleteSoftWhere(clazz, condition);
 		} else {
@@ -1026,10 +1035,10 @@ public class SqlWrapper {
 	}
 	
 	public static int deleteHard(final Class<?> clazz, final long id) throws Exception {
-		return deleteHardWhere(clazz, new QuerryCondition("id", "=", id));
+		return deleteHardWhere(clazz, new QueryCondition("id", "=", id));
 	}
 	
-	public static int deleteHardWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
+	public static int deleteHardWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
@@ -1052,7 +1061,7 @@ public class SqlWrapper {
 	}
 	
 	private static int deleteSoft(final Class<?> clazz, final long id) throws Exception {
-		return deleteSoftWhere(clazz, new QuerryCondition("id", "=", id));
+		return deleteSoftWhere(clazz, new QueryCondition("id", "=", id));
 	}
 	
 	public static String getDBNow() {
@@ -1062,7 +1071,7 @@ public class SqlWrapper {
 		return "DATE()";
 	}
 	
-	public static int deleteSoftWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
+	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		/*
@@ -1102,10 +1111,10 @@ public class SqlWrapper {
 	}
 	
 	public static int unsetDelete(final Class<?> clazz, final long id) throws Exception {
-		return unsetDeleteWhere(clazz, new QuerryCondition("id", "=", id));
+		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id));
 	}
 	
-	public static int unsetDeleteWhere(final Class<?> clazz, final QuerryItem condition) throws Exception {
+	public static int unsetDeleteWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
@@ -1125,7 +1134,7 @@ public class SqlWrapper {
 		querry.append(", ");
 		*/
 		// need to disable the deleted false because the model must be unselected to be updated.
-		QuerryOptions options = new QuerryOptions(QuerryOptions.SQL_DELETED_DISABLE, true);
+		final QueryOptions options = new QueryOptions(QueryOptions.SQL_DELETED_DISABLE, true);
 		whereAppendQuery(querry, tableName, condition, options, deletedFieldName);
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
@@ -1136,266 +1145,5 @@ public class SqlWrapper {
 			entry = null;
 		}
 	}
-	
-	public static List<String> createTable(final Class<?> clazz) throws Exception {
-		return createTable(clazz, true);
-	}
-	
-	private static boolean isFieldFromSuperClass(Class<?> model, String filedName) {
-		Class<?> superClass = model.getSuperclass();
-		if (superClass == null) {
-			return false;
-		}
-		for (Field field : superClass.getFields()) {
-			String name;
-			try {
-				name = AnnotationTools.getFieldName(field);
-				if (filedName.equals(name)) {
-					return true;
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				LOGGER.trace("Catch error field name in parent create data table: {}", e.getMessage());
-			}
-		}
-		return false;
-	}
-	
-	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
-			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
-		final String name = AnnotationTools.getFieldName(elem);
-		final Integer limitSize = AnnotationTools.getLimitSize(elem);
-		final boolean notNull = AnnotationTools.getNotNull(elem);
-		
-		final boolean primaryKey = AnnotationTools.isPrimaryKey(elem);
-		final GenerationType strategy = AnnotationTools.getStrategy(elem);
-		
-		final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
-		final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-		final String comment = AnnotationTools.getComment(elem);
-		final String defaultValue = AnnotationTools.getDefault(elem);
-		
-		if (fieldId == 0) {
-			mainTableBuilder.append("\n\t\t`");
-		} else {
-			mainTableBuilder.append(",\n\t\t`");
-		}
-		mainTableBuilder.append(name);
-		mainTableBuilder.append("` ");
-		String typeValue = null;
-		typeValue = convertTypeInSQL(classModel);
-		if ("text".equals(typeValue) && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			if (limitSize != null) {
-				mainTableBuilder.append("varchar(");
-				mainTableBuilder.append(limitSize);
-				mainTableBuilder.append(")");
-			} else {
-				mainTableBuilder.append("text");
-				if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-					mainTableBuilder.append(" CHARACTER SET utf8");
-				}
-			}
-		} else {
-			mainTableBuilder.append(typeValue);
-		}
-		mainTableBuilder.append(" ");
-		if (notNull) {
-			if (!primaryKey || !"sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) {
-				mainTableBuilder.append("NOT NULL ");
-			}
-			if (defaultValue == null) {
-				if (updateTime || createTime) {
-					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP");
-					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-						mainTableBuilder.append("(3)");
-					}
-					mainTableBuilder.append(" ");
-				}
-				if (updateTime) {
-					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
-						mainTableBuilder.append("(3)");
-					} else {
-						// TODO: add trigger: 
-						/*
-						CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table
-						 BEGIN
-						  update your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id;
-						 END;
-						*/
-						StringBuilder triggerBuilder = new StringBuilder();
-						triggerBuilder.append("CREATE TRIGGER ");
-						triggerBuilder.append(tableName);
-						triggerBuilder.append("_update_trigger AFTER UPDATE ON ");
-						triggerBuilder.append(tableName);
-						triggerBuilder.append(" \nBEGIN \n    update ");
-						triggerBuilder.append(tableName);
-						triggerBuilder.append(" SET ");
-						triggerBuilder.append(name);
-						triggerBuilder.append(" = datetime('now') WHERE  id = NEW.id; \n");
-						triggerBuilder.append("END;");
-						
-						postOtherTables.add(triggerBuilder.toString());
-					}
-					
-					mainTableBuilder.append(" ");
-				}
-			} else {
-				mainTableBuilder.append("DEFAULT ");
-				if ("CURRENT_TIMESTAMP(3)".equals(defaultValue) && "sqlite".equals(ConfigBaseVariable.getDBType())) {
-					mainTableBuilder.append("CURRENT_TIMESTAMP");
-				} else {
-					mainTableBuilder.append(defaultValue);
-				}
-				mainTableBuilder.append(" ");
-				if (updateTime) {
-					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
-						mainTableBuilder.append("(3)");
-					}
-					mainTableBuilder.append(" ");
-				}
-			}
-		} else if (defaultValue == null) {
-			if (updateTime || createTime) {
-				if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
-					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP ");
-				} else {
-					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP(3) ");
-				}
-			} else if (primaryKey) {
-				mainTableBuilder.append("NOT NULL ");
-			} else {
-				mainTableBuilder.append("DEFAULT NULL ");
-			}
-		} else {
-			mainTableBuilder.append("DEFAULT ");
-			mainTableBuilder.append(defaultValue);
-			mainTableBuilder.append(" ");
-			
-		}
-		if (primaryKey && "sqlite".equals(ConfigBaseVariable.getDBType())) {
-			mainTableBuilder.append("PRIMARY KEY ");
-			
-		}
-		if (strategy == GenerationType.IDENTITY) {
-			if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-				mainTableBuilder.append("AUTO_INCREMENT ");
-			} else {
-				mainTableBuilder.append("AUTOINCREMENT ");
-			}
-		} else if (strategy != null) {
-			throw new Exception("Can not generate a stategy different of IDENTITY");
-		}
-		
-		if (comment != null && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			mainTableBuilder.append("COMMENT '");
-			mainTableBuilder.append(comment.replace('\'', '\''));
-			mainTableBuilder.append("' ");
-		}
-	}
-	
-	public static List<String> createTable(final Class<?> clazz, final boolean createDrop) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
-		final List<String> preActionList = new ArrayList<>();
-		final List<String> postActionList = new ArrayList<>();
-		final StringBuilder out = new StringBuilder();
-		// Drop Table
-		if (createIfNotExist && createDrop) {
-			final StringBuilder tableTmp = new StringBuilder();
-			tableTmp.append("DROP TABLE IF EXISTS `");
-			tableTmp.append(tableName);
-			tableTmp.append("`;");
-			postActionList.add(tableTmp.toString());
-		}
-		// create Table:
-		out.append("CREATE TABLE `");
-		out.append(tableName);
-		out.append("` (");
-		int fieldId = 0;
-		LOGGER.debug("===> TABLE `{}`", tableName);
-		final List<String> primaryKeys = new ArrayList<>();
-		
-		for (final Field elem : clazz.getFields()) {
-			// DEtect the primary key (support only one primary key right now...
-			if (AnnotationTools.isPrimaryKey(elem)) {
-				primaryKeys.add(AnnotationTools.getFieldName(elem));
-			}
-		}
-		// Here we insert the data in the reverse mode ==> the parent class add there parameter at the start (we reorder the field with the parenting). 
-		StringBuilder tmpOut = new StringBuilder();
-		StringBuilder reverseOut = new StringBuilder();
-		List<String> alreadyAdded = new ArrayList<>();
-		Class<?> currentClazz = clazz;
-		while (currentClazz != null) {
-			fieldId = 0;
-			LOGGER.info("parse class: '{}'", currentClazz.getCanonicalName());
-			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-					continue;
-				}
-				final String dataName = AnnotationTools.getFieldName(elem);
-				if (isFieldFromSuperClass(currentClazz, dataName)) {
-					LOGGER.trace("        SKIP:  '{}'", elem.getName());
-					continue;
-				}
-				if (alreadyAdded.contains(dataName)) {
-					LOGGER.trace("        SKIP2: '{}'", elem.getName());
-					continue;
-				}
-				alreadyAdded.add(dataName);
-				LOGGER.info("        + '{}'", elem.getName());
-				if (isAddOnField(elem)) {
-					final SqlWrapperAddOn addOn = findAddOnforField(elem);
-					LOGGER.info("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
-					if (addOn != null) {
-						addOn.createTables(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
-					} else {
-						throw new Exception(
-								"Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());
-					}
-				} else {
-					LOGGER.info("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-					SqlWrapper.createTablesSpecificType(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
-				}
-				fieldId++;
-			}
-			boolean dataInThisObject = tmpOut.toString().length() > 0;
-			if (dataInThisObject) {
-				boolean dataInPreviousObject = reverseOut.toString().length() > 0;
-				if (dataInPreviousObject) {
-					tmpOut.append(", ");
-					tmpOut.append(reverseOut.toString());
-				}
-				reverseOut = tmpOut;
-				tmpOut = new StringBuilder();
-			}
-			currentClazz = currentClazz.getSuperclass();
-			if (currentClazz == Object.class) {
-				break;
-			}
-		}
-		out.append(reverseOut.toString());
-		if (primaryKeys.size() != 0 && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			out.append(",\n\tPRIMARY KEY (`");
-			for (int iii = 0; iii < primaryKeys.size(); iii++) {
-				if (iii != 0) {
-					out.append(",");
-				}
-				out.append(primaryKeys.get(iii));
-			}
-			out.append("`)");
-		}
-		out.append("\n\t)");
-		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			out.append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci");
-		}
-		out.append(";");
-		preActionList.add(out.toString());
-		preActionList.addAll(postActionList);
-		return preActionList;
-	}
-	
+
 }

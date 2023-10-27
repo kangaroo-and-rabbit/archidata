@@ -1,11 +1,11 @@
 package org.kar.archidata.db;
 
-import org.kar.archidata.sqlWrapper.SqlWrapper;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DBConfig {
-	static final Logger LOGGER = LoggerFactory.getLogger(SqlWrapper.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
 	private final String type;
 	private final String hostname;
 	private final int port;

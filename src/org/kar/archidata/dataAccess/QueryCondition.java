@@ -1,13 +1,13 @@
-package org.kar.archidata.sqlWrapper;
+package org.kar.archidata.dataAccess;
 
 import java.sql.PreparedStatement;
 
-public class QuerryCondition implements QuerryItem {
+public class QueryCondition implements QueryItem {
 	private final String key;
 	private final String comparator;
 	private final Object value;
 	
-	public QuerryCondition(String key, String comparator, Object value) {
+	public QueryCondition(String key, String comparator, Object value) {
 		this.key = key;
 		this.comparator = comparator;
 		this.value = value;
@@ -25,7 +25,7 @@ public class QuerryCondition implements QuerryItem {
 	
 	@Override
 	public int injectQuerry(PreparedStatement ps, int iii) throws Exception {
-		SqlWrapper.addElement(ps, this.value, iii++);
+		DataAccess.addElement(ps, this.value, iii++);
 		return iii;
 	}
 }

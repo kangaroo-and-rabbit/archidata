@@ -1,4 +1,4 @@
-package org.kar.archidata.sqlWrapper.addOn;
+package org.kar.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -9,11 +9,11 @@ import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccess.ExceptionDBInterface;
 import org.kar.archidata.db.DBEntry;
-import org.kar.archidata.sqlWrapper.QuerryOptions;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
-import org.kar.archidata.sqlWrapper.SqlWrapper.ExceptionDBInterface;
-import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.persistence.ManyToMany;
 import jakarta.validation.constraints.NotNull;
 
-public class AddOnManyToMany implements SqlWrapperAddOn {
+public class AddOnManyToMany implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 	static final String SEPARATOR = "-";
 	
@@ -54,7 +54,7 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 	
 	@Override
 	public int generateQuerry(@NotNull final String tableName, @NotNull final Field elem, @NotNull final StringBuilder querry, @NotNull final String name, @NotNull final int elemCount,
-			QuerryOptions options) {
+			QueryOptions options) {
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);
@@ -104,8 +104,8 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
-		List<Long> idList = SqlWrapper.getListOfIds(rs, count, SEPARATOR);
+	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
+		List<Long> idList = DataAccess.getListOfIds(rs, count, SEPARATOR);
 		elem.set(data, idList);
 		return 1;
 	}
@@ -122,8 +122,8 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 		// real add in the BDD:
 		try {
 			// prepare the request:
-			final String querry = "INSERT INTO " + tableName + "_link_" + table + " (create_date, modify_date, " + tableName + "_id, " + table + "_id)" + " VALUES (" + SqlWrapper.getDBNow() + ", "
-					+ SqlWrapper.getDBNow() + ", ?, ?)";
+			final String querry = "INSERT INTO " + tableName + "_link_" + table + " (create_date, modify_date, " + tableName + "_id, " + table + "_id)" + " VALUES (" + DataAccess.getDBNow() + ", "
+					+ DataAccess.getDBNow() + ", ?, ?)";
 			final PreparedStatement ps = entry.connection.prepareStatement(querry, Statement.RETURN_GENERATED_KEYS);
 			int iii = 1;
 			ps.setLong(iii++, localKey);
@@ -157,7 +157,7 @@ public class AddOnManyToMany implements SqlWrapperAddOn {
 	public static void removeLink(final Class<?> clazz, final long localKey, final String table, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		final String querry = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + SqlWrapper.getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table
+		final String querry = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + DataAccess.getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table
 				+ "_id` = ?";
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(querry);

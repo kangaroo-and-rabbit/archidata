@@ -9,15 +9,16 @@ import org.slf4j.LoggerFactory;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
-	
+
 	public static String getTableName(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
 		if (annotation.length == 0) {
-			// when no annotation is detected, then the table name is the class name 
+			// when no annotation is detected, then the table name is the class name
 			return element.getSimpleName();
 		}
 		if (annotation.length > 1) {
@@ -29,7 +30,7 @@ public class AnnotationTools {
 		}
 		return tmp;
 	}
-	
+
 	public static String getComment(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(SQLComment.class);
 		if (annotation.length == 0) {
@@ -40,7 +41,7 @@ public class AnnotationTools {
 		}
 		return ((SQLComment) annotation[0]).value();
 	}
-	
+
 	public static String getDefault(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(SQLDefault.class);
 		if (annotation.length == 0) {
@@ -51,7 +52,7 @@ public class AnnotationTools {
 		}
 		return ((SQLDefault) annotation[0]).value();
 	}
-	
+
 	public static Integer getLimitSize(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
@@ -62,7 +63,7 @@ public class AnnotationTools {
 		}
 		return ((Column) annotation[0]).length();
 	}
-	
+
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
 		try {
 			final Annotation[] anns = field.getAnnotations();
@@ -85,7 +86,7 @@ public class AnnotationTools {
 		}
 		return false;
 	}
-	
+
 	public static String getFieldName(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
@@ -94,13 +95,13 @@ public class AnnotationTools {
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
-		String name = ((Column) annotation[0]).name();
+		final String name = ((Column) annotation[0]).name();
 		if (name.isBlank()) {
 			return element.getName();
 		}
 		return name;
 	}
-	
+
 	public static boolean getNotNull(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
@@ -111,7 +112,7 @@ public class AnnotationTools {
 		}
 		return !((Column) annotation[0]).nullable();
 	}
-	
+
 	public static boolean isPrimaryKey(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
@@ -122,7 +123,7 @@ public class AnnotationTools {
 		}
 		return ((Column) annotation[0]).unique();
 	}
-	
+
 	public static GenerationType getStrategy(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(GeneratedValue.class);
 		if (annotation.length == 0) {
@@ -133,19 +134,27 @@ public class AnnotationTools {
 		}
 		return ((GeneratedValue) annotation[0]).strategy();
 	}
-	
+
 	public static boolean isDeletedField(final Field element) throws Exception {
 		return element.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0;
 	}
 	
-	public static boolean isUpdateField(final Field element) throws Exception {
-		return element.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+	public static boolean isCreatedAtField(final Field element) throws Exception {
+		return element.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 	}
 	
+	public static boolean isUpdateAtField(final Field element) throws Exception {
+		return element.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+	}
+
 	public static boolean isdefaultNotRead(final Field element) throws Exception {
 		return element.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
 	}
-	
+
+	public static boolean isIdField(final Field element) throws Exception {
+		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
+	}
+
 	public static String getDeletedFieldName(final Class<?> clazz) throws Exception {
 		try {
 			for (final Field elem : clazz.getFields()) {
@@ -162,7 +171,7 @@ public class AnnotationTools {
 		}
 		return null;
 	}
-	
+
 	public static String getUpdatedFieldName(final Class<?> clazz) throws Exception {
 		try {
 			for (final Field elem : clazz.getFields()) {
@@ -170,7 +179,7 @@ public class AnnotationTools {
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
-				if (AnnotationTools.isUpdateField(elem)) {
+				if (AnnotationTools.isUpdateAtField(elem)) {
 					return AnnotationTools.getFieldName(elem);
 				}
 			}
@@ -179,5 +188,22 @@ public class AnnotationTools {
 		}
 		return null;
 	}
-	
+
+	public static Field getIdField(final Class<?> clazz) {
+		try {
+			for (final Field elem : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+					continue;
+				}
+				if (AnnotationTools.isIdField(elem)) {
+					return elem;
+				}
+			}
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+		}
+		return null;
+	}
+
 }

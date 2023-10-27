@@ -23,10 +23,10 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.annotation.security.RolesAllowed;
+import org.kar.archidata.dataAccess.QueryCondition;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.filter.GenericContext;
 import org.kar.archidata.model.Data;
-import org.kar.archidata.sqlWrapper.QuerryCondition;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +96,7 @@ public class DataResource {
 	public static Data getWithSha512(String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return SqlWrapper.getWhere(Data.class, new QuerryCondition("sha512", "=", sha512));
+			return DataAccess.getWhere(Data.class, new QueryCondition("sha512", "=", sha512));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -107,7 +107,7 @@ public class DataResource {
 	public static Data getWithId(long id) {
 		LOGGER.info("find id = {}", id);
 		try {
-			return SqlWrapper.get(Data.class, id);
+			return DataAccess.get(Data.class, id);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -149,7 +149,7 @@ public class DataResource {
 		injectedData.size = Files.size(Paths.get(tmpPath));
 		
 		try {
-			injectedData = SqlWrapper.insert(injectedData);
+			injectedData = DataAccess.insert(injectedData);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -223,7 +223,7 @@ public class DataResource {
 	
 	public Data getSmall(Long id) {
 		try {
-			return SqlWrapper.get(Data.class, id);
+			return DataAccess.get(Data.class, id);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -417,7 +417,7 @@ public class DataResource {
 	}
 	
 	public static void undelete(Long id) throws Exception {
-		SqlWrapper.unsetDelete(Data.class, id);
+		DataAccess.unsetDelete(Data.class, id);
 	}
 	
 }

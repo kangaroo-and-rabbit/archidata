@@ -14,11 +14,11 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.kar.archidata.dataAccess.QueryAnd;
+import org.kar.archidata.dataAccess.QueryCondition;
+import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
 import org.kar.archidata.model.Data;
-import org.kar.archidata.sqlWrapper.QuerryAnd;
-import org.kar.archidata.sqlWrapper.QuerryCondition;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
-import org.kar.archidata.sqlWrapper.addOn.AddOnManyToMany;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +77,7 @@ public class DataTools {
 	
 	public static Data getWithSha512(String sha512) {
 		try {
-			return SqlWrapper.getWhere(Data.class, new QuerryCondition("sha512", "=", sha512));
+			return DataAccess.getWhere(Data.class, new QueryCondition("sha512", "=", sha512));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -87,7 +87,7 @@ public class DataTools {
 	
 	public static Data getWithId(long id) {
 		try {
-			return SqlWrapper.getWhere(Data.class, new QuerryAnd(List.of(new QuerryCondition("deleted", "=", false), new QuerryCondition("id", "=", id))));
+			return DataAccess.getWhere(Data.class, new QueryAnd(List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id))));
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -130,7 +130,7 @@ public class DataTools {
 			out.sha512 = sha512;
 			out.mimeType = mimeType;
 			out.size = fileSize;
-			out = SqlWrapper.insert(out);
+			out = DataAccess.insert(out);
 		} catch (SQLException ex) {
 			ex.printStackTrace();
 			return null;
@@ -152,7 +152,7 @@ public class DataTools {
 	
 	public static void undelete(Long id) {
 		try {
-			SqlWrapper.unsetDelete(Data.class, id);
+			DataAccess.unsetDelete(Data.class, id);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -252,7 +252,7 @@ public class DataTools {
 			LOGGER.info("    - file_name: ", fileName);
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
-			T media = SqlWrapper.get(clazz, id);
+			T media = DataAccess.get(clazz, id);
 			if (media == null) {
 				return Response.notModified("Media Id does not exist or removed...").build();
 			}
@@ -283,7 +283,7 @@ public class DataTools {
 			// Fist step: retrieve all the Id of each parents:...
 			LOGGER.info("Find typeNode");
 			AddOnManyToMany.addLink(clazz, id, "cover", data.id);
-			return Response.ok(SqlWrapper.get(clazz, id)).build();
+			return Response.ok(DataAccess.get(clazz, id)).build();
 		} catch (Exception ex) {
 			System.out.println("Cat ann unexpected error ... ");
 			ex.printStackTrace();

@@ -1,4 +1,4 @@
-package org.kar.archidata.sqlWrapper.addOn;
+package org.kar.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -10,11 +10,11 @@ import java.util.List;
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.addOn.DataAddOnManyToManyOrdered;
+import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccess.ExceptionDBInterface;
 import org.kar.archidata.db.DBEntry;
-import org.kar.archidata.sqlWrapper.QuerryOptions;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
-import org.kar.archidata.sqlWrapper.SqlWrapper.ExceptionDBInterface;
-import org.kar.archidata.sqlWrapper.SqlWrapperAddOn;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ import jakarta.validation.constraints.NotNull;
  * Manage the decorator element @DataAddOnManyToManyOrdered to be injected in the DB.
  * The objective of this table is to manage a link between 2 table that have a specific order (Only work in 1 direction)
  */
-public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
+public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyOrdered.class);
 	static final String SEPARATOR = "-";
 	
@@ -57,7 +57,7 @@ public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QuerryOptions options) {
+	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options) {
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);
@@ -103,7 +103,7 @@ public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
 	}
 	
 	@Override
-	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QuerryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		//throw new IllegalAccessException("This Add-on has not the capability to insert data directly in DB");
 		return 0;
 	}
@@ -120,8 +120,8 @@ public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
 		// real add in the BDD:
 		try {
 			// prepare the request:
-			final String querry = "INSERT INTO " + tableName + "_link_" + table + " (create_date, modify_date, " + tableName + "_id, " + table + "_id)" + " VALUES (" + SqlWrapper.getDBNow() + ", "
-					+ SqlWrapper.getDBNow() + ", ?, ?)";
+			final String querry = "INSERT INTO " + tableName + "_link_" + table + " (create_date, modify_date, " + tableName + "_id, " + table + "_id)" + " VALUES (" + DataAccess.getDBNow() + ", "
+					+ DataAccess.getDBNow() + ", ?, ?)";
 			final PreparedStatement ps = entry.connection.prepareStatement(querry, Statement.RETURN_GENERATED_KEYS);
 			int iii = 1;
 			ps.setLong(iii++, localKey);
@@ -155,7 +155,7 @@ public class AddOnManyToManyOrdered implements SqlWrapperAddOn {
 	public static void removeLink(final Class<?> clazz, final long localKey, final String table, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		final String querry = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + SqlWrapper.getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table
+		final String querry = "UPDATE `" + tableName + "_link_" + table + "` SET `modify_date`=" + DataAccess.getDBNow() + ", `deleted`=true WHERE `" + tableName + "_id` = ? AND `" + table
 				+ "_id` = ?";
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(querry);

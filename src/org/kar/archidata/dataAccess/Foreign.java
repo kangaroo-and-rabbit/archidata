@@ -1,4 +1,4 @@
-package org.kar.archidata.sqlWrapper;
+package org.kar.archidata.dataAccess;
 
 // Mark as deprecated while the concept is not ready ...
 @Deprecated

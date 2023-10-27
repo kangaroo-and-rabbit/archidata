@@ -13,16 +13,19 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.GlobalConfiguration;
+import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataFactory;
+import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.db.DBEntry;
-import org.kar.archidata.sqlWrapper.QuerryOptions;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import test.kar.archidata.model.SimpleTable;
 
+@ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestSimpleTable {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestSimpleTable.class);
@@ -43,7 +46,7 @@ public class TestSimpleTable {
 		startAction = null;
 		
 		// Connect the dataBase...
-		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
 	
@@ -58,21 +61,21 @@ public class TestSimpleTable {
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTable.startAction = Timestamp.from(Instant.now());
-		List<String> sqlCommand = SqlWrapper.createTable(SimpleTable.class);
-		for (String elem : sqlCommand) {
+		final List<String> sqlCommand = DataFactory.createTable(SimpleTable.class);
+		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			SqlWrapper.executeSimpleQuerry(elem, false);
+			DataAccess.executeSimpleQuerry(elem, false);
 		}
-		SimpleTable test = new SimpleTable();
+		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED;
-		SimpleTable insertedData = SqlWrapper.insert(test);
+		final SimpleTable insertedData = DataAccess.insert(test);
 		
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 		
 		// Try to retrieve all the data:
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, insertedData.id);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, insertedData.id);
 		
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -87,7 +90,7 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QuerryOptions(QuerryOptions.SQL_NOT_READ_DISABLE, true));
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QueryOptions(QueryOptions.SQL_NOT_READ_DISABLE, true));
 		
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -95,7 +98,7 @@ public class TestSimpleTable {
 		Assertions.assertEquals(TestSimpleTable.DATA_INJECTED, retrieve.data);
 		Assertions.assertNotNull(retrieve.createdAt);
 		LOGGER.info("start @ {} create @ {}", retrieve.createdAt.toInstant(), TestSimpleTable.startAction.toInstant());
-		// Gros travail sur les timestamp a faire pour que ce soit correct ... 
+		// Gros travail sur les timestamp a faire pour que ce soit correct ...
 		// Assertions.assertTrue(retrieve.createdAt.after(this.startAction));
 		Assertions.assertNotNull(retrieve.updatedAt);
 		// Assertions.assertTrue(retrieve.updatedAt.after(this.startAction));
@@ -112,10 +115,10 @@ public class TestSimpleTable {
 		}
 		
 		// Delete the entry:
-		SimpleTable test = new SimpleTable();
+		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED_2;
-		SqlWrapper.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QuerryOptions(QuerryOptions.SQL_NOT_READ_DISABLE, true));
+		DataAccess.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QueryOptions(QueryOptions.SQL_NOT_READ_DISABLE, true));
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.id);
@@ -130,8 +133,8 @@ public class TestSimpleTable {
 	@Test
 	public void testDeleteTheObject() throws Exception {
 		// Delete the entry:
-		SqlWrapper.delete(SimpleTable.class, TestSimpleTable.idOfTheObject);
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, TestSimpleTable.idOfTheObject);
+		DataAccess.delete(SimpleTable.class, TestSimpleTable.idOfTheObject);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject);
 		Assertions.assertNull(retrieve);
 	}
 	
@@ -140,7 +143,7 @@ public class TestSimpleTable {
 	public void testReadDeletedObject() throws Exception {
 		
 		// check if we set get deleted element
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QuerryOptions(QuerryOptions.SQL_DELETED_DISABLE, true));
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QueryOptions(QueryOptions.SQL_DELETED_DISABLE, true));
 		Assertions.assertNull(retrieve);
 		
 	}
@@ -149,7 +152,8 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		SimpleTable retrieve = SqlWrapper.get(SimpleTable.class, TestSimpleTable.idOfTheObject, new QuerryOptions(QuerryOptions.SQL_DELETED_DISABLE, true, QuerryOptions.SQL_NOT_READ_DISABLE, true));
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+				new QueryOptions(QueryOptions.SQL_DELETED_DISABLE, true, QueryOptions.SQL_NOT_READ_DISABLE, true));
 		Assertions.assertNull(retrieve);
 		
 	}

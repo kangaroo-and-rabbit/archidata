@@ -1,28 +1,28 @@
-package org.kar.archidata.sqlWrapper;
+package org.kar.archidata.dataAccess;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class QuerryOptions {
+public class QueryOptions {
 	public static final String SQL_NOT_READ_DISABLE = "SQLNotRead_disable";
 	public static final String SQL_DELETED_DISABLE = "SQLDeleted_disable";
 	
 	private final Map<String, Object> options = new HashMap<>();
 	
-	public QuerryOptions() {
+	public QueryOptions() {
 		
 	}
 	
-	public QuerryOptions(String key, Object value) {
+	public QueryOptions(String key, Object value) {
 		this.options.put(key, value);
 	}
 	
-	public QuerryOptions(String key, Object value, String key2, Object value2) {
+	public QueryOptions(String key, Object value, String key2, Object value2) {
 		this.options.put(key, value);
 		this.options.put(key2, value2);
 	}
 	
-	public QuerryOptions(String key, Object value, String key2, Object value2, String key3, Object value3) {
+	public QueryOptions(String key, Object value, String key2, Object value2, String key3, Object value3) {
 		this.options.put(key, value);
 		this.options.put(key2, value2);
 		this.options.put(key3, value3);

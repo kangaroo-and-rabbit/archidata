@@ -4,16 +4,16 @@ import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
-import org.kar.archidata.sqlWrapper.SqlWrapper;
 
 public class UserDB {
 	
 	public UserDB() {}
 	
 	public static User getUsers(long userId) throws Exception {
-		return SqlWrapper.get(User.class, userId);
+		return DataAccess.get(User.class, userId);
 	}
 	
 	public static User getUserOrCreate(long userId, String userLogin) throws Exception {
