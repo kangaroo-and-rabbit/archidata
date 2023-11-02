@@ -1,0 +1,165 @@
+package test.kar.archidata;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.kar.archidata.GlobalConfiguration;
+import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataFactory;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.util.ConfigBaseVariable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import test.kar.archidata.model.TypeManyToManyRemote;
+import test.kar.archidata.model.TypeManyToManyRoot;
+
+@ExtendWith(StepwiseExtension.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class TestManyToMany {
+	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToMany.class);
+	
+	@BeforeAll
+	public static void configureWebServer() throws Exception {
+		ConfigBaseVariable.dbType = "sqlite";
+		ConfigBaseVariable.dbHost = "memory";
+		// for test we need to connect all time the DB
+		ConfigBaseVariable.dbKeepConnected = "true";
+		
+		// Connect the dataBase...
+		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		entry.connect();
+	}
+	
+	@AfterAll
+	public static void removeDataBase() throws IOException {
+		LOGGER.info("Remove the test db");
+		DBEntry.closeAllForceMode();
+		ConfigBaseVariable.clearAllValue();
+	}
+	
+	@Order(1)
+	@Test
+	public void testCreateTable() throws Exception {
+		final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyRoot.class);
+		final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyRemote.class);
+		sqlCommand.addAll(sqlCommand2);
+		for (final String elem : sqlCommand) {
+			LOGGER.debug("request: '{}'", elem);
+			DataAccess.executeSimpleQuerry(elem, false);
+		}
+	}
+
+	@Order(2)
+	@Test
+	public void testSimpleInsertAndRetieve() throws Exception {
+		final TypeManyToManyRoot test = new TypeManyToManyRoot();
+		test.otherData = "kjhlkjlkj";
+		final TypeManyToManyRoot insertedData = DataAccess.insert(test);
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.id);
+		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNull(insertedData.remote);
+		
+		// Try to retrieve all the data:
+		final TypeManyToManyRoot retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
+		
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertNull(retrieve.remote);
+
+		DataAccess.delete(TypeManyToManyRoot.class, insertedData.id);
+	}
+	
+	@Order(3)
+	@Test
+	public void testSimpleInsertAndRetieveZZZ() throws Exception {
+		
+		TypeManyToManyRemote remote = new TypeManyToManyRemote();
+		remote.data = "remote1";
+		final TypeManyToManyRemote insertedRemote1 = DataAccess.insert(remote);
+		Assertions.assertEquals(insertedRemote1.data, remote.data);
+
+		remote = new TypeManyToManyRemote();
+		remote.data = "remote2";
+		final TypeManyToManyRemote insertedRemote2 = DataAccess.insert(remote);
+		Assertions.assertEquals(insertedRemote2.data, remote.data);
+		
+		final TypeManyToManyRoot test = new TypeManyToManyRoot();
+		test.otherData = "kjhlkjlkj";
+		final TypeManyToManyRoot insertedData = DataAccess.insert(test);
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.id);
+		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNull(insertedData.remote);
+
+		// Try to retrieve all the data:
+		TypeManyToManyRoot retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
+		
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertNull(retrieve.remote);
+		
+		// Add remote elements
+		AddOnManyToMany.addLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote1.id);
+		AddOnManyToMany.addLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote2.id);
+
+		retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
+		
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertNotNull(retrieve.remote);
+		Assertions.assertEquals(retrieve.remote.size(), 2);
+		Assertions.assertEquals(retrieve.remote.get(0), insertedRemote1.id);
+		Assertions.assertEquals(retrieve.remote.get(1), insertedRemote2.id);
+		
+		// Remove an element
+		int count = AddOnManyToMany.removeLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote1.id);
+		Assertions.assertEquals(1, count);
+		
+		retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
+		
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertNotNull(retrieve.remote);
+		Assertions.assertEquals(retrieve.remote.size(), 1);
+		Assertions.assertEquals(retrieve.remote.get(0), insertedRemote2.id);
+
+		// Remove the second element
+		count = AddOnManyToMany.removeLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote2.id);
+		Assertions.assertEquals(1, count);
+		
+		retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertNull(retrieve.remote);
+
+		DataAccess.delete(TypeManyToManyRoot.class, insertedData.id);
+	}
+	
+}

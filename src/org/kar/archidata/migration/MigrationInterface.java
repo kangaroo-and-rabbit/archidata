@@ -1,6 +1,7 @@
 package org.kar.archidata.migration;
 
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.migration.model.Migration;
 
 public interface MigrationInterface {
 	/**
@@ -16,7 +17,7 @@ public interface MigrationInterface {
 	 * @param migration Migration post data on each step...
 	 * @return true if migration is finished.
 	 */
-	boolean applyMigration(DBEntry entry, StringBuilder log, MigrationModel model);
+	boolean applyMigration(DBEntry entry, StringBuilder log, Migration model);
 	
 	/**
 	 * Remove a migration the system to the previous version.

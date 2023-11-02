@@ -1,4 +1,4 @@
-package org.kar.archidata.migration;
+package org.kar.archidata.migration.model;
 
 import org.kar.archidata.annotation.SQLComment;
 import org.kar.archidata.annotation.SQLDefault;
@@ -16,7 +16,7 @@ import jakarta.persistence.Table;
 @Table(name = "KAR_migration")
 @SQLIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class MigrationModel extends GenericDataSoftDelete {
+public class Migration extends GenericDataSoftDelete {
 	@SQLComment("Name of the migration")
 	@Column(length = 256)
 	public String name;

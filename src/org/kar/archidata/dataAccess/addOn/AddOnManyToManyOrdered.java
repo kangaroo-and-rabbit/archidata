@@ -10,10 +10,10 @@ import java.util.List;
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.addOn.DataAddOnManyToManyOrdered;
-import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataAccess.ExceptionDBInterface;
+import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
@@ -46,18 +46,23 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	}
 	
 	@Override
-	public int insertData(final PreparedStatement ps, final Object data, int iii) throws SQLException {
+	public int insertData(final PreparedStatement ps, final Object data, final int iii) throws SQLException {
 		return iii;
 	}
-	
+
 	@Override
-	public boolean isExternal() {
-		// TODO Auto-generated method stub
+	public boolean canInsert() {
 		return false;
 	}
 	
 	@Override
-	public int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options) {
+	public boolean canRetrieve(final Field field) {
+		return false;
+	}
+	
+	@Override
+	public int generateQuerry(@NotNull final String tableName, @NotNull final Field elem, @NotNull final StringBuilder querry, @NotNull final String name, @NotNull final int elemCount,
+			final QueryOptions options) {
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);
@@ -103,7 +108,8 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	}
 	
 	@Override
-	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public int fillFromQuerry(final ResultSet rs, final Field elem, final Object data, final int count, final QueryOptions options)
+			throws SQLException, IllegalArgumentException, IllegalAccessException {
 		//throw new IllegalAccessException("This Add-on has not the capability to insert data directly in DB");
 		return 0;
 	}
@@ -174,7 +180,7 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	
 	// TODO : refacto this table to manage a generic table with dynamic name to be serializable with the default system
 	@Override
-	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preActionList, List<String> postActionList,
+	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
 		String localName = name;

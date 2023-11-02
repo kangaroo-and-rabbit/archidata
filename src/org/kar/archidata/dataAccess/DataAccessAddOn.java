@@ -39,8 +39,11 @@ public interface DataAccessAddOn {
 	 */
 	int insertData(PreparedStatement ps, Object data, int iii) throws SQLException;
 
-	// External mean that the type of the object is absolutely not obvious...
-	boolean isExternal();
+	// Element can insert in the single request
+	boolean canInsert();
+	
+	// Element can be retrieve with the specific mode
+	boolean canRetrieve(final Field field);
 
 	int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options);
 

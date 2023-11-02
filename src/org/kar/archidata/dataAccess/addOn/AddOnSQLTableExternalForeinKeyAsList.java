@@ -70,8 +70,12 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 	}
 
 	@Override
-	public boolean isExternal() {
-		// TODO Auto-generated method stub
+	public boolean canInsert() {
+		return false;
+	}
+
+	@Override
+	public boolean canRetrieve(final Field field) {
 		return false;
 	}
 

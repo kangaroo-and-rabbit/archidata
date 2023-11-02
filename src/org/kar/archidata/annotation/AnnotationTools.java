@@ -2,7 +2,10 @@ package org.kar.archidata.annotation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.kar.archidata.dataAccess.QueryOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +18,18 @@ import jakarta.persistence.Table;
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
 
+	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws Exception {
+		if (options != null) {
+			final Object data = options.get(QueryOptions.OVERRIDE_TABLE_NAME);
+			if (data instanceof final String optionString) {
+				return optionString;
+			} else if (data != null) {
+				LOGGER.error("'{}' ==> has not a String value: {}", QueryOptions.SQL_DELETED_DISABLE, data);
+			}
+		}
+		return AnnotationTools.getTableName(clazz);
+	}
+	
 	public static String getTableName(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
 		if (annotation.length == 0) {
@@ -204,6 +219,33 @@ public class AnnotationTools {
 			ex.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static List<String> getFieldsNames(final Class<?> clazz) throws Exception {
+		return getFieldsNamesFilter(clazz, false);
+	}
+	
+	public static List<String> getAllFieldsNames(final Class<?> clazz) throws Exception {
+		return getFieldsNamesFilter(clazz, true);
+	}
+	
+	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) throws Exception {
+		final List<String> out = new ArrayList<>();
+		for (final Field elem : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				continue;
+			}
+			if (!full && AnnotationTools.isGenericField(elem)) {
+				continue;
+			}
+			out.add(AnnotationTools.getFieldName(elem));
+		}
+		return out;
+	}
+
+	public static boolean isGenericField(final Field elem) throws Exception {
+		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem) || AnnotationTools.isUpdateAtField(elem);
 	}
 
 }

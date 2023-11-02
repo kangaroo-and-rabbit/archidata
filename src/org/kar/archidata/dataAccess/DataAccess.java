@@ -1,9 +1,12 @@
 package org.kar.archidata.dataAccess;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,9 +14,8 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
-import org.aopalliance.reflect.Class;
-import org.glassfish.jaxb.runtime.v2.schemagen.xmlschema.List;
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
@@ -30,43 +32,39 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.protobuf.Timestamp;
-import com.mysql.cj.x.protobuf.MysqlxDatatypes.Scalar.String;
-import com.mysql.cj.xdevapi.Statement;
 
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.ws.rs.InternalServerErrorException;
-import javassist.bytecode.Descriptor.Iterator;
 
 public class DataAccess {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
-	
+
 	static {
 		addOn.add(new AddOnManyToMany());
 		addOn.add(new AddOnManyToOne());
 		addOn.add(new AddOnSQLTableExternalForeinKeyAsList());
 	}
-	
+
 	public static void addAddOn(final DataAccessAddOn addOn) {
 		DataAccess.addOn.add(addOn);
 	}
-	
+
 	public static class ExceptionDBInterface extends Exception {
 		private static final long serialVersionUID = 1L;
 		public int errorID;
-		
+
 		public ExceptionDBInterface(final int errorId, final String message) {
 			super(message);
 			this.errorID = errorId;
 		}
 	}
-	
+
 	public DataAccess() {
-		
+
 	}
-	
+
 	public static boolean isDBExist(final String name) throws InternalServerErrorException {
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
@@ -108,7 +106,7 @@ public class DataAccess {
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
-	
+
 	public static boolean createDB(final String name) {
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
@@ -123,7 +121,7 @@ public class DataAccess {
 			return false;
 		}
 	}
-	
+
 	public static boolean isTableExist(final String name) throws InternalServerErrorException {
 		try {
 			String request = "";
@@ -163,7 +161,7 @@ public class DataAccess {
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
-	
+
 	/**
 	 * extract a list of "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
@@ -184,7 +182,7 @@ public class DataAccess {
 		}
 		return out;
 	}
-	
+
 	protected static <T> void setValuedb(final Class<?> type, final T data, int index, final Field field, final PreparedStatement ps) throws Exception {
 		if (type == Long.class) {
 			final Object tmp = field.get(data);
@@ -280,7 +278,7 @@ public class DataAccess {
 			throw new Exception("Unknown Field Type");
 		}
 	}
-
+	
 	// TODO: maybe wrap this if the use of sqlite ==> maybe some problems came with sqlite ...
 	protected static <T> void setValueFromDb(final Class<?> type, final T data, final int index, final Field field, final ResultSet rs) throws Exception {
 		if (type == Long.class) {
@@ -362,11 +360,22 @@ public class DataAccess {
 				field.set(data, tmp);
 			}
 		} else if (type == Date.class) {
-			final Timestamp tmp = rs.getTimestamp(index);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, Date.from(tmp.toInstant()));
+			try {
+				final Timestamp tmp = rs.getTimestamp(index);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					field.set(data, Date.from(tmp.toInstant()));
+				}
+			} catch (final SQLException ex) {
+				final String tmp = rs.getString(index);
+				LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
+				LOGGER.error("Fail to parse the SQL time !!! {}", Date.parse(tmp));
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					field.set(data, Date.parse(tmp));
+				}
 			}
 		} else if (type == LocalDate.class) {
 			final java.sql.Date tmp = rs.getDate(index);
@@ -407,7 +416,7 @@ public class DataAccess {
 			throw new Exception("Unknown Field Type");
 		}
 	}
-	
+
 	public static boolean isAddOnField(final Field field) {
 		final boolean ret = AnnotationTools.isAnnotationGroup(field, DataAddOn.class);
 		if (ret) {
@@ -422,7 +431,7 @@ public class DataAccess {
 		}
 		return ret;
 	}
-	
+
 	public static DataAccessAddOn findAddOnforField(final Field field) {
 		for (final DataAccessAddOn elem : addOn) {
 			if (elem.isCompatibleField(field)) {
@@ -433,19 +442,22 @@ public class DataAccess {
 	}
 	
 	public static <T> T insert(final T data) throws Exception {
+		return insert(data, null);
+	}
+	
+	public static <T> T insert(final T data, final QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
-		//public static NodeSmall createNode(String typeInNode, String name, String descrition, Long parentId) {
 		
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		// real add in the BDD:
 		try {
-			final String tableName = AnnotationTools.getTableName(clazz);
+			final String tableName = AnnotationTools.getTableName(clazz, options);
 			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder querry = new StringBuilder();
 			querry.append("INSERT INTO `");
 			querry.append(tableName);
 			querry.append("` (");
-			
+
 			boolean firstField = true;
 			int count = 0;
 			for (final Field elem : clazz.getFields()) {
@@ -457,7 +469,7 @@ public class DataAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && addOn.isExternal()) {
+				if (addOn != null && !addOn.canInsert()) {
 					continue;
 				}
 				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
@@ -496,7 +508,7 @@ public class DataAccess {
 				querry.append("?");
 			}
 			querry.append(")");
-			//LOGGER.warn("generate the querry: '{}'", querry.toString());
+			LOGGER.warn("generate the querry: '{}'", querry.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString(), Statement.RETURN_GENERATED_KEYS);
 			Field primaryKeyField = null;
@@ -511,7 +523,7 @@ public class DataAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && addOn.isExternal()) {
+				if (addOn != null && !addOn.canInsert()) {
 					continue;
 				}
 				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
@@ -575,16 +587,27 @@ public class DataAccess {
 		}
 		return data;
 	}
-	
+
 	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
 	public static <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
-		
+
 		return insert(data);
 	}
-	
+
+	/**
+	 * Update an object with the inserted json data
+	 *
+	 * @param <T> Type of the object to insert
+	 * @param <ID_TYPE> Master key on the object manage with @Id
+	 * @param clazz Class reference of the insertion model
+	 * @param id Key to insert data
+	 * @param jsonData Json data  (partial) values to update
+	 * @return the number of object updated
+	 * @throws Exception
+	 */
 	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData) throws Exception {
 		// Find the ID field type ....
 		final Field idField = AnnotationTools.getIdField(clazz);
@@ -592,14 +615,14 @@ public class DataAccess {
 			throw new Exception("The class have no annotation @Id ==> can not determine the default type searching");
 		}
 		// check the compatibility of the id and the declared ID
-		if (id instanceof idField.getType()) {
+		final Class<?> typeClass = idField.getType();
+		if (id == typeClass) {
 			throw new Exception("Request update with the wriong type ...");
 		}
-
 		// Udpade Json Value
-		return updateWithJson(clazz, QueryCondition(AnnotationTools.getFieldName(idField), "=", id), jsonData);
+		return updateWithJson(clazz, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), jsonData);
 	}
-	
+
 	public static <T> int updateWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData) throws Exception {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
@@ -607,17 +630,19 @@ public class DataAccess {
 		// Read the tree to filter injection of data:
 		final JsonNode root = mapper.readTree(jsonData);
 		final List<String> keys = new ArrayList<>();
-		final Iterator<String> iterator = root.fieldNames();
+		final var iterator = root.fieldNames();
 		iterator.forEachRemaining(e -> keys.add(e));
-		return update(data, id, keys);
-		return 0;
+		return update(data, condition, keys);
+	}
+
+	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id) throws Exception {
+		return update(data, id, null);
 	}
 
 	public static <T> int update(final T data, final QueryItem condition) throws Exception {
-		
-		return 0;
+		return update(data, condition, null);
 	}
-
+	
 	/**
 	 *
 	 * @param <T>
@@ -627,42 +652,50 @@ public class DataAccess {
 	 * @return the affected rows.
 	 * @throws Exception
 	 */
-	public static <T> int update(final T data, final long id, final List<String> filterValue) throws Exception {
+	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> filterValue) throws Exception {
+		// Find the ID field type ....
+		final Field idField = AnnotationTools.getIdField(data.getClass());
+		if (idField == null) {
+			throw new Exception("The class have no annotation @Id ==> can not determine the default type searching");
+		}
+		// check the compatibility of the id and the declared ID
+		final Class<?> typeClass = idField.getType();
+		if (id == typeClass) {
+			throw new Exception("Request update with the wriong type ...");
+		}
+		return update(data, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), filterValue);
+	}
+
+	public static <T> int update(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
 		final Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
-		
+
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		// real add in the BDD:
 		try {
-			final String tableName = AnnotationTools.getTableName(clazz);
+			final String tableName = AnnotationTools.getTableName(clazz, options);
 			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder querry = new StringBuilder();
 			querry.append("UPDATE `");
 			querry.append(tableName);
 			querry.append("` SET ");
-			
+
 			boolean firstField = true;
-			Field primaryKeyField = null;
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
-				if (AnnotationTools.isPrimaryKey(elem)) {
-					primaryKeyField = elem;
+				final String name = AnnotationTools.getFieldName(elem);
+				if (filterValue != null) {
+					if (!filterValue.contains(name)) {
+						continue;
+					}
+				} else if (AnnotationTools.isGenericField(elem)) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && addOn.isExternal()) {
-					continue;
-				}
-				final boolean createTime = AnnotationTools.isCreatedAtField(elem);
-				if (createTime) {
-					continue;
-				}
-				final String name = AnnotationTools.getFieldName(elem);
-				final boolean updateTime = AnnotationTools.isUpdateAtField(elem);
-				if (!updateTime && !filterValue.contains(name)) {
+				if (addOn != null && !addOn.canUpdate()) {
 					continue;
 				}
 				if (!elem.getClass().isPrimitive()) {
@@ -678,19 +711,13 @@ public class DataAccess {
 				}
 				querry.append(" `");
 				querry.append(name);
-				querry.append("` = ");
-				if (updateTime) {
-					querry.append(getDBNow());
-					querry.append(" ");
-				} else {
-					querry.append("? ");
-				}
+				querry.append("` = ? ");
 			}
-			querry.append(" WHERE `");
-			querry.append(AnnotationTools.getFieldName(primaryKeyField));
-			querry.append("` = ?");
+			querry.append(" ");
+			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+			whereAppendQuery(querry, tableName, condition, null, deletedFieldName);
 			firstField = true;
-			// logger.debug("generate the querry: '{}'", querry.toString());
+			LOGGER.debug("generate the querry: '{}'", querry.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString(), Statement.RETURN_GENERATED_KEYS);
 			int iii = 1;
@@ -699,20 +726,16 @@ public class DataAccess {
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
-				if (AnnotationTools.isPrimaryKey(elem)) {
+				final String name = AnnotationTools.getFieldName(elem);
+				if (filterValue != null) {
+					if (!filterValue.contains(name)) {
+						continue;
+					}
+				} else if (AnnotationTools.isGenericField(elem)) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && !addOn.canUpdate()) {
-					continue;
-				}
-				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
-				if (createTime) {
-					continue;
-				}
-				final String name = AnnotationTools.getFieldName(elem);
-				final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-				if (updateTime || !filterValue.contains(name)) {
 					continue;
 				}
 				if (addOn == null) {
@@ -728,7 +751,8 @@ public class DataAccess {
 					iii = addOn.insertData(ps, data, iii);
 				}
 			}
-			ps.setLong(iii++, id);
+			iii = whereInjectValue(ps, condition, iii);
+			
 			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -738,7 +762,7 @@ public class DataAccess {
 		}
 		return 0;
 	}
-	
+
 	static void addElement(final PreparedStatement ps, final Object value, final int iii) throws Exception {
 		if (value instanceof final Long tmp) {
 			ps.setLong(iii, tmp);
@@ -772,7 +796,7 @@ public class DataAccess {
 			throw new Exception("Not manage type ==> need to add it ...");
 		}
 	}
-	
+
 	public static void whereAppendQuery(final StringBuilder querry, final String tableName, final QueryItem condition, final QueryOptions options, final String deletedFieldName)
 			throws ExceptionDBInterface {
 		boolean exclude_deleted = true;
@@ -797,7 +821,7 @@ public class DataAccess {
 		}
 		querry.append(" WHERE (");
 		condition.generateQuerry(querry, tableName);
-		
+
 		querry.append(") ");
 		if (exclude_deleted && deletedFieldName != null) {
 			querry.append("AND ");
@@ -807,40 +831,40 @@ public class DataAccess {
 			querry.append(" = false ");
 		}
 	}
-	
-	public static void whereInjectValue(final PreparedStatement ps, final QueryItem condition) throws Exception {
+
+	public static int whereInjectValue(final PreparedStatement ps, final QueryItem condition, int iii) throws Exception {
 		// Check if we have a condition to generate
 		if (condition == null) {
-			return;
+			return iii;
 		}
-		int iii = 1;
 		iii = condition.injectQuerry(ps, iii);
+		return iii;
 	}
-	
+
 	public static int executeSimpleQuerry(final String querry, final boolean root) throws SQLException, IOException {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.executeUpdate(querry);
 	}
-	
+
 	public static int executeSimpleQuerry(final String querry) throws SQLException, IOException {
 		return executeSimpleQuerry(querry, false);
 	}
-	
+
 	public static boolean executeQuerry(final String querry, final boolean root) throws SQLException, IOException {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.execute(querry);
 	}
-	
+
 	public static boolean executeQuerry(final String querry) throws SQLException, IOException {
 		return executeQuerry(querry, false);
 	}
-	
+
 	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
 		return getWhere(clazz, condition, null);
 	}
-	
+
 	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final List<T> values = getsWhere(clazz, condition, options, 1);
 		if (values.size() == 0) {
@@ -848,23 +872,23 @@ public class DataAccess {
 		}
 		return values.get(0);
 	}
-	
+
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
 		return getsWhere(clazz, condition, null, null, null);
 	}
-	
+
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		return getsWhere(clazz, condition, null, options, null);
 	}
-	
+
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options, final Integer linit) throws Exception {
 		return getsWhere(clazz, condition, null, options, linit);
 	}
-	
-	// TODO: set limit as an querry Option...
+
+	// TODO: set limit as an query Option...
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final String orderBy, final QueryOptions options, final Integer linit) throws Exception {
-		
+
 		boolean readAllfields = false;
 		if (options != null) {
 			final Object data = options.get(QueryOptions.SQL_NOT_READ_DISABLE);
@@ -874,18 +898,18 @@ public class DataAccess {
 				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_NOT_READ_DISABLE, data);
 			}
 		}
-		
+
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final List<T> outs = new ArrayList<>();
 		// real add in the BDD:
 		try {
-			final String tableName = AnnotationTools.getTableName(clazz);
+			final String tableName = AnnotationTools.getTableName(clazz, options);
 			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder querry = new StringBuilder();
 			querry.append("SELECT ");
 			//querry.append(tableName);
 			//querry.append(" SET ");
-			
+
 			boolean firstField = true;
 			int count = 0;
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -895,7 +919,7 @@ public class DataAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && addOn.isExternal()) {
+				if (addOn != null && !addOn.canRetrieve(elem)) {
 					continue;
 				}
 				// TODO: Manage it with AddOn
@@ -936,7 +960,7 @@ public class DataAccess {
 			LOGGER.debug("generate the querry: '{}'", querry.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString(), Statement.RETURN_GENERATED_KEYS);
-			whereInjectValue(ps, condition);
+			whereInjectValue(ps, condition, 1);
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
@@ -949,7 +973,7 @@ public class DataAccess {
 						continue;
 					}
 					final DataAccessAddOn addOn = findAddOnforField(elem);
-					if (addOn != null && addOn.isExternal()) {
+					if (addOn != null && !addOn.canRetrieve(elem)) {
 						continue;
 					}
 					// TODO: Manage it with AddOn
@@ -968,7 +992,7 @@ public class DataAccess {
 				final T out = (T) data;
 				outs.add(out);
 			}
-			
+
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 			throw ex;
@@ -980,12 +1004,12 @@ public class DataAccess {
 		}
 		return outs;
 	}
-	
+
 	// TODO : detect the @Id
 	public static <T> T get(final Class<T> clazz, final long id) throws Exception {
 		return get(clazz, id, null);
 	}
-	
+
 	public static <T> T get(final Class<T> clazz, final long id, final QueryOptions options) throws Exception {
 		Field primaryKeyField = null;
 		for (final Field elem : clazz.getFields()) {
@@ -1002,44 +1026,48 @@ public class DataAccess {
 		}
 		throw new Exception("Missing primary Key...");
 	}
-	
+
 	public static String getCurrentTimeStamp() {
 		return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
 	}
-	
+
 	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
 		return getsWhere(clazz, null);
 	}
-	
+
 	public static <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws Exception {
 		return getsWhere(clazz, null, options);
 	}
-	
+
 	// TODO : detect the @Id
 	public static int delete(final Class<?> clazz, final long id) throws Exception {
+		return delete(clazz, id, null);
+	}
+
+	public static int delete(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
-			return deleteSoft(clazz, id);
+			return deleteSoft(clazz, id, options);
 		} else {
-			return deleteHard(clazz, id);
+			return deleteHard(clazz, id, options);
 		}
 	}
-	
-	public static int deleteWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
+
+	public static int deleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
-			return deleteSoftWhere(clazz, condition);
+			return deleteSoftWhere(clazz, condition, options);
 		} else {
-			return deleteHardWhere(clazz, condition);
+			return deleteHardWhere(clazz, condition, options);
 		}
 	}
-	
-	public static int deleteHard(final Class<?> clazz, final long id) throws Exception {
-		return deleteHardWhere(clazz, new QueryCondition("id", "=", id));
+
+	public static int deleteHard(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
+		return deleteHardWhere(clazz, new QueryCondition("id", "=", id), options);
 	}
-	
-	public static int deleteHardWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
+
+	public static int deleteHardWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
 		
@@ -1052,27 +1080,27 @@ public class DataAccess {
 		try {
 			LOGGER.debug("APPLY: {}", querry.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
-			whereInjectValue(ps, condition);
+			whereInjectValue(ps, condition, 1);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
 			entry = null;
 		}
 	}
-	
-	private static int deleteSoft(final Class<?> clazz, final long id) throws Exception {
-		return deleteSoftWhere(clazz, new QueryCondition("id", "=", id));
+
+	private static int deleteSoft(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
+		return deleteSoftWhere(clazz, new QueryCondition("id", "=", id), options);
 	}
-	
+
 	public static String getDBNow() {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			return "now(3)";
 		}
 		return "DATE()";
 	}
-	
-	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
+
+	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		/*
 		String updateFieldName = null;
@@ -1081,7 +1109,7 @@ public class DataAccess {
 		}
 		*/
 		// find the deleted field
-		
+
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder querry = new StringBuilder();
 		querry.append("UPDATE `");
@@ -1102,7 +1130,7 @@ public class DataAccess {
 		try {
 			LOGGER.debug("APPLY UPDATE: {}", querry.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
-			whereInjectValue(ps, condition);
+			whereInjectValue(ps, condition, 1);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1111,11 +1139,15 @@ public class DataAccess {
 	}
 	
 	public static int unsetDelete(final Class<?> clazz, final long id) throws Exception {
-		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id));
+		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id), null);
 	}
 	
-	public static int unsetDeleteWhere(final Class<?> clazz, final QueryItem condition) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
+	public static int unsetDelete(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
+		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id), options);
+	}
+
+	public static int unsetDeleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
 			throw new Exception("The class " + clazz.getCanonicalName() + " has no deleted field");
@@ -1134,16 +1166,16 @@ public class DataAccess {
 		querry.append(", ");
 		*/
 		// need to disable the deleted false because the model must be unselected to be updated.
-		final QueryOptions options = new QueryOptions(QueryOptions.SQL_DELETED_DISABLE, true);
+		options.put(QueryOptions.SQL_DELETED_DISABLE, true);
 		whereAppendQuery(querry, tableName, condition, options, deletedFieldName);
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString());
-			whereInjectValue(ps, condition);
+			whereInjectValue(ps, condition, 1);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
 			entry = null;
 		}
 	}
-
+	
 }
