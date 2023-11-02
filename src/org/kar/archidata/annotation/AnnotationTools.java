@@ -206,13 +206,13 @@ public class AnnotationTools {
 
 	public static Field getIdField(final Class<?> clazz) {
 		try {
-			for (final Field elem : clazz.getFields()) {
+			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				if (AnnotationTools.isIdField(elem)) {
-					return elem;
+				if (AnnotationTools.isIdField(field)) {
+					return field;
 				}
 			}
 		} catch (final Exception ex) {
@@ -231,21 +231,34 @@ public class AnnotationTools {
 	
 	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) throws Exception {
 		final List<String> out = new ArrayList<>();
-		for (final Field elem : clazz.getFields()) {
+		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
-			if (!full && AnnotationTools.isGenericField(elem)) {
+			if (!full && AnnotationTools.isGenericField(field)) {
 				continue;
 			}
-			out.add(AnnotationTools.getFieldName(elem));
+			out.add(AnnotationTools.getFieldName(field));
 		}
 		return out;
 	}
 
 	public static boolean isGenericField(final Field elem) throws Exception {
 		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem) || AnnotationTools.isUpdateAtField(elem);
+	}
+
+	public static Field getFieldOfId(final Class<?> clazz) throws Exception {
+		for (final Field field : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			if (AnnotationTools.isIdField(field)) {
+				return field;
+			}
+		}
+		return null;
 	}
 
 }

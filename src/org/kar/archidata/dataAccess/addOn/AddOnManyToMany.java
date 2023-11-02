@@ -42,12 +42,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public int insertData(final PreparedStatement ps, final Object data, final int iii) throws SQLException {
+	public int insertData(final PreparedStatement ps, final Field field, final Object rootObject, final int iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		return iii;
 	}
 
 	@Override
-	public boolean canInsert() {
+	public boolean canInsert(final Field field) {
 		return false;
 	}
 
@@ -123,11 +123,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return 1;
 	}
 
-	@Override
-	public boolean canUpdate() {
-		return false;
-	}
-
 	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
@@ -146,9 +141,9 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
+	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
-		final String linkTableName = generateLinkTableNameField(tableName, elem);
+		final String linkTableName = generateLinkTableNameField(tableName, field);
 		final QueryOptions options = new QueryOptions(QueryOptions.OVERRIDE_TABLE_NAME, linkTableName);
 		final List<String> sqlCommand = DataFactory.createTable(LinkTable.class, options);
 		postActionList.addAll(sqlCommand);

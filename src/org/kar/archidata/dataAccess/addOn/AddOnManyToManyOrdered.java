@@ -46,12 +46,12 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	}
 	
 	@Override
-	public int insertData(final PreparedStatement ps, final Object data, final int iii) throws SQLException {
+	public int insertData(final PreparedStatement ps, final Field field, final Object rootObject, final int iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		return iii;
 	}
 
 	@Override
-	public boolean canInsert() {
+	public boolean canInsert(final Field field) {
 		return false;
 	}
 	
@@ -112,11 +112,6 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 			throws SQLException, IllegalArgumentException, IllegalAccessException {
 		//throw new IllegalAccessException("This Add-on has not the capability to insert data directly in DB");
 		return 0;
-	}
-	
-	@Override
-	public boolean canUpdate() {
-		return false;
 	}
 	
 	public static void addLink(final Class<?> clazz, final long localKey, final String table, final long remoteKey) throws Exception {
@@ -180,9 +175,9 @@ public class AddOnManyToManyOrdered implements DataAccessAddOn {
 	
 	// TODO : refacto this table to manage a generic table with dynamic name to be serializable with the default system
 	@Override
-	public void createTables(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
+	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
-		final String name = AnnotationTools.getFieldName(elem);
+		final String name = AnnotationTools.getFieldName(field);
 		String localName = name;
 		if (name.endsWith("s")) {
 			localName = name.substring(0, name.length() - 1);

@@ -469,7 +469,7 @@ public class DataAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canInsert()) {
+				if (addOn != null && !addOn.canInsert(elem)) {
 					continue;
 				}
 				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
@@ -523,7 +523,7 @@ public class DataAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canInsert()) {
+				if (addOn != null && !addOn.canInsert(elem)) {
 					continue;
 				}
 				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
@@ -536,8 +536,7 @@ public class DataAccess {
 				}
 				if (addOn != null) {
 					// Add-on specific insertion.
-					final Object tmp = elem.get(data);
-					iii = addOn.insertData(ps, tmp, iii);
+					iii = addOn.insertData(ps, elem, data, iii);
 				} else {
 					// Generic class insertion...
 					final Class<?> type = elem.getType();
@@ -663,10 +662,10 @@ public class DataAccess {
 		if (id == typeClass) {
 			throw new Exception("Request update with the wriong type ...");
 		}
-		return update(data, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), filterValue);
+		return updateWhere(data, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), null, filterValue);
 	}
 
-	public static <T> int update(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
+	public static <T> int updateWhere(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
 		final Class<?> clazz = data.getClass();
 		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
 
@@ -681,26 +680,26 @@ public class DataAccess {
 			querry.append("` SET ");
 
 			boolean firstField = true;
-			for (final Field elem : clazz.getFields()) {
+			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String name = AnnotationTools.getFieldName(elem);
+				final String name = AnnotationTools.getFieldName(field);
 				if (filterValue != null) {
 					if (!filterValue.contains(name)) {
 						continue;
 					}
-				} else if (AnnotationTools.isGenericField(elem)) {
+				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
 				}
-				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canUpdate()) {
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && !addOn.canInsert(field)) {
 					continue;
 				}
-				if (!elem.getClass().isPrimitive()) {
-					final Object tmp = elem.get(data);
-					if (tmp == null && elem.getDeclaredAnnotationsByType(SQLDefault.class).length != 0) {
+				if (!field.getClass().isPrimitive()) {
+					final Object tmp = field.get(data);
+					if (tmp == null && field.getDeclaredAnnotationsByType(SQLDefault.class).length != 0) {
 						continue;
 					}
 				}
@@ -721,34 +720,34 @@ public class DataAccess {
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString(), Statement.RETURN_GENERATED_KEYS);
 			int iii = 1;
-			for (final Field elem : clazz.getFields()) {
+			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String name = AnnotationTools.getFieldName(elem);
+				final String name = AnnotationTools.getFieldName(field);
 				if (filterValue != null) {
 					if (!filterValue.contains(name)) {
 						continue;
 					}
-				} else if (AnnotationTools.isGenericField(elem)) {
+				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
 				}
-				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canUpdate()) {
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && !addOn.canInsert(field)) {
 					continue;
 				}
 				if (addOn == null) {
-					final Class<?> type = elem.getType();
+					final Class<?> type = field.getType();
 					if (!type.isPrimitive()) {
-						final Object tmp = elem.get(data);
-						if (tmp == null && elem.getDeclaredAnnotationsByType(SQLDefault.class).length != 0) {
+						final Object tmp = field.get(data);
+						if (tmp == null && field.getDeclaredAnnotationsByType(SQLDefault.class).length != 0) {
 							continue;
 						}
 					}
-					setValuedb(type, data, iii++, elem, ps);
+					setValuedb(type, data, iii++, field, ps);
 				} else {
-					iii = addOn.insertData(ps, data, iii);
+					iii = addOn.insertData(ps, field, data, iii);
 				}
 			}
 			iii = whereInjectValue(ps, condition, iii);
@@ -885,78 +884,68 @@ public class DataAccess {
 		return getsWhere(clazz, condition, null, options, linit);
 	}
 
+	public static int generateSelectField(final StringBuilder querry, final Class<?> clazz, final QueryOptions options, int count) throws Exception {
+		final boolean readAllfields = QueryOptions.readAllFields(options);
+		final String tableName = AnnotationTools.getTableName(clazz, options);
+		boolean firstField = true;
+		for (final Field elem : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				continue;
+			}
+			final DataAccessAddOn addOn = findAddOnforField(elem);
+			if (addOn != null && !addOn.canRetrieve(elem)) {
+				continue;
+			}
+			// TODO: Manage it with AddOn
+			final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
+			if (!readAllfields && notRead) {
+				continue;
+			}
+			final String name = AnnotationTools.getFieldName(elem);
+			count++;
+			if (firstField) {
+				firstField = false;
+			} else {
+				querry.append(",");
+			}
+			querry.append(" ");
+			if (addOn != null) {
+				count = addOn.generateQuerry(tableName, elem, querry, name, count, options);
+			} else {
+				querry.append(tableName);
+				querry.append(".");
+				querry.append(name);
+			}
+		}
+		querry.append(" FROM `");
+		querry.append(tableName);
+		querry.append("` ");
+		return count;
+	}
+
 	// TODO: set limit as an query Option...
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final String orderBy, final QueryOptions options, final Integer linit) throws Exception {
-
-		boolean readAllfields = false;
-		if (options != null) {
-			final Object data = options.get(QueryOptions.SQL_NOT_READ_DISABLE);
-			if (data instanceof final Boolean elem) {
-				readAllfields = elem;
-			} else if (data != null) {
-				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_NOT_READ_DISABLE, data);
-			}
-		}
-
+		final boolean readAllfields = QueryOptions.readAllFields(options);
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final List<T> outs = new ArrayList<>();
 		// real add in the BDD:
 		try {
-			final String tableName = AnnotationTools.getTableName(clazz, options);
-			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+			int count = 0;
 			final StringBuilder querry = new StringBuilder();
 			querry.append("SELECT ");
-			//querry.append(tableName);
-			//querry.append(" SET ");
-
-			boolean firstField = true;
-			int count = 0;
-			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canRetrieve(elem)) {
-					continue;
-				}
-				// TODO: Manage it with AddOn
-				final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
-				if (!readAllfields && notRead) {
-					continue;
-				}
-				final String name = AnnotationTools.getFieldName(elem);
-				count++;
-				if (firstField) {
-					firstField = false;
-				} else {
-					querry.append(",");
-				}
-				querry.append(" ");
-				if (addOn != null) {
-					addOn.generateQuerry(tableName, elem, querry, name, count, options);
-				} else {
-					querry.append(tableName);
-					querry.append(".");
-					querry.append(name);
-				}
-			}
-			querry.append(" FROM `");
-			querry.append(tableName);
-			querry.append("` ");
+			count = generateSelectField(querry, clazz, options, count);
+			final String tableName = AnnotationTools.getTableName(clazz, options);
 			whereAppendQuery(querry, tableName, condition, options, deletedFieldName);
 			if (orderBy != null && orderBy.length() >= 1) {
 				querry.append(" ORDER BY ");
-				//querry.append(tableName);
-				//querry.append(".");
 				querry.append(orderBy);
 			}
 			if (linit != null && linit >= 1) {
 				querry.append(" LIMIT " + linit);
 			}
-			firstField = true;
 			LOGGER.debug("generate the querry: '{}'", querry.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(querry.toString(), Statement.RETURN_GENERATED_KEYS);

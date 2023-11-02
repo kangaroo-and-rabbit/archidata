@@ -37,20 +37,18 @@ public interface DataAccessAddOn {
 	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException
 	 */
-	int insertData(PreparedStatement ps, Object data, int iii) throws SQLException;
+	int insertData(PreparedStatement ps, final Field field, Object data, int iii) throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	// Element can insert in the single request
-	boolean canInsert();
+	boolean canInsert(final Field field);
 	
 	// Element can be retrieve with the specific mode
 	boolean canRetrieve(final Field field);
 
-	int generateQuerry(@NotNull String tableName, @NotNull Field elem, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options);
+	int generateQuerry(@NotNull String tableName, @NotNull Field field, @NotNull StringBuilder querry, @NotNull String name, @NotNull int elemCount, QueryOptions options) throws Exception;
 
 	// Return the number of colomn read
-	int fillFromQuerry(ResultSet rs, Field elem, Object data, int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
-
-	boolean canUpdate();
+	int fillFromQuerry(ResultSet rs, Field field, Object data, int count, QueryOptions options) throws SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/**
 	 * Create associated table of the specific element.
@@ -63,7 +61,7 @@ public interface DataAccessAddOn {
 	 * @param fieldId
 	 * @throws Exception
 	 */
-	void createTables(String tableName, Field elem, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
+	void createTables(String tableName, Field field, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
 			throws Exception;
 
 }

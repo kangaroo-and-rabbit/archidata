@@ -3,7 +3,11 @@ package org.kar.archidata.dataAccess;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class QueryOptions {
+	static final Logger LOGGER = LoggerFactory.getLogger(QueryOptions.class);
 	public static final String SQL_NOT_READ_DISABLE = "SQLNotRead_disable";
 	public static final String SQL_DELETED_DISABLE = "SQLDeleted_disable";
 	public static final String OVERRIDE_TABLE_NAME = "SQL_OVERRIDE_TABLE_NAME";
@@ -36,6 +40,18 @@ public class QueryOptions {
 	
 	public Object get(final String value) {
 		return this.options.get(value);
+	}
+
+	public static boolean readAllFields(final QueryOptions options) {
+		if (options != null) {
+			final Object data = options.get(QueryOptions.SQL_NOT_READ_DISABLE);
+			if (data instanceof final Boolean elem) {
+				return elem;
+			} else if (data != null) {
+				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_NOT_READ_DISABLE, data);
+			}
+		}
+		return false;
 	}
 	
 }
