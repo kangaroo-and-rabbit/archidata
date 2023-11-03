@@ -47,25 +47,25 @@ public class AnnotationTools {
 	}
 
 	public static String getComment(final Field element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(SQLComment.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataComment.class);
 		if (annotation.length == 0) {
 			return null;
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @SQLComment on " + element.getClass().getCanonicalName());
 		}
-		return ((SQLComment) annotation[0]).value();
+		return ((DataComment) annotation[0]).value();
 	}
 
 	public static String getDefault(final Field element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(SQLDefault.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataDefault.class);
 		if (annotation.length == 0) {
 			return null;
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @SQLDefault on " + element.getClass().getCanonicalName());
 		}
-		return ((SQLDefault) annotation[0]).value();
+		return ((DataDefault) annotation[0]).value();
 	}
 
 	public static Integer getLimitSize(final Field element) throws Exception {
@@ -151,7 +151,7 @@ public class AnnotationTools {
 	}
 
 	public static boolean isDeletedField(final Field element) throws Exception {
-		return element.getDeclaredAnnotationsByType(SQLDeleted.class).length != 0;
+		return element.getDeclaredAnnotationsByType(DataDeleted.class).length != 0;
 	}
 	
 	public static boolean isCreatedAtField(final Field element) throws Exception {
@@ -163,7 +163,7 @@ public class AnnotationTools {
 	}
 
 	public static boolean isdefaultNotRead(final Field element) throws Exception {
-		return element.getDeclaredAnnotationsByType(SQLNotRead.class).length != 0;
+		return element.getDeclaredAnnotationsByType(DataNotRead.class).length != 0;
 	}
 
 	public static boolean isIdField(final Field element) throws Exception {

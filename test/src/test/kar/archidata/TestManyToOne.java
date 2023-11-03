@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import test.kar.archidata.model.TypeManyToOneRemote;
 import test.kar.archidata.model.TypeManyToOneRoot;
+import test.kar.archidata.model.TypeManyToOneRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -79,7 +80,42 @@ public class TestManyToOne {
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 		Assertions.assertEquals(test.otherData, insertedData.otherData);
-		Assertions.assertEquals(insertedData.remoteId, insertedRemote2.id);
+		Assertions.assertEquals(insertedRemote2.id, insertedData.remoteId);
+
+		TypeManyToOneRoot retrieve = DataAccess.get(TypeManyToOneRoot.class, insertedData.id);
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
+
+		TypeManyToOneRootExpand retrieve2 = DataAccess.get(TypeManyToOneRootExpand.class, insertedData.id);
+		Assertions.assertNotNull(retrieve2);
+		Assertions.assertNotNull(retrieve2.id);
+		Assertions.assertEquals(insertedData.id, retrieve2.id);
+		Assertions.assertEquals(insertedData.otherData, retrieve2.otherData);
+		Assertions.assertNotNull(retrieve2.remote);
+		Assertions.assertEquals(insertedRemote2.id, retrieve2.remote.id);
+		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
+
+		// remove values:
+		final int count = DataAccess.delete(TypeManyToOneRemote.class, remote.id);
+		Assertions.assertEquals(1, count);
 		
+		// check fail:
+		
+		retrieve = DataAccess.get(TypeManyToOneRoot.class, insertedData.id);
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
+		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
+
+		retrieve2 = DataAccess.get(TypeManyToOneRootExpand.class, insertedData.id);
+		Assertions.assertNotNull(retrieve2);
+		Assertions.assertNotNull(retrieve2.id);
+		Assertions.assertEquals(insertedData.id, retrieve2.id);
+		Assertions.assertEquals(insertedData.otherData, retrieve2.otherData);
+		Assertions.assertNull(retrieve2.remote);
 	}
 }

@@ -4,6 +4,6 @@ import java.sql.PreparedStatement;
 
 public interface QueryItem {
 	void generateQuerry(StringBuilder querry, String tableName);
-	
-	int injectQuerry(PreparedStatement ps, int iii) throws Exception;
+
+	void injectQuerry(PreparedStatement ps, CountInOut iii) throws Exception;
 }

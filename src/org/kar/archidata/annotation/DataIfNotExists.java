@@ -1,15 +1,12 @@
-package org.kar.archidata.annotation.addOn;
+package org.kar.archidata.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.kar.archidata.annotation.DataAddOn;
-
-@Target(ElementType.FIELD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@DataAddOn
-public @interface DataAddOnManyToManyOrdered {
+public @interface DataIfNotExists {
 	
 }

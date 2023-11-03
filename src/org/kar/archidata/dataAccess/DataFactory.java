@@ -10,11 +10,13 @@ import java.util.List;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
-import org.kar.archidata.annotation.SQLIfNotExists;
+import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import jakarta.persistence.GenerationType;
 
@@ -49,6 +51,9 @@ public class DataFactory {
 			}
 			if (type == String.class) {
 				return "text";
+			}
+			if (type == JsonValue.class) {
+				return "json";
 			}
 			if (type.isEnum()) {
 				final Object[] arr = type.getEnumConstants();
@@ -93,6 +98,9 @@ public class DataFactory {
 				return "TIME";
 			}
 			if (type == String.class) {
+				return "text";
+			}
+			if (type == JsonValue.class) {
 				return "text";
 			}
 			if (type.isEnum()) {
@@ -189,7 +197,7 @@ public class DataFactory {
 						triggerBuilder.append(tableName);
 						triggerBuilder.append(" SET ");
 						triggerBuilder.append(name);
-						triggerBuilder.append(" = datetime('now') WHERE  id = NEW.id; \n");
+						triggerBuilder.append(" = datetime('now') WHERE id = NEW.id; \n");
 						triggerBuilder.append("END;");
 
 						postOtherTables.add(triggerBuilder.toString());
@@ -289,7 +297,7 @@ public class DataFactory {
 			}
 		}
 
-		final boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+		final boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(DataIfNotExists.class).length != 0;
 		final List<String> preActionList = new ArrayList<>();
 		final List<String> postActionList = new ArrayList<>();
 		final StringBuilder out = new StringBuilder();

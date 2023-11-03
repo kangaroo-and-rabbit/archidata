@@ -6,16 +6,17 @@ import java.util.List;
 public class QueryOr implements QueryItem {
 	protected final List<QueryItem> childs;
 	
-	public QueryOr(List<QueryItem> childs) {
+	public QueryOr(final List<QueryItem> childs) {
 		this.childs = childs;
 	}
 	
-	public void generateQuerry(StringBuilder querry, String tableName) {
+	@Override
+	public void generateQuerry(final StringBuilder querry, final String tableName) {
 		if (this.childs.size() >= 1) {
 			querry.append(" (");
 		}
 		boolean first = true;
-		for (QueryItem elem : this.childs) {
+		for (final QueryItem elem : this.childs) {
 			if (first) {
 				first = false;
 			} else {
@@ -29,11 +30,9 @@ public class QueryOr implements QueryItem {
 	}
 	
 	@Override
-	public int injectQuerry(PreparedStatement ps, int iii) throws Exception {
-		
-		for (QueryItem elem : this.childs) {
-			iii = elem.injectQuerry(ps, iii);
+	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+		for (final QueryItem elem : this.childs) {
+			elem.injectQuerry(ps, iii);
 		}
-		return iii;
 	}
 }

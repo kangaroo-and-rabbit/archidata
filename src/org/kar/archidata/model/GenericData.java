@@ -3,8 +3,8 @@ package org.kar.archidata.model;
 import java.util.Date;
 
 import org.kar.archidata.annotation.CreationTimestamp;
-import org.kar.archidata.annotation.SQLComment;
-import org.kar.archidata.annotation.SQLNotRead;
+import org.kar.archidata.annotation.DataComment;
+import org.kar.archidata.annotation.DataNotRead;
 import org.kar.archidata.annotation.UpdateTimestamp;
 
 import jakarta.persistence.Column;
@@ -18,18 +18,18 @@ public class GenericData {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
-	@SQLComment("Primary key of the base")
+	@DataComment("Primary key of the base")
 	public Long id = null;
-	@SQLNotRead
+	@DataNotRead
 	@CreationTimestamp
 	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
-	@SQLComment("Create time of the object")
+	@DataComment("Create time of the object")
 	public Date createdAt = null;
-	@SQLNotRead
+	@DataNotRead
 	@UpdateTimestamp
 	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
-	@SQLComment("When update the object")
+	@DataComment("When update the object")
 	public Date updatedAt = null;
 }

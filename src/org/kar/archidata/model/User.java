@@ -17,8 +17,8 @@ CREATE TABLE `user` (
 import java.sql.Timestamp;
 import java.util.List;
 
-import org.kar.archidata.annotation.SQLDefault;
-import org.kar.archidata.annotation.SQLIfNotExists;
+import org.kar.archidata.annotation.DataDefault;
+import org.kar.archidata.annotation.DataIfNotExists;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -28,20 +28,20 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 
 @Table(name = "user")
-@SQLIfNotExists
+@DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User extends GenericDataSoftDelete {
 	@Column(length = 128)
 	public String login = null;
 	
 	public Timestamp lastConnection = null;
-	@SQLDefault("'0'")
+	@DataDefault("'0'")
 	@Column(nullable = false)
 	public boolean admin = false;
-	@SQLDefault("'0'")
+	@DataDefault("'0'")
 	@Column(nullable = false)
 	public boolean blocked = false;
-	@SQLDefault("'0'")
+	@DataDefault("'0'")
 	@Column(nullable = false)
 	public boolean removed = false;
 	

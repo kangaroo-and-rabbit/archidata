@@ -6,15 +6,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
+@Table(name = "TypeManyToOneRoot")
 public class TypeManyToOneRootExpand {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
-
-	public String otherData;
 	
+	public String otherData;
+
 	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeManyToOneRemote.class)
 	@Column(name = "remoteId", nullable = false)
 	public TypeManyToOneRemote remote;

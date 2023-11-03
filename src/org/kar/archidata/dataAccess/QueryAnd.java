@@ -2,28 +2,28 @@ package org.kar.archidata.dataAccess;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class QueryAnd implements QueryItem {
 	protected final List<QueryItem> childs;
-	
-	public QueryAnd(List<QueryItem> childs) {
+
+	public QueryAnd(final List<QueryItem> childs) {
 		this.childs = childs;
 	}
-	
-	public QueryAnd(QueryItem... items) {
+
+	public QueryAnd(final QueryItem... items) {
 		this.childs = new ArrayList<>();
-		for (int iii = 0; iii < items.length; iii++) {
-			this.childs.add(items[iii]);
-		}
+		Collections.addAll(this.childs, items);
 	}
-	
-	public void generateQuerry(StringBuilder querry, String tableName) {
+
+	@Override
+	public void generateQuerry(final StringBuilder querry, final String tableName) {
 		if (this.childs.size() >= 1) {
 			querry.append(" (");
 		}
 		boolean first = true;
-		for (QueryItem elem : this.childs) {
+		for (final QueryItem elem : this.childs) {
 			if (first) {
 				first = false;
 			} else {
@@ -35,13 +35,12 @@ public class QueryAnd implements QueryItem {
 			querry.append(")");
 		}
 	}
-	
+
 	@Override
-	public int injectQuerry(PreparedStatement ps, int iii) throws Exception {
-		
-		for (QueryItem elem : this.childs) {
-			iii = elem.injectQuerry(ps, iii);
+	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+
+		for (final QueryItem elem : this.childs) {
+			elem.injectQuerry(ps, iii);
 		}
-		return iii;
 	}
 }

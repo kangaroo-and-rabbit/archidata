@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import test.kar.archidata.model.TypeManyToManyRemote;
 import test.kar.archidata.model.TypeManyToManyRoot;
+import test.kar.archidata.model.TypeManyToManyRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -85,7 +86,7 @@ public class TestManyToMany {
 
 	@Order(3)
 	@Test
-	public void testSimpleInsertAndRetieveZZZ() throws Exception {
+	public void testSimpleInsertAndRetieveSubValues() throws Exception {
 
 		TypeManyToManyRemote remote = new TypeManyToManyRemote();
 		remote.data = "remote1";
@@ -120,7 +121,7 @@ public class TestManyToMany {
 		AddOnManyToMany.addLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote2.id);
 		
 		retrieve = DataAccess.get(TypeManyToManyRoot.class, insertedData.id);
-
+		
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -130,7 +131,19 @@ public class TestManyToMany {
 		Assertions.assertEquals(retrieve.remote.size(), 2);
 		Assertions.assertEquals(retrieve.remote.get(0), insertedRemote1.id);
 		Assertions.assertEquals(retrieve.remote.get(1), insertedRemote2.id);
-
+		
+		final TypeManyToManyRootExpand retrieveExpand = DataAccess.get(TypeManyToManyRootExpand.class, insertedData.id);
+		
+		Assertions.assertNotNull(retrieveExpand);
+		Assertions.assertNotNull(retrieveExpand.id);
+		Assertions.assertEquals(insertedData.id, retrieveExpand.id);
+		Assertions.assertNotNull(retrieveExpand.otherData);
+		Assertions.assertEquals(insertedData.otherData, retrieveExpand.otherData);
+		Assertions.assertNotNull(retrieveExpand.remote);
+		Assertions.assertEquals(retrieveExpand.remote.size(), 2);
+		Assertions.assertEquals(retrieveExpand.remote.get(0).id, insertedRemote1.id);
+		Assertions.assertEquals(retrieveExpand.remote.get(1).id, insertedRemote2.id);
+		
 		// Remove an element
 		int count = AddOnManyToMany.removeLink(TypeManyToManyRoot.class, retrieve.id, "remote", insertedRemote1.id);
 		Assertions.assertEquals(1, count);
