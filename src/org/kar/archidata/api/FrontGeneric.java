@@ -3,10 +3,10 @@ package org.kar.archidata.api;
 import java.io.File;
 import java.util.List;
 
-import org.kar.archidata.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.annotation.security.PermitAll;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.NotSupportedException;
@@ -19,19 +19,19 @@ import jakarta.ws.rs.core.Response.ResponseBuilder;
 
 public class FrontGeneric {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FrontGeneric.class);
-	
+
 	protected String baseFrontFolder = "/data/front";
-	
-	private String getExtension(String filename) {
+
+	private String getExtension(final String filename) {
 		if (filename.contains(".")) {
 			return filename.substring(filename.lastIndexOf(".") + 1);
 		}
 		return "";
 	}
 	
-	private Response retrive(String fileName) throws Exception {
-		String filePathName = baseFrontFolder + File.separator + fileName;
-		String extention = getExtension(filePathName);
+	private Response retrive(final String fileName) throws Exception {
+		String filePathName = this.baseFrontFolder + File.separator + fileName;
+		final String extention = getExtension(filePathName);
 		String mineType = null;
 		LOGGER.debug("try retrive : '{}' '{}'", filePathName, extention);
 		if (extention.length() != 0 && extention.length() <= 5) {
@@ -66,26 +66,26 @@ public class FrontGeneric {
 			}
 		} else {
 			mineType = "text/html";
-			filePathName = baseFrontFolder + File.separator + "index.html";
+			filePathName = this.baseFrontFolder + File.separator + "index.html";
 		}
 		LOGGER.debug("    ==> '[}'", filePathName);
 		// reads input image
-		File download = new File(filePathName);
+		final File download = new File(filePathName);
 		if (!download.exists()) {
 			throw new NotFoundException("Not Found: '" + fileName + "' extension='" + extention + "'");
 		}
-		ResponseBuilder response = Response.ok((Object) download);
+		final ResponseBuilder response = Response.ok(download);
 		// use this if I want to download the file:
 		//response.header("Content-Disposition", "attachment; filename=" + fileName);
-		CacheControl cc = new CacheControl();
+		final CacheControl cc = new CacheControl();
 		cc.setMaxAge(60);
 		cc.setNoCache(false);
 		response.cacheControl(cc);
 		response.type(mineType);
-		
+
 		return response.build();
 	}
-	
+
 	@GET
 	@PermitAll()
 	//@Produces(MediaType.APPLICATION_OCTET_STREAM)
@@ -93,15 +93,15 @@ public class FrontGeneric {
 	public Response retrive0() throws Exception {
 		return retrive("index.html");
 	}
-	
+
 	@GET
 	@Path("{any: .*}")
 	@PermitAll()
 	//@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	//@CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
-	public Response retrive1(@PathParam("any") List<PathSegment> segments) throws Exception {
+	public Response retrive1(@PathParam("any") final List<PathSegment> segments) throws Exception {
 		String filename = "";
-		for (PathSegment elem : segments) {
+		for (final PathSegment elem : segments) {
 			if (!filename.isEmpty()) {
 				filename += File.separator;
 			}

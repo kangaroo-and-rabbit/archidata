@@ -14,11 +14,11 @@ import jakarta.ws.rs.core.StreamingOutput;
 public class MediaStreamer implements StreamingOutput {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaStreamer.class);
 	private final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	final byte[] buf = new byte[CHUNK_SIZE];
+	final byte[] buf = new byte[this.CHUNK_SIZE];
 	private long length;
-	private RandomAccessFile raf;
-	
-	public MediaStreamer(long length, RandomAccessFile raf) throws IOException {
+	private final RandomAccessFile raf;
+
+	public MediaStreamer(final long length, final RandomAccessFile raf) throws IOException {
 		//logger.info("request stream of {} data", length / 1024);
 		if (length < 0) {
 			throw new IOException("Wrong size of the file to stream: " + length);
@@ -28,34 +28,34 @@ public class MediaStreamer implements StreamingOutput {
 	}
 	
 	@Override
-	public void write(OutputStream outputStream) {
+	public void write(final OutputStream outputStream) {
 		try {
-			while (length != 0) {
-				int read = raf.read(buf, 0, buf.length > length ? (int) length : buf.length);
+			while (this.length != 0) {
+				final int read = this.raf.read(this.buf, 0, this.buf.length > this.length ? (int) this.length : this.buf.length);
 				try {
-					outputStream.write(buf, 0, read);
-				} catch (IOException ex) {
+					outputStream.write(this.buf, 0, read);
+				} catch (final IOException ex) {
 					LOGGER.info("remote close connection");
 					break;
 				}
-				length -= read;
+				this.length -= read;
 			}
-		} catch (IOException ex) {
+		} catch (final IOException ex) {
 			throw new InternalServerErrorException(ex);
-		} catch (WebApplicationException ex) {
+		} catch (final WebApplicationException ex) {
 			throw new InternalServerErrorException(ex);
 		} finally {
 			try {
-				raf.close();
-			} catch (IOException ex) {
+				this.raf.close();
+			} catch (final IOException ex) {
 				ex.printStackTrace();
 				throw new InternalServerErrorException(ex);
 			}
 		}
 	}
-	
+
 	public long getLenth() {
-		return length;
+		return this.length;
 	}
-	
+
 }

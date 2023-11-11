@@ -623,7 +623,7 @@ public class DataAccess {
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
 		if (id == typeClass) {
-			throw new Exception("Request update with the wriong type ...");
+			throw new Exception("Request update with the wrong type ...");
 		}
 		// Udpade Json Value
 		return updateWithJson(clazz, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), jsonData);
@@ -638,15 +638,15 @@ public class DataAccess {
 		final List<String> keys = new ArrayList<>();
 		final var iterator = root.fieldNames();
 		iterator.forEachRemaining(e -> keys.add(e));
-		return update(data, condition, keys);
+		return updateWhere(data, condition, null, keys);
 	}
 
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id) throws Exception {
 		return update(data, id, null);
 	}
 
-	public static <T> int update(final T data, final QueryItem condition) throws Exception {
-		return update(data, condition, null);
+	public static <T> int updateWhere(final T data, final QueryItem condition) throws Exception {
+		return updateWhere(data, condition, null, null);
 	}
 	
 	/**
