@@ -73,7 +73,7 @@ public class DBEntry implements Closeable {
 		}
 		closeForce();
 	}
-
+	
 	public void closeForce() throws IOException {
 		try {
 			//connection.commit();
@@ -87,5 +87,6 @@ public class DBEntry implements Closeable {
 		for (final DBEntry entry : stored) {
 			entry.closeForce();
 		}
+		stored = new ArrayList<>();
 	}
 }
