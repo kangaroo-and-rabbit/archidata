@@ -26,6 +26,7 @@ import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
 import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
 import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -274,7 +275,7 @@ public class DataAccess {
 				ps.setString(iii.value, tmp.toString());
 			}
 		} else {
-			throw new Exception("Unknown Field Type");
+			throw new DataAccessException("Unknown Field Type");
 		}
 		iii.inc();
 	}
@@ -430,7 +431,7 @@ public class DataAccess {
 				// TODO: maybe do something stupid if not exist ???
 			}
 		} else {
-			throw new Exception("Unknown Field Type");
+			throw new DataAccessException("Unknown Field Type");
 		}
 		count.inc();
 	}
@@ -448,6 +449,15 @@ public class DataAccess {
 		return null;
 	}
 	
+	public static <T> List<T> insertMultiple(final List<T> data, final QueryOptions options) throws Exception {
+		final List<T> out = new ArrayList<>();
+		for (final T elem : data) {
+			final T tmp = insert(elem, options);
+			out.add(tmp);
+		}
+		return out;
+	}
+
 	public static <T> T insert(final T data) throws Exception {
 		return insert(data, null);
 	}
@@ -603,6 +613,20 @@ public class DataAccess {
 		return insert(data);
 	}
 
+	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey) throws Exception {
+		// Find the ID field type ....
+		final Field idField = AnnotationTools.getIdField(clazz);
+		if (idField == null) {
+			throw new DataAccessException("The class have no annotation @Id ==> can not determine the default type searching");
+		}
+		// check the compatibility of the id and the declared ID
+		final Class<?> typeClass = idField.getType();
+		if (idKey == typeClass) {
+			throw new DataAccessException("Request update with the wrong type ...");
+		}
+		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
+	}
+
 	/**
 	 * Update an object with the inserted json data
 	 *
@@ -615,21 +639,10 @@ public class DataAccess {
 	 * @throws Exception
 	 */
 	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData) throws Exception {
-		// Find the ID field type ....
-		final Field idField = AnnotationTools.getIdField(clazz);
-		if (idField == null) {
-			throw new Exception("The class have no annotation @Id ==> can not determine the default type searching");
-		}
-		// check the compatibility of the id and the declared ID
-		final Class<?> typeClass = idField.getType();
-		if (id == typeClass) {
-			throw new Exception("Request update with the wrong type ...");
-		}
-		// Udpade Json Value
-		return updateWithJson(clazz, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), jsonData);
+		return updateWhereWithJson(clazz, getTableIdCondition(clazz, id), jsonData);
 	}
 
-	public static <T> int updateWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData) throws Exception {
+	public static <T> int updateWhereWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData) throws Exception {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
@@ -659,17 +672,7 @@ public class DataAccess {
 	 * @throws Exception
 	 */
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> filterValue) throws Exception {
-		// Find the ID field type ....
-		final Field idField = AnnotationTools.getIdField(data.getClass());
-		if (idField == null) {
-			throw new Exception("The class have no annotation @Id ==> can not determine the default type searching");
-		}
-		// check the compatibility of the id and the declared ID
-		final Class<?> typeClass = idField.getType();
-		if (id == typeClass) {
-			throw new Exception("Request update with the wriong type ...");
-		}
-		return updateWhere(data, new QueryCondition(AnnotationTools.getFieldName(idField), "=", id), null, filterValue);
+		return updateWhere(data, getTableIdCondition(data.getClass(), id), null, filterValue);
 	}
 
 	public static <T> int updateWhere(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
@@ -799,7 +802,7 @@ public class DataAccess {
 		} else if (value.getClass().isEnum()) {
 			ps.setString(iii.value, value.toString());
 		} else {
-			throw new Exception("Not manage type ==> need to add it ...");
+			throw new DataAccessException("Not manage type ==> need to add it ...");
 		}
 	}
 
@@ -1014,25 +1017,12 @@ public class DataAccess {
 	}
 	
 	// TODO : detect the @Id
-	public static <T> T get(final Class<T> clazz, final long id) throws Exception {
+	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id) throws Exception {
 		return get(clazz, id, null);
 	}
 
-	public static <T> T get(final Class<T> clazz, final long id, final QueryOptions options) throws Exception {
-		Field primaryKeyField = null;
-		for (final Field elem : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-				continue;
-			}
-			if (AnnotationTools.isPrimaryKey(elem)) {
-				primaryKeyField = elem;
-			}
-		}
-		if (primaryKeyField != null) {
-			return DataAccess.getWhere(clazz, new QueryCondition(AnnotationTools.getFieldName(primaryKeyField), "=", id), options);
-		}
-		throw new Exception("Missing primary Key...");
+	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
+		return DataAccess.getWhere(clazz, getTableIdCondition(clazz, id), options);
 	}
 
 	public static String getCurrentTimeStamp() {
@@ -1048,11 +1038,11 @@ public class DataAccess {
 	}
 
 	// TODO : detect the @Id
-	public static int delete(final Class<?> clazz, final long id) throws Exception {
+	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id) throws Exception {
 		return delete(clazz, id, null);
 	}
 
-	public static int delete(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
+	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
 			return deleteSoft(clazz, id, options);
@@ -1070,8 +1060,8 @@ public class DataAccess {
 		}
 	}
 
-	public static int deleteHard(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
-		return deleteHardWhere(clazz, new QueryCondition("id", "=", id), options);
+	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
+		return deleteHardWhere(clazz, getTableIdCondition(clazz, id), options);
 	}
 
 	public static int deleteHardWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
@@ -1097,8 +1087,8 @@ public class DataAccess {
 		}
 	}
 
-	private static int deleteSoft(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
-		return deleteSoftWhere(clazz, new QueryCondition("id", "=", id), options);
+	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
+		return deleteSoftWhere(clazz, getTableIdCondition(clazz, id), options);
 	}
 
 	public static String getDBNow() {
@@ -1148,19 +1138,19 @@ public class DataAccess {
 		}
 	}
 	
-	public static int unsetDelete(final Class<?> clazz, final long id) throws Exception {
-		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id), null);
+	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws Exception {
+		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), null);
 	}
 	
-	public static int unsetDelete(final Class<?> clazz, final long id, final QueryOptions options) throws Exception {
-		return unsetDeleteWhere(clazz, new QueryCondition("id", "=", id), options);
+	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
+		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), options);
 	}
 
 	public static int unsetDeleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
-			throw new Exception("The class " + clazz.getCanonicalName() + " has no deleted field");
+			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
 		}
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder query = new StringBuilder();

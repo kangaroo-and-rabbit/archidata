@@ -20,6 +20,7 @@ import org.kar.archidata.dataAccess.QueryItem;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.QueryOr;
 import org.kar.archidata.dataAccess.addOn.model.LinkTable;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.util.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,43 +32,43 @@ import jakarta.validation.constraints.NotNull;
 public class AddOnManyToMany implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 	static final String SEPARATOR = "-";
-
+	
 	@Override
 	public Class<?> getAnnotationClass() {
 		return ManyToMany.class;
 	}
-
+	
 	@Override
 	public String getSQLFieldType(final Field elem) {
 		return null;
 	}
-
+	
 	@Override
 	public boolean isCompatibleField(final Field elem) {
 		final ManyToMany decorators = elem.getDeclaredAnnotation(ManyToMany.class);
 		return decorators != null;
 	}
-
+	
 	@Override
 	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
-
+		
 	}
-
+	
 	@Override
 	public boolean canInsert(final Field field) {
 		return false;
 	}
-
+	
 	@Override
 	public boolean canRetrieve(final Field field) {
 		return true;
 	}
-
+	
 	public static String generateLinkTableNameField(final String tableName, final Field field) throws Exception {
 		final String name = AnnotationTools.getFieldName(field);
 		return generateLinkTableName(tableName, name);
 	}
-
+	
 	public static String generateLinkTableName(final String tableName, final String name) {
 		String localName = name;
 		if (name.endsWith("s")) {
@@ -75,10 +76,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		return tableName + "_link_" + localName;
 	}
-
+	
 	public void generateConcatQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry,
 			@NotNull final String name, @NotNull final CountInOut elemCount, final QueryOptions options) {
-		
+
 		final String linkTableName = generateLinkTableName(tableName, name);
 		final String tmpVariable = "tmp_" + Integer.toString(elemCount.value);
 		querrySelect.append(" (SELECT GROUP_CONCAT(");
@@ -120,7 +121,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		*/
 		elemCount.inc();
 	}
-
+	
 	@Override
 	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
 			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
@@ -137,13 +138,13 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		if (objectClass == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
-				throw new Exception("EAGER is not supported for list of element...");
+				throw new DataAccessException("EAGER is not supported for list of element...");
 			} else {
 				generateConcatQuerry(tableName, field, querrySelect, querry, name, elemCount, options);
 			}
 		}
 	}
-
+	
 	@Override
 	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
@@ -161,7 +162,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		if (objectClass == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
-				throw new Exception("EAGER is not supported for list of element...");
+				throw new DataAccessException("EAGER is not supported for list of element...");
 			} else {
 				final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR);
 				//field.set(data, idList);
@@ -186,16 +187,16 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			}
 		}
 	}
-
+	
 	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		final LinkTable insertElement = new LinkTable(localKey, remoteKey);
 		final QueryOptions options = new QueryOptions(QueryOptions.OVERRIDE_TABLE_NAME, linkTableName);
 		DataAccess.insert(insertElement, options);
-
+		
 	}
-
+	
 	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
@@ -203,7 +204,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final QueryAnd condition = new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey));
 		return DataAccess.deleteWhere(LinkTable.class, condition, options);
 	}
-
+	
 	@Override
 	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {

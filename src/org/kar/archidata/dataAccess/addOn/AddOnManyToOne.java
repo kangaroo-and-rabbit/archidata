@@ -13,6 +13,7 @@ import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +23,12 @@ import jakarta.validation.constraints.NotNull;
 
 public class AddOnManyToOne implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
-	
+
 	@Override
 	public Class<?> getAnnotationClass() {
 		return ManyToOne.class;
 	}
-	
+
 	@Override
 	public String getSQLFieldType(final Field elem) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(elem);
@@ -39,13 +40,13 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public boolean isCompatibleField(final Field elem) {
 		final ManyToOne decorators = elem.getDeclaredAnnotation(ManyToOne.class);
 		return decorators != null;
 	}
-	
+
 	@Override
 	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws Exception {
 		final Object data = field.get(rootObject);
@@ -59,7 +60,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final Object uid = idField.get(data);
 			if (uid == null) {
 				ps.setNull(iii.value, Types.BIGINT);
-				throw new Exception("Not implemented adding subClasses ==> add it manualy before...");
+				throw new DataAccessException("Not implemented adding subClasses ==> add it manualy before...");
 			} else {
 				final Long dataLong = (Long) uid;
 				ps.setLong(iii.value, dataLong);
@@ -67,7 +68,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		}
 		iii.inc();
 	}
-	
+
 	@Override
 	public boolean canInsert(final Field field) {
 		if (field.getType() == Long.class) {
@@ -79,7 +80,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean canRetrieve(final Field field) {
 		if (field.getType() == Long.class) {
@@ -91,7 +92,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
 			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
@@ -130,14 +131,14 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				return;
 			}
 		}
-		
+
 		/*
 		SELECT k.id, r.id
 		FROM `right` k
 		LEFT OUTER JOIN `rightDescription` r ON k.rightDescriptionId=r.id
 		*/
 	}
-	
+
 	@Override
 	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() == Long.class) {
@@ -179,7 +180,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			}
 		}
 	}
-	
+
 	// TODO : refacto this table to manage a generic table with dynamic name to be serialisable with the default system
 	@Override
 	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
