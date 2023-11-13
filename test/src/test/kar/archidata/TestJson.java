@@ -26,26 +26,26 @@ import test.kar.archidata.model.SimpleTable;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestJson.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigBaseVariable.dbType = "sqlite";
 		ConfigBaseVariable.dbHost = "memory";
 		// for test we need to connect all time the DB
 		ConfigBaseVariable.dbKeepConnected = "true";
-		
+
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
@@ -64,17 +64,17 @@ public class TestJson {
 		test.data.data = "plopppopql";
 
 		final SerializeAsJson insertedData = DataAccess.insert(test);
-		
+
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 		Assertions.assertNotNull(insertedData.data);
 		Assertions.assertNotNull(insertedData.data.data);
 		Assertions.assertEquals(test.data.data, insertedData.data.data);
-		
+
 		// Try to retrieve all the data:
 		final SerializeAsJson retrieve = DataAccess.get(SerializeAsJson.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertTrue(retrieve.id >= 0);
@@ -82,5 +82,5 @@ public class TestJson {
 		Assertions.assertNotNull(retrieve.data.data);
 		Assertions.assertEquals(test.data.data, retrieve.data.data);
 	}
-	
+
 }

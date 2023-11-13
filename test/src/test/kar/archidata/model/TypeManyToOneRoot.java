@@ -11,9 +11,9 @@ public class TypeManyToOneRoot {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
-	
+
 	public String otherData;
-	
+
 	@ManyToOne(targetEntity = TypeManyToOneRemote.class)
 	@Column(nullable = false)
 	public Long remoteId;

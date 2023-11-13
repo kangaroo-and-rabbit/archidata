@@ -19,14 +19,14 @@ public class MediaStreamer implements StreamingOutput {
 	private final RandomAccessFile raf;
 
 	public MediaStreamer(final long length, final RandomAccessFile raf) throws IOException {
-		//logger.info("request stream of {} data", length / 1024);
+		// logger.info("request stream of {} data", length / 1024);
 		if (length < 0) {
 			throw new IOException("Wrong size of the file to stream: " + length);
 		}
 		this.length = length;
 		this.raf = raf;
 	}
-	
+
 	@Override
 	public void write(final OutputStream outputStream) {
 		try {

@@ -33,23 +33,16 @@ import com.nimbusds.jwt.SignedJWT;
 
 class TestSigner implements JWSSigner {
 	public static String test_signature = "TEST_SIGNATURE_FOR_LOCAL_TEST_AND_TEST_E2E";
-	
-	/**
-	 * Signs the specified {@link JWSObject#getSigningInput input} of a
-	 * {@link JWSObject JWS object}.
+
+	/** Signs the specified {@link JWSObject#getSigningInput input} of a {@link JWSObject JWS object}.
 	 *
-	 * @param header       The JSON Web Signature (JWS) header. Must
-	 *                     specify a supported JWS algorithm and must not
-	 *                     be {@code null}.
+	 * @param header The JSON Web Signature (JWS) header. Must specify a supported JWS algorithm and must not be {@code null}.
 	 * @param signingInput The input to sign. Must not be {@code null}.
 	 *
 	 * @return The resulting signature part (third part) of the JWS object.
 	 *
-	 * @throws JOSEException If the JWS algorithm is not supported, if a
-	 *                       critical header parameter is not supported or
-	 *                       marked for deferral to the application, or if
-	 *                       signing failed for some other internal reason.
-	 */
+	 * @throws JOSEException If the JWS algorithm is not supported, if a critical header parameter is not supported or marked for deferral to the application, or if signing failed for some other
+	 *             internal reason. */
 	@Override
 	public Base64URL sign(final JWSHeader header, final byte[] signingInput) throws JOSEException {
 		return new Base64URL(test_signature);
@@ -87,7 +80,7 @@ public class JWTWrapper {
 	public static void initLocalTokenRemote(final String ssoUri, final String application) throws IOException, ParseException {
 		// check Token:
 		final URL obj = new URL(ssoUri + "public_key");
-		//LOGGER.debug("Request token from: {}", obj);
+		// LOGGER.debug("Request token from: {}", obj);
 		final HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 		con.setRequestMethod("GET");
 		con.setRequestProperty("User-Agent", application);
@@ -100,7 +93,7 @@ public class JWTWrapper {
 		}
 		final int responseCode = con.getResponseCode();
 
-		//LOGGER.debug("GET Response Code :: {}", responseCode);
+		// LOGGER.debug("GET Response Code :: {}", responseCode);
 		if (responseCode == HttpURLConnection.HTTP_OK) { // success
 			final BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
@@ -111,7 +104,7 @@ public class JWTWrapper {
 			}
 			in.close();
 			// print result
-			//LOGGER.debug(response.toString());
+			// LOGGER.debug(response.toString());
 			final ObjectMapper mapper = new ObjectMapper();
 			final PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
 			rsaPublicJWK = RSAKey.parse(values.key);
@@ -169,25 +162,19 @@ public class JWTWrapper {
 		return rsaPublicJWK.toRSAPublicKey();
 	}
 
-	/**
-	 * Create a token with the provided elements
+	/** Create a token with the provided elements
 	 * @param userID UniqueId of the USER (global unique ID)
 	 * @param userLogin Login of the user (never change)
 	 * @param isuer The one who provide the Token
 	 * @param timeOutInMunites Expiration of the token.
-	 * @return the encoded token
-	 */
+	 * @return the encoded token */
 	public static String generateJWToken(final long userID, final String userLogin, final String isuer, final String application, final Map<String, Object> rights, final int timeOutInMunites) {
 		if (rsaJWK == null) {
 			LOGGER.warn("JWT private key is not present !!!");
 			return null;
 		}
-		/*
-		LOGGER.debug(" ===> expire in : " + timeOutInMunites);
-		LOGGER.debug(" ===>" + new Date().getTime());
-		LOGGER.debug(" ===>" + new Date(new Date().getTime()));
-		LOGGER.debug(" ===>" + new Date(new Date().getTime() - 60 * timeOutInMunites * 1000));
-		*/
+		/* LOGGER.debug(" ===> expire in : " + timeOutInMunites); LOGGER.debug(" ===>" + new Date().getTime()); LOGGER.debug(" ===>" + new Date(new Date().getTime())); LOGGER.debug(" ===>" + new
+		 * Date(new Date().getTime() - 60 * timeOutInMunites * 1000)); */
 		try {
 			// Create RSA-signer with the private key
 			final JWSSigner signer = new RSASSASigner(rsaJWK);
@@ -206,7 +193,7 @@ public class JWTWrapper {
 			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
+			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
 
 			// Compute the RSA signature
 			signedJWT.sign(signer);
@@ -222,7 +209,7 @@ public class JWTWrapper {
 		try {
 			// On the consumer side, parse the JWS and verify its RSA signature
 			final SignedJWT signedJWT = SignedJWT.parse(signedToken);
-			
+
 			if (rsaPublicJWK == null) {
 				LOGGER.warn("JWT public key is not present !!!");
 				if (!ConfigBaseVariable.getTestMode()) {
@@ -253,8 +240,8 @@ public class JWTWrapper {
 				// TODO: verify the token is used for the correct application.
 			}
 			// the element must be validated outside ...
-			//LOGGER.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
-			//LOGGER.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
+			// LOGGER.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
+			// LOGGER.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 			return signedJWT.getJWTClaimsSet();
 		} catch (final JOSEException ex) {
 			ex.printStackTrace();
@@ -271,10 +258,10 @@ public class JWTWrapper {
 		}
 		try {
 			final int timeOutInMunites = 3600 * 24 * 31;
-			
+
 			final Date now = new Date();
 			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
-			
+
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID)).claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
@@ -283,11 +270,11 @@ public class JWTWrapper {
 			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/*.keyID(rsaJWK.getKeyID())*/.build(), claimsSet);
-			
+			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
+
 			// Compute the RSA signature
 			signedJWT.sign(new TestSigner());
-			
+
 			// serialize the output...
 			return signedJWT.serialize();
 		} catch (final Exception ex) {

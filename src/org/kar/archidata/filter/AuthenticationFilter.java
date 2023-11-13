@@ -49,15 +49,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	public AuthenticationFilter(final String applicationName) {
 		this.applicationName = applicationName;
 	}
-	
+
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
-		/*
-		logger.debug("-----------------------------------------------------");
-		logger.debug("----          Check if have authorization        ----");
-		logger.debug("-----------------------------------------------------");
-		logger.debug("   for:{}", requestContext.getUriInfo().getPath());
-		*/
+		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
+		 * logger.debug("-----------------------------------------------------"); logger.debug("   for:{}", requestContext.getUriInfo().getPath()); */
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
 		if (method.isAnnotationPresent(DenyAll.class)) {
@@ -66,9 +62,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			return;
 		}
 
-		//Access allowed for all
+		// Access allowed for all
 		if (method.isAnnotationPresent(PermitAll.class)) {
-			//logger.debug("   ==> permit all " + requestContext.getUriInfo().getPath());
+			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
 			// no control ...
 			return;
 		}
@@ -81,7 +77,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 		// Get the Authorization header from the request
 		String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
-		//logger.debug("authorizationHeader: {}", authorizationHeader);
+		// logger.debug("authorizationHeader: {}", authorizationHeader);
 		if (authorizationHeader == null && method.isAnnotationPresent(PermitTokenInURI.class)) {
 			final MultivaluedMap<String, String> quaryparam = requestContext.getUriInfo().getQueryParameters();
 			for (final Entry<String, List<String>> item : quaryparam.entrySet()) {
@@ -106,7 +102,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		if (isJwtToken) {
 			// Extract the token from the Authorization header (Remove "Yota ")
 			final String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
-			//logger.debug("token: {}", token);
+			// logger.debug("token: {}", token);
 			try {
 				userByToken = validateJwtToken(token);
 			} catch (final Exception e) {
@@ -122,7 +118,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		} else {
 			// Extract the token from the Authorization header (Remove "Zota ")
 			final String token = authorizationHeader.substring(AUTHENTICATION_TOKEN_SCHEME.length()).trim();
-			//logger.debug("token: {}", token);
+			// logger.debug("token: {}", token);
 			try {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
@@ -151,7 +147,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				break;
 			}
 		}
-		//Is user valid?
+		// Is user valid?
 		if (!haveRight) {
 			this.logger.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
 			requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Not enought RIGHT !!!").build());
@@ -193,7 +189,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 	// must be override to be good implementation
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
-		//logger.debug(" validate token : " + authorization);
+		// logger.debug(" validate token : " + authorization);
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
@@ -216,8 +212,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				this.logger.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName, rights);
 			}
 		}
-		//logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
+		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
 		return user;
-		//return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
+		// return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
 	}
 }

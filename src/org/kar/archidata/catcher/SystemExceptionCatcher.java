@@ -10,17 +10,17 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 
 public class SystemExceptionCatcher implements ExceptionMapper<SystemException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SystemExceptionCatcher.class);
-	
+
 	@Override
-	public Response toResponse(SystemException exception) {
-		RestErrorResponse ret = build(exception);
+	public Response toResponse(final SystemException exception) {
+		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		exception.printStackTrace();
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
-	
-	private RestErrorResponse build(SystemException exception) {
+
+	private RestErrorResponse build(final SystemException exception) {
 		return new RestErrorResponse(exception.status, "System error", exception.getMessage());
 	}
-	
+
 }

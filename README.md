@@ -14,10 +14,26 @@ mvn clean compile assembly:single
 generic interface for all KAR web application
 
 
+
+Somes tools:
+============
+
+Auto-update dependency:
+-----------------------
+
 auto-update to the last version dependency:
 
 ```bash
 mvn versions:use-latest-versions
+```
+
+Format the code
+---------------
+
+Simply run the cmd-line:
+
+```bash
+mvn formatter:format
 ```
 
 

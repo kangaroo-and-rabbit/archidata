@@ -12,27 +12,27 @@ public class RestErrorResponse {
 	public String message;
 	final public int status;
 	final public String statusMessage;
-	
-	public RestErrorResponse(Response.Status status, String time, String error, String message) {
+
+	public RestErrorResponse(final Response.Status status, final String time, final String error, final String message) {
 		this.time = time;
 		this.error = error;
 		this.message = message;
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-	
-	public RestErrorResponse(Response.Status status, String error, String message) {
+
+	public RestErrorResponse(final Response.Status status, final String error, final String message) {
 		this.time = Instant.now().toString();
 		this.error = error;
 		this.message = message;
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-	
-	public RestErrorResponse(Response.Status status) {
+
+	public RestErrorResponse(final Response.Status status) {
 		this.time = Instant.now().toString();
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-	
+
 }

@@ -30,26 +30,26 @@ import test.kar.archidata.model.TypesTable;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTypes {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypes.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigBaseVariable.dbType = "sqlite";
 		ConfigBaseVariable.dbHost = "memory";
 		// for test we need to connect all time the DB
 		ConfigBaseVariable.dbKeepConnected = "true";
-		
+
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -70,10 +70,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -82,7 +82,7 @@ public class TestTypes {
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(3)
 	@Test
 	public void testLong() throws Exception {
@@ -93,10 +93,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -105,7 +105,7 @@ public class TestTypes {
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(4)
 	@Test
 	public void testfloat() throws Exception {
@@ -116,10 +116,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -139,16 +139,16 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertNotNull(retrieve.doubleData);
 		Assertions.assertEquals(insertedData.doubleData, retrieve.doubleData);
-		
+
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
 
@@ -162,10 +162,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -185,10 +185,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -208,10 +208,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -231,10 +231,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -243,7 +243,7 @@ public class TestTypes {
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(10)
 	@Test
 	public void testTimeStamp() throws Exception {
@@ -255,22 +255,22 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		LOGGER.debug("Retreive Timestamp = {}", retrieve.timeStampData);
 		Assertions.assertNotNull(retrieve.timeStampData);
 		// Can not compare the exact timestamp due to aproximation and model of storing data :
-		//Assertions.assertEquals(insertedData.timeStampData, retrieve.timeStampData);
+		// Assertions.assertEquals(insertedData.timeStampData, retrieve.timeStampData);
 		Assertions.assertEquals(insertedData.timeStampData.toInstant().toEpochMilli(), retrieve.timeStampData.toInstant().toEpochMilli());
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(11)
 	@Test
 	public void testDate() throws Exception {
@@ -282,10 +282,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -295,7 +295,7 @@ public class TestTypes {
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(12)
 	@Test
 	public void testLocalDate() throws Exception {
@@ -307,10 +307,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -320,7 +320,7 @@ public class TestTypes {
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(13)
 	@Test
 	public void testLocalTime() throws Exception {
@@ -332,10 +332,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -360,10 +360,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -382,7 +382,7 @@ public class TestTypes {
 
 		// Get new data
 		final TypesTable retrieve2 = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
 		Assertions.assertEquals(insertedData.id, retrieve2.id);
@@ -401,7 +401,7 @@ public class TestTypes {
 
 		// Get new data
 		final TypesTable retrieve3 = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve3);
 		Assertions.assertNotNull(retrieve3.id);
 		Assertions.assertEquals(insertedData.id, retrieve3.id);
@@ -411,10 +411,10 @@ public class TestTypes {
 		// note: retreive2
 		Assertions.assertEquals(retrieve2.booleanData, retrieve3.booleanData);
 		Assertions.assertNull(retrieve3.varcharData);
-		
+
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
-	
+
 	@Order(15)
 	@Test
 	public void testTextUpdateJson() throws Exception {
@@ -427,10 +427,10 @@ public class TestTypes {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesTable retrieve = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -453,7 +453,7 @@ public class TestTypes {
 
 		// Get new data
 		final TypesTable retrieve2 = DataAccess.get(TypesTable.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
 		Assertions.assertEquals(insertedData.id, retrieve2.id);
@@ -462,7 +462,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve2.booleanData);
 		Assertions.assertEquals(retrieve.booleanData, retrieve2.booleanData);
 		Assertions.assertNull(retrieve2.varcharData);
-		
+
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}
 

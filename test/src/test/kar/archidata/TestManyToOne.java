@@ -58,7 +58,7 @@ public class TestManyToOne {
 			DataAccess.executeSimpleQuerry(elem, false);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testAddAlements() throws Exception {
@@ -71,7 +71,7 @@ public class TestManyToOne {
 		remote.data = "remote2";
 		final TypeManyToOneRemote insertedRemote2 = DataAccess.insert(remote);
 		Assertions.assertEquals(insertedRemote2.data, remote.data);
-		
+
 		final TypeManyToOneRoot test = new TypeManyToOneRoot();
 		test.otherData = "kjhlkjlkj";
 		test.remoteId = insertedRemote2.id;
@@ -101,9 +101,9 @@ public class TestManyToOne {
 		// remove values:
 		final int count = DataAccess.delete(TypeManyToOneRemote.class, remote.id);
 		Assertions.assertEquals(1, count);
-		
+
 		// check fail:
-		
+
 		retrieve = DataAccess.get(TypeManyToOneRoot.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);

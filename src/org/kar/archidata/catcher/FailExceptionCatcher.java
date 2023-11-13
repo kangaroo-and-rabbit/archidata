@@ -10,18 +10,18 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 
 public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FailExceptionCatcher.class);
-	
+
 	@Override
-	public Response toResponse(FailException exception) {
-		RestErrorResponse ret = build(exception);
+	public Response toResponse(final FailException exception) {
+		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		// Not display backtrace ==> this may be a normal case ...
-		//exception.printStackTrace();
+		// exception.printStackTrace();
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
-	
-	private RestErrorResponse build(FailException exception) {
+
+	private RestErrorResponse build(final FailException exception) {
 		return new RestErrorResponse(exception.status, "Request Fail", exception.getMessage());
 	}
-	
+
 }

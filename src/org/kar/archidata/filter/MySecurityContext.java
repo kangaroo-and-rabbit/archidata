@@ -8,42 +8,42 @@ import jakarta.ws.rs.core.SecurityContext;
 
 // https://simplapi.wordpress.com/2015/09/19/jersey-jax-rs-securitycontext-in-action/
 class MySecurityContext implements SecurityContext {
-	
+
 	private final GenericContext contextPrincipale;
 	private final String sheme;
-	
-	public MySecurityContext(UserByToken userByToken, String sheme) {
+
+	public MySecurityContext(final UserByToken userByToken, final String sheme) {
 		this.contextPrincipale = new GenericContext(userByToken);
 		this.sheme = sheme;
 	}
-	
+
 	@Override
 	public Principal getUserPrincipal() {
-		return contextPrincipale;
+		return this.contextPrincipale;
 	}
-	
+
 	@Override
-	public boolean isUserInRole(String role) {
-		if (contextPrincipale.userByToken != null) {
-			Object value = this.contextPrincipale.userByToken.right.get(role);
-			if (value instanceof Boolean ret) {
+	public boolean isUserInRole(final String role) {
+		if (this.contextPrincipale.userByToken != null) {
+			final Object value = this.contextPrincipale.userByToken.right.get(role);
+			if (value instanceof final Boolean ret) {
 				return ret;
 			}
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean isSecure() {
-		return sheme.equalsIgnoreCase("https");
+		return this.sheme.equalsIgnoreCase("https");
 	}
-	
+
 	@Override
 	public String getAuthenticationScheme() {
-		if (contextPrincipale.userByToken != null) {
+		if (this.contextPrincipale.userByToken != null) {
 			return "Zota";
 		}
 		return null;
 	}
-	
+
 }

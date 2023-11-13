@@ -84,10 +84,10 @@ public class DataAccess {
 			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
 			final PreparedStatement ps = entry.connection.prepareStatement("show databases");
 			final ResultSet rs = ps.executeQuery();
-			//LOGGER.info("List all tables:      equals? '{}'", name);
+			// LOGGER.info("List all tables: equals? '{}'", name);
 			while (rs.next()) {
 				final String data = rs.getString(1);
-				//LOGGER.info("  - '{}'", data);
+				// LOGGER.info(" - '{}'", data);
 				if (name.equals(data)) {
 					return true;
 				}
@@ -132,7 +132,7 @@ public class DataAccess {
 						WHERE type = 'table'
 						AND name = ?;
 						""";
-				//  PreparedStatement ps = entry.connection.prepareStatement("show tables");
+				// PreparedStatement ps = entry.connection.prepareStatement("show tables");
 				final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 				final PreparedStatement ps = entry.connection.prepareStatement(request);
 				ps.setString(1, name);
@@ -144,10 +144,10 @@ public class DataAccess {
 				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
 				final PreparedStatement ps = entry.connection.prepareStatement("show tables");
 				final ResultSet rs = ps.executeQuery();
-				//LOGGER.info("List all tables:      equals? '{}'", name);
+				// LOGGER.info("List all tables: equals? '{}'", name);
 				while (rs.next()) {
 					final String data = rs.getString(1);
-					//LOGGER.info("  - '{}'", data);
+					// LOGGER.info(" - '{}'", data);
 					if (name.equals(data)) {
 						return true;
 					}
@@ -162,13 +162,11 @@ public class DataAccess {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 
-	/**
-	 * extract a list of "-" separated element from a SQL input data.
+	/** extract a list of "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
 	 * @param iii Id in the result set
-	 * @return The list  of Long value
-	 * @throws SQLException if an error is generated in the sql request.
-	 */
+	 * @return The list of Long value
+	 * @throws SQLException if an error is generated in the sql request. */
 	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator) throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
@@ -279,7 +277,7 @@ public class DataAccess {
 		}
 		iii.inc();
 	}
-	
+
 	// TODO: maybe wrap this if the use of sqlite ==> maybe some problems came with sqlite ...
 	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
 		if (type == Long.class) {
@@ -287,14 +285,14 @@ public class DataAccess {
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
-				//logger.debug("       ==> {}", tmp);
+				// logger.debug(" ==> {}", tmp);
 				field.set(data, tmp);
 				countNotNull.inc();
 			}
 		} else if (type == long.class) {
 			final Long tmp = rs.getLong(count.value);
 			if (rs.wasNull()) {
-				//field.set(data, null);
+				// field.set(data, null);
 			} else {
 				field.setLong(data, tmp);
 				countNotNull.inc();
@@ -310,7 +308,7 @@ public class DataAccess {
 		} else if (type == int.class) {
 			final Integer tmp = rs.getInt(count.value);
 			if (rs.wasNull()) {
-				//field.set(data, null);
+				// field.set(data, null);
 			} else {
 				field.setInt(data, tmp);
 				countNotNull.inc();
@@ -326,7 +324,7 @@ public class DataAccess {
 		} else if (type == float.class) {
 			final Float tmp = rs.getFloat(count.value);
 			if (rs.wasNull()) {
-				//field.set(data, null);
+				// field.set(data, null);
 			} else {
 				field.setFloat(data, tmp);
 				countNotNull.inc();
@@ -342,7 +340,7 @@ public class DataAccess {
 		} else if (type == double.class) {
 			final Double tmp = rs.getDouble(count.value);
 			if (rs.wasNull()) {
-				//field.set(data, null);
+				// field.set(data, null);
 			} else {
 				field.setDouble(data, tmp);
 				countNotNull.inc();
@@ -358,7 +356,7 @@ public class DataAccess {
 		} else if (type == boolean.class) {
 			final Boolean tmp = rs.getBoolean(count.value);
 			if (rs.wasNull()) {
-				//field.set(data, null);
+				// field.set(data, null);
 			} else {
 				field.setBoolean(data, tmp);
 				countNotNull.inc();
@@ -448,7 +446,7 @@ public class DataAccess {
 		}
 		return null;
 	}
-	
+
 	public static <T> List<T> insertMultiple(final List<T> data, final QueryOptions options) throws Exception {
 		final List<T> out = new ArrayList<>();
 		for (final T elem : data) {
@@ -461,15 +459,15 @@ public class DataAccess {
 	public static <T> T insert(final T data) throws Exception {
 		return insert(data, null);
 	}
-	
+
 	public static <T> T insert(final T data, final QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
-		
+
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		// real add in the BDD:
 		try {
 			final String tableName = AnnotationTools.getTableName(clazz, options);
-			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder query = new StringBuilder();
 			query.append("INSERT INTO `");
 			query.append(tableName);
@@ -594,7 +592,7 @@ public class DataAccess {
 					LOGGER.error("Can not manage the primary filed !!!");
 				}
 			}
-			//ps.execute();
+			// ps.execute();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -627,17 +625,15 @@ public class DataAccess {
 		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
 	}
 
-	/**
-	 * Update an object with the inserted json data
+	/** Update an object with the inserted json data
 	 *
 	 * @param <T> Type of the object to insert
 	 * @param <ID_TYPE> Master key on the object manage with @Id
 	 * @param clazz Class reference of the insertion model
 	 * @param id Key to insert data
-	 * @param jsonData Json data  (partial) values to update
+	 * @param jsonData Json data (partial) values to update
 	 * @return the number of object updated
-	 * @throws Exception
-	 */
+	 * @throws Exception */
 	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData) throws Exception {
 		return updateWhereWithJson(clazz, getTableIdCondition(clazz, id), jsonData);
 	}
@@ -661,29 +657,26 @@ public class DataAccess {
 	public static <T> int updateWhere(final T data, final QueryItem condition) throws Exception {
 		return updateWhere(data, condition, null, null);
 	}
-	
-	/**
-	 *
-	 * @param <T>
+
+	/** @param <T>
 	 * @param data
 	 * @param id
 	 * @param filterValue
 	 * @return the affected rows.
-	 * @throws Exception
-	 */
+	 * @throws Exception */
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> filterValue) throws Exception {
 		return updateWhere(data, getTableIdCondition(data.getClass(), id), null, filterValue);
 	}
 
 	public static <T> int updateWhere(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
 		final Class<?> clazz = data.getClass();
-		//public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
+		// public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		// real add in the BDD:
 		try {
 			final String tableName = AnnotationTools.getTableName(clazz, options);
-			//boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
+			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder query = new StringBuilder();
 			query.append("UPDATE `");
 			query.append(tableName);
@@ -761,7 +754,7 @@ public class DataAccess {
 				}
 			}
 			whereInjectValue(ps, condition, iii);
-			
+
 			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -830,7 +823,7 @@ public class DataAccess {
 		}
 		query.append(" WHERE (");
 		condition.generateQuerry(query, tableName);
-
+		
 		query.append(") ");
 		if (exclude_deleted && deletedFieldName != null) {
 			query.append("AND ");
@@ -896,7 +889,7 @@ public class DataAccess {
 		final boolean readAllfields = QueryOptions.readAllFields(options);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		boolean firstField = true;
-		
+
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
@@ -1015,7 +1008,7 @@ public class DataAccess {
 		}
 		return data;
 	}
-	
+
 	// TODO : detect the @Id
 	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id) throws Exception {
 		return get(clazz, id, null);
@@ -1068,7 +1061,7 @@ public class DataAccess {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
-		
+
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder query = new StringBuilder();
 		query.append("DELETE FROM `");
@@ -1101,12 +1094,7 @@ public class DataAccess {
 	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		/*
-		String updateFieldName = null;
-		if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) {
-			updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
-		}
-		*/
+		/* String updateFieldName = null; if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) { updateFieldName = AnnotationTools.getUpdatedFieldName(clazz); } */
 		// find the deleted field
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -1116,15 +1104,8 @@ public class DataAccess {
 		query.append("` SET `");
 		query.append(deletedFieldName);
 		query.append("`=true ");
-		/*
-		 * The trigger work well, but the timestamp is store @ seconds...
-		if (updateFieldName != null) {
-			// done only in SQLite (the trigger does not work...
-			query.append(", `");
-			query.append(updateFieldName);
-			query.append("`=DATE()");
-		}
-		*/
+		/* The trigger work well, but the timestamp is store @ seconds... if (updateFieldName != null) { // done only in SQLite (the trigger does not work... query.append(", `");
+		 * query.append(updateFieldName); query.append("`=DATE()"); } */
 		whereAppendQuery(query, tableName, condition, null, deletedFieldName);
 		try {
 			LOGGER.debug("APPLY UPDATE: {}", query.toString());
@@ -1137,11 +1118,11 @@ public class DataAccess {
 			entry = null;
 		}
 	}
-	
+
 	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws Exception {
 		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), null);
 	}
-	
+
 	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
 		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), options);
 	}
@@ -1159,12 +1140,7 @@ public class DataAccess {
 		query.append("` SET `");
 		query.append(deletedFieldName);
 		query.append("`=false ");
-		/*
-		 * is is needed only for SQLite ???
-		query.append("`modify_date`=");
-		query.append(getDBNow());
-		query.append(", ");
-		*/
+		/* is is needed only for SQLite ??? query.append("`modify_date`="); query.append(getDBNow()); query.append(", "); */
 		// need to disable the deleted false because the model must be unselected to be updated.
 		options.put(QueryOptions.SQL_DELETED_DISABLE, true);
 		whereAppendQuery(query, tableName, condition, options, deletedFieldName);
@@ -1178,5 +1154,5 @@ public class DataAccess {
 			entry = null;
 		}
 	}
-	
+
 }

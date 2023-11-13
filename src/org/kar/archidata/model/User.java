@@ -33,7 +33,7 @@ import jakarta.persistence.Table;
 public class User extends GenericDataSoftDelete {
 	@Column(length = 128)
 	public String login = null;
-	
+
 	public Timestamp lastConnection = null;
 	@DataDefault("'0'")
 	@Column(nullable = false)
@@ -44,13 +44,13 @@ public class User extends GenericDataSoftDelete {
 	@DataDefault("'0'")
 	@Column(nullable = false)
 	public boolean removed = false;
-	
+
 	@ManyToMany(fetch = FetchType.LAZY, targetEntity = Data.class)
 	public List<Long> covers;
-	
+
 	@Override
 	public String toString() {
-		return "User [login=" + login + ", last=" + lastConnection + ", admin=" + admin + "]";
+		return "User [login=" + this.login + ", last=" + this.lastConnection + ", admin=" + this.admin + "]";
 	}
-	
+
 }

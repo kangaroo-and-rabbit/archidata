@@ -53,10 +53,10 @@ public class TestOneToMany {
 			DataAccess.executeSimpleQuerry(elem, false);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testPlop() throws Exception {
-		
+
 	}
 }

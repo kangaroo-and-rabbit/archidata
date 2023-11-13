@@ -29,7 +29,7 @@ public class AnnotationTools {
 		}
 		return AnnotationTools.getTableName(clazz);
 	}
-	
+
 	public static String getTableName(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
 		if (annotation.length == 0) {
@@ -153,11 +153,11 @@ public class AnnotationTools {
 	public static boolean isDeletedField(final Field element) throws Exception {
 		return element.getDeclaredAnnotationsByType(DataDeleted.class).length != 0;
 	}
-	
+
 	public static boolean isCreatedAtField(final Field element) throws Exception {
 		return element.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 	}
-	
+
 	public static boolean isUpdateAtField(final Field element) throws Exception {
 		return element.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 	}
@@ -220,15 +220,15 @@ public class AnnotationTools {
 		}
 		return null;
 	}
-	
+
 	public static List<String> getFieldsNames(final Class<?> clazz) throws Exception {
 		return getFieldsNamesFilter(clazz, false);
 	}
-	
+
 	public static List<String> getAllFieldsNames(final Class<?> clazz) throws Exception {
 		return getFieldsNamesFilter(clazz, true);
 	}
-	
+
 	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) throws Exception {
 		final List<String> out = new ArrayList<>();
 		for (final Field field : clazz.getFields()) {

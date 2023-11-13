@@ -24,23 +24,19 @@ import jakarta.validation.constraints.NotNull;
 public class AddOnOneToMany implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 
-	/**
-	 * Convert the list if external id in a string '-' separated
+	/** Convert the list if external id in a string '-' separated
 	 * @param ids List of value (null are removed)
-	 * @return '-' string separated
-	 */
+	 * @return '-' string separated */
 	protected static String getStringOfIds(final List<Long> ids) {
 		final List<Long> tmp = new ArrayList<>(ids);
 		return tmp.stream().map(String::valueOf).collect(Collectors.joining("-"));
 	}
 
-	/**
-	 * extract a list of "-" separated element from a SQL input data.
+	/** extract a list of "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
 	 * @param iii Id in the result set
-	 * @return The list  of Long value
-	 * @throws SQLException if an error is generated in the sql request.
-	 */
+	 * @return The list of Long value
+	 * @throws SQLException if an error is generated in the sql request. */
 	protected static List<Long> getListOfIds(final ResultSet rs, final int iii) throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
@@ -95,7 +91,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	public boolean canInsert(final Field field) {
 		return false;
 	}
-	
+
 	@Override
 	public boolean canRetrieve(final Field field) {
 		return false;
@@ -117,7 +113,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		final Long foreignKey = rs.getLong(count.value);
 		count.inc();
 		if (!rs.wasNull()) {
-			
+
 			field.set(data, foreignKey);
 		}
 	}

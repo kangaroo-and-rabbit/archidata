@@ -132,11 +132,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			}
 		}
 
-		/*
-		SELECT k.id, r.id
-		FROM `right` k
-		LEFT OUTER JOIN `rightDescription` r ON k.rightDescriptionId=r.id
-		*/
+		/* SELECT k.id, r.id FROM `right` k LEFT OUTER JOIN `rightDescription` r ON k.rightDescriptionId=r.id */
 	}
 
 	@Override

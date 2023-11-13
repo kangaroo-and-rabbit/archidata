@@ -26,26 +26,26 @@ import test.kar.archidata.model.TypesEnum1;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTypeEnum1 {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeEnum1.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigBaseVariable.dbType = "sqlite";
 		ConfigBaseVariable.dbHost = "memory";
 		// for test we need to connect all time the DB
 		ConfigBaseVariable.dbKeepConnected = "true";
-		
+
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -66,10 +66,10 @@ public class TestTypeEnum1 {
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesEnum1 retrieve = DataAccess.get(TypesEnum1.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);

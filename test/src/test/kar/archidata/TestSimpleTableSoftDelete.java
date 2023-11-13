@@ -33,30 +33,30 @@ public class TestSimpleTableSoftDelete {
 	private static final String DATA_INJECTED_2 = "qsdfqsdfqsdfsqdf";
 	private static Long idOfTheObject = null;
 	private static Timestamp startAction = null;
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigBaseVariable.dbType = "sqlite";
 		ConfigBaseVariable.dbHost = "memory";
 		// for test we need to connect all time the DB
 		ConfigBaseVariable.dbKeepConnected = "true";
-		
+
 		// Clear the static test:
 		idOfTheObject = null;
 		startAction = null;
-		
+
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
@@ -69,14 +69,14 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED;
 		final SimpleTableSoftDelete insertedData = DataAccess.insert(test);
-		
+
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -86,13 +86,13 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertNull(retrieve.deleted);
 		TestSimpleTableSoftDelete.idOfTheObject = retrieve.id;
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
 		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, new QueryOptions(QueryOptions.SQL_NOT_READ_DISABLE, true));
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -107,7 +107,7 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertNotNull(retrieve.deleted);
 		Assertions.assertEquals(false, retrieve.deleted);
 	}
-	
+
 	@Order(3)
 	@Test
 	public void testUpdateData() throws Exception {
@@ -116,7 +116,7 @@ public class TestSimpleTableSoftDelete {
 		} else {
 			Thread.sleep(Duration.ofMillis(15));
 		}
-		
+
 		// Delete the entry:
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
@@ -134,7 +134,7 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertNotNull(retrieve.deleted);
 		Assertions.assertEquals(false, retrieve.deleted);
 	}
-	
+
 	@Order(4)
 	@Test
 	public void testSoftDeleteTheObject() throws Exception {
@@ -148,11 +148,11 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
 		Assertions.assertNull(retrieve);
 	}
-	
+
 	@Order(5)
 	@Test
 	public void testReadDeletedObject() throws Exception {
-		
+
 		// check if we set get deleted element
 		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, new QueryOptions(QueryOptions.SQL_DELETED_DISABLE, true));
 		Assertions.assertNotNull(retrieve);
@@ -162,9 +162,9 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertNull(retrieve.createdAt);
 		Assertions.assertNull(retrieve.updatedAt);
 		Assertions.assertNull(retrieve.deleted);
-		
+
 	}
-	
+
 	@Order(6)
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
@@ -181,6 +181,6 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertTrue(retrieve.updatedAt.after(retrieve.createdAt));
 		Assertions.assertNotNull(retrieve.deleted);
 		Assertions.assertEquals(true, retrieve.deleted);
-		
+
 	}
 }

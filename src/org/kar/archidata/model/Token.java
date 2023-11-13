@@ -9,18 +9,18 @@ public class Token {
 	public String token;
 	public String createTime;
 	public String endValidityTime;
-	
+
 	public Token() {}
-	
-	public Token(long id, long userId, String token, String createTime, String endValidityTime) {
+
+	public Token(final long id, final long userId, final String token, final String createTime, final String endValidityTime) {
 		this.id = id;
 		this.userId = userId;
 		this.token = token;
 		this.createTime = createTime;
 		this.endValidityTime = endValidityTime;
 	}
-	
-	public Token(ResultSet rs) {
+
+	public Token(final ResultSet rs) {
 		int iii = 1;
 		try {
 			this.id = rs.getLong(iii++);
@@ -28,13 +28,13 @@ public class Token {
 			this.token = rs.getString(iii++);
 			this.createTime = rs.getString(iii++);
 			this.endValidityTime = rs.getString(iii++);
-		} catch (SQLException ex) {
+		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		}
 	}
-	
+
 	@Override
 	public String toString() {
-		return "Token{" + "id=" + id + ", userId=" + userId + ", token='" + token + '\'' + ", createTime=" + createTime + ", endValidityTime=" + endValidityTime + '}';
+		return "Token{" + "id=" + this.id + ", userId=" + this.userId + ", token='" + this.token + '\'' + ", createTime=" + this.createTime + ", endValidityTime=" + this.endValidityTime + '}';
 	}
 }

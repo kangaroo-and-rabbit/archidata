@@ -14,7 +14,7 @@ public class TypeManyToOneRootExpand {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
-	
+
 	public String otherData;
 
 	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeManyToOneRemote.class)

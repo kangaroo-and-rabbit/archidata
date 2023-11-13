@@ -14,9 +14,9 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
-import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
 import org.kar.archidata.model.Data;
 import org.slf4j.Logger;
@@ -26,104 +26,88 @@ import jakarta.ws.rs.core.Response;
 
 public class DataTools {
 	private final static Logger LOGGER = LoggerFactory.getLogger(DataTools.class);
-	
+
 	public final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	public final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
-	/**
-	 * Upload some data
-	 */
+	/** Upload some data */
 	private static long tmpFolderId = 1;
-	
-	public static void createFolder(String path) throws IOException {
+
+	public static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
 			LOGGER.info("Create folder: " + path);
 			Files.createDirectories(java.nio.file.Path.of(path));
 		}
 	}
-	
+
 	public static long getTmpDataId() {
 		return tmpFolderId++;
 	}
-	
-	public static String getTmpFileInData(long tmpFolderId) {
-		String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
+
+	public static String getTmpFileInData(final long tmpFolderId) {
+		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return filePath;
 	}
-	
+
 	public static String getTmpFolder() {
-		String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
+		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return filePath;
 	}
-	
-	public static String getFileData(long tmpFolderId) {
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator + "data";
+
+	public static String getFileData(final long tmpFolderId) {
+		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator + "data";
 		try {
 			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return filePath;
 	}
-	
-	public static Data getWithSha512(String sha512) {
+
+	public static Data getWithSha512(final String sha512) {
 		try {
 			return DataAccess.getWhere(Data.class, new QueryCondition("sha512", "=", sha512));
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
 	}
-	
-	public static Data getWithId(long id) {
+
+	public static Data getWithId(final long id) {
 		try {
 			return DataAccess.getWhere(Data.class, new QueryAnd(List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id))));
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
 	}
-	
-	public static Data createNewData(long tmpUID, String originalFileName, String sha512) throws IOException, SQLException {
+
+	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512) throws IOException, SQLException {
 		// determine mime type:
 		String mimeType = "";
-		String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
-		switch (extension.toLowerCase()) {
-			case "jpg":
-			case "jpeg":
-				mimeType = "image/jpeg";
-				break;
-			case "png":
-				mimeType = "image/png";
-				break;
-			case "webp":
-				mimeType = "image/webp";
-				break;
-			case "mka":
-				mimeType = "audio/x-matroska";
-				break;
-			case "mkv":
-				mimeType = "video/x-matroska";
-				break;
-			case "webm":
-				mimeType = "video/webm";
-				break;
-			default:
-				throw new IOException("Can not find the mime type of data input: '" + extension + "'");
-		}
-		String tmpPath = getTmpFileInData(tmpUID);
-		long fileSize = Files.size(Paths.get(tmpPath));
+		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
+		mimeType = switch (extension.toLowerCase()) {
+		case "jpg", "jpeg" -> "image/jpeg";
+		case "png" -> "image/png";
+		case "webp" -> "image/webp";
+		case "mka" -> "audio/x-matroska";
+		case "mkv" -> "video/x-matroska";
+		case "webm" -> "video/webm";
+		default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
+		};
+		final String tmpPath = getTmpFileInData(tmpUID);
+		final long fileSize = Files.size(Paths.get(tmpPath));
 		Data out = new Data();
 		;
 		try {
@@ -131,62 +115,62 @@ public class DataTools {
 			out.mimeType = mimeType;
 			out.size = fileSize;
 			out = DataAccess.insert(out);
-		} catch (SQLException ex) {
+		} catch (final SQLException ex) {
 			ex.printStackTrace();
 			return null;
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
-		
-		String mediaPath = getFileData(out.id);
+
+		final String mediaPath = getFileData(out.id);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
-		
+
 		LOGGER.info("Move done");
 		// all is done the file is correctly installed...
 		return out;
 	}
-	
-	public static void undelete(Long id) {
+
+	public static void undelete(final Long id) {
 		try {
 			DataAccess.unsetDelete(Data.class, id);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-	
-	public static String saveTemporaryFile(InputStream uploadedInputStream, long idData) {
+
+	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData) {
 		return saveFile(uploadedInputStream, getTmpFileInData(idData));
 	}
-	
-	public static void removeTemporaryFile(long idData) {
-		String filepath = getTmpFileInData(idData);
+
+	public static void removeTemporaryFile(final long idData) {
+		final String filepath = getTmpFileInData(idData);
 		if (Files.exists(Paths.get(filepath))) {
 			try {
 				Files.delete(Paths.get(filepath));
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				LOGGER.info("can not delete temporary file : {}", Paths.get(filepath));
 				e.printStackTrace();
 			}
 		}
 	}
-	
+
 	// save uploaded file to a defined location on the server
-	public static String saveFile(InputStream uploadedInputStream, String serverLocation) {
+	public static String saveFile(final InputStream uploadedInputStream, final String serverLocation) {
 		String out = "";
 		try {
 			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			int read = 0;
-			byte[] bytes = new byte[CHUNK_SIZE_IN];
-			MessageDigest md = MessageDigest.getInstance("SHA-512");
-			
+			final byte[] bytes = new byte[CHUNK_SIZE_IN];
+			final MessageDigest md = MessageDigest.getInstance("SHA-512");
+
 			outpuStream = new FileOutputStream(new File(serverLocation));
 			while ((read = uploadedInputStream.read(bytes)) != -1) {
-				//logger.debug("write {}", read);
+				// logger.debug("write {}", read);
 				md.update(bytes, 0, read);
 				outpuStream.write(bytes, 0, read);
 			}
@@ -194,41 +178,36 @@ public class DataTools {
 			outpuStream.flush();
 			outpuStream.close();
 			// create the end of sha512
-			byte[] sha512Digest = md.digest();
+			final byte[] sha512Digest = md.digest();
 			// convert in hexadecimal
 			out = bytesToHex(sha512Digest);
 			uploadedInputStream.close();
-		} catch (IOException ex) {
+		} catch (final IOException ex) {
 			LOGGER.error("Can not write in temporary file ... ");
 			ex.printStackTrace();
-		} catch (NoSuchAlgorithmException ex) {
+		} catch (final NoSuchAlgorithmException ex) {
 			LOGGER.error("Can not find sha512 algorithms");
 			ex.printStackTrace();
 		}
 		return out;
 	}
-	
+
 	// curl http://localhost:9993/api/users/3
-	//@Secured
-	/*
-	@GET
-	@Path("{id}")
-	//@RolesAllowed("GUEST")
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	public Response retriveData(@HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception {
-	    return retriveDataFull(range, id, "no-name");
-	}
-	*/
-	
-	public static String bytesToHex(byte[] bytes) {
-		StringBuilder sb = new StringBuilder();
-		for (byte b : bytes) {
+	// @Secured
+	/* @GET
+	 * @Path("{id}") //@RolesAllowed("GUEST")
+	 * @Produces(MediaType.APPLICATION_OCTET_STREAM) public Response retriveData(@HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception { return retriveDataFull(range, id,
+	 * "no-name"); } */
+
+	public static String bytesToHex(final byte[] bytes) {
+		final StringBuilder sb = new StringBuilder();
+		for (final byte b : bytes) {
 			sb.append(String.format("%02x", b));
 		}
 		return sb.toString();
 	}
-	
-	public static String multipartCorrection(String data) {
+
+	public static String multipartCorrection(final String data) {
 		if (data == null) {
 			return null;
 		}
@@ -240,40 +219,40 @@ public class DataTools {
 		}
 		return data;
 	}
-	
-	public static <T> Response uploadCover(Class<T> clazz, Long id, String fileName, InputStream fileInputStream, FormDataContentDisposition fileMetaData) {
+
+	public static <T> Response uploadCover(final Class<T> clazz, final Long id, String fileName, final InputStream fileInputStream, final FormDataContentDisposition fileMetaData) {
 		try {
 			// correct input string stream :
 			fileName = multipartCorrection(fileName);
-			
-			//public NodeSmall uploadFile(final FormDataMultiPart form) {
+
+			// public NodeSmall uploadFile(final FormDataMultiPart form) {
 			LOGGER.info("Upload media file: {}", fileMetaData);
 			LOGGER.info("    - id: {}", id);
 			LOGGER.info("    - file_name: ", fileName);
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
-			T media = DataAccess.get(clazz, id);
+			final T media = DataAccess.get(clazz, id);
 			if (media == null) {
 				return Response.notModified("Media Id does not exist or removed...").build();
 			}
-			
-			long tmpUID = getTmpDataId();
-			String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+
+			final long tmpUID = getTmpDataId();
+			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
 			Data data = getWithSha512(sha512);
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");
 				try {
 					data = createNewData(tmpUID, fileName, sha512);
-				} catch (IOException ex) {
+				} catch (final IOException ex) {
 					removeTemporaryFile(tmpUID);
 					ex.printStackTrace();
 					return Response.notModified("can not create input media").build();
-				} catch (SQLException ex) {
+				} catch (final SQLException ex) {
 					ex.printStackTrace();
 					removeTemporaryFile(tmpUID);
 					return Response.notModified("Error in SQL insertion ...").build();
 				}
-			} else if (data.deleted == true) {
+			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");
 				undelete(data.id);
 				data.deleted = false;
@@ -284,7 +263,7 @@ public class DataTools {
 			LOGGER.info("Find typeNode");
 			AddOnManyToMany.addLink(clazz, id, "cover", data.id);
 			return Response.ok(DataAccess.get(clazz, id)).build();
-		} catch (Exception ex) {
+		} catch (final Exception ex) {
 			System.out.println("Cat ann unexpected error ... ");
 			ex.printStackTrace();
 		}

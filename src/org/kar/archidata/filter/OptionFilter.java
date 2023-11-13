@@ -12,7 +12,7 @@ import jakarta.ws.rs.ext.Provider;
 @PreMatching
 public class OptionFilter implements ContainerRequestFilter {
 	@Override
-	public void filter(ContainerRequestContext requestContext) throws IOException {
+	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		if (requestContext.getMethod().contentEquals("OPTIONS")) {
 			requestContext.abortWith(Response.status(Response.Status.NO_CONTENT).build());
 		}

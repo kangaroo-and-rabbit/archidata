@@ -9,9 +9,8 @@ public class RESTErrorResponseExeption extends Exception {
 	public String message;
 	public int status;
 	public String statusMessage;
-	
+
 	public RESTErrorResponseExeption() {
-		super();
 		this.uuid = null;
 		this.time = null;
 		this.error = null;
@@ -19,9 +18,8 @@ public class RESTErrorResponseExeption extends Exception {
 		this.status = 0;
 		this.statusMessage = null;
 	}
-	
-	public RESTErrorResponseExeption(UUID uuid, String time, String error, String message, int status, String statusMessage) {
-		super();
+
+	public RESTErrorResponseExeption(final UUID uuid, final String time, final String error, final String message, final int status, final String statusMessage) {
 		this.uuid = uuid;
 		this.time = time;
 		this.error = error;
@@ -29,10 +27,11 @@ public class RESTErrorResponseExeption extends Exception {
 		this.status = status;
 		this.statusMessage = statusMessage;
 	}
-	
+
 	@Override
 	public String toString() {
-		return "RESTErrorResponseExeption [uuid=" + uuid + ", time=" + time + ", error=" + error + ", message=" + message + ", status=" + status + ", statusMessage=" + statusMessage + "]";
+		return "RESTErrorResponseExeption [uuid=" + this.uuid + ", time=" + this.time + ", error=" + this.error + ", message=" + this.message + ", status=" + this.status + ", statusMessage="
+				+ this.statusMessage + "]";
 	}
-	
+
 }

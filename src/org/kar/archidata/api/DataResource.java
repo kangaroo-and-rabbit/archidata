@@ -57,14 +57,12 @@ public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaType.class);
 	private final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
-	/**
-	 * Upload some datas
-	 */
+	/** Upload some datas */
 	private static long tmpFolderId = 1;
 
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
-			//Log.print("Create folder: " + path);
+			// Log.print("Create folder: " + path);
 			Files.createDirectories(java.nio.file.Path.of(path));
 		}
 	}
@@ -114,20 +112,20 @@ public class DataResource {
 		}
 		return null;
 	}
-	
+
 	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512) throws IOException {
 		// determine mime type:
 		Data injectedData = new Data();
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
 		mimeType = switch (extension.toLowerCase()) {
-			case "jpg", "jpeg" -> "image/jpeg";
-			case "png" -> "image/png";
-			case "webp" -> "image/webp";
-			case "mka" -> "audio/x-matroska";
-			case "mkv" -> "video/x-matroska";
-			case "webm" -> "video/webm";
-			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
+		case "jpg", "jpeg" -> "image/jpeg";
+		case "png" -> "image/png";
+		case "webp" -> "image/webp";
+		case "mka" -> "audio/x-matroska";
+		case "mkv" -> "video/x-matroska";
+		case "webm" -> "video/webm";
+		default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
 		};
 		injectedData.mimeType = mimeType;
 		injectedData.sha512 = sha512;
@@ -176,7 +174,7 @@ public class DataResource {
 
 			outpuStream = new FileOutputStream(new File(serverLocation));
 			while ((read = uploadedInputStream.read(bytes)) != -1) {
-				//logger.info("write {}", read);
+				// logger.info("write {}", read);
 				md.update(bytes, 0, read);
 				outpuStream.write(bytes, 0, read);
 			}
@@ -226,7 +224,7 @@ public class DataResource {
 		LOGGER.info("===================================================");
 		LOGGER.info("== DATA uploadFile {}", (gc == null ? "null" : gc.userByToken));
 		LOGGER.info("===================================================");
-		//public NodeSmall uploadFile(final FormDataMultiPart form) {
+		// public NodeSmall uploadFile(final FormDataMultiPart form) {
 		LOGGER.info("Upload file: ");
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
 		try {
@@ -236,7 +234,7 @@ public class DataResource {
 		}
 		saveFile(fileInputStream, filePath);
 		return Response.ok("Data uploaded successfully !!").build();
-		//return null;
+		// return null;
 	}
 
 	@GET
@@ -247,9 +245,9 @@ public class DataResource {
 	public Response retriveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		//logger.info("===================================================");
+		// logger.info("===================================================");
 		LOGGER.info("== DATA retriveDataId ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
-		//logger.info("===================================================");
+		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
 			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
@@ -262,13 +260,13 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@PermitTokenInURI
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	//@CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
+	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retriveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
-		//GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		//logger.info("===================================================");
-		//logger.info("== DATA retriveDataThumbnailId ? {}", (gc==null?"null":gc.user));
-		//logger.info("===================================================");
+		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
+		// logger.info("===================================================");
+		// logger.info("== DATA retriveDataThumbnailId ? {}", (gc==null?"null":gc.user));
+		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
@@ -279,7 +277,7 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-		//        || value.mimeType.contentEquals("image/webp")
+		// || value.mimeType.contentEquals("image/webp")
 		) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
@@ -302,7 +300,7 @@ public class DataResource {
 				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain").build();
 			}
 			final byte[] imageData = baos.toByteArray();
-			//Response.ok(new ByteArrayInputStream(imageData)).build();
+			// Response.ok(new ByteArrayInputStream(imageData)).build();
 			final Response.ResponseBuilder out = Response.ok(imageData).header(HttpHeaders.CONTENT_LENGTH, imageData.length);
 			out.type("image/jpeg");
 			// TODO: move this in a decorator !!!
@@ -315,7 +313,7 @@ public class DataResource {
 		return buildStream(filePathName, range, value.mimeType);
 	}
 
-	//@Secured
+	// @Secured
 	@GET
 	@Path("{id}/{name}")
 	@PermitTokenInURI
@@ -324,9 +322,9 @@ public class DataResource {
 	public Response retriveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		//logger.info("===================================================");
+		// logger.info("===================================================");
 		LOGGER.info("== DATA retriveDataFull ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
-		//logger.info("===================================================");
+		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
 			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
@@ -334,16 +332,14 @@ public class DataResource {
 		return buildStream(ConfigBaseVariable.getMediaDataFolder() + File.separator + id + File.separator + "data", range, value.mimeType);
 	}
 
-	/**
-	 * Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
+	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
 	 *
 	 * @param range range header
 	 * @return Streaming output
-	 * @throws Exception IOException if an error occurs in streaming.
-	 */
+	 * @throws Exception IOException if an error occurs in streaming. */
 	private Response buildStream(final String filename, final String range, final String mimeType) throws Exception {
 		final File file = new File(filename);
-		//logger.info("request range : {}", range);
+		// logger.info("request range : {}", range);
 		// range not requested : Firefox does not send range headers
 		if (range == null) {
 			final StreamingOutput output = new StreamingOutput() {
@@ -356,7 +352,7 @@ public class DataResource {
 							try {
 								out.write(buf, 0, len);
 								out.flush();
-								//logger.info("---- wrote {} bytes file ----", len);
+								// logger.info("---- wrote {} bytes file ----", len);
 							} catch (final IOException ex) {
 								LOGGER.info("remote close connection");
 								break;
@@ -378,8 +374,8 @@ public class DataResource {
 		final String[] ranges = range.split("=")[1].split("-");
 		final long from = Long.parseLong(ranges[0]);
 
-		//logger.info("request range : {}", ranges.length);
-		//Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
+		// logger.info("request range : {}", ranges.length);
+		// Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
 		long to = CHUNK_SIZE + from;
 		if (ranges.length == 1) {
 			to = file.length() - 1;
@@ -387,7 +383,7 @@ public class DataResource {
 			to = file.length() - 1;
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
-		//logger.info("responseRange: {}", responseRange);
+		// logger.info("responseRange: {}", responseRange);
 		final RandomAccessFile raf = new RandomAccessFile(file, "r");
 		raf.seek(from);
 

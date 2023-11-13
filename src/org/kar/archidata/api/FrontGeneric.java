@@ -28,7 +28,7 @@ public class FrontGeneric {
 		}
 		return "";
 	}
-	
+
 	private Response retrive(final String fileName) throws Exception {
 		String filePathName = this.baseFrontFolder + File.separator + fileName;
 		final String extention = getExtension(filePathName);
@@ -76,7 +76,7 @@ public class FrontGeneric {
 		}
 		final ResponseBuilder response = Response.ok(download);
 		// use this if I want to download the file:
-		//response.header("Content-Disposition", "attachment; filename=" + fileName);
+		// response.header("Content-Disposition", "attachment; filename=" + fileName);
 		final CacheControl cc = new CacheControl();
 		cc.setMaxAge(60);
 		cc.setNoCache(false);
@@ -88,8 +88,8 @@ public class FrontGeneric {
 
 	@GET
 	@PermitAll()
-	//@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	//@CacheMaxAge(time = 1, unit = TimeUnit.DAYS)
+	// @Produces(MediaType.APPLICATION_OCTET_STREAM)
+	// @CacheMaxAge(time = 1, unit = TimeUnit.DAYS)
 	public Response retrive0() throws Exception {
 		return retrive("index.html");
 	}
@@ -97,8 +97,8 @@ public class FrontGeneric {
 	@GET
 	@Path("{any: .*}")
 	@PermitAll()
-	//@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	//@CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
+	// @Produces(MediaType.APPLICATION_OCTET_STREAM)
+	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrive1(@PathParam("any") final List<PathSegment> segments) throws Exception {
 		String filename = "";
 		for (final PathSegment elem : segments) {

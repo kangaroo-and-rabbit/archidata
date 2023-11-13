@@ -31,11 +31,11 @@ public class ConfigBaseVariable {
 		ssoToken = System.getenv("SSO_TOKEN");
 		testMode = System.getenv("TEST_MODE");
 	}
-	
+
 	static {
 		clearAllValue();
 	}
-	
+
 	public static String getTmpDataFolder() {
 		if (tmpDataFolder == null) {
 			return "/application/data/tmp";
@@ -109,11 +109,11 @@ public class ConfigBaseVariable {
 	public static String getSSOAddress() {
 		return ssoAdress;
 	}
-	
+
 	public static String ssoToken() {
 		return ssoToken;
 	}
-	
+
 	public static boolean getTestMode() {
 		if (testMode == null) {
 			return false;

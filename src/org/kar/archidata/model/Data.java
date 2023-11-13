@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 @DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends GenericDataSoftDelete {
-	
+
 	@Column(length = 128, nullable = false)
 	@DataComment("Sha512 of the data")
 	public String sha512;

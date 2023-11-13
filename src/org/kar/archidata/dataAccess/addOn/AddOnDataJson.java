@@ -23,24 +23,24 @@ import jakarta.validation.constraints.NotNull;
 
 public class AddOnDataJson implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnDataJson.class);
-	
+
 	@Override
 	public Class<?> getAnnotationClass() {
 		return DataJson.class;
 	}
-	
+
 	@Override
 	public String getSQLFieldType(final Field elem) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(elem);
 		return DataFactory.convertTypeInSQL(String.class, fieldName);
 	}
-	
+
 	@Override
 	public boolean isCompatibleField(final Field elem) {
 		final DataJson decorators = elem.getDeclaredAnnotation(DataJson.class);
 		return decorators != null;
 	}
-	
+
 	@Override
 	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws Exception {
 		final Object data = field.get(rootObject);
@@ -52,17 +52,17 @@ public class AddOnDataJson implements DataAccessAddOn {
 		ps.setString(iii.value, dataString);
 		iii.inc();
 	}
-	
+
 	@Override
 	public boolean canInsert(final Field field) {
 		return true;
 	}
-	
+
 	@Override
 	public boolean canRetrieve(final Field field) {
 		return true;
 	}
-	
+
 	@Override
 	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
 			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
@@ -73,7 +73,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		elemCount.inc();
 		return;
 	}
-	
+
 	@Override
 	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		final String jsonData = rs.getString(count.value);
@@ -84,7 +84,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			field.set(data, dataParsed);
 		}
 	}
-	
+
 	@Override
 	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {

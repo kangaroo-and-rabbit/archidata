@@ -10,7 +10,7 @@ public class CountInOut {
 	public CountInOut(final int i) {
 		this.value = i;
 	}
-	
+
 	public void inc() {
 		this.value++;
 	}

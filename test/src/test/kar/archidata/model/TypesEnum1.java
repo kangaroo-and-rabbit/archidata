@@ -10,6 +10,6 @@ public class TypesEnum1 {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
-	
+
 	public Enum1ForTest data;
 }

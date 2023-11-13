@@ -16,7 +16,7 @@ public class TypeManyToManyRoot {
 	public Long id = null;
 
 	public String otherData;
-	
+
 	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyRemote.class)
 	public List<Long> remote;
 }

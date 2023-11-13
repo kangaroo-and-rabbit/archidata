@@ -10,7 +10,7 @@ public class TypeManyToOneRemote {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
-	
+
 	public String data;
-	
+
 }

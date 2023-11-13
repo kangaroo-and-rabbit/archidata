@@ -13,8 +13,8 @@ public class DBConfig {
 	private final String password;
 	private final String dbName;
 	private final boolean keepConnected;
-	
-	public DBConfig(String type, String hostname, Integer port, String login, String password, String dbName, boolean keepConnected) {
+
+	public DBConfig(final String type, final String hostname, final Integer port, final String login, final String password, final String dbName, final boolean keepConnected) {
 		if (type == null) {
 			this.type = "mysql";
 		} else {
@@ -35,43 +35,44 @@ public class DBConfig {
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
 	}
-	
+
 	@Override
 	public String toString() {
-		return "DBConfig{type='" + type + '\'' + ", hostname='" + hostname + '\'' + ", port=" + port + ", login='" + login + '\'' + ", password='" + password + '\'' + ", dbName='" + dbName + "' }";
+		return "DBConfig{type='" + this.type + '\'' + ", hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\'' + ", password='" + this.password + '\''
+				+ ", dbName='" + this.dbName + "' }";
 	}
-	
+
 	public String getHostname() {
-		return hostname;
+		return this.hostname;
 	}
-	
+
 	public int getPort() {
-		return port;
+		return this.port;
 	}
-	
+
 	public String getLogin() {
-		return login;
+		return this.login;
 	}
-	
+
 	public String getPassword() {
-		return password;
+		return this.password;
 	}
-	
+
 	public String getDbName() {
-		return dbName;
+		return this.dbName;
 	}
-	
+
 	public boolean getKeepConnected() {
-		return keepConnected;
+		return this.keepConnected;
 	}
-	
+
 	public String getUrl() {
 		return getUrl(false);
 	}
-	
-	public String getUrl(boolean isRoot) {
-		if (type.equals("sqlite")) {
-			if (isRoot == true) {
+
+	public String getUrl(final boolean isRoot) {
+		if (this.type.equals("sqlite")) {
+			if (isRoot) {
 				LOGGER.error("Can not manage root connection on SQLite...");
 			}
 			if (this.hostname.equals("memory")) {
