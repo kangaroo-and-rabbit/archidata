@@ -9,7 +9,7 @@ import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
 
 public class UserDB {
-	
+
 	public UserDB() {}
 
 	public static User getUsers(final long userId) throws Exception {
@@ -24,7 +24,7 @@ public class UserDB {
 		createUsersInfoFromOAuth(userId, userLogin);
 		return getUsers(userId);
 	}
-	
+
 	private static void createUsersInfoFromOAuth(final long userId, final String login) throws IOException {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final String query = "INSERT INTO `user` (`id`, `login`, `lastConnection`, `admin`, `blocked`, `removed`) VALUE (?,?,now(3),'0','0','0')";
