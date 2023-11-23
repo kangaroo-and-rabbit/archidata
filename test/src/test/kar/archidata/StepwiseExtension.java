@@ -5,7 +5,7 @@ import org.junit.jupiter.api.extension.ExecutionCondition;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 
-class StepwiseExtension implements ExecutionCondition, TestExecutionExceptionHandler {
+public class StepwiseExtension implements ExecutionCondition, TestExecutionExceptionHandler {
 	@Override
 	public ConditionEvaluationResult evaluateExecutionCondition(final ExtensionContext extensionContext) {
 		final ExtensionContext.Namespace namespace = namespaceFor(extensionContext);

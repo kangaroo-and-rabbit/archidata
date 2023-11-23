@@ -458,9 +458,9 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve2.id);
 		Assertions.assertEquals(insertedData.id, retrieve2.id);
 		Assertions.assertNotNull(retrieve2.textData);
-		Assertions.assertEquals(retrieve.textData, retrieve2.textData);
+		Assertions.assertEquals("test 2", retrieve2.textData);
 		Assertions.assertNotNull(retrieve2.booleanData);
-		Assertions.assertEquals(retrieve.booleanData, retrieve2.booleanData);
+		Assertions.assertEquals(true, retrieve2.booleanData);
 		Assertions.assertNull(retrieve2.varcharData);
 
 		DataAccess.delete(TypesTable.class, insertedData.id);

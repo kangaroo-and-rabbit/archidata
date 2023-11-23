@@ -75,12 +75,47 @@ public class MigrationEngine {
 		return null;
 	}
 
+	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
+	 * @param config SQL connection for the migration.
+	 * @throws InterruptedException user interrupt the migration */
+	public void migrateWaitAdmin(final DBConfig config) throws InterruptedException {
+		try {
+			migrateErrorThrow(config);
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			while (true) {
+				LOGGER.error("Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
+				Thread.sleep(60 * 60 * 1000);
+			}
+		}
+	}
+
 	/** Process the automatic migration of the system
 	 * @param config SQL connection for the migration
-	 * @throws InterruptedException user interrupt the migration
 	 * @throws IOException Error if access on the DB */
-	public void migrate(final DBConfig config) throws InterruptedException, IOException {
+	public void migrateErrorThrow(final DBConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
+
+		// check the integrity of the migrations:
+		for (final MigrationInterface elem : this.datas) {
+			if (elem == null) {
+				throw new MigrationException("Add a null migration");
+			}
+			if (elem == this.init) {
+				throw new MigrationException("Add a migration that is the initialization migration");
+			}
+			if (this.init != null && elem.getName().equals(this.init.getName())) {
+				throw new MigrationException("Two migration have the same name as initilaisation: " + elem.getName());
+			}
+			for (final MigrationInterface elemCheck : this.datas) {
+				if (elem == elemCheck) {
+					continue;
+				}
+				if (elem.getName().equals(elemCheck.getName())) {
+					throw new MigrationException("Two migration have the same name...: " + elem.getName());
+				}
+			}
+		}
 
 		// STEP 1: Check the DB exist:
 		LOGGER.info("Verify existance of '{}'", config.getDbName());
@@ -94,7 +129,12 @@ public class MigrationEngine {
 		while (!exist) {
 			LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", config.getDbName());
 			LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
-			Thread.sleep(30000);
+			try {
+				Thread.sleep(30000);
+			} catch (final InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			exist = DataAccess.isDBExist(config.getDbName());
 		}
 		LOGGER.info("DB '{}' exist.", config.getDbName());
@@ -109,57 +149,33 @@ public class MigrationEngine {
 				sqlQuery = DataFactory.createTable(Migration.class);
 			} catch (final Exception ex) {
 				ex.printStackTrace();
-				while (true) {
-					LOGGER.error("Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
-					Thread.sleep(60 * 60 * 1000);
-				}
+				throw new MigrationException("Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
 			}
 			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
 			try {
 				DataAccess.executeQuerry(sqlQuery.get(0));
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
-				while (true) {
-					LOGGER.error("Fail to create the local DB model for migaration ==> wait administrator interventions");
-					Thread.sleep(60 * 60 * 1000);
-				}
+				throw new MigrationException("Fail to create the local DB model for migaration ==> wait administrator interventions");
 			}
 		}
 		final Migration currentVersion = getCurrentVersion();
 		List<MigrationInterface> toApply = new ArrayList<>();
+		boolean needPlaceholder = false;
 		if (currentVersion == null) {
 			// This is a first migration
 			LOGGER.info("First installation of the system ==> Create the DB");
 			if (this.init == null) {
+				// No initialization class ==> manage a historical creation mode...
 				toApply = this.datas;
 			} else {
+				// Select Initialization class if it exist
 				toApply.add(this.init);
-			}
-			if (this.datas.size() == 0) {
-				// nothing to do the initialization model is alone and it is the first time
-			} else {
-				// we insert a placeholder to simulate all migration is well done.
-				final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
-				Migration migrationResult = new Migration();
-				migrationResult.id = 1000L;
-				migrationResult.name = placeholderName;
-				migrationResult.stepId = 0;
-				migrationResult.terminated = true;
-				migrationResult.count = 0;
-				migrationResult.log = "Place-holder for first initialization";
-				try {
-					migrationResult = DataAccess.insert(migrationResult);
-				} catch (final Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				needPlaceholder = true;
 			}
 		} else {
 			if (!currentVersion.terminated) {
-				while (true) {
-					LOGGER.error("An error occured in the last migration: '{}' defect @{}/{} ==> wait administrator interventions", currentVersion.name, currentVersion.stepId, currentVersion.count);
-					Thread.sleep(60 * 60 * 1000);
-				}
+				throw new MigrationException("An error occured in the last migration: '" + currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
 			}
 			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
 			boolean find = this.init != null && this.init.getName() == currentVersion.name;
@@ -177,16 +193,43 @@ public class MigrationEngine {
 				}
 			}
 		}
-		final DBEntry entry = DBEntry.createInterface(config);
-		final int id = 0;
-		final int count = toApply.size();
-		for (final MigrationInterface elem : toApply) {
-			migrateSingle(entry, elem, id, count);
+		DBEntry entry;
+		try {
+			entry = DBEntry.createInterface(config);
+			final int id = 0;
+			final int count = toApply.size();
+			for (final MigrationInterface elem : toApply) {
+				migrateSingle(entry, elem, id, count);
+			}
+		} catch (final IOException e) {
+			e.printStackTrace();
+			throw new MigrationException("An error occured in the migration (can not access to the DB): '" + currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
+		}
+		if (needPlaceholder) {
+			if (this.datas.size() == 0) {
+				// No placeholder needed, the model have no migration in the current version...
+			} else {
+				// we insert a placeholder to simulate the last migration is well done.
+				final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
+				Migration migrationResult = new Migration();
+				migrationResult.id = 1000L;
+				migrationResult.name = placeholderName;
+				migrationResult.stepId = 0;
+				migrationResult.terminated = true;
+				migrationResult.count = 0;
+				migrationResult.log = "Place-holder for first initialization";
+				try {
+					migrationResult = DataAccess.insert(migrationResult);
+				} catch (final Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 		LOGGER.info("Execute migration ... [ END ]");
 	}
 
-	public void migrateSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count) {
+	public void migrateSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count) throws MigrationException {
 		LOGGER.info("---------------------------------------------------------");
 		LOGGER.info("-- Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
 		LOGGER.info("---------------------------------------------------------");
@@ -220,16 +263,7 @@ public class MigrationEngine {
 			} catch (final Exception e) {
 				e.printStackTrace();
 			}
-			while (true) {
-				LOGGER.error("An error occured in the migration (OUTSIDE detection): '{}' defect @{}/{} ==> wait administrator interventions", migrationResult.name, migrationResult.stepId,
-						migrationResult.count);
-				try {
-					Thread.sleep(60 * 60 * 1000);
-				} catch (final InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+			throw new MigrationException("An error occured in the migration (OUTSIDE detection): '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 		}
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
