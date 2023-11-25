@@ -1,7 +1,7 @@
 package org.kar.archidata;
 
 import org.kar.archidata.db.DBConfig;
-import org.kar.archidata.util.ConfigBaseVariable;
+import org.kar.archidata.tools.ConfigBaseVariable;
 
 public class GlobalConfiguration {
 	public static DBConfig dbConfig = null;

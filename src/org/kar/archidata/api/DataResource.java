@@ -26,7 +26,7 @@ import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.filter.GenericContext;
 import org.kar.archidata.model.Data;
-import org.kar.archidata.util.ConfigBaseVariable;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

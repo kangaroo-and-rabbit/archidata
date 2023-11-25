@@ -1,4 +1,4 @@
-package org.kar.archidata.util;
+package org.kar.archidata.tools;
 
 public class ConfigBaseVariable {
 	static public String tmpDataFolder;

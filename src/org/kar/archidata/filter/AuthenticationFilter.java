@@ -13,7 +13,7 @@ import java.util.Map.Entry;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.catcher.RestErrorResponse;
 import org.kar.archidata.model.UserByToken;
-import org.kar.archidata.util.JWTWrapper;
+import org.kar.archidata.tools.JWTWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

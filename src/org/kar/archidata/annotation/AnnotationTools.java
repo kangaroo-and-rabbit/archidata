@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,11 +21,9 @@ public class AnnotationTools {
 
 	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws Exception {
 		if (options != null) {
-			final Object data = options.get(QueryOptions.OVERRIDE_TABLE_NAME);
-			if (data instanceof final String optionString) {
-				return optionString;
-			} else if (data != null) {
-				LOGGER.error("'{}' ==> has not a String value: {}", QueryOptions.SQL_DELETED_DISABLE, data);
+			final OverrideTableName data = options.get(OverrideTableName.class);
+			if (data != null) {
+				return data.getName();
 			}
 		}
 		return AnnotationTools.getTableName(clazz);

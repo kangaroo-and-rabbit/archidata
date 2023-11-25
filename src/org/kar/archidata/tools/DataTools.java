@@ -1,4 +1,4 @@
-package org.kar.archidata.util;
+package org.kar.archidata.tools;
 
 import java.io.File;
 import java.io.FileOutputStream;

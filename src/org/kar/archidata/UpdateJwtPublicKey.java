@@ -1,7 +1,7 @@
 package org.kar.archidata;
 
-import org.kar.archidata.util.ConfigBaseVariable;
-import org.kar.archidata.util.JWTWrapper;
+import org.kar.archidata.tools.ConfigBaseVariable;
+import org.kar.archidata.tools.JWTWrapper;
 
 public class UpdateJwtPublicKey extends Thread {
 	boolean kill = false;

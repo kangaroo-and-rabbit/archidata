@@ -1,55 +1,59 @@
 package org.kar.archidata.dataAccess;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+import org.kar.archidata.dataAccess.options.AccessDeletedItems;
+import org.kar.archidata.dataAccess.options.CreateDropTable;
+import org.kar.archidata.dataAccess.options.ReadAllColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryOptions {
 	static final Logger LOGGER = LoggerFactory.getLogger(QueryOptions.class);
-	public static final String SQL_NOT_READ_DISABLE = "SQLNotRead_disable";
-	public static final String SQL_DELETED_DISABLE = "SQLDeleted_disable";
-	public static final String OVERRIDE_TABLE_NAME = "SQL_OVERRIDE_TABLE_NAME";
-	public static final String CREATE_DROP_TABLE = "CREATE_DROP_TABLE";
+	public static final ReadAllColumn READ_ALL_COLOMN = new ReadAllColumn();
+	public static final AccessDeletedItems ACCESS_DELETED_ITEMS = new AccessDeletedItems();
+	public static final CreateDropTable CREATE_DROP_TABLE = new CreateDropTable();
 
-	private final Map<String, Object> options = new HashMap<>();
+	private final List<QueryOption> options = new ArrayList<>();
 
-	public QueryOptions() {
-
+	public QueryOptions(final QueryOption... elems) {
+		Collections.addAll(this.options, elems);
 	}
 
-	public QueryOptions(final String key, final Object value) {
-		this.options.put(key, value);
+	public QueryOptions() {}
+
+	public void add(final QueryOption option) {
+		this.options.add(option);
 	}
 
-	public QueryOptions(final String key, final Object value, final String key2, final Object value2) {
-		this.options.put(key, value);
-		this.options.put(key2, value2);
+	public List<QueryOption> getAll() {
+		return this.options;
 	}
 
-	public QueryOptions(final String key, final Object value, final String key2, final Object value2, final String key3, final Object value3) {
-		this.options.put(key, value);
-		this.options.put(key2, value2);
-		this.options.put(key3, value3);
-	}
-
-	public void put(final String key, final Object value) {
-		this.options.put(key, value);
-	}
-
-	public Object get(final String value) {
-		return this.options.get(value);
-	}
-
-	public static boolean readAllFields(final QueryOptions options) {
-		if (options != null) {
-			final Object data = options.get(QueryOptions.SQL_NOT_READ_DISABLE);
-			if (data instanceof final Boolean elem) {
-				return elem;
-			} else if (data != null) {
-				LOGGER.error("'{}' ==> has not a boolean value: {}", QueryOptions.SQL_NOT_READ_DISABLE, data);
+	@SuppressWarnings("unchecked")
+	public <T> T get(final Class<T> type) {
+		for (final QueryOption elem : this.options) {
+			if (elem.getClass() == type) {
+				return (T) elem;
 			}
+		}
+		return null;
+	}
+
+	public boolean exist(final Class<?> type) {
+		for (final QueryOption elem : this.options) {
+			if (elem.getClass() == type) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean readAllColomn(final QueryOptions options) {
+		if (options != null) {
+			return options.exist(ReadAllColumn.class);
 		}
 		return false;
 	}

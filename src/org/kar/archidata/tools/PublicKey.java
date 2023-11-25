@@ -1,4 +1,4 @@
-package org.kar.archidata.util;
+package org.kar.archidata.tools;
 
 public class PublicKey {
 	public String key;

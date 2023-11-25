@@ -12,8 +12,9 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.options.CreateDropTable;
 import org.kar.archidata.exception.DataAccessException;
-import org.kar.archidata.util.ConfigBaseVariable;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +24,7 @@ import jakarta.persistence.GenerationType;
 
 public class DataFactory {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactory.class);
-	
+
 	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws Exception {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			if (type == Long.class || type == long.class) {
@@ -126,21 +127,21 @@ public class DataFactory {
 		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
-	
+
 	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
 		final Integer limitSize = AnnotationTools.getLimitSize(elem);
 		final boolean notNull = AnnotationTools.getNotNull(elem);
-		
+
 		final boolean primaryKey = AnnotationTools.isPrimaryKey(elem);
 		final GenerationType strategy = AnnotationTools.getStrategy(elem);
-		
+
 		final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 		final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 		final String comment = AnnotationTools.getComment(elem);
 		final String defaultValue = AnnotationTools.getDefault(elem);
-		
+
 		if (fieldId == 0) {
 			mainTableBuilder.append("\n\t\t`");
 		} else {
@@ -193,13 +194,13 @@ public class DataFactory {
 						triggerBuilder.append(tableName);
 						triggerBuilder.append(" SET ");
 						triggerBuilder.append(name);
-						//triggerBuilder.append(" = datetime('now') WHERE id = NEW.id; \n");
+						// triggerBuilder.append(" = datetime('now') WHERE id = NEW.id; \n");
 						triggerBuilder.append(" = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = NEW.id; \n");
 						triggerBuilder.append("END;");
-						
+
 						postOtherTables.add(triggerBuilder.toString());
 					}
-					
+
 					mainTableBuilder.append(" ");
 				}
 			} else {
@@ -234,11 +235,11 @@ public class DataFactory {
 			mainTableBuilder.append("DEFAULT ");
 			mainTableBuilder.append(defaultValue);
 			mainTableBuilder.append(" ");
-			
+
 		}
 		if (primaryKey && "sqlite".equals(ConfigBaseVariable.getDBType())) {
 			mainTableBuilder.append("PRIMARY KEY ");
-			
+
 		}
 		if (strategy == GenerationType.IDENTITY) {
 			if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
@@ -249,14 +250,14 @@ public class DataFactory {
 		} else if (strategy != null) {
 			throw new DataAccessException("Can not generate a stategy different of IDENTITY");
 		}
-		
+
 		if (comment != null && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			mainTableBuilder.append("COMMENT '");
 			mainTableBuilder.append(comment.replace('\'', '\''));
 			mainTableBuilder.append("' ");
 		}
 	}
-	
+
 	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
@@ -276,24 +277,19 @@ public class DataFactory {
 		}
 		return false;
 	}
-	
+
 	public static List<String> createTable(final Class<?> clazz) throws Exception {
 		return createTable(clazz, null);
 	}
-	
+
 	public static List<String> createTable(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
-		
+
 		boolean createDrop = false;
 		if (options != null) {
-			final Object data = options.get(QueryOptions.CREATE_DROP_TABLE);
-			if (data instanceof final Boolean optionBoolean) {
-				createDrop = optionBoolean;
-			} else if (data != null) {
-				LOGGER.error("'{}' ==> has not a Boolean value: {}", QueryOptions.CREATE_DROP_TABLE, data);
-			}
+			createDrop = options.exist(CreateDropTable.class);
 		}
-		
+
 		final boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(DataIfNotExists.class).length != 0;
 		final List<String> preActionList = new ArrayList<>();
 		final List<String> postActionList = new ArrayList<>();
@@ -313,7 +309,7 @@ public class DataFactory {
 		int fieldId = 0;
 		LOGGER.debug("===> TABLE `{}`", tableName);
 		final List<String> primaryKeys = new ArrayList<>();
-		
+
 		for (final Field elem : clazz.getFields()) {
 			// DEtect the primary key (support only one primary key right now...
 			if (AnnotationTools.isPrimaryKey(elem)) {
@@ -394,5 +390,5 @@ public class DataFactory {
 		preActionList.addAll(postActionList);
 		return preActionList;
 	}
-	
+
 }

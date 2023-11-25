@@ -16,12 +16,12 @@ import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
-import org.kar.archidata.dataAccess.QueryItem;
+import org.kar.archidata.dataAccess.QueryInList;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.dataAccess.QueryOr;
 import org.kar.archidata.dataAccess.addOn.model.LinkTable;
+import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
-import org.kar.archidata.util.ConfigBaseVariable;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,12 +166,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final String idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass));
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
-						final List<QueryItem> childs = new ArrayList<>();
-						for (final Long elem : idList) {
-							childs.add(new QueryCondition(idField, "=", elem));
-						}
+						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new QueryOr(childs), options);
+						@SuppressWarnings("unchecked")
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new QueryInList<>(idField, childs), null);
 						if (foreignData == null) {
 							return;
 						}
@@ -187,7 +185,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		final LinkTable insertElement = new LinkTable(localKey, remoteKey);
-		final QueryOptions options = new QueryOptions(QueryOptions.OVERRIDE_TABLE_NAME, linkTableName);
+		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
 		DataAccess.insert(insertElement, options);
 
 	}
@@ -195,7 +193,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
-		final QueryOptions options = new QueryOptions(QueryOptions.OVERRIDE_TABLE_NAME, linkTableName);
+		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
 		final QueryAnd condition = new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey));
 		return DataAccess.deleteWhere(LinkTable.class, condition, options);
 	}
@@ -204,7 +202,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
 		final String linkTableName = generateLinkTableNameField(tableName, field);
-		final QueryOptions options = new QueryOptions(QueryOptions.OVERRIDE_TABLE_NAME, linkTableName);
+		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
 		final List<String> sqlCommand = DataFactory.createTable(LinkTable.class, options);
 		postActionList.addAll(sqlCommand);
 	}

@@ -14,7 +14,7 @@ import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.migration.MigrationEngine;
-import org.kar.archidata.util.ConfigBaseVariable;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +29,12 @@ public class TestMigrationFirstInit {
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
-		ConfigBaseVariable.dbType = "sqlite";
-		ConfigBaseVariable.dbHost = "memory";
-		// for test we need to connect all time the DB
-		ConfigBaseVariable.dbKeepConnected = "true";
+		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
+			ConfigBaseVariable.dbType = "sqlite";
+			ConfigBaseVariable.dbHost = "memory";
+			// for test we need to connect all time the DB
+			ConfigBaseVariable.dbKeepConnected = "true";
+		}
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
