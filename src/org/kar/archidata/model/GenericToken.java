@@ -15,10 +15,10 @@ import jakarta.persistence.Table;
 public class GenericToken extends GenericDataSoftDelete {
 	@Column(nullable = false)
 	public Long parentId;
-	@Column(nullable = false)
+	@Column(nullable = false, length = 0)
 	public String name;
 	@Column(nullable = false)
 	public Timestamp endValidityTime = null;
-	@Column(nullable = false)
+	@Column(nullable = false, length = 0)
 	public String token;
 }

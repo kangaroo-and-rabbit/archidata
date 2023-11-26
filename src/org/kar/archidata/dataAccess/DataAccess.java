@@ -40,8 +40,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.ws.rs.InternalServerErrorException;
 
+/* TODO list:
+   - useful code to manage external query: List<T> query<T>(class<T> clazz, String query, List<Object> parameters);
+		 ResultSet rs = stmt.executeQuery("SELECT a, b, c FROM TABLE2");
+		 ResultSetMetaData rsmd = rs.getMetaData();
+		 String name = rsmd.getColumnName(1);
+   - Manage to group of SQL action to permit to commit only at the end.
+
+ */
+
+/** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
+ * back-end. */
 public class DataAccess {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
+	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
 	static {
@@ -51,18 +63,10 @@ public class DataAccess {
 		addOn.add(new AddOnDataJson());
 	}
 
+	/** Add a new add-on on the current management.
+	 * @param addOn instantiate object on the Add-on */
 	public static void addAddOn(final DataAccessAddOn addOn) {
 		DataAccess.addOn.add(addOn);
-	}
-
-	public static class ExceptionDBInterface extends Exception {
-		private static final long serialVersionUID = 1L;
-		public int errorID;
-
-		public ExceptionDBInterface(final int errorId, final String message) {
-			super(message);
-			this.errorID = errorId;
-		}
 	}
 
 	public DataAccess() {
@@ -777,7 +781,6 @@ public class DataAccess {
 				}
 			}
 			whereInjectValue(ps, condition, iii);
-
 			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -805,8 +808,6 @@ public class DataAccess {
 			ps.setDouble(iii.value, tmp);
 		} else if (value instanceof final Boolean tmp) {
 			ps.setBoolean(iii.value, tmp);
-		} else if (value instanceof final Boolean tmp) {
-			ps.setBoolean(iii.value, tmp);
 		} else if (value instanceof final Timestamp tmp) {
 			ps.setTimestamp(iii.value, tmp);
 		} else if (value instanceof final Date tmp) {
@@ -822,8 +823,7 @@ public class DataAccess {
 		}
 	}
 
-	public static void whereAppendQuery(final StringBuilder query, final String tableName, final QueryItem condition, final QueryOptions options, final String deletedFieldName)
-			throws ExceptionDBInterface {
+	public static void whereAppendQuery(final StringBuilder query, final String tableName, final QueryItem condition, final QueryOptions options, final String deletedFieldName) {
 		boolean exclude_deleted = true;
 		if (options != null) {
 			exclude_deleted = !options.exist(AccessDeletedItems.class);
@@ -1058,6 +1058,12 @@ public class DataAccess {
 		return delete(clazz, id, null);
 	}
 
+	/** Delete items with the specific Id (cf @Id) and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
+	 * @param <ID_TYPE> Type of the reference @Id
+	 * @param clazz Data model that might remove element
+	 * @param id Unique Id of the model
+	 * @param options (Optional) Options of the request
+	 * @return Number of element that is removed. */
 	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
@@ -1067,6 +1073,11 @@ public class DataAccess {
 		}
 	}
 
+	/** Delete items with the specific condition and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
+	 * @param clazz Data model that might remove element.
+	 * @param condition Condition to remove elements.
+	 * @param options (Optional) Options of the request.
+	 * @return Number of element that is removed. */
 	public static int deleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
@@ -1105,13 +1116,6 @@ public class DataAccess {
 
 	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
 		return deleteSoftWhere(clazz, getTableIdCondition(clazz, id), options);
-	}
-
-	public static String getDBNow() {
-		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			return "now(3)";
-		}
-		return "DATE()";
 	}
 
 	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
@@ -1163,7 +1167,6 @@ public class DataAccess {
 		query.append("` SET `");
 		query.append(deletedFieldName);
 		query.append("`=false ");
-		/* is is needed only for SQLite ??? query.append("`modify_date`="); query.append(getDBNow()); query.append(", "); */
 		// need to disable the deleted false because the model must be unselected to be updated.
 		options.add(QueryOptions.ACCESS_DELETED_ITEMS);
 		whereAppendQuery(query, tableName, condition, options, deletedFieldName);

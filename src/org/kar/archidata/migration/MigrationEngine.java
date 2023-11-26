@@ -48,13 +48,20 @@ public class MigrationEngine {
 	}
 
 	/** Get the current version/migration name
-	 * @return Model represent the last migration. If null then no migration has been done. */
-	public Migration getCurrentVersion() {
+	 * @return Model represent the last migration. If null then no migration has been done.
+	 * @throws MigrationException */
+	public Migration getCurrentVersion() throws MigrationException {
 		if (!DataAccess.isTableExist("KAR_migration")) {
 			return null;
 		}
 		try {
-			final List<Migration> data = DataAccess.gets(Migration.class, new QueryOptions(QueryOptions.READ_ALL_COLOMN));
+			List<Migration> data = null;
+			try {
+				data = DataAccess.gets(Migration.class, new QueryOptions(QueryOptions.READ_ALL_COLOMN));
+			} catch (final Exception e) {
+				// Previous version does not have the same timeCode...
+				data = DataAccess.gets(Migration.class);
+			}
 			if (data == null) {
 				LOGGER.error("Can not collect the migration table in the DB:{}");
 				return null;
@@ -63,16 +70,16 @@ public class MigrationEngine {
 				LOGGER.error("Fail to Request migration table in the DB: empty size");
 				return null;
 			}
-			LOGGER.debug("List of migrations:");
+			LOGGER.info("List of migrations:");
 			for (final Migration elem : data) {
-				LOGGER.debug("    - date={} name={} end={}", elem.updatedAt, elem.name, elem.terminated);
+				LOGGER.info("    - date={} name={} end={}", elem.updatedAt, elem.name, elem.terminated);
 			}
 			return data.get(data.size() - 1);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail to Request migration table in the DB:{}", ex.getMessage());
 			ex.printStackTrace();
 		}
-		return null;
+		throw new MigrationException("Can not retreive Migration model");
 	}
 
 	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
@@ -99,10 +106,13 @@ public class MigrationEngine {
 	public void migrateErrorThrow(final DBConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 		// check the integrity of the migrations:
+		LOGGER.info("List of availlable Migration: ");
 		for (final MigrationInterface elem : this.datas) {
 			if (elem == null) {
+				LOGGER.info("  - null");
 				throw new MigrationException("Add a null migration");
 			}
+			LOGGER.info("  - {}", elem.getName());
 			if (elem == this.init) {
 				throw new MigrationException("Add a migration that is the initialization migration");
 			}
@@ -142,6 +152,7 @@ public class MigrationEngine {
 		LOGGER.info("DB '{}' exist.", config.getDbName());
 		// STEP 2: Check migration table exist:
 		LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
+		// TODO: set the class in parameters instead of string...
 		exist = DataAccess.isTableExist("KAR_migration");
 		if (!exist) {
 			LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");
@@ -180,18 +191,22 @@ public class MigrationEngine {
 				throw new MigrationException("An error occured in the last migration: '" + currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
 			}
 			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
-			boolean find = this.init != null && this.init.getName() == currentVersion.name;
-			if (currentVersion.name.equals(this.init.getName())) {
+			boolean find = this.init != null && this.init.getName().equals(currentVersion.name);
+			if (find) {
 				toApply = this.datas;
 			} else {
-				for (int iii = 0; iii < this.datas.size(); iii++) {
+				LOGGER.info(" ===> Check what must be apply:");
+				for (final MigrationInterface elem : this.datas) {
+					LOGGER.info("     - {}", elem.getName());
 					if (!find) {
-						if (this.datas.get(iii).getName() == currentVersion.name) {
+						if (currentVersion.name.equals(elem.getName())) {
+							LOGGER.info("        == current version");
 							find = true;
 						}
 						continue;
 					}
-					toApply.add(this.datas.get(iii));
+					LOGGER.info("        ++ add ");
+					toApply.add(elem);
 				}
 			}
 		}
@@ -241,13 +256,18 @@ public class MigrationEngine {
 		migrationResult.name = elem.getName();
 		migrationResult.stepId = 0;
 		migrationResult.terminated = false;
-		migrationResult.count = elem.getNumberOfStep();
+		try {
+			migrationResult.count = elem.getNumberOfStep();
+		} catch (final Exception e) {
+			e.printStackTrace();
+			throw new MigrationException("Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage());
+		}
 		migrationResult.log = log.toString();
 		try {
 			migrationResult = DataAccess.insert(migrationResult);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			throw new MigrationException("Fail to insert migration Log in the migration table: " + e.getLocalizedMessage());
 		}
 		boolean ret = true;
 		try {
@@ -256,7 +276,7 @@ public class MigrationEngine {
 			log.append("\nFail in the migration apply ");
 			log.append(e.getLocalizedMessage());
 			e.printStackTrace();
-			throw new MigrationException("Migration fial: '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
+			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 		}
 		if (ret) {
 			migrationResult.terminated = true;
@@ -264,6 +284,7 @@ public class MigrationEngine {
 				DataAccess.update(migrationResult, migrationResult.id, List.of("terminated"));
 			} catch (final Exception e) {
 				e.printStackTrace();
+				throw new MigrationException("Fail to update migration Log in the migration table: " + e.getLocalizedMessage());
 			}
 		} else {
 			try {
@@ -272,13 +293,15 @@ public class MigrationEngine {
 				DataAccess.update(migrationResult, migrationResult.id, List.of("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
+				throw new MigrationException("Fail to update migration Log in the migration table: " + e.getLocalizedMessage() + " WITH: An error occured in the migration (OUTSIDE detection): '"
+						+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 			}
 			throw new MigrationException("An error occured in the migration (OUTSIDE detection): '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 		}
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
 
-	public void revertTo(final DBEntry entry, final String migrationName) {
+	public void revertTo(final DBEntry entry, final String migrationName) throws MigrationException {
 		final Migration currentVersion = getCurrentVersion();
 		final List<MigrationInterface> toApply = new ArrayList<>();
 		boolean find = false;

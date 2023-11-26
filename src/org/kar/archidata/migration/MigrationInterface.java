@@ -23,5 +23,5 @@ public interface MigrationInterface {
 
 	/** Get the number of step in the migration process.
 	 * @return count of SQL access. */
-	int getNumberOfStep();
+	int getNumberOfStep() throws Exception;
 }

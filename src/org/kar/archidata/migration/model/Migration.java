@@ -29,5 +29,6 @@ public class Migration extends GenericDataSoftDelete {
 	@DataComment("number of element in the migration")
 	public Integer count;
 	@DataComment("Log generate by the migration")
+	@Column(length = 0)
 	public String log = "";
 }

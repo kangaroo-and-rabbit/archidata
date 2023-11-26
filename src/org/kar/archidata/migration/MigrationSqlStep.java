@@ -26,13 +26,18 @@ record Action(String action, List<String> filterDB) {
 public class MigrationSqlStep implements MigrationInterface {
 	final static Logger LOGGER = LoggerFactory.getLogger(MigrationSqlStep.class);
 	private final List<Action> actions = new ArrayList<>();
+	private boolean isGenerated = false;
 
 	@Override
 	public String getName() {
 		return getClass().getCanonicalName();
 	}
 
-	public void display() {
+	public void display() throws Exception {
+		if (!this.isGenerated) {
+			this.isGenerated = true;
+			generateStep();
+		}
 		for (int iii = 0; iii < this.actions.size(); iii++) {
 			final Action action = this.actions.get(iii);
 			LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(), action.action());
@@ -49,7 +54,10 @@ public class MigrationSqlStep implements MigrationInterface {
 
 	@Override
 	public boolean applyMigration(final DBEntry entry, final StringBuilder log, final Migration model) throws Exception {
-		generateStep();
+		if (!this.isGenerated) {
+			this.isGenerated = true;
+			generateStep();
+		}
 		for (int iii = 0; iii < this.actions.size(); iii++) {
 			log.append("action [" + (iii + 1) + "/" + this.actions.size() + "]\n");
 			LOGGER.info(" >>>> SQL ACTION : {}/{}", iii + 1, this.actions.size());
@@ -128,7 +136,11 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public int getNumberOfStep() {
+	public int getNumberOfStep() throws Exception {
+		if (!this.isGenerated) {
+			this.isGenerated = true;
+			generateStep();
+		}
 		return this.actions.size();
 	}
 

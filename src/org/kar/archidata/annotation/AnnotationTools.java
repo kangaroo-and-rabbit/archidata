@@ -36,7 +36,7 @@ public class AnnotationTools {
 			return element.getSimpleName();
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @SQLTableName on " + element.getClass().getCanonicalName());
+			throw new Exception("Must not have more than 1 element @Table on " + element.getClass().getCanonicalName());
 		}
 		final String tmp = ((Table) annotation[0]).name();
 		if (tmp == null) {
@@ -51,7 +51,7 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @SQLComment on " + element.getClass().getCanonicalName());
+			throw new Exception("Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());
 		}
 		return ((DataComment) annotation[0]).value();
 	}
@@ -62,7 +62,7 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @SQLDefault on " + element.getClass().getCanonicalName());
+			throw new Exception("Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
 		}
 		return ((DataDefault) annotation[0]).value();
 	}
@@ -70,12 +70,13 @@ public class AnnotationTools {
 	public static Integer getLimitSize(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
-			return null;
+			return 255;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @SQLLimitSize on " + element.getClass().getCanonicalName());
+			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
-		return ((Column) annotation[0]).length();
+		final int length = ((Column) annotation[0]).length();
+		return length <= 0 ? null : length;
 	}
 
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
