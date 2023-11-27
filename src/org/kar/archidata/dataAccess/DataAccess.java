@@ -83,9 +83,11 @@ public class DataAccess {
 		try {
 			entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, true);
 		} catch (final IOException ex) {
-			// TODO Auto-generated catch block
 			ex.printStackTrace();
 			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
+
+			// TODO: TO test
+
 			return false;
 		}
 		try {

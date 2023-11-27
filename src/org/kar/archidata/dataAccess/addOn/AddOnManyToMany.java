@@ -84,7 +84,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String tmpVariable = "tmp_" + Integer.toString(elemCount.value);
 		querrySelect.append(" (SELECT GROUP_CONCAT(");
 		querrySelect.append(tmpVariable);
-		querrySelect.append(".object2Id");
+		querrySelect.append(".object2Id ");
 		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
 			querrySelect.append(", ");
 		} else {
@@ -107,7 +107,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
 			querrySelect.append(" GROUP BY ");
 			querrySelect.append(tmpVariable);
-			querrySelect.append(".object2Id");
+			querrySelect.append(".object1Id");
 		}
 		querrySelect.append(") AS ");
 		querrySelect.append(name);
