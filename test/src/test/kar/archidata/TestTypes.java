@@ -449,7 +449,7 @@ public class TestTypes {
 					"varcharData": null
 				}
 				""";
-		final int nbUpdate = DataAccess.updateWithJson(TypesTable.class, insertedData.id, jsonData);
+		final int nbUpdate = DataAccess.updateWithJson(TypesTable.class, insertedData.id, jsonData, null);
 		Assertions.assertEquals(1, nbUpdate);
 
 		// Get new data

@@ -51,13 +51,13 @@ class TestSigner implements JWSSigner {
 	@Override
 	public Set<JWSAlgorithm> supportedJWSAlgorithms() {
 		// TODO Auto-generated method stub
-		return null;
+		return Set.of(JWSAlgorithm.RS256);
 	}
 
 	@Override
 	public JCAContext getJCAContext() {
 		// TODO Auto-generated method stub
-		return null;
+		return new JCAContext();
 	}
 }
 
@@ -209,8 +209,9 @@ public class JWTWrapper {
 		try {
 			// On the consumer side, parse the JWS and verify its RSA signature
 			final SignedJWT signedJWT = SignedJWT.parse(signedToken);
-
-			if (rsaPublicJWK == null) {
+			if (ConfigBaseVariable.getTestMode() && signedToken.endsWith(TestSigner.test_signature)) {
+				LOGGER.warn("Someone use a test token: {}", signedToken);
+			} else if (rsaPublicJWK == null) {
 				LOGGER.warn("JWT public key is not present !!!");
 				if (!ConfigBaseVariable.getTestMode()) {
 					return null;
@@ -251,16 +252,16 @@ public class JWTWrapper {
 		return null;
 	}
 
-	public static String createJwtTestToken(final long userID, final String userLogin, final String isuer, final String application, final Map<String, Object> rights) {
+	public static String createJwtTestToken(final long userID, final String userLogin, final String isuer, final String application, final Map<String, Map<String, Object>> rights) {
 		if (!ConfigBaseVariable.getTestMode()) {
 			LOGGER.error("Test mode disable !!!!!");
 			return null;
 		}
 		try {
-			final int timeOutInMunites = 3600 * 24 * 31;
+			final int timeOutInMunites = 3600;
 
 			final Date now = new Date();
-			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
+			final Date expiration = new Date(new Date().getTime() + timeOutInMunites * 1000 /* ms */);
 
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID)).claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
@@ -278,7 +279,8 @@ public class JWTWrapper {
 			// serialize the output...
 			return signedJWT.serialize();
 		} catch (final Exception ex) {
-			LOGGER.error("Can not generate Test Token...");
+			ex.printStackTrace();
+			LOGGER.error("Can not generate Test Token... {}", ex.getLocalizedMessage());
 		}
 		return null;
 	}

@@ -38,7 +38,7 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
-	final Logger logger = LoggerFactory.getLogger(AuthenticationFilter.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 	@Context
 	private ResourceInfo resourceInfo;
 	protected final String applicationName;
@@ -57,7 +57,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
 		if (method.isAnnotationPresent(DenyAll.class)) {
-			this.logger.debug("   ==> deny all {}", requestContext.getUriInfo().getPath());
+			LOGGER.debug("   ==> deny all {}", requestContext.getUriInfo().getPath());
 			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Access blocked !!!").build());
 			return;
 		}
@@ -70,7 +70,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		// this is a security guard, all the API must define their access level:
 		if (!method.isAnnotationPresent(RolesAllowed.class)) {
-			this.logger.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
+			LOGGER.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
 			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Access ILLEGAL !!!").build());
 			return;
 		}
@@ -94,7 +94,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final boolean isJwtToken = isTokenBasedAuthentication(authorizationHeader);
 		// Validate the Authorization header data Model "Yota jwt.to.ken" "Zota tokenId:hash(token)"
 		if (!isApplicationToken && !isJwtToken) {
-			this.logger.warn("REJECTED unauthorized: {}", requestContext.getUriInfo().getPath());
+			LOGGER.warn("REJECTED unauthorized: {}", requestContext.getUriInfo().getPath());
 			abortWithUnauthorized(requestContext, "REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
 			return;
 		}
@@ -106,12 +106,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			try {
 				userByToken = validateJwtToken(token);
 			} catch (final Exception e) {
-				this.logger.error("Fail to validate token: {}", e.getMessage());
+				LOGGER.error("Fail to validate token: {}", e.getMessage());
 				abortWithUnauthorized(requestContext, "Fail to validate token: " + e.getMessage());
 				return;
 			}
 			if (userByToken == null) {
-				this.logger.warn("get a NULL user ...");
+				LOGGER.warn("get a NULL user ...");
 				abortWithUnauthorized(requestContext, "get a NULL user ...");
 				return;
 			}
@@ -122,12 +122,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			try {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
-				this.logger.error("Fail to validate token: {}", e.getMessage());
+				LOGGER.error("Fail to validate token: {}", e.getMessage());
 				abortWithUnauthorized(requestContext, "Fail to validate token: " + e.getMessage());
 				return;
 			}
 			if (userByToken == null) {
-				this.logger.warn("get a NULL application ...");
+				LOGGER.warn("get a NULL application ...");
 				abortWithUnauthorized(requestContext, "get a NULL application ...");
 				return;
 			}
@@ -149,7 +149,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		// Is user valid?
 		if (!haveRight) {
-			this.logger.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
+			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
 			requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Not enought RIGHT !!!").build());
 			return;
 		}
@@ -175,15 +175,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 		// Abort the filter chain with a 401 status code response
 		// The WWW-Authenticate header is sent along with the response
-		this.logger.warn("abortWithUnauthorized:");
+		LOGGER.warn("abortWithUnauthorized:");
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.UNAUTHORIZED, "Unauthorized", message);
-		this.logger.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error UUID={}", ret.uuid);
 		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)").entity(ret)
 				.type(MediaType.APPLICATION_JSON).build());
 	}
 
 	protected UserByToken validateToken(final String authorization) throws Exception {
-		this.logger.info("Must be Override by the application implmentation, otherwise it dose not work");
+		LOGGER.info("Must be Override by the application implmentation, otherwise it dose not work");
 		return null;
 	}
 
@@ -193,7 +193,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
-			this.logger.error("The token is not valid: '{}'", authorization);
+			LOGGER.error("The token is not valid: '{}'", authorization);
 			return null;
 		}
 		// check userID
@@ -209,7 +209,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			if (rights.containsKey(this.applicationName)) {
 				user.right = rights.get(this.applicationName);
 			} else {
-				this.logger.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName, rights);
+				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName, rights);
 			}
 		}
 		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);

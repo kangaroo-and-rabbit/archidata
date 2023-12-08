@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import jakarta.ws.rs.core.HttpHeaders;
 
@@ -60,8 +61,12 @@ public class RESTApi {
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			// LOGGER.error("catch error from REST API: {}", httpResponse.body());
-			final RESTErrorResponseExeption out = mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+			try {
+				final RESTErrorResponseExeption out = mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
+				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+			} catch (final MismatchedInputException ex) {
+				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+			}
 		}
 		// LOGGER.error("status code: {}", httpResponse.statusCode());
 		// LOGGER.error("data: {}", httpResponse.body());
@@ -120,9 +125,16 @@ public class RESTApi {
 
 	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final ObjectMapper mapper = new ObjectMapper();
-		final HttpClient client = HttpClient.newHttpClient();
 		final String body = mapper.writeValueAsString(data);
+		return putJson(clazz, urlOffset, body);
+	}
+
+	public <T, U> T putJson(final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		final ObjectMapper mapper = new ObjectMapper();
+		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().uri(URI.create(this.baseUrl + urlOffset));
+		LOGGER.trace("call PUT: {}", URI.create(this.baseUrl + urlOffset));
+		LOGGER.trace("DATA: {}", body);
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
 		}

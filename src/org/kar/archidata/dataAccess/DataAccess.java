@@ -480,7 +480,7 @@ public class DataAccess {
 		if (options != null) {
 			final CheckFunction check = options.get(CheckFunction.class);
 			if (check != null) {
-				check.getChecker().check(data, null);
+				check.getChecker().check(data, AnnotationTools.getFieldsNames(clazz));
 			}
 		}
 
@@ -655,11 +655,11 @@ public class DataAccess {
 	 * @param jsonData Json data (partial) values to update
 	 * @return the number of object updated
 	 * @throws Exception */
-	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData) throws Exception {
-		return updateWhereWithJson(clazz, getTableIdCondition(clazz, id), jsonData);
+	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData, final QueryOptions options) throws Exception {
+		return updateWhereWithJson(clazz, getTableIdCondition(clazz, id), jsonData, options);
 	}
 
-	public static <T> int updateWhereWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData) throws Exception {
+	public static <T> int updateWhereWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData, final QueryOptions options) throws Exception {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
@@ -668,7 +668,8 @@ public class DataAccess {
 		final List<String> keys = new ArrayList<>();
 		final var iterator = root.fieldNames();
 		iterator.forEachRemaining(e -> keys.add(e));
-		return updateWhere(data, condition, null, keys);
+		// TODO: set the filter in the Options...
+		return updateWhere(data, condition, options, keys);
 	}
 
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id) throws Exception {
