@@ -129,6 +129,13 @@ public class AnnotationTools {
 	}
 
 	public static boolean isPrimaryKey(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Id.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
+	}
+	public static boolean isUnique(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return false;
