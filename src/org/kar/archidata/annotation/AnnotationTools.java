@@ -15,6 +15,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
@@ -79,6 +82,28 @@ public class AnnotationTools {
 		return length <= 0 ? null : length;
 	}
 
+	public static Size getConstraintsSize(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Size.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
+		}
+		return (Size) annotation[0];
+	}
+
+	public static String getConstraintsPattern(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Pattern.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Pattern on " + element.getClass().getCanonicalName());
+		}
+		return ((Pattern) annotation[0]).regexp();
+	}
+
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
 		try {
 			final Annotation[] anns = field.getAnnotations();
@@ -117,7 +142,7 @@ public class AnnotationTools {
 		return name;
 	}
 
-	public static boolean getNotNull(final Field element) throws Exception {
+	public static boolean getColumnNotNull(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return false;
@@ -128,6 +153,17 @@ public class AnnotationTools {
 		return !((Column) annotation[0]).nullable();
 	}
 
+	public static boolean getConstraintsNotNull(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(NotNull.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @NotNull on " + element.getClass().getCanonicalName());
+		}
+		return true;
+	}
+
 	public static boolean isPrimaryKey(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Id.class);
 		if (annotation.length == 0) {
@@ -135,6 +171,7 @@ public class AnnotationTools {
 		}
 		return true;
 	}
+
 	public static boolean isUnique(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {

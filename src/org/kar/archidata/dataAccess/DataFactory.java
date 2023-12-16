@@ -132,7 +132,7 @@ public class DataFactory {
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
 		final Integer limitSize = AnnotationTools.getLimitSize(elem);
-		final boolean notNull = AnnotationTools.getNotNull(elem);
+		final boolean notNull = AnnotationTools.getColumnNotNull(elem);
 
 		final boolean primaryKey = AnnotationTools.isPrimaryKey(elem);
 		final GenerationType strategy = AnnotationTools.getStrategy(elem);

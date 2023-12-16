@@ -14,14 +14,13 @@ public class QueryCondition implements QueryItem {
 	}
 
 	@Override
-	public void generateQuerry(final StringBuilder querry, final String tableName) {
-		querry.append(tableName);
-		querry.append(".");
-		querry.append(this.key);
-		querry.append(" ");
-		querry.append(this.comparator);
-		querry.append(" ?");
-
+	public void generateQuerry(final StringBuilder query, final String tableName) {
+		query.append(tableName);
+		query.append(".");
+		query.append(this.key);
+		query.append(" ");
+		query.append(this.comparator);
+		query.append(" ?");
 	}
 
 	@Override

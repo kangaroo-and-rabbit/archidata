@@ -18,21 +18,21 @@ public class QueryAnd implements QueryItem {
 	}
 
 	@Override
-	public void generateQuerry(final StringBuilder querry, final String tableName) {
+	public void generateQuerry(final StringBuilder query, final String tableName) {
 		if (this.childs.size() >= 1) {
-			querry.append(" (");
+			query.append(" (");
 		}
 		boolean first = true;
 		for (final QueryItem elem : this.childs) {
 			if (first) {
 				first = false;
 			} else {
-				querry.append(" AND ");
+				query.append(" AND ");
 			}
-			elem.generateQuerry(querry, tableName);
+			elem.generateQuerry(query, tableName);
 		}
 		if (this.childs.size() >= 1) {
-			querry.append(")");
+			query.append(")");
 		}
 	}
 

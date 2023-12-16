@@ -18,22 +18,26 @@ public class QueryInList<T> implements QueryItem {
 		this(key, "IN", value);
 	}
 
+	public QueryInList(final String key, final T... value) {
+		this(key, "IN", List.of(value));
+	}
+
 	@Override
-	public void generateQuerry(final StringBuilder querry, final String tableName) {
-		querry.append(tableName);
-		querry.append(".");
-		querry.append(this.key);
-		querry.append(" ");
-		querry.append(this.comparator);
-		querry.append(" (");
+	public void generateQuerry(final StringBuilder query, final String tableName) {
+		query.append(tableName);
+		query.append(".");
+		query.append(this.key);
+		query.append(" ");
+		query.append(this.comparator);
+		query.append(" (");
 		for (int iii = 0; iii < this.value.size(); iii++) {
 			if (iii != 0) {
-				querry.append(",?");
+				query.append(",?");
 			} else {
-				querry.append("?");
+				query.append("?");
 			}
 		}
-		querry.append(")");
+		query.append(")");
 
 	}
 

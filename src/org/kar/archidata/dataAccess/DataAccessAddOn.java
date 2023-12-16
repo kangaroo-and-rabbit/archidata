@@ -37,8 +37,8 @@ public interface DataAccessAddOn {
 	// Element can be retrieve with the specific mode
 	boolean canRetrieve(final Field field);
 
-	void generateQuerry(@NotNull String tableName, @NotNull Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull String name,
-			@NotNull CountInOut count, QueryOptions options) throws Exception;
+	void generateQuerry(@NotNull String tableName, @NotNull Field field, @NotNull final StringBuilder querySelect, @NotNull final StringBuilder query, @NotNull String name, @NotNull CountInOut count,
+			QueryOptions options) throws Exception;
 
 	// Return the number of colomn read
 	void fillFromQuerry(ResultSet rs, Field field, Object data, CountInOut count, QueryOptions options, final List<LazyGetter> lazyCall)

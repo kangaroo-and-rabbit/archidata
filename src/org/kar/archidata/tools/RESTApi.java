@@ -26,15 +26,15 @@ public class RESTApi {
 	final String baseUrl;
 	private String token = null;
 	final ObjectMapper mapper = new ObjectMapper();
-	
+
 	public RESTApi(final String baseUrl) {
 		this.baseUrl = baseUrl;
 	}
-	
+
 	public void setToken(final String token) {
 		this.token = token;
 	}
-	
+
 	public <T> List<T> gets(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
@@ -49,7 +49,7 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
 	}
-	
+
 	public <T> T get(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
@@ -74,7 +74,7 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
-	
+
 	public <T, U> T post(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		final String body = this.mapper.writeValueAsString(data);
@@ -96,7 +96,7 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
-	
+
 	public <T> T postMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		final String body = this.mapper.writeValueAsString(data);
@@ -116,12 +116,12 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
-	
+
 	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final String body = this.mapper.writeValueAsString(data);
 		return putJson(clazz, urlOffset, body);
 	}
-	
+
 	public <T, U> T putJson(final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
@@ -142,7 +142,7 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
-	
+
 	public <T> T putMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		final String body = this.mapper.writeValueAsString(data);
@@ -162,7 +162,7 @@ public class RESTApi {
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
-	
+
 	public <T, U> T delete(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));

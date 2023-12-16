@@ -27,7 +27,7 @@ import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
 import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
 import org.kar.archidata.dataAccess.options.AccessDeletedItems;
 import org.kar.archidata.dataAccess.options.CheckFunction;
-import org.kar.archidata.dataAccess.options.Limit;
+import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -544,6 +544,10 @@ public class DataAccess {
 				query.append("?");
 			}
 			query.append(")");
+			final OrderBy orders = options.get(OrderBy.class);
+			if (orders != null) {
+				orders.generateQuerry(query, tableName);
+			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -628,7 +632,6 @@ public class DataAccess {
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
-
 		return insert(data);
 	}
 
@@ -746,6 +749,11 @@ public class DataAccess {
 				query.append("` = ? ");
 			}
 			query.append(" ");
+			final OrderBy orders = options.get(OrderBy.class);
+			if (orders != null) {
+				orders.generateQuerry(query, tableName);
+			}
+			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			whereAppendQuery(query, tableName, condition, null, deletedFieldName);
 			firstField = true;
@@ -855,10 +863,13 @@ public class DataAccess {
 		}
 	}
 
-	public static void whereInjectValue(final PreparedStatement ps, final QueryItem condition, final CountInOut iii) throws Exception {
+	public static void whereInjectValue(final PreparedStatement ps, final QueryOptions options, final CountInOut iii) throws Exception {
 		// Check if we have a condition to generate
-		if (condition != null) {
-			condition.injectQuerry(ps, iii);
+		if (options != null) {
+			final Condition condition = options.get(Condition.class);
+			if (condition != null) {
+				condition.injectQuerry(ps, iii);
+			}
 		}
 	}
 
@@ -882,16 +893,16 @@ public class DataAccess {
 		return executeQuerry(query, false);
 	}
 
-	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
-		return getWhere(clazz, condition, null);
-	}
-
-	public static <T> T getWhere(final Class<T> clazz, final QueryItem condition, QueryOptions options) throws Exception {
+	public static <T> T getWhere(final Class<T> clazz, QueryOptions options) throws Exception {
+		return getWhere(clazz, options);
 		if (options == null) {
 			options = new QueryOptions();
 		}
-		options.add(new Limit(1));
-		final List<T> values = getsWhere(clazz, condition, options);
+		final Limit limit = options.get(Limit.class);
+		if (limit != null) {
+			options.add(new Limit(1));
+		}
+		final List<T> values = getsWhere(clazz, options);
 		if (values.size() == 0) {
 			return null;
 		}
@@ -899,11 +910,7 @@ public class DataAccess {
 	}
 
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
-		return getsWhere(clazz, condition, null, null);
-	}
-
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
-		return getsWhere(clazz, condition, null, options);
+		return getsWhere(clazz, condition, null);
 	}
 
 	public static void generateSelectField(final StringBuilder querySelect, final StringBuilder query, final Class<?> clazz, final QueryOptions options, final CountInOut count) throws Exception {
@@ -943,7 +950,7 @@ public class DataAccess {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final String orderBy, final QueryOptions options) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -963,22 +970,13 @@ public class DataAccess {
 			querySelect.append(query.toString());
 			query = querySelect;
 			whereAppendQuery(query, tableName, condition, options, deletedFieldName);
-			if (orderBy != null && orderBy.length() >= 1) {
-				query.append(" ORDER BY ");
-				query.append(orderBy);
+			final OrderBy orders = options.get(OrderBy.class);
+			if (orders != null) {
+				orders.generateQuerry(query, tableName);
 			}
-			if (options != null) {
-				final Limit limit = options.get(Limit.class);
-				if (limit != null) {
-					if (limit.getLimit() >= 1) {
-						query.append(" LIMIT " + limit.getLimit());
-					} else {
-						LOGGER.warn("Limit is equal @ {}", limit.getLimit());
-						entry.close();
-						entry = null;
-						return outs;
-					}
-				}
+			final Limit limit = options.get(Limit.class);
+			if (limit != null) {
+				limit.generateQuerry(query, tableName);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
