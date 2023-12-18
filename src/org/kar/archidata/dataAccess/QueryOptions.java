@@ -32,6 +32,10 @@ public class QueryOptions {
 		return this.options;
 	}
 
+	public QueryOption[] getAllArray() {
+		return this.options.toArray(new QueryOption[0]);
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> T get(final Class<T> type) {
 		for (final QueryOption elem : this.options) {

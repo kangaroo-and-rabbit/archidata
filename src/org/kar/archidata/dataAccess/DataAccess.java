@@ -25,9 +25,9 @@ import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
 import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
-import org.kar.archidata.dataAccess.options.AccessDeletedItems;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
+import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -679,8 +679,8 @@ public class DataAccess {
 		return update(data, id, null);
 	}
 
-	public static <T> int updateWhere(final T data, final QueryItem condition) throws Exception {
-		return updateWhere(data, condition, null, null);
+	public static <T> int updateWhere(final T data, final QueryOptions options) throws Exception {
+		return updateWhere(data, options, null);
 	}
 
 	/** @param <T>
@@ -690,11 +690,22 @@ public class DataAccess {
 	 * @return the affected rows.
 	 * @throws Exception */
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> filterValue) throws Exception {
-		return updateWhere(data, getTableIdCondition(data.getClass(), id), null, filterValue);
+		return updateWhere(data, new Condition(getTableIdCondition(data.getClass(), id)), filterValue);
 	}
 
-	public static <T> int updateWhere(final T data, final QueryItem condition, final QueryOptions options, final List<String> filterValue) throws Exception {
+	// il y avait: final List<String> filterValue
+	public static <T> int updateWhere(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a gets without any condition");
+		}
+		FilterValue filter = options.get(FilterValue.class);
+		if (filter == null) {
+			throw new DataAccessException("request a gets without any filter values");
+		}
+
 		// public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
 
 		// External checker of data:
@@ -755,7 +766,7 @@ public class DataAccess {
 			}
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-			whereAppendQuery(query, tableName, condition, null, deletedFieldName);
+			condition.whereAppendQuery(query, tableName, null, deletedFieldName);
 			firstField = true;
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -791,7 +802,7 @@ public class DataAccess {
 					addOn.insertData(ps, field, data, iii);
 				}
 			}
-			whereInjectValue(ps, condition, iii);
+			condition.injectQuerry(ps, iii);
 			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -834,45 +845,6 @@ public class DataAccess {
 		}
 	}
 
-	public static void whereAppendQuery(final StringBuilder query, final String tableName, final QueryItem condition, final QueryOptions options, final String deletedFieldName) {
-		boolean exclude_deleted = true;
-		if (options != null) {
-			exclude_deleted = !options.exist(AccessDeletedItems.class);
-		}
-		// Check if we have a condition to generate
-		if (condition == null) {
-			if (exclude_deleted && deletedFieldName != null) {
-				query.append(" WHERE ");
-				query.append(tableName);
-				query.append(".");
-				query.append(deletedFieldName);
-				query.append(" = false ");
-			}
-			return;
-		}
-		query.append(" WHERE (");
-		condition.generateQuerry(query, tableName);
-
-		query.append(") ");
-		if (exclude_deleted && deletedFieldName != null) {
-			query.append("AND ");
-			query.append(tableName);
-			query.append(".");
-			query.append(deletedFieldName);
-			query.append(" = false ");
-		}
-	}
-
-	public static void whereInjectValue(final PreparedStatement ps, final QueryOptions options, final CountInOut iii) throws Exception {
-		// Check if we have a condition to generate
-		if (options != null) {
-			final Condition condition = options.get(Condition.class);
-			if (condition != null) {
-				condition.injectQuerry(ps, iii);
-			}
-		}
-	}
-
 	public static int executeSimpleQuerry(final String query, final boolean root) throws SQLException, IOException {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		final Statement stmt = entry.connection.createStatement();
@@ -893,15 +865,9 @@ public class DataAccess {
 		return executeQuerry(query, false);
 	}
 
-	public static <T> T getWhere(final Class<T> clazz, QueryOptions options) throws Exception {
-		return getWhere(clazz, options);
-		if (options == null) {
-			options = new QueryOptions();
-		}
-		final Limit limit = options.get(Limit.class);
-		if (limit != null) {
-			options.add(new Limit(1));
-		}
+	public static <T> T getWhere(final Class<T> clazz, QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		options.add(new Limit(1));
 		final List<T> values = getsWhere(clazz, options);
 		if (values.size() == 0) {
 			return null;
@@ -909,9 +875,7 @@ public class DataAccess {
 		return values.get(0);
 	}
 
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception {
-		return getsWhere(clazz, condition, null);
-	}
+	/* public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception { return getsWhere(clazz, condition, null); } */
 
 	public static void generateSelectField(final StringBuilder querySelect, final StringBuilder query, final Class<?> clazz, final QueryOptions options, final CountInOut count) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
@@ -949,8 +913,17 @@ public class DataAccess {
 		}
 	}
 
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		return getsWhere(clazz, options);
+	}
+
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a gets without any condition");
+		}
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -969,7 +942,7 @@ public class DataAccess {
 			generateSelectField(querySelect, query, clazz, options, count);
 			querySelect.append(query.toString());
 			query = querySelect;
-			whereAppendQuery(query, tableName, condition, options, deletedFieldName);
+			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
 				orders.generateQuerry(query, tableName);
@@ -982,7 +955,7 @@ public class DataAccess {
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			whereInjectValue(ps, condition, iii);
+			condition.injectQuerry(ps, iii);
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
@@ -1039,8 +1012,10 @@ public class DataAccess {
 		return get(clazz, id, null);
 	}
 
-	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
-		return DataAccess.getWhere(clazz, getTableIdCondition(clazz, id), options);
+	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return DataAccess.getWhere(clazz, options.getAllArray());
 	}
 
 	public static String getCurrentTimeStamp() {
@@ -1048,11 +1023,11 @@ public class DataAccess {
 	}
 
 	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
-		return getsWhere(clazz, null);
+		return getsWhere(clazz);
 	}
 
-	public static <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws Exception {
-		return getsWhere(clazz, null, options);
+	public static <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
+		return getsWhere(clazz, option);
 	}
 
 	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id) throws Exception {
@@ -1065,7 +1040,7 @@ public class DataAccess {
 	 * @param id Unique Id of the model
 	 * @param options (Optional) Options of the request
 	 * @return Number of element that is removed. */
-	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
+	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
 			return deleteSoft(clazz, id, options);
@@ -1079,20 +1054,28 @@ public class DataAccess {
 	 * @param condition Condition to remove elements.
 	 * @param options (Optional) Options of the request.
 	 * @return Number of element that is removed. */
-	public static int deleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+	public static int deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
-			return deleteSoftWhere(clazz, condition, options);
+			return deleteSoftWhere(clazz, option);
 		} else {
-			return deleteHardWhere(clazz, condition, options);
+			return deleteHardWhere(clazz, option);
 		}
 	}
 
-	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
-		return deleteHardWhere(clazz, getTableIdCondition(clazz, id), options);
+	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
-	public static int deleteHardWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+	public static int deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a gets without any condition");
+		}
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
@@ -1102,12 +1085,12 @@ public class DataAccess {
 		query.append("DELETE FROM `");
 		query.append(tableName);
 		query.append("` ");
-		whereAppendQuery(query, tableName, condition, null, deletedFieldName);
+		condition.whereAppendQuery(query, tableName, null, deletedFieldName);
 		try {
 			LOGGER.debug("APPLY: {}", query.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			whereInjectValue(ps, condition, iii);
+			condition.injectQuerry(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1115,11 +1098,18 @@ public class DataAccess {
 		}
 	}
 
-	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
-		return deleteSoftWhere(clazz, getTableIdCondition(clazz, id), options);
+	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return deleteSoftWhere(clazz, options.getAllArray());
 	}
 
-	public static int deleteSoftWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+	public static int deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a gets without any condition");
+		}
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		/* String updateFieldName = null; if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) { updateFieldName = AnnotationTools.getUpdatedFieldName(clazz); } */
@@ -1134,12 +1124,12 @@ public class DataAccess {
 		query.append("`=true ");
 		/* The trigger work well, but the timestamp is store @ seconds... if (updateFieldName != null) { // done only in SQLite (the trigger does not work... query.append(", `");
 		 * query.append(updateFieldName); query.append("`=DATE()"); } */
-		whereAppendQuery(query, tableName, condition, null, deletedFieldName);
+		condition.whereAppendQuery(query, tableName, null, deletedFieldName);
 		try {
 			LOGGER.debug("APPLY UPDATE: {}", query.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			whereInjectValue(ps, condition, iii);
+			condition.injectQuerry(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1148,14 +1138,21 @@ public class DataAccess {
 	}
 
 	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws Exception {
-		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), null);
+		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
 	}
 
-	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOptions options) throws Exception {
-		return unsetDeleteWhere(clazz, getTableIdCondition(clazz, id), options);
+	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 
-	public static int unsetDeleteWhere(final Class<?> clazz, final QueryItem condition, final QueryOptions options) throws Exception {
+	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a gets without any condition");
+		}
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
@@ -1170,11 +1167,11 @@ public class DataAccess {
 		query.append("`=false ");
 		// need to disable the deleted false because the model must be unselected to be updated.
 		options.add(QueryOptions.ACCESS_DELETED_ITEMS);
-		whereAppendQuery(query, tableName, condition, options, deletedFieldName);
+		condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			whereInjectValue(ps, condition, iii);
+			condition.injectQuerry(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();

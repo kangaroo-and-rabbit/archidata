@@ -19,6 +19,7 @@ import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryInList;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.addOn.model.LinkTable;
+import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -85,7 +86,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querrySelect.append(" (SELECT GROUP_CONCAT(");
 		querrySelect.append(tmpVariable);
 		querrySelect.append(".object2Id ");
-		if (ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querrySelect.append(", ");
 		} else {
 			querrySelect.append("SEPARATOR ");
@@ -104,7 +105,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querrySelect.append(tmpVariable);
 		querrySelect.append(".");
 		querrySelect.append("object1Id ");
-		if (!ConfigBaseVariable.getDBType().equals("sqlite")) {
+		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querrySelect.append(" GROUP BY ");
 			querrySelect.append(tmpVariable);
 			querrySelect.append(".object1Id");
@@ -169,7 +170,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new QueryInList<>(idField, childs), null);
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new Condition(new QueryInList<>(idField, childs)));
 						if (foreignData == null) {
 							return;
 						}
