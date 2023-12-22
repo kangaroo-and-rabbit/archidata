@@ -24,6 +24,7 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
+import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.filter.GenericContext;
 import org.kar.archidata.model.Data;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -94,7 +95,7 @@ public class DataResource {
 	public static Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return DataAccess.getWhere(Data.class, new QueryCondition("sha512", "=", sha512));
+			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -92,7 +92,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, new QueryOptions(QueryOptions.READ_ALL_COLOMN));
+		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -118,8 +118,7 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
 		DataAccess.update(test, TestSimpleTableSoftDelete.idOfTheObject, List.of("data"));
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject,
-				new QueryOptions(QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN));
+		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -151,7 +150,7 @@ public class TestSimpleTableSoftDelete {
 	public void testReadDeletedObject() throws Exception {
 
 		// check if we set get deleted element
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, new QueryOptions(QueryOptions.ACCESS_DELETED_ITEMS));
+		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -166,8 +165,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject,
-				new QueryOptions(QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN));
+		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);

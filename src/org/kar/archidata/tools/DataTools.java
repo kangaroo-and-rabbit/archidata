@@ -18,6 +18,7 @@ import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.model.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +76,7 @@ public class DataTools {
 
 	public static Data getWithSha512(final String sha512) {
 		try {
-			return DataAccess.getWhere(Data.class, new QueryCondition("sha512", "=", sha512));
+			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -85,7 +86,7 @@ public class DataTools {
 
 	public static Data getWithId(final long id) {
 		try {
-			return DataAccess.getWhere(Data.class, new QueryAnd(List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id))));
+			return DataAccess.getWhere(Data.class, new Condition(new QueryAnd(List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -109,15 +110,12 @@ public class DataTools {
 		final String tmpPath = getTmpFileInData(tmpUID);
 		final long fileSize = Files.size(Paths.get(tmpPath));
 		Data out = new Data();
-		;
+
 		try {
 			out.sha512 = sha512;
 			out.mimeType = mimeType;
 			out.size = fileSize;
 			out = DataAccess.insert(out);
-		} catch (final SQLException ex) {
-			ex.printStackTrace();
-			return null;
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

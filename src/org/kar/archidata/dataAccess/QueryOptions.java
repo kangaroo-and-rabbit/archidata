@@ -18,11 +18,14 @@ public class QueryOptions {
 
 	private final List<QueryOption> options = new ArrayList<>();
 
+	public QueryOptions() {}
+
 	public QueryOptions(final QueryOption... elems) {
+		if (elems == null || elems.length == 0) {
+			return;
+		}
 		Collections.addAll(this.options, elems);
 	}
-
-	public QueryOptions() {}
 
 	public void add(final QueryOption option) {
 		this.options.add(option);

@@ -14,7 +14,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -68,6 +71,50 @@ public class AnnotationTools {
 			throw new Exception("Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
 		}
 		return ((DataDefault) annotation[0]).value();
+	}
+
+	public static ManyToOne getManyToOne(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ManyToOne.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
+		}
+		return (ManyToOne) annotation[0];
+	}
+
+	public static DataJson getDataJson(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataJson.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
+		}
+		return (DataJson) annotation[0];
+	}
+
+	public static Long getConstraintsMax(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Max.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
+		}
+		return ((Max) annotation[0]).value();
+	}
+
+	public static Long getConstraintsMin(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Min.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
+		}
+		return ((Min) annotation[0]).value();
 	}
 
 	public static Integer getLimitSize(final Field element) throws Exception {
@@ -289,7 +336,7 @@ public class AnnotationTools {
 	}
 
 	public static boolean isGenericField(final Field elem) throws Exception {
-		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem) || AnnotationTools.isUpdateAtField(elem);
+		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem) || AnnotationTools.isUpdateAtField(elem) || AnnotationTools.isDeletedField(elem);
 	}
 
 	public static Field getFieldOfId(final Class<?> clazz) throws Exception {

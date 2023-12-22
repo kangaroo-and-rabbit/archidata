@@ -57,7 +57,7 @@ public class MigrationEngine {
 		try {
 			List<Migration> data = null;
 			try {
-				data = DataAccess.gets(Migration.class, new QueryOptions(QueryOptions.READ_ALL_COLOMN));
+				data = DataAccess.gets(Migration.class, QueryOptions.READ_ALL_COLOMN);
 			} catch (final Exception e) {
 				// Previous version does not have the same timeCode...
 				data = DataAccess.gets(Migration.class);

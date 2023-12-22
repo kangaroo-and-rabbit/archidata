@@ -118,20 +118,45 @@ public class RESTApi {
 	}
 
 	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
-		final String body = this.mapper.writeValueAsString(data);
-		return putJson(clazz, urlOffset, body);
+		return modelSend("PUT", clazz, urlOffset, data);
 	}
 
 	public <T, U> T putJson(final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendJson("PUT", clazz, urlOffset, body);
+	}
+
+	public <T> T putMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendMap("PUT", clazz, urlOffset, data);
+	}
+
+	public <T, U> T patch(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSend("PATCH", clazz, urlOffset, data);
+	}
+
+	public <T, U> T patchJson(final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendJson("PATCH", clazz, urlOffset, body);
+	}
+
+	public <T> T patchMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendMap("PATCH", clazz, urlOffset, data);
+	}
+
+	protected <T, U> T modelSend(final String model, final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		final String body = this.mapper.writeValueAsString(data);
+		return modelSendJson(model, clazz, urlOffset, body);
+	}
+
+	protected <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
+		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
-		LOGGER.trace("call PUT: {}", URI.create(this.baseUrl + urlOffset));
+		LOGGER.trace("call {}: {}", model, URI.create(this.baseUrl + urlOffset));
 		LOGGER.trace("DATA: {}", body);
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
 		}
 		requestBuilding = requestBuilding.header("Content-Type", "application/json");
-		final HttpRequest request = requestBuilding.PUT(BodyPublishers.ofString(body)).build();
+		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
@@ -143,7 +168,7 @@ public class RESTApi {
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 
-	public <T> T putMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	protected <T> T modelSendMap(final String model, final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		final String body = this.mapper.writeValueAsString(data);
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
@@ -151,7 +176,7 @@ public class RESTApi {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
 		}
 		requestBuilding = requestBuilding.header("Content-Type", "application/json");
-		final HttpRequest request = requestBuilding.PUT(BodyPublishers.ofString(body)).build();
+		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);

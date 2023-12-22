@@ -13,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.NotNull;
 
 public class GenericData {
 	@Id
@@ -25,11 +26,13 @@ public class GenericData {
 	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
 	@DataComment("Create time of the object")
+	@NotNull
 	public Date createdAt = null;
 	@DataNotRead
 	@UpdateTimestamp
 	@Column(nullable = false)
 	@Temporal(TemporalType.TIMESTAMP)
 	@DataComment("When update the object")
+	@NotNull
 	public Date updatedAt = null;
 }

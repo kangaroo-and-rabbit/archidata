@@ -186,8 +186,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		final LinkTable insertElement = new LinkTable(localKey, remoteKey);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
-		DataAccess.insert(insertElement, options);
+		DataAccess.insert(insertElement, new OverrideTableName(linkTableName));
 
 	}
 
@@ -195,8 +194,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
-		final QueryAnd condition = new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey));
-		return DataAccess.deleteWhere(LinkTable.class, condition, options);
+		options.add(new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey))));
+		return DataAccess.deleteWhere(LinkTable.class, options.getAllArray());
 	}
 
 	@Override

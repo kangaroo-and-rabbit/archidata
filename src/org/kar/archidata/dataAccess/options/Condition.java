@@ -15,6 +15,10 @@ public class Condition extends QueryOption {
 		this.condition = items;
 	}
 
+	public Condition() {
+		this.condition = null;
+	}
+
 	public void generateQuerry(final StringBuilder query, final String tableName) {
 		if (this.condition != null) {
 			this.condition.generateQuerry(query, tableName);

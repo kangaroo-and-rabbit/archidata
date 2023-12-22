@@ -460,7 +460,7 @@ public class DataAccess {
 		return null;
 	}
 
-	public static <T> List<T> insertMultiple(final List<T> data, final QueryOptions options) throws Exception {
+	public static <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
 		final List<T> out = new ArrayList<>();
 		for (final T elem : data) {
 			final T tmp = insert(elem, options);
@@ -469,19 +469,14 @@ public class DataAccess {
 		return out;
 	}
 
-	public static <T> T insert(final T data) throws Exception {
-		return insert(data, null);
-	}
-
-	public static <T> T insert(final T data, final QueryOptions options) throws Exception {
+	public static <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
+		QueryOptions options = new QueryOptions(option);
 
 		// External checker of data:
-		if (options != null) {
-			final CheckFunction check = options.get(CheckFunction.class);
-			if (check != null) {
-				check.getChecker().check(data, AnnotationTools.getFieldsNames(clazz));
-			}
+		final CheckFunction check = options.get(CheckFunction.class);
+		if (check != null) {
+			check.getChecker().check(data, AnnotationTools.getFieldsNames(clazz));
 		}
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -643,7 +638,7 @@ public class DataAccess {
 		}
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
-		if (idKey == typeClass) {
+		if (idKey.getClass() == typeClass) {
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
 		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
@@ -658,11 +653,22 @@ public class DataAccess {
 	 * @param jsonData Json data (partial) values to update
 	 * @return the number of object updated
 	 * @throws Exception */
-	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData, final QueryOptions options) throws Exception {
-		return updateWhereWithJson(clazz, getTableIdCondition(clazz, id), jsonData, options);
+	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition != null) {
+			throw new DataAccessException("request a updateWithJson with a condition");
+		}
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
 
-	public static <T> int updateWhereWithJson(final Class<T> clazz, final QueryItem condition, final String jsonData, final QueryOptions options) throws Exception {
+	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			throw new DataAccessException("request a updateWhereWithJson without any condition");
+		}
 		final ObjectMapper mapper = new ObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
@@ -671,16 +677,12 @@ public class DataAccess {
 		final List<String> keys = new ArrayList<>();
 		final var iterator = root.fieldNames();
 		iterator.forEachRemaining(e -> keys.add(e));
-		// TODO: set the filter in the Options...
-		return updateWhere(data, condition, options, keys);
+		options.add(new FilterValue(keys));
+		return updateWhere(data, options.getAllArray());
 	}
 
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id) throws Exception {
-		return update(data, id, null);
-	}
-
-	public static <T> int updateWhere(final T data, final QueryOptions options) throws Exception {
-		return updateWhere(data, options, null);
+		return update(data, id, AnnotationTools.getFieldsNames(data.getClass()));
 	}
 
 	/** @param <T>
@@ -689,8 +691,9 @@ public class DataAccess {
 	 * @param filterValue
 	 * @return the affected rows.
 	 * @throws Exception */
-	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> filterValue) throws Exception {
-		return updateWhere(data, new Condition(getTableIdCondition(data.getClass(), id)), filterValue);
+	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn) throws Exception {
+		QueryOptions options = new QueryOptions(new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn));
+		return updateWhere(data, options.getAllArray());
 	}
 
 	// il y avait: final List<String> filterValue
@@ -712,7 +715,7 @@ public class DataAccess {
 		if (options != null) {
 			final CheckFunction check = options.get(CheckFunction.class);
 			if (check != null) {
-				check.getChecker().check(data, filterValue);
+				check.getChecker().check(data, filter.getValues());
 			}
 		}
 
@@ -733,10 +736,8 @@ public class DataAccess {
 					continue;
 				}
 				final String name = AnnotationTools.getFieldName(field);
-				if (filterValue != null) {
-					if (!filterValue.contains(name)) {
-						continue;
-					}
+				if (!filter.getValues().contains(name)) {
+					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
 				}
@@ -778,10 +779,8 @@ public class DataAccess {
 					continue;
 				}
 				final String name = AnnotationTools.getFieldName(field);
-				if (filterValue != null) {
-					if (!filterValue.contains(name)) {
-						continue;
-					}
+				if (!filter.getValues().contains(name)) {
+					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
 				}
@@ -815,30 +814,43 @@ public class DataAccess {
 
 	static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
 		if (value instanceof final Long tmp) {
+			LOGGER.debug("Inject Long => {}", tmp);
 			ps.setLong(iii.value, tmp);
 		} else if (value instanceof final Integer tmp) {
+			LOGGER.debug("Inject Integer => {}", tmp);
 			ps.setInt(iii.value, tmp);
 		} else if (value instanceof final String tmp) {
+			LOGGER.debug("Inject String => {}", tmp);
 			ps.setString(iii.value, tmp);
 		} else if (value instanceof final Short tmp) {
+			LOGGER.debug("Inject Short => {}", tmp);
 			ps.setShort(iii.value, tmp);
 		} else if (value instanceof final Byte tmp) {
+			LOGGER.debug("Inject Byte => {}", tmp);
 			ps.setByte(iii.value, tmp);
 		} else if (value instanceof final Float tmp) {
+			LOGGER.debug("Inject Float => {}", tmp);
 			ps.setFloat(iii.value, tmp);
 		} else if (value instanceof final Double tmp) {
+			LOGGER.debug("Inject Double => {}", tmp);
 			ps.setDouble(iii.value, tmp);
 		} else if (value instanceof final Boolean tmp) {
+			LOGGER.debug("Inject Boolean => {}", tmp);
 			ps.setBoolean(iii.value, tmp);
 		} else if (value instanceof final Timestamp tmp) {
+			LOGGER.debug("Inject Timestamp => {}", tmp);
 			ps.setTimestamp(iii.value, tmp);
 		} else if (value instanceof final Date tmp) {
+			LOGGER.debug("Inject Date => {}", tmp);
 			ps.setTimestamp(iii.value, java.sql.Timestamp.from((tmp).toInstant()));
 		} else if (value instanceof final LocalDate tmp) {
+			LOGGER.debug("Inject LocalDate => {}", tmp);
 			ps.setDate(iii.value, java.sql.Date.valueOf(tmp));
 		} else if (value instanceof final LocalTime tmp) {
+			LOGGER.debug("Inject LocalTime => {}", tmp);
 			ps.setTime(iii.value, java.sql.Time.valueOf(tmp));
 		} else if (value.getClass().isEnum()) {
+			LOGGER.debug("Inject ENUM => {}", value.toString());
 			ps.setString(iii.value, value.toString());
 		} else {
 			throw new DataAccessException("Not manage type ==> need to add it ...");
@@ -921,9 +933,6 @@ public class DataAccess {
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
 		Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			throw new DataAccessException("request a gets without any condition");
-		}
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -942,7 +951,9 @@ public class DataAccess {
 			generateSelectField(querySelect, query, clazz, options, count);
 			querySelect.append(query.toString());
 			query = querySelect;
-			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
+			if (condition != null) {
+				condition.whereAppendQuery(query, tableName, options, deletedFieldName);
+			}
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
 				orders.generateQuerry(query, tableName);
@@ -955,7 +966,12 @@ public class DataAccess {
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			if (condition != null) {
+				condition.injectQuerry(ps, iii);
+			}
+			if (limit != null) {
+				limit.injectQuerry(ps, iii);
+			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			while (rs.next()) {
@@ -1008,8 +1024,55 @@ public class DataAccess {
 		return data;
 	}
 
-	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id) throws Exception {
-		return get(clazz, id, null);
+	public static <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id) throws Exception {
+		return DataAccess.countWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
+	}
+
+	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+		QueryOptions options = new QueryOptions(option);
+		Condition condition = options.get(Condition.class);
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		long count = 0;
+		// real add in the BDD:
+		try {
+			StringBuilder query = new StringBuilder();
+			final String tableName = AnnotationTools.getTableName(clazz, options);
+			query.append("SELECT COUNT(*) FROM `");
+			query.append(tableName);
+			query.append("` ");
+			if (condition != null) {
+				condition.whereAppendQuery(query, tableName, options, deletedFieldName);
+			}
+			final Limit limit = options.get(Limit.class);
+			if (limit != null) {
+				limit.generateQuerry(query, tableName);
+			}
+			LOGGER.warn("generate the query: '{}'", query.toString());
+			// prepare the request:
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final CountInOut iii = new CountInOut(1);
+			if (condition != null) {
+				condition.injectQuerry(ps, iii);
+			}
+			if (limit != null) {
+				limit.injectQuerry(ps, iii);
+			}
+			// execute the request
+			final ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				count = rs.getLong("count");
+			}
+		} catch (final SQLException ex) {
+			ex.printStackTrace();
+			throw ex;
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			entry.close();
+			entry = null;
+		}
+		return count;
 	}
 
 	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
