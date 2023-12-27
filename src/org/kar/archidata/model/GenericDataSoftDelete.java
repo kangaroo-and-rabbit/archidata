@@ -1,10 +1,10 @@
 package org.kar.archidata.model;
 
-import org.kar.archidata.annotation.DataComment;
 import org.kar.archidata.annotation.DataDefault;
 import org.kar.archidata.annotation.DataDeleted;
 import org.kar.archidata.annotation.DataNotRead;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,7 +13,7 @@ public class GenericDataSoftDelete extends GenericData {
 	@Column(nullable = false)
 	@DataDefault("'0'")
 	@DataDeleted
-	@DataComment("When delete, they are not removed, they are just set in a deleted state")
 	@NotNull
+	@Schema(description = "Deleted state", hidden = true, required = false, readOnly = true)
 	public Boolean deleted = null;
 }

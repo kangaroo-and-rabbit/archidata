@@ -471,12 +471,12 @@ public class DataAccess {
 
 	public static <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 
 		// External checker of data:
 		final CheckFunction check = options.get(CheckFunction.class);
 		if (check != null) {
-			check.getChecker().check(data, AnnotationTools.getFieldsNames(clazz));
+			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz));
 		}
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -638,7 +638,7 @@ public class DataAccess {
 		}
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
-		if (idKey.getClass() == typeClass) {
+		if (idKey.getClass() != typeClass) {
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
 		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
@@ -654,8 +654,8 @@ public class DataAccess {
 	 * @return the number of object updated
 	 * @throws Exception */
 	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition != null) {
 			throw new DataAccessException("request a updateWithJson with a condition");
 		}
@@ -664,8 +664,8 @@ public class DataAccess {
 	}
 
 	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a updateWhereWithJson without any condition");
 		}
@@ -692,19 +692,19 @@ public class DataAccess {
 	 * @return the affected rows.
 	 * @throws Exception */
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn) throws Exception {
-		QueryOptions options = new QueryOptions(new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn));
+		final QueryOptions options = new QueryOptions(new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn));
 		return updateWhere(data, options.getAllArray());
 	}
 
 	// il y avait: final List<String> filterValue
 	public static <T> int updateWhere(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a gets without any condition");
 		}
-		FilterValue filter = options.get(FilterValue.class);
+		final FilterValue filter = options.get(FilterValue.class);
 		if (filter == null) {
 			throw new DataAccessException("request a gets without any filter values");
 		}
@@ -715,7 +715,7 @@ public class DataAccess {
 		if (options != null) {
 			final CheckFunction check = options.get(CheckFunction.class);
 			if (check != null) {
-				check.getChecker().check(data, filter.getValues());
+				check.getChecker().check("", data, filter.getValues());
 			}
 		}
 
@@ -877,8 +877,8 @@ public class DataAccess {
 		return executeQuerry(query, false);
 	}
 
-	public static <T> T getWhere(final Class<T> clazz, QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+	public static <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
 		options.add(new Limit(1));
 		final List<T> values = getsWhere(clazz, options);
 		if (values.size() == 0) {
@@ -926,13 +926,13 @@ public class DataAccess {
 	}
 
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 		return getsWhere(clazz, options);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
-		Condition condition = options.get(Condition.class);
+		final Condition condition = options.get(Condition.class);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -1029,14 +1029,14 @@ public class DataAccess {
 	}
 
 	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		long count = 0;
 		// real add in the BDD:
 		try {
-			StringBuilder query = new StringBuilder();
+			final StringBuilder query = new StringBuilder();
 			final String tableName = AnnotationTools.getTableName(clazz, options);
 			query.append("SELECT COUNT(*) FROM `");
 			query.append(tableName);
@@ -1076,7 +1076,7 @@ public class DataAccess {
 	}
 
 	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return DataAccess.getWhere(clazz, options.getAllArray());
 	}
@@ -1128,14 +1128,14 @@ public class DataAccess {
 	}
 
 	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
 	public static int deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a gets without any condition");
 		}
@@ -1162,14 +1162,14 @@ public class DataAccess {
 	}
 
 	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return deleteSoftWhere(clazz, options.getAllArray());
 	}
 
 	public static int deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a gets without any condition");
 		}
@@ -1205,14 +1205,14 @@ public class DataAccess {
 	}
 
 	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
+		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 
 	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
+		final QueryOptions options = new QueryOptions(option);
+		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a gets without any condition");
 		}

@@ -10,6 +10,7 @@ import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -51,10 +52,21 @@ public class AnnotationTools {
 		return tmp;
 	}
 
+	public static String getSchemedescription(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+		}
+		return ((Schema) annotation[0]).description();
+	}
+
 	public static String getComment(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataComment.class);
 		if (annotation.length == 0) {
-			return null;
+			return getSchemedescription(element);
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());

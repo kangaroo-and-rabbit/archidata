@@ -1,10 +1,10 @@
 package org.kar.archidata.model;
 
-import org.kar.archidata.annotation.DataComment;
 import org.kar.archidata.annotation.DataIfNotExists;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 
@@ -14,12 +14,12 @@ import jakarta.persistence.Table;
 public class Data extends GenericDataSoftDelete {
 
 	@Column(length = 128, nullable = false)
-	@DataComment("Sha512 of the data")
+	@Schema(description = "Sha512 of the data")
 	public String sha512;
 	@Column(length = 128, nullable = false)
-	@DataComment("Mime -type of the media")
+	@Schema(description = "Mime -type of the media")
 	public String mimeType;
 	@Column(nullable = false)
-	@DataComment("Size in Byte of the data")
+	@Schema(description = "Size in Byte of the data")
 	public Long size;
 }
