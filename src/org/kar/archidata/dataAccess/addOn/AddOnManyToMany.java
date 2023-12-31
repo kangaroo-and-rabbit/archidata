@@ -143,6 +143,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	@Override
 	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
+			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
@@ -150,6 +151,9 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR);
 			field.set(data, idList);
 			count.inc();
+		} else {
+			LOGGER.error("Can not ManyToMany with other than List<Long> Model: List<{}>", objectClass.getCanonicalName());
+			return;
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
 		if (decorators == null) {
@@ -181,6 +185,69 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 	}
 
+	@Override
+	public boolean isUpdateAsync(final Field field) {
+		return true;
+	}
+
+	@Override
+	public void asyncUpdate(final String tableName, final Object localKey, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+		if (field.getType() != List.class) {
+			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
+			return;
+		}
+		final String columnName = AnnotationTools.getFieldName(field);
+		final String linkTableName = generateLinkTableName(tableName, columnName);
+		actions.add(() -> {
+			DataAccess.deleteWhere(LinkTable.class, new OverrideTableName(linkTableName), new Condition(new QueryCondition("object1Id", "=", localKey)));
+		});
+		asyncInsert(tableName, localKey, field, data, actions);
+	}
+
+	@Override
+	public boolean isInsertAsync(final Field field) {
+		return true;
+	}
+
+	@Override
+	public void asyncInsert(final String tableName, final Object localKey, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+		if (data == null) {
+			return;
+		}
+		if (field.getType() != List.class) {
+			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
+			return;
+		}
+		final String columnName = AnnotationTools.getFieldName(field);
+		final String linkTableName = generateLinkTableName(tableName, columnName);
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		if (objectClass != Long.class) {
+			LOGGER.error("Can not ManyToMany with other than List<Long> Model: List<{}>", objectClass.getCanonicalName());
+			return;
+		}
+		@SuppressWarnings("unchecked")
+		final List<Long> dataCasted = (List<Long>) data;
+		if (dataCasted.size() == 0) {
+			return;
+		}
+		final List<LinkTable> insertElements = new ArrayList<>();
+		for (final Long remoteKey : dataCasted) {
+			if (remoteKey == null) {
+				continue;
+			}
+			if (localKey instanceof final Long localKeyLong) {
+				insertElements.add(new LinkTable(localKeyLong, remoteKey));
+			} else {
+				throw new DataAccessException("Not manage access of remte key like ManyToMany other than Long: " + localKey.getClass().getCanonicalName());
+			}
+		}
+		if (insertElements.size() == 0) {
+			LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
+			return;
+		}
+		DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+	}
+
 	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
@@ -192,9 +259,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
-		options.add(new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey))));
-		return DataAccess.deleteWhere(LinkTable.class, options.getAllArray());
+		return DataAccess.deleteWhere(LinkTable.class, new OverrideTableName(linkTableName),
+				new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey))));
 	}
 
 	@Override

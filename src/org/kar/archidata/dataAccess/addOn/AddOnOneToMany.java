@@ -93,6 +93,11 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
+	public boolean isInsertAsync(final Field field) throws Exception {
+		return false;
+	}
+
+	@Override
 	public boolean canRetrieve(final Field field) {
 		return false;
 	}

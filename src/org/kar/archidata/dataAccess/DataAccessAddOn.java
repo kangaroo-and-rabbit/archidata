@@ -31,11 +31,19 @@ public interface DataAccessAddOn {
 	 * @throws SQLException */
 	void insertData(PreparedStatement ps, final Field field, Object data, CountInOut iii) throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
-	// Element can insert in the single request
-	boolean canInsert(final Field field);
+	/** Element can insert in the single request
+	 * @param field
+	 * @return */
+	default boolean canInsert(final Field field) {
+		return false;
+	}
 
-	// Element can be retrieve with the specific mode
-	boolean canRetrieve(final Field field);
+	/** Element can be retrieve with the specific mode
+	 * @param field
+	 * @return */
+	default boolean canRetrieve(final Field field) {
+		return false;
+	}
 
 	void generateQuerry(@NotNull String tableName, @NotNull Field field, @NotNull final StringBuilder querySelect, @NotNull final StringBuilder query, @NotNull String name, @NotNull CountInOut count,
 			QueryOptions options) throws Exception;
@@ -55,5 +63,39 @@ public interface DataAccessAddOn {
 	 * @throws Exception */
 	void createTables(String tableName, Field field, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
 			throws Exception;
+
+	/** Some action must be done asynchronously for update or remove element
+	 * @param field
+	 * @return */
+	default boolean isInsertAsync(final Field field) throws Exception {
+		return false;
+	}
+
+	/** When insert is mark async, this function permit to create or update the data
+	 * @param tableName Name of the Table.
+	 * @param localId Local ID of the current table
+	 * @param field Field that is updated.
+	 * @param data Data that might be inserted.
+	 * @param actions Asynchronous action to do after main request. */
+	default void asyncInsert(final String tableName, final Object localId, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+
+	}
+
+	/** Some action must be done asynchronously for update or remove element
+	 * @param field
+	 * @return */
+	default boolean isUpdateAsync(final Field field) throws Exception {
+		return false;
+	}
+
+	/** When insert is mark async, this function permit to create or update the data
+	 * @param tableName Name of the Table.
+	 * @param localId Local ID of the current table
+	 * @param field Field that is updated.
+	 * @param data Data that might be inserted.
+	 * @param actions Asynchronous action to do after main request. */
+	default void asyncUpdate(final String tableName, final Object localId, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+
+	}
 
 }

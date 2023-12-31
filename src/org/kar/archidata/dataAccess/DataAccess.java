@@ -28,6 +28,7 @@ import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.FilterValue;
+import org.kar.archidata.dataAccess.options.TransmitKey;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -460,6 +461,7 @@ public class DataAccess {
 		return null;
 	}
 
+	// TODO: manage insert batch...
 	public static <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
 		final List<T> out = new ArrayList<>();
 		for (final T elem : data) {
@@ -480,6 +482,7 @@ public class DataAccess {
 		}
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final List<Field> needAsyncInsert = new ArrayList<>();
 		// real add in the BDD:
 		try {
 			final String tableName = AnnotationTools.getTableName(clazz, options);
@@ -501,6 +504,9 @@ public class DataAccess {
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
 				if (addOn != null && !addOn.canInsert(elem)) {
+					if (addOn.isInsertAsync(elem)) {
+						needAsyncInsert.add(elem);
+					}
 					continue;
 				}
 				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
@@ -613,6 +619,18 @@ public class DataAccess {
 				}
 			}
 			// ps.execute();
+
+			if (needAsyncInsert.size() != 0) {
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+				LOGGER.error("Need to insert async !!!!");
+			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -638,7 +656,13 @@ public class DataAccess {
 		}
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
+		if (idKey == null) {
+			throw new DataAccessException("Try to identify the ID type and object wa null.");
+		}
 		if (idKey.getClass() != typeClass) {
+			if (idKey.getClass() == Condition.class) {
+				throw new DataAccessException("Try to identify the ID type on a condition 'close' internal API error use xxxWhere(...) instead.");
+			}
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
 		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
@@ -660,6 +684,7 @@ public class DataAccess {
 			throw new DataAccessException("request a updateWithJson with a condition");
 		}
 		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new TransmitKey(id));
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
 
@@ -692,8 +717,7 @@ public class DataAccess {
 	 * @return the affected rows.
 	 * @throws Exception */
 	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn) throws Exception {
-		final QueryOptions options = new QueryOptions(new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn));
-		return updateWhere(data, options.getAllArray());
+		return updateWhere(data, new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn), new TransmitKey(id));
 	}
 
 	// il y avait: final List<String> filterValue
@@ -708,9 +732,6 @@ public class DataAccess {
 		if (filter == null) {
 			throw new DataAccessException("request a gets without any filter values");
 		}
-
-		// public static NodeSmall createNode(String typeInNode, String name, String description, Long parentId) {
-
 		// External checker of data:
 		if (options != null) {
 			final CheckFunction check = options.get(CheckFunction.class);
@@ -718,7 +739,7 @@ public class DataAccess {
 				check.getChecker().check("", data, filter.getValues());
 			}
 		}
-
+		final List<LazyGetter> asyncActions = new ArrayList<>();
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		// real add in the BDD:
 		try {
@@ -743,6 +764,13 @@ public class DataAccess {
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
 				if (addOn != null && !addOn.canInsert(field)) {
+					if (addOn.isInsertAsync(field)) {
+						final TransmitKey transmitKey = options.get(TransmitKey.class);
+						if (transmitKey == null) {
+							throw new DataAccessException("Fail to transmit Key to update the async update...");
+						}
+						addOn.asyncUpdate(tableName, transmitKey.getKey(), field, field.get(data), asyncActions);
+					}
 					continue;
 				}
 				if (!field.getClass().isPrimitive()) {
@@ -768,41 +796,47 @@ public class DataAccess {
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			condition.whereAppendQuery(query, tableName, null, deletedFieldName);
-			firstField = true;
-			LOGGER.debug("generate the query: '{}'", query.toString());
-			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
-			final CountInOut iii = new CountInOut(1);
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				final String name = AnnotationTools.getFieldName(field);
-				if (!filter.getValues().contains(name)) {
-					continue;
-				} else if (AnnotationTools.isGenericField(field)) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					continue;
-				}
-				if (addOn == null) {
-					final Class<?> type = field.getType();
-					if (!type.isPrimitive()) {
-						final Object tmp = field.get(data);
-						if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
-							continue;
-						}
+
+			// If the first field is not set, then nothing to update n the main base:
+			if (!firstField) {
+				LOGGER.debug("generate the query: '{}'", query.toString());
+				// prepare the request:
+				final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+				final CountInOut iii = new CountInOut(1);
+				for (final Field field : clazz.getFields()) {
+					// static field is only for internal global declaration ==> remove it ..
+					if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+						continue;
 					}
-					setValuedb(type, data, iii, field, ps);
-				} else {
-					addOn.insertData(ps, field, data, iii);
+					final String name = AnnotationTools.getFieldName(field);
+					if (!filter.getValues().contains(name)) {
+						continue;
+					} else if (AnnotationTools.isGenericField(field)) {
+						continue;
+					}
+					final DataAccessAddOn addOn = findAddOnforField(field);
+					if (addOn != null && !addOn.canInsert(field)) {
+						continue;
+					}
+					if (addOn == null) {
+						final Class<?> type = field.getType();
+						if (!type.isPrimitive()) {
+							final Object tmp = field.get(data);
+							if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+								continue;
+							}
+						}
+						setValuedb(type, data, iii, field, ps);
+					} else {
+						addOn.insertData(ps, field, data, iii);
+					}
 				}
+				condition.injectQuerry(ps, iii);
+				return ps.executeUpdate();
 			}
-			condition.injectQuerry(ps, iii);
-			return ps.executeUpdate();
+			for (final LazyGetter action : asyncActions) {
+				action.doRequest();
+			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
@@ -1038,7 +1072,7 @@ public class DataAccess {
 		try {
 			final StringBuilder query = new StringBuilder();
 			final String tableName = AnnotationTools.getTableName(clazz, options);
-			query.append("SELECT COUNT(*) FROM `");
+			query.append("SELECT COUNT(*) AS count FROM `");
 			query.append(tableName);
 			query.append("` ");
 			if (condition != null) {

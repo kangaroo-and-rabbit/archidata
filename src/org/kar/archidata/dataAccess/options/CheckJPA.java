@@ -63,7 +63,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 			// create Table:
 			final List<String> primaryKeys = new ArrayList<>();
 			for (final Field field : this.clazz.getFields()) {
-				final String fieldName = AnnotationTools.getFieldName(field);
+				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					add(fieldName, (final String baseName, final T data) -> {
 						throw new InputException(baseName + fieldName, "This is a '@Id' (primaryKey) ==> can not be change");
@@ -97,7 +97,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 						});
 					}
-					final Long minValue = AnnotationTools.getConstraintsMax(field);
+					final Long minValue = AnnotationTools.getConstraintsMin(field);
 					if (minValue != null) {
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
@@ -117,7 +117,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							if (elem == null) {
 								return;
 							}
-							long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
 							if (count == 0) {
 								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
 							}
@@ -128,29 +128,42 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						int maxValue = maxValueRoot.intValue();
+						final int maxValue = maxValueRoot.intValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Integer elemTyped = (Integer) elem;
 							if (elemTyped > maxValue) {
 								throw new InputException(baseName + fieldName, "Value too height max: " + maxValue);
 							}
 						});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						int minValue = minValueRoot.intValue();
+						final int minValue = minValueRoot.intValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Integer elemTyped = (Integer) elem;
 							if (elemTyped < minValue) {
 								throw new InputException(baseName + fieldName, "Value too Low min: " + minValue);
+							}
+						});
+					}
+					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
+					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
+						add(fieldName, (final String baseName, final T data) -> {
+							final Object elem = field.get(data);
+							if (elem == null) {
+								return;
+							}
+							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+							if (count == 0) {
+								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
 							}
 						});
 					}
@@ -159,27 +172,27 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == Float.class || type == float.class) {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						float maxValue = maxValueRoot.floatValue();
+						final float maxValue = maxValueRoot.floatValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Float elemTyped = (Float) elem;
 							if (elemTyped > maxValue) {
 								throw new InputException(baseName + fieldName, "Value too height max: " + maxValue);
 							}
 						});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						float minValue = minValueRoot.floatValue();
+						final float minValue = minValueRoot.floatValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Float elemTyped = (Float) elem;
 							if (elemTyped < minValue) {
 								throw new InputException(baseName + fieldName, "Value too Low min: " + minValue);
 							}
@@ -188,27 +201,27 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == Double.class || type == double.class) {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						double maxValue = maxValueRoot.doubleValue();
+						final double maxValue = maxValueRoot.doubleValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Double elemTyped = (Double) elem;
 							if (elemTyped > maxValue) {
 								throw new InputException(baseName + fieldName, "Value too height max: " + maxValue);
 							}
 						});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						double minValue = minValueRoot.doubleValue();
+						final double minValue = minValueRoot.doubleValue();
 						add(fieldName, (final String baseName, final T data) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final Long elemTyped = (Long) elem;
+							final Double elemTyped = (Double) elem;
 							if (elemTyped < minValue) {
 								throw new InputException(baseName + fieldName, "Value too Low min: " + minValue);
 							}
@@ -268,7 +281,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final DataJson jsonAnnotation = AnnotationTools.getDataJson(field);
 					if (jsonAnnotation != null && jsonAnnotation.checker() != CheckFunctionVoid.class) {
 						// Here if we have an error it crash at start and no new instance after creation...
-						CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor().newInstance();
+						final CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor().newInstance();
 						add(fieldName, (final String baseName, final T data) -> {
 							instance.checkAll(baseName + fieldName + ".", field.get(data));
 						});
