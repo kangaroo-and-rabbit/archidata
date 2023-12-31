@@ -15,6 +15,7 @@ import org.kar.archidata.exception.RESTErrorResponseExeption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -44,22 +45,6 @@ public class RESTApi {
 		final HttpRequest request = requestBuilding.GET().build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
-		}
-		return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
-	}
-
-	public <T> T get(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
-		final HttpClient client = HttpClient.newHttpClient();
-		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
-		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
-		}
-		final HttpRequest request = requestBuilding.GET().build();
-		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			// LOGGER.error("catch error from REST API: {}", httpResponse.body());
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
 				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
@@ -67,54 +52,23 @@ public class RESTApi {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
-		// LOGGER.error("status code: {}", httpResponse.statusCode());
-		// LOGGER.error("data: {}", httpResponse.body());
-		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
-		}
-		return this.mapper.readValue(httpResponse.body(), clazz);
+		return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
+	}
+
+	public <T> T get(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendJson("GET", clazz, urlOffset, null);
 	}
 
 	public <T, U> T post(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
-		final HttpClient client = HttpClient.newHttpClient();
-		final String body = this.mapper.writeValueAsString(data);
-		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
-		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
-		}
-		requestBuilding = requestBuilding.header("Content-Type", "application/json");
-		final HttpRequest request = requestBuilding.POST(BodyPublishers.ofString(body)).build();
-		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			LOGGER.error("status code: {}", httpResponse.statusCode());
-			LOGGER.error("data: {}", httpResponse.body());
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
-		}
-		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
-		}
-		return this.mapper.readValue(httpResponse.body(), clazz);
+		return modelSend("POST", clazz, urlOffset, data);
+	}
+
+	public <T, U> T postJson(final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return modelSendJson("POST", clazz, urlOffset, body);
 	}
 
 	public <T> T postMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
-		final HttpClient client = HttpClient.newHttpClient();
-		final String body = this.mapper.writeValueAsString(data);
-		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
-		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
-		}
-		requestBuilding = requestBuilding.header("Content-Type", "application/json");
-		final HttpRequest request = requestBuilding.POST(BodyPublishers.ofString(body)).build();
-		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
-		}
-		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
-		}
-		return this.mapper.readValue(httpResponse.body(), clazz);
+		return modelSendMap("POST", clazz, urlOffset, data);
 	}
 
 	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
@@ -142,11 +96,15 @@ public class RESTApi {
 	}
 
 	protected <T, U> T modelSend(final String model, final Class<T> clazz, final String urlOffset, final U data) throws RESTErrorResponseExeption, IOException, InterruptedException {
-		final String body = this.mapper.writeValueAsString(data);
-		return modelSendJson(model, clazz, urlOffset, body);
+		if (data == null) {
+			return modelSendJson(model, clazz, urlOffset, null);
+		} else {
+			final String body = this.mapper.writeValueAsString(data);
+			return modelSendJson(model, clazz, urlOffset, body);
+		}
 	}
 
-	protected <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, final String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	protected <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, String body) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
@@ -155,12 +113,24 @@ public class RESTApi {
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
 		}
-		requestBuilding = requestBuilding.header("Content-Type", "application/json");
+		if (body == null) {
+			body = "";
+		} else {
+			requestBuilding = requestBuilding.header("Content-Type", "application/json");
+		}
 		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
+			try {
+				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
+				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+			} catch (final MismatchedInputException ex) {
+				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+			} catch (final JsonParseException ex) {
+				ex.printStackTrace();
+				LOGGER.error("body: {}", httpResponse.body());
+				throw new IOException("Fail to get the ERROR data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+			}
 		}
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
@@ -170,17 +140,26 @@ public class RESTApi {
 
 	protected <T> T modelSendMap(final String model, final Class<T> clazz, final String urlOffset, final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
-		final String body = this.mapper.writeValueAsString(data);
+		String body = null;
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
 		}
-		requestBuilding = requestBuilding.header("Content-Type", "application/json");
+		if (data == null) {
+			body = "";
+		} else {
+			body = this.mapper.writeValueAsString(data);
+			requestBuilding = requestBuilding.header("Content-Type", "application/json");
+		}
 		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
+			try {
+				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
+				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+			} catch (final MismatchedInputException ex) {
+				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+			}
 		}
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
@@ -197,8 +176,12 @@ public class RESTApi {
 		final HttpRequest request = requestBuilding.DELETE().build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
-			final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-			throw out;
+			try {
+				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
+				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+			} catch (final MismatchedInputException ex) {
+				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+			}
 		}
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
