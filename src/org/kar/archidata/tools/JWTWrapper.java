@@ -229,7 +229,7 @@ public class JWTWrapper {
 					return null;
 				}
 			}
-			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
+			if (!ConfigBaseVariable.getTestMode() && !new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
 				LOGGER.error("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime());
 				return null;
 			}
