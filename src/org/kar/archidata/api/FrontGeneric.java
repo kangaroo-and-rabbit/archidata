@@ -6,6 +6,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.security.PermitAll;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
@@ -88,6 +89,7 @@ public class FrontGeneric {
 
 	@GET
 	@PermitAll()
+	@Operation(description = "Retrieve native element (index)", tags = "SYSTEM")
 	// @Produces(MediaType.APPLICATION_OCTET_STREAM)
 	// @CacheMaxAge(time = 1, unit = TimeUnit.DAYS)
 	public Response retrive0() throws Exception {
@@ -97,6 +99,7 @@ public class FrontGeneric {
 	@GET
 	@Path("{any: .*}")
 	@PermitAll()
+	@Operation(description = "Get specific file from the front environment", tags = "SYSTEM")
 	// @Produces(MediaType.APPLICATION_OCTET_STREAM)
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrive1(@PathParam("any") final List<PathSegment> segments) throws Exception {

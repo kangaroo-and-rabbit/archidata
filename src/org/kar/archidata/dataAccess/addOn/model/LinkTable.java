@@ -1,11 +1,11 @@
 package org.kar.archidata.dataAccess.addOn.model;
 
-import org.kar.archidata.annotation.DataComment;
-import org.kar.archidata.model.GenericDataSoftDelete;
+import org.kar.archidata.model.GenericData;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 
-public class LinkTable extends GenericDataSoftDelete {
+public class LinkTable extends GenericData {
 	public LinkTable() {
 		// nothing to do...
 	}
@@ -15,10 +15,10 @@ public class LinkTable extends GenericDataSoftDelete {
 		this.object2Id = object2Id;
 	}
 
-	@DataComment("Object reference 1")
+	@Schema(description = "Object reference 1")
 	@Column(nullable = false)
 	public Long object1Id;
-	@DataComment("Object reference 2")
+	@Schema(description = "Object reference 2")
 	@Column(nullable = false)
 	public Long object2Id;
 

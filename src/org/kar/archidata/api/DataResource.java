@@ -31,6 +31,7 @@ import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -220,6 +221,7 @@ public class DataResource {
 	@Path("/upload/")
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@RolesAllowed("ADMIN")
+	@Operation(description = "Insert a new data in the data environment", tags = "SYSTEM")
 	public Response uploadFile(@Context final SecurityContext sc, @FormDataParam("file") final InputStream fileInputStream, @FormDataParam("file") final FormDataContentDisposition fileMetaData) {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		LOGGER.info("===================================================");
@@ -243,6 +245,7 @@ public class DataResource {
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
 	public Response retriveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
@@ -261,6 +264,7 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@PermitTokenInURI
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retriveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
@@ -320,6 +324,7 @@ public class DataResource {
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	@Operation(description = "Get back some data from the data environment (with a beautifull name (permit download with basic name)", tags = "SYSTEM")
 	public Response retriveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();

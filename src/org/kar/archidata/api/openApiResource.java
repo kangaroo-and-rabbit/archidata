@@ -23,12 +23,11 @@ public class openApiResource extends BaseOpenApiResource {
 	Application app;
 
 	@GET
+	@Path("swagger.json")
 	@Produces({ MediaType.APPLICATION_JSON })
-	@Operation(hidden = true)
 	@PermitAll
+	@Operation(hidden = true, description = "Get the OPEN-API description", tags = "SYSTEM")
 	public Response getDescription(@Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
-
 		return getOpenApi(headers, this.config, this.app, uriInfo, "json");
 	}
-
 }

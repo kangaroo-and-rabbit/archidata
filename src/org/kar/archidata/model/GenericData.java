@@ -19,7 +19,7 @@ public class GenericData {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
-	@Schema(description = "Unique Id of the object", required = false, readOnly = true)
+	@Schema(description = "Unique Id of the object", required = false, readOnly = true, example = "123456")
 	public Long id = null;
 	@DataNotRead
 	@CreationTimestamp
