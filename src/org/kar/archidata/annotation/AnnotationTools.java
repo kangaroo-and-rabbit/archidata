@@ -129,7 +129,7 @@ public class AnnotationTools {
 		return ((Min) annotation[0]).value();
 	}
 
-	public static Integer getLimitSize(final Field element) throws Exception {
+	public static int getLimitSize(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return 255;
@@ -138,7 +138,7 @@ public class AnnotationTools {
 			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		final int length = ((Column) annotation[0]).length();
-		return length <= 0 ? null : length;
+		return length <= 0 ? 0 : length;
 	}
 
 	public static Size getConstraintsSize(final Field element) throws Exception {

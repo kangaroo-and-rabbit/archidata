@@ -131,7 +131,7 @@ public class DataFactory {
 	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
-		final Integer limitSize = AnnotationTools.getLimitSize(elem);
+		final int limitSize = AnnotationTools.getLimitSize(elem);
 		final boolean notNull = AnnotationTools.getColumnNotNull(elem);
 
 		final boolean primaryKey = AnnotationTools.isPrimaryKey(elem);
@@ -152,7 +152,7 @@ public class DataFactory {
 		String typeValue = null;
 		typeValue = convertTypeInSQL(classModel, name);
 		if ("text".equals(typeValue) && !"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			if (limitSize != null) {
+			if (limitSize > 0) {
 				mainTableBuilder.append("varchar(");
 				mainTableBuilder.append(limitSize);
 				mainTableBuilder.append(")");
