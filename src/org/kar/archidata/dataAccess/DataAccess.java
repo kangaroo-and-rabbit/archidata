@@ -720,7 +720,6 @@ public class DataAccess {
 		return updateWhere(data, new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn), new TransmitKey(id));
 	}
 
-	// il y avait: final List<String> filterValue
 	public static <T> int updateWhere(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
@@ -834,14 +833,14 @@ public class DataAccess {
 				condition.injectQuerry(ps, iii);
 				return ps.executeUpdate();
 			}
-			for (final LazyGetter action : asyncActions) {
-				action.doRequest();
-			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
 			entry.close();
 			entry = null;
+		}
+		for (final LazyGetter action : asyncActions) {
+			action.doRequest();
 		}
 		return 0;
 	}
@@ -1270,6 +1269,39 @@ public class DataAccess {
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuerry(ps, iii);
 			return ps.executeUpdate();
+		} finally {
+			entry.close();
+			entry = null;
+		}
+	}
+
+	public static void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		final String tableName = AnnotationTools.getTableName(clazz, options);
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final StringBuilder query = new StringBuilder();
+		query.append("DROP TABLE `");
+		query.append(tableName);
+		query.append("`");
+		try {
+			LOGGER.trace("Execute Querry: {}", query.toString());
+			// Remove main table
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
+			ps.executeUpdate();
+			// search subTable:
+			for (final Field field : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (AnnotationTools.isGenericField(field)) {
+					continue;
+				}
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && !addOn.canInsert(field)) {
+					addOn.drop(tableName, field);
+				}
+			}
 		} finally {
 			entry.close();
 			entry = null;

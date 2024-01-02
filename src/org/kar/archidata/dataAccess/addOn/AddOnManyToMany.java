@@ -151,9 +151,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR);
 			field.set(data, idList);
 			count.inc();
-		} else {
-			LOGGER.error("Can not ManyToMany with other than List<Long> Model: List<{}>", objectClass.getCanonicalName());
 			return;
+			// } else {
+			// LOGGER.error("Can not ManyToMany with other than List<Long> Model: List<{}>", objectClass.getCanonicalName());
+			// return;
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
 		if (decorators == null) {
@@ -245,7 +246,16 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
 			return;
 		}
-		DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+		actions.add(() -> {
+			DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+		});
+	}
+
+	@Override
+	public void drop(final String tableName, final Field field) throws Exception {
+		final String columnName = AnnotationTools.getFieldName(field);
+		final String linkTableName = generateLinkTableName(tableName, columnName);
+		DataAccess.drop(LinkTable.class, new OverrideTableName(linkTableName));
 	}
 
 	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {

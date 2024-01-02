@@ -98,4 +98,8 @@ public interface DataAccessAddOn {
 
 	}
 
+	default void drop(final String tableName, final Field field) throws Exception {
+
+	}
+
 }
