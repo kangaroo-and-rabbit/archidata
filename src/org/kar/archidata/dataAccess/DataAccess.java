@@ -1,6 +1,7 @@
 package org.kar.archidata.dataAccess;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,9 +10,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -482,10 +481,11 @@ public class DataAccess {
 		}
 
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		final List<Field> needAsyncInsert = new ArrayList<>();
+		final List<Field> asyncFieldUpdate = new ArrayList<>();
+		Long uniqueSQLID = null;
+		final String tableName = AnnotationTools.getTableName(clazz, options);
 		// real add in the BDD:
 		try {
-			final String tableName = AnnotationTools.getTableName(clazz, options);
 			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder query = new StringBuilder();
 			query.append("INSERT INTO `");
@@ -494,37 +494,37 @@ public class DataAccess {
 
 			boolean firstField = true;
 			int count = 0;
-			for (final Field elem : clazz.getFields()) {
+			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				if (AnnotationTools.isPrimaryKey(elem)) {
+				if (AnnotationTools.isPrimaryKey(field)) {
 					continue;
 				}
-				final DataAccessAddOn addOn = findAddOnforField(elem);
-				if (addOn != null && !addOn.canInsert(elem)) {
-					if (addOn.isInsertAsync(elem)) {
-						needAsyncInsert.add(elem);
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && !addOn.canInsert(field)) {
+					if (addOn.isInsertAsync(field)) {
+						asyncFieldUpdate.add(field);
 					}
 					continue;
 				}
-				final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 				if (createTime) {
 					continue;
 				}
-				final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 				if (updateTime) {
 					continue;
 				}
-				if (!elem.getClass().isPrimitive()) {
-					final Object tmp = elem.get(data);
-					if (tmp == null && elem.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+				if (!field.getClass().isPrimitive()) {
+					final Object tmp = field.get(data);
+					if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
 						continue;
 					}
 				}
 				count++;
-				final String name = AnnotationTools.getFieldName(elem);
+				final String name = AnnotationTools.getFieldName(field);
 				if (firstField) {
 					firstField = false;
 				} else {
@@ -596,7 +596,6 @@ public class DataAccess {
 			if (affectedRows == 0) {
 				throw new SQLException("Creating node failed, no rows affected.");
 			}
-			Long uniqueSQLID = null;
 			// Retrieve uid inserted
 			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
 				if (generatedKeys.next()) {
@@ -619,23 +618,19 @@ public class DataAccess {
 				}
 			}
 			// ps.execute();
-
-			if (needAsyncInsert.size() != 0) {
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-				LOGGER.error("Need to insert async !!!!");
-			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
 		} finally {
 			entry.close();
 			entry = null;
+		}
+		final List<LazyGetter> asyncActions = new ArrayList<>();
+		for (final Field field : asyncFieldUpdate) {
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			addOn.asyncInsert(tableName, uniqueSQLID, field, field.get(data), asyncActions);
+		}
+		for (final LazyGetter action : asyncActions) {
+			action.doRequest();
 		}
 		return data;
 	}
@@ -1034,7 +1029,15 @@ public class DataAccess {
 			final List<LazyGetter> lazyCall) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		// TODO: manage class that is defined inside a class ==> Not manage for now...
-		final Object data = clazz.getConstructors()[0].newInstance();
+		Object data = null;
+		for (final Constructor<?> contructor : clazz.getConstructors()) {
+			if (contructor.getParameterCount() == 0) {
+				data = contructor.newInstance();
+			}
+		}
+		if (data == null) {
+			throw new DataAccessException("Can not find the default constructor for the class: " + clazz.getCanonicalName());
+		}
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
@@ -1112,10 +1115,6 @@ public class DataAccess {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return DataAccess.getWhere(clazz, options.getAllArray());
-	}
-
-	public static String getCurrentTimeStamp() {
-		return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
 	}
 
 	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
@@ -1280,7 +1279,7 @@ public class DataAccess {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		final StringBuilder query = new StringBuilder();
-		query.append("DROP TABLE `");
+		query.append("DROP TABLE IF EXISTS `");
 		query.append(tableName);
 		query.append("`");
 		try {

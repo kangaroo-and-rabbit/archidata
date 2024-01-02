@@ -234,7 +234,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final List<LinkTable> insertElements = new ArrayList<>();
 		for (final Long remoteKey : dataCasted) {
 			if (remoteKey == null) {
-				continue;
+				throw new DataAccessException("Try to insert remote key with null value");
 			}
 			if (localKey instanceof final Long localKeyLong) {
 				insertElements.add(new LinkTable(localKeyLong, remoteKey));
