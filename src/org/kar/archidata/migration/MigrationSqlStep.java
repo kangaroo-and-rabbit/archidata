@@ -105,9 +105,8 @@ public class MigrationSqlStep implements MigrationInterface {
 				e.printStackTrace();
 			}
 			try {
-				Thread.sleep(100);
+				Thread.sleep(2);
 			} catch (final InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
