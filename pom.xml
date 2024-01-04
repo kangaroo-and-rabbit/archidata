@@ -203,23 +203,18 @@
 			</plugin>
 			<!-- For dependabot plugin -->
 			<plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <version>3.6.1</version>
-            <executions>
-                <execution>
-                    <id>generate-dependency-graph</id>
-                    <phase>compile</phase>
-                    <goals>
-                        <goal>tree</goal>
-                    </goals>
-                    <configuration>
-                        <outputFile>${project.build.directory}/dependency-graph.json</outputFile>
-                        <outputType>json</outputType>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
+				<groupId>org.apache.servicemix.tooling</groupId>
+				<artifactId>depends-maven-plugin</artifactId>
+				<version>1.5.0</version>
+				<executions>
+					<execution>
+						<id>generate-depends-file</id>
+						<goals>
+							<goal>generate-depends-file</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- junit results -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
