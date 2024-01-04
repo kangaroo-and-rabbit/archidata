@@ -258,6 +258,13 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		DataAccess.drop(LinkTable.class, new OverrideTableName(linkTableName));
 	}
 
+	@Override
+	public void cleanAll(final String tableName, final Field field) throws Exception {
+		final String columnName = AnnotationTools.getFieldName(field);
+		final String linkTableName = generateLinkTableName(tableName, columnName);
+		DataAccess.cleanAll(LinkTable.class, new OverrideTableName(linkTableName));
+	}
+
 	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);

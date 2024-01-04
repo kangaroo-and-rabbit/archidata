@@ -1307,4 +1307,37 @@ public class DataAccess {
 		}
 	}
 
+	public static void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		final String tableName = AnnotationTools.getTableName(clazz, options);
+		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final StringBuilder query = new StringBuilder();
+		query.append("DELETE FROM `");
+		query.append(tableName);
+		query.append("`");
+		try {
+			LOGGER.trace("Execute Querry: {}", query.toString());
+			// Remove main table
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
+			ps.executeUpdate();
+			// search subTable:
+			for (final Field field : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (AnnotationTools.isGenericField(field)) {
+					continue;
+				}
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && !addOn.canInsert(field)) {
+					addOn.cleanAll(tableName, field);
+				}
+			}
+		} finally {
+			entry.close();
+			entry = null;
+		}
+	}
+
 }

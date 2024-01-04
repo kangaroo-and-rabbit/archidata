@@ -102,4 +102,8 @@ public interface DataAccessAddOn {
 
 	}
 
+	default void cleanAll(final String tableName, final Field field) throws Exception {
+
+	}
+
 }
