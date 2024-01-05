@@ -170,7 +170,6 @@
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test/src</testSourceDirectory>
-    	<directory>${project.basedir}/out/maven/</directory>
 		<testResources>
 			<testResource>
 				<directory>${basedir}/test/resources</directory>
