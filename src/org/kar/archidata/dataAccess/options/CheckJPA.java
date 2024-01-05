@@ -39,7 +39,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		void check(final String baseName, final K data) throws Exception;
 	}
 
-	private Map<String, List<CheckInterface<T>>> checking = null;
+	protected Map<String, List<CheckInterface<T>>> checking = null;
 
 	protected void add(final String field, final CheckInterface<T> checkFunction) {
 		List<CheckInterface<T>> actions = this.checking.get(field);
@@ -309,7 +309,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 
 	@Override
 	public void check(final String baseName, final Object data, final List<String> filterValue) throws Exception {
-		initialize();
+		if (this.checking == null) {
+			initialize();
+		}
 		if (!(this.clazz.isAssignableFrom(data.getClass()))) {
 			throw new DataAccessException("Incompatatyble type of Object" + data.getClass().getCanonicalName());
 		}

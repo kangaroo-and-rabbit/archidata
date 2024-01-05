@@ -167,7 +167,7 @@ public class RESTApi {
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 
-	public <T, U> T delete(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	public <T, U> void delete(final Class<T> clazz, final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
@@ -183,9 +183,5 @@ public class RESTApi {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
-		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
-		}
-		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 }
