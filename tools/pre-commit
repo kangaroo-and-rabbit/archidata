@@ -18,7 +18,7 @@ function __run() #(step, name, cmd)
     if [[ 0 == $exitcode ]]; then
         echo -e "${C_GREEN}OK!${C_RESET}"
     else
-        echo -e "${C_RED}NOK! (${exitcode})${C_RESET}\n\n$output"
+        echo -e "${C_RED}ERROR! (${exitcode})${C_RESET}\n\n$output"
         exit 1
     fi
 }
