@@ -11,7 +11,7 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 
 public class JacksonCatcher implements ExceptionMapper<JsonProcessingException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JacksonCatcher.class);
-
+	
 	@Override
 	public Response toResponse(final JsonProcessingException exception) {
 		LOGGER.warn("Catch exception Input data parsing:");
@@ -20,9 +20,9 @@ public class JacksonCatcher implements ExceptionMapper<JsonProcessingException> 
 		exception.printStackTrace();
 		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
-
+	
 	private RestErrorResponse build(final Exception exception) {
-		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Catch Unknown Exception", exception.getMessage());
+		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Catch JSON Exception", exception.getMessage());
 	}
-
+	
 }

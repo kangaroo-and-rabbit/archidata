@@ -43,8 +43,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	private ResourceInfo resourceInfo;
 	protected final String applicationName;
 
-	private static final String AUTHENTICATION_SCHEME = "Yota";
-	private static final String AUTHENTICATION_TOKEN_SCHEME = "Zota";
+	private static final String AUTHENTICATION_SCHEME = "Bearer";
+	private static final String APIKEY = "ApiKey";
 
 	public AuthenticationFilter(final String applicationName) {
 		this.applicationName = applicationName;
@@ -58,10 +58,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// Access denied for all
 		if (method.isAnnotationPresent(DenyAll.class)) {
 			LOGGER.debug("   ==> deny all {}", requestContext.getUriInfo().getPath());
-			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Access blocked !!!").build());
+			abortWithForbidden(requestContext, "Access blocked !!!");
 			return;
 		}
-
+		
 		// Access allowed for all
 		if (method.isAnnotationPresent(PermitAll.class)) {
 			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
@@ -71,28 +71,28 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// this is a security guard, all the API must define their access level:
 		if (!method.isAnnotationPresent(RolesAllowed.class)) {
 			LOGGER.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
-			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Access ILLEGAL !!!").build());
+			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
-
+		
 		// Get the Authorization header from the request
 		String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+		String apikeyHeader = requestContext.getHeaderString(APIKEY);
 		// logger.debug("authorizationHeader: {}", authorizationHeader);
-		if (authorizationHeader == null && method.isAnnotationPresent(PermitTokenInURI.class)) {
+		if (authorizationHeader == null && apikeyHeader == null && method.isAnnotationPresent(PermitTokenInURI.class)) {
 			final MultivaluedMap<String, String> quaryparam = requestContext.getUriInfo().getQueryParameters();
 			for (final Entry<String, List<String>> item : quaryparam.entrySet()) {
-				if (item.getKey().equals(HttpHeaders.AUTHORIZATION)) {
-					if (!item.getValue().isEmpty()) {
-						authorizationHeader = item.getValue().get(0);
-					}
-					break;
+				if ((authorizationHeader == null && HttpHeaders.AUTHORIZATION.equals(item.getKey())) && !item.getValue().isEmpty()) {
+					authorizationHeader = item.getValue().get(0);
+				}
+				if ((apikeyHeader == null && APIKEY.equals(item.getKey())) && !item.getValue().isEmpty()) {
+					apikeyHeader = item.getValue().get(0);
 				}
 			}
 		}
 		// logger.debug("authorizationHeader: {}", authorizationHeader);
-		final boolean isApplicationToken = isApplicationTokenBasedAuthentication(authorizationHeader);
+		final boolean isApplicationToken = apikeyHeader != null;
 		final boolean isJwtToken = isTokenBasedAuthentication(authorizationHeader);
-		// Validate the Authorization header data Model "Yota jwt.to.ken" "Zota tokenId:hash(token)"
 		if (!isApplicationToken && !isJwtToken) {
 			LOGGER.warn("REJECTED unauthorized: {}", requestContext.getUriInfo().getPath());
 			abortWithUnauthorized(requestContext, "REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
@@ -100,7 +100,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		UserByToken userByToken = null;
 		if (isJwtToken) {
-			// Extract the token from the Authorization header (Remove "Yota ")
+			// Extract the token from the Authorization header (Remove "Bearer ")
 			final String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
 			// logger.debug("token: {}", token);
 			try {
@@ -116,9 +116,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				return;
 			}
 		} else {
-			// Extract the token from the Authorization header (Remove "Zota ")
-			final String token = authorizationHeader.substring(AUTHENTICATION_TOKEN_SCHEME.length()).trim();
-			// logger.debug("token: {}", token);
+			final String token = apikeyHeader.trim();
 			try {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
@@ -131,7 +129,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				abortWithUnauthorized(requestContext, "get a NULL application ...");
 				return;
 			}
-
+			
 		}
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
@@ -163,14 +161,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// The authentication scheme comparison must be case-insensitive
 		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
 	}
-
-	private boolean isApplicationTokenBasedAuthentication(final String authorizationHeader) {
-		// Check if the Authorization header is valid
-		// It must not be null and must be prefixed with "Bearer" plus a whitespace
-		// The authentication scheme comparison must be case-insensitive
-		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_TOKEN_SCHEME.toLowerCase() + " ");
-	}
-
+	
 	private void abortWithUnauthorized(final ContainerRequestContext requestContext, final String message) {
 
 		// Abort the filter chain with a 401 status code response
@@ -180,6 +171,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		LOGGER.error("Error UUID={}", ret.uuid);
 		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)").entity(ret)
 				.type(MediaType.APPLICATION_JSON).build());
+	}
+
+	private void abortWithForbidden(final ContainerRequestContext requestContext, final String message) {
+		final RestErrorResponse ret = new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", message);
+		LOGGER.error("Error UUID={}", ret.uuid);
+		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, message).entity(ret).type(MediaType.APPLICATION_JSON).build());
 	}
 
 	protected UserByToken validateToken(final String authorization) throws Exception {

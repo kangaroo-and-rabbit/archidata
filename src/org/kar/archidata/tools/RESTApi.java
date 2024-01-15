@@ -40,7 +40,7 @@ public class RESTApi {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
 		final HttpRequest request = requestBuilding.GET().build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -111,7 +111,7 @@ public class RESTApi {
 		LOGGER.trace("call {}: {}", model, URI.create(this.baseUrl + urlOffset));
 		LOGGER.trace("DATA: {}", body);
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
 		if (body == null) {
 			body = "";
@@ -143,7 +143,7 @@ public class RESTApi {
 		String body = null;
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
 		if (data == null) {
 			body = "";
@@ -171,7 +171,7 @@ public class RESTApi {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1).uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Yota " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
 		final HttpRequest request = requestBuilding.DELETE().build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
