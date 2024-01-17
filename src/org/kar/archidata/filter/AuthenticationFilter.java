@@ -61,7 +61,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			abortWithForbidden(requestContext, "Access blocked !!!");
 			return;
 		}
-		
+
 		// Access allowed for all
 		if (method.isAnnotationPresent(PermitAll.class)) {
 			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
@@ -74,7 +74,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
-		
+
 		// Get the Authorization header from the request
 		String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
 		String apikeyHeader = requestContext.getHeaderString(APIKEY);
@@ -129,7 +129,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				abortWithUnauthorized(requestContext, "get a NULL application ...");
 				return;
 			}
-			
+
 		}
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
@@ -161,7 +161,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// The authentication scheme comparison must be case-insensitive
 		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
 	}
-	
+
 	private void abortWithUnauthorized(final ContainerRequestContext requestContext, final String message) {
 
 		// Abort the filter chain with a 401 status code response

@@ -14,6 +14,9 @@ public class ConfigBaseVariable {
 	static public String ssoAdress;
 	static public String ssoToken;
 	static public String testMode;
+	static public String eMailFrom;
+	static public String eMailLogin;
+	static public String eMailPassword;
 
 	// For test only
 	public static void clearAllValue() {
@@ -30,6 +33,9 @@ public class ConfigBaseVariable {
 		ssoAdress = System.getenv("SSO_ADDRESS");
 		ssoToken = System.getenv("SSO_TOKEN");
 		testMode = System.getenv("TEST_MODE");
+		eMailFrom = System.getenv("EMAIL_FROM");
+		eMailLogin = System.getenv("EMAIL_LOGIN");
+		eMailPassword = System.getenv("EMAIL_PASSWORD");
 	}
 
 	static {
@@ -120,4 +126,15 @@ public class ConfigBaseVariable {
 		}
 		return Boolean.parseBoolean(testMode);
 	}
+
+	public record EMailConfig(String from, String login, String password) {
+	};
+
+	public static EMailConfig getEMailConfig() {
+		if (eMailFrom == null || eMailLogin == null || eMailPassword == null) {
+			return null;
+		}
+		return new EMailConfig(eMailFrom, eMailLogin, eMailPassword);
+	}
+
 }

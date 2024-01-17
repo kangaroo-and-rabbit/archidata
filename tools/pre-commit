@@ -23,5 +23,5 @@ function __run() #(step, name, cmd)
     fi
 }
 
-__run "1/1" "Check JAVA code format" "mvn formatter:verify"
+__run "1/1" "Check JAVA code format" "mvn formatter:validate"
 
