@@ -42,14 +42,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	@Context
 	private ResourceInfo resourceInfo;
 	protected final String applicationName;
-
-	private static final String AUTHENTICATION_SCHEME = "Bearer";
-	private static final String APIKEY = "ApiKey";
-
+	
+	public static final String AUTHENTICATION_SCHEME = "Bearer";
+	public static final String APIKEY = "ApiKey";
+	
 	public AuthenticationFilter(final String applicationName) {
 		this.applicationName = applicationName;
 	}
-
+	
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
@@ -61,7 +61,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			abortWithForbidden(requestContext, "Access blocked !!!");
 			return;
 		}
-
+		
 		// Access allowed for all
 		if (method.isAnnotationPresent(PermitAll.class)) {
 			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
@@ -74,7 +74,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
-
+		
 		// Get the Authorization header from the request
 		String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
 		String apikeyHeader = requestContext.getHeaderString(APIKEY);
@@ -129,7 +129,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				abortWithUnauthorized(requestContext, "get a NULL application ...");
 				return;
 			}
-
+			
 		}
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
@@ -154,16 +154,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		requestContext.setSecurityContext(userContext);
 		// logger.debug("Get local user : {} / {}", user, userByToken);
 	}
-
+	
 	private boolean isTokenBasedAuthentication(final String authorizationHeader) {
 		// Check if the Authorization header is valid
 		// It must not be null and must be prefixed with "Bearer" plus a whitespace
 		// The authentication scheme comparison must be case-insensitive
 		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
 	}
-
+	
 	private void abortWithUnauthorized(final ContainerRequestContext requestContext, final String message) {
-
+		
 		// Abort the filter chain with a 401 status code response
 		// The WWW-Authenticate header is sent along with the response
 		LOGGER.warn("abortWithUnauthorized:");
@@ -172,18 +172,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)").entity(ret)
 				.type(MediaType.APPLICATION_JSON).build());
 	}
-
+	
 	private void abortWithForbidden(final ContainerRequestContext requestContext, final String message) {
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", message);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, message).entity(ret).type(MediaType.APPLICATION_JSON).build());
 	}
-
+	
 	protected UserByToken validateToken(final String authorization) throws Exception {
 		LOGGER.info("Must be Override by the application implmentation, otherwise it dose not work");
 		return null;
 	}
-
+	
 	// must be override to be good implementation
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
 		// logger.debug(" validate token : " + authorization);

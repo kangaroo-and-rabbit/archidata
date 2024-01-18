@@ -84,7 +84,6 @@ Reformat XML file like the pom.xml
 XMLLINT_INDENT="	" xmllint  --format "back/pom.xml" -o "back/pom.xml"
 ```
 
-
 Enable the pre-commit checker
 -----------------------------
 
@@ -93,6 +92,8 @@ Enable the pre-commit checker
 ```
 
 > **_Note_**: You can change the code in `.git/hooks/pre-commit` by replacing `formatter:verify` with `formatter:format` to auto format the code @ every commit
+
+
 
 Add Gitea in the dependency for the registry:
 =============================================
