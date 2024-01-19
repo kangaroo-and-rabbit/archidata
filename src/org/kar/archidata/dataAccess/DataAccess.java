@@ -960,7 +960,10 @@ public class DataAccess {
 
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
-		final Condition condition = options.get(Condition.class);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			condition = new Condition();
+		}
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
@@ -979,9 +982,7 @@ public class DataAccess {
 			generateSelectField(querySelect, query, clazz, options, count);
 			querySelect.append(query.toString());
 			query = querySelect;
-			if (condition != null) {
-				condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-			}
+			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
 				orders.generateQuerry(query, tableName);
@@ -994,9 +995,7 @@ public class DataAccess {
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			if (condition != null) {
-				condition.injectQuerry(ps, iii);
-			}
+			condition.injectQuerry(ps, iii);
 			if (limit != null) {
 				limit.injectQuerry(ps, iii);
 			}
@@ -1066,7 +1065,10 @@ public class DataAccess {
 
 	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
+		Condition condition = options.get(Condition.class);
+		if (condition == null) {
+			condition = new Condition();
+		}
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		long count = 0;
@@ -1077,9 +1079,7 @@ public class DataAccess {
 			query.append("SELECT COUNT(*) AS count FROM `");
 			query.append(tableName);
 			query.append("` ");
-			if (condition != null) {
-				condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-			}
+			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 			final Limit limit = options.get(Limit.class);
 			if (limit != null) {
 				limit.generateQuerry(query, tableName);
@@ -1088,9 +1088,7 @@ public class DataAccess {
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			if (condition != null) {
-				condition.injectQuerry(ps, iii);
-			}
+			condition.injectQuerry(ps, iii);
 			if (limit != null) {
 				limit.injectQuerry(ps, iii);
 			}
