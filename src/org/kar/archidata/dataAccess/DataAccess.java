@@ -5,6 +5,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -42,12 +43,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /* TODO list:
-   - useful code to manage external query: List<T> query<T>(class<T> clazz, String query, List<Object> parameters);
-		 ResultSet rs = stmt.executeQuery("SELECT a, b, c FROM TABLE2");
-		 ResultSetMetaData rsmd = rs.getMetaData();
-		 String name = rsmd.getColumnName(1);
    - Manage to group of SQL action to permit to commit only at the end.
-
  */
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
@@ -886,7 +882,6 @@ public class DataAccess {
 	
 	public static int executeSimpleQuerry(final String query, final QueryOption... option) throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
-		// .... TODO final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.executeUpdate(query);
@@ -894,7 +889,6 @@ public class DataAccess {
 	
 	public static boolean executeQuerry(final String query, final QueryOption... option) throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
-		// .... TODO final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig, root);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.execute(query);
@@ -909,8 +903,6 @@ public class DataAccess {
 		}
 		return values.get(0);
 	}
-	
-	/* public static <T> List<T> getsWhere(final Class<T> clazz, final QueryItem condition) throws Exception { return getsWhere(clazz, condition, null); } */
 	
 	public static void generateSelectField(final StringBuilder querySelect, final StringBuilder query, final Class<?> clazz, final QueryOptions options, final CountInOut count) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
@@ -1324,6 +1316,85 @@ public class DataAccess {
 			entry.close();
 			entry = null;
 		}
+	}
+	
+	/*
+	   - useful code to manage external query: List<T> query<T>(class<T> clazz, );
+			 ResultSet rs = stmt.executeQuery("SELECT a, b, c FROM TABLE2");
+	 */
+	public static <TYPE> List<TYPE> querry(final Class<TYPE> clazz, String query, List<Object> parameters, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		final List<LazyGetter> lazyCall = new ArrayList<>();
+		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+		final List<TYPE> outs = new ArrayList<>();
+		// real add in the BDD:
+		try {
+			final CountInOut count = new CountInOut();
+			LOGGER.warn("generate the query: '{}'", query.toString());
+			// prepare the request:
+			final PreparedStatement ps = entry.connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			final CountInOut iii = new CountInOut(1);
+			if (parameters != null) {
+				for (Object elem : parameters)
+					DataAccess.addElement(ps, elem, iii);
+				iii.inc();
+			}
+			
+			// execute the request
+			final ResultSet rs = ps.executeQuery();
+			ResultSetMetaData rsmd = rs.getMetaData();
+			List<RetreiveFromDB> actionToRetreive = new ArrayList<>();
+			for (int jjj = 0; jjj < rsmd.getColumnCount(); jjj++) {
+				String name = rsmd.getColumnName(jjj);
+				// find field name ...
+				
+				// create the callback...
+				// TODO ...
+			}
+
+			/*
+			 *
+			 *
+			 *  j'en suis ici
+			 *
+			 *
+			 *
+			 */
+
+			while (rs.next()) {
+				count.value = 1;
+				final CountInOut countNotNull = new CountInOut(0);
+				Object data = null;
+				for (final Constructor<?> contructor : clazz.getConstructors()) {
+					if (contructor.getParameterCount() == 0) {
+						data = contructor.newInstance();
+					}
+				}
+				if (data == null) {
+					// TODO...
+				} else {
+					for (RetreiveFromDB action : actionToRetreive) {
+						action.doRequest(rs, data);
+					}
+				}
+				@SuppressWarnings("unchecked")
+				final TYPE out = (TYPE) data;
+				outs.add(out);
+			}
+			LOGGER.info("Async calls: {}", lazyCall.size());
+			for (final LazyGetter elem : lazyCall) {
+				elem.doRequest();
+			}
+		} catch (final SQLException ex) {
+			ex.printStackTrace();
+			throw ex;
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			entry.close();
+		}
+		return outs;
 	}
 	
 }
