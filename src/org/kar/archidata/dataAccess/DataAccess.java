@@ -286,7 +286,7 @@ public class DataAccess {
 		}
 		iii.inc();
 	}
-	
+
 	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
 		if (type == Long.class) {
 			final Long tmp = rs.getLong(count.value);
@@ -444,6 +444,196 @@ public class DataAccess {
 			throw new DataAccessException("Unknown Field Type");
 		}
 		count.inc();
+	}
+
+	// TODO: this function will replace the previous one !!!
+	protected static RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
+		Class<?> type = field.getType();
+		if (type == Long.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Long tmp = rs.getLong(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == long.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Long tmp = rs.getLong(count);
+				if (rs.wasNull()) {
+					// field.set(data, null);
+				} else {
+					field.setLong(obj, tmp);
+				}
+			};
+		}
+		if (type == Integer.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Integer tmp = rs.getInt(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == int.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Integer tmp = rs.getInt(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setInt(obj, tmp);
+				}
+			};
+		}
+		if (type == Float.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Float tmp = rs.getFloat(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == float.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Float tmp = rs.getFloat(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setFloat(obj, tmp);
+				}
+			};
+		}
+		if (type == Double.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Double tmp = rs.getDouble(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == double.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Double tmp = rs.getDouble(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setDouble(obj, tmp);
+				}
+			};
+		}
+		if (type == Boolean.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Boolean tmp = rs.getBoolean(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == boolean.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Boolean tmp = rs.getBoolean(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setBoolean(obj, tmp);
+				}
+			};
+		}
+		if (type == Timestamp.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final Timestamp tmp = rs.getTimestamp(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == Date.class) {
+			return (final ResultSet rs, Object obj) -> {
+				try {
+					final Timestamp tmp = rs.getTimestamp(count);
+					if (rs.wasNull()) {
+						field.set(obj, null);
+					} else {
+						field.set(obj, Date.from(tmp.toInstant()));
+					}
+				} catch (final SQLException ex) {
+					final String tmp = rs.getString(count);
+					LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
+					if (rs.wasNull()) {
+						field.set(obj, null);
+					} else {
+						final Date date = DateTools.parseDate(tmp);
+						LOGGER.error("Fail to parse the SQL time !!! {}", date);
+						field.set(obj, date);
+					}
+				}
+			};
+		}
+		if (type == LocalDate.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final java.sql.Date tmp = rs.getDate(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp.toLocalDate());
+				}
+			};
+		}
+		if (type == LocalTime.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final java.sql.Time tmp = rs.getTime(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp.toLocalTime());
+				}
+			};
+		}
+		if (type == String.class) {
+			return (final ResultSet rs, Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type.isEnum()) {
+			return (final ResultSet rs, Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					boolean find = false;
+					final Object[] arr = type.getEnumConstants();
+					for (final Object elem : arr) {
+						if (elem.toString().equals(tmp)) {
+							field.set(obj, elem);
+							find = true;
+							break;
+						}
+					}
+					if (!find) {
+						throw new DataAccessException("Enum value does not exist in the Model: '" + tmp + "'");
+					}
+				}
+			};
+		}
+		throw new DataAccessException("Unknown Field Type");
+
 	}
 	
 	public static boolean isAddOnField(final Field field) {
@@ -1322,10 +1512,10 @@ public class DataAccess {
 	   - useful code to manage external query: List<T> query<T>(class<T> clazz, );
 			 ResultSet rs = stmt.executeQuery("SELECT a, b, c FROM TABLE2");
 	 */
-	public static <TYPE> List<TYPE> querry(final Class<TYPE> clazz, String query, List<Object> parameters, final QueryOption... option) throws Exception {
+	public static <TYPE> List<TYPE> query(final Class<TYPE> clazz, String query, List<Object> parameters, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
-		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
+		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final List<TYPE> outs = new ArrayList<>();
 		// real add in the BDD:
@@ -1336,31 +1526,26 @@ public class DataAccess {
 			final PreparedStatement ps = entry.connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
-				for (Object elem : parameters)
+				for (Object elem : parameters) {
 					DataAccess.addElement(ps, elem, iii);
+				}
 				iii.inc();
 			}
-			
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			ResultSetMetaData rsmd = rs.getMetaData();
 			List<RetreiveFromDB> actionToRetreive = new ArrayList<>();
 			for (int jjj = 0; jjj < rsmd.getColumnCount(); jjj++) {
-				String name = rsmd.getColumnName(jjj);
+				String name = rsmd.getColumnName(jjj + 1);
 				// find field name ...
-				
+				Field field = AnnotationTools.getFieldNamed(clazz, name);
+				if (field == null) {
+					throw new DataAccessException("Querry with unknown field: '" + name + "'");
+				}
 				// create the callback...
-				// TODO ...
+				RetreiveFromDB element = createSetValueFromDbCallback(jjj + 1, field);
+				actionToRetreive.add(element);
 			}
-
-			/*
-			 *
-			 *
-			 *  j'en suis ici
-			 *
-			 *
-			 *
-			 */
 
 			while (rs.next()) {
 				count.value = 1;
