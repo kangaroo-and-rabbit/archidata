@@ -26,7 +26,7 @@ import test.kar.archidata.model.TypesEnum1;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTypeEnum1 {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeEnum1.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
@@ -39,14 +39,14 @@ public class TestTypeEnum1 {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -56,27 +56,27 @@ public class TestTypeEnum1 {
 			DataAccess.executeSimpleQuerry(elem);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testEnum() throws Exception {
-		
+
 		final TypesEnum1 test = new TypesEnum1();
 		test.data = Enum1ForTest.ENUM_VALUE_3;
 		final TypesEnum1 insertedData = DataAccess.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
-		
+
 		// Try to retrieve all the data:
 		final TypesEnum1 retrieve = DataAccess.get(TypesEnum1.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals(insertedData.data, retrieve.data);
-		
+
 		DataAccess.delete(TypesEnum1.class, insertedData.id);
 	}
 }

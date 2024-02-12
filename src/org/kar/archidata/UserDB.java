@@ -12,13 +12,13 @@ import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
 
 public class UserDB {
-	
+
 	public UserDB() {}
-	
+
 	public static User getUsers(final long userId, QueryOption... option) throws Exception {
 		return DataAccess.get(User.class, userId, option);
 	}
-	
+
 	public static User getUserOrCreate(final long userId, final String userLogin, QueryOption... option) throws Exception {
 		final User user = getUsers(userId);
 		if (user != null) {
@@ -27,7 +27,7 @@ public class UserDB {
 		createUsersInfoFromOAuth(userId, userLogin, option);
 		return getUsers(userId);
 	}
-	
+
 	private static void createUsersInfoFromOAuth(final long userId, final String login, QueryOption... option) throws IOException {
 		QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);

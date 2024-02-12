@@ -27,7 +27,7 @@ import test.kar.archidata.model.TypeManyToOneRootExpand;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestManyToOne {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOne.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
@@ -40,14 +40,14 @@ public class TestManyToOne {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -59,7 +59,7 @@ public class TestManyToOne {
 			DataAccess.executeSimpleQuerry(elem);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testAddAlements() throws Exception {
@@ -67,12 +67,12 @@ public class TestManyToOne {
 		remote.data = "remote1";
 		final TypeManyToOneRemote insertedRemote1 = DataAccess.insert(remote);
 		Assertions.assertEquals(insertedRemote1.data, remote.data);
-		
+
 		remote = new TypeManyToOneRemote();
 		remote.data = "remote2";
 		final TypeManyToOneRemote insertedRemote2 = DataAccess.insert(remote);
 		Assertions.assertEquals(insertedRemote2.data, remote.data);
-		
+
 		final TypeManyToOneRoot test = new TypeManyToOneRoot();
 		test.otherData = "kjhlkjlkj";
 		test.remoteId = insertedRemote2.id;
@@ -82,14 +82,14 @@ public class TestManyToOne {
 		Assertions.assertTrue(insertedData.id >= 0);
 		Assertions.assertEquals(test.otherData, insertedData.otherData);
 		Assertions.assertEquals(insertedRemote2.id, insertedData.remoteId);
-		
+
 		TypeManyToOneRoot retrieve = DataAccess.get(TypeManyToOneRoot.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
-		
+
 		TypeManyToOneRootExpand retrieve2 = DataAccess.get(TypeManyToOneRootExpand.class, insertedData.id);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
@@ -98,20 +98,20 @@ public class TestManyToOne {
 		Assertions.assertNotNull(retrieve2.remote);
 		Assertions.assertEquals(insertedRemote2.id, retrieve2.remote.id);
 		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
-		
+
 		// remove values:
 		final int count = DataAccess.delete(TypeManyToOneRemote.class, remote.id);
 		Assertions.assertEquals(1, count);
-		
+
 		// check fail:
-		
+
 		retrieve = DataAccess.get(TypeManyToOneRoot.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
-		
+
 		retrieve2 = DataAccess.get(TypeManyToOneRootExpand.class, insertedData.id);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);

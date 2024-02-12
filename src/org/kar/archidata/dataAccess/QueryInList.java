@@ -24,8 +24,10 @@ public class QueryInList<T> implements QueryItem {
 
 	@Override
 	public void generateQuerry(final StringBuilder query, final String tableName) {
-		query.append(tableName);
-		query.append(".");
+		if (tableName != null) {
+			query.append(tableName);
+			query.append(".");
+		}
 		query.append(this.key);
 		query.append(" ");
 		query.append(this.comparator);

@@ -26,7 +26,7 @@ import test.kar.archidata.model.SerializeListAsJson;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestListJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
@@ -39,14 +39,14 @@ public class TestListJson {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
@@ -56,7 +56,7 @@ public class TestListJson {
 			DataAccess.executeSimpleQuerry(elem);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testIO() throws Exception {
@@ -67,9 +67,9 @@ public class TestListJson {
 		test.data.add(8);
 		test.data.add(6);
 		test.data.add(51);
-		
+
 		final SerializeListAsJson insertedData = DataAccess.insert(test);
-		
+
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
@@ -80,10 +80,10 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(2), insertedData.data.get(2));
 		Assertions.assertEquals(test.data.get(3), insertedData.data.get(3));
 		Assertions.assertEquals(test.data.get(4), insertedData.data.get(4));
-		
+
 		// Try to retrieve all the data:
 		final SerializeListAsJson retrieve = DataAccess.get(SerializeListAsJson.class, insertedData.id);
-		
+
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertTrue(retrieve.id >= 0);
@@ -95,5 +95,5 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(3), retrieve.data.get(3));
 		Assertions.assertEquals(test.data.get(4), retrieve.data.get(4));
 	}
-	
+
 }

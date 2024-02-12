@@ -25,7 +25,7 @@ import test.kar.archidata.model.TypesTable;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestRawQuery {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypes.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
@@ -38,14 +38,14 @@ public class TestRawQuery {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -55,11 +55,11 @@ public class TestRawQuery {
 			DataAccess.executeSimpleQuerry(elem);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testGet() throws Exception {
-		
+
 		final TypesTable test = new TypesTable();
 		test.intData = 95;
 		test.floatData = 1.0F;
@@ -92,7 +92,7 @@ public class TestRawQuery {
 			List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
 			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, querry, parameters);
-			
+
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertEquals(3, retrieve.size());
 			Assertions.assertEquals(99, retrieve.get(0).intData);
@@ -101,7 +101,7 @@ public class TestRawQuery {
 			Assertions.assertEquals(5.0F, retrieve.get(2).floatData);
 		}
 		{
-			
+
 			String querry = """
 					SELECT DISTINCT intData
 					FROM TypesTable
@@ -111,11 +111,11 @@ public class TestRawQuery {
 			List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
 			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, querry, parameters);
-			
+
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertEquals(1, retrieve.size());
 			Assertions.assertEquals(99, retrieve.get(0).intData);
 		}
 	}
-	
+
 }

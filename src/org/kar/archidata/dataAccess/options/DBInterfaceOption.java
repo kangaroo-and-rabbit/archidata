@@ -12,12 +12,12 @@ public class DBInterfaceOption extends QueryOption {
 	private DBEntry entry = null;
 	private final DBConfig config;
 	private final boolean root;
-	
+
 	public DBInterfaceOption(final DBConfig config) {
 		this.config = config;
 		this.root = false;
 	}
-	
+
 	public DBInterfaceOption(final DBConfig config, boolean root) {
 		this.config = config;
 		this.root = root;
@@ -30,11 +30,11 @@ public class DBInterfaceOption extends QueryOption {
 		}
 		return this.entry;
 	}
-	
+
 	public boolean getRoot() {
 		return this.root;
 	}
-	
+
 	public static DBEntry getAutoEntry(QueryOptions options) throws IOException {
 		final DBInterfaceOption dbOption = options.get(DBInterfaceOption.class);
 		if (dbOption == null) {
@@ -44,5 +44,5 @@ public class DBInterfaceOption extends QueryOption {
 			return dbOption.getEntry(options);
 		}
 	}
-	
+
 }

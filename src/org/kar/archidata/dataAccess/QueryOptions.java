@@ -15,30 +15,30 @@ public class QueryOptions {
 	public static final ReadAllColumn READ_ALL_COLOMN = new ReadAllColumn();
 	public static final AccessDeletedItems ACCESS_DELETED_ITEMS = new AccessDeletedItems();
 	public static final CreateDropTable CREATE_DROP_TABLE = new CreateDropTable();
-	
+
 	private final List<QueryOption> options = new ArrayList<>();
-	
+
 	public QueryOptions() {}
-	
+
 	public QueryOptions(final QueryOption... elems) {
 		if (elems == null || elems.length == 0) {
 			return;
 		}
 		Collections.addAll(this.options, elems);
 	}
-	
+
 	public void add(final QueryOption option) {
 		this.options.add(option);
 	}
-	
+
 	public List<QueryOption> getAll() {
 		return this.options;
 	}
-	
+
 	public QueryOption[] getAllArray() {
 		return this.options.toArray(new QueryOption[0]);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public <T> T get(final Class<T> type) {
 		for (final QueryOption elem : this.options) {
@@ -48,7 +48,7 @@ public class QueryOptions {
 		}
 		return null;
 	}
-	
+
 	public boolean exist(final Class<?> type) {
 		for (final QueryOption elem : this.options) {
 			if (elem.getClass() == type) {
@@ -57,7 +57,7 @@ public class QueryOptions {
 		}
 		return false;
 	}
-	
+
 	public static boolean readAllColomn(final QueryOptions options) {
 		if (options != null) {
 			return options.exist(ReadAllColumn.class);

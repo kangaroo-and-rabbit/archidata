@@ -24,7 +24,7 @@ import test.kar.archidata.model.TypesTable;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestOneToMany {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestOneToMany.class);
-	
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
@@ -37,14 +37,14 @@ public class TestOneToMany {
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
 		entry.connect();
 	}
-	
+
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		LOGGER.info("Remove the test db");
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 	}
-	
+
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
@@ -54,10 +54,10 @@ public class TestOneToMany {
 			DataAccess.executeSimpleQuerry(elem);
 		}
 	}
-	
+
 	@Order(2)
 	@Test
 	public void testPlop() throws Exception {
-		
+
 	}
 }

@@ -17,6 +17,10 @@ public class QueryAnd implements QueryItem {
 		Collections.addAll(this.childs, items);
 	}
 
+	public void add(final QueryItem... items) {
+		Collections.addAll(this.childs, items);
+	}
+
 	@Override
 	public void generateQuerry(final StringBuilder query, final String tableName) {
 		if (this.childs.size() >= 1) {
@@ -42,5 +46,9 @@ public class QueryAnd implements QueryItem {
 		for (final QueryItem elem : this.childs) {
 			elem.injectQuerry(ps, iii);
 		}
+	}
+
+	public int size() {
+		return this.childs.size();
 	}
 }
