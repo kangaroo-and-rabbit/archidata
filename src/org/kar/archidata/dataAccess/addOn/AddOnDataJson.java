@@ -1,6 +1,7 @@
 package org.kar.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
@@ -85,6 +87,40 @@ public class AddOnDataJson implements DataAccessAddOn {
 		count.inc();
 		if (!rs.wasNull()) {
 			final ObjectMapper objectMapper = new ObjectMapper();
+			if (field.getType() == List.class) {
+				ParameterizedType listType = (ParameterizedType) field.getGenericType();
+				Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+				if (listClass == Long.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Long>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+				if (listClass == Float.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Float>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+				if (listClass == Double.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Double>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+				if (listClass == Integer.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Integer>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+				if (listClass == Short.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Short>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+				if (listClass == String.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<String>>() {});// field.getType());
+					field.set(data, dataParsed);
+					return;
+				}
+			}
 			final Object dataParsed = objectMapper.readValue(jsonData, field.getType());
 			field.set(data, dataParsed);
 		}

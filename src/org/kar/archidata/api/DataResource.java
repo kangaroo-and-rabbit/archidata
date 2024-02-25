@@ -56,7 +56,7 @@ import jakarta.ws.rs.core.StreamingOutput;
 @Path("/data")
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MediaType.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
 	private final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */

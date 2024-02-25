@@ -73,7 +73,7 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		return false;
+		return true;
 	}
 
 	@Override
