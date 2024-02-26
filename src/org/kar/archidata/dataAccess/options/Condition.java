@@ -43,13 +43,12 @@ public class Condition extends QueryOption {
 				query.append(tableName);
 				query.append(".");
 				query.append(deletedFieldName);
-				query.append(" = false ");
+				query.append(" = false \n");
 			}
 			return;
 		}
 		query.append(" WHERE (");
 		this.condition.generateQuerry(query, tableName);
-
 		query.append(") ");
 		if (exclude_deleted && deletedFieldName != null) {
 			query.append("AND ");
@@ -58,5 +57,6 @@ public class Condition extends QueryOption {
 			query.append(deletedFieldName);
 			query.append(" = false ");
 		}
+		query.append("\n");
 	}
 }

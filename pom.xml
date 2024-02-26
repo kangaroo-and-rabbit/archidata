@@ -115,6 +115,12 @@
 			<version>2.16.1</version>
 		</dependency>
 		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>2.16.1</version>
+		</dependency>
+
+		<dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
 			<version>6.1.0-M1</version>

@@ -10,7 +10,7 @@ public class Limit extends QueryOption {
 	}
 
 	public void generateQuerry(final StringBuilder query, final String tableName) {
-		query.append(" LIMIT ? ");
+		query.append(" LIMIT ? \n");
 	}
 
 	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {

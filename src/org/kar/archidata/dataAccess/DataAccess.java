@@ -15,6 +15,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
@@ -191,7 +192,14 @@ public class DataAccess {
 	}
 
 	protected static <T> void setValuedb(final Class<?> type, final T data, final CountInOut iii, final Field field, final PreparedStatement ps) throws Exception {
-		if (type == Long.class) {
+		if (type == UUID.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.BINARY);
+			} else {
+				ps.setObject(iii.value, tmp);
+			}
+		} else if (type == Long.class) {
 			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BIGINT);
@@ -288,7 +296,15 @@ public class DataAccess {
 	}
 
 	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
-		if (type == Long.class) {
+		if (type == UUID.class) {
+			final UUID tmp = rs.getObject(count.value, UUID.class);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Long.class) {
 			final Long tmp = rs.getLong(count.value);
 			if (rs.wasNull()) {
 				field.set(data, null);
@@ -449,6 +465,16 @@ public class DataAccess {
 	// TODO: this function will replace the previous one !!!
 	protected static RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
 		final Class<?> type = field.getType();
+		if (type == UUID.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final UUID tmp = rs.getObject(count, UUID.class);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
 		if (type == Long.class) {
 			return (final ResultSet rs, final Object obj) -> {
 				final Long tmp = rs.getLong(count);
@@ -672,6 +698,7 @@ public class DataAccess {
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		Long uniqueSQLID = null;
+		UUID uniqueSQLUUID = null;
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		// real add in the BDD:
 		try {
@@ -788,7 +815,12 @@ public class DataAccess {
 			// Retrieve uid inserted
 			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
 				if (generatedKeys.next()) {
-					uniqueSQLID = generatedKeys.getLong(1);
+					if (primaryKeyField.getType() == UUID.class) {
+						uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
+					} else {
+						uniqueSQLID = generatedKeys.getLong(1);
+					}
+
 				} else {
 					throw new SQLException("Creating node failed, no ID obtained (1).");
 				}
@@ -802,6 +834,8 @@ public class DataAccess {
 					primaryKeyField.set(data, uniqueSQLID);
 				} else if (primaryKeyField.getType() == long.class) {
 					primaryKeyField.setLong(data, uniqueSQLID);
+				} else if (primaryKeyField.getType() == UUID.class) {
+					primaryKeyField.set(data, uniqueSQLUUID);
 				} else {
 					LOGGER.error("Can not manage the primary filed !!!");
 				}
@@ -1160,6 +1194,10 @@ public class DataAccess {
 			querySelect.append(query.toString());
 			query = querySelect;
 			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
+			final GroupBy groups = options.get(GroupBy.class);
+			if (groups != null) {
+				groups.generateQuerry(query, null);
+			}
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
 				orders.generateQuerry(query, tableName);
@@ -1508,7 +1546,14 @@ public class DataAccess {
 		}
 	}
 
-	/* - useful code to manage external query: List<T> query<T>(class<T> clazz, ); ResultSet rs = stmt.executeQuery("SELECT a, b, c FROM TABLE2"); */
+	/** Execute a simple query with external property.
+	 * @param <TYPE> Type of the data generate.
+	 * @param clazz Class that might be analyze.
+	 * @param query Base of the query.
+	 * @param parameters "?" parameter of the query.
+	 * @param option Optional parameters
+	 * @return The list of element requested
+	 * @throws Exception */
 	public static <TYPE> List<TYPE> query(final Class<TYPE> clazz, final String query, final List<Object> parameters, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return query(clazz, query, parameters, options);
@@ -1529,6 +1574,19 @@ public class DataAccess {
 		try {
 			final CountInOut count = new CountInOut();
 			condition.whereAppendQuery(query, null, options, null);
+
+			final GroupBy groups = options.get(GroupBy.class);
+			if (groups != null) {
+				groups.generateQuerry(query, null);
+			}
+			final OrderBy orders = options.get(OrderBy.class);
+			if (orders != null) {
+				orders.generateQuerry(query, null);
+			}
+			final Limit limit = options.get(Limit.class);
+			if (limit != null) {
+				limit.generateQuerry(query, null);
+			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -1540,16 +1598,21 @@ public class DataAccess {
 				iii.inc();
 			}
 			condition.injectQuerry(ps, iii);
+			if (limit != null) {
+				limit.injectQuerry(ps, iii);
+			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
 			final ResultSetMetaData rsmd = rs.getMetaData();
 			final List<RetreiveFromDB> actionToRetreive = new ArrayList<>();
+			LOGGER.info("Field:");
 			for (int jjj = 0; jjj < rsmd.getColumnCount(); jjj++) {
-				final String name = rsmd.getColumnName(jjj + 1);
+				final String label = rsmd.getColumnLabel(jjj + 1);
+				LOGGER.info("    - {}:{}", jjj, label);
 				// find field name ...
-				final Field field = AnnotationTools.getFieldNamed(clazz, name);
+				final Field field = AnnotationTools.getFieldNamed(clazz, label);
 				if (field == null) {
-					throw new DataAccessException("Querry with unknown field: '" + name + "'");
+					throw new DataAccessException("Querry with unknown field: '" + label + "'");
 				}
 				// create the callback...
 				final RetreiveFromDB element = createSetValueFromDbCallback(jjj + 1, field);
@@ -1558,7 +1621,6 @@ public class DataAccess {
 
 			while (rs.next()) {
 				count.value = 1;
-				final CountInOut countNotNull = new CountInOut(0);
 				Object data = null;
 				for (final Constructor<?> contructor : clazz.getConstructors()) {
 					if (contructor.getParameterCount() == 0) {
@@ -1590,5 +1652,4 @@ public class DataAccess {
 		}
 		return outs;
 	}
-
 }

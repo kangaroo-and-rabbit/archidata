@@ -3,14 +3,14 @@ package org.kar.archidata.dataAccess;
 import java.sql.PreparedStatement;
 import java.util.List;
 
-public class OrderBy extends QueryOption {
-	protected final List<OrderItem> childs;
+public class GroupBy extends QueryOption {
+	protected final List<String> childs;
 
-	public OrderBy(final List<OrderItem> childs) {
+	public GroupBy(final List<String> childs) {
 		this.childs = childs;
 	}
 
-	public OrderBy(final OrderItem... childs) {
+	public GroupBy(final String... childs) {
 		this.childs = List.of(childs);
 	}
 
@@ -18,19 +18,17 @@ public class OrderBy extends QueryOption {
 		if (this.childs.size() == 0) {
 			return;
 		}
-		query.append(" ORDER BY ");
+		query.append(" GROUP BY ");
 		boolean first = true;
-		for (final OrderItem elem : this.childs) {
+		for (final String elem : this.childs) {
 			if (first) {
 				first = false;
 			} else {
 				query.append(", ");
 			}
 			// query.append("`");
-			query.append(elem.value);
-			// query.append("`");
-			query.append(" ");
-			query.append(elem.order.toString());
+			query.append(elem);
+			// query.append("` ");
 		}
 		query.append("\n");
 	}

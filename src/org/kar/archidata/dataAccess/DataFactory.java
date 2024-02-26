@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
@@ -27,6 +28,9 @@ public class DataFactory {
 
 	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws Exception {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
+			if (type == UUID.class) {
+				return "binary(16)";
+			}
 			if (type == Long.class || type == long.class) {
 				return "bigint";
 			}
@@ -75,6 +79,9 @@ public class DataFactory {
 				return out.toString();
 			}
 		} else {
+			if (type == UUID.class) {
+				return "BINARY(16)";
+			}
 			if (type == Long.class || type == long.class) {
 				return "INTEGER";
 			}
