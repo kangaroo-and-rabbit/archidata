@@ -1,6 +1,5 @@
 package org.kar.archidata.migration.model;
 
-import org.kar.archidata.annotation.DataDefault;
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.model.GenericDataSoftDelete;
 
@@ -9,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
+import jakarta.ws.rs.DefaultValue;
 
 // For logs only
 //public static final String TABLE_NAME = "KAR_migration";
@@ -22,7 +22,7 @@ public class Migration1 extends GenericDataSoftDelete {
 	@Column(length = 256)
 	public String name;
 	@Column(nullable = false)
-	@DataDefault("'0'")
+	@DefaultValue("'0'")
 	@Schema(description = "if the migration is well terminated or not")
 	public Boolean terminated = false;
 	@Schema(description = "index in the migration progression")

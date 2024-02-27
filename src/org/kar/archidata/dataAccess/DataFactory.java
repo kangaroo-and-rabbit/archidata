@@ -2,6 +2,7 @@ package org.kar.archidata.dataAccess;
 
 import java.lang.reflect.Field;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -45,6 +46,9 @@ public class DataFactory {
 			}
 			if (type == Double.class || type == double.class) {
 				return "double";
+			}
+			if (type == Instant.class) {
+				return "varchar(33)";
 			}
 			if (type == Date.class || type == Timestamp.class) {
 				return "timestamp(3)";
@@ -96,6 +100,9 @@ public class DataFactory {
 			}
 			if (type == Double.class || type == double.class) {
 				return "REAL";
+			}
+			if (type == Instant.class) {
+				return "text";
 			}
 			if (type == Date.class || type == Timestamp.class) {
 				return "DATETIME";
@@ -179,16 +186,24 @@ public class DataFactory {
 			}
 			if (defaultValue == null) {
 				if (updateTime || createTime) {
-					mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP");
-					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-						mainTableBuilder.append("(3)");
+					if ("varchar(33)".equals(typeValue)) {
+						mainTableBuilder.append("DEFAULT DATE_FORMAT(now(6), '%Y-%m-%dT%H:%m:%s.%fZ')");
+					} else {
+						mainTableBuilder.append("DEFAULT CURRENT_TIMESTAMP");
+						if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
+							mainTableBuilder.append("(3)");
+						}
 					}
 					mainTableBuilder.append(" ");
 				}
 				if (updateTime) {
 					if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-						mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
-						mainTableBuilder.append("(3)");
+						if ("varchar(33)".equals(typeValue)) {
+							mainTableBuilder.append("ON UPDATE DATE_FORMAT(now(6), '%Y-%m-%dT%H:%m:%s.%fZ')");
+						} else {
+							mainTableBuilder.append("ON UPDATE CURRENT_TIMESTAMP");
+							mainTableBuilder.append("(3)");
+						}
 					} else {
 						// TODO: add trigger:
 						/* CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table BEGIN update your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id; END; */
@@ -202,7 +217,11 @@ public class DataFactory {
 						triggerBuilder.append(" SET ");
 						triggerBuilder.append(name);
 						// triggerBuilder.append(" = datetime('now') WHERE id = NEW.id; \n");
-						triggerBuilder.append(" = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = NEW.id; \n");
+						if ("varchar(33)".equals(typeValue)) {
+							triggerBuilder.append(" = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id; \n");
+						} else {
+							triggerBuilder.append(" = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = NEW.id; \n");
+						}
 						triggerBuilder.append("END;");
 
 						postOtherTables.add(triggerBuilder.toString());
@@ -248,8 +267,11 @@ public class DataFactory {
 			mainTableBuilder.append("PRIMARY KEY ");
 
 		}
+
 		if (strategy == GenerationType.IDENTITY) {
-			if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
+			if ("binary(16)".equals(typeValue)) {
+
+			} else if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 				mainTableBuilder.append("AUTO_INCREMENT ");
 			} else {
 				mainTableBuilder.append("AUTOINCREMENT ");

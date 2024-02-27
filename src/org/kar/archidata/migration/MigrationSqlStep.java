@@ -13,13 +13,20 @@ import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record Action(String action, List<String> filterDB) {
+record Action(String action, AsyncCall async, List<String> filterDB) {
 	public Action(final String action) {
-		this(action, List.of());
+		this(action, null, List.of());
 	}
 
 	public Action(final String action, final String filterDB) {
-		this(action, List.of(filterDB));
+		this(action, null, List.of(filterDB));
+	}
+	public Action(final AsyncCall async) {
+		this(null, async, List.of());
+	}
+
+	public Action(final AsyncCall async, final String filterDB) {
+		this(null, async, List.of(filterDB));
 	}
 }
 
@@ -40,7 +47,11 @@ public class MigrationSqlStep implements MigrationInterface {
 		}
 		for (int iii = 0; iii < this.actions.size(); iii++) {
 			final Action action = this.actions.get(iii);
-			LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(), action.action());
+			if (action.action() != null) {
+				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(), action.action());
+			} else {
+				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\nAsync lambda", iii, this.actions.size(), action.filterDB());
+			}
 		}
 	}
 
@@ -63,8 +74,13 @@ public class MigrationSqlStep implements MigrationInterface {
 			LOGGER.info(" >>>> SQL ACTION : {}/{}", iii + 1, this.actions.size());
 			final Action action = this.actions.get(iii);
 
-			LOGGER.info("SQL request: ```{}``` on '{}' current={}", action.action(), action.filterDB(), ConfigBaseVariable.getDBType());
-			log.append("SQL: " + action.action() + " on " + action.filterDB() + "\n");
+			if (action.action() != null) {
+				LOGGER.info("SQL request: ```{}``` on '{}' current={}", action.action(), action.filterDB(), ConfigBaseVariable.getDBType());
+				log.append("SQL: " + action.action() + " on " + action.filterDB() + "\n");
+			} else {
+				LOGGER.info("SQL request: <Lambda> on '{}' current={}", action.filterDB(), ConfigBaseVariable.getDBType());
+				log.append("SQL: <Lambda> on " + action.filterDB() + "\n");
+			}
 			boolean isValid = true;
 			if (action.filterDB() != null && action.filterDB().size() > 0) {
 				isValid = false;
@@ -80,7 +96,11 @@ public class MigrationSqlStep implements MigrationInterface {
 				continue;
 			}
 			try {
-				DataAccess.executeQuerry(action.action());
+				if (action.action() != null) {
+					DataAccess.executeQuerry(action.action());
+				} else {
+					action.async().doRequest();
+				}
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
 				LOGGER.info("SQL request ERROR: ", ex.getMessage());
@@ -122,9 +142,15 @@ public class MigrationSqlStep implements MigrationInterface {
 	public void addAction(final String action) {
 		this.actions.add(new Action(action));
 	}
+	public void addAction(final AsyncCall async) {
+		this.actions.add(new Action(async));
+	}
 
 	public void addAction(final String action, final String filterdBType) {
 		this.actions.add(new Action(action, filterdBType));
+	}
+	public void addAction(final AsyncCall async, final String filterdBType) {
+		this.actions.add(new Action(async, filterdBType));
 	}
 
 	public void addClass(final Class<?> clazz) throws Exception {

@@ -7,6 +7,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -162,6 +163,17 @@ public class DataExport {
 						final List<Object> data = (List<Object>) (obj);
 						data.set(id, date);
 					}
+				}
+			};
+		}
+		if (type == Instant.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (!rs.wasNull()) {
+					final Instant date = Instant.parse(tmp);
+					LOGGER.error("Fail to parse the SQL time !!! {}", date);
+					final List<Object> data = (List<Object>) (obj);
+					data.set(id, date);
 				}
 			};
 		}

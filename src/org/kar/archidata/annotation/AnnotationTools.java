@@ -22,6 +22,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import jakarta.ws.rs.DefaultValue;
 
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
@@ -75,14 +76,14 @@ public class AnnotationTools {
 	}
 
 	public static String getDefault(final Field element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataDefault.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DefaultValue.class);
 		if (annotation.length == 0) {
 			return null;
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
 		}
-		return ((DataDefault) annotation[0]).value();
+		return ((DefaultValue) annotation[0]).value();
 	}
 
 	public static ManyToOne getManyToOne(final Field element) throws Exception {

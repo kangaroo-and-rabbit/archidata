@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -19,7 +20,6 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
-import org.kar.archidata.annotation.DataDefault;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
@@ -35,12 +35,14 @@ import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.DateTools;
+import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /* TODO list:
@@ -197,7 +199,8 @@ public class DataAccess {
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BINARY);
 			} else {
-				ps.setObject(iii.value, tmp);
+				final byte[] dataByte = UuidUtils.asBytes((UUID) tmp);
+				ps.setBytes(iii.value, dataByte);
 			}
 		} else if (type == Long.class) {
 			final Object tmp = field.get(data);
@@ -259,6 +262,14 @@ public class DataAccess {
 				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
 				ps.setTimestamp(iii.value, sqlDate);
 			}
+		} else if (type == Instant.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final String sqlDate = ((Instant) tmp).toString();
+				ps.setString(iii.value, sqlDate);
+			}
 		} else if (type == LocalDate.class) {
 			final Object tmp = field.get(data);
 			if (tmp == null) {
@@ -297,11 +308,14 @@ public class DataAccess {
 
 	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
 		if (type == UUID.class) {
-			final UUID tmp = rs.getObject(count.value, UUID.class);
+			final byte[] tmp = rs.getBytes(count.value);
+			//final UUID tmp = rs.getObject(count.value, UUID.class);
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
-				field.set(data, tmp);
+				//field.set(data, tmp);
+				final UUID uuid = UuidUtils.asUuid(tmp);
+				field.set(data, uuid);
 				countNotNull.inc();
 			}
 		} else if (type == Long.class) {
@@ -413,6 +427,14 @@ public class DataAccess {
 					countNotNull.inc();
 				}
 			}
+		} else if (type == Instant.class) {
+			final String tmp = rs.getString(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, Instant.parse(tmp));
+				countNotNull.inc();
+			}
 		} else if (type == LocalDate.class) {
 			final java.sql.Date tmp = rs.getDate(count.value);
 			if (rs.wasNull()) {
@@ -467,11 +489,15 @@ public class DataAccess {
 		final Class<?> type = field.getType();
 		if (type == UUID.class) {
 			return (final ResultSet rs, final Object obj) -> {
-				final UUID tmp = rs.getObject(count, UUID.class);
+
+				final byte[] tmp = rs.getBytes(count);
+				//final UUID tmp = rs.getObject(count, UUID.class);
 				if (rs.wasNull()) {
 					field.set(obj, null);
 				} else {
-					field.set(obj, tmp);
+					//field.set(obj, tmp);
+					final UUID uuid = UuidUtils.asUuid(tmp);
+					field.set(obj, uuid);
 				}
 			};
 		}
@@ -607,6 +633,16 @@ public class DataAccess {
 				}
 			};
 		}
+		if (type == Instant.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, Instant.parse(tmp));
+				}
+			};
+		}
 		if (type == LocalDate.class) {
 			return (final ResultSet rs, final Object obj) -> {
 				final java.sql.Date tmp = rs.getDate(count);
@@ -735,7 +771,7 @@ public class DataAccess {
 				}
 				if (!field.getClass().isPrimitive()) {
 					final Object tmp = field.get(data);
-					if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+					if (tmp == null && field.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
 						continue;
 					}
 				}
@@ -799,7 +835,7 @@ public class DataAccess {
 					final Class<?> type = elem.getType();
 					if (!type.isPrimitive()) {
 						final Object tmp = elem.get(data);
-						if (tmp == null && elem.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+						if (tmp == null && elem.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
 							continue;
 						}
 					}
@@ -816,7 +852,9 @@ public class DataAccess {
 			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
 				if (generatedKeys.next()) {
 					if (primaryKeyField.getType() == UUID.class) {
-						uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
+						//uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
+						final byte[] tmpid = generatedKeys.getBytes(1);
+						uniqueSQLUUID = UuidUtils.asUuid(tmpid);
 					} else {
 						uniqueSQLID = generatedKeys.getLong(1);
 					}
@@ -933,13 +971,21 @@ public class DataAccess {
 	 * @param filterValue
 	 * @return the affected rows.
 	 * @throws Exception */
-	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn) throws Exception {
-		return updateWhere(data, new Condition(getTableIdCondition(data.getClass(), id)), new FilterValue(updateColomn), new TransmitKey(id));
+	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(data.getClass(), id)));
+		options.add(new FilterValue(updateColomn));
+		options.add(new TransmitKey(id));
+		return updateWhere(data, options);
 	}
 
 	public static <T> int updateWhere(final T data, final QueryOption... option) throws Exception {
-		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
+		return updateWhere(data, options);
+	}
+
+	public static <T> int updateWhere(final T data, final QueryOptions options) throws Exception {
+		final Class<?> clazz = data.getClass();
 		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
 			throw new DataAccessException("request a gets without any condition");
@@ -991,7 +1037,7 @@ public class DataAccess {
 				}
 				if (!field.getClass().isPrimitive()) {
 					final Object tmp = field.get(data);
-					if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+					if (tmp == null && field.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
 						continue;
 					}
 				}
@@ -1038,7 +1084,7 @@ public class DataAccess {
 						final Class<?> type = field.getType();
 						if (!type.isPrimitive()) {
 							final Object tmp = field.get(data);
-							if (tmp == null && field.getDeclaredAnnotationsByType(DataDefault.class).length != 0) {
+							if (tmp == null && field.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
 								continue;
 							}
 						}
