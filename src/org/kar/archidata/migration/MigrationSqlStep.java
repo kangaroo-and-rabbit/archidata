@@ -21,6 +21,7 @@ record Action(String action, AsyncCall async, List<String> filterDB) {
 	public Action(final String action, final String filterDB) {
 		this(action, null, List.of(filterDB));
 	}
+
 	public Action(final AsyncCall async) {
 		this(null, async, List.of());
 	}
@@ -142,6 +143,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	public void addAction(final String action) {
 		this.actions.add(new Action(action));
 	}
+
 	public void addAction(final AsyncCall async) {
 		this.actions.add(new Action(async));
 	}
@@ -149,6 +151,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	public void addAction(final String action, final String filterdBType) {
 		this.actions.add(new Action(action, filterdBType));
 	}
+
 	public void addAction(final AsyncCall async, final String filterdBType) {
 		this.actions.add(new Action(async, filterdBType));
 	}

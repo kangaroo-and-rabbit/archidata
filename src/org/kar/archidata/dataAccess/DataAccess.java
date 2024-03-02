@@ -309,11 +309,11 @@ public class DataAccess {
 	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
 		if (type == UUID.class) {
 			final byte[] tmp = rs.getBytes(count.value);
-			//final UUID tmp = rs.getObject(count.value, UUID.class);
+			// final UUID tmp = rs.getObject(count.value, UUID.class);
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
-				//field.set(data, tmp);
+				// field.set(data, tmp);
 				final UUID uuid = UuidUtils.asUuid(tmp);
 				field.set(data, uuid);
 				countNotNull.inc();
@@ -491,11 +491,11 @@ public class DataAccess {
 			return (final ResultSet rs, final Object obj) -> {
 
 				final byte[] tmp = rs.getBytes(count);
-				//final UUID tmp = rs.getObject(count, UUID.class);
+				// final UUID tmp = rs.getObject(count, UUID.class);
 				if (rs.wasNull()) {
 					field.set(obj, null);
 				} else {
-					//field.set(obj, tmp);
+					// field.set(obj, tmp);
 					final UUID uuid = UuidUtils.asUuid(tmp);
 					field.set(obj, uuid);
 				}
@@ -852,7 +852,7 @@ public class DataAccess {
 			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
 				if (generatedKeys.next()) {
 					if (primaryKeyField.getType() == UUID.class) {
-						//uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
+						// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
 						final byte[] tmpid = generatedKeys.getBytes(1);
 						uniqueSQLUUID = UuidUtils.asUuid(tmpid);
 					} else {

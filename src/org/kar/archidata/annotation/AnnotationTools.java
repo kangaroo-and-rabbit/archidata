@@ -53,7 +53,40 @@ public class AnnotationTools {
 		return tmp;
 	}
 
-	public static String getSchemedescription(final Field element) throws Exception {
+	public static boolean getSchemaReadOnly(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+		}
+		return ((Schema) annotation[0]).readOnly();
+	}
+
+	public static String getSchemaExample(final Class<?> element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+		}
+		return ((Schema) annotation[0]).example();
+	}
+
+	public static String getSchemaDescription(final Class<?> element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		if (annotation.length > 1) {
+			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+		}
+		return ((Schema) annotation[0]).description();
+	}
+
+	public static String getSchemaDescription(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
@@ -67,7 +100,7 @@ public class AnnotationTools {
 	public static String getComment(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataComment.class);
 		if (annotation.length == 0) {
-			return getSchemedescription(element);
+			return getSchemaDescription(element);
 		}
 		if (annotation.length > 1) {
 			throw new Exception("Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());
