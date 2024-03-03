@@ -1,7 +1,7 @@
 package org.kar.archidata.dataAccess;
 
-import java.io.FileWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,48 +21,48 @@ import org.slf4j.LoggerFactory;
 public class DataFactoryZod {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryZod.class);
 
-	public static String convertTypeZod(final Class<?> type) throws Exception {
+	public static String convertTypeZodSimpleType(final Class<?> type, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
 		if (type == UUID.class) {
-			return "string()";
+			return "zod.string().uuid()";
 		}
 		if (type == Long.class) {
-			return "bigint()";
+			return "zod.bigint()";
 		}
 		if (type == long.class) {
-			return "bigint()";
+			return "zod.bigint()";
 		}
 		if (type == Integer.class || type == int.class) {
-			return "number().safe()";
+			return "zod.number().safe()";
 		}
 		if (type == Boolean.class || type == boolean.class) {
-			return "boolean()";
+			return "zod.boolean()";
 		}
 		if (type == double.class || type == float.class || type == Double.class || type == Float.class) {
-			return "number()";
+			return "zod.number()";
 		}
 		if (type == Instant.class) {
-			return "string().utc()";
+			return "zod.string().utc()";
 		}
 		if (type == Date.class || type == Timestamp.class) {
-			return "date()";
+			return "zod.date()";
 		}
 		if (type == LocalDate.class) {
-			return "date()";
+			return "zod.date()";
 		}
 		if (type == LocalTime.class) {
-			return "date()";
+			return "zod.date()";
 		}
 		if (type == String.class) {
-			return "string()";
+			return "zod.string()";
 		}
 		if (type.isEnum()) {
 			final Object[] arr = type.getEnumConstants();
 			final StringBuilder out = new StringBuilder();
 			boolean first = true;
-			out.append("enum([");
+			out.append("zod.enum([");
 			for (final Object elem : arr) {
 				if (!first) {
-					out.append(",");
+					out.append(", ");
 				}
 				first = false;
 				out.append("\"");
@@ -72,18 +72,35 @@ public class DataFactoryZod {
 			out.append("])");
 			return out.toString();
 		}
+		if (type == List.class) {
+			return null;
+		}
+		createTable(type, previousClassesGenerated, order);
+		return type.getSimpleName();
+	}
+	public static String convertTypeZod(final Field field, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
+		final Class<?> type = field.getType();
+		final String simpleType = convertTypeZodSimpleType(type, previousClassesGenerated, order);
+		if (simpleType != null) {
+			return simpleType;
+		}
+		if (type == List.class) {
+			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
+			final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+			final String simpleSubType = convertTypeZodSimpleType(listClass, previousClassesGenerated, order);
+			return "zod.array(" + simpleSubType + ")";
+		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
 
 	public static String optionalTypeZod(final Class<?> type) throws Exception {
-		if (type.isEnum() || type == UUID.class || type == Long.class || type == Integer.class || type == Boolean.class | type == Double.class || type == Float.class || type == Instant.class
-				|| type == Date.class || type == Timestamp.class || type == LocalDate.class || type == LocalTime.class || type == String.class) {
-			return ".optional()";
+		if (type.isPrimitive()) {
+			return "";
 		}
-		return "";
+		return ".optional()";
 	}
 
-	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder) throws Exception {
+	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
 		final String name = elem.getName();
 		final Class<?> classModel = elem.getType();
 		final int limitSize = AnnotationTools.getLimitSize(elem);
@@ -99,8 +116,8 @@ public class DataFactoryZod {
 		}
 		builder.append("\n\t");
 		builder.append(name);
-		builder.append(": zod.");
-		builder.append(convertTypeZod(classModel));
+		builder.append(": ");
+		builder.append(convertTypeZod(elem, previousClassesGenerated, order));
 		if (limitSize > 0 && classModel == String.class) {
 			builder.append(".max(");
 			builder.append(limitSize);
@@ -156,9 +173,6 @@ public class DataFactoryZod {
 			generatedData.append("\n\n");
 		}
 		LOGGER.info("generated: {}", generatedData.toString());
-		final FileWriter myWriter = new FileWriter("api.ts");
-		myWriter.write(generatedData.toString());
-		myWriter.close();
 		return generatedData.toString();
 	}
 
@@ -189,7 +203,7 @@ public class DataFactoryZod {
 			}
 			alreadyAdded.add(dataName);
 			LOGGER.trace("        + '{}'", elem.getName());
-			if (DataAccess.isAddOnField(elem)) {
+			if (false && DataAccess.isAddOnField(elem)) {
 				final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
 				LOGGER.error("Create type for: {} ==> {} (ADD-ON) ==> Not managed now ....", AnnotationTools.getFieldName(elem), elem.getType());
 				/* LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType()); if (addOn != null) { addOn.createTables(tableName, elem, tmpOut,
@@ -197,7 +211,7 @@ public class DataFactoryZod {
 				 * tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType()); } fieldId++; */
 			} else {
 				LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-				DataFactoryZod.createTablesSpecificType(elem, fieldId, internalBuilder);
+				DataFactoryZod.createTablesSpecificType(elem, fieldId, internalBuilder, previousClassesGenerated, order);
 				fieldId++;
 			}
 
