@@ -76,7 +76,7 @@ public class DataFactoryZod {
 			return null;
 		}
 		createTable(type, previousClassesGenerated, order);
-		return type.getSimpleName();
+		return "Zod" + type.getSimpleName();
 	}
 	public static String convertTypeZod(final Field field, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
 		final Class<?> type = field.getType();
@@ -240,12 +240,13 @@ public class DataFactoryZod {
 			}
 			generatedData.append(" */\n");
 		}
-		generatedData.append("export const ");
+		generatedData.append("export const Zod");
 		generatedData.append(clazz.getSimpleName());
 		generatedData.append(" = ");
 		final Class<?> parentClass = clazz.getSuperclass();
 		if (parentClass != Object.class) {
 			createTable(parentClass, previousClassesGenerated, order);
+			generatedData.append("Zod");
 			generatedData.append(parentClass.getSimpleName());
 			generatedData.append(".extend({");
 		} else {
@@ -253,6 +254,28 @@ public class DataFactoryZod {
 		}
 		generatedData.append(internalBuilder.toString());
 		generatedData.append("\n});");
+		// declare generic type:
+		generatedData.append("\nexport type ");
+		generatedData.append(clazz.getSimpleName());
+		generatedData.append(" = zod.infer<typeof Zod");
+		generatedData.append(clazz.getSimpleName());
+		generatedData.append(">;");
+		// declare generic isXXX:
+		generatedData.append("\nexport function is");
+		generatedData.append(clazz.getSimpleName());
+		generatedData.append("(data: any): data is ");
+		generatedData.append(clazz.getSimpleName());
+		generatedData.append(" {\n\ttry {\n\t\tZod");
+		generatedData.append(clazz.getSimpleName());
+		generatedData.append("""
+				.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data ${e}`);
+						return false;
+					}
+				}
+				""");
 		// Remove the previous to reorder the map ==> parent must be inserted before us.
 		previousClassesGenerated.put(clazz.getCanonicalName(), generatedData.toString());
 		order.add(clazz.getCanonicalName());
