@@ -1,5 +1,7 @@
 package org.kar.archidata.dataAccess;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.sql.Timestamp;
@@ -20,37 +22,40 @@ import org.slf4j.LoggerFactory;
 
 public class DataFactoryZod {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryZod.class);
-
+	
 	public static String convertTypeZodSimpleType(final Class<?> type, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
 		if (type == UUID.class) {
-			return "zod.string().uuid()";
+			return "ZodUUID";
 		}
 		if (type == Long.class) {
-			return "zod.bigint()";
+			return "ZodLong";
 		}
 		if (type == long.class) {
-			return "zod.bigint()";
+			return "ZodLong";
 		}
 		if (type == Integer.class || type == int.class) {
-			return "zod.number().safe()";
+			return "ZodInteger";
 		}
 		if (type == Boolean.class || type == boolean.class) {
 			return "zod.boolean()";
 		}
-		if (type == double.class || type == float.class || type == Double.class || type == Float.class) {
-			return "zod.number()";
+		if (type == double.class || type == Double.class) {
+			return "ZodDouble";
+		}
+		if (type == float.class || type == Float.class) {
+			return "ZodFloat";
 		}
 		if (type == Instant.class) {
-			return "zod.string().utc()";
+			return "ZodInstant";
 		}
 		if (type == Date.class || type == Timestamp.class) {
-			return "zod.date()";
+			return "ZodDate";
 		}
 		if (type == LocalDate.class) {
-			return "zod.date()";
+			return "ZodLocalDate";
 		}
 		if (type == LocalTime.class) {
-			return "zod.date()";
+			return "ZodLocalTime";
 		}
 		if (type == String.class) {
 			return "zod.string()";
@@ -78,6 +83,7 @@ public class DataFactoryZod {
 		createTable(type, previousClassesGenerated, order);
 		return "Zod" + type.getSimpleName();
 	}
+	
 	public static String convertTypeZod(final Field field, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
 		final Class<?> type = field.getType();
 		final String simpleType = convertTypeZodSimpleType(type, previousClassesGenerated, order);
@@ -92,21 +98,22 @@ public class DataFactoryZod {
 		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
-
+	
 	public static String optionalTypeZod(final Class<?> type) throws Exception {
 		if (type.isPrimitive()) {
 			return "";
 		}
 		return ".optional()";
 	}
-
-	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
+	
+	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final Map<String, String> previousClassesGenerated, final List<String> order)
+			throws Exception {
 		final String name = elem.getName();
 		final Class<?> classModel = elem.getType();
 		final int limitSize = AnnotationTools.getLimitSize(elem);
-
+		
 		final String comment = AnnotationTools.getComment(elem);
-
+		
 		if (fieldId != 0) {
 			builder.append(",");
 		}
@@ -128,7 +135,7 @@ public class DataFactoryZod {
 		}
 		builder.append(optionalTypeZod(classModel));
 	}
-
+	
 	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
@@ -148,7 +155,7 @@ public class DataFactoryZod {
 		}
 		return false;
 	}
-
+	
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
 	 * @return A string representing the Server models
@@ -165,7 +172,36 @@ public class DataFactoryZod {
 				 * Interface of the server (auto-generated code)
 				 */
 				import { z as zod } from \"zod\";
-
+				
+				export const ZodUUID = zod.string().uuid();
+				export type UUID = zod.infer<typeof ZodUUID>;
+				
+				export const ZodLong = zod.bigint();
+				export type Long = zod.infer<typeof ZodLong>;
+				
+				export const ZodInteger = zod.number().safe();
+				export type Integer = zod.infer<typeof ZodInteger>;
+				
+				export const ZodDouble = zod.number();
+				export type Double = zod.infer<typeof ZodDouble>;
+				
+				export const ZodFloat = zod.number();
+				export type Float = zod.infer<typeof ZodFloat>;
+				
+				export const ZodInstant = zod.string();
+				export type Instant = zod.infer<typeof ZodInstant>;
+				
+				export const ZodDate = zod.date();
+				export type Date = zod.infer<typeof ZodDate>;
+				
+				export const ZodTimestamp = zod.date();
+				export type Timestamp = zod.infer<typeof ZodTimestamp>;
+				
+				export const ZodLocalDate = zod.date();
+				export type LocalDate = zod.infer<typeof ZodLocalDate>;
+				
+				export const ZodLocalTime = zod.date();
+				export type LocalTime = zod.infer<typeof ZodLocalTime>;
 				""");
 		for (final String elem : order) {
 			final String data = previousClassesGenerated.get(elem);
@@ -175,8 +211,19 @@ public class DataFactoryZod {
 		LOGGER.info("generated: {}", generatedData.toString());
 		return generatedData.toString();
 	}
-
+	
 	public static void createTable(final Class<?> clazz, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
+		if (clazz == null) {
+			return;
+		}
+		if (clazz.isPrimitive()) {
+			return;
+		}
+		if (clazz == Double.class || clazz == Float.class || clazz == Integer.class || clazz == Long.class || clazz == UUID.class || clazz == Instant.class || clazz == Date.class
+				|| clazz == Timestamp.class || clazz == LocalDate.class || clazz == LocalTime.class || clazz == String.class) {
+			return;
+		}
+
 		if (previousClassesGenerated.get(clazz.getCanonicalName()) != null) {
 			return;
 		}
@@ -214,7 +261,7 @@ public class DataFactoryZod {
 				DataFactoryZod.createTablesSpecificType(elem, fieldId, internalBuilder, previousClassesGenerated, order);
 				fieldId++;
 			}
-
+			
 		}
 		final String description = AnnotationTools.getSchemaDescription(clazz);
 		final String example = AnnotationTools.getSchemaExample(clazz);
@@ -244,7 +291,7 @@ public class DataFactoryZod {
 		generatedData.append(clazz.getSimpleName());
 		generatedData.append(" = ");
 		final Class<?> parentClass = clazz.getSuperclass();
-		if (parentClass != Object.class) {
+		if (parentClass != null && parentClass != Object.class) {
 			createTable(parentClass, previousClassesGenerated, order);
 			generatedData.append("Zod");
 			generatedData.append(parentClass.getSimpleName());
@@ -280,5 +327,22 @@ public class DataFactoryZod {
 		previousClassesGenerated.put(clazz.getCanonicalName(), generatedData.toString());
 		order.add(clazz.getCanonicalName());
 	}
-
+	
+	public static void generatePackage(final List<Class<?>> classs, final String pathPackage) throws Exception {
+		final String packageApi = createTables(classs);
+		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
+		myWriter.write(packageApi.toString());
+		myWriter.close();
+		final String index = """
+				/**
+				 * Global import of the package
+				 */
+				export * from "./model.ts";
+				
+				""";
+		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
+		myWriter.write(index);
+		myWriter.close();
+	}
+	
 }

@@ -93,12 +93,13 @@ public class DataResource {
 		}
 		return filePath;
 	}
+
 	public static String getFileData(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
 		final String part2 = stringUUID.substring(2, 4);
 		final String part3 = stringUUID.substring(4);
-		final String finalPath = part1 + File.separator + part2+ File.separator + part3;
+		final String finalPath = part1 + File.separator + part2 + File.separator + part3;
 		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath + File.separator;
 		try {
 			createFolder(filePath);
@@ -164,6 +165,7 @@ public class DataResource {
 		LOGGER.info("Move done");
 		return injectedData;
 	}
+
 	public static void modeFileOldModelToNewModel(final long id, final UUID uuid) throws IOException {
 		String mediaCurentPath = getFileData(id);
 		String mediaDestPath = getFileData(uuid);
@@ -174,8 +176,8 @@ public class DataResource {
 			Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
 		}
 		// Move old meta-data...
-		mediaCurentPath = mediaCurentPath.substring(mediaCurentPath.length()-4) + "meta.json";
-		mediaDestPath = mediaCurentPath.substring(mediaDestPath.length()-4) + "meta.json";
+		mediaCurentPath = mediaCurentPath.substring(mediaCurentPath.length() - 4) + "meta.json";
+		mediaDestPath = mediaCurentPath.substring(mediaDestPath.length() - 4) + "meta.json";
 		if (Files.exists(Paths.get(mediaCurentPath))) {
 			LOGGER.info("moveM: {} ==> {}", mediaCurentPath, mediaDestPath);
 			Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
@@ -316,8 +318,8 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-				// || value.mimeType.contentEquals("image/webp")
-				) {
+		// || value.mimeType.contentEquals("image/webp")
+		) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;
