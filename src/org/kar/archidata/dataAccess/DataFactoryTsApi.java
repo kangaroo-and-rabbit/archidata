@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.AsyncType;
 import org.kar.archidata.catcher.RestErrorResponse;
 import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
@@ -51,8 +52,8 @@ public class DataFactoryTsApi {
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequest, isArrayOf } from "./rest-tools"
-				import {""";
+				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequestJson, RESTRequestJsonArray } from "./rest-tools"
+				import { """;
 
 		for (final Class<?> clazz : classs) {
 			final Set<String> includeModel = new HashSet<>();
@@ -164,6 +165,14 @@ public class DataFactoryTsApi {
 		return ((QueryParam) annotation[0]).value();
 	}
 
+	public static String apiAnnotationGetFormDataParam(final Parameter element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataParam.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return ((FormDataParam) annotation[0]).value();
+	}
+
 	public static Class<?> apiAnnotationGetAsyncType(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
@@ -214,13 +223,16 @@ public class DataFactoryTsApi {
 			final String methodName = method.getName();
 			final String methodPath = apiAnnotationGetPath(method);
 			final String methodType = apiAnnotationGetTypeRequest(method);
+			if (methodType == null) {
+				LOGGER.error("    [{}] {} => {}/{} ==> No methode type @PATH, @GET ...", methodType, methodName, basicPath, methodPath);
+				continue;
+			}
 			final String methodDescription = apiAnnotationGetOperationDescription(method);
 			final List<String> consumes = apiAnnotationGetConsumes(clazz, method);
 			final List<String> produces = apiAnnotationProduces(clazz, method);
-			if (consumes != null && consumes.contains(MediaType.MULTIPART_FORM_DATA)) {
-				LOGGER.error("    [{}] {} => {}/{} ==> Multipart is not managed ...", methodType, methodName, basicPath, methodPath);
-				continue;
-			}
+			/* if (consumes != null && consumes.contains(MediaType.MULTIPART_FORM_DATA)) { LOGGER.error("    [{}] {} => {}/{} ==> Multipart is not managed ...", methodType, methodName, basicPath,
+			 * methodPath); if (methodDescription != null) { builder.append("\n\t/**\n\t * "); builder.append(methodDescription); builder.append("\n\t * /"); }
+			 * builder.append("\n\t// TODO: export function "); builder.append(methodName); builder.append("(...): ... {} Multipart not managed ..."); continue; } */
 			LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, basicPath, methodPath);
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
@@ -243,6 +255,7 @@ public class DataFactoryTsApi {
 			LOGGER.trace("         return: {}", tmpReturn.tsTypeName);
 			final Map<String, String> queryParams = new HashMap<>();
 			final Map<String, String> pathParams = new HashMap<>();
+			final Map<String, String> formDataParams = new HashMap<>();
 			final List<String> emptyElement = new ArrayList<>();
 			// LOGGER.info(" Parameters:");
 			for (final Parameter parameter : method.getParameters()) {
@@ -253,34 +266,35 @@ public class DataFactoryTsApi {
 				final Class<?> parameterType = parameter.getType();
 				String parameterTypeString;
 				if (parameterType == List.class) {
+					LOGGER.warn("Detext List param ==> not managed type ==> any[] !!!");
 					parameterTypeString = "any[]";
 				} else {
-					final ClassElement tmpClassElement = DataFactoryZod.createTable(parameterType, previous);
-					includeModel.add(tmpClassElement.tsTypeName);
-					final ClassElement tmp = new ClassElement(parameterType);
+					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
+					includeModel.add(tmp.tsTypeName);
 					parameterTypeString = tmp.tsTypeName;
 				}
 				final String pathParam = apiAnnotationGetPathParam(parameter);
 				final String queryParam = apiAnnotationGetQueryParam(parameter);
+				final String formDataParam = apiAnnotationGetFormDataParam(parameter);
 				if (queryParam != null) {
 					queryParams.put(queryParam, parameterTypeString);
 				} else if (pathParam != null) {
 					pathParams.put(pathParam, parameterTypeString);
+				} else if (formDataParam != null) {
+					formDataParams.put(formDataParam, parameterTypeString);
 				} else {
 					final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
 					if (asyncType != null) {
-						final ClassElement tmpClassElement = DataFactoryZod.createTable(asyncType, previous);
-						includeModel.add(tmpClassElement.tsTypeName);
-						final ClassElement tmp = new ClassElement(asyncType);
+						final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
+						includeModel.add(tmp.tsTypeName);
 						emptyElement.add(tmp.tsTypeName);
 					} else if (parameterType == List.class) {
 						parameterTypeString = "any[]";
 						final Class<?> plop = parameterType.arrayType();
 						LOGGER.info("ArrayType = {}", plop);
 					} else {
-						final ClassElement tmpClassElement = DataFactoryZod.createTable(parameterType, previous);
-						includeModel.add(tmpClassElement.tsTypeName);
-						final ClassElement tmp = new ClassElement(parameterType);
+						final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
+						includeModel.add(tmp.tsTypeName);
 						emptyElement.add(tmp.tsTypeName);
 					}
 				}
@@ -295,11 +309,13 @@ public class DataFactoryTsApi {
 				LOGGER.trace("         Path parameter:");
 				for (final Entry<String, String> pathEntry : pathParams.entrySet()) {
 					LOGGER.trace("             - {}: {}", pathEntry.getKey(), pathEntry.getValue());
-
 				}
 			}
 			if (emptyElement.size() > 1) {
 				LOGGER.error("         Fail to parse: Too much element in the model for the data ...");
+				continue;
+			} else if (emptyElement.size() == 1 && formDataParams.size() != 0) {
+				LOGGER.error("         Fail to parse: Incompatible form data & direct data ...");
 				continue;
 			} else if (emptyElement.size() == 1) {
 				LOGGER.trace("         data type: {}", emptyElement.get(0));
@@ -313,8 +329,7 @@ public class DataFactoryTsApi {
 			}
 			builder.append("\n\texport function ");
 			builder.append(methodName);
-			builder.append("({");
-			builder.append("restConfig,");
+			builder.append("({ restConfig,");
 			if (!queryParams.isEmpty()) {
 				builder.append(" queries,");
 			}
@@ -323,59 +338,75 @@ public class DataFactoryTsApi {
 			}
 			if (emptyElement.size() == 1) {
 				builder.append(" data,");
+			} else if (formDataParams.size() != 0) {
+				builder.append(" data,");
 			}
-			builder.append(" } : {");
-			builder.append("\n\t\t\trestConfig: RESTConfig,");
+			builder.append(" }: {");
+			builder.append("\n\t\trestConfig: RESTConfig,");
 			if (!queryParams.isEmpty()) {
-				builder.append("\n\t\t\tqueries: {");
+				builder.append("\n\t\tqueries: {");
 				for (final Entry<String, String> queryEntry : queryParams.entrySet()) {
-					builder.append("\n\t\t\t\t");
+					builder.append("\n\t\t\t");
 					builder.append(queryEntry.getKey());
 					builder.append(": ");
 					builder.append(queryEntry.getValue());
 					builder.append(",");
 				}
-				builder.append("\n\t\t\t},");
+				builder.append("\n\t\t},");
 			}
 			if (!pathParams.isEmpty()) {
-				builder.append("\n\t\t\tparams: {");
+				builder.append("\n\t\tparams: {");
 				for (final Entry<String, String> pathEntry : pathParams.entrySet()) {
-					builder.append("\n\t\t\t\t");
+					builder.append("\n\t\t\t");
 					builder.append(pathEntry.getKey());
 					builder.append(": ");
 					builder.append(pathEntry.getValue());
 					builder.append(",");
 				}
-				builder.append("\n\t\t\t},");
+				builder.append("\n\t\t},");
 			}
 			if (emptyElement.size() == 1) {
-				builder.append("\n\t\t\tdata: ");
+				builder.append("\n\t\tdata: ");
 				builder.append(emptyElement.get(0));
 				builder.append(",");
+			} else if (formDataParams.size() != 0) {
+				builder.append("\n\t\tdata: {");
+				for (final Entry<String, String> pathEntry : formDataParams.entrySet()) {
+					builder.append("\n\t\t\t");
+					builder.append(pathEntry.getKey());
+					builder.append(": ");
+					builder.append(pathEntry.getValue());
+					builder.append(",");
+				}
+				builder.append("\n\t\t},");
 			}
-			builder.append("\n\t\t}) : Promise<");
+			builder.append("\n\t}): Promise<");
 			builder.append(tmpReturn.tsTypeName);
 			if (returnModelIsArray) {
 				builder.append("[]");
 			}
 			builder.append("> {");
-			builder.append("\n\t\treturn new Promise((resolve, reject) => {");
-			builder.append("\n\t\t\tRESTRequest({");
-			builder.append("\n\t\t\t\trestModel: {");
-			builder.append("\n\t\t\t\t\tendPoint: \"");
+
+			if (returnModelIsArray) {
+				builder.append("\n\t\treturn RESTRequestJsonArray({");
+			} else {
+				builder.append("\n\t\treturn RESTRequestJson({");
+			}
+			builder.append("\n\t\t\trestModel: {");
+			builder.append("\n\t\t\t\tendPoint: \"");
 			builder.append(basicPath);
 			if (methodPath != null) {
 				builder.append("/");
 				builder.append(methodPath);
 			}
 			builder.append("\",");
-			builder.append("\n\t\t\t\t\trequestType: HTTPRequestModel.");
+			builder.append("\n\t\t\t\trequestType: HTTPRequestModel.");
 			builder.append(methodType);
 			builder.append(",");
 			if (consumes != null) {
 				for (final String elem : consumes) {
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						builder.append("\n\t\t\t\t\tcontentType: HTTPMimeType.JSON,");
+						builder.append("\n\t\t\t\tcontentType: HTTPMimeType.JSON,");
 						break;
 					}
 				}
@@ -383,46 +414,27 @@ public class DataFactoryTsApi {
 			if (produces != null) {
 				for (final String elem : produces) {
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						builder.append("\n\t\t\t\t\taccept: HTTPMimeType.JSON,");
+						builder.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
 						break;
 					}
 				}
 			}
-			builder.append("\n\t\t\t\t},");
-			builder.append("\n\t\t\t\trestConfig,");
+			builder.append("\n\t\t\t},");
+			builder.append("\n\t\t\trestConfig,");
 			if (!pathParams.isEmpty()) {
-				builder.append("\n\t\t\t\tparams,");
+				builder.append("\n\t\t\tparams,");
 			}
 			if (!queryParams.isEmpty()) {
-				builder.append("\n\t\t\t\tqueries,");
+				builder.append("\n\t\t\tqueries,");
 			}
 			if (emptyElement.size() == 1) {
-				builder.append("\n\t\t\t\tdata,");
+				builder.append("\n\t\t\tdata,");
+			} else if (formDataParams.size() != 0) {
+				builder.append("\n\t\t\tdata,");
 			}
-			builder.append("\n\t\t\t}).then((value: ModelResponseHttp) => {");
-			if (returnModelIsArray) {
-				builder.append("\n\t\t\t\tif (isArrayOf(value.data, is");
-				builder.append(tmpReturn.tsTypeName);
-				builder.append(")) {");
-			} else {
-				builder.append("\n\t\t\t\tif (is");
-				builder.append(tmpReturn.tsTypeName);
-				builder.append("(value.data)) {");
-			}
-			builder.append("\n\t\t\t\t\tresolve(value.data);");
-			builder.append("\n\t\t\t\t} else {");
-			builder.append("\n\t\t\t\t\treject({");
-			builder.append("\n\t\t\t\t\t\ttime: Date().toString(),");
-			builder.append("\n\t\t\t\t\t\tstatus: 950,");
-			builder.append("\n\t\t\t\t\t\terror: \"REST Fail to verify the data\",");
-			builder.append("\n\t\t\t\t\t\tstatusMessage: \"API cast ERROR\",");
-			builder.append("\n\t\t\t\t\t\tmessage: \"api.ts Check type as fail\"");
-			builder.append("\n\t\t\t\t\t} as RestErrorResponse);");
-			builder.append("\n\t\t\t\t}");
-			builder.append("\n\t\t\t}).catch((reason: RestErrorResponse) => {");
-			builder.append("\n\t\t\t\treject(reason);");
-			builder.append("\n\t\t\t});");
-			builder.append("\n\t\t});");
+			builder.append("\n\t\t}, ");
+			builder.append(tmpReturn.tsCheckType);
+			builder.append(");");
 			builder.append("\n\t};");
 		}
 		builder.append("\n}\n");

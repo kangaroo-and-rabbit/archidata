@@ -282,11 +282,11 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
-	public Response retriveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
+	public Response retrieveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retriveDataId ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataId ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
@@ -302,11 +302,11 @@ public class DataResource {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
-	public Response retriveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
+	public Response retrieveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id) throws Exception {
 		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		// logger.info("== DATA retriveDataThumbnailId ? {}", (gc==null?"null":gc.user));
+		// logger.info("== DATA retrieveDataThumbnailId ? {}", (gc==null?"null":gc.user));
 		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
@@ -361,11 +361,11 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment (with a beautifull name (permit download with basic name)", tags = "SYSTEM")
-	public Response retriveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
+	public Response retrieveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final Long id, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retriveDataFull ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
 		final Data value = getSmall(id);
 		if (value == null) {
