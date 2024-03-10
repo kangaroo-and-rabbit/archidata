@@ -10,9 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
@@ -22,98 +20,149 @@ import org.slf4j.LoggerFactory;
 
 public class DataFactoryZod {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryZod.class);
-	
-	public static String convertTypeZodSimpleType(final Class<?> type, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
-		if (type == UUID.class) {
-			return "ZodUUID";
+
+	static public class ClassElement {
+		public Class<?>[] model;
+		public String zodName;
+		public String tsTypeName;
+		public String tsCheckType;
+		public String declaration;
+		public String comment = null;
+		public boolean nativeType;
+
+		public ClassElement(final Class<?> model[], final String zodName, final String tsTypeName, final String tsCheckType, final String declaration, final boolean nativeType) {
+			this.model = model;
+			this.zodName = zodName;
+			this.tsTypeName = tsTypeName;
+			this.tsCheckType = tsCheckType;
+			this.declaration = declaration;
+			this.nativeType = nativeType;
 		}
-		if (type == Long.class) {
-			return "ZodLong";
+
+		public ClassElement(final Class<?> model) {
+			this(new Class<?>[] { model });
 		}
-		if (type == long.class) {
-			return "ZodLong";
+
+		public ClassElement(final Class<?> model[]) {
+			this.model = model;
+			this.zodName = "Zod" + model[0].getSimpleName();
+			this.tsTypeName = model[0].getSimpleName();
+			this.tsCheckType = "is" + model[0].getSimpleName();
+			this.declaration = null;
+			this.nativeType = false;
 		}
-		if (type == Integer.class || type == int.class) {
-			return "ZodInteger";
-		}
-		if (type == Boolean.class || type == boolean.class) {
-			return "zod.boolean()";
-		}
-		if (type == double.class || type == Double.class) {
-			return "ZodDouble";
-		}
-		if (type == float.class || type == Float.class) {
-			return "ZodFloat";
-		}
-		if (type == Instant.class) {
-			return "ZodInstant";
-		}
-		if (type == Date.class || type == Timestamp.class) {
-			return "ZodDate";
-		}
-		if (type == LocalDate.class) {
-			return "ZodLocalDate";
-		}
-		if (type == LocalTime.class) {
-			return "ZodLocalTime";
-		}
-		if (type == String.class) {
-			return "zod.string()";
-		}
-		if (type.isEnum()) {
-			final Object[] arr = type.getEnumConstants();
-			final StringBuilder out = new StringBuilder();
-			boolean first = true;
-			out.append("zod.enum([");
-			for (final Object elem : arr) {
-				if (!first) {
-					out.append(", ");
+	}
+
+	public static class GeneratedTypes {
+		final List<ClassElement> previousGeneration = new ArrayList<>();
+		final List<Class<?>> order = new ArrayList<>();
+
+		public ClassElement find(final Class<?> clazz) {
+			for (final ClassElement elem : this.previousGeneration) {
+				for (final Class<?> elemClass : elem.model) {
+					if (elemClass == clazz) {
+						return elem;
+					}
 				}
-				first = false;
-				out.append("\"");
-				out.append(elem.toString());
-				out.append("\"");
 			}
-			out.append("])");
-			return out.toString();
-		}
-		if (type == List.class) {
 			return null;
 		}
-		createTable(type, previousClassesGenerated, order);
-		return "Zod" + type.getSimpleName();
+
+		public void add(final ClassElement elem) {
+			this.previousGeneration.add(elem);
+		}
+
+		public void add(final ClassElement elem, final boolean addOrder) {
+			this.previousGeneration.add(elem);
+			if (addOrder) {
+				this.order.add(elem.model[0]);
+			}
+		}
+
+		public void addOrder(final ClassElement elem) {
+			this.order.add(elem.model[0]);
+		}
 	}
-	
-	public static String convertTypeZod(final Field field, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
+
+	public static ClassElement convertTypeZodEnum(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
+		final ClassElement element = new ClassElement(clazz);
+		previous.add(element);
+
+		final Object[] arr = clazz.getEnumConstants();
+		final StringBuilder out = new StringBuilder();
+		boolean first = true;
+		out.append("zod.enum([");
+		for (final Object elem : arr) {
+			if (!first) {
+				out.append(", \n\t");
+			} else {
+				out.append("\n\t");
+			}
+			first = false;
+			out.append("'");
+			out.append(elem.toString());
+			out.append("'");
+		}
+		out.append("\n\t]);");
+		element.declaration = out.toString();
+		previous.addOrder(element);
+		return element;
+	}
+
+	public static String convertTypeZod(final Class<?> type, final GeneratedTypes previous) throws Exception {
+		final ClassElement previousType = previous.find(type);
+		if (previousType != null) {
+			return previousType.zodName;
+		}
+		if (type.isEnum()) {
+			return convertTypeZodEnum(type, previous).zodName;
+		}
+		if (type == List.class) {
+			throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName() + " Unmanaged List of List ... ");
+		}
+		final ClassElement elemCreated = createTable(type, previous);
+		if (elemCreated != null) {
+			return elemCreated.zodName;
+		}
+		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
+	}
+
+	public static String convertTypeZod(final Field field, final GeneratedTypes previous) throws Exception {
 		final Class<?> type = field.getType();
-		final String simpleType = convertTypeZodSimpleType(type, previousClassesGenerated, order);
-		if (simpleType != null) {
-			return simpleType;
+		final ClassElement previousType = previous.find(type);
+		if (previousType != null) {
+			return previousType.zodName;
+		}
+		if (type.isEnum()) {
+			return convertTypeZodEnum(type, previous).zodName;
 		}
 		if (type == List.class) {
 			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
 			final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
-			final String simpleSubType = convertTypeZodSimpleType(listClass, previousClassesGenerated, order);
+			final String simpleSubType = convertTypeZod(listClass, previous);
 			return "zod.array(" + simpleSubType + ")";
+		}
+		final ClassElement elemCreated = createTable(type, previous);
+		if (elemCreated != null) {
+			return elemCreated.zodName;
 		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
-	
+
 	public static String optionalTypeZod(final Class<?> type) throws Exception {
 		if (type.isPrimitive()) {
 			return "";
 		}
 		return ".optional()";
 	}
-	
-	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final Map<String, String> previousClassesGenerated, final List<String> order)
-			throws Exception {
+
+	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final GeneratedTypes previous) throws Exception {
 		final String name = elem.getName();
 		final Class<?> classModel = elem.getType();
 		final int limitSize = AnnotationTools.getLimitSize(elem);
-		
+
 		final String comment = AnnotationTools.getComment(elem);
-		
+
 		if (fieldId != 0) {
 			builder.append(",");
 		}
@@ -124,7 +173,7 @@ public class DataFactoryZod {
 		builder.append("\n\t");
 		builder.append(name);
 		builder.append(": ");
-		builder.append(convertTypeZod(elem, previousClassesGenerated, order));
+		builder.append(convertTypeZod(elem, previous));
 		if (limitSize > 0 && classModel == String.class) {
 			builder.append(".max(");
 			builder.append(limitSize);
@@ -135,7 +184,7 @@ public class DataFactoryZod {
 		}
 		builder.append(optionalTypeZod(classModel));
 	}
-	
+
 	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
@@ -155,80 +204,81 @@ public class DataFactoryZod {
 		}
 		return false;
 	}
-	
+
+	public static GeneratedTypes createBasicType() throws Exception {
+		final GeneratedTypes previous = new GeneratedTypes();
+		previous.add(new ClassElement(new Class<?>[] { Void.class, void.class }, "void", "void", null, null, true));
+		previous.add(new ClassElement(new Class<?>[] { String.class }, "zod.string()", "string", null, "zod.string()", true));
+		previous.add(new ClassElement(new Class<?>[] { Boolean.class, boolean.class }, "zod.boolean()", "boolean", null, "zod.boolean()", true));
+		previous.add(new ClassElement(new Class<?>[] { UUID.class }, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Long.class, long.class }, "ZodLong", "Long", "isLong",
+				// "zod.bigint()",
+				"zod.number()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Integer.class, int.class }, "ZodInteger", "Integer", "isInteger", "zod.number().safe()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Double.class, double.class }, "ZodDouble", "Double", "isDouble", "zod.number()", true), true);
+		previous.add(new ClassElement(new Class<?>[] { Float.class, float.class }, "ZodFloat", "Float", "isFloat", "zod.number()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Instant.class }, "ZodInstant", "Instant", "isInstant", "zod.string()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Date.class }, "ZodDate", "Date", "isDate", "zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Timestamp.class }, "ZodTimestamp", "Timestamp", "isTimestamp", "zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { LocalDate.class }, "ZodLocalDate", "LocalDate", "isLocalDate", "zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { LocalTime.class }, "ZodLocalTime", "LocalTime", "isLocalTime", "zod.date()", false), true);
+		return previous;
+	}
+
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
 	 * @return A string representing the Server models
 	 * @throws Exception */
 	public static String createTables(final List<Class<?>> classs) throws Exception {
-		final Map<String, String> previousClassesGenerated = new LinkedHashMap<>();
-		final List<String> order = new ArrayList<>();
+		return createTables(classs, createBasicType());
+	}
+
+	public static String createTables(final List<Class<?>> classs, final GeneratedTypes previous) throws Exception {
 		for (final Class<?> clazz : classs) {
-			createTable(clazz, previousClassesGenerated, order);
+			createTable(clazz, previous);
 		}
+
 		final StringBuilder generatedData = new StringBuilder();
 		generatedData.append("""
 				/**
 				 * Interface of the server (auto-generated code)
 				 */
 				import { z as zod } from \"zod\";
-				
-				export const ZodUUID = zod.string().uuid();
-				export type UUID = zod.infer<typeof ZodUUID>;
-				
-				export const ZodLong = zod.bigint();
-				export type Long = zod.infer<typeof ZodLong>;
-				
-				export const ZodInteger = zod.number().safe();
-				export type Integer = zod.infer<typeof ZodInteger>;
-				
-				export const ZodDouble = zod.number();
-				export type Double = zod.infer<typeof ZodDouble>;
-				
-				export const ZodFloat = zod.number();
-				export type Float = zod.infer<typeof ZodFloat>;
-				
-				export const ZodInstant = zod.string();
-				export type Instant = zod.infer<typeof ZodInstant>;
-				
-				export const ZodDate = zod.date();
-				export type Date = zod.infer<typeof ZodDate>;
-				
-				export const ZodTimestamp = zod.date();
-				export type Timestamp = zod.infer<typeof ZodTimestamp>;
-				
-				export const ZodLocalDate = zod.date();
-				export type LocalDate = zod.infer<typeof ZodLocalDate>;
-				
-				export const ZodLocalTime = zod.date();
-				export type LocalTime = zod.infer<typeof ZodLocalTime>;
+
 				""");
-		for (final String elem : order) {
-			final String data = previousClassesGenerated.get(elem);
-			generatedData.append(data);
-			generatedData.append("\n\n");
+		for (final Class<?> elem : previous.order) {
+			final ClassElement data = previous.find(elem);
+			if (!data.nativeType) {
+				if (data.comment != null) {
+					generatedData.append(data.comment);
+				}
+				generatedData.append("export const ");
+				generatedData.append(data.zodName);
+				generatedData.append(" = ");
+				generatedData.append(data.declaration);
+				generatedData.append(";");
+				generatedData.append(createDeclaration(data));
+				generatedData.append("\n\n");
+			}
 		}
 		LOGGER.info("generated: {}", generatedData.toString());
 		return generatedData.toString();
 	}
-	
-	public static void createTable(final Class<?> clazz, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
+
+	public static ClassElement createTable(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
 		if (clazz == null) {
-			return;
+			return null;
+		}
+		final ClassElement alreadyExist = previous.find(clazz);
+		if (previous.find(clazz) != null) {
+			return alreadyExist;
 		}
 		if (clazz.isPrimitive()) {
-			return;
-		}
-		if (clazz == Double.class || clazz == Float.class || clazz == Integer.class || clazz == Long.class || clazz == UUID.class || clazz == Instant.class || clazz == Date.class
-				|| clazz == Timestamp.class || clazz == LocalDate.class || clazz == LocalTime.class || clazz == String.class) {
-			return;
-		}
-
-		if (previousClassesGenerated.get(clazz.getCanonicalName()) != null) {
-			return;
+			return null;
 		}
 		// add the current class to prevent multiple creation
-		previousClassesGenerated.put(clazz.getCanonicalName(), "In Generation");
+		final ClassElement curentElementClass = new ClassElement(clazz);
+		previous.add(curentElementClass);
 		// Local generation of class:
 		final StringBuilder internalBuilder = new StringBuilder();
 		final List<String> alreadyAdded = new ArrayList<>();
@@ -258,62 +308,67 @@ public class DataFactoryZod {
 				 * tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType()); } fieldId++; */
 			} else {
 				LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-				DataFactoryZod.createTablesSpecificType(elem, fieldId, internalBuilder, previousClassesGenerated, order);
+				DataFactoryZod.createTablesSpecificType(elem, fieldId, internalBuilder, previous);
 				fieldId++;
 			}
-			
+
 		}
 		final String description = AnnotationTools.getSchemaDescription(clazz);
 		final String example = AnnotationTools.getSchemaExample(clazz);
-		final StringBuilder generatedData = new StringBuilder();
+		final StringBuilder generatedCommentedData = new StringBuilder();
 		if (description != null || example != null) {
-			generatedData.append("/**\n");
+			generatedCommentedData.append("/**\n");
 			if (description != null) {
 				for (final String elem : description.split("\n")) {
-					generatedData.append(" * ");
-					generatedData.append(elem);
-					generatedData.append("\n");
+					generatedCommentedData.append(" * ");
+					generatedCommentedData.append(elem);
+					generatedCommentedData.append("\n");
 				}
 			}
 			if (example != null) {
-				generatedData.append(" * Example:\n");
-				generatedData.append(" * ```\n");
+				generatedCommentedData.append(" * Example:\n");
+				generatedCommentedData.append(" * ```\n");
 				for (final String elem : example.split("\n")) {
-					generatedData.append(" * ");
-					generatedData.append(elem);
-					generatedData.append("\n");
+					generatedCommentedData.append(" * ");
+					generatedCommentedData.append(elem);
+					generatedCommentedData.append("\n");
 				}
-				generatedData.append(" * ```\n");
+				generatedCommentedData.append(" * ```\n");
 			}
-			generatedData.append(" */\n");
+			generatedCommentedData.append(" */\n");
 		}
-		generatedData.append("export const Zod");
-		generatedData.append(clazz.getSimpleName());
-		generatedData.append(" = ");
+		curentElementClass.comment = generatedCommentedData.toString();
+		final StringBuilder generatedData = new StringBuilder();
 		final Class<?> parentClass = clazz.getSuperclass();
-		if (parentClass != null && parentClass != Object.class) {
-			createTable(parentClass, previousClassesGenerated, order);
-			generatedData.append("Zod");
-			generatedData.append(parentClass.getSimpleName());
+		if (parentClass != null && parentClass != Object.class && parentClass != Record.class) {
+			final ClassElement parentDeclaration = createTable(parentClass, previous);
+			generatedData.append(parentDeclaration.zodName);
 			generatedData.append(".extend({");
 		} else {
 			generatedData.append("zod.object({");
 		}
 		generatedData.append(internalBuilder.toString());
-		generatedData.append("\n});");
-		// declare generic type:
+		generatedData.append("\n})");
+		// Remove the previous to reorder the map ==> parent must be inserted before us.
+		curentElementClass.declaration = generatedData.toString();
+		previous.addOrder(curentElementClass);
+		return curentElementClass;
+	}
+
+	public static String createDeclaration(final ClassElement elem) {
+		final StringBuilder generatedData = new StringBuilder();
 		generatedData.append("\nexport type ");
-		generatedData.append(clazz.getSimpleName());
-		generatedData.append(" = zod.infer<typeof Zod");
-		generatedData.append(clazz.getSimpleName());
+		generatedData.append(elem.tsTypeName);
+		generatedData.append(" = zod.infer<typeof ");
+		generatedData.append(elem.zodName);
 		generatedData.append(">;");
 		// declare generic isXXX:
-		generatedData.append("\nexport function is");
-		generatedData.append(clazz.getSimpleName());
+		generatedData.append("\nexport function ");
+		generatedData.append(elem.tsCheckType);
 		generatedData.append("(data: any): data is ");
-		generatedData.append(clazz.getSimpleName());
-		generatedData.append(" {\n\ttry {\n\t\tZod");
-		generatedData.append(clazz.getSimpleName());
+		generatedData.append(elem.tsTypeName);
+		generatedData.append(" {\n\ttry {\n\t\t");
+		generatedData.append(elem.zodName);
 		generatedData.append("""
 				.parse(data);
 						return true;
@@ -323,11 +378,9 @@ public class DataFactoryZod {
 					}
 				}
 				""");
-		// Remove the previous to reorder the map ==> parent must be inserted before us.
-		previousClassesGenerated.put(clazz.getCanonicalName(), generatedData.toString());
-		order.add(clazz.getCanonicalName());
+		return generatedData.toString();
 	}
-	
+
 	public static void generatePackage(final List<Class<?>> classs, final String pathPackage) throws Exception {
 		final String packageApi = createTables(classs);
 		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
@@ -338,11 +391,11 @@ public class DataFactoryZod {
 				 * Global import of the package
 				 */
 				export * from "./model.ts";
-				
+
 				""";
 		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
 		myWriter.write(index);
 		myWriter.close();
 	}
-	
+
 }

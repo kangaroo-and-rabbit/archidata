@@ -3,28 +3,22 @@ package org.kar.archidata.dataAccess;
 import java.io.File;
 import java.io.FileWriter;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 
-import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.AsyncType;
-import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.catcher.RestErrorResponse;
+import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
+import org.kar.archidata.dataAccess.DataFactoryZod.GeneratedTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +31,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -44,143 +39,46 @@ import jakarta.ws.rs.core.MediaType;
 public class DataFactoryTsApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryTsApi.class);
 
-	public static String convertTypeZodSimpleType(final Class<?> type, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
-		if (type == UUID.class) {
-			return "string";
-		}
-		if (type == Long.class) {
-			return "Bigint";
-		}
-		if (type == long.class) {
-			return "Bigint";
-		}
-		if (type == Integer.class || type == int.class) {
-			return "number";
-		}
-		if (type == Boolean.class || type == boolean.class) {
-			return "boolean";
-		}
-		if (type == double.class || type == float.class || type == Double.class || type == Float.class) {
-			return "number";
-		}
-		if (type == Instant.class) {
-			return "string";
-		}
-		if (type == Date.class || type == Timestamp.class) {
-			return "string";
-		}
-		if (type == LocalDate.class) {
-			return "string";
-		}
-		if (type == LocalTime.class) {
-			return "string";
-		}
-		if (type == String.class) {
-			return "string";
-		}
-		if (type.isEnum()) {
-			final Object[] arr = type.getEnumConstants();
-			final StringBuilder out = new StringBuilder();
-			boolean first = true;
-			out.append("zod.enum([");
-			for (final Object elem : arr) {
-				if (!first) {
-					out.append(", ");
-				}
-				first = false;
-				out.append("\"");
-				out.append(elem.toString());
-				out.append("\"");
-			}
-			out.append("])");
-			return out.toString();
-		}
-		if (type == List.class) {
-			return null;
-		}
-		// createTable(type, previousClassesGenerated, order);
-		return "Zod" + type.getSimpleName();
-	}
-
-	public static String convertTypeZod(final Field field, final Map<String, String> previousClassesGenerated, final List<String> order) throws Exception {
-		final Class<?> type = field.getType();
-		final String simpleType = convertTypeZodSimpleType(type, previousClassesGenerated, order);
-		if (simpleType != null) {
-			return simpleType;
-		}
-		if (type == List.class) {
-			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-			final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
-			final String simpleSubType = convertTypeZodSimpleType(listClass, previousClassesGenerated, order);
-			return "zod.array(" + simpleSubType + ")";
-		}
-		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
-	}
-
-	public static String optionalTypeZod(final Class<?> type) throws Exception {
-		if (type.isPrimitive()) {
-			return "";
-		}
-		return ".optional()";
-	}
-
-	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final Map<String, String> previousClassesGenerated, final List<String> order)
-			throws Exception {
-		final String name = elem.getName();
-		final Class<?> classModel = elem.getType();
-		final int limitSize = AnnotationTools.getLimitSize(elem);
-
-		final String comment = AnnotationTools.getComment(elem);
-
-		if (fieldId != 0) {
-			builder.append(",");
-		}
-		if (comment != null) {
-			builder.append("\n\t// ");
-			builder.append(comment);
-		}
-		builder.append("\n\t");
-		builder.append(name);
-		builder.append(": ");
-		builder.append(convertTypeZod(elem, previousClassesGenerated, order));
-		if (limitSize > 0 && classModel == String.class) {
-			builder.append(".max(");
-			builder.append(limitSize);
-			builder.append(")");
-		}
-		if (AnnotationTools.getSchemaReadOnly(elem)) {
-			builder.append(".readonly()");
-		}
-		builder.append(optionalTypeZod(classModel));
+	record APIModel(String data, String className) {
 	}
 
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
-	 * @return A string representing the Server models
 	 * @throws Exception */
-	public static String createApi(final List<Class<?>> classs, final Set<Class<?>> classNeeded) throws Exception {
+	public static List<String> createApi(final List<Class<?>> classs, final GeneratedTypes previous, final String pathPackage) throws Exception {
 		final List<String> apis = new ArrayList<>();
-		for (final Class<?> clazz : classs) {
-			final String api = createSingleApi(clazz, classNeeded);
-			apis.add(api);
-		}
-		final StringBuilder generatedDataElems = new StringBuilder();
-		for (final String elem : apis) {
-			generatedDataElems.append(elem);
-			generatedDataElems.append("\n\n");
-		}
-		final StringBuilder generatedData = new StringBuilder();
-		generatedData.append("""
+		final String globalheader = """
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import {""");
-		for (final Class<?> elem : classNeeded) {
-			generatedData.append(elem.getSimpleName());
-			generatedData.append(", ");
+				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequest, isArrayOf } from "./rest-tools"
+				import {""";
+
+		for (final Class<?> clazz : classs) {
+			final Set<String> includeModel = new HashSet<>();
+			includeModel.add("RestErrorResponse");
+			final APIModel api = createSingleApi(clazz, includeModel, previous);
+			final StringBuilder generatedData = new StringBuilder();
+			generatedData.append(globalheader);
+			for (final String elem : includeModel) {
+				if (elem == null || elem.equals("string") || elem.equals("String")) {
+					continue;
+				}
+				generatedData.append(elem);
+				generatedData.append(", ");
+			}
+			generatedData.append("} from \"./model\"\n");
+			generatedData.append(api.data());
+
+			String fileName = api.className();
+			fileName = fileName.replaceAll("([A-Z])", "-$1").toLowerCase();
+			fileName = fileName.replaceAll("^\\-*", "");
+			apis.add(fileName);
+			final FileWriter myWriter = new FileWriter(pathPackage + File.separator + fileName + ".ts");
+			myWriter.write(generatedData.toString());
+			myWriter.close();
 		}
-		generatedData.append("} from \"./model.ts\"\n\n");
-		return generatedData.toString() + generatedDataElems.toString();
+		return apis;
 	}
 
 	public static String apiAnnotationGetPath(final Class<?> element) throws Exception {
@@ -189,6 +87,30 @@ public class DataFactoryTsApi {
 			return null;
 		}
 		return ((Path) annotation[0]).value();
+	}
+
+	public static List<String> apiAnnotationProduces(final Class<?> element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return Arrays.asList(((Produces) annotation[0]).value());
+	}
+
+	public static List<String> apiAnnotationProduces(final Method element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return Arrays.asList(((Produces) annotation[0]).value());
+	}
+
+	public static List<String> apiAnnotationProduces(final Class<?> clazz, final Method method) throws Exception {
+		final List<String> data = apiAnnotationProduces(method);
+		if (data != null) {
+			return data;
+		}
+		return apiAnnotationProduces(clazz);
 	}
 
 	public static String apiAnnotationGetOperationDescription(final Method element) throws Exception {
@@ -258,11 +180,27 @@ public class DataFactoryTsApi {
 		return Arrays.asList(((Consumes) annotation[0]).value());
 	}
 
+	public static List<String> apiAnnotationGetConsumes(final Class<?> element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return Arrays.asList(((Consumes) annotation[0]).value());
+	}
+
+	public static List<String> apiAnnotationGetConsumes(final Class<?> clazz, final Method method) throws Exception {
+		final List<String> data = apiAnnotationGetConsumes(method);
+		if (data != null) {
+			return data;
+		}
+		return apiAnnotationGetConsumes(clazz);
+	}
+
 	public static boolean apiAnnotationIsContext(final Parameter element) throws Exception {
 		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
 	}
 
-	public static String createSingleApi(final Class<?> clazz, final Set<Class<?>> classNeeded) throws Exception {
+	public static APIModel createSingleApi(final Class<?> clazz, final Set<String> includeModel, final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
 		// the basic path has no specific elements...
 		final String basicPath = apiAnnotationGetPath(clazz);
@@ -270,59 +208,93 @@ public class DataFactoryTsApi {
 
 		builder.append("export namespace ");
 		builder.append(classSimpleName);
-		builder.append("API {\n");
+		builder.append(" {\n");
 		LOGGER.info("Parse Class for path: {} => {}", classSimpleName, basicPath);
 		for (final Method method : clazz.getDeclaredMethods()) {
 			final String methodName = method.getName();
 			final String methodPath = apiAnnotationGetPath(method);
 			final String methodType = apiAnnotationGetTypeRequest(method);
 			final String methodDescription = apiAnnotationGetOperationDescription(method);
-			final List<String> consumes = apiAnnotationGetConsumes(method);
+			final List<String> consumes = apiAnnotationGetConsumes(clazz, method);
+			final List<String> produces = apiAnnotationProduces(clazz, method);
 			if (consumes != null && consumes.contains(MediaType.MULTIPART_FORM_DATA)) {
 				LOGGER.error("    [{}] {} => {}/{} ==> Multipart is not managed ...", methodType, methodName, basicPath, methodPath);
 				continue;
 			}
 			LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, basicPath, methodPath);
-			final Class<?> returnType = method.getReturnType();
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
 			}
-			LOGGER.trace("         return: {}", returnType.getSimpleName());
-			final Map<String, Class<?>> queryParams = new HashMap<>();
-			final Map<String, Class<?>> pathParams = new HashMap<>();
-			final List<Class<?>> emptyElement = new ArrayList<>();
+			Class<?> returnTypeModel = method.getReturnType();
+			boolean returnModelIsArray = false;
+			ClassElement tmpReturn;
+			if (returnTypeModel == List.class) {
+				final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
+				returnTypeModel = (Class<?>) listType.getActualTypeArguments()[0];
+				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
+				returnModelIsArray = true;
+				includeModel.add(tmpReturn.tsTypeName);
+			} else {
+				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
+
+			}
+			includeModel.add(tmpReturn.tsTypeName);
+			includeModel.add(tmpReturn.tsCheckType);
+			LOGGER.trace("         return: {}", tmpReturn.tsTypeName);
+			final Map<String, String> queryParams = new HashMap<>();
+			final Map<String, String> pathParams = new HashMap<>();
+			final List<String> emptyElement = new ArrayList<>();
 			// LOGGER.info(" Parameters:");
 			for (final Parameter parameter : method.getParameters()) {
+				// Security context are internal parameter (not available from API)
 				if (apiAnnotationIsContext(parameter)) {
 					continue;
 				}
 				final Class<?> parameterType = parameter.getType();
+				String parameterTypeString;
+				if (parameterType == List.class) {
+					parameterTypeString = "any[]";
+				} else {
+					final ClassElement tmpClassElement = DataFactoryZod.createTable(parameterType, previous);
+					includeModel.add(tmpClassElement.tsTypeName);
+					final ClassElement tmp = new ClassElement(parameterType);
+					parameterTypeString = tmp.tsTypeName;
+				}
 				final String pathParam = apiAnnotationGetPathParam(parameter);
 				final String queryParam = apiAnnotationGetQueryParam(parameter);
 				if (queryParam != null) {
-					queryParams.put(queryParam, parameterType);
+					queryParams.put(queryParam, parameterTypeString);
 				} else if (pathParam != null) {
-					pathParams.put(pathParam, parameterType);
+					pathParams.put(pathParam, parameterTypeString);
 				} else {
 					final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
 					if (asyncType != null) {
-						emptyElement.add(asyncType);
+						final ClassElement tmpClassElement = DataFactoryZod.createTable(asyncType, previous);
+						includeModel.add(tmpClassElement.tsTypeName);
+						final ClassElement tmp = new ClassElement(asyncType);
+						emptyElement.add(tmp.tsTypeName);
+					} else if (parameterType == List.class) {
+						parameterTypeString = "any[]";
+						final Class<?> plop = parameterType.arrayType();
+						LOGGER.info("ArrayType = {}", plop);
 					} else {
-						emptyElement.add(parameterType);
+						final ClassElement tmpClassElement = DataFactoryZod.createTable(parameterType, previous);
+						includeModel.add(tmpClassElement.tsTypeName);
+						final ClassElement tmp = new ClassElement(parameterType);
+						emptyElement.add(tmp.tsTypeName);
 					}
-					// LOGGER.info(" - {} ", parameterType.getSimpleName());
 				}
 			}
 			if (!queryParams.isEmpty()) {
 				LOGGER.trace("         Query parameter:");
-				for (final Entry<String, Class<?>> queryEntry : queryParams.entrySet()) {
-					LOGGER.trace("             - {}: {}", queryEntry.getKey(), queryEntry.getValue().getSimpleName());
+				for (final Entry<String, String> queryEntry : queryParams.entrySet()) {
+					LOGGER.trace("             - {}: {}", queryEntry.getKey(), queryEntry.getValue());
 				}
 			}
 			if (!pathParams.isEmpty()) {
 				LOGGER.trace("         Path parameter:");
-				for (final Entry<String, Class<?>> pathEntry : pathParams.entrySet()) {
-					LOGGER.trace("             - {}: {}", pathEntry.getKey(), pathEntry.getValue().getSimpleName());
+				for (final Entry<String, String> pathEntry : pathParams.entrySet()) {
+					LOGGER.trace("             - {}: {}", pathEntry.getKey(), pathEntry.getValue());
 
 				}
 			}
@@ -330,7 +302,7 @@ public class DataFactoryTsApi {
 				LOGGER.error("         Fail to parse: Too much element in the model for the data ...");
 				continue;
 			} else if (emptyElement.size() == 1) {
-				LOGGER.trace("         data type: {}", emptyElement.get(0).getSimpleName());
+				LOGGER.trace("         data type: {}", emptyElement.get(0));
 			}
 			// ALL is good can generate the Elements
 
@@ -342,8 +314,7 @@ public class DataFactoryTsApi {
 			builder.append("\n\texport function ");
 			builder.append(methodName);
 			builder.append("({");
-			builder.append("options,");
-			builder.append(" serverUrl,");
+			builder.append("restConfig,");
 			if (!queryParams.isEmpty()) {
 				builder.append(" queries,");
 			}
@@ -354,78 +325,131 @@ public class DataFactoryTsApi {
 				builder.append(" data,");
 			}
 			builder.append(" } : {");
-			builder.append("\n\t\t\toptions: any,");
-			builder.append("\n\t\t\tserverUrl: string,");
+			builder.append("\n\t\t\trestConfig: RESTConfig,");
 			if (!queryParams.isEmpty()) {
 				builder.append("\n\t\t\tqueries: {");
-				for (final Entry<String, Class<?>> queryEntry : queryParams.entrySet()) {
-					classNeeded.add(queryEntry.getValue());
+				for (final Entry<String, String> queryEntry : queryParams.entrySet()) {
 					builder.append("\n\t\t\t\t");
 					builder.append(queryEntry.getKey());
 					builder.append(": ");
-					builder.append(queryEntry.getValue().getSimpleName());
+					builder.append(queryEntry.getValue());
 					builder.append(",");
 				}
 				builder.append("\n\t\t\t},");
 			}
 			if (!pathParams.isEmpty()) {
 				builder.append("\n\t\t\tparams: {");
-				for (final Entry<String, Class<?>> pathEntry : pathParams.entrySet()) {
-					classNeeded.add(pathEntry.getValue());
+				for (final Entry<String, String> pathEntry : pathParams.entrySet()) {
 					builder.append("\n\t\t\t\t");
 					builder.append(pathEntry.getKey());
 					builder.append(": ");
-					builder.append(pathEntry.getValue().getSimpleName());
+					builder.append(pathEntry.getValue());
 					builder.append(",");
 				}
 				builder.append("\n\t\t\t},");
 			}
 			if (emptyElement.size() == 1) {
 				builder.append("\n\t\t\tdata: ");
-				classNeeded.add(emptyElement.get(0));
-				builder.append(emptyElement.get(0).getSimpleName());
+				builder.append(emptyElement.get(0));
 				builder.append(",");
 			}
 			builder.append("\n\t\t}) : Promise<");
-			if (returnType == Void.class) {
-				builder.append("void");
-			} else {
-				classNeeded.add(returnType);
-				builder.append(returnType.getSimpleName());
+			builder.append(tmpReturn.tsTypeName);
+			if (returnModelIsArray) {
+				builder.append("[]");
 			}
 			builder.append("> {");
 			builder.append("\n\t\treturn new Promise((resolve, reject) => {");
-			/* fetch('https://example.com?' + new URLSearchParams({ foo: 'value', bar: 2, })) */
+			builder.append("\n\t\t\tRESTRequest({");
+			builder.append("\n\t\t\t\trestModel: {");
+			builder.append("\n\t\t\t\t\tendPoint: \"");
+			builder.append(basicPath);
+			if (methodPath != null) {
+				builder.append("/");
+				builder.append(methodPath);
+			}
+			builder.append("\",");
+			builder.append("\n\t\t\t\t\trequestType: HTTPRequestModel.");
+			builder.append(methodType);
+			builder.append(",");
+			if (consumes != null) {
+				for (final String elem : consumes) {
+					if (MediaType.APPLICATION_JSON.equals(elem)) {
+						builder.append("\n\t\t\t\t\tcontentType: HTTPMimeType.JSON,");
+						break;
+					}
+				}
+			}
+			if (produces != null) {
+				for (final String elem : produces) {
+					if (MediaType.APPLICATION_JSON.equals(elem)) {
+						builder.append("\n\t\t\t\t\taccept: HTTPMimeType.JSON,");
+						break;
+					}
+				}
+			}
+			builder.append("\n\t\t\t\t},");
+			builder.append("\n\t\t\t\trestConfig,");
+			if (!pathParams.isEmpty()) {
+				builder.append("\n\t\t\t\tparams,");
+			}
+			if (!queryParams.isEmpty()) {
+				builder.append("\n\t\t\t\tqueries,");
+			}
+			if (emptyElement.size() == 1) {
+				builder.append("\n\t\t\t\tdata,");
+			}
+			builder.append("\n\t\t\t}).then((value: ModelResponseHttp) => {");
+			if (returnModelIsArray) {
+				builder.append("\n\t\t\t\tif (isArrayOf(value.data, is");
+				builder.append(tmpReturn.tsTypeName);
+				builder.append(")) {");
+			} else {
+				builder.append("\n\t\t\t\tif (is");
+				builder.append(tmpReturn.tsTypeName);
+				builder.append("(value.data)) {");
+			}
+			builder.append("\n\t\t\t\t\tresolve(value.data);");
+			builder.append("\n\t\t\t\t} else {");
+			builder.append("\n\t\t\t\t\treject({");
+			builder.append("\n\t\t\t\t\t\ttime: Date().toString(),");
+			builder.append("\n\t\t\t\t\t\tstatus: 950,");
+			builder.append("\n\t\t\t\t\t\terror: \"REST Fail to verify the data\",");
+			builder.append("\n\t\t\t\t\t\tstatusMessage: \"API cast ERROR\",");
+			builder.append("\n\t\t\t\t\t\tmessage: \"api.ts Check type as fail\"");
+			builder.append("\n\t\t\t\t\t} as RestErrorResponse);");
+			builder.append("\n\t\t\t\t}");
+			builder.append("\n\t\t\t}).catch((reason: RestErrorResponse) => {");
+			builder.append("\n\t\t\t\treject(reason);");
+			builder.append("\n\t\t\t});");
 			builder.append("\n\t\t});");
 			builder.append("\n\t};");
 		}
-
 		builder.append("\n}\n");
-		return builder.toString();
+		return new APIModel(builder.toString(), classSimpleName);
 	}
 
 	public static void generatePackage(final List<Class<?>> classApi, final List<Class<?>> classModel, final String pathPackage) throws Exception {
-		final Set<Class<?>> classNeeded = new HashSet<>(classModel);
-		final String data = createApi(classApi, classNeeded);
-		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "api.ts");
-		myWriter.write(data);
-		myWriter.close();
-		final String packageApi = DataFactoryZod.createTables(new ArrayList<>(classNeeded));
-		myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
+		final GeneratedTypes previous = DataFactoryZod.createBasicType();
+		DataFactoryZod.createTable(RestErrorResponse.class, previous);
+		final List<String> listApi = createApi(classApi, previous, pathPackage);
+		final String packageApi = DataFactoryZod.createTables(new ArrayList<>(classModel), previous);
+		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
 		myWriter.write(packageApi.toString());
 		myWriter.close();
-		final String index = """
+
+		final StringBuilder index = new StringBuilder("""
 				/**
 				 * Global import of the package
 				 */
-				export * from "./model.ts";
-				export * from "./api.ts";
-
-				""";
+				export * from "./model";
+				""");
+		for (final String api : listApi) {
+			index.append("export * from \"./").append(api).append("\";\n");
+		}
 		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
-		myWriter.write(index);
+		myWriter.write(index.toString());
 		myWriter.close();
-
 		return;
 	}
 

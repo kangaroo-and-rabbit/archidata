@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -103,7 +104,7 @@ public class DataTools {
 		return null;
 	}
 
-	public static void undelete(final Long id) {
+	public static void undelete(final UUID id) {
 		try {
 			DataAccess.unsetDelete(Data.class, id);
 		} catch (final Exception e) {
