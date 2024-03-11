@@ -2,6 +2,7 @@ package org.kar.archidata.dataAccess;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.sql.Timestamp;
@@ -13,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -209,6 +211,7 @@ public class DataFactoryZod {
 		final GeneratedTypes previous = new GeneratedTypes();
 		previous.add(new ClassElement(new Class<?>[] { Void.class, void.class }, "void", "void", null, null, true));
 		previous.add(new ClassElement(new Class<?>[] { String.class }, "zod.string()", "string", null, "zod.string()", true));
+		previous.add(new ClassElement(new Class<?>[] { InputStream.class, FormDataContentDisposition.class }, "z.instanceof(File)", "File", null, "z.instanceof(File)", true));
 		previous.add(new ClassElement(new Class<?>[] { Boolean.class, boolean.class }, "zod.boolean()", "boolean", null, "zod.boolean()", true));
 		previous.add(new ClassElement(new Class<?>[] { UUID.class }, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()", false), true);
 		previous.add(new ClassElement(new Class<?>[] { Long.class, long.class }, "ZodLong", "Long", "isLong",

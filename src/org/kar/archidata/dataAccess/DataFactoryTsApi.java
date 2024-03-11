@@ -36,6 +36,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 public class DataFactoryTsApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryTsApi.class);
@@ -56,16 +57,31 @@ public class DataFactoryTsApi {
 				import { """;
 
 		for (final Class<?> clazz : classs) {
-			final Set<String> includeModel = new HashSet<>();
-			includeModel.add("RestErrorResponse");
-			final APIModel api = createSingleApi(clazz, includeModel, previous);
+			final Set<Class<?>> includeModel = new HashSet<>();
+			final Set<Class<?>> includeCheckerModel = new HashSet<>();
+			final APIModel api = createSingleApi(clazz, includeModel, includeCheckerModel, previous);
 			final StringBuilder generatedData = new StringBuilder();
 			generatedData.append(globalheader);
-			for (final String elem : includeModel) {
-				if (elem == null || elem.equals("string") || elem.equals("String")) {
+			for (final Class<?> elem : includeModel) {
+				if (elem == null) {
 					continue;
 				}
-				generatedData.append(elem);
+				final ClassElement classElement = DataFactoryZod.createTable(elem, previous);
+				if (classElement.nativeType) {
+					continue;
+				}
+				generatedData.append(classElement.tsTypeName);
+				generatedData.append(", ");
+			}
+			for (final Class<?> elem : includeCheckerModel) {
+				if (elem == null) {
+					continue;
+				}
+				final ClassElement classElement = DataFactoryZod.createTable(elem, previous);
+				if (classElement.nativeType) {
+					continue;
+				}
+				generatedData.append(classElement.tsCheckType);
 				generatedData.append(", ");
 			}
 			generatedData.append("} from \"./model\"\n");
@@ -180,6 +196,13 @@ public class DataFactoryTsApi {
 		}
 		return ((AsyncType) annotation[0]).value();
 	}
+	public static Class<?> apiAnnotationGetAsyncType(final Method element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return ((AsyncType) annotation[0]).value();
+	}
 
 	public static List<String> apiAnnotationGetConsumes(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
@@ -209,7 +232,7 @@ public class DataFactoryTsApi {
 		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
 	}
 
-	public static APIModel createSingleApi(final Class<?> clazz, final Set<String> includeModel, final GeneratedTypes previous) throws Exception {
+	public static APIModel createSingleApi(final Class<?> clazz, final Set<Class<?>> includeModel, final Set<Class<?>> includeCheckerModel, final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
 		// the basic path has no specific elements...
 		final String basicPath = apiAnnotationGetPath(clazz);
@@ -230,14 +253,19 @@ public class DataFactoryTsApi {
 			final String methodDescription = apiAnnotationGetOperationDescription(method);
 			final List<String> consumes = apiAnnotationGetConsumes(clazz, method);
 			final List<String> produces = apiAnnotationProduces(clazz, method);
-			/* if (consumes != null && consumes.contains(MediaType.MULTIPART_FORM_DATA)) { LOGGER.error("    [{}] {} => {}/{} ==> Multipart is not managed ...", methodType, methodName, basicPath,
-			 * methodPath); if (methodDescription != null) { builder.append("\n\t/**\n\t * "); builder.append(methodDescription); builder.append("\n\t * /"); }
-			 * builder.append("\n\t// TODO: export function "); builder.append(methodName); builder.append("(...): ... {} Multipart not managed ..."); continue; } */
 			LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, basicPath, methodPath);
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
 			}
-			Class<?> returnTypeModel = method.getReturnType();
+			Class<?> returnTypeModel = apiAnnotationGetAsyncType(method);
+			if (returnTypeModel == null) {
+				returnTypeModel = method.getReturnType();
+			}
+			boolean isUnmanagedReturnType = false;
+			if (returnTypeModel == Response.class ) {
+				isUnmanagedReturnType = true;
+				returnTypeModel = Void.class;
+			}
 			boolean returnModelIsArray = false;
 			ClassElement tmpReturn;
 			if (returnTypeModel == List.class) {
@@ -245,13 +273,13 @@ public class DataFactoryTsApi {
 				returnTypeModel = (Class<?>) listType.getActualTypeArguments()[0];
 				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
 				returnModelIsArray = true;
-				includeModel.add(tmpReturn.tsTypeName);
+				includeModel.add(tmpReturn.model[0]);
 			} else {
 				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
 
 			}
-			includeModel.add(tmpReturn.tsTypeName);
-			includeModel.add(tmpReturn.tsCheckType);
+			includeModel.add(tmpReturn.model[0]);
+			includeCheckerModel.add(tmpReturn.model[0]);
 			LOGGER.trace("         return: {}", tmpReturn.tsTypeName);
 			final Map<String, String> queryParams = new HashMap<>();
 			final Map<String, String> pathParams = new HashMap<>();
@@ -270,7 +298,7 @@ public class DataFactoryTsApi {
 					parameterTypeString = "any[]";
 				} else {
 					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
-					includeModel.add(tmp.tsTypeName);
+					includeModel.add(tmp.model[0]);
 					parameterTypeString = tmp.tsTypeName;
 				}
 				final String pathParam = apiAnnotationGetPathParam(parameter);
@@ -286,7 +314,7 @@ public class DataFactoryTsApi {
 					final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
 					if (asyncType != null) {
 						final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
-						includeModel.add(tmp.tsTypeName);
+						includeModel.add(tmp.model[0]);
 						emptyElement.add(tmp.tsTypeName);
 					} else if (parameterType == List.class) {
 						parameterTypeString = "any[]";
@@ -294,7 +322,7 @@ public class DataFactoryTsApi {
 						LOGGER.info("ArrayType = {}", plop);
 					} else {
 						final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
-						includeModel.add(tmp.tsTypeName);
+						includeModel.add(tmp.model[0]);
 						emptyElement.add(tmp.tsTypeName);
 					}
 				}
@@ -326,6 +354,9 @@ public class DataFactoryTsApi {
 				builder.append("\n\t/**\n\t * ");
 				builder.append(methodDescription);
 				builder.append("\n\t */");
+			}
+			if (isUnmanagedReturnType) {
+				builder.append("\n\t// TODO: unmanaged \"Response\" type: please specify @AsyncType or considered as 'void'.");
 			}
 			builder.append("\n\texport function ");
 			builder.append(methodName);

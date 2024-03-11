@@ -258,7 +258,7 @@ public class DataResource {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@RolesAllowed("ADMIN")
 	@Operation(description = "Insert a new data in the data environment", tags = "SYSTEM")
-	public Response uploadFile(@Context final SecurityContext sc, @FormDataParam("file") final InputStream fileInputStream, @FormDataParam("file") final FormDataContentDisposition fileMetaData) {
+	public void uploadFile(@Context final SecurityContext sc, @FormDataParam("file") final InputStream fileInputStream, @FormDataParam("file") final FormDataContentDisposition fileMetaData) {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		LOGGER.info("===================================================");
 		LOGGER.info("== DATA uploadFile {}", (gc == null ? "null" : gc.userByToken));
@@ -272,8 +272,6 @@ public class DataResource {
 			e.printStackTrace();
 		}
 		saveFile(fileInputStream, filePath);
-		return Response.ok("Data uploaded successfully !!").build();
-		// return null;
 	}
 
 	@GET
@@ -318,8 +316,8 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-		// || value.mimeType.contentEquals("image/webp")
-		) {
+				// || value.mimeType.contentEquals("image/webp")
+				) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;
