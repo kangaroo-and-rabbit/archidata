@@ -30,6 +30,7 @@ public class DataFactoryZod {
 		public String tsCheckType;
 		public String declaration;
 		public String comment = null;
+		public boolean isEnum = false;
 		public boolean nativeType;
 
 		public ClassElement(final Class<?> model[], final String zodName, final String tsTypeName, final String tsCheckType, final String declaration, final boolean nativeType) {
@@ -89,23 +90,41 @@ public class DataFactoryZod {
 	public static ClassElement convertTypeZodEnum(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
 		final ClassElement element = new ClassElement(clazz);
 		previous.add(element);
-
 		final Object[] arr = clazz.getEnumConstants();
 		final StringBuilder out = new StringBuilder();
-		boolean first = true;
-		out.append("zod.enum([");
-		for (final Object elem : arr) {
-			if (!first) {
-				out.append(", \n\t");
-			} else {
-				out.append("\n\t");
+		if (System.getenv("ARCHIDATA_GENERATE_ZOD_ENUM") != null) {
+			boolean first = true;
+			out.append("zod.enum([");
+			for (final Object elem : arr) {
+				if (!first) {
+					out.append(", \n\t");
+				} else {
+					out.append("\n\t");
+					first = false;
+				}
+				out.append("'");
+				out.append(elem.toString());
+				out.append("'");
 			}
-			first = false;
-			out.append("'");
-			out.append(elem.toString());
-			out.append("'");
+			out.append("\n\t])");
+		} else {
+			element.isEnum = true;
+			boolean first = true;
+			out.append("{");
+			for (final Object elem : arr) {
+				if (!first) {
+					out.append(", \n\t");
+				} else {
+					out.append("\n\t");
+					first = false;
+				}
+				out.append(elem.toString());
+				out.append(" = '");
+				out.append(elem.toString());
+				out.append("'");
+			}
+			out.append("}");
 		}
-		out.append("\n\t]);");
 		element.declaration = out.toString();
 		previous.addOrder(element);
 		return element;
@@ -255,11 +274,6 @@ public class DataFactoryZod {
 				if (data.comment != null) {
 					generatedData.append(data.comment);
 				}
-				generatedData.append("export const ");
-				generatedData.append(data.zodName);
-				generatedData.append(" = ");
-				generatedData.append(data.declaration);
-				generatedData.append(";");
 				generatedData.append(createDeclaration(data));
 				generatedData.append("\n\n");
 			}
@@ -360,11 +374,29 @@ public class DataFactoryZod {
 
 	public static String createDeclaration(final ClassElement elem) {
 		final StringBuilder generatedData = new StringBuilder();
-		generatedData.append("\nexport type ");
-		generatedData.append(elem.tsTypeName);
-		generatedData.append(" = zod.infer<typeof ");
-		generatedData.append(elem.zodName);
-		generatedData.append(">;");
+		if (elem.isEnum) {
+			generatedData.append("export enum ");
+			generatedData.append(elem.tsTypeName);
+			generatedData.append(" ");
+			generatedData.append(elem.declaration);
+			generatedData.append(";");
+			generatedData.append("\nexport const ");
+			generatedData.append(elem.zodName);
+			generatedData.append(" = zod.nativeEnum(");
+			generatedData.append(elem.tsTypeName);
+			generatedData.append(");");
+		} else {
+			generatedData.append("export const ");
+			generatedData.append(elem.zodName);
+			generatedData.append(" = ");
+			generatedData.append(elem.declaration);
+			generatedData.append(";");
+			generatedData.append("\nexport type ");
+			generatedData.append(elem.tsTypeName);
+			generatedData.append(" = zod.infer<typeof ");
+			generatedData.append(elem.zodName);
+			generatedData.append(">;");
+		}
 		// declare generic isXXX:
 		generatedData.append("\nexport function ");
 		generatedData.append(elem.tsCheckType);
