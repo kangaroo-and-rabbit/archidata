@@ -1,7 +1,10 @@
 package org.kar.archidata.dataAccess;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -53,7 +56,7 @@ public class DataFactoryTsApi {
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequestJson, RESTRequestJsonArray } from "./rest-tools"
+				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
 				import { """;
 
 		for (final Class<?> clazz : classs) {
@@ -367,6 +370,9 @@ public class DataFactoryTsApi {
 			if (!pathParams.isEmpty()) {
 				builder.append(" params,");
 			}
+			if (produces.size() > 1) {
+				builder.append(" produce,");
+			}
 			if (emptyElement.size() == 1) {
 				builder.append(" data,");
 			} else if (formDataParams.size() != 0) {
@@ -411,14 +417,43 @@ public class DataFactoryTsApi {
 				}
 				builder.append("\n\t\t},");
 			}
+			if (produces.size() > 1) {
+				builder.append("\n\t\tproduce: ");
+				String isFist = null;
+				for (final String elem : produces) {
+					String lastElement = null;
+
+					if (MediaType.APPLICATION_JSON.equals(elem)) {
+						lastElement = "HTTPMimeType.JSON";
+					}
+					if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
+						lastElement = "HTTPMimeType.MULTIPART";
+					}
+					if (DataExport.CSV_TYPE.equals(elem)) {
+						lastElement = "HTTPMimeType.CSV";
+					}
+					if (lastElement != null) {
+						if (isFist == null) {
+							isFist = lastElement;
+						} else {
+							builder.append(" | ");
+						}
+						builder.append(lastElement);
+					} else {
+						LOGGER.error("Unmanaged model type: {}", elem);
+					}
+				}
+				builder.append(",");
+			}
 			builder.append("\n\t}): Promise<");
 			builder.append(tmpReturn.tsTypeName);
 			if (returnModelIsArray) {
 				builder.append("[]");
 			}
 			builder.append("> {");
-
-			if (returnModelIsArray) {
+			if (tmpReturn.tsTypeName.equals("void")) {
+				builder.append("\n\t\treturn RESTRequestVoid({");
+			} else if (returnModelIsArray) {
 				builder.append("\n\t\treturn RESTRequestJsonArray({");
 			} else {
 				builder.append("\n\t\treturn RESTRequestJson({");
@@ -446,10 +481,14 @@ public class DataFactoryTsApi {
 				}
 			}
 			if (produces != null) {
-				for (final String elem : produces) {
-					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						builder.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
-						break;
+				if (produces.size() > 1) {
+					builder.append("\n\t\t\t\taccept: produce,");
+				} else {
+					for (final String elem : produces) {
+						if (MediaType.APPLICATION_JSON.equals(elem)) {
+							builder.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
+							break;
+						}
 					}
 				}
 			}
@@ -466,8 +505,11 @@ public class DataFactoryTsApi {
 			} else if (formDataParams.size() != 0) {
 				builder.append("\n\t\t\tdata,");
 			}
-			builder.append("\n\t\t}, ");
-			builder.append(tmpReturn.tsCheckType);
+			builder.append("\n\t\t}");
+			if (tmpReturn.tsCheckType != null) {
+				builder.append(", ");
+				builder.append(tmpReturn.tsCheckType);
+			}
 			builder.append(");");
 			builder.append("\n\t};");
 		}
