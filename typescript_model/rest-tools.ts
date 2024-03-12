@@ -20,6 +20,7 @@ export enum HTTPMimeType {
     IMAGE_PNG = 'image/png',
     JSON = 'application/json',
     OCTET_STREAM = 'application/octet-stream',
+    MULTIPART = 'multipart/form-data',
 }
 
 export interface RESTConfig {
@@ -119,6 +120,12 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
     let body = data;
     if (restModel.contentType === HTTPMimeType.JSON) {
         body = JSON.stringify(data);
+    } else if (restModel.contentType === HTTPMimeType.MULTIPART) {
+        const formData = new FormData();
+        for (const name in data) {
+            formData.append(name, data[name]);
+        }
+        body = formData
     }
     console.log(`Call ${generateUrl}`)
     return new Promise((resolve, reject) => {

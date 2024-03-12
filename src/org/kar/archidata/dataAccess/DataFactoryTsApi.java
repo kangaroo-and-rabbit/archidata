@@ -439,6 +439,9 @@ public class DataFactoryTsApi {
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
 						builder.append("\n\t\t\t\tcontentType: HTTPMimeType.JSON,");
 						break;
+					} else if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
+						builder.append("\n\t\t\t\tcontentType: HTTPMimeType.MULTIPART,");
+						break;
 					}
 				}
 			}
