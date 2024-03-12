@@ -496,6 +496,21 @@ public class DataFactoryTsApi {
 		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
 		myWriter.write(index.toString());
 		myWriter.close();
+		final InputStream ioStream = DataFactoryTsApi.class
+				.getClassLoader()
+				.getResourceAsStream("rest-tools.ts");
+		if (ioStream == null) {
+			throw new IllegalArgumentException("rest-tools.ts is not found");
+		}
+		final BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream));
+		myWriter = new FileWriter(pathPackage + File.separator + "rest-tools.ts");
+		String line;
+		while( (line = buffer.readLine()) != null) {
+			myWriter.write(line);
+			myWriter.write("\n");
+		}
+		ioStream.close();
+		myWriter.close();
 		return;
 	}
 

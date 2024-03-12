@@ -1,7 +1,7 @@
 /** @file
  * @author Edouard DUPIN
  * @copyright 2024, Edouard DUPIN, all right reserved
- * @license MPL-2 (Generate file)
+ * @license MPL-2
  */
 
 import { RestErrorResponse } from "./model"
@@ -21,6 +21,7 @@ export enum HTTPMimeType {
     JSON = 'application/json',
     OCTET_STREAM = 'application/octet-stream',
     MULTIPART = 'multipart/form-data',
+    CSV = 'text/csv',
 }
 
 export interface RESTConfig {
@@ -41,11 +42,6 @@ export interface RESTModel {
     contentType?: HTTPMimeType;
     // Mode of the TOKEN in urk or Header
     tokenInUrl?: boolean;
-}
-
-export interface RESTRequest {
-    params?: object;
-    body?: any;
 }
 
 export interface ModelResponseHttp {
@@ -217,6 +213,16 @@ export function RESTRequestJsonArray<TYPE>(request: RESTRequestType, checker: (d
                     message: "api.ts Check type as fail"
                 } as RestErrorResponse);
             }
+        }).catch((reason: RestErrorResponse) => {
+            reject(reason);
+        });
+    });
+}
+
+export function RESTRequestVoid(request: RESTRequestType): Promise<void> {
+    return new Promise((resolve, reject) => {
+        RESTRequest(request).then((value: ModelResponseHttp) => {
+            resolve();
         }).catch((reason: RestErrorResponse) => {
             reject(reason);
         });
