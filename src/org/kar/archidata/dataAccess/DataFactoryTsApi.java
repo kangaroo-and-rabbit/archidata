@@ -296,11 +296,22 @@ public class DataFactoryTsApi {
 				}
 				final Class<?> parameterType = parameter.getType();
 				String parameterTypeString;
+				final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
 				if (parameterType == List.class) {
-					LOGGER.warn("Detext List param ==> not managed type ==> any[] !!!");
-					parameterTypeString = "any[]";
-				} else {
+					if (asyncType == null) {
+						LOGGER.warn("Detext List param ==> not managed type ==> any[] !!!");
+						parameterTypeString = "any[]";
+					} else {
+						final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
+						includeModel.add(tmp.model[0]);
+						parameterTypeString = tmp.tsTypeName + "[]";
+					}
+				} else if (asyncType == null) {
 					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
+					includeModel.add(tmp.model[0]);
+					parameterTypeString = tmp.tsTypeName;
+				} else {
+					final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
 					includeModel.add(tmp.model[0]);
 					parameterTypeString = tmp.tsTypeName;
 				}
@@ -313,21 +324,18 @@ public class DataFactoryTsApi {
 					pathParams.put(pathParam, parameterTypeString);
 				} else if (formDataParam != null) {
 					formDataParams.put(formDataParam, parameterTypeString);
+				} else if (asyncType != null) {
+					final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
+					includeModel.add(tmp.model[0]);
+					emptyElement.add(tmp.tsTypeName);
+				} else if (parameterType == List.class) {
+					parameterTypeString = "any[]";
+					final Class<?> plop = parameterType.arrayType();
+					LOGGER.info("ArrayType = {}", plop);
 				} else {
-					final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
-					if (asyncType != null) {
-						final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
-						includeModel.add(tmp.model[0]);
-						emptyElement.add(tmp.tsTypeName);
-					} else if (parameterType == List.class) {
-						parameterTypeString = "any[]";
-						final Class<?> plop = parameterType.arrayType();
-						LOGGER.info("ArrayType = {}", plop);
-					} else {
-						final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
-						includeModel.add(tmp.model[0]);
-						emptyElement.add(tmp.tsTypeName);
-					}
+					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
+					includeModel.add(tmp.model[0]);
+					emptyElement.add(tmp.tsTypeName);
 				}
 			}
 			if (!queryParams.isEmpty()) {

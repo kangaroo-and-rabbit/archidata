@@ -12,4 +12,6 @@ import org.kar.archidata.dataAccess.options.CheckFunctionVoid;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataJson {
 	Class<? extends CheckFunctionInterface> checker() default CheckFunctionVoid.class;
+
+	Class<?> targetEntity() default Void.class;
 }
