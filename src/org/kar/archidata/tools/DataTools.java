@@ -15,10 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.kar.archidata.api.DataResource;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
-import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.ReadAllColumn;
 import org.kar.archidata.model.Data;
@@ -60,16 +61,6 @@ public class DataTools {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
-		return filePath;
-	}
-
-	public static String getFileData(final long tmpFolderId) {
-		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator + "data";
-		try {
-			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
@@ -124,7 +115,7 @@ public class DataTools {
 			return null;
 		}
 
-		final String mediaPath = getFileData(out.id);
+		final String mediaPath = DataResource.getFileData(out.id);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
@@ -220,7 +211,7 @@ public class DataTools {
 		return data;
 	}
 
-	public static <T> Response uploadCover(final Class<T> clazz, final Long id, String fileName, final InputStream fileInputStream, final FormDataContentDisposition fileMetaData) {
+	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(final Class<CLASS_TYPE> clazz, final ID_TYPE id, String fileName, final InputStream fileInputStream, final FormDataContentDisposition fileMetaData) {
 		try {
 			// correct input string stream :
 			fileName = multipartCorrection(fileName);
@@ -231,7 +222,7 @@ public class DataTools {
 			LOGGER.info("    - file_name: ", fileName);
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
-			final T media = DataAccess.get(clazz, id);
+			final CLASS_TYPE media = DataAccess.get(clazz, id);
 			if (media == null) {
 				return Response.notModified("Media Id does not exist or removed...").build();
 			}
@@ -261,7 +252,13 @@ public class DataTools {
 			}
 			// Fist step: retrieve all the Id of each parents:...
 			LOGGER.info("Find typeNode");
-			AddOnManyToMany.addLink(clazz, id, "cover", data.id);
+			if (id instanceof final Long idLong) {
+				AddOnDataJson.addLink(clazz, idLong, "covers", data.id);
+			} else if (id instanceof final UUID idUUID) {
+				AddOnDataJson.addLink(clazz, idUUID, "covers", data.id);
+			} else {
+				throw new IOException("Fail to add Cover can not detect type...");
+			}
 			return Response.ok(DataAccess.get(clazz, id)).build();
 		} catch (final Exception ex) {
 			System.out.println("Cat ann unexpected error ... ");

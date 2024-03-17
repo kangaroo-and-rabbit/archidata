@@ -736,6 +736,8 @@ public class DataAccess {
 		Long uniqueSQLID = null;
 		UUID uniqueSQLUUID = null;
 		final String tableName = AnnotationTools.getTableName(clazz, options);
+		Field primaryKeyField = null;
+		boolean generateUUID = false;
 		// real add in the BDD:
 		try {
 			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
@@ -746,6 +748,30 @@ public class DataAccess {
 
 			boolean firstField = true;
 			int count = 0;
+			for (final Field field : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (AnnotationTools.isPrimaryKey(field)) {
+					primaryKeyField = field;
+					if (primaryKeyField.getType() != UUID.class) {
+						break;
+					}
+					generateUUID = true;
+					count++;
+					final String name = AnnotationTools.getFieldName(field);
+					if (firstField) {
+						firstField = false;
+					} else {
+						query.append(",");
+					}
+					query.append(" `");
+					query.append(name);
+					query.append("`");
+					break;
+				}
+			}
 			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
@@ -804,15 +830,21 @@ public class DataAccess {
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
-			Field primaryKeyField = null;
+
 			final CountInOut iii = new CountInOut(1);
+			UUID uuid = null;
+			if (generateUUID) {
+				firstField = false;
+				uuid = UUID.randomUUID();
+				addElement(ps, uuid, iii);
+				iii.inc();
+			}
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
 				if (AnnotationTools.isPrimaryKey(elem)) {
-					primaryKeyField = elem;
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(elem);
@@ -849,23 +881,36 @@ public class DataAccess {
 				throw new SQLException("Creating node failed, no rows affected.");
 			}
 			// Retrieve uid inserted
-			try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
-				if (generatedKeys.next()) {
-					if (primaryKeyField.getType() == UUID.class) {
-						// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
-						final byte[] tmpid = generatedKeys.getBytes(1);
-						uniqueSQLUUID = UuidUtils.asUuid(tmpid);
-					} else {
-						uniqueSQLID = generatedKeys.getLong(1);
-					}
+			if (generateUUID) {
+				// we generate the UUID, otherwise we can not retrieve it
+				uniqueSQLUUID = uuid;
+			} else {
+				try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+					if (generatedKeys.next()) {
+						if (primaryKeyField.getType() == UUID.class) {
+							// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
+							/*
+							final Object obj = generatedKeys.getObject(1);
+							final BigInteger bigint = (BigInteger) generatedKeys.getObject(1);
+							uniqueSQLUUID = UuidUtils.asUuid(bigint);
+							final UUID generatedUUID = (UUID) generatedKeys.getObject(1);
+							System.out.println("UUID généré: " + generatedUUID);
+							 */
+							final Object obj = generatedKeys.getObject(1);
+							final byte[] tmpid = generatedKeys.getBytes(1);
+							uniqueSQLUUID = UuidUtils.asUuid(tmpid);
+						} else {
+							uniqueSQLID = generatedKeys.getLong(1);
+						}
 
-				} else {
-					throw new SQLException("Creating node failed, no ID obtained (1).");
+					} else {
+						throw new SQLException("Creating node failed, no ID obtained (1).");
+					}
+				} catch (final Exception ex) {
+					LOGGER.error("Can not get the UID key inserted ... ");
+					ex.printStackTrace();
+					throw new SQLException("Creating node failed, no ID obtained (2).");
 				}
-			} catch (final Exception ex) {
-				LOGGER.error("Can not get the UID key inserted ... ");
-				ex.printStackTrace();
-				throw new SQLException("Creating node failed, no ID obtained (2).");
 			}
 			if (primaryKeyField != null) {
 				if (primaryKeyField.getType() == Long.class) {
@@ -1106,7 +1151,10 @@ public class DataAccess {
 	}
 
 	static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
-		if (value instanceof final Long tmp) {
+		if (value instanceof final UUID tmp) {
+			final byte[] dataByte = UuidUtils.asBytes(tmp);
+			ps.setBytes(iii.value, dataByte);
+		} else if (value instanceof final Long tmp) {
 			LOGGER.debug("Inject Long => {}", tmp);
 			ps.setLong(iii.value, tmp);
 		} else if (value instanceof final Integer tmp) {

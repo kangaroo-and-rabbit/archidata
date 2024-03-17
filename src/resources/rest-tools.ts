@@ -74,19 +74,26 @@ export type RESTRequestType = {
     queries?: object,
 };
 
-/**
- * This service permit to add some data like token and authorization..
- */
-export function RESTRequest({ restModel, restConfig, data, params, queries }: RESTRequestType): Promise<ModelResponseHttp> {
+function removeTrailingSlashes(input: string): string {
+    return input.replace(/\/+$/, '');
+}
+function removeLeadingSlashes(input: string): string {
+    return input.replace(/^\/+/, '');
+}
+
+export function RESTUrl({ restModel, restConfig, data, params, queries }: RESTRequestType): string {
     // Create the URL PATH:
-    let generateUrl = `${restConfig.server}/${restModel.endPoint}`;
+    let generateUrl = `${removeTrailingSlashes(restConfig.server)}/${removeLeadingSlashes(restModel.endPoint)}`;
     if (params !== undefined) {
         for (let key of Object.keys(params)) {
             generateUrl = generateUrl.replaceAll(`{${key}}`, `${params[key]}`);
         }
     }
+    if (queries === undefined && (restConfig.token === undefined || restModel.tokenInUrl !== true)) {
+    	return generateUrl;
+    }
+    const searchParams = new URLSearchParams();
     if (queries !== undefined) {
-        const searchParams = new URLSearchParams();
         for (let key of Object.keys(queries)) {
             const value = queries[key];
             if (Array.isArray(value)) {
@@ -97,11 +104,16 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
                 searchParams.append(`${key}`, `${value}`);
             }
         }
-        if (restConfig.token !== undefined && restModel.tokenInUrl === true) {
-            searchParams.append('Authorization', `Bearer ${restConfig.token}`);
-        }
-        generateUrl += "?" + searchParams.toString();
     }
+    if (restConfig.token !== undefined && restModel.tokenInUrl === true) {
+        searchParams.append('Authorization', `Bearer ${restConfig.token}`);
+    }
+    return generateUrl + "?" + searchParams.toString();
+}
+
+export function RESTRequest({ restModel, restConfig, data, params, queries }: RESTRequestType): Promise<ModelResponseHttp> {
+    // Create the URL PATH:
+    let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
     let headers: any = {};
     if (restConfig.token !== undefined && restModel.tokenInUrl !== true) {
         headers['Authorization'] = `Bearer ${restConfig.token}`;
@@ -111,7 +123,10 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
     }
     if (restModel.requestType !== HTTPRequestModel.GET) {
         // if Get we have not a content type, the body is empty
-        headers['Content-Type'] = restModel.contentType;
+        if (restModel.contentType !== HTTPMimeType.MULTIPART) {
+            // special case of multi-part ==> no content type otherwise the browser does not set the ";bundary=--****"
+            headers['Content-Type'] = restModel.contentType;
+        }
     }
     let body = data;
     if (restModel.contentType === HTTPMimeType.JSON) {

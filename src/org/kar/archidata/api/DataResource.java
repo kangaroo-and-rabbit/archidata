@@ -84,7 +84,7 @@ public class DataResource {
 		return filePath;
 	}
 
-	public static String getFileData(final long tmpFolderId) {
+	public static String getFileDataOld(final long tmpFolderId) {
 		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator + "data";
 		try {
 			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator);
@@ -93,21 +93,23 @@ public class DataResource {
 		}
 		return filePath;
 	}
-
 	public static String getFileData(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
 		final String part2 = stringUUID.substring(2, 4);
 		final String part3 = stringUUID.substring(4);
-		final String finalPath = part1 + File.separator + part2 + File.separator + part3;
+		final String finalPath = part1 + File.separator + part2;
 		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath + File.separator;
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
-		filePath += "data";
+		filePath += part3;
 		return filePath;
+	}
+	public static String getFileMetaData(final UUID uuid) {
+		return getFileData(uuid) + ".json";
 	}
 
 	public static Data getWithSha512(final String sha512) {
@@ -154,7 +156,6 @@ public class DataResource {
 		try {
 			injectedData = DataAccess.insert(injectedData);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}
@@ -167,7 +168,7 @@ public class DataResource {
 	}
 
 	public static void modeFileOldModelToNewModel(final long id, final UUID uuid) throws IOException {
-		String mediaCurentPath = getFileData(id);
+		String mediaCurentPath = getFileDataOld(id);
 		String mediaDestPath = getFileData(uuid);
 		LOGGER.info("src = {}", mediaCurentPath);
 		LOGGER.info("dst = {}", mediaDestPath);
@@ -243,7 +244,7 @@ public class DataResource {
 		return sb.toString();
 	}
 
-	public Data getSmall(final Long id) {
+	public Data getSmall(final UUID id) {
 		try {
 			return DataAccess.get(Data.class, id);
 		} catch (final Exception e) {
@@ -281,7 +282,7 @@ public class DataResource {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
 	public Response retrieveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final Long id) throws Exception {
+			@PathParam("id") final UUID id) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		LOGGER.info("== DATA retrieveDataId ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
@@ -290,7 +291,7 @@ public class DataResource {
 		if (value == null) {
 			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
 		}
-		return buildStream(ConfigBaseVariable.getMediaDataFolder() + File.separator + id + File.separator + "data", range, value.mimeType);
+		return buildStream(getFileData(id), range, value.mimeType);
 	}
 
 	@GET
@@ -301,7 +302,7 @@ public class DataResource {
 	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrieveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final Long id) throws Exception {
+			@PathParam("id") final UUID id) throws Exception {
 		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		// logger.info("== DATA retrieveDataThumbnailId ? {}", (gc==null?"null":gc.user));
@@ -310,7 +311,7 @@ public class DataResource {
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
 		}
-		final String filePathName = ConfigBaseVariable.getMediaDataFolder() + File.separator + id + File.separator + "data";
+		final String filePathName = getFileData(id);
 		final File inputFile = new File(filePathName);
 		if (!inputFile.exists()) {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
@@ -360,7 +361,7 @@ public class DataResource {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment (with a beautifull name (permit download with basic name)", tags = "SYSTEM")
 	public Response retrieveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final Long id, @PathParam("name") final String name) throws Exception {
+			@PathParam("id") final UUID id, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
@@ -369,7 +370,7 @@ public class DataResource {
 		if (value == null) {
 			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
 		}
-		return buildStream(ConfigBaseVariable.getMediaDataFolder() + File.separator + id + File.separator + "data", range, value.mimeType);
+		return buildStream(getFileData(id), range, value.mimeType);
 	}
 
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541

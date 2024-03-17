@@ -13,6 +13,7 @@ public class SystemExceptionCatcher implements ExceptionMapper<SystemException> 
 
 	@Override
 	public Response toResponse(final SystemException exception) {
+		LOGGER.warn("Catch SystemException:");
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		exception.printStackTrace();

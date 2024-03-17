@@ -13,6 +13,7 @@ public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 
 	@Override
 	public Response toResponse(final FailException exception) {
+		LOGGER.warn("Catch FailException:");
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		// Not display backtrace ==> this may be a normal case ...

@@ -13,6 +13,7 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 
 	@Override
 	public Response toResponse(final InputException exception) {
+		LOGGER.warn("Catch InputException:");
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={} ==> '{}'=>'{}'", ret.uuid, exception.missingVariable, exception.getLocalizedMessage());
 		// exception.printStackTrace();
