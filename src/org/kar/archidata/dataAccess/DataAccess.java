@@ -835,7 +835,8 @@ public class DataAccess {
 			UUID uuid = null;
 			if (generateUUID) {
 				firstField = false;
-				uuid = UUID.randomUUID();
+				// uuid = UUID.randomUUID();
+				uuid = UuidUtils.nextUUID();
 				addElement(ps, uuid, iii);
 				iii.inc();
 			}

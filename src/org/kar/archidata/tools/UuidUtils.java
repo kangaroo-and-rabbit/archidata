@@ -2,6 +2,10 @@ package org.kar.archidata.tools;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 public class UuidUtils {
@@ -24,5 +28,42 @@ public class UuidUtils {
 		bb.putLong(uuid.getMostSignificantBits());
 		bb.putLong(uuid.getLeastSignificantBits());
 		return bb.array();
+	}
+
+	private static class Generator {
+		private long base;
+		private final long offset;
+		private long previous;
+
+		public Generator() {
+			this.offset = System.currentTimeMillis();
+			// The local method never generate new UUID in the past, then we use the creation function time to prevent 2038 error
+			final Instant startingUUID = LocalDate.of(2024, 03, 19).atStartOfDay(ZoneOffset.UTC).toInstant();
+			this.base = startingUUID.until(Instant.now(), ChronoUnit.SECONDS);
+			final String serveurBaseUUID = System.getenv("UUID_SERVER_ID");
+			if (serveurBaseUUID != null) {
+				long serverId = Long.valueOf(serveurBaseUUID);
+				serverId %= 0xFFFF;
+				this.base += (serverId << (64 - 16));
+			} else {
+				this.base += (1L << (64 - 16));
+			}
+		}
+
+		public synchronized UUID next() {
+			long tmp = System.currentTimeMillis();
+			if (this.previous >= tmp) {
+				tmp = this.previous + 1;
+			}
+			this.previous = tmp;
+			tmp -= this.offset;
+			return new UUID(Long.reverseBytes(tmp), this.base);
+		}
+	}
+
+	private static Generator generator = new Generator();
+
+	public static UUID nextUUID() {
+		return generator.next();
 	}
 }
