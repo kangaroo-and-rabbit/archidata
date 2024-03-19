@@ -211,7 +211,8 @@ public class DataTools {
 		return data;
 	}
 
-	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(final Class<CLASS_TYPE> clazz, final ID_TYPE id, String fileName, final InputStream fileInputStream, final FormDataContentDisposition fileMetaData) {
+	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(final Class<CLASS_TYPE> clazz, final ID_TYPE id, String fileName, final InputStream fileInputStream,
+			final FormDataContentDisposition fileMetaData) {
 		try {
 			// correct input string stream :
 			fileName = multipartCorrection(fileName);

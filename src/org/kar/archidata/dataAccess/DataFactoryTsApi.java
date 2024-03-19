@@ -199,6 +199,7 @@ public class DataFactoryTsApi {
 		}
 		return ((AsyncType) annotation[0]).value();
 	}
+
 	public static Class<?> apiAnnotationGetAsyncType(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
@@ -265,7 +266,7 @@ public class DataFactoryTsApi {
 				returnTypeModel = method.getReturnType();
 			}
 			boolean isUnmanagedReturnType = false;
-			if (returnTypeModel == Response.class ) {
+			if (returnTypeModel == Response.class) {
 				isUnmanagedReturnType = true;
 				returnTypeModel = Void.class;
 			}
@@ -551,16 +552,14 @@ public class DataFactoryTsApi {
 		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
 		myWriter.write(index.toString());
 		myWriter.close();
-		final InputStream ioStream = DataFactoryTsApi.class
-				.getClassLoader()
-				.getResourceAsStream("rest-tools.ts");
+		final InputStream ioStream = DataFactoryTsApi.class.getClassLoader().getResourceAsStream("rest-tools.ts");
 		if (ioStream == null) {
 			throw new IllegalArgumentException("rest-tools.ts is not found");
 		}
 		final BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream));
 		myWriter = new FileWriter(pathPackage + File.separator + "rest-tools.ts");
 		String line;
-		while( (line = buffer.readLine()) != null) {
+		while ((line = buffer.readLine()) != null) {
 			myWriter.write(line);
 			myWriter.write("\n");
 		}

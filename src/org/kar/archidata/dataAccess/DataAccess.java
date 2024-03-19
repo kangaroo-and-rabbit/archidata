@@ -889,13 +889,8 @@ public class DataAccess {
 					if (generatedKeys.next()) {
 						if (primaryKeyField.getType() == UUID.class) {
 							// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
-							/*
-							final Object obj = generatedKeys.getObject(1);
-							final BigInteger bigint = (BigInteger) generatedKeys.getObject(1);
-							uniqueSQLUUID = UuidUtils.asUuid(bigint);
-							final UUID generatedUUID = (UUID) generatedKeys.getObject(1);
-							System.out.println("UUID généré: " + generatedUUID);
-							 */
+							/* final Object obj = generatedKeys.getObject(1); final BigInteger bigint = (BigInteger) generatedKeys.getObject(1); uniqueSQLUUID = UuidUtils.asUuid(bigint); final UUID
+							 * generatedUUID = (UUID) generatedKeys.getObject(1); System.out.println("UUID généré: " + generatedUUID); */
 							final Object obj = generatedKeys.getObject(1);
 							final byte[] tmpid = generatedKeys.getBytes(1);
 							uniqueSQLUUID = UuidUtils.asUuid(tmpid);

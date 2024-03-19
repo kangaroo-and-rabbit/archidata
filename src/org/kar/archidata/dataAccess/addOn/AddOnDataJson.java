@@ -145,6 +145,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
 		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class);
 	}
+
 	public static void addLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversLongLong data = DataAccess.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
@@ -174,6 +175,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers.add(remoteKey);
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void addLink(final Class<?> clazz, final UUID id, final String column, final UUID remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, id, new OverrideTableName(tableName));
@@ -188,6 +190,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers.add(remoteKey);
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void addLink(final Class<?> clazz, final UUID id, final String column, final Long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, id, new OverrideTableName(tableName));
@@ -202,6 +205,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers.add(remoteKey);
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void removeLink(final Class<?> clazz, final UUID id, final String column, final Long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, id, new OverrideTableName(tableName));
@@ -218,6 +222,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers = newList;
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void removeLink(final Class<?> clazz, final UUID id, final String column, final UUID remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, id, new OverrideTableName(tableName));
@@ -234,6 +239,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers = newList;
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void removeLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversLongLong data = DataAccess.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
@@ -250,6 +256,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers = newList;
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
+
 	public static void removeLink(final Class<?> clazz, final Long id, final String column, final UUID remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final TableCoversLongUUID data = DataAccess.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
@@ -266,22 +273,9 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers = newList;
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
-	/*
-	public static <TYPE> void addLink(final Class<TYPE> clazz, final Object localKey, final String column, final Object remoteKey) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TYPE data = DataAccess.get(clazz, localKey); // TODO: add filter of the "column"
-
-		// find the field column:
-
-		// add the remoteKey in the list:
-
-
-		// post new data in the DB
-
-		final String linkTableName = generateLinkTableName(this.tableName, this.column);
-		final LinkTable insertElement = new LinkTable(this.localKey, this.remoteKey);
-		DataAccess.insert(insertElement, new OverrideTableName(linkTableName));
-
-	}*/
+	/* public static <TYPE> void addLink(final Class<TYPE> clazz, final Object localKey, final String column, final Object remoteKey) throws Exception { final String tableName =
+	 * AnnotationTools.getTableName(clazz); final TYPE data = DataAccess.get(clazz, localKey); // TODO: add filter of the "column" // find the field column: // add the remoteKey in the list: // post
+	 * new data in the DB final String linkTableName = generateLinkTableName(this.tableName, this.column); final LinkTable insertElement = new LinkTable(this.localKey, this.remoteKey);
+	 * DataAccess.insert(insertElement, new OverrideTableName(linkTableName)); } */
 
 }

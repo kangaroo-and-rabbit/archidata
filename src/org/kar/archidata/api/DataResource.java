@@ -93,6 +93,7 @@ public class DataResource {
 		}
 		return filePath;
 	}
+
 	public static String getFileData(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
@@ -108,6 +109,7 @@ public class DataResource {
 		filePath += part3;
 		return filePath;
 	}
+
 	public static String getFileMetaData(final UUID uuid) {
 		return getFileData(uuid) + ".json";
 	}
@@ -317,8 +319,8 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-				// || value.mimeType.contentEquals("image/webp")
-				) {
+		// || value.mimeType.contentEquals("image/webp")
+		) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;
