@@ -485,8 +485,13 @@ public class DataFactoryTsApi {
 					} else if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
 						builder.append("\n\t\t\t\tcontentType: HTTPMimeType.MULTIPART,");
 						break;
+					} else if (MediaType.TEXT_PLAIN.equals(elem)) {
+						builder.append("\n\t\t\t\tcontentType: HTTPMimeType.TEXT_PLAIN,");
+						break;
 					}
 				}
+			} else if ("DELETE".equals(methodType)) {
+				builder.append("\n\t\t\t\tcontentType: HTTPMimeType.TEXT_PLAIN,");
 			}
 			if (produces != null) {
 				if (produces.size() > 1) {

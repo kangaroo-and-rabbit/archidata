@@ -15,13 +15,14 @@ export enum HTTPRequestModel {
 }
 export enum HTTPMimeType {
     ALL = '*/*',
+    CSV = 'text/csv',
     IMAGE = 'image/*',
     IMAGE_JPEG = 'image/jpeg',
     IMAGE_PNG = 'image/png',
     JSON = 'application/json',
-    OCTET_STREAM = 'application/octet-stream',
     MULTIPART = 'multipart/form-data',
-    CSV = 'text/csv',
+    OCTET_STREAM = 'application/octet-stream',
+    TEXT_PLAIN = 'text/plain',
 }
 
 export interface RESTConfig {
