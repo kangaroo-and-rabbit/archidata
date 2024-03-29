@@ -150,12 +150,12 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
                 const contentType = response.headers.get('Content-Type');
                 if (restModel.accept !== contentType) {
                     reject({
+                        name: `REST check wrong type: ${restModel.accept} != ${contentType}`,
+                        message: "rest-tools.ts Wrong type in the message return type",
                         time: Date().toString(),
                         status: 901,
-                        error: `REST check wrong type: ${restModel.accept} != ${contentType}`,
                         statusMessage: "Fetch error",
-                        message: "rest-tools.ts Wrong type in the message return type"
-                    } as RestErrorResponse);
+                    });
                 } else if (contentType === HTTPMimeType.JSON) {
                     response
                         .json()
@@ -165,32 +165,32 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
                         })
                         .catch((reason: any) => {
                             reject({
+                                name: `REST parse json fail: ${reason}`,
+                                message: "rest-tools.ts Wrong message model to parse",
                                 time: Date().toString(),
                                 status: 902,
-                                error: `REST parse json fail: ${reason}`,
                                 statusMessage: "Fetch parse error",
-                                message: "rest-tools.ts Wrong message model to parse"
-                            } as RestErrorResponse);
+                            });
                         });
                 } else {
                     resolve({ status: response.status, data: response.body });
                 }
             } else {
                 reject({
+                    name: `${response.body}`,
+                    message: "rest-tools.ts Wrong return code",
                     time: Date().toString(),
                     status: response.status,
-                    error: `${response.body}`,
                     statusMessage: "Fetch code error",
-                    message: "rest-tools.ts Wrong return code"
-                } as RestErrorResponse);
+                });
             }
         }).catch((error: any) => {
             reject({
+                name: error,
+                message: "http-wrapper.ts detect an error in the fetch request",
                 time: Date(),
                 status: 999,
-                error: error,
-                statusMessage: "Fetch catch error",
-                message: "http-wrapper.ts detect an error in the fetch request"
+                statusMessage: "Fetch catch error"
             });
         });
     });
@@ -203,12 +203,12 @@ export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: 
                 resolve(value.data);
             } else {
                 reject({
+                    name: "REST Fail to verify the data",
+                    message: "api.ts Check type as fail",
                     time: Date().toString(),
                     status: 950,
-                    error: "REST Fail to verify the data",
                     statusMessage: "API cast ERROR",
-                    message: "api.ts Check type as fail"
-                } as RestErrorResponse);
+                });
             }
         }).catch((reason: RestErrorResponse) => {
             reject(reason);
@@ -222,12 +222,12 @@ export function RESTRequestJsonArray<TYPE>(request: RESTRequestType, checker: (d
                 resolve(value.data);
             } else {
                 reject({
+                    name: "REST Fail to verify the data",
+                    message: "api.ts Check type as fail",
                     time: Date().toString(),
                     status: 950,
-                    error: "REST Fail to verify the data",
                     statusMessage: "API cast ERROR",
-                    message: "api.ts Check type as fail"
-                } as RestErrorResponse);
+                });
             }
         }).catch((reason: RestErrorResponse) => {
             reject(reason);

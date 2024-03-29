@@ -97,7 +97,7 @@ public class DataFactoryZod {
 			out.append("zod.enum([");
 			for (final Object elem : arr) {
 				if (!first) {
-					out.append(", \n\t");
+					out.append(",\n\t");
 				} else {
 					out.append("\n\t");
 					first = false;
@@ -106,14 +106,18 @@ public class DataFactoryZod {
 				out.append(elem.toString());
 				out.append("'");
 			}
-			out.append("\n\t])");
+			if (first) {
+				out.append("]}");
+			} else {
+				out.append("\n\t])");
+			}
 		} else {
 			element.isEnum = true;
 			boolean first = true;
 			out.append("{");
 			for (final Object elem : arr) {
 				if (!first) {
-					out.append(", \n\t");
+					out.append(",\n\t");
 				} else {
 					out.append("\n\t");
 					first = false;
@@ -123,7 +127,11 @@ public class DataFactoryZod {
 				out.append(elem.toString());
 				out.append("'");
 			}
-			out.append("}");
+			if (first) {
+				out.append("}");
+			} else {
+				out.append(",\n\t}");
+			}
 		}
 		element.declaration = out.toString();
 		previous.addOrder(element);

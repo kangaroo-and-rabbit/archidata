@@ -47,7 +47,7 @@ public class RESTApi {
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
@@ -123,7 +123,7 @@ public class RESTApi {
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final JsonParseException ex) {
@@ -156,7 +156,7 @@ public class RESTApi {
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
@@ -178,7 +178,7 @@ public class RESTApi {
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
-				throw new RESTErrorResponseExeption(out.uuid, out.time, out.error, out.message, out.status, out.statusMessage);
+				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException("Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
