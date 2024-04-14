@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.AsyncType;
+import org.kar.archidata.annotation.TypeScriptProgress;
 import org.kar.archidata.catcher.RestErrorResponse;
 import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
 import org.kar.archidata.dataAccess.DataFactoryZod.GeneratedTypes;
@@ -56,7 +57,7 @@ public class DataFactoryTsApi {
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
+				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, ProgressCallback, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
 				import { """;
 
 		for (final Class<?> clazz : classs) {
@@ -123,6 +124,14 @@ public class DataFactoryTsApi {
 			return null;
 		}
 		return Arrays.asList(((Produces) annotation[0]).value());
+	}
+
+	public static boolean apiAnnotationTypeScriptProgress(final Method element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(TypeScriptProgress.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
 	}
 
 	public static List<String> apiAnnotationProduces(final Class<?> clazz, final Method method) throws Exception {
@@ -261,6 +270,7 @@ public class DataFactoryTsApi {
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
 			}
+			final boolean needGenerateProgress = apiAnnotationTypeScriptProgress(method);
 			Class<?> returnTypeModel = apiAnnotationGetAsyncType(method);
 			if (returnTypeModel == null) {
 				returnTypeModel = method.getReturnType();
@@ -387,6 +397,9 @@ public class DataFactoryTsApi {
 			} else if (formDataParams.size() != 0) {
 				builder.append(" data,");
 			}
+			if (needGenerateProgress) {
+				builder.append(" progress,");
+			}
 			builder.append(" }: {");
 			builder.append("\n\t\trestConfig: RESTConfig,");
 			if (!queryParams.isEmpty()) {
@@ -454,6 +467,9 @@ public class DataFactoryTsApi {
 				}
 				builder.append(",");
 			}
+			if (needGenerateProgress) {
+				builder.append("\n\t\tprogress?: ProgressCallback,");
+			}
 			builder.append("\n\t}): Promise<");
 			builder.append(tmpReturn.tsTypeName);
 			if (returnModelIsArray) {
@@ -518,6 +534,9 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\t\tdata,");
 			} else if (formDataParams.size() != 0) {
 				builder.append("\n\t\t\tdata,");
+			}
+			if (needGenerateProgress) {
+				builder.append("\n\t\t\tprogress,");
 			}
 			builder.append("\n\t\t}");
 			if (tmpReturn.tsCheckType != null) {

@@ -319,8 +319,8 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-		// || value.mimeType.contentEquals("image/webp")
-		) {
+				// || value.mimeType.contentEquals("image/webp")
+				) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;
@@ -355,13 +355,12 @@ public class DataResource {
 		return buildStream(filePathName, range, value.mimeType);
 	}
 
-	// @Secured
 	@GET
 	@Path("{id}/{name}")
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	@Operation(description = "Get back some data from the data environment (with a beautifull name (permit download with basic name)", tags = "SYSTEM")
+	@Operation(description = "Get back some data from the data environment (with a beautiful name (permit download with basic name)", tags = "SYSTEM")
 	public Response retrieveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
 			@PathParam("id") final UUID id, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();

@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
 import java.util.List;
+import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
@@ -14,6 +15,7 @@ import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +90,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		if (field.getType() == Long.class) {
+		if (field.getType() == Long.class
+				|| field.getType() == Integer.class
+				|| field.getType() == Short.class
+				|| field.getType() == String.class
+				|| field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -101,7 +107,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	@Override
 	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
 			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
-		if (field.getType() == Long.class) {
+		if (field.getType() == Long.class
+				|| field.getType() == Integer.class
+				|| field.getType() == Short.class
+				|| field.getType() == String.class
+				|| field.getType() == UUID.class) {
 			querrySelect.append(" ");
 			querrySelect.append(tableName);
 			querrySelect.append(".");
@@ -146,6 +156,39 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final Long foreignKey = rs.getLong(count.value);
 			count.inc();
 			if (!rs.wasNull()) {
+				field.set(data, foreignKey);
+			}
+			return;
+		}
+		if (field.getType() == Integer.class) {
+			final Integer foreignKey = rs.getInt(count.value);
+			count.inc();
+			if (!rs.wasNull()) {
+				field.set(data, foreignKey);
+			}
+			return;
+		}
+		if (field.getType() == Short.class) {
+			final Short foreignKey = rs.getShort(count.value);
+			count.inc();
+			if (!rs.wasNull()) {
+				field.set(data, foreignKey);
+			}
+			return;
+		}
+		if (field.getType() == String.class) {
+			final String foreignKey = rs.getString(count.value);
+			count.inc();
+			if (!rs.wasNull()) {
+				field.set(data, foreignKey);
+			}
+			return;
+		}
+		if (field.getType() == UUID.class) {
+			final byte[] tmp = rs.getBytes(count.value);
+			count.inc();
+			if (!rs.wasNull()) {
+				final UUID foreignKey = UuidUtils.asUuid(tmp);
 				field.set(data, foreignKey);
 			}
 			return;

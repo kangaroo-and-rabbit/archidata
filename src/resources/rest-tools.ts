@@ -67,22 +67,33 @@ export function isArrayOf<TYPE>(
     return true;
 }
 
+function isNullOrUndefined(data: any): data is undefined | null {
+    return data === undefined || data === null;
+}
+
 export type RESTRequestType = {
     restModel: RESTModel,
     restConfig: RESTConfig,
     data?: any,
     params?: object,
     queries?: object,
+    progress?: ProgressCallback,
 };
 
 function removeTrailingSlashes(input: string): string {
+    if (isNullOrUndefined(input)) {
+        return "undefined";
+    }
     return input.replace(/\/+$/, '');
 }
 function removeLeadingSlashes(input: string): string {
+    if (isNullOrUndefined(input)) {
+        return "";
+    }
     return input.replace(/^\/+/, '');
 }
 
-export function RESTUrl({ restModel, restConfig, data, params, queries }: RESTRequestType): string {
+export function RESTUrl({ restModel, restConfig, params, queries }: RESTRequestType): string {
     // Create the URL PATH:
     let generateUrl = `${removeTrailingSlashes(restConfig.server)}/${removeLeadingSlashes(restModel.endPoint)}`;
     if (params !== undefined) {
@@ -91,7 +102,7 @@ export function RESTUrl({ restModel, restConfig, data, params, queries }: RESTRe
         }
     }
     if (queries === undefined && (restConfig.token === undefined || restModel.tokenInUrl !== true)) {
-    	return generateUrl;
+        return generateUrl;
     }
     const searchParams = new URLSearchParams();
     if (queries !== undefined) {
@@ -112,7 +123,55 @@ export function RESTUrl({ restModel, restConfig, data, params, queries }: RESTRe
     return generateUrl + "?" + searchParams.toString();
 }
 
-export function RESTRequest({ restModel, restConfig, data, params, queries }: RESTRequestType): Promise<ModelResponseHttp> {
+
+export type ProgressCallback = (count: number, total: number) => void;
+// input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+export function fetchProgress<TYPE>(generateUrl: string, { method, headers, body }: {
+    method: HTTPRequestModel,
+    headers: any,
+    body: any,
+}, progress: ProgressCallback): Promise<Response> {
+
+    //async function fetchForm(form, options = {}) {
+    const action = generateUrl;
+    const data = body;
+    const xhr = new XMLHttpRequest();
+    return new Promise((resolve, reject) => {
+        xhr.responseType = 'blob';
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState != 4) {
+                // done
+                return;
+            }
+            const response = new Response(xhr.response, {
+                status: xhr.status,
+                statusText: xhr.statusText
+            });
+            resolve(response);
+        }
+        // If fail:
+        xhr.addEventListener('error', () => {
+            reject(new TypeError('Failed to fetch'))
+        });
+        // Link the progression callback
+        if (progress) {
+            xhr.addEventListener('progress', (dataEvent) => {
+                progress(dataEvent.loaded, dataEvent.total);
+            });
+        }
+        // open the socket
+        xhr.open(method, action, true);
+        // configure the header
+        if (!isNullOrUndefined(headers)) {
+            for (const [key, value] of Object.entries(headers)) {
+                xhr.setRequestHeader(key, value as string);
+            }
+        }
+        xhr.send(data);
+    });
+}
+
+export function RESTRequest({ restModel, restConfig, data, params, queries, progress }: RESTRequestType): Promise<ModelResponseHttp> {
     // Create the URL PATH:
     let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
     let headers: any = {};
@@ -141,11 +200,21 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
     }
     console.log(`Call ${generateUrl}`)
     return new Promise((resolve, reject) => {
-        fetch(generateUrl, {
-            method: restModel.requestType,
-            headers,
-            body,
-        }).then((response: Response) => {
+        let action: Promise<Response> = undefined;
+        if (isNullOrUndefined(progress)) {
+            action = fetch(generateUrl, {
+                method: restModel.requestType,
+                headers,
+                body,
+            });
+        } else {
+            action = fetchProgress(generateUrl, {
+                method: restModel.requestType,
+                headers,
+                body,
+            }, progress);
+        }
+        action.then((response: Response) => {
             if (response.status >= 200 && response.status <= 299) {
                 const contentType = response.headers.get('Content-Type');
                 if (restModel.accept !== contentType) {
@@ -195,6 +264,8 @@ export function RESTRequest({ restModel, restConfig, data, params, queries }: RE
         });
     });
 }
+
+
 
 export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: any) => data is TYPE): Promise<TYPE> {
     return new Promise((resolve, reject) => {
