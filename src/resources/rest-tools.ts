@@ -74,10 +74,16 @@ function isNullOrUndefined(data: any): data is undefined | null {
 // generic progression callback
 export type ProgressCallback = (count: number, total: number) => void;
 
+export interface RESTAbort {
+    abort?: () => boolean
+}
+
+
 // Rest generic callback have a basic model to upload and download advancement.
 export interface RESTCallbacks {
     progressUpload?: ProgressCallback,
-    progressDownload?: ProgressCallback
+    progressDownload?: ProgressCallback,
+    abortHandle?: RESTAbort,
 };
 
 export interface RESTRequestType {
@@ -137,12 +143,14 @@ export function fetchProgress(generateUrl: string, { method, headers, body }: {
     method: HTTPRequestModel,
     headers: any,
     body: any,
-}, { progressUpload, progressDownload }: RESTCallbacks): Promise<Response> {
-    const xhr = new XMLHttpRequest();
+}, { progressUpload, progressDownload, abortHandle }: RESTCallbacks): Promise<Response> {
+    const xhr = {
+        io: new XMLHttpRequest()
+    }
     return new Promise((resolve, reject) => {
         // Stream the upload progress
         if (progressUpload) {
-            xhr.upload.addEventListener("progress", (dataEvent) => {
+            xhr.io.upload.addEventListener("progress", (dataEvent) => {
                 if (dataEvent.lengthComputable) {
                     //console.log(`    ==> has a progress event: ${dataEvent.loaded} / ${dataEvent.total}`);
                     progressUpload(dataEvent.loaded, dataEvent.total);
@@ -151,29 +159,47 @@ export function fetchProgress(generateUrl: string, { method, headers, body }: {
         }
         // Stream the download progress
         if (progressDownload) {
-            xhr.addEventListener("progress", (dataEvent) => {
+            xhr.io.addEventListener("progress", (dataEvent) => {
                 if (dataEvent.lengthComputable) {
                     //console.log(`    ==> download progress:: ${dataEvent.loaded} / ${dataEvent.total}`);
                     progressUpload(dataEvent.loaded, dataEvent.total);
                 }
             });
         }
+        if (abortHandle) {
+            abortHandle.abort = () => {
+                if (xhr.io) {
+                    console.log(`Request abort on the XMLHttpRequest: ${generateUrl}`);
+                    xhr.io.abort();
+                    return true;
+                }
+                console.log(`Request abort (FAIL) on the XMLHttpRequest: ${generateUrl}`);
+                return false;
+            }
+        }
         // Check if we have an internal Fail:
-        xhr.addEventListener('error', () => {
+        xhr.io.addEventListener('error', () => {
+            xhr.io = undefined;
             reject(new TypeError('Failed to fetch'))
         });
+
         // Capture the end of the stream
-        xhr.addEventListener("loadend", () => {
-            if (xhr.readyState != 4) {
-                console.log(`    ==> READY state`);
+        xhr.io.addEventListener("loadend", () => {
+            if (xhr.io.readyState !== XMLHttpRequest.DONE) {
+                //console.log(`    ==> READY state`);
+                return;
+            }
+            if (xhr.io.status === 0) {
+                //the stream has been aborted
+                reject(new TypeError('Fetch has been aborted'));
                 return;
             }
             // Stream is ended, transform in a generic response:
-            const response = new Response(xhr.response, {
-                status: xhr.status,
-                statusText: xhr.statusText
+            const response = new Response(xhr.io.response, {
+                status: xhr.io.status,
+                statusText: xhr.io.statusText
             });
-            const headersArray = xhr.getAllResponseHeaders().trim().replaceAll("\r\n", "\n").split('\n');
+            const headersArray = xhr.io.getAllResponseHeaders().trim().replaceAll("\r\n", "\n").split('\n');
             headersArray.forEach(function (header) {
                 const firstColonIndex = header.indexOf(':');
                 if (firstColonIndex !== -1) {
@@ -184,17 +210,16 @@ export function fetchProgress(generateUrl: string, { method, headers, body }: {
                     response.headers.set(header, "");
                 }
             });
+            xhr.io = undefined;
             resolve(response);
         });
-        xhr.open(method, generateUrl, true);
+        xhr.io.open(method, generateUrl, true);
         if (!isNullOrUndefined(headers)) {
             for (const [key, value] of Object.entries(headers)) {
-                xhr.setRequestHeader(key, value as string);
+                xhr.io.setRequestHeader(key, value as string);
             }
         }
-        console.log(`    ==> send`);
-        xhr.send(body);
-        console.log(`    ==> send done`);
+        xhr.io.send(body);
     });
 }
 
@@ -227,7 +252,10 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, call
     }
     return new Promise((resolve, reject) => {
         let action: undefined | Promise<Response> = undefined;
-        if (isNullOrUndefined(callback) || (isNullOrUndefined(callback.progressDownload) && isNullOrUndefined(callback.progressUpload))) {
+        if (isNullOrUndefined(callback)
+            || (isNullOrUndefined(callback.progressDownload)
+                && isNullOrUndefined(callback.progressUpload)
+                && isNullOrUndefined(callback.abortHandle))) {
             // No information needed: call the generic fetch interface
             action = fetch(generateUrl, {
                 method: restModel.requestType,
@@ -287,7 +315,7 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, call
                 status: 999,
                 error: error,
                 statusMessage: "Fetch catch error",
-                message: "http-wrapper.ts detect an error in the fetch request"
+                message: "rest-tools.ts detect an error in the fetch request"
             });
         });
     });
