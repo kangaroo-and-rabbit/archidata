@@ -53,10 +53,33 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws Exception {
 		final Object data = field.get(rootObject);
 		if (data == null) {
-			ps.setNull(iii.value, Types.BIGINT);
+			if (field.getType() == Long.class) {
+				ps.setNull(iii.value, Types.BIGINT);
+			} else if (field.getType() == Integer.class) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else if (field.getType() == Short.class) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else if (field.getType() == String.class) {
+				ps.setNull(iii.value, Types.VARCHAR);
+			} else if (field.getType() == UUID.class) {
+				ps.setNull(iii.value, Types.BINARY);
+			}
 		} else if (field.getType() == Long.class) {
-			final Long dataLong = (Long) data;
-			ps.setLong(iii.value, dataLong);
+			final Long dataTyped = (Long) data;
+			ps.setLong(iii.value, dataTyped);
+		} else if (field.getType() == Integer.class) {
+			final Integer dataTyped = (Integer) data;
+			ps.setInt(iii.value, dataTyped);
+		} else if (field.getType() == Short.class) {
+			final Short dataTyped = (Short) data;
+			ps.setShort(iii.value, dataTyped);
+		} else if (field.getType() == String.class) {
+			final String dataTyped = (String) data;
+			ps.setString(iii.value, dataTyped);
+		} else if (field.getType() == UUID.class) {
+			final UUID dataTyped = (UUID) data;
+			final byte[] dataByte = UuidUtils.asBytes(dataTyped);
+			ps.setBytes(iii.value, dataByte);
 		} else {
 			final Field idField = AnnotationTools.getFieldOfId(field.getType());
 			final Object uid = idField.get(data);
@@ -73,7 +96,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		if (field.getType() == Long.class) {
+		if (field.getType() == Long.class
+				|| field.getType() == Integer.class
+				|| field.getType() == Short.class
+				|| field.getType() == String.class
+				|| field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
