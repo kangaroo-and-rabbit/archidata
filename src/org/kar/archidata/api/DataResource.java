@@ -319,8 +319,8 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
-				// || value.mimeType.contentEquals("image/webp")
-				) {
+		// || value.mimeType.contentEquals("image/webp")
+		) {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;

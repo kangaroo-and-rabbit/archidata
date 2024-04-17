@@ -96,11 +96,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		if (field.getType() == Long.class
-				|| field.getType() == Integer.class
-				|| field.getType() == Short.class
-				|| field.getType() == String.class
-				|| field.getType() == UUID.class) {
+		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -117,11 +113,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		if (field.getType() == Long.class
-				|| field.getType() == Integer.class
-				|| field.getType() == Short.class
-				|| field.getType() == String.class
-				|| field.getType() == UUID.class) {
+		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -134,11 +126,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	@Override
 	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
 			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
-		if (field.getType() == Long.class
-				|| field.getType() == Integer.class
-				|| field.getType() == Short.class
-				|| field.getType() == String.class
-				|| field.getType() == UUID.class) {
+		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
 			querrySelect.append(" ");
 			querrySelect.append(tableName);
 			querrySelect.append(".");

@@ -8,5 +8,4 @@ import java.lang.annotation.Target;
 /** In case of the update parameter with String input to detect null element. */
 @Target({ ElementType.PARAMETER, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TypeScriptProgress {
-}
+public @interface TypeScriptProgress {}
