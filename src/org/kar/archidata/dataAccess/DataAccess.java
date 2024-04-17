@@ -921,7 +921,9 @@ public class DataAccess {
 			}
 			// ps.execute();
 		} catch (final SQLException ex) {
+			LOGGER.error("Fail SQL request: {}", ex.getMessage());
 			ex.printStackTrace();
+			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
 		} finally {
 			entry.close();
 		}

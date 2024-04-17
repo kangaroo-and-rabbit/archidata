@@ -41,7 +41,7 @@ export interface RESTModel {
     accept?: HTTPMimeType;
     // Content of the local data.
     contentType?: HTTPMimeType;
-    // Mode of the TOKEN in urk or Header
+    // Mode of the TOKEN in URL or Header (?token:${tokenInUrl})
     tokenInUrl?: boolean;
 }
 
@@ -71,13 +71,22 @@ function isNullOrUndefined(data: any): data is undefined | null {
     return data === undefined || data === null;
 }
 
-export type RESTRequestType = {
+// generic progression callback
+export type ProgressCallback = (count: number, total: number) => void;
+
+// Rest generic callback have a basic model to upload and download advancement.
+export interface RESTCallbacks {
+    progressUpload?: ProgressCallback,
+    progressDownload?: ProgressCallback
+};
+
+export interface RESTRequestType {
     restModel: RESTModel,
     restConfig: RESTConfig,
     data?: any,
     params?: object,
     queries?: object,
-    progress?: ProgressCallback,
+    callback?: RESTCallbacks,
 };
 
 function removeTrailingSlashes(input: string): string {
@@ -124,54 +133,72 @@ export function RESTUrl({ restModel, restConfig, params, queries }: RESTRequestT
 }
 
 
-export type ProgressCallback = (count: number, total: number) => void;
-// input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
-export function fetchProgress<TYPE>(generateUrl: string, { method, headers, body }: {
+export function fetchProgress(generateUrl: string, { method, headers, body }: {
     method: HTTPRequestModel,
     headers: any,
     body: any,
-}, progress: ProgressCallback): Promise<Response> {
-
-    //async function fetchForm(form, options = {}) {
-    const action = generateUrl;
-    const data = body;
+}, { progressUpload, progressDownload }: RESTCallbacks): Promise<Response> {
     const xhr = new XMLHttpRequest();
     return new Promise((resolve, reject) => {
-        xhr.responseType = 'blob';
-        xhr.onreadystatechange = () => {
+        // Stream the upload progress
+        if (progressUpload) {
+            xhr.upload.addEventListener("progress", (dataEvent) => {
+                if (dataEvent.lengthComputable) {
+                    //console.log(`    ==> has a progress event: ${dataEvent.loaded} / ${dataEvent.total}`);
+                    progressUpload(dataEvent.loaded, dataEvent.total);
+                }
+            });
+        }
+        // Stream the download progress
+        if (progressDownload) {
+            xhr.addEventListener("progress", (dataEvent) => {
+                if (dataEvent.lengthComputable) {
+                    //console.log(`    ==> download progress:: ${dataEvent.loaded} / ${dataEvent.total}`);
+                    progressUpload(dataEvent.loaded, dataEvent.total);
+                }
+            });
+        }
+        // Check if we have an internal Fail:
+        xhr.addEventListener('error', () => {
+            reject(new TypeError('Failed to fetch'))
+        });
+        // Capture the end of the stream
+        xhr.addEventListener("loadend", () => {
             if (xhr.readyState != 4) {
-                // done
+                console.log(`    ==> READY state`);
                 return;
             }
+            // Stream is ended, transform in a generic response:
             const response = new Response(xhr.response, {
                 status: xhr.status,
                 statusText: xhr.statusText
             });
-            resolve(response);
-        }
-        // If fail:
-        xhr.addEventListener('error', () => {
-            reject(new TypeError('Failed to fetch'))
-        });
-        // Link the progression callback
-        if (progress) {
-            xhr.addEventListener('progress', (dataEvent) => {
-                progress(dataEvent.loaded, dataEvent.total);
+            const headersArray = xhr.getAllResponseHeaders().trim().replaceAll("\r\n", "\n").split('\n');
+            headersArray.forEach(function (header) {
+                const firstColonIndex = header.indexOf(':');
+                if (firstColonIndex !== -1) {
+                    var key = header.substring(0, firstColonIndex).trim();
+                    var value = header.substring(firstColonIndex + 1).trim();
+                    response.headers.set(key, value);
+                } else {
+                    response.headers.set(header, "");
+                }
             });
-        }
-        // open the socket
-        xhr.open(method, action, true);
-        // configure the header
+            resolve(response);
+        });
+        xhr.open(method, generateUrl, true);
         if (!isNullOrUndefined(headers)) {
             for (const [key, value] of Object.entries(headers)) {
                 xhr.setRequestHeader(key, value as string);
             }
         }
-        xhr.send(data);
+        console.log(`    ==> send`);
+        xhr.send(body);
+        console.log(`    ==> send done`);
     });
 }
 
-export function RESTRequest({ restModel, restConfig, data, params, queries, progress }: RESTRequestType): Promise<ModelResponseHttp> {
+export function RESTRequest({ restModel, restConfig, data, params, queries, callback }: RESTRequestType): Promise<ModelResponseHttp> {
     // Create the URL PATH:
     let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
     let headers: any = {};
@@ -198,33 +225,34 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, prog
         }
         body = formData
     }
-    console.log(`Call ${generateUrl}`)
     return new Promise((resolve, reject) => {
-        let action: Promise<Response> = undefined;
-        if (isNullOrUndefined(progress)) {
+        let action: undefined | Promise<Response> = undefined;
+        if (isNullOrUndefined(callback) || (isNullOrUndefined(callback.progressDownload) && isNullOrUndefined(callback.progressUpload))) {
+            // No information needed: call the generic fetch interface
             action = fetch(generateUrl, {
                 method: restModel.requestType,
                 headers,
                 body,
             });
         } else {
+            // need progression information: call old fetch model (XMLHttpRequest) that permit to keep % upload and % download for HTTP1.x
             action = fetchProgress(generateUrl, {
-                method: restModel.requestType,
+                method: restModel.requestType ?? HTTPRequestModel.GET,
                 headers,
                 body,
-            }, progress);
+            }, callback);
         }
         action.then((response: Response) => {
             if (response.status >= 200 && response.status <= 299) {
                 const contentType = response.headers.get('Content-Type');
                 if (restModel.accept !== contentType) {
                     reject({
-                        name: `REST check wrong type: ${restModel.accept} != ${contentType}`,
-                        message: "rest-tools.ts Wrong type in the message return type",
                         time: Date().toString(),
                         status: 901,
+                        error: `REST check wrong type: ${restModel.accept} != ${contentType}`,
                         statusMessage: "Fetch error",
-                    });
+                        message: "rest-tools.ts Wrong type in the message return type"
+                    } as RestErrorResponse);
                 } else if (contentType === HTTPMimeType.JSON) {
                     response
                         .json()
@@ -234,32 +262,32 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, prog
                         })
                         .catch((reason: any) => {
                             reject({
-                                name: `REST parse json fail: ${reason}`,
-                                message: "rest-tools.ts Wrong message model to parse",
                                 time: Date().toString(),
                                 status: 902,
+                                error: `REST parse json fail: ${reason}`,
                                 statusMessage: "Fetch parse error",
-                            });
+                                message: "rest-tools.ts Wrong message model to parse"
+                            } as RestErrorResponse);
                         });
                 } else {
                     resolve({ status: response.status, data: response.body });
                 }
             } else {
                 reject({
-                    name: `${response.body}`,
-                    message: "rest-tools.ts Wrong return code",
                     time: Date().toString(),
                     status: response.status,
+                    error: `${response.body}`,
                     statusMessage: "Fetch code error",
-                });
+                    message: "rest-tools.ts Wrong return code"
+                } as RestErrorResponse);
             }
         }).catch((error: any) => {
             reject({
-                name: error,
-                message: "http-wrapper.ts detect an error in the fetch request",
                 time: Date(),
                 status: 999,
-                statusMessage: "Fetch catch error"
+                error: error,
+                statusMessage: "Fetch catch error",
+                message: "http-wrapper.ts detect an error in the fetch request"
             });
         });
     });
@@ -274,12 +302,12 @@ export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: 
                 resolve(value.data);
             } else {
                 reject({
-                    name: "REST Fail to verify the data",
-                    message: "api.ts Check type as fail",
                     time: Date().toString(),
                     status: 950,
+                    error: "REST Fail to verify the data",
                     statusMessage: "API cast ERROR",
-                });
+                    message: "api.ts Check type as fail"
+                } as RestErrorResponse);
             }
         }).catch((reason: RestErrorResponse) => {
             reject(reason);
@@ -293,12 +321,12 @@ export function RESTRequestJsonArray<TYPE>(request: RESTRequestType, checker: (d
                 resolve(value.data);
             } else {
                 reject({
-                    name: "REST Fail to verify the data",
-                    message: "api.ts Check type as fail",
                     time: Date().toString(),
                     status: 950,
+                    error: "REST Fail to verify the data",
                     statusMessage: "API cast ERROR",
-                });
+                    message: "api.ts Check type as fail"
+                } as RestErrorResponse);
             }
         }).catch((reason: RestErrorResponse) => {
             reject(reason);

@@ -57,7 +57,7 @@ public class DataFactoryTsApi {
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, ProgressCallback, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
+				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTCallbacks, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
 				import { """;
 
 		for (final Class<?> clazz : classs) {
@@ -398,7 +398,7 @@ public class DataFactoryTsApi {
 				builder.append(" data,");
 			}
 			if (needGenerateProgress) {
-				builder.append(" progress,");
+				builder.append(" callback,");
 			}
 			builder.append(" }: {");
 			builder.append("\n\t\trestConfig: RESTConfig,");
@@ -468,7 +468,7 @@ public class DataFactoryTsApi {
 				builder.append(",");
 			}
 			if (needGenerateProgress) {
-				builder.append("\n\t\tprogress?: ProgressCallback,");
+				builder.append("\n\t\tcallback?: RESTCallbacks,");
 			}
 			builder.append("\n\t}): Promise<");
 			builder.append(tmpReturn.tsTypeName);
@@ -536,7 +536,7 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\t\tdata,");
 			}
 			if (needGenerateProgress) {
-				builder.append("\n\t\t\tprogress,");
+				builder.append("\n\t\t\tcallback,");
 			}
 			builder.append("\n\t\t}");
 			if (tmpReturn.tsCheckType != null) {
