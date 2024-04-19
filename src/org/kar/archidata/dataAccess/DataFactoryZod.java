@@ -290,6 +290,14 @@ public class DataFactoryZod {
 		return generatedData.toString();
 	}
 
+	public static List<ClassElement> createTables(final Class<?>[] classs, final GeneratedTypes previous) throws Exception {
+		final List<ClassElement> out = new ArrayList<>();
+		for (final Class<?> clazz : classs) {
+			out.add(createTable(clazz, previous));
+		}
+		return out;
+	}
+
 	public static ClassElement createTable(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
 		if (clazz == null) {
 			return null;

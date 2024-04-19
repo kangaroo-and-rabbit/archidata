@@ -9,5 +9,9 @@ import java.lang.annotation.Target;
 @Target({ ElementType.PARAMETER, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AsyncType {
-	Class<?> value();
+	// Possible class values.
+	Class<?>[] value();
+
+	// direct copy value in the TypeScript (separate with type by a |
+	String[] tsComplement() default {};
 }

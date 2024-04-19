@@ -57,8 +57,17 @@ public class DataFactoryTsApi {
 				/**
 				 * API of the server (auto-generated code)
 				 */
-				import { HTTPMimeType, HTTPRequestModel, ModelResponseHttp, RESTConfig, RESTCallbacks, RESTRequestJson, RESTRequestJsonArray, RESTRequestVoid } from "./rest-tools"
-				import { """;
+				import {
+				  HTTPMimeType,
+				  HTTPRequestModel,
+				  ModelResponseHttp,
+				  RESTCallbacks,
+				  RESTConfig,
+				  RESTRequestJson,
+				  RESTRequestJsonArray,
+				  RESTRequestVoid
+				} from "./rest-tools"
+				import {""";
 
 		for (final Class<?> clazz : classs) {
 			final Set<Class<?>> includeModel = new HashSet<>();
@@ -74,8 +83,9 @@ public class DataFactoryTsApi {
 				if (classElement.nativeType) {
 					continue;
 				}
+				generatedData.append("\n  ");
 				generatedData.append(classElement.tsTypeName);
-				generatedData.append(", ");
+				generatedData.append(",");
 			}
 			for (final Class<?> elem : includeCheckerModel) {
 				if (elem == null) {
@@ -85,10 +95,11 @@ public class DataFactoryTsApi {
 				if (classElement.nativeType) {
 					continue;
 				}
+				generatedData.append("\n  ");
 				generatedData.append(classElement.tsCheckType);
-				generatedData.append(", ");
+				generatedData.append(",");
 			}
-			generatedData.append("} from \"./model\"\n");
+			generatedData.append("\n} from \"./model\"\n");
 			generatedData.append(api.data());
 
 			String fileName = api.className();
@@ -201,7 +212,7 @@ public class DataFactoryTsApi {
 		return ((FormDataParam) annotation[0]).value();
 	}
 
-	public static Class<?> apiAnnotationGetAsyncType(final Parameter element) throws Exception {
+	public static Class<?>[] apiAnnotationGetAsyncType(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
 			return null;
@@ -209,7 +220,7 @@ public class DataFactoryTsApi {
 		return ((AsyncType) annotation[0]).value();
 	}
 
-	public static Class<?> apiAnnotationGetAsyncType(final Method element) throws Exception {
+	public static Class<?>[] apiAnnotationGetAsyncType(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
 			return null;
@@ -245,6 +256,20 @@ public class DataFactoryTsApi {
 		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
 	}
 
+	public static String convertInTypeScriptType(final List<ClassElement> tmp, final boolean isList) {
+		String out = "";
+		for (final ClassElement elem : tmp) {
+			if (out.length() != 0) {
+				out += " | ";
+			}
+			out += elem.tsTypeName;
+			if (isList) {
+				out += "[]";
+			}
+		}
+		return out;
+	}
+
 	public static APIModel createSingleApi(final Class<?> clazz, final Set<Class<?>> includeModel, final Set<Class<?>> includeCheckerModel, final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
 		// the basic path has no specific elements...
@@ -271,30 +296,35 @@ public class DataFactoryTsApi {
 				LOGGER.trace("         description: {}", methodDescription);
 			}
 			final boolean needGenerateProgress = apiAnnotationTypeScriptProgress(method);
-			Class<?> returnTypeModel = apiAnnotationGetAsyncType(method);
+			Class<?>[] returnTypeModel = apiAnnotationGetAsyncType(method);
+			Class<?> returnTypeModelRaw = method.getReturnType();
 			if (returnTypeModel == null) {
-				returnTypeModel = method.getReturnType();
+				returnTypeModel = new Class<?>[] { returnTypeModelRaw };
+				returnTypeModelRaw = null;
 			}
 			boolean isUnmanagedReturnType = false;
-			if (returnTypeModel == Response.class) {
+			if (returnTypeModelRaw == Response.class) {
 				isUnmanagedReturnType = true;
-				returnTypeModel = Void.class;
+				returnTypeModel = new Class<?>[] { Void.class };
 			}
 			boolean returnModelIsArray = false;
-			ClassElement tmpReturn;
-			if (returnTypeModel == List.class) {
+			List<ClassElement> tmpReturn;
+			if (returnTypeModelRaw == List.class) {
 				final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-				returnTypeModel = (Class<?>) listType.getActualTypeArguments()[0];
-				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
+				returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
+				tmpReturn = List.of(DataFactoryZod.createTable(returnTypeModelRaw, previous));
 				returnModelIsArray = true;
-				includeModel.add(tmpReturn.model[0]);
 			} else {
-				tmpReturn = DataFactoryZod.createTable(returnTypeModel, previous);
-
+				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 			}
-			includeModel.add(tmpReturn.model[0]);
-			includeCheckerModel.add(tmpReturn.model[0]);
-			LOGGER.trace("         return: {}", tmpReturn.tsTypeName);
+			for (final ClassElement elem : tmpReturn) {
+				includeModel.add(elem.model[0]);
+				includeCheckerModel.add(elem.model[0]);
+			}
+			LOGGER.trace("         return: {}", tmpReturn.size());
+			for (final ClassElement elem : tmpReturn) {
+				LOGGER.trace("             - {}", elem.tsTypeName);
+			}
 			final Map<String, String> queryParams = new HashMap<>();
 			final Map<String, String> pathParams = new HashMap<>();
 			final Map<String, String> formDataParams = new HashMap<>();
@@ -307,24 +337,28 @@ public class DataFactoryTsApi {
 				}
 				final Class<?> parameterType = parameter.getType();
 				String parameterTypeString;
-				final Class<?> asyncType = apiAnnotationGetAsyncType(parameter);
+				final Class<?>[] asyncType = apiAnnotationGetAsyncType(parameter);
 				if (parameterType == List.class) {
 					if (asyncType == null) {
-						LOGGER.warn("Detext List param ==> not managed type ==> any[] !!!");
+						LOGGER.warn("Detect List param ==> not managed type ==> any[] !!!");
 						parameterTypeString = "any[]";
 					} else {
-						final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
-						includeModel.add(tmp.model[0]);
-						parameterTypeString = tmp.tsTypeName + "[]";
+						final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
+						for (final ClassElement elem : tmp) {
+							includeModel.add(elem.model[0]);
+						}
+						parameterTypeString = convertInTypeScriptType(tmp, true);
 					}
 				} else if (asyncType == null) {
 					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
 					includeModel.add(tmp.model[0]);
 					parameterTypeString = tmp.tsTypeName;
 				} else {
-					final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
-					includeModel.add(tmp.model[0]);
-					parameterTypeString = tmp.tsTypeName;
+					final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
+					for (final ClassElement elem : tmp) {
+						includeModel.add(elem.model[0]);
+					}
+					parameterTypeString = convertInTypeScriptType(tmp, true);
 				}
 				final String pathParam = apiAnnotationGetPathParam(parameter);
 				final String queryParam = apiAnnotationGetQueryParam(parameter);
@@ -336,9 +370,15 @@ public class DataFactoryTsApi {
 				} else if (formDataParam != null) {
 					formDataParams.put(formDataParam, parameterTypeString);
 				} else if (asyncType != null) {
-					final ClassElement tmp = DataFactoryZod.createTable(asyncType, previous);
-					includeModel.add(tmp.model[0]);
-					emptyElement.add(tmp.tsTypeName);
+					final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
+					parameterTypeString = "";
+					for (final ClassElement elem : tmp) {
+						includeModel.add(elem.model[0]);
+						if (parameterTypeString.length() != 0) {
+							parameterTypeString += " | ";
+						}
+						parameterTypeString += elem.tsTypeName + "[]";
+					}
 				} else if (parameterType == List.class) {
 					parameterTypeString = "any[]";
 					final Class<?> plop = parameterType.arrayType();
@@ -382,32 +422,30 @@ public class DataFactoryTsApi {
 			}
 			builder.append("\n\texport function ");
 			builder.append(methodName);
-			builder.append("({ restConfig,");
+			builder.append("({\t\t\trestConfig,");
 			if (!queryParams.isEmpty()) {
-				builder.append(" queries,");
+				builder.append("\n\t\t\tqueries,");
 			}
 			if (!pathParams.isEmpty()) {
-				builder.append(" params,");
+				builder.append("\n\t\t\tparams,");
 			}
 			if (produces.size() > 1) {
-				builder.append(" produce,");
+				builder.append("\n\t\t\tproduce,");
 			}
-			if (emptyElement.size() == 1) {
-				builder.append(" data,");
-			} else if (formDataParams.size() != 0) {
-				builder.append(" data,");
+			if (emptyElement.size() == 1 || formDataParams.size() != 0) {
+				builder.append("\n\t\t\tdata,");
 			}
 			if (needGenerateProgress) {
 				builder.append(" callback,");
 			}
-			builder.append(" }: {");
+			builder.append("\n\t\t}: {");
 			builder.append("\n\t\trestConfig: RESTConfig,");
 			if (!queryParams.isEmpty()) {
 				builder.append("\n\t\tqueries: {");
 				for (final Entry<String, String> queryEntry : queryParams.entrySet()) {
 					builder.append("\n\t\t\t");
 					builder.append(queryEntry.getKey());
-					builder.append(": ");
+					builder.append("?: ");
 					builder.append(queryEntry.getValue());
 					builder.append(",");
 				}
@@ -471,12 +509,9 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\tcallback?: RESTCallbacks,");
 			}
 			builder.append("\n\t}): Promise<");
-			builder.append(tmpReturn.tsTypeName);
-			if (returnModelIsArray) {
-				builder.append("[]");
-			}
+			builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
 			builder.append("> {");
-			if (tmpReturn.tsTypeName.equals("void")) {
+			if (tmpReturn.size() == 0 || tmpReturn.get(0).tsTypeName == null || tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append("\n\t\treturn RESTRequestVoid({");
 			} else if (returnModelIsArray) {
 				builder.append("\n\t\treturn RESTRequestJsonArray({");
@@ -539,9 +574,9 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\t\tcallback,");
 			}
 			builder.append("\n\t\t}");
-			if (tmpReturn.tsCheckType != null) {
+			if (tmpReturn.size() != 0 && tmpReturn.get(0).tsTypeName != null && !tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append(", ");
-				builder.append(tmpReturn.tsCheckType);
+				builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
 			}
 			builder.append(");");
 			builder.append("\n\t};");
