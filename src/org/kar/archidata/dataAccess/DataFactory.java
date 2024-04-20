@@ -339,6 +339,7 @@ public class DataFactory {
 		LOGGER.debug("===> TABLE `{}`", tableName);
 		final List<String> primaryKeys = new ArrayList<>();
 
+		final Field primaryField = AnnotationTools.getPrimaryKeyField(clazz);
 		for (final Field elem : clazz.getFields()) {
 			// DEtect the primary key (support only one primary key right now...
 			if (AnnotationTools.isPrimaryKey(elem)) {
@@ -373,7 +374,7 @@ public class DataFactory {
 					final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
 					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
 					if (addOn != null) {
-						addOn.createTables(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
+						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
 					} else {
 						throw new DataAccessException(
 								"Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());

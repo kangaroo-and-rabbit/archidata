@@ -32,12 +32,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field elem) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(elem);
+	public String getSQLFieldType(final Field field) throws Exception {
+		final String fieldName = AnnotationTools.getFieldName(field);
 		try {
-			return DataFactory.convertTypeInSQL(Long.class, fieldName);
+			return DataFactory.convertTypeInSQL(field.getType(), fieldName);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;
@@ -45,8 +44,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean isCompatibleField(final Field elem) {
-		final ManyToOne decorators = elem.getDeclaredAnnotation(ManyToOne.class);
-		return decorators != null;
+		return elem.getDeclaredAnnotation(ManyToOne.class) != null;
 	}
 
 	@Override
@@ -78,6 +76,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			ps.setString(iii.value, dataTyped);
 		} else if (field.getType() == UUID.class) {
 			final UUID dataTyped = (UUID) data;
+			LOGGER.info("Generate UUTD for DB: {}", dataTyped);
 			final byte[] dataByte = UuidUtils.asBytes(dataTyped);
 			ps.setBytes(iii.value, dataByte);
 		} else {
@@ -96,7 +95,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
+		if (field.getType() == Long.class //
+				|| field.getType() == Integer.class //
+				|| field.getType() == Short.class //
+				|| field.getType() == String.class //
+				|| field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -113,7 +116,12 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
+		final Class<?> classType = field.getType();
+		if (classType == Long.class //
+				|| classType == Integer.class //
+				|| classType == Short.class //
+				|| classType == String.class //
+				|| classType == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -124,9 +132,20 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
-			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
-		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class || field.getType() == String.class || field.getType() == UUID.class) {
+	public void generateQuerry( //
+			@NotNull final String tableName, //
+			@NotNull final Field field, //
+			@NotNull final StringBuilder querrySelect, //
+			@NotNull final StringBuilder querry, //
+			@NotNull final String name, //
+			@NotNull final CountInOut elemCount, //
+			final QueryOptions options//
+	) throws Exception {
+		if (field.getType() == Long.class //
+				|| field.getType() == Integer.class //
+				|| field.getType() == Short.class //
+				|| field.getType() == String.class //
+				|| field.getType() == UUID.class) {
 			querrySelect.append(" ");
 			querrySelect.append(tableName);
 			querrySelect.append(".");
@@ -242,8 +261,27 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	// TODO : refacto this table to manage a generic table with dynamic name to be serialisable with the default system
 	@Override
-	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
-			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
-		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+	public void createTables(//
+			final String tableName, //
+			final Field primaryField, //
+			final Field field, //
+			final StringBuilder mainTableBuilder, //
+			final List<String> preActionList, //
+			final List<String> postActionList, //
+			final boolean createIfNotExist, //
+			final boolean createDrop, //
+			final int fieldId //
+	) throws Exception {
+		final Class<?> classType = field.getType();
+		if (classType == Long.class //
+				|| classType == Integer.class //
+				|| classType == Short.class //
+				|| classType == String.class //
+				|| classType == UUID.class) {
+			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, classType);
+		} else {
+			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
+			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+		}
 	}
 }

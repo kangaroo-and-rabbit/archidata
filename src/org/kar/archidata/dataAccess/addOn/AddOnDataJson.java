@@ -141,8 +141,17 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	@Override
-	public void createTables(final String tableName, final Field field, final StringBuilder mainTableBuilder, final List<String> preActionList, final List<String> postActionList,
-			final boolean createIfNotExist, final boolean createDrop, final int fieldId) throws Exception {
+	public void createTables(//
+			final String tableName, //
+			final Field primaryField, //
+			final Field field, //
+			final StringBuilder mainTableBuilder, //
+			final List<String> preActionList, //
+			final List<String> postActionList, //
+			final boolean createIfNotExist, //
+			final boolean createDrop, //
+			final int fieldId //
+	) throws Exception {
 		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class);
 	}
 

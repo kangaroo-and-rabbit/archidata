@@ -174,7 +174,7 @@ public class DataAccess {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 
-	/** extract a list of "-" separated element from a SQL input data.
+	/** Extract a list of Long with "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
 	 * @param iii Id in the result set
 	 * @return The list of Long value
@@ -185,9 +185,28 @@ public class DataAccess {
 			return null;
 		}
 		final List<Long> out = new ArrayList<>();
-		final String[] elements = trackString.split("-");
+		final String[] elements = trackString.split(separator);
 		for (final String elem : elements) {
 			final Long tmp = Long.parseLong(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+
+	/** Extract a list of UUID with "-" separated element from a SQL input data.
+	 * @param rs Result Set of the BDD
+	 * @param iii Id in the result set
+	 * @return The list of Long value
+	 * @throws SQLException if an error is generated in the SQL request. */
+	public static List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
+		final String trackString = rs.getString(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final List<UUID> out = new ArrayList<>();
+		final String[] elements = trackString.split(separator);
+		for (final String elem : elements) {
+			final UUID tmp = UUID.fromString(elem);
 			out.add(tmp);
 		}
 		return out;
@@ -930,7 +949,11 @@ public class DataAccess {
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
-			addOn.asyncInsert(tableName, uniqueSQLID, field, field.get(data), asyncActions);
+			if (uniqueSQLID != null) {
+				addOn.asyncInsert(tableName, uniqueSQLID, field, field.get(data), asyncActions);
+			} else if (uniqueSQLUUID != null) {
+				addOn.asyncInsert(tableName, uniqueSQLUUID, field, field.get(data), asyncActions);
+			}
 		}
 		for (final LazyGetter action : asyncActions) {
 			action.doRequest();

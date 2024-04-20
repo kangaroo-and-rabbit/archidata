@@ -257,6 +257,19 @@ public class AnnotationTools {
 		return true;
 	}
 
+	public static Field getPrimaryKeyField(final Class<?> clazz) throws Exception {
+		for (final Field field : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			if (AnnotationTools.isPrimaryKey(field)) {
+				return field;
+			}
+		}
+		return null;
+	}
+
 	public static boolean isPrimaryKey(final Field element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Id.class);
 		if (annotation.length == 0) {

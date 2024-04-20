@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
@@ -125,7 +126,6 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 
 				} else if (type == Integer.class || type == int.class) {
-
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final int maxValue = maxValueRoot.intValue();
@@ -154,6 +154,20 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 						});
 					}
+					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
+					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
+						add(fieldName, (final String baseName, final T data) -> {
+							final Object elem = field.get(data);
+							if (elem == null) {
+								return;
+							}
+							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+							if (count == 0) {
+								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
+							}
+						});
+					}
+				} else if (type == UUID.class) {
 					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName, (final String baseName, final T data) -> {

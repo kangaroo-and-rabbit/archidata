@@ -61,8 +61,17 @@ public interface DataAccessAddOn {
 	 * @param createDrop
 	 * @param fieldId
 	 * @throws Exception */
-	void createTables(String tableName, Field field, StringBuilder mainTableBuilder, List<String> preActionList, List<String> postActionList, boolean createIfNotExist, boolean createDrop, int fieldId)
-			throws Exception;
+	void createTables(//
+			String tableName, //
+			final Field primaryField, //
+			Field field, //
+			StringBuilder mainTableBuilder, //
+			List<String> preActionList, //
+			List<String> postActionList, //
+			boolean createIfNotExist, //
+			boolean createDrop, //
+			int fieldId //
+	) throws Exception;
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
