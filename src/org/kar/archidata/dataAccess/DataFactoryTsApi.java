@@ -269,6 +269,16 @@ public class DataFactoryTsApi {
 		}
 		return out;
 	}
+	public static String convertInTypeScriptCheckType(final List<ClassElement> tmp) {
+		String out = "";
+		for (final ClassElement elem : tmp) {
+			if (out.length() != 0) {
+				out += " | ";
+			}
+			out += elem.tsCheckType;
+		}
+		return out;
+	}
 
 	public static APIModel createSingleApi(final Class<?> clazz, final Set<Class<?>> includeModel, final Set<Class<?>> includeCheckerModel, final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
@@ -297,23 +307,29 @@ public class DataFactoryTsApi {
 			}
 			final boolean needGenerateProgress = apiAnnotationTypeScriptProgress(method);
 			Class<?>[] returnTypeModel = apiAnnotationGetAsyncType(method);
-			Class<?> returnTypeModelRaw = method.getReturnType();
-			if (returnTypeModel == null) {
-				returnTypeModel = new Class<?>[] { returnTypeModelRaw };
-				returnTypeModelRaw = null;
-			}
 			boolean isUnmanagedReturnType = false;
-			if (returnTypeModelRaw == Response.class) {
-				isUnmanagedReturnType = true;
-				returnTypeModel = new Class<?>[] { Void.class };
-			}
 			boolean returnModelIsArray = false;
 			List<ClassElement> tmpReturn;
-			if (returnTypeModelRaw == List.class) {
-				final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-				returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
-				tmpReturn = List.of(DataFactoryZod.createTable(returnTypeModelRaw, previous));
-				returnModelIsArray = true;
+			if (returnTypeModel == null) {
+				Class<?> returnTypeModelRaw = method.getReturnType();
+				LOGGER.info("Get type: {}", returnTypeModelRaw);
+				if (returnTypeModelRaw == Response.class) {
+					LOGGER.info("Get type: {}", returnTypeModelRaw);
+				}
+				if (returnTypeModelRaw == Response.class) {
+					isUnmanagedReturnType = true;
+					returnTypeModel = new Class<?>[] { Void.class };
+					tmpReturn = new ArrayList<>();
+				} else if (returnTypeModelRaw == List.class) {
+					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
+					returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
+					returnModelIsArray = true;
+					returnTypeModel = new Class<?>[] { returnTypeModelRaw };
+					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
+				} else {
+					returnTypeModel = new Class<?>[] { returnTypeModelRaw };
+					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
+				}
 			} else {
 				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 			}
@@ -377,12 +393,14 @@ public class DataFactoryTsApi {
 						if (parameterTypeString.length() != 0) {
 							parameterTypeString += " | ";
 						}
-						parameterTypeString += elem.tsTypeName + "[]";
+						parameterTypeString += elem.tsTypeName;
 					}
+					emptyElement.add(parameterTypeString);
 				} else if (parameterType == List.class) {
 					parameterTypeString = "any[]";
 					final Class<?> plop = parameterType.arrayType();
 					LOGGER.info("ArrayType = {}", plop);
+					emptyElement.add(parameterTypeString);
 				} else {
 					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
 					includeModel.add(tmp.model[0]);
@@ -422,7 +440,7 @@ public class DataFactoryTsApi {
 			}
 			builder.append("\n\texport function ");
 			builder.append(methodName);
-			builder.append("({\t\t\trestConfig,");
+			builder.append("({\n\t\t\trestConfig,");
 			if (!queryParams.isEmpty()) {
 				builder.append("\n\t\t\tqueries,");
 			}
@@ -436,7 +454,7 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\t\tdata,");
 			}
 			if (needGenerateProgress) {
-				builder.append(" callback,");
+				builder.append("\n\t\t\tcallback,");
 			}
 			builder.append("\n\t\t}: {");
 			builder.append("\n\t\trestConfig: RESTConfig,");
@@ -509,9 +527,17 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\tcallback?: RESTCallbacks,");
 			}
 			builder.append("\n\t}): Promise<");
-			builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
+			if (tmpReturn.size() == 0 //
+					|| tmpReturn.get(0).tsTypeName == null //
+					|| tmpReturn.get(0).tsTypeName.equals("void")) {
+				builder.append("void");
+			} else {
+				builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
+			}
 			builder.append("> {");
-			if (tmpReturn.size() == 0 || tmpReturn.get(0).tsTypeName == null || tmpReturn.get(0).tsTypeName.equals("void")) {
+			if (tmpReturn.size() == 0 //
+					|| tmpReturn.get(0).tsTypeName == null //
+					|| tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append("\n\t\treturn RESTRequestVoid({");
 			} else if (returnModelIsArray) {
 				builder.append("\n\t\treturn RESTRequestJsonArray({");
@@ -576,7 +602,8 @@ public class DataFactoryTsApi {
 			builder.append("\n\t\t}");
 			if (tmpReturn.size() != 0 && tmpReturn.get(0).tsTypeName != null && !tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append(", ");
-				builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
+				// TODO: correct this it is really bad ...
+				builder.append(convertInTypeScriptCheckType(tmpReturn));
 			}
 			builder.append(");");
 			builder.append("\n\t};");

@@ -2,6 +2,7 @@ package org.kar.archidata.dataAccess;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -19,6 +20,8 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.ws.rs.core.Response;
 
 public class DataFactoryZod {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryZod.class);
@@ -293,6 +296,9 @@ public class DataFactoryZod {
 	public static List<ClassElement> createTables(final Class<?>[] classs, final GeneratedTypes previous) throws Exception {
 		final List<ClassElement> out = new ArrayList<>();
 		for (final Class<?> clazz : classs) {
+			if (clazz == Response.class) {
+				throw new IOException("Can not generate a Zod element for an unknow type Response");
+			}
 			out.add(createTable(clazz, previous));
 		}
 		return out;
@@ -301,6 +307,9 @@ public class DataFactoryZod {
 	public static ClassElement createTable(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
 		if (clazz == null) {
 			return null;
+		}
+		if (clazz == Response.class) {
+			throw new IOException("Can not generate a Zod element for an unknow type Response");
 		}
 		final ClassElement alreadyExist = previous.find(clazz);
 		if (previous.find(clazz) != null) {
