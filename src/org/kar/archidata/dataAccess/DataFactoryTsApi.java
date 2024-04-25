@@ -269,6 +269,7 @@ public class DataFactoryTsApi {
 		}
 		return out;
 	}
+
 	public static String convertInTypeScriptCheckType(final List<ClassElement> tmp) {
 		String out = "";
 		for (final ClassElement elem : tmp) {
