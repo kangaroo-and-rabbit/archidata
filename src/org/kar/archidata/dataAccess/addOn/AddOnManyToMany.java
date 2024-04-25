@@ -73,9 +73,15 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
 		if (objectClass == Long.class || objectClass == UUID.class) {
 			return true;
-		} else {
+		}
+		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
+		if (decorators == null) {
 			return false;
 		}
+		if (decorators.targetEntity() == objectClass) {
+			return true;
+		}
+		return false;
 	}
 
 	public static String generateLinkTableNameField(final String tableName, final Field field) throws Exception {
@@ -99,19 +105,13 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			@NotNull final String name, //
 			@NotNull final CountInOut elemCount, //
 			final QueryOptions options//
-	) {
+	) throws Exception {
 		final String linkTableName = generateLinkTableName(tableName, name);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
 		final String tmpVariable = "tmp_" + Integer.toString(elemCount.value);
 		querrySelect.append(" (SELECT GROUP_CONCAT(");
-		if (objectClass == Long.class) {
-			querrySelect.append(tmpVariable);
-			querrySelect.append(".object2Id ");
-		} else {
-			querrySelect.append("BIN_TO_UUID(");
-			querrySelect.append(tmpVariable);
-			querrySelect.append(".object2Id) ");
-		}
+		querrySelect.append(tmpVariable);
+		querrySelect.append(".object2Id ");
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querrySelect.append(", ");
 		} else {
@@ -120,9 +120,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querrySelect.append("'");
 		if (objectClass == Long.class) {
 			querrySelect.append(SEPARATOR_LONG);
-		} else {
-			querrySelect.append(SEPARATOR_UUID);
-
+		} else if (objectClass == UUID.class) {} else {
+			final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
+			if (foreignKeyType == Long.class) {
+				querrySelect.append(SEPARATOR_LONG);
+			}
 		}
 		querrySelect.append("') FROM ");
 		querrySelect.append(linkTableName);
@@ -208,9 +210,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			return;
 		}
 		if (objectClass == decorators.targetEntity()) {
+			final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
 			if (decorators.fetch() == FetchType.EAGER) {
 				throw new DataAccessException("EAGER is not supported for list of element...");
-			} else if (objectClass == Long.class) {
+			} else if (foreignKeyType == Long.class) {
 				final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
 				// field.set(data, idList);
 				count.inc();
@@ -229,8 +232,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					};
 					lazyCall.add(lambda);
 				}
-			} else if (objectClass == UUID.class) {
-				final List<UUID> idList = DataAccess.getListOfUUIDs(rs, count.value, SEPARATOR_UUID);
+			} else if (foreignKeyType == UUID.class) {
+				final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
 				// field.set(data, idList);
 				count.inc();
 				if (idList != null && idList.size() > 0) {
