@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.velocity.tools.generic.ResourceTool.Key;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -133,6 +134,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querrySelect.append(" WHERE ");
 		/* querrySelect.append(tmpVariable); querrySelect.append(".deleted = false AND "); */
 		querrySelect.append(tableName);
+		final la il faut final retouvrt la primary final Key de la final table courante ...
 		querrySelect.append(".id = ");
 		querrySelect.append(tmpVariable);
 		querrySelect.append(".");
@@ -200,7 +202,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			count.inc();
 			return;
 		} else if (objectClass == UUID.class) {
-			final List<UUID> idList = DataAccess.getListOfUUIDs(rs, count.value, SEPARATOR_UUID);
+			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
 			return;

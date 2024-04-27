@@ -8,6 +8,8 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import org.kar.archidata.exception.DataAccessException;
+
 public class UuidUtils {
 
 	public static UUID asUuid(final BigInteger bigInteger) {
@@ -16,7 +18,10 @@ public class UuidUtils {
 		return new UUID(mostSignificantBits, leastSignificantBits);
 	}
 
-	public static UUID asUuid(final byte[] bytes) {
+	public static UUID asUuid(final byte[] bytes) throws DataAccessException {
+		if (bytes.length != 16) {
+			throw new DataAccessException("Try to convert wrong size of UUID: " + bytes.length + " expected 16.");
+		}
 		final ByteBuffer bb = ByteBuffer.wrap(bytes);
 		final long firstLong = bb.getLong();
 		final long secondLong = bb.getLong();

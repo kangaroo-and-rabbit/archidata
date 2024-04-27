@@ -213,29 +213,29 @@ public class DataAccess {
 		return out;
 	}
 
-	public static byte[][] splitIntoGroupsOf32Bytes(final byte[] input) {
+	public static byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
 		final int inputLength = input.length;
-		final int numOfGroups = (inputLength + 31) / 32; // Calculate the number of groups needed
-		final byte[][] groups = new byte[numOfGroups][32];
+		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
+		final byte[][] groups = new byte[numOfGroups][16];
 
 		for (int i = 0; i < numOfGroups; i++) {
-			final int startIndex = i * 32;
-			final int endIndex = Math.min(startIndex + 32, inputLength);
+			final int startIndex = i * 16;
+			final int endIndex = Math.min(startIndex + 16, inputLength);
 			groups[i] = Arrays.copyOfRange(input, startIndex, endIndex);
 		}
 
 		return groups;
 	}
 
-	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii) throws SQLException {
+	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
 		final byte[] trackString = rs.getBytes(iii);
 		if (rs.wasNull()) {
 			return null;
 		}
-		final byte[][] elements = splitIntoGroupsOf32Bytes(trackString);
+		final byte[][] elements = splitIntoGroupsOf16Bytes(trackString);
 		final List<UUID> out = new ArrayList<>();
 		for (final byte[] elem : elements) {
-			final UUID tmp = UUID.nameUUIDFromBytes(elem);
+			final UUID tmp = UuidUtils.asUuid(elem);
 			out.add(tmp);
 		}
 		return out;
