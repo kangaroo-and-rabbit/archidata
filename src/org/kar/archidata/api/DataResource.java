@@ -161,7 +161,7 @@ public class DataResource {
 			e.printStackTrace();
 			return null;
 		}
-		final String mediaPath = getFileData(injectedData.id);
+		final String mediaPath = getFileData(injectedData.uuid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
@@ -278,45 +278,45 @@ public class DataResource {
 	}
 
 	@GET
-	@Path("{id}")
+	@Path("{uuid}")
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
 	public Response retrieveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final UUID id) throws Exception {
+			@PathParam("uuid") final UUID uuid) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataId ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataId ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
-		final Data value = getSmall(id);
+		final Data value = getSmall(uuid);
 		if (value == null) {
-			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
+			Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		return buildStream(getFileData(id), range, value.mimeType);
+		return buildStream(getFileData(uuid), range, value.mimeType);
 	}
 
 	@GET
-	@Path("thumbnail/{id}")
+	@Path("thumbnail/{uuid}")
 	@RolesAllowed("USER")
 	@PermitTokenInURI
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrieveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final UUID id) throws Exception {
+			@PathParam("uuid") final UUID uuid) throws Exception {
 		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		// logger.info("== DATA retrieveDataThumbnailId ? {}", (gc==null?"null":gc.user));
 		// logger.info("===================================================");
-		final Data value = getSmall(id);
+		final Data value = getSmall(uuid);
 		if (value == null) {
-			return Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		final String filePathName = getFileData(id);
+		final String filePathName = getFileData(uuid);
 		final File inputFile = new File(filePathName);
 		if (!inputFile.exists()) {
-			return Response.status(404).entity("{\"error\":\"media Does not exist: " + id + "\"}").type("application/json").build();
+			return Response.status(404).entity("{\"error\":\"media Does not exist: " + uuid + "\"}").type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
 		// || value.mimeType.contentEquals("image/webp")
@@ -356,22 +356,22 @@ public class DataResource {
 	}
 
 	@GET
-	@Path("{id}/{name}")
+	@Path("{uuid}/{name}")
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment (with a beautiful name (permit download with basic name)", tags = "SYSTEM")
 	public Response retrieveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("id") final UUID id, @PathParam("name") final String name) throws Exception {
+			@PathParam("uuid") final UUID uuid, @PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", id, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
-		final Data value = getSmall(id);
+		final Data value = getSmall(uuid);
 		if (value == null) {
-			Response.status(404).entity("media NOT FOUND: " + id).type("text/plain").build();
+			Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		return buildStream(getFileData(id), range, value.mimeType);
+		return buildStream(getFileData(uuid), range, value.mimeType);
 	}
 
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541

@@ -115,7 +115,7 @@ public class DataTools {
 			return null;
 		}
 
-		final String mediaPath = DataResource.getFileData(out.id);
+		final String mediaPath = DataResource.getFileData(out.uuid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
@@ -246,7 +246,7 @@ public class DataTools {
 				}
 			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");
-				undelete(data.id);
+				undelete(data.uuid);
 				data.deleted = false;
 			} else {
 				LOGGER.error("Data already exist ... all good");
@@ -254,9 +254,9 @@ public class DataTools {
 			// Fist step: retrieve all the Id of each parents:...
 			LOGGER.info("Find typeNode");
 			if (id instanceof final Long idLong) {
-				AddOnDataJson.addLink(clazz, idLong, "covers", data.id);
+				AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
 			} else if (id instanceof final UUID idUUID) {
-				AddOnDataJson.addLink(clazz, idUUID, "covers", data.id);
+				AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
 			} else {
 				throw new IOException("Fail to add Cover can not detect type...");
 			}
