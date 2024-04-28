@@ -121,6 +121,7 @@ public class RESTApi {
 		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
+			LOGGER.trace("Receive Error: {}", httpResponse.body());
 			try {
 				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(), RESTErrorResponseExeption.class);
 				throw out;

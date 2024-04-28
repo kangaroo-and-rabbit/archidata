@@ -1031,9 +1031,10 @@ public class DataAccess {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = options.get(Condition.class);
 		if (condition != null) {
-			throw new DataAccessException("request a updateWithJson with a condition");
+			options.add(new Condition(new QueryAnd(getTableIdCondition(clazz, id), condition.condition)));
+		} else {
+			options.add(new Condition(getTableIdCondition(clazz, id)));
 		}
-		options.add(new Condition(getTableIdCondition(clazz, id)));
 		options.add(new TransmitKey(id));
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
