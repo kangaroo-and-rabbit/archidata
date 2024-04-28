@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.validation.constraints.NotNull;
 
 // TODO: maybe deprecated ==> use DataJson instead...
+@Deprecated
 public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
 	static final String SEPARATOR = "-";
