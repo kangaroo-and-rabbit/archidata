@@ -74,7 +74,8 @@ public class DataAccess {
 
 	}
 
-	public static boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
+	public static boolean isDBExist(final String name, final QueryOption... option)
+			throws InternalServerErrorException {
 		final QueryOptions options = new QueryOptions(option);
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
@@ -134,7 +135,8 @@ public class DataAccess {
 		}
 	}
 
-	public static boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
+	public static boolean isTableExist(final String name, final QueryOption... option)
+			throws InternalServerErrorException {
 		final QueryOptions options = new QueryOptions(option);
 		try {
 			String request = "";
@@ -180,7 +182,8 @@ public class DataAccess {
 	 * @param iii Id in the result set
 	 * @return The list of Long value
 	 * @throws SQLException if an error is generated in the SQL request. */
-	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator) throws SQLException {
+	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator)
+			throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -199,7 +202,8 @@ public class DataAccess {
 	 * @param iii Id in the result set
 	 * @return The list of Long value
 	 * @throws SQLException if an error is generated in the SQL request. */
-	public static List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
+	public static List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator)
+			throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -227,7 +231,8 @@ public class DataAccess {
 		return groups;
 	}
 
-	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii)
+			throws SQLException, DataAccessException {
 		final byte[] trackString = rs.getBytes(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -241,7 +246,12 @@ public class DataAccess {
 		return out;
 	}
 
-	protected static <T> void setValuedb(final Class<?> type, final T data, final CountInOut iii, final Field field, final PreparedStatement ps) throws Exception {
+	protected static <T> void setValuedb(
+			final Class<?> type,
+			final T data,
+			final CountInOut iii,
+			final Field field,
+			final PreparedStatement ps) throws Exception {
 		if (type == UUID.class) {
 			final Object tmp = field.get(data);
 			if (tmp == null) {
@@ -354,7 +364,13 @@ public class DataAccess {
 		iii.inc();
 	}
 
-	protected static <T> void setValueFromDb(final Class<?> type, final Object data, final CountInOut count, final Field field, final ResultSet rs, final CountInOut countNotNull) throws Exception {
+	protected static <T> void setValueFromDb(
+			final Class<?> type,
+			final Object data,
+			final CountInOut count,
+			final Field field,
+			final ResultSet rs,
+			final CountInOut countNotNull) throws Exception {
 		if (type == UUID.class) {
 			final byte[] tmp = rs.getBytes(count.value);
 			// final UUID tmp = rs.getObject(count.value, UUID.class);
@@ -877,7 +893,8 @@ public class DataAccess {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS);
 
 			final CountInOut iii = new CountInOut(1);
 			UUID uuid = null;
@@ -998,11 +1015,13 @@ public class DataAccess {
 		return insert(data);
 	}
 
-	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey) throws Exception {
+	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
+			throws Exception {
 		// Find the ID field type ....
 		final Field idField = AnnotationTools.getIdField(clazz);
 		if (idField == null) {
-			throw new DataAccessException("The class have no annotation @Id ==> can not determine the default type searching");
+			throw new DataAccessException(
+					"The class have no annotation @Id ==> can not determine the default type searching");
 		}
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
@@ -1011,7 +1030,8 @@ public class DataAccess {
 		}
 		if (idKey.getClass() != typeClass) {
 			if (idKey.getClass() == Condition.class) {
-				throw new DataAccessException("Try to identify the ID type on a condition 'close' internal API error use xxxWhere(...) instead.");
+				throw new DataAccessException(
+						"Try to identify the ID type on a condition 'close' internal API error use xxxWhere(...) instead.");
 			}
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
@@ -1027,7 +1047,11 @@ public class DataAccess {
 	 * @param jsonData Json data (partial) values to update
 	 * @return the number of object updated
 	 * @throws Exception */
-	public static <T, ID_TYPE> int updateWithJson(final Class<T> clazz, final ID_TYPE id, final String jsonData, final QueryOption... option) throws Exception {
+	public static <T, ID_TYPE> int updateWithJson(
+			final Class<T> clazz,
+			final ID_TYPE id,
+			final String jsonData,
+			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = options.get(Condition.class);
 		if (condition != null) {
@@ -1039,7 +1063,8 @@ public class DataAccess {
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
 
-	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option) throws Exception {
+	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = options.get(Condition.class);
 		if (condition == null) {
@@ -1067,7 +1092,11 @@ public class DataAccess {
 	 * @param filterValue
 	 * @return the affected rows.
 	 * @throws Exception */
-	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id, final List<String> updateColomn, final QueryOption... option) throws Exception {
+	public static <T, ID_TYPE> int update(
+			final T data,
+			final ID_TYPE id,
+			final List<String> updateColomn,
+			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(data.getClass(), id)));
 		options.add(new FilterValue(updateColomn));
@@ -1159,7 +1188,8 @@ public class DataAccess {
 			if (!firstField) {
 				LOGGER.debug("generate the query: '{}'", query.toString());
 				// prepare the request:
-				final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+				final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+						Statement.RETURN_GENERATED_KEYS);
 				final CountInOut iii = new CountInOut(1);
 				for (final Field field : clazz.getFields()) {
 					// static field is only for internal global declaration ==> remove it ..
@@ -1249,14 +1279,16 @@ public class DataAccess {
 		}
 	}
 
-	public static int executeSimpleQuery(final String query, final QueryOption... option) throws SQLException, IOException {
+	public static int executeSimpleQuery(final String query, final QueryOption... option)
+			throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.executeUpdate(query);
 	}
 
-	public static boolean executeQuery(final String query, final QueryOption... option) throws SQLException, IOException {
+	public static boolean executeQuery(final String query, final QueryOption... option)
+			throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
@@ -1360,7 +1392,8 @@ public class DataAccess {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuery(ps, iii);
 			if (limit != null) {
@@ -1390,7 +1423,12 @@ public class DataAccess {
 		return outs;
 	}
 
-	public static Object createObjectFromSQLRequest(final ResultSet rs, final Class<?> clazz, final CountInOut count, final CountInOut countNotNull, final QueryOptions options,
+	public static Object createObjectFromSQLRequest(
+			final ResultSet rs,
+			final Class<?> clazz,
+			final CountInOut count,
+			final CountInOut countNotNull,
+			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		// TODO: manage class that is defined inside a class ==> Not manage for now...
@@ -1401,7 +1439,8 @@ public class DataAccess {
 			}
 		}
 		if (data == null) {
-			throw new DataAccessException("Can not find the default constructor for the class: " + clazz.getCanonicalName());
+			throw new DataAccessException(
+					"Can not find the default constructor for the class: " + clazz.getCanonicalName());
 		}
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
@@ -1452,7 +1491,8 @@ public class DataAccess {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuery(ps, iii);
 			if (limit != null) {
@@ -1475,7 +1515,8 @@ public class DataAccess {
 		return count;
 	}
 
-	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return DataAccess.getWhere(clazz, options.getAllArray());
@@ -1499,7 +1540,8 @@ public class DataAccess {
 	 * @param id Unique Id of the model
 	 * @param options (Optional) Options of the request
 	 * @return Number of element that is removed. */
-	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options) throws Exception {
+	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
+			throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
 			return deleteSoft(clazz, id, options);
@@ -1523,7 +1565,8 @@ public class DataAccess {
 		}
 	}
 
-	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return deleteHardWhere(clazz, options.getAllArray());
@@ -1555,7 +1598,8 @@ public class DataAccess {
 		}
 	}
 
-	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return deleteSoftWhere(clazz, options.getAllArray());
@@ -1596,7 +1640,8 @@ public class DataAccess {
 		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
 	}
 
-	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return unsetDeleteWhere(clazz, options.getAllArray());
@@ -1706,12 +1751,20 @@ public class DataAccess {
 	 * @param option Optional parameters
 	 * @return The list of element requested
 	 * @throws Exception */
-	public static <TYPE> List<TYPE> query(final Class<TYPE> clazz, final String query, final List<Object> parameters, final QueryOption... option) throws Exception {
+	public static <TYPE> List<TYPE> query(
+			final Class<TYPE> clazz,
+			final String query,
+			final List<Object> parameters,
+			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return query(clazz, query, parameters, options);
 	}
 
-	public static <TYPE> List<TYPE> query(final Class<TYPE> clazz, final String queryBase, final List<Object> parameters, final QueryOptions options) throws Exception {
+	public static <TYPE> List<TYPE> query(
+			final Class<TYPE> clazz,
+			final String queryBase,
+			final List<Object> parameters,
+			final QueryOptions options) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
@@ -1741,7 +1794,8 @@ public class DataAccess {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
 				for (final Object elem : parameters) {

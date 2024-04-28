@@ -31,7 +31,8 @@ public class MediaStreamer implements StreamingOutput {
 	public void write(final OutputStream outputStream) {
 		try {
 			while (this.length != 0) {
-				final int read = this.raf.read(this.buf, 0, this.buf.length > this.length ? (int) this.length : this.buf.length);
+				final int read = this.raf.read(this.buf, 0,
+						this.buf.length > this.length ? (int) this.length : this.buf.length);
 				try {
 					outputStream.write(this.buf, 0, read);
 				} catch (final IOException ex) {

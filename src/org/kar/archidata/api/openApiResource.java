@@ -27,7 +27,8 @@ public class openApiResource extends BaseOpenApiResource {
 	@Produces({ MediaType.APPLICATION_JSON })
 	@PermitAll
 	@Operation(hidden = true, description = "Get the OPEN-API description", tags = "SYSTEM")
-	public Response getDescription(@Context final HttpHeaders headers, @Context final UriInfo uriInfo) throws Exception {
+	public Response getDescription(@Context final HttpHeaders headers, @Context final UriInfo uriInfo)
+			throws Exception {
 		return getOpenApi(headers, this.config, this.app, uriInfo, "json");
 	}
 }

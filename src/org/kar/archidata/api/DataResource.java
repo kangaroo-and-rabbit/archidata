@@ -85,7 +85,8 @@ public class DataResource {
 	}
 
 	public static String getFileDataOld(final long tmpFolderId) {
-		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator + "data";
+		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator
+				+ "data";
 		try {
 			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator);
 		} catch (final IOException e) {
@@ -100,7 +101,8 @@ public class DataResource {
 		final String part2 = stringUUID.substring(2, 4);
 		final String part3 = stringUUID.substring(4);
 		final String finalPath = part1 + File.separator + part2;
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath + File.separator;
+		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath
+				+ File.separator;
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
@@ -136,19 +138,20 @@ public class DataResource {
 		return null;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512) throws IOException {
+	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+			throws IOException {
 		// determine mime type:
 		Data injectedData = new Data();
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
 		mimeType = switch (extension.toLowerCase()) {
-		case "jpg", "jpeg" -> "image/jpeg";
-		case "png" -> "image/png";
-		case "webp" -> "image/webp";
-		case "mka" -> "audio/x-matroska";
-		case "mkv" -> "video/x-matroska";
-		case "webm" -> "video/webm";
-		default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
+			case "jpg", "jpeg" -> "image/jpeg";
+			case "png" -> "image/png";
+			case "webp" -> "image/webp";
+			case "mka" -> "audio/x-matroska";
+			case "mkv" -> "video/x-matroska";
+			case "webm" -> "video/webm";
+			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
 		};
 		injectedData.mimeType = mimeType;
 		injectedData.sha512 = sha512;
@@ -261,7 +264,10 @@ public class DataResource {
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
 	@RolesAllowed("ADMIN")
 	@Operation(description = "Insert a new data in the data environment", tags = "SYSTEM")
-	public void uploadFile(@Context final SecurityContext sc, @FormDataParam("file") final InputStream fileInputStream, @FormDataParam("file") final FormDataContentDisposition fileMetaData) {
+	public void uploadFile(
+			@Context final SecurityContext sc,
+			@FormDataParam("file") final InputStream fileInputStream,
+			@FormDataParam("file") final FormDataContentDisposition fileMetaData) {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		LOGGER.info("===================================================");
 		LOGGER.info("== DATA uploadFile {}", (gc == null ? "null" : gc.userByToken));
@@ -283,7 +289,10 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
-	public Response retrieveDataId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
+	public Response retrieveDataId(
+			@Context final SecurityContext sc,
+			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
+			@HeaderParam("Range") final String range,
 			@PathParam("uuid") final UUID uuid) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
@@ -303,7 +312,10 @@ public class DataResource {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
-	public Response retrieveDataThumbnailId(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
+	public Response retrieveDataThumbnailId(
+			@Context final SecurityContext sc,
+			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
+			@HeaderParam("Range") final String range,
 			@PathParam("uuid") final UUID uuid) throws Exception {
 		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
@@ -316,7 +328,8 @@ public class DataResource {
 		final String filePathName = getFileData(uuid);
 		final File inputFile = new File(filePathName);
 		if (!inputFile.exists()) {
-			return Response.status(404).entity("{\"error\":\"media Does not exist: " + uuid + "\"}").type("application/json").build();
+			return Response.status(404).entity("{\"error\":\"media Does not exist: " + uuid + "\"}")
+					.type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
 		// || value.mimeType.contentEquals("image/webp")
@@ -324,7 +337,8 @@ public class DataResource {
 			// reads input image
 			final BufferedImage inputImage = ImageIO.read(inputFile);
 			final int scaledWidth = 250;
-			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth() * scaledWidth);
+			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth()
+					* scaledWidth);
 			// creates output image
 			final BufferedImage outputImage = new BufferedImage(scaledWidth, scaledHeight, inputImage.getType());
 
@@ -339,11 +353,13 @@ public class DataResource {
 				ImageIO.write(outputImage, "JPG", baos);
 			} catch (final IOException e) {
 				e.printStackTrace();
-				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain").build();
+				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain")
+						.build();
 			}
 			final byte[] imageData = baos.toByteArray();
 			// Response.ok(new ByteArrayInputStream(imageData)).build();
-			final Response.ResponseBuilder out = Response.ok(imageData).header(HttpHeaders.CONTENT_LENGTH, imageData.length);
+			final Response.ResponseBuilder out = Response.ok(imageData).header(HttpHeaders.CONTENT_LENGTH,
+					imageData.length);
 			out.type("image/jpeg");
 			// TODO: move this in a decorator !!!
 			final CacheControl cc = new CacheControl();
@@ -361,8 +377,12 @@ public class DataResource {
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get back some data from the data environment (with a beautiful name (permit download with basic name)", tags = "SYSTEM")
-	public Response retrieveDataFull(@Context final SecurityContext sc, @QueryParam(HttpHeaders.AUTHORIZATION) final String token, @HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid, @PathParam("name") final String name) throws Exception {
+	public Response retrieveDataFull(
+			@Context final SecurityContext sc,
+			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
+			@HeaderParam("Range") final String range,
+			@PathParam("uuid") final UUID uuid,
+			@PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
@@ -431,8 +451,10 @@ public class DataResource {
 
 		final long len = to - from + 1;
 		final MediaStreamer streamer = new MediaStreamer(len, raf);
-		final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT).header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
-				.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth()).header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
+		final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT)
+				.header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
+				.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth())
+				.header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
 		if (mimeType != null) {
 			out.type(mimeType);
 		}

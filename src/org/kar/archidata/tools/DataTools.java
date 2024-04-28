@@ -69,7 +69,8 @@ public class DataTools {
 
 	public static Data getWithSha512(final String sha512) {
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)), new ReadAllColumn());
+			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
+					new ReadAllColumn());
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -79,7 +80,8 @@ public class DataTools {
 
 	public static Data getWithId(final long id) {
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryAnd(List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
+			return DataAccess.getWhere(Data.class, new Condition(new QueryAnd(
+					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -87,18 +89,19 @@ public class DataTools {
 		return null;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512) throws IOException, SQLException {
+	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+			throws IOException, SQLException {
 		// determine mime type:
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
 		mimeType = switch (extension.toLowerCase()) {
-		case "jpg", "jpeg" -> "image/jpeg";
-		case "png" -> "image/png";
-		case "webp" -> "image/webp";
-		case "mka" -> "audio/x-matroska";
-		case "mkv" -> "video/x-matroska";
-		case "webm" -> "video/webm";
-		default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
+			case "jpg", "jpeg" -> "image/jpeg";
+			case "png" -> "image/png";
+			case "webp" -> "image/webp";
+			case "mka" -> "audio/x-matroska";
+			case "mkv" -> "video/x-matroska";
+			case "webm" -> "video/webm";
+			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
 		};
 		final String tmpPath = getTmpFileInData(tmpUID);
 		final long fileSize = Files.size(Paths.get(tmpPath));
@@ -211,7 +214,11 @@ public class DataTools {
 		return data;
 	}
 
-	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(final Class<CLASS_TYPE> clazz, final ID_TYPE id, String fileName, final InputStream fileInputStream,
+	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(
+			final Class<CLASS_TYPE> clazz,
+			final ID_TYPE id,
+			String fileName,
+			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) {
 		try {
 			// correct input string stream :

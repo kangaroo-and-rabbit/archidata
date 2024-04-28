@@ -19,7 +19,8 @@ public class UserDB {
 		return DataAccess.get(User.class, userId, option);
 	}
 
-	public static User getUserOrCreate(final long userId, final String userLogin, QueryOption... option) throws Exception {
+	public static User getUserOrCreate(final long userId, final String userLogin, QueryOption... option)
+			throws Exception {
 		final User user = getUsers(userId);
 		if (user != null) {
 			return user;
@@ -28,7 +29,8 @@ public class UserDB {
 		return getUsers(userId);
 	}
 
-	private static void createUsersInfoFromOAuth(final long userId, final String login, QueryOption... option) throws IOException {
+	private static void createUsersInfoFromOAuth(final long userId, final String login, QueryOption... option)
+			throws IOException {
 		QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final String query = "INSERT INTO `user` (`id`, `login`, `lastConnection`, `admin`, `blocked`, `removed`) VALUE (?,?,now(3),'0','0','0')";

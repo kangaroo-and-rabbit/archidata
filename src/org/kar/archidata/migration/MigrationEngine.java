@@ -162,14 +162,16 @@ public class MigrationEngine {
 				sqlQuery = DataFactory.createTable(Migration.class);
 			} catch (final Exception ex) {
 				ex.printStackTrace();
-				throw new MigrationException("Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
+				throw new MigrationException(
+						"Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
 			}
 			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
 			try {
 				DataAccess.executeQuery(sqlQuery.get(0));
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
-				throw new MigrationException("Fail to create the local DB model for migaration ==> wait administrator interventions");
+				throw new MigrationException(
+						"Fail to create the local DB model for migaration ==> wait administrator interventions");
 			}
 		}
 		final Migration currentVersion = getCurrentVersion();
@@ -188,7 +190,8 @@ public class MigrationEngine {
 			}
 		} else {
 			if (!currentVersion.terminated) {
-				throw new MigrationException("An error occured in the last migration: '" + currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
+				throw new MigrationException("An error occured in the last migration: '" + currentVersion.name
+						+ "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
 			}
 			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
 			boolean find = this.init != null && this.init.getName().equals(currentVersion.name);
@@ -220,7 +223,8 @@ public class MigrationEngine {
 			}
 		} catch (final IOException e) {
 			e.printStackTrace();
-			throw new MigrationException("An error occured in the migration (can not access to the DB): '" + currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
+			throw new MigrationException("An error occured in the migration (can not access to the DB): '"
+					+ currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
 		}
 		if (needPlaceholder) {
 			if (this.datas.size() == 0) {
@@ -246,7 +250,8 @@ public class MigrationEngine {
 		LOGGER.info("Execute migration ... [ END ]");
 	}
 
-	public void migrateSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count) throws MigrationException {
+	public void migrateSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count)
+			throws MigrationException {
 		LOGGER.info("---------------------------------------------------------");
 		LOGGER.info("-- Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
 		LOGGER.info("---------------------------------------------------------");
@@ -260,14 +265,16 @@ public class MigrationEngine {
 			migrationResult.count = elem.getNumberOfStep();
 		} catch (final Exception e) {
 			e.printStackTrace();
-			throw new MigrationException("Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage());
+			throw new MigrationException(
+					"Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage());
 		}
 		migrationResult.log = log.toString();
 		try {
 			migrationResult = DataAccess.insert(migrationResult);
 		} catch (final Exception e) {
 			e.printStackTrace();
-			throw new MigrationException("Fail to insert migration Log in the migration table: " + e.getLocalizedMessage());
+			throw new MigrationException(
+					"Fail to insert migration Log in the migration table: " + e.getLocalizedMessage());
 		}
 		boolean ret = true;
 		try {
@@ -276,7 +283,8 @@ public class MigrationEngine {
 			log.append("\nFail in the migration apply ");
 			log.append(e.getLocalizedMessage());
 			e.printStackTrace();
-			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
+			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @"
+					+ migrationResult.stepId + "/" + migrationResult.count);
 		}
 		if (ret) {
 			migrationResult.terminated = true;
@@ -284,7 +292,8 @@ public class MigrationEngine {
 				DataAccess.update(migrationResult, migrationResult.id, List.of("terminated"));
 			} catch (final Exception e) {
 				e.printStackTrace();
-				throw new MigrationException("Fail to update migration Log in the migration table: " + e.getLocalizedMessage());
+				throw new MigrationException(
+						"Fail to update migration Log in the migration table: " + e.getLocalizedMessage());
 			}
 		} else {
 			try {
@@ -293,10 +302,12 @@ public class MigrationEngine {
 				DataAccess.update(migrationResult, migrationResult.id, List.of("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
-				throw new MigrationException("Fail to update migration Log in the migration table: " + e.getLocalizedMessage() + " WITH: An error occured in the migration (OUTSIDE detection): '"
+				throw new MigrationException("Fail to update migration Log in the migration table: "
+						+ e.getLocalizedMessage() + " WITH: An error occured in the migration (OUTSIDE detection): '"
 						+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 			}
-			throw new MigrationException("An error occured in the migration (OUTSIDE detection): '" + migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
+			throw new MigrationException("An error occured in the migration (OUTSIDE detection): '"
+					+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
 		}
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}

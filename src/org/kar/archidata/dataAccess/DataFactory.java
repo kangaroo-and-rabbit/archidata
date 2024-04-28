@@ -142,8 +142,16 @@ public class DataFactory {
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
 
-	public static void createTablesSpecificType(final String tableName, final Field elem, final StringBuilder mainTableBuilder, final List<String> preOtherTables, final List<String> postOtherTables,
-			final boolean createIfNotExist, final boolean createDrop, final int fieldId, final Class<?> classModel) throws Exception {
+	public static void createTablesSpecificType(
+			final String tableName,
+			final Field elem,
+			final StringBuilder mainTableBuilder,
+			final List<String> preOtherTables,
+			final List<String> postOtherTables,
+			final boolean createIfNotExist,
+			final boolean createDrop,
+			final int fieldId,
+			final Class<?> classModel) throws Exception {
 		final String name = AnnotationTools.getFieldName(elem);
 		final int limitSize = AnnotationTools.getLimitSize(elem);
 		final boolean notNull = AnnotationTools.getColumnNotNull(elem);
@@ -372,16 +380,20 @@ public class DataFactory {
 				LOGGER.trace("        + '{}'", elem.getName());
 				if (DataAccess.isAddOnField(elem)) {
 					final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
-					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType());
+					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem),
+							elem.getType());
 					if (addOn != null) {
-						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId);
+						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList,
+								createIfNotExist, createDrop, fieldId);
 					} else {
-						throw new DataAccessException(
-								"Element matked as add-on but add-on does not loaded: table:" + tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType());
+						throw new DataAccessException("Element matked as add-on but add-on does not loaded: table:"
+								+ tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type="
+								+ elem.getType());
 					}
 				} else {
 					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-					DataFactory.createTablesSpecificType(tableName, elem, tmpOut, preActionList, postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
+					DataFactory.createTablesSpecificType(tableName, elem, tmpOut, preActionList, postActionList,
+							createIfNotExist, createDrop, fieldId, elem.getType());
 				}
 				fieldId++;
 			}

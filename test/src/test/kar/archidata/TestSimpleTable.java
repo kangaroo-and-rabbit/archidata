@@ -91,7 +91,8 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+				QueryOptions.READ_ALL_COLOMN);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -114,7 +115,8 @@ public class TestSimpleTable {
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED_2;
 		DataAccess.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
-		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.id);
@@ -139,7 +141,8 @@ public class TestSimpleTable {
 	public void testReadDeletedObject() throws Exception {
 
 		// check if we set get deleted element
-		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+				QueryOptions.ACCESS_DELETED_ITEMS);
 		Assertions.assertNull(retrieve);
 
 	}
@@ -148,7 +151,8 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
+		final SimpleTable retrieve = DataAccess.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+				QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNull(retrieve);
 
 	}

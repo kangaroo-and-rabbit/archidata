@@ -37,7 +37,10 @@ public class DataExport {
 	public static final String CSV_TYPE = "text/csv";
 
 	@SuppressWarnings("unchecked")
-	protected static RetreiveFromDB createSetValueFromDbCallbackTable(final int count, final Class<?> type, final int id) throws Exception {
+	protected static RetreiveFromDB createSetValueFromDbCallbackTable(
+			final int count,
+			final Class<?> type,
+			final int id) throws Exception {
 		if (type == UUID.class) {
 			return (final ResultSet rs, final Object obj) -> {
 				final UUID tmp = rs.getObject(count, UUID.class);
@@ -228,7 +231,8 @@ public class DataExport {
 
 	}
 
-	private static int getQueryPropertyId(final List<TableQueryTypes> properties, final String name) throws DataAccessException {
+	private static int getQueryPropertyId(final List<TableQueryTypes> properties, final String name)
+			throws DataAccessException {
 		for (int iii = 0; iii < properties.size(); iii++) {
 			if (properties.get(iii).name.equals(name)) {
 				return iii;
@@ -237,12 +241,20 @@ public class DataExport {
 		throw new DataAccessException("Query with unknown field: '" + name + "'");
 	}
 
-	public static TableQuery queryTable(final List<TableQueryTypes> headers, final String query, final List<Object> parameters, final QueryOption... option) throws Exception {
+	public static TableQuery queryTable(
+			final List<TableQueryTypes> headers,
+			final String query,
+			final List<Object> parameters,
+			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return queryTable(headers, query, parameters, options);
 	}
 
-	public static TableQuery queryTable(final List<TableQueryTypes> headers, final String queryBase, final List<Object> parameters, final QueryOptions options) throws Exception {
+	public static TableQuery queryTable(
+			final List<TableQueryTypes> headers,
+			final String queryBase,
+			final List<Object> parameters,
+			final QueryOptions options) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
@@ -272,7 +284,8 @@ public class DataExport {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
+			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
 				for (final Object elem : parameters) {
@@ -294,7 +307,8 @@ public class DataExport {
 				final String typeName = rsmd.getColumnTypeName(jjj + 1);
 				final int typeId = rsmd.getColumnType(jjj + 1);
 				final int id = getQueryPropertyId(headers, label);
-				LOGGER.info("    - {}:{} type=[{}] {}  REQUEST={}", jjj, label, typeId, typeName, headers.get(id).type.getCanonicalName());
+				LOGGER.info("    - {}:{} type=[{}] {}  REQUEST={}", jjj, label, typeId, typeName,
+						headers.get(id).type.getCanonicalName());
 				// create the callback...
 				final RetreiveFromDB element = createSetValueFromDbCallbackTable(jjj + 1, headers.get(id).type, id);
 				actionToRetreive.add(element);
@@ -363,7 +377,8 @@ public class DataExport {
 		return out.toString();
 	}
 
-	public static Response convertInResponse(final TableQuery dataOut, final String accept) throws DataAccessException, IOException {
+	public static Response convertInResponse(final TableQuery dataOut, final String accept)
+			throws DataAccessException, IOException {
 		if (CSV_TYPE.equals(accept)) {
 			// CSV serialization
 			String out = null;

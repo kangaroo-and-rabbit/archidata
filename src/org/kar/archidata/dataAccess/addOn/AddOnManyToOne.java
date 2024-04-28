@@ -48,7 +48,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws Exception {
+	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
+			throws Exception {
 		final Object data = field.get(rootObject);
 		if (data == null) {
 			if (field.getType() == Long.class) {
@@ -95,11 +96,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		if (field.getType() == Long.class //
-				|| field.getType() == Integer.class //
-				|| field.getType() == Short.class //
-				|| field.getType() == String.class //
-				|| field.getType() == UUID.class) {
+		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
+				|| field.getType() == String.class || field.getType() == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -117,11 +115,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	@Override
 	public boolean canRetrieve(final Field field) {
 		final Class<?> classType = field.getType();
-		if (classType == Long.class //
-				|| classType == Integer.class //
-				|| classType == Short.class //
-				|| classType == String.class //
-				|| classType == UUID.class) {
+		if (classType == Long.class || classType == Integer.class || classType == Short.class
+				|| classType == String.class || classType == UUID.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -132,21 +127,17 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuery(//
-			@NotNull final String tableName, //
-			@NotNull final String primaryKey, //
-			@NotNull final Field field, //
-			@NotNull final StringBuilder querySelect, //
-			@NotNull final StringBuilder query, //
-			@NotNull final String name, //
-			@NotNull final CountInOut count, //
-			final QueryOptions options//
-	) throws Exception {
-		if (field.getType() == Long.class //
-				|| field.getType() == Integer.class //
-				|| field.getType() == Short.class //
-				|| field.getType() == String.class //
-				|| field.getType() == UUID.class) {
+	public void generateQuery(
+			@NotNull final String tableName,
+			@NotNull final String primaryKey,
+			@NotNull final Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull final String name,
+			@NotNull final CountInOut count,
+			final QueryOptions options) throws Exception {
+		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
+				|| field.getType() == String.class || field.getType() == UUID.class) {
 			querySelect.append(" ");
 			querySelect.append(tableName);
 			querySelect.append(".");
@@ -186,7 +177,13 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
+	public void fillFromQuery(
+			final ResultSet rs,
+			final Field field,
+			final Object data,
+			final CountInOut count,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() == Long.class) {
 			final Long foreignKey = rs.getLong(count.value);
 			count.inc();
@@ -236,7 +233,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		if (objectClass == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
 				final CountInOut countNotNull = new CountInOut(0);
-				final Object dataNew = DataAccess.createObjectFromSQLRequest(rs, objectClass, count, countNotNull, options, lazyCall);
+				final Object dataNew = DataAccess.createObjectFromSQLRequest(rs, objectClass, count, countNotNull,
+						options, lazyCall);
 				if (dataNew != null && countNotNull.value != 0) {
 					field.set(data, dataNew);
 				}
@@ -262,27 +260,25 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	// TODO : refacto this table to manage a generic table with dynamic name to be serialisable with the default system
 	@Override
-	public void createTables(//
-			final String tableName, //
-			final Field primaryField, //
-			final Field field, //
-			final StringBuilder mainTableBuilder, //
-			final List<String> preActionList, //
-			final List<String> postActionList, //
-			final boolean createIfNotExist, //
-			final boolean createDrop, //
-			final int fieldId //
-	) throws Exception {
+	public void createTables(
+			final String tableName,
+			final Field primaryField,
+			final Field field,
+			final StringBuilder mainTableBuilder,
+			final List<String> preActionList,
+			final List<String> postActionList,
+			final boolean createIfNotExist,
+			final boolean createDrop,
+			final int fieldId) throws Exception {
 		final Class<?> classType = field.getType();
-		if (classType == Long.class //
-				|| classType == Integer.class //
-				|| classType == Short.class //
-				|| classType == String.class //
-				|| classType == UUID.class) {
-			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, classType);
+		if (classType == Long.class || classType == Integer.class || classType == Short.class
+				|| classType == String.class || classType == UUID.class) {
+			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
+					createIfNotExist, createDrop, fieldId, classType);
 		} else {
 			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
-			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
+					createIfNotExist, createDrop, fieldId, Long.class);
 		}
 	}
 }

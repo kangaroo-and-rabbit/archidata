@@ -13,7 +13,10 @@ import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-record Action(String action, AsyncCall async, List<String> filterDB) {
+record Action(
+		String action,
+		AsyncCall async,
+		List<String> filterDB) {
 	public Action(final String action) {
 		this(action, null, List.of());
 	}
@@ -49,9 +52,11 @@ public class MigrationSqlStep implements MigrationInterface {
 		for (int iii = 0; iii < this.actions.size(); iii++) {
 			final Action action = this.actions.get(iii);
 			if (action.action() != null) {
-				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(), action.action());
+				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(),
+						action.action());
 			} else {
-				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\nAsync lambda", iii, this.actions.size(), action.filterDB());
+				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\nAsync lambda", iii, this.actions.size(),
+						action.filterDB());
 			}
 		}
 	}
@@ -65,7 +70,8 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean applyMigration(final DBEntry entry, final StringBuilder log, final Migration model) throws Exception {
+	public boolean applyMigration(final DBEntry entry, final StringBuilder log, final Migration model)
+			throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
 			generateStep();
@@ -76,10 +82,12 @@ public class MigrationSqlStep implements MigrationInterface {
 			final Action action = this.actions.get(iii);
 
 			if (action.action() != null) {
-				LOGGER.info("SQL request: ```{}``` on '{}' current={}", action.action(), action.filterDB(), ConfigBaseVariable.getDBType());
+				LOGGER.info("SQL request: ```{}``` on '{}' current={}", action.action(), action.filterDB(),
+						ConfigBaseVariable.getDBType());
 				log.append("SQL: " + action.action() + " on " + action.filterDB() + "\n");
 			} else {
-				LOGGER.info("SQL request: <Lambda> on '{}' current={}", action.filterDB(), ConfigBaseVariable.getDBType());
+				LOGGER.info("SQL request: <Lambda> on '{}' current={}", action.filterDB(),
+						ConfigBaseVariable.getDBType());
 				log.append("SQL: <Lambda> on " + action.filterDB() + "\n");
 			}
 			boolean isValid = true;

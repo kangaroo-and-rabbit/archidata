@@ -267,7 +267,8 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.timeStampData);
 		// Can not compare the exact timestamp due to aproximation and model of storing data :
 		// Assertions.assertEquals(insertedData.timeStampData, retrieve.timeStampData);
-		Assertions.assertEquals(insertedData.timeStampData.toInstant().toEpochMilli(), retrieve.timeStampData.toInstant().toEpochMilli());
+		Assertions.assertEquals(insertedData.timeStampData.toInstant().toEpochMilli(),
+				retrieve.timeStampData.toInstant().toEpochMilli());
 
 		DataAccess.delete(TypesTable.class, insertedData.id);
 	}

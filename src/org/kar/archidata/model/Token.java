@@ -12,7 +12,8 @@ public class Token {
 
 	public Token() {}
 
-	public Token(final long id, final long userId, final String token, final String createTime, final String endValidityTime) {
+	public Token(final long id, final long userId, final String token, final String createTime,
+			final String endValidityTime) {
 		this.id = id;
 		this.userId = userId;
 		this.token = token;
@@ -35,6 +36,7 @@ public class Token {
 
 	@Override
 	public String toString() {
-		return "Token{" + "id=" + this.id + ", userId=" + this.userId + ", token='" + this.token + '\'' + ", createTime=" + this.createTime + ", endValidityTime=" + this.endValidityTime + '}';
+		return "Token{" + "id=" + this.id + ", userId=" + this.userId + ", token='" + this.token + '\''
+				+ ", createTime=" + this.createTime + ", endValidityTime=" + this.endValidityTime + '}';
 	}
 }

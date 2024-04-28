@@ -18,11 +18,13 @@ public class JacksonCatcher implements ExceptionMapper<JsonProcessingException> 
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
 		exception.printStackTrace();
-		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON).build();
+		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON)
+				.build();
 	}
 
 	private RestErrorResponse build(final Exception exception) {
-		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Catch JSON Exception", exception.getMessage());
+		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Catch JSON Exception",
+				exception.getMessage());
 	}
 
 }

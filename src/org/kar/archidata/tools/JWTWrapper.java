@@ -78,7 +78,8 @@ public class JWTWrapper {
 		public PublicKey() {}
 	}
 
-	public static void initLocalTokenRemote(final String ssoUri, final String application) throws IOException, ParseException {
+	public static void initLocalTokenRemote(final String ssoUri, final String application)
+			throws IOException, ParseException {
 		// check Token:
 		final URL obj = new URL(ssoUri + "public_key");
 		// LOGGER.debug("Request token from: {}", obj);
@@ -169,7 +170,13 @@ public class JWTWrapper {
 	 * @param isuer The one who provide the Token
 	 * @param timeOutInMunites Expiration of the token.
 	 * @return the encoded token */
-	public static String generateJWToken(final long userID, final String userLogin, final String isuer, final String application, final Map<String, Object> rights, final int timeOutInMunites) {
+	public static String generateJWToken(
+			final long userID,
+			final String userLogin,
+			final String isuer,
+			final String application,
+			final Map<String, Object> rights,
+			final int timeOutInMunites) {
 		if (rsaJWK == null) {
 			LOGGER.warn("JWT private key is not present !!!");
 			return null;
@@ -186,7 +193,8 @@ public class JWTWrapper {
 			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
 
 			LOGGER.warn("expiration= {}", expiration);
-			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID)).claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
+			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
+					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
 			if (rights != null && !rights.isEmpty()) {
@@ -194,7 +202,8 @@ public class JWTWrapper {
 			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
+			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
 
 			// Compute the RSA signature
 			signedJWT.sign(signer);
@@ -230,12 +239,15 @@ public class JWTWrapper {
 					return null;
 				}
 			}
-			if (!ConfigBaseVariable.getTestMode() && !new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
-				LOGGER.error("JWT token is expired now = " + new Date() + " with=" + signedJWT.getJWTClaimsSet().getExpirationTime());
+			if (!ConfigBaseVariable.getTestMode()
+					&& !new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
+				LOGGER.error("JWT token is expired now = " + new Date() + " with="
+						+ signedJWT.getJWTClaimsSet().getExpirationTime());
 				return null;
 			}
 			if (!isuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
-				LOGGER.error("JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
+				LOGGER.error(
+						"JWT issuer is wong: '" + isuer + "' != '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 				return null;
 			}
 			if (application != null) {
@@ -251,7 +263,12 @@ public class JWTWrapper {
 		return null;
 	}
 
-	public static String createJwtTestToken(final long userID, final String userLogin, final String isuer, final String application, final Map<String, Map<String, Object>> rights) {
+	public static String createJwtTestToken(
+			final long userID,
+			final String userLogin,
+			final String isuer,
+			final String application,
+			final Map<String, Map<String, Object>> rights) {
 		if (!ConfigBaseVariable.getTestMode()) {
 			LOGGER.error("Test mode disable !!!!!");
 			return null;
@@ -262,7 +279,8 @@ public class JWTWrapper {
 			final Date now = new Date();
 			final Date expiration = new Date(new Date().getTime() + timeOutInMunites * 1000 /* ms */);
 
-			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID)).claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
+			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
+					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
 			if (rights != null && !rights.isEmpty()) {
@@ -270,7 +288,8 @@ public class JWTWrapper {
 			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
+			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
+					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
 
 			// Compute the RSA signature
 			signedJWT.sign(new TestSigner());

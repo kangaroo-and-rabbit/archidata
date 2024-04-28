@@ -82,7 +82,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		if (authorizationHeader == null && apikeyHeader == null && method.isAnnotationPresent(PermitTokenInURI.class)) {
 			final MultivaluedMap<String, String> quaryparam = requestContext.getUriInfo().getQueryParameters();
 			for (final Entry<String, List<String>> item : quaryparam.entrySet()) {
-				if ((authorizationHeader == null && HttpHeaders.AUTHORIZATION.equals(item.getKey())) && !item.getValue().isEmpty()) {
+				if ((authorizationHeader == null && HttpHeaders.AUTHORIZATION.equals(item.getKey()))
+						&& !item.getValue().isEmpty()) {
 					authorizationHeader = item.getValue().get(0);
 				}
 				if ((apikeyHeader == null && APIKEY.equals(item.getKey())) && !item.getValue().isEmpty()) {
@@ -148,7 +149,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// Is user valid?
 		if (!haveRight) {
 			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
-			requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Not enought RIGHT !!!").build());
+			requestContext
+					.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Not enought RIGHT !!!").build());
 			return;
 		}
 		requestContext.setSecurityContext(userContext);
@@ -159,7 +161,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// Check if the Authorization header is valid
 		// It must not be null and must be prefixed with "Bearer" plus a whitespace
 		// The authentication scheme comparison must be case-insensitive
-		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
+		return authorizationHeader != null
+				&& authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
 	}
 
 	private void abortWithUnauthorized(final ContainerRequestContext requestContext, final String message) {
@@ -169,14 +172,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		LOGGER.warn("abortWithUnauthorized:");
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.UNAUTHORIZED, "Unauthorized", message);
 		LOGGER.error("Error UUID={}", ret.uuid);
-		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)").entity(ret)
-				.type(MediaType.APPLICATION_JSON).build());
+		requestContext.abortWith(Response.status(ret.status)
+				.header(HttpHeaders.WWW_AUTHENTICATE,
+						AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)")
+				.entity(ret).type(MediaType.APPLICATION_JSON).build());
 	}
 
 	private void abortWithForbidden(final ContainerRequestContext requestContext, final String message) {
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", message);
 		LOGGER.error("Error UUID={}", ret.uuid);
-		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, message).entity(ret).type(MediaType.APPLICATION_JSON).build());
+		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, message).entity(ret)
+				.type(MediaType.APPLICATION_JSON).build());
 	}
 
 	protected UserByToken validateToken(final String authorization) throws Exception {
@@ -206,7 +212,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			if (rights.containsKey(this.applicationName)) {
 				user.right = rights.get(this.applicationName);
 			} else {
-				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName, rights);
+				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName,
+						rights);
 			}
 		}
 		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);

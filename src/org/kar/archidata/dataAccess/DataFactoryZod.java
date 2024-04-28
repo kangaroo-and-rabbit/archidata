@@ -36,7 +36,8 @@ public class DataFactoryZod {
 		public boolean isEnum = false;
 		public boolean nativeType;
 
-		public ClassElement(final Class<?> model[], final String zodName, final String tsTypeName, final String tsCheckType, final String declaration, final boolean nativeType) {
+		public ClassElement(final Class<?> model[], final String zodName, final String tsTypeName,
+				final String tsCheckType, final String declaration, final boolean nativeType) {
 			this.model = model;
 			this.zodName = zodName;
 			this.tsTypeName = tsTypeName;
@@ -90,7 +91,8 @@ public class DataFactoryZod {
 		}
 	}
 
-	public static ClassElement convertTypeZodEnum(final Class<?> clazz, final GeneratedTypes previous) throws Exception {
+	public static ClassElement convertTypeZodEnum(final Class<?> clazz, final GeneratedTypes previous)
+			throws Exception {
 		final ClassElement element = new ClassElement(clazz);
 		previous.add(element);
 		final Object[] arr = clazz.getEnumConstants();
@@ -150,7 +152,8 @@ public class DataFactoryZod {
 			return convertTypeZodEnum(type, previous).zodName;
 		}
 		if (type == List.class) {
-			throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName() + " Unmanaged List of List ... ");
+			throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName()
+					+ " Unmanaged List of List ... ");
 		}
 		final ClassElement elemCreated = createTable(type, previous);
 		if (elemCreated != null) {
@@ -188,7 +191,11 @@ public class DataFactoryZod {
 		return ".optional()";
 	}
 
-	public static void createTablesSpecificType(final Field elem, final int fieldId, final StringBuilder builder, final GeneratedTypes previous) throws Exception {
+	public static void createTablesSpecificType(
+			final Field elem,
+			final int fieldId,
+			final StringBuilder builder,
+			final GeneratedTypes previous) throws Exception {
 		final String name = elem.getName();
 		final Class<?> classModel = elem.getType();
 		final int limitSize = AnnotationTools.getLimitSize(elem);
@@ -240,21 +247,33 @@ public class DataFactoryZod {
 	public static GeneratedTypes createBasicType() throws Exception {
 		final GeneratedTypes previous = new GeneratedTypes();
 		previous.add(new ClassElement(new Class<?>[] { Void.class, void.class }, "void", "void", null, null, true));
-		previous.add(new ClassElement(new Class<?>[] { String.class }, "zod.string()", "string", null, "zod.string()", true));
-		previous.add(new ClassElement(new Class<?>[] { InputStream.class, FormDataContentDisposition.class }, "z.instanceof(File)", "File", null, "z.instanceof(File)", true));
-		previous.add(new ClassElement(new Class<?>[] { Boolean.class, boolean.class }, "zod.boolean()", "boolean", null, "zod.boolean()", true));
-		previous.add(new ClassElement(new Class<?>[] { UUID.class }, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { String.class }, "zod.string()", "string", null, "zod.string()",
+				true));
+		previous.add(new ClassElement(new Class<?>[] { InputStream.class, FormDataContentDisposition.class },
+				"z.instanceof(File)", "File", null, "z.instanceof(File)", true));
+		previous.add(new ClassElement(new Class<?>[] { Boolean.class, boolean.class }, "zod.boolean()", "boolean", null,
+				"zod.boolean()", true));
+		previous.add(new ClassElement(new Class<?>[] { UUID.class }, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()",
+				false), true);
 		previous.add(new ClassElement(new Class<?>[] { Long.class, long.class }, "ZodLong", "Long", "isLong",
 				// "zod.bigint()",
 				"zod.number()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Integer.class, int.class }, "ZodInteger", "Integer", "isInteger", "zod.number().safe()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Double.class, double.class }, "ZodDouble", "Double", "isDouble", "zod.number()", true), true);
-		previous.add(new ClassElement(new Class<?>[] { Float.class, float.class }, "ZodFloat", "Float", "isFloat", "zod.number()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Instant.class }, "ZodInstant", "Instant", "isInstant", "zod.string()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Date.class }, "ZodDate", "Date", "isDate", "zod.date()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Timestamp.class }, "ZodTimestamp", "Timestamp", "isTimestamp", "zod.date()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { LocalDate.class }, "ZodLocalDate", "LocalDate", "isLocalDate", "zod.date()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { LocalTime.class }, "ZodLocalTime", "LocalTime", "isLocalTime", "zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Integer.class, int.class }, "ZodInteger", "Integer", "isInteger",
+				"zod.number().safe()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Double.class, double.class }, "ZodDouble", "Double", "isDouble",
+				"zod.number()", true), true);
+		previous.add(new ClassElement(new Class<?>[] { Float.class, float.class }, "ZodFloat", "Float", "isFloat",
+				"zod.number()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Instant.class }, "ZodInstant", "Instant", "isInstant",
+				"zod.string()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { Date.class }, "ZodDate", "Date", "isDate", "zod.date()", false),
+				true);
+		previous.add(new ClassElement(new Class<?>[] { Timestamp.class }, "ZodTimestamp", "Timestamp", "isTimestamp",
+				"zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { LocalDate.class }, "ZodLocalDate", "LocalDate", "isLocalDate",
+				"zod.date()", false), true);
+		previous.add(new ClassElement(new Class<?>[] { LocalTime.class }, "ZodLocalTime", "LocalTime", "isLocalTime",
+				"zod.date()", false), true);
 		return previous;
 	}
 
@@ -293,7 +312,8 @@ public class DataFactoryZod {
 		return generatedData.toString();
 	}
 
-	public static List<ClassElement> createTables(final Class<?>[] classs, final GeneratedTypes previous) throws Exception {
+	public static List<ClassElement> createTables(final Class<?>[] classs, final GeneratedTypes previous)
+			throws Exception {
 		final List<ClassElement> out = new ArrayList<>();
 		for (final Class<?> clazz : classs) {
 			if (clazz == Response.class) {
@@ -344,7 +364,8 @@ public class DataFactoryZod {
 			LOGGER.trace("        + '{}'", elem.getName());
 			if (false && DataAccess.isAddOnField(elem)) {
 				final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
-				LOGGER.error("Create type for: {} ==> {} (ADD-ON) ==> Not managed now ....", AnnotationTools.getFieldName(elem), elem.getType());
+				LOGGER.error("Create type for: {} ==> {} (ADD-ON) ==> Not managed now ....",
+						AnnotationTools.getFieldName(elem), elem.getType());
 				/* LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), elem.getType()); if (addOn != null) { addOn.createTables(tableName, elem, tmpOut,
 				 * preActionList, postActionList, createIfNotExist, createDrop, fieldId); } else { throw new DataAccessException( "Element matked as add-on but add-on does not loaded: table:" +
 				 * tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type=" + elem.getType()); } fieldId++; */

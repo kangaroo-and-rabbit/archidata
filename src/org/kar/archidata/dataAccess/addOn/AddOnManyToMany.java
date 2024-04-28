@@ -56,7 +56,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
+			throws SQLException, IllegalArgumentException, IllegalAccessException {
 
 	}
 
@@ -70,7 +71,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (field.getType() != List.class) {
 			return false;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass == Long.class || objectClass == UUID.class) {
 			return true;
 		}
@@ -97,18 +99,18 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return tableName + "_link_" + localName;
 	}
 
-	public void generateConcatQuery(//
-			@NotNull final String tableName, //
-			@NotNull final String primaryKey, //
-			@NotNull final Field field, //
-			@NotNull final StringBuilder querySelect, //
-			@NotNull final StringBuilder query, //
-			@NotNull final String name, //
-			@NotNull final CountInOut count, //
-			final QueryOptions options//
-	) throws Exception {
+	public void generateConcatQuery(
+			@NotNull final String tableName,
+			@NotNull final String primaryKey,
+			@NotNull final Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull final String name,
+			@NotNull final CountInOut count,
+			final QueryOptions options) throws Exception {
 		final String linkTableName = generateLinkTableName(tableName, name);
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		final String tmpVariable = "tmp_" + Integer.toString(count.value);
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpVariable);
@@ -154,20 +156,20 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuery(//
-			@NotNull final String tableName, //
-			@NotNull final String primaryKey, //
-			@NotNull final Field field, //
-			@NotNull final StringBuilder querySelect, //
-			@NotNull final StringBuilder query, //
-			@NotNull final String name, //
-			@NotNull final CountInOut count, //
-			final QueryOptions options//
-	) throws Exception {
+	public void generateQuery(
+			@NotNull final String tableName,
+			@NotNull final String primaryKey,
+			@NotNull final Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull final String name,
+			@NotNull final CountInOut count,
+			final QueryOptions options) throws Exception {
 		if (field.getType() != List.class) {
 			return;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass == Long.class || objectClass == UUID.class) {
 			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 		}
@@ -185,19 +187,19 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuery( //
-			final ResultSet rs, //
-			final Field field, //
-			final Object data, //
-			final CountInOut count, //
-			final QueryOptions options, //
-			final List<LazyGetter> lazyCall //
-	) throws Exception {
+	public void fillFromQuery(
+			final ResultSet rs,
+			final Field field,
+			final Object data,
+			final CountInOut count,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass == Long.class) {
 			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
 			field.set(data, idList);
@@ -228,7 +230,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new Condition(new QueryInList<>(idField, childs)));
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryInList<>(idField, childs)));
 						if (foreignData == null) {
 							return;
 						}
@@ -247,7 +250,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(), new Condition(new QueryInList<>(idField, childs)));
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryInList<>(idField, childs)));
 						if (foreignData == null) {
 							return;
 						}
@@ -265,14 +269,21 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void asyncUpdate(final String tableName, final Object localKey, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+	public void asyncUpdate(
+			final String tableName,
+			final Object localKey,
+			final Field field,
+			final Object data,
+			final List<LazyGetter> actions) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">");
+			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
+					+ objectClass.getCanonicalName() + ">");
 		}
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
@@ -280,24 +291,28 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (localKey instanceof final Long localKeyLong) {
 			if (objectClass == Long.class) {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName), new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
+					DataAccess.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
+							new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
 				});
 				asyncInsert(tableName, localKey, field, data, actions);
 			} else {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableLongUUID.class, new OverrideTableName(linkTableName), new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
+					DataAccess.deleteWhere(LinkTableLongUUID.class, new OverrideTableName(linkTableName),
+							new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
 				});
 				asyncInsert(tableName, localKey, field, data, actions);
 			}
 		} else if (localKey instanceof final UUID localKeyUUID) {
 			if (objectClass == Long.class) {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableUUIDLong.class, new OverrideTableName(linkTableName), new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
+					DataAccess.deleteWhere(LinkTableUUIDLong.class, new OverrideTableName(linkTableName),
+							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
 				});
 				asyncInsert(tableName, localKey, field, data, actions);
 			} else {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableUUIDUUID.class, new OverrideTableName(linkTableName), new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
+					DataAccess.deleteWhere(LinkTableUUIDUUID.class, new OverrideTableName(linkTableName),
+							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
 				});
 				asyncInsert(tableName, localKey, field, data, actions);
 			}
@@ -310,7 +325,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void asyncInsert(final String tableName, final Object localKey, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+	public void asyncInsert(
+			final String tableName,
+			final Object localKey,
+			final Field field,
+			final Object data,
+			final List<LazyGetter> actions) throws Exception {
 		if (data == null) {
 			return;
 		}
@@ -318,9 +338,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">");
+			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
+					+ objectClass.getCanonicalName() + ">");
 		}
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
@@ -421,7 +443,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				});
 			}
 		} else {
-			throw new DataAccessException("Not manage access of remte key like ManyToMany other than Long or UUID: " + localKey.getClass().getCanonicalName());
+			throw new DataAccessException("Not manage access of remte key like ManyToMany other than Long or UUID: "
+					+ localKey.getClass().getCanonicalName());
 		}
 
 	}
@@ -430,9 +453,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	public void drop(final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">");
+			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
+					+ objectClass.getCanonicalName() + ">");
 		}
 		DataAccess.drop(LinkTableLongLong.class, new OverrideTableName(linkTableName));
 	}
@@ -441,14 +466,17 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	public void cleanAll(final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">");
+			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
+					+ objectClass.getCanonicalName() + ">");
 		}
 		DataAccess.cleanAll(LinkTableLongLong.class, new OverrideTableName(linkTableName));
 	}
 
-	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
+	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey)
+			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
@@ -458,30 +486,33 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	}
 
-	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey) throws Exception {
+	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey)
+			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final String linkTableName = generateLinkTableName(tableName, column);
 		return DataAccess.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
-				new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey), new QueryCondition("object2Id", "=", remoteKey))));
+				new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
+						new QueryCondition("object2Id", "=", remoteKey))));
 	}
 
 	@Override
-	public void createTables( //
-			final String tableName, //
-			final Field primaryField, //
-			final Field field, //
-			final StringBuilder mainTableBuilder, //
-			final List<String> preActionList, //
-			final List<String> postActionList, //
-			final boolean createIfNotExist, //
-			final boolean createDrop, //
-			final int fieldId//
-	) throws Exception {
+	public void createTables(
+			final String tableName,
+			final Field primaryField,
+			final Field field,
+			final StringBuilder mainTableBuilder,
+			final List<String> preActionList,
+			final List<String> postActionList,
+			final boolean createIfNotExist,
+			final boolean createDrop,
+			final int fieldId) throws Exception {
 		final String linkTableName = generateLinkTableNameField(tableName, field);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">");
+			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
+					+ objectClass.getCanonicalName() + ">");
 		}
 		final Class<?> primaryType = primaryField.getType();
 		if (primaryType == Long.class) {
@@ -502,7 +533,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				postActionList.addAll(sqlCommand);
 			}
 		} else {
-			throw new DataAccessException("Can not ManyToMany with other than primary key type Long or UUID Model: " + primaryType.getCanonicalName());
+			throw new DataAccessException("Can not ManyToMany with other than primary key type Long or UUID Model: "
+					+ primaryType.getCanonicalName());
 		}
 	}
 }

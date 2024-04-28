@@ -127,8 +127,10 @@ public class ConfigBaseVariable {
 		return Boolean.parseBoolean(testMode);
 	}
 
-	public record EMailConfig(String from, String login, String password) {
-	};
+	public record EMailConfig(
+			String from,
+			String login,
+			String password) {};
 
 	public static EMailConfig getEMailConfig() {
 		if (eMailFrom == null || eMailLogin == null || eMailPassword == null) {

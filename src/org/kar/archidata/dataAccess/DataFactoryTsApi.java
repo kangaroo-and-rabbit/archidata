@@ -45,13 +45,17 @@ import jakarta.ws.rs.core.Response;
 public class DataFactoryTsApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryTsApi.class);
 
-	record APIModel(String data, String className) {
-	}
+	record APIModel(
+			String data,
+			String className) {}
 
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
 	 * @throws Exception */
-	public static List<String> createApi(final List<Class<?>> classs, final GeneratedTypes previous, final String pathPackage) throws Exception {
+	public static List<String> createApi(
+			final List<Class<?>> classs,
+			final GeneratedTypes previous,
+			final String pathPackage) throws Exception {
 		final List<String> apis = new ArrayList<>();
 		final String globalheader = """
 				/**
@@ -281,7 +285,11 @@ public class DataFactoryTsApi {
 		return out;
 	}
 
-	public static APIModel createSingleApi(final Class<?> clazz, final Set<Class<?>> includeModel, final Set<Class<?>> includeCheckerModel, final GeneratedTypes previous) throws Exception {
+	public static APIModel createSingleApi(
+			final Class<?> clazz,
+			final Set<Class<?>> includeModel,
+			final Set<Class<?>> includeCheckerModel,
+			final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
 		// the basic path has no specific elements...
 		final String basicPath = apiAnnotationGetPath(clazz);
@@ -296,7 +304,8 @@ public class DataFactoryTsApi {
 			final String methodPath = apiAnnotationGetPath(method);
 			final String methodType = apiAnnotationGetTypeRequest(method);
 			if (methodType == null) {
-				LOGGER.error("    [{}] {} => {}/{} ==> No methode type @PATH, @GET ...", methodType, methodName, basicPath, methodPath);
+				LOGGER.error("    [{}] {} => {}/{} ==> No methode type @PATH, @GET ...", methodType, methodName,
+						basicPath, methodPath);
 				continue;
 			}
 			final String methodDescription = apiAnnotationGetOperationDescription(method);
@@ -437,7 +446,8 @@ public class DataFactoryTsApi {
 				builder.append("\n\t */");
 			}
 			if (isUnmanagedReturnType) {
-				builder.append("\n\t// TODO: unmanaged \"Response\" type: please specify @AsyncType or considered as 'void'.");
+				builder.append(
+						"\n\t// TODO: unmanaged \"Response\" type: please specify @AsyncType or considered as 'void'.");
 			}
 			builder.append("\n\texport function ");
 			builder.append(methodName);
@@ -601,7 +611,8 @@ public class DataFactoryTsApi {
 				builder.append("\n\t\t\tcallback,");
 			}
 			builder.append("\n\t\t}");
-			if (tmpReturn.size() != 0 && tmpReturn.get(0).tsTypeName != null && !tmpReturn.get(0).tsTypeName.equals("void")) {
+			if (tmpReturn.size() != 0 && tmpReturn.get(0).tsTypeName != null
+					&& !tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append(", ");
 				// TODO: correct this it is really bad ...
 				builder.append(convertInTypeScriptCheckType(tmpReturn));
@@ -613,7 +624,10 @@ public class DataFactoryTsApi {
 		return new APIModel(builder.toString(), classSimpleName);
 	}
 
-	public static void generatePackage(final List<Class<?>> classApi, final List<Class<?>> classModel, final String pathPackage) throws Exception {
+	public static void generatePackage(
+			final List<Class<?>> classApi,
+			final List<Class<?>> classModel,
+			final String pathPackage) throws Exception {
 		final GeneratedTypes previous = DataFactoryZod.createBasicType();
 		DataFactoryZod.createTable(RestErrorResponse.class, previous);
 		final List<String> listApi = createApi(classApi, previous, pathPackage);

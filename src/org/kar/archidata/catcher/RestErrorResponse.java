@@ -15,7 +15,8 @@ public class RestErrorResponse {
 	final public int status;
 	final public String statusMessage;
 
-	public RestErrorResponse(final Response.Status status, final String time, final String error, final String message) {
+	public RestErrorResponse(final Response.Status status, final String time, final String error,
+			final String message) {
 		this.time = time;
 		this.name = error;
 		this.message = message;

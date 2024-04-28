@@ -67,7 +67,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					add(fieldName, (final String baseName, final T data) -> {
-						throw new InputException(baseName + fieldName, "This is a '@Id' (primaryKey) ==> can not be change");
+						throw new InputException(baseName + fieldName,
+								"This is a '@Id' (primaryKey) ==> can not be change");
 					});
 				}
 				if (AnnotationTools.getConstraintsNotNull(field)) {
@@ -120,7 +121,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
 							if (count == 0) {
-								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
+								throw new InputException(baseName + fieldName,
+										"Foreign element does not exist in the DB:" + elem);
 							}
 						});
 					}
@@ -163,7 +165,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
 							if (count == 0) {
-								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
+								throw new InputException(baseName + fieldName,
+										"Foreign element does not exist in the DB:" + elem);
 							}
 						});
 					}
@@ -177,7 +180,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
 							if (count == 0) {
-								throw new InputException(baseName + fieldName, "Foreign element does not exist in the DB:" + elem);
+								throw new InputException(baseName + fieldName,
+										"Foreign element does not exist in the DB:" + elem);
 							}
 						});
 					}
@@ -257,7 +261,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final String elemTyped = (String) elem;
 							if (elemTyped.length() > maxSizeString) {
-								throw new InputException(baseName + fieldName, "Too long size must be <= " + maxSizeString);
+								throw new InputException(baseName + fieldName,
+										"Too long size must be <= " + maxSizeString);
 							}
 						});
 					}
@@ -270,10 +275,12 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final String elemTyped = (String) elem;
 							if (elemTyped.length() > limitSize.max()) {
-								throw new InputException(baseName + fieldName, "Too long size (constraints) must be <= " + limitSize.max());
+								throw new InputException(baseName + fieldName,
+										"Too long size (constraints) must be <= " + limitSize.max());
 							}
 							if (elemTyped.length() < limitSize.min()) {
-								throw new InputException(baseName + fieldName, "Too small size (constraints) must be >= " + limitSize.max());
+								throw new InputException(baseName + fieldName,
+										"Too small size (constraints) must be >= " + limitSize.max());
 							}
 						});
 					}
@@ -287,7 +294,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							final String elemTyped = (String) elem;
 							if (!pattern.matcher(elemTyped).find()) {
-								throw new InputException(baseName + fieldName, "does not match the required pattern (constraints) must be '" + patternString + "'");
+								throw new InputException(baseName + fieldName,
+										"does not match the required pattern (constraints) must be '" + patternString
+												+ "'");
 							}
 						});
 					}
@@ -295,7 +304,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final DataJson jsonAnnotation = AnnotationTools.getDataJson(field);
 					if (jsonAnnotation != null && jsonAnnotation.checker() != CheckFunctionVoid.class) {
 						// Here if we have an error it crash at start and no new instance after creation...
-						final CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor().newInstance();
+						final CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor()
+								.newInstance();
 						add(fieldName, (final String baseName, final T data) -> {
 							instance.checkAll(baseName + fieldName + ".", field.get(data));
 						});
@@ -307,7 +317,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isUnique(field)) {
 					// Create the request ...
 					add(fieldName, (final String baseName, final T data) -> {
-						final Object other = DataAccess.getWhere(this.clazz, new Condition(new QueryCondition(fieldName, "==", field.get(data))));
+						final Object other = DataAccess.getWhere(this.clazz,
+								new Condition(new QueryCondition(fieldName, "==", field.get(data))));
 						if (other != null) {
 							throw new InputException(baseName + fieldName, "Name already exist in the DB");
 						}

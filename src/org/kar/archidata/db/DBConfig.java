@@ -14,7 +14,8 @@ public class DBConfig {
 	private final String dbName;
 	private final boolean keepConnected;
 
-	public DBConfig(final String type, final String hostname, final Integer port, final String login, final String password, final String dbName, final boolean keepConnected) {
+	public DBConfig(final String type, final String hostname, final Integer port, final String login,
+			final String password, final String dbName, final boolean keepConnected) {
 		if (type == null) {
 			this.type = "mysql";
 		} else {
@@ -38,8 +39,9 @@ public class DBConfig {
 
 	@Override
 	public String toString() {
-		return "DBConfig{type='" + this.type + '\'' + ", hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\'' + ", password='" + this.password + '\''
-				+ ", dbName='" + this.dbName + "' }";
+		return "DBConfig{type='" + this.type + '\'' + ", hostname='" + this.hostname + '\'' + ", port=" + this.port
+				+ ", login='" + this.login + '\'' + ", password='" + this.password + '\'' + ", dbName='" + this.dbName
+				+ "' }";
 	}
 
 	public String getHostname() {
@@ -81,8 +83,10 @@ public class DBConfig {
 			return "jdbc:sqlite:" + this.hostname + ".db";
 		}
 		if (isRoot) {
-			return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+			return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port
+					+ "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
 		}
-		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName + "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName
+				+ "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
 	}
 }

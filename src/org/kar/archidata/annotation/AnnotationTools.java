@@ -59,7 +59,8 @@ public class AnnotationTools {
 			return false;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
 		}
 		return ((Schema) annotation[0]).readOnly();
 	}
@@ -70,7 +71,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
 		}
 		return ((Schema) annotation[0]).example();
 	}
@@ -81,7 +83,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
 		}
 		return ((Schema) annotation[0]).description();
 	}
@@ -92,7 +95,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
 		}
 		return ((Schema) annotation[0]).description();
 	}
@@ -103,7 +107,8 @@ public class AnnotationTools {
 			return getSchemaDescription(element);
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());
 		}
 		return ((DataComment) annotation[0]).value();
 	}
@@ -114,7 +119,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
 		}
 		return ((DefaultValue) annotation[0]).value();
 	}
@@ -125,7 +131,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
 		}
 		return (ManyToOne) annotation[0];
 	}
@@ -136,7 +143,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
 		}
 		return (DataJson) annotation[0];
 	}
@@ -169,7 +177,8 @@ public class AnnotationTools {
 			return 255;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		final int length = ((Column) annotation[0]).length();
 		return length <= 0 ? 0 : length;
@@ -192,7 +201,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Pattern on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Pattern on " + element.getClass().getCanonicalName());
 		}
 		return ((Pattern) annotation[0]).regexp();
 	}
@@ -226,7 +236,8 @@ public class AnnotationTools {
 			return element.getName();
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		final String name = ((Column) annotation[0]).name();
 		if (name.isBlank()) {
@@ -241,7 +252,8 @@ public class AnnotationTools {
 			return false;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		return !((Column) annotation[0]).nullable();
 	}
@@ -252,7 +264,8 @@ public class AnnotationTools {
 			return false;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @NotNull on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @NotNull on " + element.getClass().getCanonicalName());
 		}
 		return true;
 	}
@@ -284,7 +297,8 @@ public class AnnotationTools {
 			return false;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		return ((Column) annotation[0]).unique();
 	}
@@ -295,7 +309,8 @@ public class AnnotationTools {
 			return null;
 		}
 		if (annotation.length > 1) {
-			throw new Exception("Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
+			throw new Exception(
+					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		return ((GeneratedValue) annotation[0]).strategy();
 	}
@@ -395,7 +410,8 @@ public class AnnotationTools {
 	}
 
 	public static boolean isGenericField(final Field elem) throws Exception {
-		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem) || AnnotationTools.isUpdateAtField(elem) || AnnotationTools.isDeletedField(elem);
+		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem)
+				|| AnnotationTools.isUpdateAtField(elem) || AnnotationTools.isDeletedField(elem);
 	}
 
 	public static Field getFieldOfId(final Class<?> clazz) throws Exception {

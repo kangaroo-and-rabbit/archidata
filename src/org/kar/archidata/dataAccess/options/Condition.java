@@ -31,7 +31,11 @@ public class Condition extends QueryOption {
 		}
 	}
 
-	public void whereAppendQuery(final StringBuilder query, final String tableName, final QueryOptions options, final String deletedFieldName) {
+	public void whereAppendQuery(
+			final StringBuilder query,
+			final String tableName,
+			final QueryOptions options,
+			final String deletedFieldName) {
 		boolean exclude_deleted = true;
 		if (options != null) {
 			exclude_deleted = !options.exist(AccessDeletedItems.class);

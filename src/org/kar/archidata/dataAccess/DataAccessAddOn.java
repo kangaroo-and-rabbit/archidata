@@ -29,7 +29,8 @@ public interface DataAccessAddOn {
 	 * @param iii The index of injection
 	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException */
-	void insertData(PreparedStatement ps, final Field field, Object data, CountInOut iii) throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
+	void insertData(PreparedStatement ps, final Field field, Object data, CountInOut iii)
+			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/** Element can insert in the single request
 	 * @param field
@@ -45,19 +46,24 @@ public interface DataAccessAddOn {
 		return false;
 	}
 
-	void generateQuery(//
-			@NotNull String tableName, //
-			@NotNull final String primaryKey, //
-			@NotNull Field field, //
-			@NotNull final StringBuilder querySelect, //
-			@NotNull final StringBuilder query, //
-			@NotNull String name, //
-			@NotNull CountInOut count, //
-			QueryOptions options//
-	) throws Exception;
+	void generateQuery(
+			@NotNull String tableName,
+			@NotNull final String primaryKey,
+			@NotNull Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull String name,
+			@NotNull CountInOut count,
+			QueryOptions options) throws Exception;
 
 	// Return the number of colomn read
-	void fillFromQuery(ResultSet rs, Field field, Object data, CountInOut count, QueryOptions options, final List<LazyGetter> lazyCall)
+	void fillFromQuery(
+			ResultSet rs,
+			Field field,
+			Object data,
+			CountInOut count,
+			QueryOptions options,
+			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/** Create associated table of the specific element.
@@ -69,17 +75,16 @@ public interface DataAccessAddOn {
 	 * @param createDrop
 	 * @param fieldId
 	 * @throws Exception */
-	void createTables(//
-			String tableName, //
-			final Field primaryField, //
-			Field field, //
-			StringBuilder mainTableBuilder, //
-			List<String> preActionList, //
-			List<String> postActionList, //
-			boolean createIfNotExist, //
-			boolean createDrop, //
-			int fieldId //
-	) throws Exception;
+	void createTables(
+			String tableName,
+			final Field primaryField,
+			Field field,
+			StringBuilder mainTableBuilder,
+			List<String> preActionList,
+			List<String> postActionList,
+			boolean createIfNotExist,
+			boolean createDrop,
+			int fieldId) throws Exception;
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
@@ -94,7 +99,12 @@ public interface DataAccessAddOn {
 	 * @param field Field that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
-	default void asyncInsert(final String tableName, final Object localId, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+	default void asyncInsert(
+			final String tableName,
+			final Object localId,
+			final Field field,
+			final Object data,
+			final List<LazyGetter> actions) throws Exception {
 
 	}
 
@@ -111,7 +121,12 @@ public interface DataAccessAddOn {
 	 * @param field Field that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
-	default void asyncUpdate(final String tableName, final Object localId, final Field field, final Object data, final List<LazyGetter> actions) throws Exception {
+	default void asyncUpdate(
+			final String tableName,
+			final Object localId,
+			final Field field,
+			final Object data,
+			final List<LazyGetter> actions) throws Exception {
 
 	}
 

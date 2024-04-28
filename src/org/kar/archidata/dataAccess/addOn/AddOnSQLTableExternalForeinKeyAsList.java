@@ -55,12 +55,14 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 
 	@Override
 	public boolean isCompatibleField(final Field field) {
-		final SQLTableExternalForeinKeyAsList decorators = field.getDeclaredAnnotation(SQLTableExternalForeinKeyAsList.class);
+		final SQLTableExternalForeinKeyAsList decorators = field
+				.getDeclaredAnnotation(SQLTableExternalForeinKeyAsList.class);
 		return decorators != null;
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
+			throws SQLException, IllegalArgumentException, IllegalAccessException {
 		final Object data = field.get(rootObject);
 		iii.inc();
 		if (data == null) {
@@ -88,16 +90,15 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuery(//
-			@NotNull final String tableName, //
-			@NotNull final String primaryKey, //
-			@NotNull final Field field, //
-			@NotNull final StringBuilder querySelect, //
-			@NotNull final StringBuilder query, //
-			@NotNull final String name, //
-			@NotNull final CountInOut count, //
-			final QueryOptions options//
-	) {
+	public void generateQuery(
+			@NotNull final String tableName,
+			@NotNull final String primaryKey,
+			@NotNull final Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull final String name,
+			@NotNull final CountInOut count,
+			final QueryOptions options) {
 		count.inc();
 		querySelect.append(" ");
 		querySelect.append(tableName);
@@ -106,27 +107,30 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall)
-			throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public void fillFromQuery(
+			final ResultSet rs,
+			final Field field,
+			final Object data,
+			final CountInOut count,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR);
 		field.set(data, idList);
 		count.inc();
 	}
 
 	@Override
-	public void createTables(//
-			final String tableName, //
-			final Field primaryField, //
-			final Field field, //
-			final StringBuilder mainTableBuilder, //
-			final List<String> preActionList, //
-			final List<String> postActionList, //
-			final boolean createIfNotExist, //
-			final boolean createDrop, //
-			final int fieldId //
-	) throws Exception {
-		// TODO Auto-generated method stub
-
-		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList, createIfNotExist, createDrop, fieldId, String.class);
+	public void createTables(
+			final String tableName,
+			final Field primaryField,
+			final Field field,
+			final StringBuilder mainTableBuilder,
+			final List<String> preActionList,
+			final List<String> postActionList,
+			final boolean createIfNotExist,
+			final boolean createDrop,
+			final int fieldId) throws Exception {
+		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
+				createIfNotExist, createDrop, fieldId, String.class);
 	}
 }

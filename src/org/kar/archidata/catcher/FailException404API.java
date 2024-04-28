@@ -15,11 +15,13 @@ public class FailException404API implements ExceptionMapper<ClientErrorException
 	public Response toResponse(final ClientErrorException exception) {
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
-		return Response.status(exception.getResponse().getStatusInfo().toEnum()).entity(ret).type(MediaType.APPLICATION_JSON).build();
+		return Response.status(exception.getResponse().getStatusInfo().toEnum()).entity(ret)
+				.type(MediaType.APPLICATION_JSON).build();
 	}
 
 	private RestErrorResponse build(final ClientErrorException exception) {
-		return new RestErrorResponse(exception.getResponse().getStatusInfo().toEnum(), "Catch system exception", exception.getMessage());
+		return new RestErrorResponse(exception.getResponse().getStatusInfo().toEnum(), "Catch system exception",
+				exception.getMessage());
 	}
 
 }

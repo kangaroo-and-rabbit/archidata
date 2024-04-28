@@ -50,7 +50,8 @@ public class DBEntry implements Closeable {
 
 	public void connectRoot() throws IOException {
 		try {
-			this.connection = DriverManager.getConnection(this.config.getUrl(true), this.config.getLogin(), this.config.getPassword());
+			this.connection = DriverManager.getConnection(this.config.getUrl(true), this.config.getLogin(),
+					this.config.getPassword());
 		} catch (final SQLException ex) {
 			throw new IOException("Connection db fail: " + ex.getMessage() + " On URL: " + this.config.getUrl(true));
 		}
@@ -59,7 +60,8 @@ public class DBEntry implements Closeable {
 
 	public void connect() throws IOException {
 		try {
-			this.connection = DriverManager.getConnection(this.config.getUrl(), this.config.getLogin(), this.config.getPassword());
+			this.connection = DriverManager.getConnection(this.config.getUrl(), this.config.getLogin(),
+					this.config.getPassword());
 		} catch (final SQLException ex) {
 			throw new IOException("Connection db fail: " + ex.getMessage() + " On URL: " + this.config.getUrl(true));
 		}
