@@ -53,7 +53,7 @@ public class TestTypeEnum2 {
 		final List<String> sqlCommand = DataFactory.createTable(TypesEnum2.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 	}
 

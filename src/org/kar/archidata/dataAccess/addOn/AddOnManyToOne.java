@@ -132,13 +132,14 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuerry( //
+	public void generateQuery(//
 			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
 			@NotNull final Field field, //
-			@NotNull final StringBuilder querrySelect, //
-			@NotNull final StringBuilder querry, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
 			@NotNull final String name, //
-			@NotNull final CountInOut elemCount, //
+			@NotNull final CountInOut count, //
 			final QueryOptions options//
 	) throws Exception {
 		if (field.getType() == Long.class //
@@ -146,37 +147,37 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				|| field.getType() == Short.class //
 				|| field.getType() == String.class //
 				|| field.getType() == UUID.class) {
-			querrySelect.append(" ");
-			querrySelect.append(tableName);
-			querrySelect.append(".");
-			querrySelect.append(name);
-			elemCount.inc();
+			querySelect.append(" ");
+			querySelect.append(tableName);
+			querySelect.append(".");
+			querySelect.append(name);
+			count.inc();
 			return;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
 		if (field.getType() == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
 				// TODO: rework this to have a lazy mode ...
-				DataAccess.generateSelectField(querrySelect, querry, field.getType(), options, elemCount);
+				DataAccess.generateSelectField(querySelect, query, field.getType(), options, count);
 				final Class<?> subType = field.getType();
 				final String subTableName = AnnotationTools.getTableName(subType);
 				final Field idField = AnnotationTools.getFieldOfId(subType);
-				querry.append("LEFT OUTER JOIN `");
-				querry.append(subTableName);
-				querry.append("` ON ");
-				querry.append(subTableName);
-				querry.append(".");
-				querry.append(AnnotationTools.getFieldName(idField));
-				querry.append(" = ");
-				querry.append(tableName);
-				querry.append(".");
-				querry.append(AnnotationTools.getFieldName(field));
+				query.append("LEFT OUTER JOIN `");
+				query.append(subTableName);
+				query.append("` ON ");
+				query.append(subTableName);
+				query.append(".");
+				query.append(AnnotationTools.getFieldName(idField));
+				query.append(" = ");
+				query.append(tableName);
+				query.append(".");
+				query.append(AnnotationTools.getFieldName(field));
 			} else {
-				querrySelect.append(" ");
-				querrySelect.append(tableName);
-				querrySelect.append(".");
-				querrySelect.append(name);
-				elemCount.inc();
+				querySelect.append(" ");
+				querySelect.append(tableName);
+				querySelect.append(".");
+				querySelect.append(name);
+				count.inc();
 				return;
 			}
 		}
@@ -185,7 +186,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
+	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() == Long.class) {
 			final Long foreignKey = rs.getLong(count.value);
 			count.inc();

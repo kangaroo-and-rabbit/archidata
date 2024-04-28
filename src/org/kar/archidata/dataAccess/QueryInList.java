@@ -23,7 +23,7 @@ public class QueryInList<T> implements QueryItem {
 	}
 
 	@Override
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (tableName != null) {
 			query.append(tableName);
 			query.append(".");
@@ -44,7 +44,7 @@ public class QueryInList<T> implements QueryItem {
 	}
 
 	@Override
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		for (final Object elem : this.value) {
 			DataAccess.addElement(ps, elem, iii);
 			iii.inc();

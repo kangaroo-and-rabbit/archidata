@@ -15,7 +15,7 @@ public class QueryOr implements QueryItem {
 	}
 
 	@Override
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.childs.size() >= 1) {
 			query.append(" (");
 		}
@@ -26,7 +26,7 @@ public class QueryOr implements QueryItem {
 			} else {
 				query.append(" OR ");
 			}
-			elem.generateQuerry(query, tableName);
+			elem.generateQuery(query, tableName);
 		}
 		if (this.childs.size() >= 1) {
 			query.append(")");
@@ -34,9 +34,9 @@ public class QueryOr implements QueryItem {
 	}
 
 	@Override
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		for (final QueryItem elem : this.childs) {
-			elem.injectQuerry(ps, iii);
+			elem.injectQuery(ps, iii);
 		}
 	}
 }

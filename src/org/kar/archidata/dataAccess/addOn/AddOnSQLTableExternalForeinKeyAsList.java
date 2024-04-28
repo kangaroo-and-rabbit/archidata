@@ -87,17 +87,25 @@ public class AddOnSQLTableExternalForeinKeyAsList implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
-			@NotNull final CountInOut elemCount, final QueryOptions options) {
-		elemCount.inc();
-		querrySelect.append(" ");
-		querrySelect.append(tableName);
-		querrySelect.append(".");
-		querrySelect.append(name);
+	public void generateQuery(//
+			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
+			@NotNull final Field field, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
+			@NotNull final String name, //
+			@NotNull final CountInOut count, //
+			final QueryOptions options//
+	) {
+		count.inc();
+		querySelect.append(" ");
+		querySelect.append(tableName);
+		querySelect.append(".");
+		querySelect.append(name);
 	}
 
 	@Override
-	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall)
+	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall)
 			throws SQLException, IllegalArgumentException, IllegalAccessException {
 		final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR);
 		field.set(data, idList);

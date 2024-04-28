@@ -126,7 +126,7 @@ public class DataAccess {
 			return true;
 		}
 		try {
-			return 1 == DataAccess.executeSimpleQuerry("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
+			return 1 == DataAccess.executeSimpleQuery("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
 		} catch (final SQLException | IOException ex) {
 			ex.printStackTrace();
 			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
@@ -873,7 +873,7 @@ public class DataAccess {
 			query.append(")");
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
-				orders.generateQuerry(query, tableName);
+				orders.generateQuery(query, tableName);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1148,7 +1148,7 @@ public class DataAccess {
 			query.append(" ");
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
-				orders.generateQuerry(query, tableName);
+				orders.generateQuery(query, tableName);
 			}
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -1188,7 +1188,7 @@ public class DataAccess {
 						addOn.insertData(ps, field, data, iii);
 					}
 				}
-				condition.injectQuerry(ps, iii);
+				condition.injectQuery(ps, iii);
 				return ps.executeUpdate();
 			}
 		} catch (final SQLException ex) {
@@ -1248,14 +1248,14 @@ public class DataAccess {
 		}
 	}
 
-	public static int executeSimpleQuerry(final String query, final QueryOption... option) throws SQLException, IOException {
+	public static int executeSimpleQuery(final String query, final QueryOption... option) throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
 		return stmt.executeUpdate(query);
 	}
 
-	public static boolean executeQuerry(final String query, final QueryOption... option) throws SQLException, IOException {
+	public static boolean executeQuery(final String query, final QueryOption... option) throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final Statement stmt = entry.connection.createStatement();
@@ -1272,9 +1272,16 @@ public class DataAccess {
 		return values.get(0);
 	}
 
-	public static void generateSelectField(final StringBuilder querySelect, final StringBuilder query, final Class<?> clazz, final QueryOptions options, final CountInOut count) throws Exception {
+	public static void generateSelectField(//
+			final StringBuilder querySelect, //
+			final StringBuilder query, //
+			final Class<?> clazz, //
+			final QueryOptions options, //
+			final CountInOut count//
+	) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
+		final String primaryKey = AnnotationTools.getPrimaryKeyField(clazz).getName();
 		boolean firstField = true;
 
 		for (final Field elem : clazz.getFields()) {
@@ -1298,7 +1305,7 @@ public class DataAccess {
 			}
 			querySelect.append(" ");
 			if (addOn != null) {
-				addOn.generateQuerry(tableName, elem, querySelect, query, name, count, options);
+				addOn.generateQuery(tableName, primaryKey, elem, querySelect, query, name, count, options);
 			} else {
 				querySelect.append(tableName);
 				querySelect.append(".");
@@ -1340,23 +1347,23 @@ public class DataAccess {
 			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 			final GroupBy groups = options.get(GroupBy.class);
 			if (groups != null) {
-				groups.generateQuerry(query, null);
+				groups.generateQuery(query, null);
 			}
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
-				orders.generateQuerry(query, tableName);
+				orders.generateQuery(query, tableName);
 			}
 			final Limit limit = options.get(Limit.class);
 			if (limit != null) {
-				limit.generateQuerry(query, tableName);
+				limit.generateQuery(query, tableName);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			if (limit != null) {
-				limit.injectQuerry(ps, iii);
+				limit.injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1409,7 +1416,7 @@ public class DataAccess {
 				continue;
 			}
 			if (addOn != null) {
-				addOn.fillFromQuerry(rs, elem, data, count, options, lazyCall);
+				addOn.fillFromQuery(rs, elem, data, count, options, lazyCall);
 			} else {
 				setValueFromDb(elem.getType(), data, count, elem, rs, countNotNull);
 			}
@@ -1440,15 +1447,15 @@ public class DataAccess {
 			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
 			final Limit limit = options.get(Limit.class);
 			if (limit != null) {
-				limit.generateQuerry(query, tableName);
+				limit.generateQuery(query, tableName);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(), Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			if (limit != null) {
-				limit.injectQuerry(ps, iii);
+				limit.injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1540,7 +1547,7 @@ public class DataAccess {
 			LOGGER.debug("APPLY: {}", query.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1577,7 +1584,7 @@ public class DataAccess {
 			LOGGER.debug("APPLY UPDATE: {}", query.toString());
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1618,7 +1625,7 @@ public class DataAccess {
 		try {
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			return ps.executeUpdate();
 		} finally {
 			entry.close();
@@ -1634,7 +1641,7 @@ public class DataAccess {
 		query.append(tableName);
 		query.append("`");
 		try {
-			LOGGER.trace("Execute Querry: {}", query.toString());
+			LOGGER.trace("Execute Query: {}", query.toString());
 			// Remove main table
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			ps.executeUpdate();
@@ -1666,7 +1673,7 @@ public class DataAccess {
 		query.append(tableName);
 		query.append("`");
 		try {
-			LOGGER.trace("Execute Querry: {}", query.toString());
+			LOGGER.trace("Execute Query: {}", query.toString());
 			// Remove main table
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
 			ps.executeUpdate();
@@ -1721,15 +1728,15 @@ public class DataAccess {
 
 			final GroupBy groups = options.get(GroupBy.class);
 			if (groups != null) {
-				groups.generateQuerry(query, null);
+				groups.generateQuery(query, null);
 			}
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
-				orders.generateQuerry(query, null);
+				orders.generateQuery(query, null);
 			}
 			final Limit limit = options.get(Limit.class);
 			if (limit != null) {
-				limit.generateQuerry(query, null);
+				limit.generateQuery(query, null);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1741,9 +1748,9 @@ public class DataAccess {
 				}
 				iii.inc();
 			}
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			if (limit != null) {
-				limit.injectQuerry(ps, iii);
+				limit.injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1756,7 +1763,7 @@ public class DataAccess {
 				// find field name ...
 				final Field field = AnnotationTools.getFieldNamed(clazz, label);
 				if (field == null) {
-					throw new DataAccessException("Querry with unknown field: '" + label + "'");
+					throw new DataAccessException("Query with unknown field: '" + label + "'");
 				}
 				// create the callback...
 				final RetreiveFromDB element = createSetValueFromDbCallback(jjj + 1, field);

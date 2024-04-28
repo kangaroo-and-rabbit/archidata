@@ -103,17 +103,25 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
-			@NotNull final CountInOut elemCount, final QueryOptions options) {
-		querrySelect.append(" ");
-		querrySelect.append(tableName);
-		querrySelect.append(".");
-		querrySelect.append(name);
-		elemCount.inc();
+	public void generateQuery(//
+			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
+			@NotNull final Field field, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
+			@NotNull final String name, //
+			@NotNull final CountInOut count, //
+			final QueryOptions options//
+	) {
+		querySelect.append(" ");
+		querySelect.append(tableName);
+		querySelect.append(".");
+		querySelect.append(name);
+		count.inc();
 	}
 
 	@Override
-	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall)
+	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall)
 			throws SQLException, IllegalArgumentException, IllegalAccessException {
 		final Long foreignKey = rs.getLong(count.value);
 		count.inc();

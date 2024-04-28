@@ -65,7 +65,7 @@ public class TestSimpleTable {
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTable.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED;

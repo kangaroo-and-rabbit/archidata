@@ -52,7 +52,7 @@ public class TestRawQuery {
 		final List<String> sqlCommand = DataFactory.createTable(TypesTable.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 	}
 
@@ -83,7 +83,7 @@ public class TestRawQuery {
 		test.floatData = 7.0F;
 		DataAccess.insert(test);
 		{
-			String querry = """
+			String query = """
 					SELECT *
 					FROM TypesTable
 					WHERE `intData` = ?
@@ -91,7 +91,7 @@ public class TestRawQuery {
 					""";
 			List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
-			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, querry, parameters);
+			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, query, parameters);
 
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertEquals(3, retrieve.size());
@@ -102,7 +102,7 @@ public class TestRawQuery {
 		}
 		{
 
-			String querry = """
+			String query = """
 					SELECT DISTINCT intData
 					FROM TypesTable
 					WHERE `intData` = ?
@@ -110,7 +110,7 @@ public class TestRawQuery {
 					""";
 			List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
-			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, querry, parameters);
+			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, query, parameters);
 
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertEquals(1, retrieve.size());

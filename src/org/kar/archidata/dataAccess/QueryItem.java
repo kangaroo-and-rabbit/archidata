@@ -3,7 +3,7 @@ package org.kar.archidata.dataAccess;
 import java.sql.PreparedStatement;
 
 public interface QueryItem {
-	void generateQuerry(StringBuilder query, String tableName);
+	void generateQuery(StringBuilder query, String tableName);
 
-	void injectQuerry(PreparedStatement ps, CountInOut iii) throws Exception;
+	void injectQuery(PreparedStatement ps, CountInOut iii) throws Exception;
 }

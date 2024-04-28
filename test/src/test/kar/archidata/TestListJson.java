@@ -53,7 +53,7 @@ public class TestListJson {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJson.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 	}
 

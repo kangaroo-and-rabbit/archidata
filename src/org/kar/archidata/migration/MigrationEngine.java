@@ -166,7 +166,7 @@ public class MigrationEngine {
 			}
 			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
 			try {
-				DataAccess.executeQuerry(sqlQuery.get(0));
+				DataAccess.executeQuery(sqlQuery.get(0));
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
 				throw new MigrationException("Fail to create the local DB model for migaration ==> wait administrator interventions");

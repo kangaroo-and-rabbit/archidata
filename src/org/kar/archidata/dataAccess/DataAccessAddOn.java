@@ -45,11 +45,19 @@ public interface DataAccessAddOn {
 		return false;
 	}
 
-	void generateQuerry(@NotNull String tableName, @NotNull Field field, @NotNull final StringBuilder querySelect, @NotNull final StringBuilder query, @NotNull String name, @NotNull CountInOut count,
-			QueryOptions options) throws Exception;
+	void generateQuery(//
+			@NotNull String tableName, //
+			@NotNull final String primaryKey, //
+			@NotNull Field field, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
+			@NotNull String name, //
+			@NotNull CountInOut count, //
+			QueryOptions options//
+	) throws Exception;
 
 	// Return the number of colomn read
-	void fillFromQuerry(ResultSet rs, Field field, Object data, CountInOut count, QueryOptions options, final List<LazyGetter> lazyCall)
+	void fillFromQuery(ResultSet rs, Field field, Object data, CountInOut count, QueryOptions options, final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/** Create associated table of the specific element.

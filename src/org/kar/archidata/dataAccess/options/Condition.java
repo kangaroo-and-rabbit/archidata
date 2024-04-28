@@ -19,15 +19,15 @@ public class Condition extends QueryOption {
 		this.condition = null;
 	}
 
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.condition != null) {
-			this.condition.generateQuerry(query, tableName);
+			this.condition.generateQuery(query, tableName);
 		}
 	}
 
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		if (this.condition != null) {
-			this.condition.injectQuerry(ps, iii);
+			this.condition.injectQuery(ps, iii);
 		}
 	}
 
@@ -48,7 +48,7 @@ public class Condition extends QueryOption {
 			return;
 		}
 		query.append(" WHERE (");
-		this.condition.generateQuerry(query, tableName);
+		this.condition.generateQuery(query, tableName);
 		query.append(") ");
 		if (exclude_deleted && deletedFieldName != null) {
 			query.append("AND ");

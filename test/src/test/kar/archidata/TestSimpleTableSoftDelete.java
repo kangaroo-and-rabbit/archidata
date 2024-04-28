@@ -65,7 +65,7 @@ public class TestSimpleTableSoftDelete {
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTableSoftDelete.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED;

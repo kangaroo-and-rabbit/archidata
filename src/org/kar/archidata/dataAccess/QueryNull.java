@@ -10,7 +10,7 @@ public class QueryNull implements QueryItem {
 	}
 
 	@Override
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (tableName != null) {
 			query.append(tableName);
 			query.append(".");
@@ -20,5 +20,5 @@ public class QueryNull implements QueryItem {
 	}
 
 	@Override
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {}
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {}
 }

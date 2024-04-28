@@ -234,7 +234,7 @@ public class DataExport {
 				return iii;
 			}
 		}
-		throw new DataAccessException("Querry with unknown field: '" + name + "'");
+		throw new DataAccessException("Query with unknown field: '" + name + "'");
 	}
 
 	public static TableQuery queryTable(final List<TableQueryTypes> headers, final String query, final List<Object> parameters, final QueryOption... option) throws Exception {
@@ -260,15 +260,15 @@ public class DataExport {
 
 			final GroupBy groups = options.get(GroupBy.class);
 			if (groups != null) {
-				groups.generateQuerry(query, null);
+				groups.generateQuery(query, null);
 			}
 			final OrderBy orders = options.get(OrderBy.class);
 			if (orders != null) {
-				orders.generateQuerry(query, null);
+				orders.generateQuery(query, null);
 			}
 			final Limit limit = options.get(Limit.class);
 			if (limit != null) {
-				limit.generateQuerry(query, null);
+				limit.generateQuery(query, null);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -280,9 +280,9 @@ public class DataExport {
 				}
 				iii.inc();
 			}
-			condition.injectQuerry(ps, iii);
+			condition.injectQuery(ps, iii);
 			if (limit != null) {
-				limit.injectQuerry(ps, iii);
+				limit.injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();

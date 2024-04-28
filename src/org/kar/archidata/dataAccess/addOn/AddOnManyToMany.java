@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.velocity.tools.generic.ResourceTool.Key;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -98,76 +97,79 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return tableName + "_link_" + localName;
 	}
 
-	public void generateConcatQuerry( //
+	public void generateConcatQuery(//
 			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
 			@NotNull final Field field, //
-			@NotNull final StringBuilder querrySelect, //
-			@NotNull final StringBuilder querry, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
 			@NotNull final String name, //
-			@NotNull final CountInOut elemCount, //
+			@NotNull final CountInOut count, //
 			final QueryOptions options//
 	) throws Exception {
 		final String linkTableName = generateLinkTableName(tableName, name);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-		final String tmpVariable = "tmp_" + Integer.toString(elemCount.value);
-		querrySelect.append(" (SELECT GROUP_CONCAT(");
-		querrySelect.append(tmpVariable);
-		querrySelect.append(".object2Id ");
+		final String tmpVariable = "tmp_" + Integer.toString(count.value);
+		querySelect.append(" (SELECT GROUP_CONCAT(");
+		querySelect.append(tmpVariable);
+		querySelect.append(".object2Id ");
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
-			querrySelect.append(", ");
+			querySelect.append(", ");
 		} else {
-			querrySelect.append("SEPARATOR ");
+			querySelect.append("SEPARATOR ");
 		}
-		querrySelect.append("'");
+		querySelect.append("'");
 		if (objectClass == Long.class) {
-			querrySelect.append(SEPARATOR_LONG);
+			querySelect.append(SEPARATOR_LONG);
 		} else if (objectClass == UUID.class) {} else {
 			final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
 			if (foreignKeyType == Long.class) {
-				querrySelect.append(SEPARATOR_LONG);
+				querySelect.append(SEPARATOR_LONG);
 			}
 		}
-		querrySelect.append("') FROM ");
-		querrySelect.append(linkTableName);
-		querrySelect.append(" ");
-		querrySelect.append(tmpVariable);
-		querrySelect.append(" WHERE ");
-		/* querrySelect.append(tmpVariable); querrySelect.append(".deleted = false AND "); */
-		querrySelect.append(tableName);
-		final la il faut final retouvrt la primary final Key de la final table courante ...
-		querrySelect.append(".id = ");
-		querrySelect.append(tmpVariable);
-		querrySelect.append(".");
-		querrySelect.append("object1Id ");
+		querySelect.append("') FROM ");
+		querySelect.append(linkTableName);
+		querySelect.append(" ");
+		querySelect.append(tmpVariable);
+		querySelect.append(" WHERE ");
+		/* querySelect.append(tmpVariable); querySelect.append(".deleted = false AND "); */
+		querySelect.append(tableName);
+		querySelect.append(".");
+		querySelect.append(primaryKey);
+		querySelect.append(" = ");
+		querySelect.append(tmpVariable);
+		querySelect.append(".");
+		querySelect.append("object1Id ");
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
-			querrySelect.append(" GROUP BY ");
-			querrySelect.append(tmpVariable);
-			querrySelect.append(".object1Id");
+			querySelect.append(" GROUP BY ");
+			querySelect.append(tmpVariable);
+			querySelect.append(".object1Id");
 		}
-		querrySelect.append(") AS ");
-		querrySelect.append(name);
-		querrySelect.append(" ");
+		querySelect.append(") AS ");
+		querySelect.append(name);
+		querySelect.append(" ");
 		/* "              (SELECT GROUP_CONCAT(tmp.data_id SEPARATOR '-')" + "                      FROM cover_link_node tmp" + "                      WHERE tmp.deleted = false" +
 		 * "                            AND node.id = tmp.node_id" + "                      GROUP BY tmp.node_id) AS covers" + */
-		elemCount.inc();
+		count.inc();
 	}
 
 	@Override
-	public void generateQuerry( //
+	public void generateQuery(//
 			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
 			@NotNull final Field field, //
-			@NotNull final StringBuilder querrySelect, //
-			@NotNull final StringBuilder querry, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
 			@NotNull final String name, //
-			@NotNull final CountInOut elemCount, //
-			final QueryOptions options //
+			@NotNull final CountInOut count, //
+			final QueryOptions options//
 	) throws Exception {
 		if (field.getType() != List.class) {
 			return;
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
 		if (objectClass == Long.class || objectClass == UUID.class) {
-			generateConcatQuerry(tableName, field, querrySelect, querry, name, elemCount, options);
+			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
 		if (decorators == null) {
@@ -177,13 +179,13 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			if (decorators.fetch() == FetchType.EAGER) {
 				throw new DataAccessException("EAGER is not supported for list of element...");
 			} else {
-				generateConcatQuerry(tableName, field, querrySelect, querry, name, elemCount, options);
+				generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 			}
 		}
 	}
 
 	@Override
-	public void fillFromQuerry( //
+	public void fillFromQuery( //
 			final ResultSet rs, //
 			final Field field, //
 			final Object data, //

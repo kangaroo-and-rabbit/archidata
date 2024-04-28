@@ -9,11 +9,11 @@ public class Limit extends QueryOption {
 		this.limit = limit;
 	}
 
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		query.append(" LIMIT ? \n");
 	}
 
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		DataAccess.addElement(ps, this.limit, iii);
 		iii.inc();
 	}

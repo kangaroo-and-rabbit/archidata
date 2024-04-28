@@ -135,6 +135,7 @@ public class RESTApi {
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
 		}
+		LOGGER.trace("Receive model: {} with data: '{}'", clazz.getCanonicalName(), httpResponse.body());
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 

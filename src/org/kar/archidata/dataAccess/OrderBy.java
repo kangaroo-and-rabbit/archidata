@@ -14,7 +14,7 @@ public class OrderBy extends QueryOption {
 		this.childs = List.of(childs);
 	}
 
-	public void generateQuerry(final StringBuilder query, final String tableName) {
+	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.childs.size() == 0) {
 			return;
 		}
@@ -35,7 +35,7 @@ public class OrderBy extends QueryOption {
 		query.append("\n");
 	}
 
-	public void injectQuerry(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		// nothing to add.
 	}
 }

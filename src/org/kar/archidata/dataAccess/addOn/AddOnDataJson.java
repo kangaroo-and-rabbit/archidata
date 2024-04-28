@@ -79,18 +79,26 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuerry(@NotNull final String tableName, @NotNull final Field field, @NotNull final StringBuilder querrySelect, @NotNull final StringBuilder querry, @NotNull final String name,
-			@NotNull final CountInOut elemCount, final QueryOptions options) throws Exception {
-		querrySelect.append(" ");
-		querrySelect.append(tableName);
-		querrySelect.append(".");
-		querrySelect.append(name);
-		elemCount.inc();
+	public void generateQuery(//
+			@NotNull final String tableName, //
+			@NotNull final String primaryKey, //
+			@NotNull final Field field, //
+			@NotNull final StringBuilder querySelect, //
+			@NotNull final StringBuilder query, //
+			@NotNull final String name, //
+			@NotNull final CountInOut count, //
+			final QueryOptions options//
+	) throws Exception {
+		querySelect.append(" ");
+		querySelect.append(tableName);
+		querySelect.append(".");
+		querySelect.append(name);
+		count.inc();
 		return;
 	}
 
 	@Override
-	public void fillFromQuerry(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
+	public void fillFromQuery(final ResultSet rs, final Field field, final Object data, final CountInOut count, final QueryOptions options, final List<LazyGetter> lazyCall) throws Exception {
 		final String jsonData = rs.getString(count.value);
 		count.inc();
 		if (!rs.wasNull()) {

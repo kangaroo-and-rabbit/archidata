@@ -98,7 +98,7 @@ public class MigrationSqlStep implements MigrationInterface {
 			}
 			try {
 				if (action.action() != null) {
-					DataAccess.executeQuerry(action.action());
+					DataAccess.executeQuery(action.action());
 				} else {
 					action.async().doRequest();
 				}

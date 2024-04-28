@@ -57,7 +57,7 @@ public class TestManyToMany {
 		sqlCommand.addAll(sqlCommand2);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 	}
 

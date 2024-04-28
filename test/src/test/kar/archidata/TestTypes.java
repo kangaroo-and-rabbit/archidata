@@ -57,7 +57,7 @@ public class TestTypes {
 		final List<String> sqlCommand = DataFactory.createTable(TypesTable.class);
 		for (final String elem : sqlCommand) {
 			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuerry(elem);
+			DataAccess.executeSimpleQuery(elem);
 		}
 	}
 
