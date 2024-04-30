@@ -790,8 +790,8 @@ public class DataAccess {
 		final QueryOptions options = new QueryOptions(option);
 
 		// External checker of data:
-		final CheckFunction check = options.get(CheckFunction.class);
-		if (check != null) {
+		final List<CheckFunction> checks = options.get(CheckFunction.class);
+		for (final CheckFunction check : checks) {
 			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz));
 		}
 
@@ -887,9 +887,9 @@ public class DataAccess {
 				query.append("?");
 			}
 			query.append(")");
-			final OrderBy orders = options.get(OrderBy.class);
-			if (orders != null) {
-				orders.generateQuery(query, tableName);
+			final List<OrderBy> orders = options.get(OrderBy.class);
+			for (final OrderBy order : orders) {
+				order.generateQuery(query, tableName);
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1053,12 +1053,7 @@ public class DataAccess {
 			final String jsonData,
 			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
-		if (condition != null) {
-			options.add(new Condition(new QueryAnd(getTableIdCondition(clazz, id), condition.condition)));
-		} else {
-			options.add(new Condition(getTableIdCondition(clazz, id)));
-		}
+		options.add(new Condition(getTableIdCondition(clazz, id)));
 		options.add(new TransmitKey(id));
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
@@ -1066,8 +1061,7 @@ public class DataAccess {
 	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
-		if (condition == null) {
+		if (options.get(Condition.class).size() == 0) {
 			throw new DataAccessException("request a updateWhereWithJson without any condition");
 		}
 		final ObjectMapper mapper = new ObjectMapper();
@@ -1111,18 +1105,16 @@ public class DataAccess {
 
 	public static <T> int updateWhere(final T data, final QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
-		final Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			throw new DataAccessException("request a gets without any condition");
+		final Condition condition = conditionFusionOrEmpty(options, true);
+		final List<FilterValue> filters = options.get(FilterValue.class);
+		if (filters.size() != 1) {
+			throw new DataAccessException("request a gets without/or with more 1 filter of values");
 		}
-		final FilterValue filter = options.get(FilterValue.class);
-		if (filter == null) {
-			throw new DataAccessException("request a gets without any filter values");
-		}
+		final FilterValue filter = filters.get(0);
 		// External checker of data:
 		if (options != null) {
-			final CheckFunction check = options.get(CheckFunction.class);
-			if (check != null) {
+			final List<CheckFunction> checks = options.get(CheckFunction.class);
+			for (final CheckFunction check : checks) {
 				check.getChecker().check("", data, filter.getValues());
 			}
 		}
@@ -1152,11 +1144,12 @@ public class DataAccess {
 				final DataAccessAddOn addOn = findAddOnforField(field);
 				if (addOn != null && !addOn.canInsert(field)) {
 					if (addOn.isInsertAsync(field)) {
-						final TransmitKey transmitKey = options.get(TransmitKey.class);
-						if (transmitKey == null) {
-							throw new DataAccessException("Fail to transmit Key to update the async update...");
+						final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
+						if (transmitKey.size() != 1) {
+							throw new DataAccessException(
+									"Fail to transmit Key to update the async update... (must have only 1)");
 						}
-						addOn.asyncUpdate(tableName, transmitKey.getKey(), field, field.get(data), asyncActions);
+						addOn.asyncUpdate(tableName, transmitKey.get(0).getKey(), field, field.get(data), asyncActions);
 					}
 					continue;
 				}
@@ -1176,9 +1169,9 @@ public class DataAccess {
 				query.append("` = ? ");
 			}
 			query.append(" ");
-			final OrderBy orders = options.get(OrderBy.class);
-			if (orders != null) {
-				orders.generateQuery(query, tableName);
+			final List<OrderBy> orders = options.get(OrderBy.class);
+			for (final OrderBy order : orders) {
+				order.generateQuery(query, tableName);
 			}
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -1186,7 +1179,7 @@ public class DataAccess {
 
 			// If the first field is not set, then nothing to update n the main base:
 			if (!firstField) {
-				LOGGER.debug("generate the query: '{}'", query.toString());
+				LOGGER.debug("generate update query: '{}'", query.toString());
 				// prepare the request:
 				final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
 						Statement.RETURN_GENERATED_KEYS);
@@ -1353,12 +1346,32 @@ public class DataAccess {
 		return getsWhere(clazz, options);
 	}
 
+	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
+			throws DataAccessException {
+		final List<Condition> conditions = options.get(Condition.class);
+		if (conditions.size() == 0) {
+			if (throwIfEmpty) {
+				throw new DataAccessException("request a gets without any condition");
+			} else {
+				return new Condition();
+			}
+		}
+		Condition condition = null;
+		if (conditions.size() == 1) {
+			condition = conditions.get(0);
+		} else {
+			final QueryAnd andCondition = new QueryAnd();
+			for (final Condition cond : conditions) {
+				andCondition.add(cond.condition);
+			}
+			condition = new Condition(andCondition);
+		}
+		return condition;
+	}
+
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
-		Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			condition = new Condition();
-		}
+		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
@@ -1378,17 +1391,19 @@ public class DataAccess {
 			querySelect.append(query.toString());
 			query = querySelect;
 			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-			final GroupBy groups = options.get(GroupBy.class);
-			if (groups != null) {
-				groups.generateQuery(query, null);
+			final List<GroupBy> groups = options.get(GroupBy.class);
+			for (final GroupBy group : groups) {
+				group.generateQuery(query, tableName);
 			}
-			final OrderBy orders = options.get(OrderBy.class);
-			if (orders != null) {
-				orders.generateQuery(query, tableName);
+			final List<OrderBy> orders = options.get(OrderBy.class);
+			for (final OrderBy order : orders) {
+				order.generateQuery(query, tableName);
 			}
-			final Limit limit = options.get(Limit.class);
-			if (limit != null) {
-				limit.generateQuery(query, tableName);
+			final List<Limit> limits = options.get(Limit.class);
+			if (limits.size() == 1) {
+				limits.get(0).generateQuery(query, tableName);
+			} else if (limits.size() > 1) {
+				throw new DataAccessException("Request with multiple 'limit'...");
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1396,8 +1411,8 @@ public class DataAccess {
 					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuery(ps, iii);
-			if (limit != null) {
-				limit.injectQuery(ps, iii);
+			if (limits.size() == 1) {
+				limits.get(0).injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1470,10 +1485,7 @@ public class DataAccess {
 
 	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			condition = new Condition();
-		}
+		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		long count = 0;
@@ -1485,9 +1497,11 @@ public class DataAccess {
 			query.append(tableName);
 			query.append("` ");
 			condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-			final Limit limit = options.get(Limit.class);
-			if (limit != null) {
-				limit.generateQuery(query, tableName);
+			final List<Limit> limits = options.get(Limit.class);
+			if (limits.size() == 1) {
+				limits.get(0).generateQuery(query, tableName);
+			} else if (limits.size() > 1) {
+				throw new DataAccessException("Request with multiple 'limit'...");
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1495,8 +1509,8 @@ public class DataAccess {
 					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuery(ps, iii);
-			if (limit != null) {
-				limit.injectQuery(ps, iii);
+			if (limits.size() == 1) {
+				limits.get(0).injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1574,10 +1588,7 @@ public class DataAccess {
 
 	public static int deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			throw new DataAccessException("request a gets without any condition");
-		}
+		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
@@ -1607,10 +1618,7 @@ public class DataAccess {
 
 	public static int deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			throw new DataAccessException("request a gets without any condition");
-		}
+		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		/* String updateFieldName = null; if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) { updateFieldName = AnnotationTools.getUpdatedFieldName(clazz); } */
@@ -1649,10 +1657,7 @@ public class DataAccess {
 
 	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			throw new DataAccessException("request a gets without any condition");
-		}
+		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
@@ -1769,10 +1774,7 @@ public class DataAccess {
 		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 
-		Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			condition = new Condition();
-		}
+		final Condition condition = conditionFusionOrEmpty(options, false);
 		final StringBuilder query = new StringBuilder(queryBase);
 		final List<TYPE> outs = new ArrayList<>();
 		// real add in the BDD:
@@ -1780,17 +1782,19 @@ public class DataAccess {
 			final CountInOut count = new CountInOut();
 			condition.whereAppendQuery(query, null, options, null);
 
-			final GroupBy groups = options.get(GroupBy.class);
-			if (groups != null) {
-				groups.generateQuery(query, null);
+			final List<GroupBy> groups = options.get(GroupBy.class);
+			for (final GroupBy group : groups) {
+				group.generateQuery(query, null);
 			}
-			final OrderBy orders = options.get(OrderBy.class);
-			if (orders != null) {
-				orders.generateQuery(query, null);
+			final List<OrderBy> orders = options.get(OrderBy.class);
+			for (final OrderBy order : orders) {
+				order.generateQuery(query, null);
 			}
-			final Limit limit = options.get(Limit.class);
-			if (limit != null) {
-				limit.generateQuery(query, null);
+			final List<Limit> limits = options.get(Limit.class);
+			if (limits.size() == 1) {
+				limits.get(0).generateQuery(query, null);
+			} else if (limits.size() > 1) {
+				throw new DataAccessException("Request with multiple 'limit'...");
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -1804,8 +1808,8 @@ public class DataAccess {
 				iii.inc();
 			}
 			condition.injectQuery(ps, iii);
-			if (limit != null) {
-				limit.injectQuery(ps, iii);
+			if (limits.size() == 1) {
+				limits.get(0).injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();

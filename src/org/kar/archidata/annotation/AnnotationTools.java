@@ -29,9 +29,9 @@ public class AnnotationTools {
 
 	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws Exception {
 		if (options != null) {
-			final OverrideTableName data = options.get(OverrideTableName.class);
-			if (data != null) {
-				return data.getName();
+			final List<OverrideTableName> data = options.get(OverrideTableName.class);
+			if (data.size() == 1) {
+				return data.get(0).getName();
 			}
 		}
 		return AnnotationTools.getTableName(clazz);

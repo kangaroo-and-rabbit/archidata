@@ -259,28 +259,26 @@ public class DataExport {
 		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 
-		Condition condition = options.get(Condition.class);
-		if (condition == null) {
-			condition = new Condition();
-		}
+		final Condition condition = DataAccess.conditionFusionOrEmpty(options, false);
 		final StringBuilder query = new StringBuilder(queryBase);
 		final TableQuery out = new TableQuery(headers);
 		// real add in the BDD:
 		try {
 			final CountInOut count = new CountInOut();
 			condition.whereAppendQuery(query, null, options, null);
-
-			final GroupBy groups = options.get(GroupBy.class);
-			if (groups != null) {
-				groups.generateQuery(query, null);
+			final List<GroupBy> groups = options.get(GroupBy.class);
+			for (final GroupBy group : groups) {
+				group.generateQuery(query, null);
 			}
-			final OrderBy orders = options.get(OrderBy.class);
-			if (orders != null) {
-				orders.generateQuery(query, null);
+			final List<OrderBy> orders = options.get(OrderBy.class);
+			for (final OrderBy order : orders) {
+				order.generateQuery(query, null);
 			}
-			final Limit limit = options.get(Limit.class);
-			if (limit != null) {
-				limit.generateQuery(query, null);
+			final List<Limit> limits = options.get(Limit.class);
+			if (limits.size() == 1) {
+				limits.get(0).generateQuery(query, null);
+			} else if (limits.size() > 1) {
+				throw new DataAccessException("Request with multiple 'limit'...");
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
@@ -294,8 +292,8 @@ public class DataExport {
 				iii.inc();
 			}
 			condition.injectQuery(ps, iii);
-			if (limit != null) {
-				limit.injectQuery(ps, iii);
+			if (limits.size() == 1) {
+				limits.get(0).injectQuery(ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();

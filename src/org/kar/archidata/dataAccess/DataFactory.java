@@ -144,6 +144,7 @@ public class DataFactory {
 
 	public static void createTablesSpecificType(
 			final String tableName,
+			final Field primaryField,
 			final Field elem,
 			final StringBuilder mainTableBuilder,
 			final List<String> preOtherTables,
@@ -225,10 +226,13 @@ public class DataFactory {
 						triggerBuilder.append(" SET ");
 						triggerBuilder.append(name);
 						// triggerBuilder.append(" = datetime('now') WHERE id = NEW.id; \n");
+						final String tablePrimaryKey = primaryField.getName();
 						if ("varchar(33)".equals(typeValue)) {
-							triggerBuilder.append(" = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id; \n");
+							triggerBuilder.append(" = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE " + tablePrimaryKey
+									+ " = NEW." + tablePrimaryKey + "; \n");
 						} else {
-							triggerBuilder.append(" = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = NEW.id; \n");
+							triggerBuilder.append(" = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE " + tablePrimaryKey
+									+ " = NEW." + tablePrimaryKey + "; \n");
 						}
 						triggerBuilder.append("END;");
 
@@ -359,6 +363,7 @@ public class DataFactory {
 		StringBuilder reverseOut = new StringBuilder();
 		final List<String> alreadyAdded = new ArrayList<>();
 		Class<?> currentClazz = clazz;
+		final Field tablePrimaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
 		while (currentClazz != null) {
 			fieldId = 0;
 			LOGGER.trace("parse class: '{}'", currentClazz.getCanonicalName());
@@ -392,8 +397,8 @@ public class DataFactory {
 					}
 				} else {
 					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
-					DataFactory.createTablesSpecificType(tableName, elem, tmpOut, preActionList, postActionList,
-							createIfNotExist, createDrop, fieldId, elem.getType());
+					DataFactory.createTablesSpecificType(tableName, tablePrimaryKeyField, elem, tmpOut, preActionList,
+							postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
 				}
 				fieldId++;
 			}

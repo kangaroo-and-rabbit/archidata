@@ -165,8 +165,8 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final boolean createIfNotExist,
 			final boolean createDrop,
 			final int fieldId) throws Exception {
-		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
-				createIfNotExist, createDrop, fieldId, JsonValue.class);
+		DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
+				postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class);
 	}
 
 	public static void addLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey)

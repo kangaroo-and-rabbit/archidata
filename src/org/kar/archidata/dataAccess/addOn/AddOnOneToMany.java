@@ -148,7 +148,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final boolean createIfNotExist,
 			final boolean createDrop,
 			final int fieldId) throws Exception {
-		DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
-				createIfNotExist, createDrop, fieldId, Long.class);
+		DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
+				postActionList, createIfNotExist, createDrop, fieldId, Long.class);
 	}
 }

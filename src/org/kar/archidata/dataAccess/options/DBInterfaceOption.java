@@ -1,6 +1,7 @@
 package org.kar.archidata.dataAccess.options;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.QueryOption;
@@ -18,15 +19,15 @@ public class DBInterfaceOption extends QueryOption {
 		this.root = false;
 	}
 
-	public DBInterfaceOption(final DBConfig config, boolean root) {
+	public DBInterfaceOption(final DBConfig config, final boolean root) {
 		this.config = config;
 		this.root = root;
 	}
 
-	public DBEntry getEntry(QueryOptions options) throws IOException {
+	public DBEntry getEntry(final QueryOptions options) throws IOException {
 		if (this.entry == null) {
-			final DBInterfaceRoot isRoot = options.get(DBInterfaceRoot.class);
-			this.entry = DBEntry.createInterface(this.config, isRoot != null && isRoot.getRoot());
+			final List<DBInterfaceRoot> isRoot = options.get(DBInterfaceRoot.class);
+			this.entry = DBEntry.createInterface(this.config, isRoot.size() == 1 && isRoot.get(0).getRoot());
 		}
 		return this.entry;
 	}
@@ -35,13 +36,13 @@ public class DBInterfaceOption extends QueryOption {
 		return this.root;
 	}
 
-	public static DBEntry getAutoEntry(QueryOptions options) throws IOException {
-		final DBInterfaceOption dbOption = options.get(DBInterfaceOption.class);
-		if (dbOption == null) {
-			final DBInterfaceRoot isRoot = options.get(DBInterfaceRoot.class);
-			return DBEntry.createInterface(GlobalConfiguration.dbConfig, isRoot != null && isRoot.getRoot());
+	public static DBEntry getAutoEntry(final QueryOptions options) throws IOException {
+		final List<DBInterfaceOption> dbOption = options.get(DBInterfaceOption.class);
+		if (dbOption.size() == 0) {
+			final List<DBInterfaceRoot> isRoot = options.get(DBInterfaceRoot.class);
+			return DBEntry.createInterface(GlobalConfiguration.dbConfig, isRoot.size() == 1 && isRoot.get(0).getRoot());
 		} else {
-			return dbOption.getEntry(options);
+			return dbOption.get(0).getEntry(options);
 		}
 	}
 

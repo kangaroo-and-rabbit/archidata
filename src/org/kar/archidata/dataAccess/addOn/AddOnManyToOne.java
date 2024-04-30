@@ -273,12 +273,12 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		final Class<?> classType = field.getType();
 		if (classType == Long.class || classType == Integer.class || classType == Short.class
 				|| classType == String.class || classType == UUID.class) {
-			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
-					createIfNotExist, createDrop, fieldId, classType);
+			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
+					postActionList, createIfNotExist, createDrop, fieldId, classType);
 		} else {
 			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
-			DataFactory.createTablesSpecificType(tableName, field, mainTableBuilder, preActionList, postActionList,
-					createIfNotExist, createDrop, fieldId, Long.class);
+			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
+					postActionList, createIfNotExist, createDrop, fieldId, Long.class);
 		}
 	}
 }

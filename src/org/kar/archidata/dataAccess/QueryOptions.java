@@ -40,13 +40,14 @@ public class QueryOptions {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T get(final Class<T> type) {
+	public <T> List<T> get(final Class<T> type) {
+		final List<T> out = new ArrayList<>();
 		for (final QueryOption elem : this.options) {
 			if (elem.getClass() == type) {
-				return (T) elem;
+				out.add((T) elem);
 			}
 		}
-		return null;
+		return out;
 	}
 
 	public boolean exist(final Class<?> type) {
