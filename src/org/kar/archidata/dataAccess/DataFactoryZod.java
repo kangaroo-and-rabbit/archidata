@@ -13,6 +13,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
@@ -247,6 +248,8 @@ public class DataFactoryZod {
 	public static GeneratedTypes createBasicType() throws Exception {
 		final GeneratedTypes previous = new GeneratedTypes();
 		previous.add(new ClassElement(new Class<?>[] { Void.class, void.class }, "void", "void", null, null, true));
+		// Map is binded to any ==> can not determine this complex model for now
+		previous.add(new ClassElement(new Class<?>[] { Map.class }, "any", "any", null, null, true));
 		previous.add(new ClassElement(new Class<?>[] { String.class }, "zod.string()", "string", null, "zod.string()",
 				true));
 		previous.add(new ClassElement(new Class<?>[] { InputStream.class, FormDataContentDisposition.class },

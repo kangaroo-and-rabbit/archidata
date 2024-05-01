@@ -310,7 +310,7 @@ public class DataFactoryTsApi {
 			}
 			final String methodDescription = apiAnnotationGetOperationDescription(method);
 			final List<String> consumes = apiAnnotationGetConsumes(clazz, method);
-			final List<String> produces = apiAnnotationProduces(clazz, method);
+			List<String> produces = apiAnnotationProduces(clazz, method);
 			LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, basicPath, methodPath);
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
@@ -326,10 +326,18 @@ public class DataFactoryTsApi {
 				if (returnTypeModelRaw == Response.class) {
 					LOGGER.info("Get type: {}", returnTypeModelRaw);
 				}
-				if (returnTypeModelRaw == Response.class) {
-					isUnmanagedReturnType = true;
+				if (returnTypeModelRaw == Response.class || returnTypeModelRaw == void.class
+						|| returnTypeModelRaw == Void.class) {
+					if (returnTypeModelRaw == Response.class) {
+						isUnmanagedReturnType = true;
+					}
 					returnTypeModel = new Class<?>[] { Void.class };
 					tmpReturn = new ArrayList<>();
+					produces = null;
+				} else if (returnTypeModelRaw == Map.class) {
+					LOGGER.warn("Not manage the Map Model ... set any");
+					returnTypeModel = new Class<?>[] { Map.class };
+					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 				} else if (returnTypeModelRaw == List.class) {
 					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
 					returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
@@ -340,6 +348,18 @@ public class DataFactoryTsApi {
 					returnTypeModel = new Class<?>[] { returnTypeModelRaw };
 					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 				}
+			} else if (returnTypeModel.length >= 0 && (returnTypeModel[0] == Response.class
+					|| returnTypeModel[0] == Void.class || returnTypeModel[0] == void.class)) {
+				if (returnTypeModel[0] == Response.class) {
+					isUnmanagedReturnType = true;
+				}
+				returnTypeModel = new Class<?>[] { Void.class };
+				tmpReturn = new ArrayList<>();
+				produces = null;
+			} else if (returnTypeModel.length > 0 && returnTypeModel[0] == Map.class) {
+				LOGGER.warn("Not manage the Map Model ...");
+				returnTypeModel = new Class<?>[] { Map.class };
+				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 			} else {
 				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 			}
@@ -458,7 +478,7 @@ public class DataFactoryTsApi {
 			if (!pathParams.isEmpty()) {
 				builder.append("\n\t\t\tparams,");
 			}
-			if (produces.size() > 1) {
+			if (produces != null && produces.size() > 1) {
 				builder.append("\n\t\t\tproduce,");
 			}
 			if (emptyElement.size() == 1 || formDataParams.size() != 0) {
@@ -506,7 +526,7 @@ public class DataFactoryTsApi {
 				}
 				builder.append("\n\t\t},");
 			}
-			if (produces.size() > 1) {
+			if (produces != null && produces.size() > 1) {
 				builder.append("\n\t\tproduce: ");
 				String isFist = null;
 				for (final String elem : produces) {
