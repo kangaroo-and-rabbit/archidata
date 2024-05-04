@@ -11,6 +11,7 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -79,6 +80,7 @@ public class DataFactoryTsApi {
 			final APIModel api = createSingleApi(clazz, includeModel, includeCheckerModel, previous);
 			final StringBuilder generatedData = new StringBuilder();
 			generatedData.append(globalheader);
+			final List<String> includedElements = new ArrayList<>();
 			for (final Class<?> elem : includeModel) {
 				if (elem == null) {
 					continue;
@@ -87,8 +89,12 @@ public class DataFactoryTsApi {
 				if (classElement.nativeType) {
 					continue;
 				}
+				includedElements.add(classElement.tsTypeName);
+			}
+			Collections.sort(includedElements);
+			for (final String elem : includedElements) {
 				generatedData.append("\n  ");
-				generatedData.append(classElement.tsTypeName);
+				generatedData.append(elem);
 				generatedData.append(",");
 			}
 			for (final Class<?> elem : includeCheckerModel) {
