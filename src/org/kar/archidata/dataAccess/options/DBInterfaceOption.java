@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.QueryOption;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.db.DBConfig;
 import org.kar.archidata.db.DBEntry;

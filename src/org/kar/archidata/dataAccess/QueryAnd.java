@@ -8,17 +8,17 @@ import java.util.List;
 public class QueryAnd implements QueryItem {
 	protected final List<QueryItem> childs;
 
-	public QueryAnd(final List<QueryItem> childs) {
-		this.childs = childs;
+	public QueryAnd(final List<QueryItem> child) {
+		this.childs = child;
 	}
 
-	public QueryAnd(final QueryItem... items) {
+	public QueryAnd(final QueryItem... child) {
 		this.childs = new ArrayList<>();
-		Collections.addAll(this.childs, items);
+		Collections.addAll(this.childs, child);
 	}
 
-	public void add(final QueryItem... items) {
-		Collections.addAll(this.childs, items);
+	public void add(final QueryItem... child) {
+		Collections.addAll(this.childs, child);
 	}
 
 	@Override

@@ -31,6 +31,10 @@ import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.DBInterfaceOption;
 import org.kar.archidata.dataAccess.options.DBInterfaceRoot;
 import org.kar.archidata.dataAccess.options.FilterValue;
+import org.kar.archidata.dataAccess.options.GroupBy;
+import org.kar.archidata.dataAccess.options.Limit;
+import org.kar.archidata.dataAccess.options.OrderBy;
+import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
@@ -1224,7 +1228,8 @@ public class DataAccess {
 		return 0;
 	}
 
-	static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
+	public static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii)
+			throws Exception {
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);

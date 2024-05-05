@@ -1,7 +1,9 @@
-package org.kar.archidata.dataAccess;
+package org.kar.archidata.dataAccess.options;
 
 import java.sql.PreparedStatement;
 import java.util.List;
+
+import org.kar.archidata.dataAccess.CountInOut;
 
 public class GroupBy extends QueryOption {
 	protected final List<String> childs;

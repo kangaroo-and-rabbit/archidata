@@ -1,6 +1,9 @@
-package org.kar.archidata.dataAccess;
+package org.kar.archidata.dataAccess.options;
 
 import java.sql.PreparedStatement;
+
+import org.kar.archidata.dataAccess.CountInOut;
+import org.kar.archidata.dataAccess.DataAccess;
 
 public class Limit extends QueryOption {
 	protected final long limit;

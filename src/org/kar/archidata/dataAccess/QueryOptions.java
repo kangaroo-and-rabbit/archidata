@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.kar.archidata.dataAccess.options.AccessDeletedItems;
 import org.kar.archidata.dataAccess.options.CreateDropTable;
+import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.ReadAllColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

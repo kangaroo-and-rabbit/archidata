@@ -1,7 +1,5 @@
 package org.kar.archidata.dataAccess.options;
 
-import org.kar.archidata.dataAccess.QueryOption;
-
 public class DBInterfaceRoot extends QueryOption {
 	private final boolean root;
 

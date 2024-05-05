@@ -5,9 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.QueryOption;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.options.DBInterfaceOption;
+import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.model.User;
 

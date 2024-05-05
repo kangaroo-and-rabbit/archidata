@@ -4,7 +4,6 @@ import java.sql.PreparedStatement;
 
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.QueryItem;
-import org.kar.archidata.dataAccess.QueryOption;
 import org.kar.archidata.dataAccess.QueryOptions;
 
 /** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */

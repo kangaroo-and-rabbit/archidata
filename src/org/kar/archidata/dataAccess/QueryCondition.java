@@ -7,6 +7,12 @@ public class QueryCondition implements QueryItem {
 	private final String comparator;
 	private final Object value;
 
+	/**
+	 * Simple DB comparison element. Note the injected object is injected in the statement and not in the query directly.
+	 * @param key Field to check (the Model property name)
+	 * @param comparator (simple comparator String)
+	 * @param value Value that the field must be equals.
+	 */
 	public QueryCondition(final String key, final String comparator, final Object value) {
 		this.key = key;
 		this.comparator = comparator;

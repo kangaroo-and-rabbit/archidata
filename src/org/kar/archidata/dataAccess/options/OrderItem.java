@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess;
+package org.kar.archidata.dataAccess.options;
 
 public class OrderItem {
 	public enum Order {
