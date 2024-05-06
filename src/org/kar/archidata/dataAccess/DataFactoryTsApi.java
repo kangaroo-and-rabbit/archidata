@@ -12,6 +12,7 @@ import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -291,6 +292,10 @@ public class DataFactoryTsApi {
 		return out;
 	}
 
+	record OrderedElement(
+			String methodName,
+			Method method) {}
+
 	public static APIModel createSingleApi(
 			final Class<?> clazz,
 			final Set<Class<?>> includeModel,
@@ -305,8 +310,18 @@ public class DataFactoryTsApi {
 		builder.append(classSimpleName);
 		builder.append(" {\n");
 		LOGGER.info("Parse Class for path: {} => {}", classSimpleName, basicPath);
+
+		final List<OrderedElement> orderedElements = new ArrayList<>();
 		for (final Method method : clazz.getDeclaredMethods()) {
 			final String methodName = method.getName();
+			orderedElements.add(new OrderedElement(methodName, method));
+		}
+		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName);
+		Collections.sort(orderedElements, comparator);
+
+		for (final OrderedElement orderedElement : orderedElements) {
+			final Method method = orderedElement.method();
+			final String methodName = orderedElement.methodName();
 			final String methodPath = apiAnnotationGetPath(method);
 			final String methodType = apiAnnotationGetTypeRequest(method);
 			if (methodType == null) {
