@@ -95,6 +95,10 @@ export interface RESTRequestType {
     callback?: RESTCallbacks,
 };
 
+function replaceAll(input, searchValue, replaceValue) {
+  return input.split(searchValue).join(replaceValue);
+}
+
 function removeTrailingSlashes(input: string): string {
     if (isNullOrUndefined(input)) {
         return "undefined";
@@ -113,7 +117,7 @@ export function RESTUrl({ restModel, restConfig, params, queries }: RESTRequestT
     let generateUrl = `${removeTrailingSlashes(restConfig.server)}/${removeLeadingSlashes(restModel.endPoint)}`;
     if (params !== undefined) {
         for (let key of Object.keys(params)) {
-            generateUrl = generateUrl.replaceAll(`{${key}}`, `${params[key]}`);
+            generateUrl = replaceAll(generateUrl, `{${key}}`, `${params[key]}`);
         }
     }
     if (queries === undefined && (restConfig.token === undefined || restModel.tokenInUrl !== true)) {
@@ -199,7 +203,7 @@ export function fetchProgress(generateUrl: string, { method, headers, body }: {
                 status: xhr.io.status,
                 statusText: xhr.io.statusText
             });
-            const headersArray = xhr.io.getAllResponseHeaders().trim().replaceAll("\r\n", "\n").split('\n');
+            const headersArray = replaceAll(xhr.io.getAllResponseHeaders().trim(), "\r\n", "\n").split('\n');
             headersArray.forEach(function (header) {
                 const firstColonIndex = header.indexOf(':');
                 if (firstColonIndex !== -1) {
