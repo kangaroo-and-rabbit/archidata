@@ -269,14 +269,14 @@ public class DataFactoryZod {
 				"zod.number()", false), true);
 		previous.add(new ClassElement(new Class<?>[] { Instant.class }, "ZodInstant", "Instant", "isInstant",
 				"zod.string()", false), true);
-		previous.add(new ClassElement(new Class<?>[] { Date.class }, "ZodDate", "Date", "isDate", "zod.date()", false),
-				true);
+		previous.add(new ClassElement(new Class<?>[] { Date.class }, "ZodDate", "Date", "isDate",
+				"zod.string().datetime({ precision: 3 })", false), true);
 		previous.add(new ClassElement(new Class<?>[] { Timestamp.class }, "ZodTimestamp", "Timestamp", "isTimestamp",
-				"zod.date()", false), true);
+				"zod.string().datetime({ precision: 3 })", false), true);
 		previous.add(new ClassElement(new Class<?>[] { LocalDate.class }, "ZodLocalDate", "LocalDate", "isLocalDate",
-				"zod.date()", false), true);
+				"zod.string().date()", false), true);
 		previous.add(new ClassElement(new Class<?>[] { LocalTime.class }, "ZodLocalTime", "LocalTime", "isLocalTime",
-				"zod.date()", false), true);
+				"zod.string().time()", false), true);
 		return previous;
 	}
 
