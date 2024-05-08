@@ -277,7 +277,7 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, call
         action.then((response: Response) => {
             if (response.status >= 200 && response.status <= 299) {
                 const contentType = response.headers.get('Content-Type');
-                if (restModel.accept !== contentType) {
+				if (!isNullOrUndefined(restModel.accept) && restModel.accept !== contentType) {
                     reject({
                         time: Date().toString(),
                         status: 901,
