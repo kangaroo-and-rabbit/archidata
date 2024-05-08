@@ -330,7 +330,10 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, call
 export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: any) => data is TYPE): Promise<TYPE> {
     return new Promise((resolve, reject) => {
         RESTRequest(request).then((value: ModelResponseHttp) => {
-            if (checker(value.data)) {
+            if (isNullOrUndefined(checker)) {
+                console.log(`Have no check of MODEL in API: ${RESTUrl(request)}`);
+                resolve(value.data);
+            } else if (checker(value.data)) {
                 resolve(value.data);
             } else {
                 reject({
