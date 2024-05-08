@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.kar.archidata.annotation.DataIfNotExists;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.persistence.Column;
@@ -34,6 +35,7 @@ public class User extends GenericDataSoftDelete {
 	@Column(length = 128)
 	public String login = null;
 
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	public Timestamp lastConnection = null;
 	@DefaultValue("'0'")
 	@Column(nullable = false)
