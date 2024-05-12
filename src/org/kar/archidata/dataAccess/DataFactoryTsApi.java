@@ -673,7 +673,7 @@ public class DataFactoryTsApi {
 		DataFactoryZod.createTable(RestErrorResponse.class, previous);
 		final List<String> listApi = createApi(classApi, previous, pathPackage);
 		final String packageApi = DataFactoryZod.createTables(new ArrayList<>(classModel), previous);
-		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
+		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model");
 		myWriter.write(packageApi.toString());
 		myWriter.close();
 
