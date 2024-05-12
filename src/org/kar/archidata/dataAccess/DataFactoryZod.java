@@ -474,7 +474,7 @@ public class DataFactoryZod {
 				/**
 				 * Global import of the package
 				 */
-				export * from "./model.ts";
+				export * from "./model";
 
 				""";
 		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
