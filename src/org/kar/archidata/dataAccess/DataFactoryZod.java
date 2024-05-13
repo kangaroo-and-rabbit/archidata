@@ -274,7 +274,7 @@ public class DataFactoryZod {
 		previous.add(new ClassElement(new Class<?>[] { Timestamp.class }, "ZodTimestamp", "Timestamp", "isTimestamp",
 				"zod.string().datetime({ precision: 3 })", false), true);
 		previous.add(new ClassElement(new Class<?>[] { LocalDate.class }, "ZodLocalDate", "LocalDate", "isLocalDate",
-				"zod.string().date()", false), true);
+				"zod.date()", false), true);
 		previous.add(new ClassElement(new Class<?>[] { LocalTime.class }, "ZodLocalTime", "LocalTime", "isLocalTime",
 				"zod.string().time()", false), true);
 		return previous;
