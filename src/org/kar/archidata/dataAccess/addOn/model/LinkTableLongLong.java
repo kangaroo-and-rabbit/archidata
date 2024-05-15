@@ -1,11 +1,11 @@
 package org.kar.archidata.dataAccess.addOn.model;
 
-import org.kar.archidata.model.GenericData;
+import org.kar.archidata.model.UUIDGenericDataSoftDelete;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 
-public class LinkTableLongLong extends GenericData {
+public class LinkTableLongLong extends UUIDGenericDataSoftDelete {
 	public LinkTableLongLong() {
 		// nothing to do...
 	}

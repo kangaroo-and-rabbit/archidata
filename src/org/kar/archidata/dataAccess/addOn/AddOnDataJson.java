@@ -200,7 +200,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 		}
 		data.covers.add(remoteKey);
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));// TODO:  ,new OverrideFieldName("covers", column));
 	}
 
 	public static void addLink(final Class<?> clazz, final UUID id, final String column, final UUID remoteKey)

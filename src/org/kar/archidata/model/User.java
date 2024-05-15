@@ -18,13 +18,13 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.kar.archidata.annotation.DataIfNotExists;
+import org.kar.archidata.annotation.DataJson;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.ws.rs.DefaultValue;
 
@@ -47,7 +47,8 @@ public class User extends GenericDataSoftDelete {
 	@Column(nullable = false)
 	public boolean removed = false;
 
-	@ManyToMany(fetch = FetchType.LAZY, targetEntity = Data.class)
+	@Schema(description = "List of Id of the specific covers")
+	@DataJson(targetEntity = Data.class)
 	public List<Long> covers;
 
 	@Override
