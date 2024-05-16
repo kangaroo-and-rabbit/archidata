@@ -341,6 +341,11 @@ public class DataFactoryZod {
 		if (clazz.isPrimitive()) {
 			return null;
 		}
+
+		if (clazz.isEnum()) {
+			return convertTypeZodEnum(clazz, previous);
+		}
+
 		// add the current class to prevent multiple creation
 		final ClassElement curentElementClass = new ClassElement(clazz);
 		previous.add(curentElementClass);
