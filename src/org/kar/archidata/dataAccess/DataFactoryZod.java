@@ -1,7 +1,5 @@
 package org.kar.archidata.dataAccess;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -468,23 +466,6 @@ public class DataFactoryZod {
 				}
 				""");
 		return generatedData.toString();
-	}
-
-	public static void generatePackage(final List<Class<?>> classs, final String pathPackage) throws Exception {
-		final String packageApi = createTables(classs);
-		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
-		myWriter.write(packageApi.toString());
-		myWriter.close();
-		final String index = """
-				/**
-				 * Global import of the package
-				 */
-				export * from "./model";
-
-				""";
-		myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
-		myWriter.write(index);
-		myWriter.close();
 	}
 
 }
