@@ -5,12 +5,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,37 +19,23 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.kar.archidata.annotation.AsyncType;
-import org.kar.archidata.annotation.TypeScriptProgress;
 import org.kar.archidata.catcher.RestErrorResponse;
 import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
 import org.kar.archidata.dataAccess.DataFactoryZod.GeneratedTypes;
+import org.kar.archidata.externalRestApi.model.ApiTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.swagger.v3.oas.annotations.Operation;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.PATCH;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 public class DataFactoryTsApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryTsApi.class);
-
+	
 	record APIModel(
 			String data,
 			String className) {}
-
+	
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
 	 * @throws Exception */
@@ -74,7 +59,7 @@ public class DataFactoryTsApi {
 				  RESTRequestVoid
 				} from "./rest-tools"
 				import {""";
-
+		
 		for (final Class<?> clazz : classs) {
 			final Set<Class<?>> includeModel = new HashSet<>();
 			final Set<Class<?>> includeCheckerModel = new HashSet<>();
@@ -112,7 +97,7 @@ public class DataFactoryTsApi {
 			}
 			generatedData.append("\n} from \"./model\"\n");
 			generatedData.append(api.data());
-
+			
 			String fileName = api.className();
 			fileName = fileName.replaceAll("([A-Z])", "-$1").toLowerCase();
 			fileName = fileName.replaceAll("^\\-*", "");
@@ -123,179 +108,11 @@ public class DataFactoryTsApi {
 		}
 		return apis;
 	}
-
-	public static String apiAnnotationGetPath(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((Path) annotation[0]).value();
-	}
-
-	public static List<String> apiAnnotationProduces(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return Arrays.asList(((Produces) annotation[0]).value());
-	}
-
-	public static List<String> apiAnnotationProduces(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return Arrays.asList(((Produces) annotation[0]).value());
-	}
-
-	public static boolean apiAnnotationTypeScriptProgress(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(TypeScriptProgress.class);
-		if (annotation.length == 0) {
-			return false;
-		}
-		return true;
-	}
-
-	public static List<String> apiAnnotationProduces(final Class<?> clazz, final Method method) throws Exception {
-		final List<String> data = apiAnnotationProduces(method);
-		if (data != null) {
-			return data;
-		}
-		return apiAnnotationProduces(clazz);
-	}
-
-	public static String apiAnnotationGetOperationDescription(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Operation.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((Operation) annotation[0]).description();
-	}
-
-	public static String apiAnnotationGetPath(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((Path) annotation[0]).value();
-	}
-
-	public static String apiAnnotationGetTypeRequest(final Method element) throws Exception {
-		if (element.getDeclaredAnnotationsByType(GET.class).length == 1) {
-			return "GET";
-		}
-		if (element.getDeclaredAnnotationsByType(POST.class).length == 1) {
-			return "POST";
-		}
-		if (element.getDeclaredAnnotationsByType(PUT.class).length == 1) {
-			return "PUT";
-		}
-		if (element.getDeclaredAnnotationsByType(PATCH.class).length == 1) {
-			return "PATCH";
-		}
-		if (element.getDeclaredAnnotationsByType(DELETE.class).length == 1) {
-			return "DELETE";
-		}
-		return null;
-	}
-
-	public static String apiAnnotationGetPathParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(PathParam.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((PathParam) annotation[0]).value();
-	}
-
-	public static String apiAnnotationGetQueryParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(QueryParam.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((QueryParam) annotation[0]).value();
-	}
-
-	public static String apiAnnotationGetFormDataParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataParam.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((FormDataParam) annotation[0]).value();
-	}
-
-	public static Class<?>[] apiAnnotationGetAsyncType(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((AsyncType) annotation[0]).value();
-	}
-
-	public static Class<?>[] apiAnnotationGetAsyncType(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((AsyncType) annotation[0]).value();
-	}
-
-	public static List<String> apiAnnotationGetConsumes(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return Arrays.asList(((Consumes) annotation[0]).value());
-	}
-
-	public static List<String> apiAnnotationGetConsumes(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return Arrays.asList(((Consumes) annotation[0]).value());
-	}
-
-	public static List<String> apiAnnotationGetConsumes(final Class<?> clazz, final Method method) throws Exception {
-		final List<String> data = apiAnnotationGetConsumes(method);
-		if (data != null) {
-			return data;
-		}
-		return apiAnnotationGetConsumes(clazz);
-	}
-
-	public static boolean apiAnnotationIsContext(final Parameter element) throws Exception {
-		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
-	}
-
-	public static String convertInTypeScriptType(final List<ClassElement> tmp, final boolean isList) {
-		String out = "";
-		for (final ClassElement elem : tmp) {
-			if (out.length() != 0) {
-				out += " | ";
-			}
-			out += elem.tsTypeName;
-			if (isList) {
-				out += "[]";
-			}
-		}
-		return out;
-	}
-
-	public static String convertInTypeScriptCheckType(final List<ClassElement> tmp) {
-		String out = "";
-		for (final ClassElement elem : tmp) {
-			if (out.length() != 0) {
-				out += " | ";
-			}
-			out += elem.tsCheckType;
-		}
-		return out;
-	}
-
+	
 	record OrderedElement(
 			String methodName,
 			Method method) {}
-
+	
 	public static APIModel createSingleApi(
 			final Class<?> clazz,
 			final Set<Class<?>> includeModel,
@@ -303,14 +120,14 @@ public class DataFactoryTsApi {
 			final GeneratedTypes previous) throws Exception {
 		final StringBuilder builder = new StringBuilder();
 		// the basic path has no specific elements...
-		final String basicPath = apiAnnotationGetPath(clazz);
+		final String basicPath = ApiTool.apiAnnotationGetPath(clazz);
 		final String classSimpleName = clazz.getSimpleName();
-
+		
 		builder.append("export namespace ");
 		builder.append(classSimpleName);
 		builder.append(" {\n");
 		LOGGER.info("Parse Class for path: {} => {}", classSimpleName, basicPath);
-
+		
 		final List<OrderedElement> orderedElements = new ArrayList<>();
 		for (final Method method : clazz.getDeclaredMethods()) {
 			final String methodName = method.getName();
@@ -318,26 +135,26 @@ public class DataFactoryTsApi {
 		}
 		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName);
 		Collections.sort(orderedElements, comparator);
-
+		
 		for (final OrderedElement orderedElement : orderedElements) {
 			final Method method = orderedElement.method();
 			final String methodName = orderedElement.methodName();
-			final String methodPath = apiAnnotationGetPath(method);
-			final String methodType = apiAnnotationGetTypeRequest(method);
+			final String methodPath = ApiTool.apiAnnotationGetPath(method);
+			final String methodType = ApiTool.apiAnnotationGetTypeRequest(method);
 			if (methodType == null) {
 				LOGGER.error("    [{}] {} => {}/{} ==> No methode type @PATH, @GET ...", methodType, methodName,
 						basicPath, methodPath);
 				continue;
 			}
-			final String methodDescription = apiAnnotationGetOperationDescription(method);
-			final List<String> consumes = apiAnnotationGetConsumes(clazz, method);
-			List<String> produces = apiAnnotationProduces(clazz, method);
+			final String methodDescription = ApiTool.apiAnnotationGetOperationDescription(method);
+			final List<String> consumes = ApiTool.apiAnnotationGetConsumes(clazz, method);
+			List<String> produces = ApiTool.apiAnnotationProduces(clazz, method);
 			LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, basicPath, methodPath);
 			if (methodDescription != null) {
 				LOGGER.trace("         description: {}", methodDescription);
 			}
-			final boolean needGenerateProgress = apiAnnotationTypeScriptProgress(method);
-			Class<?>[] returnTypeModel = apiAnnotationGetAsyncType(method);
+			final boolean needGenerateProgress = ApiTool.apiAnnotationTypeScriptProgress(method);
+			Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
 			boolean isUnmanagedReturnType = false;
 			boolean returnModelIsArray = false;
 			List<ClassElement> tmpReturn;
@@ -357,8 +174,22 @@ public class DataFactoryTsApi {
 					produces = null;
 				} else if (returnTypeModelRaw == Map.class) {
 					LOGGER.warn("Not manage the Map Model ... set any");
-					returnTypeModel = new Class<?>[] { Map.class };
-					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
+					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
+					final Type typeKey = listType.getActualTypeArguments()[0];
+					final Type typeValue = listType.getActualTypeArguments()[1];
+					if (typeKey == String.class) {
+						if (typeValue instanceof ParameterizedType) {
+							final Type typeSubKey = listType.getActualTypeArguments()[0];
+							final Type typeSubValue = listType.getActualTypeArguments()[1];
+							if (typeKey == String.class) {
+								
+							}
+						}
+					} else {
+						LOGGER.warn("Not manage the Map Model ... set any");
+						returnTypeModel = new Class<?>[] { Map.class };
+						tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
+					}
 				} else if (returnTypeModelRaw == List.class) {
 					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
 					returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
@@ -399,12 +230,12 @@ public class DataFactoryTsApi {
 			// LOGGER.info(" Parameters:");
 			for (final Parameter parameter : method.getParameters()) {
 				// Security context are internal parameter (not available from API)
-				if (apiAnnotationIsContext(parameter)) {
+				if (ApiTool.apiAnnotationIsContext(parameter)) {
 					continue;
 				}
 				final Class<?> parameterType = parameter.getType();
 				String parameterTypeString;
-				final Class<?>[] asyncType = apiAnnotationGetAsyncType(parameter);
+				final Class<?>[] asyncType = ApiTool.apiAnnotationGetAsyncType(parameter);
 				if (parameterType == List.class) {
 					if (asyncType == null) {
 						LOGGER.warn("Detect List param ==> not managed type ==> any[] !!!");
@@ -414,7 +245,7 @@ public class DataFactoryTsApi {
 						for (final ClassElement elem : tmp) {
 							includeModel.add(elem.model[0]);
 						}
-						parameterTypeString = convertInTypeScriptType(tmp, true);
+						parameterTypeString = ApiTool.convertInTypeScriptType(tmp, true);
 					}
 				} else if (asyncType == null) {
 					final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
@@ -425,11 +256,11 @@ public class DataFactoryTsApi {
 					for (final ClassElement elem : tmp) {
 						includeModel.add(elem.model[0]);
 					}
-					parameterTypeString = convertInTypeScriptType(tmp, true);
+					parameterTypeString = ApiTool.convertInTypeScriptType(tmp, true);
 				}
-				final String pathParam = apiAnnotationGetPathParam(parameter);
-				final String queryParam = apiAnnotationGetQueryParam(parameter);
-				final String formDataParam = apiAnnotationGetFormDataParam(parameter);
+				final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
+				final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
+				final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
 				if (queryParam != null) {
 					queryParams.put(queryParam, parameterTypeString);
 				} else if (pathParam != null) {
@@ -480,7 +311,7 @@ public class DataFactoryTsApi {
 				LOGGER.trace("         data type: {}", emptyElement.get(0));
 			}
 			// ALL is good can generate the Elements
-
+			
 			if (methodDescription != null) {
 				builder.append("\n\t/**\n\t * ");
 				builder.append(methodDescription);
@@ -552,7 +383,7 @@ public class DataFactoryTsApi {
 				String isFist = null;
 				for (final String elem : produces) {
 					String lastElement = null;
-
+					
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
 						lastElement = "HTTPMimeType.JSON";
 					}
@@ -584,7 +415,7 @@ public class DataFactoryTsApi {
 					|| tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append("void");
 			} else {
-				builder.append(convertInTypeScriptType(tmpReturn, returnModelIsArray));
+				builder.append(ApiTool.convertInTypeScriptType(tmpReturn, returnModelIsArray));
 			}
 			builder.append("> {");
 			if (tmpReturn.size() == 0 //
@@ -656,7 +487,7 @@ public class DataFactoryTsApi {
 					&& !tmpReturn.get(0).tsTypeName.equals("void")) {
 				builder.append(", ");
 				// TODO: correct this it is really bad ...
-				builder.append(convertInTypeScriptCheckType(tmpReturn));
+				builder.append(ApiTool.convertInTypeScriptCheckType(tmpReturn));
 			}
 			builder.append(");");
 			builder.append("\n\t};");
@@ -664,7 +495,7 @@ public class DataFactoryTsApi {
 		builder.append("\n}\n");
 		return new APIModel(builder.toString(), classSimpleName);
 	}
-
+	
 	public static void generatePackage(
 			final List<Class<?>> classApi,
 			final List<Class<?>> classModel,
@@ -676,7 +507,7 @@ public class DataFactoryTsApi {
 		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
 		myWriter.write(packageApi.toString());
 		myWriter.close();
-
+		
 		final StringBuilder index = new StringBuilder("""
 				/**
 				 * Global import of the package
@@ -704,5 +535,5 @@ public class DataFactoryTsApi {
 		myWriter.close();
 		return;
 	}
-
+	
 }
