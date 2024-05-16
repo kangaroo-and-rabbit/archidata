@@ -134,7 +134,9 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append(" ");
 		querySelect.append(tmpVariable);
 		querySelect.append(" WHERE ");
-		/* querySelect.append(tmpVariable); querySelect.append(".deleted = false AND "); */
+		querySelect.append(tmpVariable);
+		querySelect.append(".deleted = false");
+		querySelect.append(" AND ");
 		querySelect.append(tableName);
 		querySelect.append(".");
 		querySelect.append(primaryKey);
