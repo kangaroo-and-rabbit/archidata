@@ -4,8 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ModelGroup {
-	public final List<ClassModel> previousModel = new ArrayList<>();
+	public List<ClassModel> previousModel = new ArrayList<>();
+	
+	public ModelGroup() {}
 
+	public ModelGroup(final List<ClassModel> models) {
+		this.previousModel = models;
+	}
+	
 	public ClassModel add(final Class<?> clazz) {
 		for (final ClassModel value : this.previousModel) {
 			if (value.isCompatible(clazz)) {
@@ -16,7 +22,7 @@ public class ModelGroup {
 			final ClassModel elem = new ClassEnumModel(clazz);
 		}
 		// create new model:
-		
+
 		return null;
 	}
 }
