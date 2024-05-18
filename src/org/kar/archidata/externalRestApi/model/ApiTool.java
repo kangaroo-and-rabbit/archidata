@@ -25,7 +25,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
 public class ApiTool {
-	
+
 	public static String apiAnnotationGetPath(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
 		if (annotation.length == 0) {
@@ -33,7 +33,7 @@ public class ApiTool {
 		}
 		return ((Path) annotation[0]).value();
 	}
-	
+
 	public static List<String> apiAnnotationProduces(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
 		if (annotation.length == 0) {
@@ -41,7 +41,7 @@ public class ApiTool {
 		}
 		return Arrays.asList(((Produces) annotation[0]).value());
 	}
-	
+
 	public static List<String> apiAnnotationProduces(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
 		if (annotation.length == 0) {
@@ -49,7 +49,7 @@ public class ApiTool {
 		}
 		return Arrays.asList(((Produces) annotation[0]).value());
 	}
-	
+
 	public static boolean apiAnnotationTypeScriptProgress(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(TypeScriptProgress.class);
 		if (annotation.length == 0) {
@@ -74,7 +74,7 @@ public class ApiTool {
 		}
 		return parentProduce;
 	}
-	
+
 	public static String apiAnnotationGetOperationDescription(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Operation.class);
 		if (annotation.length == 0) {
@@ -82,7 +82,7 @@ public class ApiTool {
 		}
 		return ((Operation) annotation[0]).description();
 	}
-	
+
 	public static String apiAnnotationGetPath(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
 		if (annotation.length == 0) {
@@ -128,7 +128,7 @@ public class ApiTool {
 		}
 		return null;
 	}
-	
+
 	public static String apiAnnotationGetPathParam(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(PathParam.class);
 		if (annotation.length == 0) {
@@ -136,7 +136,7 @@ public class ApiTool {
 		}
 		return ((PathParam) annotation[0]).value();
 	}
-	
+
 	public static String apiAnnotationGetQueryParam(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(QueryParam.class);
 		if (annotation.length == 0) {
@@ -144,7 +144,7 @@ public class ApiTool {
 		}
 		return ((QueryParam) annotation[0]).value();
 	}
-	
+
 	public static String apiAnnotationGetFormDataParam(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataParam.class);
 		if (annotation.length == 0) {
@@ -152,7 +152,7 @@ public class ApiTool {
 		}
 		return ((FormDataParam) annotation[0]).value();
 	}
-	
+
 	public static Class<?>[] apiAnnotationGetAsyncType(final Parameter element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
@@ -160,7 +160,7 @@ public class ApiTool {
 		}
 		return ((AsyncType) annotation[0]).value();
 	}
-	
+
 	public static Class<?>[] apiAnnotationGetAsyncType(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
 		if (annotation.length == 0) {
@@ -168,7 +168,7 @@ public class ApiTool {
 		}
 		return ((AsyncType) annotation[0]).value();
 	}
-	
+
 	public static List<String> apiAnnotationGetConsumes(final Method element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
 		if (annotation.length == 0) {
@@ -176,7 +176,7 @@ public class ApiTool {
 		}
 		return Arrays.asList(((Consumes) annotation[0]).value());
 	}
-	
+
 	public static List<String> apiAnnotationGetConsumes(final Class<?> element) throws Exception {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
 		if (annotation.length == 0) {
@@ -184,7 +184,7 @@ public class ApiTool {
 		}
 		return Arrays.asList(((Consumes) annotation[0]).value());
 	}
-	
+
 	public static List<String> apiAnnotationGetConsumes(final Class<?> clazz, final Method method) throws Exception {
 		final List<String> data = apiAnnotationGetConsumes(method);
 		if (data != null) {
@@ -192,7 +192,7 @@ public class ApiTool {
 		}
 		return apiAnnotationGetConsumes(clazz);
 	}
-	
+
 	public static List<String> apiAnnotationGetConsumes2(final List<String> parentConsume, final Method method)
 			throws Exception {
 		final List<String> data = apiAnnotationGetConsumes(method);
@@ -201,11 +201,11 @@ public class ApiTool {
 		}
 		return parentConsume;
 	}
-	
+
 	public static boolean apiAnnotationIsContext(final Parameter element) throws Exception {
 		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
 	}
-	
+
 	public static String convertInTypeScriptType(final List<ClassElement> tmp, final boolean isList) {
 		String out = "";
 		for (final ClassElement elem : tmp) {
@@ -219,7 +219,7 @@ public class ApiTool {
 		}
 		return out;
 	}
-	
+
 	public static String convertInTypeScriptCheckType(final List<ClassElement> tmp) {
 		String out = "";
 		for (final ClassElement elem : tmp) {

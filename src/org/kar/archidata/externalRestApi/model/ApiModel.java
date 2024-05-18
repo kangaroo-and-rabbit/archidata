@@ -10,19 +10,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.kar.archidata.dataAccess.DataFactoryZod;
-import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.ws.rs.core.Response;
 
 public class ApiModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
 
 	Class<?> originClass;
 	Method orignMethod;
-	
+
 	// Name of the REST end-point name
 	public String restEndPoint;
 	// Type of the request:
@@ -31,7 +27,7 @@ public class ApiModel {
 	public String description;
 	// need to generate the progression of stream (if possible)
 	boolean needGenerateProgress;
-	
+
 	// List of types returned by the API
 	public List<ClassModel> returnTypes = new ArrayList<>();;
 	// Name of the API (function name)
@@ -46,10 +42,10 @@ public class ApiModel {
 	// Possible output type of the REST API
 	public List<String> produces = new ArrayList<>();
 
-	private void updateReturnTypes(final Method method, final ModelGroup previousModel) {
+	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
 		final Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
-		
+		LOGGER.info("Get return Type async = {}", returnTypeModel);
 		if (returnTypeModel != null) {
 			if (returnTypeModel.length == 0) {
 				throw new IOException("Create a @AsyncType with empty elements ...");
@@ -67,23 +63,29 @@ public class ApiModel {
 			}
 			return;
 		}
-		
+
 		final Class<?> returnTypeModelRaw = method.getReturnType();
-		LOGGER.info("Get type: {}", returnTypeModelRaw);
+		LOGGER.info("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
 		if (returnTypeModelRaw == Map.class) {
-			LOGGER.warn("Not manage the Map Model ... set any");
+			LOGGER.warn("Model Map");
 			final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
 			this.returnTypes.add(new ClassMapModel(listType, previousModel));
 			return;
-		}
-		if (returnTypeModelRaw == List.class) {
+		} else if (returnTypeModelRaw == List.class) {
+			LOGGER.warn("Model List");
 			final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
 			this.returnTypes.add(new ClassListModel(listType, previousModel));
 			return;
+		} else {
+			LOGGER.warn("Model Object");
+			this.returnTypes.add(previousModel.add(returnTypeModelRaw));
 		}
-		this.returnTypes.add(previousModel.add(returnTypeModelRaw));
+		LOGGER.warn("List of returns elements:");
+		for (final ClassModel elem : this.returnTypes) {
+			LOGGER.warn("    - {}", elem);
+		}
 	}
-	
+
 	public ApiModel(final Class<?> clazz, final Method method, final String baseRestEndPoint,
 			final List<String> consume, final List<String> produce, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
@@ -98,81 +100,17 @@ public class ApiModel {
 		this.produces = ApiTool.apiAnnotationProduces2(produce, method);
 		LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, baseRestEndPoint, methodPath);
 		this.needGenerateProgress = ApiTool.apiAnnotationTypeScriptProgress(method);
-		
-		Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
-		boolean isUnmanagedReturnType = false;
-		boolean returnModelIsArray = false;
-		List<ClassElement> tmpReturn;
-		if (returnTypeModel == null) {
-			Class<?> returnTypeModelRaw = method.getReturnType();
-			LOGGER.info("Get type: {}", returnTypeModelRaw);
-			if (returnTypeModelRaw == Response.class) {
-				LOGGER.info("Get type: {}", returnTypeModelRaw);
-			}
-			if (returnTypeModelRaw == Response.class || returnTypeModelRaw == void.class
-					|| returnTypeModelRaw == Void.class) {
-				if (returnTypeModelRaw == Response.class) {
-					isUnmanagedReturnType = true;
-				}
-				returnTypeModel = new Class<?>[] { Void.class };
-				tmpReturn = new ArrayList<>();
-				this.produces = null;
-			} else if (returnTypeModelRaw == Map.class) {
-				LOGGER.warn("Not manage the Map Model ... set any");
-				final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-				final Type typeKey = listType.getActualTypeArguments()[0];
-				final Type typeValue = listType.getActualTypeArguments()[1];
-				if (typeKey == String.class) {
-					if (typeValue instanceof ParameterizedType) {
-						final Type typeSubKey = listType.getActualTypeArguments()[0];
-						final Type typeSubValue = listType.getActualTypeArguments()[1];
-						if (typeKey == String.class) {
-							
-						}
-					}
-				} else {
-					LOGGER.warn("Not manage the Map Model ... set any");
-					returnTypeModel = new Class<?>[] { Map.class };
-					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-				}
-			} else if (returnTypeModelRaw == List.class) {
-				final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-				returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
-				returnModelIsArray = true;
-				returnTypeModel = new Class<?>[] { returnTypeModelRaw };
-				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-			} else {
-				returnTypeModel = new Class<?>[] { returnTypeModelRaw };
-				tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-			}
-		} else if (returnTypeModel.length >= 0 && (returnTypeModel[0] == Response.class
-				|| returnTypeModel[0] == Void.class || returnTypeModel[0] == void.class)) {
-			if (returnTypeModel[0] == Response.class) {
-				isUnmanagedReturnType = true;
-			}
-			returnTypeModel = new Class<?>[] { Void.class };
-			tmpReturn = new ArrayList<>();
-			this.produces = null;
-		} else if (returnTypeModel.length > 0 && returnTypeModel[0] == Map.class) {
-			LOGGER.warn("Not manage the Map Model ...");
-			returnTypeModel = new Class<?>[] { Map.class };
-			tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-		} else {
-			tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-		}
-		for (final ClassElement elem : tmpReturn) {
-			includeModel.add(elem.model[0]);
-			includeCheckerModel.add(elem.model[0]);
-		}
-		LOGGER.trace("         return: {}", tmpReturn.size());
-		for (final ClassElement elem : tmpReturn) {
-			LOGGER.trace("             - {}", elem.tsTypeName);
+
+		updateReturnTypes(method, previousModel);
+		LOGGER.trace("         return: {}", this.returnTypes.size());
+		for (final ClassModel elem : this.returnTypes) {
+			LOGGER.trace("             - {}", elem);
 		}
 
-		final Map<String, String> queryParams = new HashMap<>();
-		final Map<String, String> pathParams = new HashMap<>();
-		final Map<String, String> formDataParams = new HashMap<>();
-		final List<String> emptyElement = new ArrayList<>();
+		final Map<String, List<ClassModel>> queryParams = new HashMap<>();
+		final Map<String, List<ClassModel>> pathParams = new HashMap<>();
+		final Map<String, List<ClassModel>> formDataParams = new HashMap<>();
+		final List<ClassModel> emptyElement = new ArrayList<>();
 		// LOGGER.info(" Parameters:");
 		for (final Parameter parameter : method.getParameters()) {
 			// Security context are internal parameter (not available from API)
@@ -180,59 +118,33 @@ public class ApiModel {
 				continue;
 			}
 			final Class<?> parameterType = parameter.getType();
-			String parameterTypeString;
+			final List<ClassModel> parameterModel = new ArrayList<>();
 			final Class<?>[] asyncType = ApiTool.apiAnnotationGetAsyncType(parameter);
-			if (parameterType == List.class) {
-				if (asyncType == null) {
-					LOGGER.warn("Detect List param ==> not managed type ==> any[] !!!");
-					parameterTypeString = "any[]";
-				} else {
-					final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
-					for (final ClassElement elem : tmp) {
-						includeModel.add(elem.model[0]);
-					}
-					parameterTypeString = ApiTool.convertInTypeScriptType(tmp, true);
+			if (asyncType != null) {
+				for (final Class<?> elem : asyncType) {
+					parameterModel.add(new ClassListModel(elem, previousModel));
 				}
-			} else if (asyncType == null) {
-				final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
-				includeModel.add(tmp.model[0]);
-				parameterTypeString = tmp.tsTypeName;
+			} else if (parameterType == List.class) {
+				final Type parameterrizedType = parameter.getParameterizedType();
+				parameterModel.add(ClassModel.getModelBase(parameterType, parameterrizedType, previousModel));
+			} else if (parameterType == Map.class) {
+				final Type parameterrizedType = parameter.getParameterizedType();
+				parameterModel.add(ClassModel.getModelBase(parameterType, parameterrizedType, previousModel));
 			} else {
-				final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
-				for (final ClassElement elem : tmp) {
-					includeModel.add(elem.model[0]);
-				}
-				parameterTypeString = ApiTool.convertInTypeScriptType(tmp, true);
+				parameterModel.add(ClassModel.getModel(parameterType, previousModel));
 			}
+
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
 			if (queryParam != null) {
-				queryParams.put(queryParam, parameterTypeString);
+				queryParams.put(queryParam, parameterModel);
 			} else if (pathParam != null) {
-				pathParams.put(pathParam, parameterTypeString);
+				pathParams.put(pathParam, parameterModel);
 			} else if (formDataParam != null) {
-				formDataParams.put(formDataParam, parameterTypeString);
-			} else if (asyncType != null) {
-				final List<ClassElement> tmp = DataFactoryZod.createTables(asyncType, previous);
-				parameterTypeString = "";
-				for (final ClassElement elem : tmp) {
-					includeModel.add(elem.model[0]);
-					if (parameterTypeString.length() != 0) {
-						parameterTypeString += " | ";
-					}
-					parameterTypeString += elem.tsTypeName;
-				}
-				emptyElement.add(parameterTypeString);
-			} else if (parameterType == List.class) {
-				parameterTypeString = "any[]";
-				final Class<?> plop = parameterType.arrayType();
-				LOGGER.info("ArrayType = {}", plop);
-				emptyElement.add(parameterTypeString);
+				formDataParams.put(formDataParam, parameterModel);
 			} else {
-				final ClassElement tmp = DataFactoryZod.createTable(parameterType, previous);
-				includeModel.add(tmp.model[0]);
-				emptyElement.add(tmp.tsTypeName);
+				emptyElement.addAll(parameterModel);
 			}
 		}
 	}

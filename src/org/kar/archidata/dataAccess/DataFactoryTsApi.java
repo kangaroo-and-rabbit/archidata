@@ -8,7 +8,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,11 +30,11 @@ import jakarta.ws.rs.core.Response;
 
 public class DataFactoryTsApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactoryTsApi.class);
-	
+
 	record APIModel(
 			String data,
 			String className) {}
-	
+
 	/** Request the generation of the TypeScript file for the "Zod" export model
 	 * @param classs List of class used in the model
 	 * @throws Exception */
@@ -59,7 +58,7 @@ public class DataFactoryTsApi {
 				  RESTRequestVoid
 				} from "./rest-tools"
 				import {""";
-		
+
 		for (final Class<?> clazz : classs) {
 			final Set<Class<?>> includeModel = new HashSet<>();
 			final Set<Class<?>> includeCheckerModel = new HashSet<>();
@@ -97,7 +96,7 @@ public class DataFactoryTsApi {
 			}
 			generatedData.append("\n} from \"./model\"\n");
 			generatedData.append(api.data());
-			
+
 			String fileName = api.className();
 			fileName = fileName.replaceAll("([A-Z])", "-$1").toLowerCase();
 			fileName = fileName.replaceAll("^\\-*", "");
@@ -108,11 +107,11 @@ public class DataFactoryTsApi {
 		}
 		return apis;
 	}
-	
+
 	record OrderedElement(
 			String methodName,
 			Method method) {}
-	
+
 	public static APIModel createSingleApi(
 			final Class<?> clazz,
 			final Set<Class<?>> includeModel,
@@ -122,12 +121,12 @@ public class DataFactoryTsApi {
 		// the basic path has no specific elements...
 		final String basicPath = ApiTool.apiAnnotationGetPath(clazz);
 		final String classSimpleName = clazz.getSimpleName();
-		
+
 		builder.append("export namespace ");
 		builder.append(classSimpleName);
 		builder.append(" {\n");
 		LOGGER.info("Parse Class for path: {} => {}", classSimpleName, basicPath);
-		
+
 		final List<OrderedElement> orderedElements = new ArrayList<>();
 		for (final Method method : clazz.getDeclaredMethods()) {
 			final String methodName = method.getName();
@@ -135,7 +134,7 @@ public class DataFactoryTsApi {
 		}
 		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName);
 		Collections.sort(orderedElements, comparator);
-		
+
 		for (final OrderedElement orderedElement : orderedElements) {
 			final Method method = orderedElement.method();
 			final String methodName = orderedElement.methodName();
@@ -174,22 +173,8 @@ public class DataFactoryTsApi {
 					produces = null;
 				} else if (returnTypeModelRaw == Map.class) {
 					LOGGER.warn("Not manage the Map Model ... set any");
-					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-					final Type typeKey = listType.getActualTypeArguments()[0];
-					final Type typeValue = listType.getActualTypeArguments()[1];
-					if (typeKey == String.class) {
-						if (typeValue instanceof ParameterizedType) {
-							final Type typeSubKey = listType.getActualTypeArguments()[0];
-							final Type typeSubValue = listType.getActualTypeArguments()[1];
-							if (typeKey == String.class) {
-								
-							}
-						}
-					} else {
-						LOGGER.warn("Not manage the Map Model ... set any");
-						returnTypeModel = new Class<?>[] { Map.class };
-						tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
-					}
+					returnTypeModel = new Class<?>[] { Map.class };
+					tmpReturn = DataFactoryZod.createTables(returnTypeModel, previous);
 				} else if (returnTypeModelRaw == List.class) {
 					final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
 					returnTypeModelRaw = (Class<?>) listType.getActualTypeArguments()[0];
@@ -311,7 +296,7 @@ public class DataFactoryTsApi {
 				LOGGER.trace("         data type: {}", emptyElement.get(0));
 			}
 			// ALL is good can generate the Elements
-			
+
 			if (methodDescription != null) {
 				builder.append("\n\t/**\n\t * ");
 				builder.append(methodDescription);
@@ -383,7 +368,7 @@ public class DataFactoryTsApi {
 				String isFist = null;
 				for (final String elem : produces) {
 					String lastElement = null;
-					
+
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
 						lastElement = "HTTPMimeType.JSON";
 					}
@@ -495,7 +480,7 @@ public class DataFactoryTsApi {
 		builder.append("\n}\n");
 		return new APIModel(builder.toString(), classSimpleName);
 	}
-	
+
 	public static void generatePackage(
 			final List<Class<?>> classApi,
 			final List<Class<?>> classModel,
@@ -507,7 +492,7 @@ public class DataFactoryTsApi {
 		FileWriter myWriter = new FileWriter(pathPackage + File.separator + "model.ts");
 		myWriter.write(packageApi.toString());
 		myWriter.close();
-		
+
 		final StringBuilder index = new StringBuilder("""
 				/**
 				 * Global import of the package
@@ -535,5 +520,5 @@ public class DataFactoryTsApi {
 		myWriter.close();
 		return;
 	}
-	
+
 }
