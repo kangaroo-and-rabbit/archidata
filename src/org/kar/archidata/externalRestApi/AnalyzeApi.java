@@ -17,7 +17,7 @@ public class AnalyzeApi {
 			final ApiGroupModel parsed = new ApiGroupModel(clazz, previousModel);
 			this.apiModels.add(parsed);
 		}
-		
+
 	}
 
 }

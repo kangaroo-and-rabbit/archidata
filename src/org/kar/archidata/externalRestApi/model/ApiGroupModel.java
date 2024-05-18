@@ -24,14 +24,14 @@ public class ApiGroupModel {
 	// Origin class reference
 	Class<?> originClass;
 	// List of all API
-	public List<ApiModel> interfaces;
+	public List<ApiModel> interfaces = new ArrayList<>();
 
 	public ApiGroupModel(final Class<?> clazz, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
 		// the basic path has no specific elements...
 		this.restEndPoint = ApiTool.apiAnnotationGetPath(clazz);
 		this.name = clazz.getSimpleName();
-		
+
 		final List<String> consumes = ApiTool.apiAnnotationGetConsumes(clazz);
 		final List<String> produces = ApiTool.apiAnnotationProduces(clazz);
 
@@ -44,7 +44,7 @@ public class ApiGroupModel {
 		}
 		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName);
 		Collections.sort(orderedElements, comparator);
-		
+
 		for (final OrderedElement orderedElement : orderedElements) {
 			// Check if the path is available
 			final RestTypeRequest methodType = ApiTool.apiAnnotationGetTypeRequest2(orderedElement.method());
