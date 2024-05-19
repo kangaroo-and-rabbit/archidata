@@ -3,7 +3,6 @@ package org.kar.archidata.externalRestApi.model;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,9 +32,13 @@ public class ApiModel {
 	// Name of the API (function name)
 	public String name;
 	// list of all parameters (/{key}/...
-	public Map<String, ClassModel> parameters = new HashMap<>();
+	public final Map<String, List<ClassModel>> parameters = new HashMap<>();
 	// list of all query (?key...)
-	public Map<String, ClassModel> queries = new HashMap<>();
+	public final Map<String, List<ClassModel>> queries = new HashMap<>();
+	// when request multi-part, need to separate it.
+	public final Map<String, List<ClassModel>> multiPartParameters = new HashMap<>();
+	// model of data available
+	public final List<ClassModel> unnamedElement = new ArrayList<>();
 
 	// Possible input type of the REST API
 	public List<String> consumes = new ArrayList<>();
@@ -68,13 +71,17 @@ public class ApiModel {
 		LOGGER.info("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
 		if (returnTypeModelRaw == Map.class) {
 			LOGGER.warn("Model Map");
-			final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-			this.returnTypes.add(new ClassMapModel(listType, previousModel));
+			final Type listType = method.getGenericReturnType();
+			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
+			this.returnTypes.add(modelGenerated);
+			LOGGER.warn("Model Map ==> {}", modelGenerated);
 			return;
 		} else if (returnTypeModelRaw == List.class) {
 			LOGGER.warn("Model List");
-			final ParameterizedType listType = (ParameterizedType) method.getGenericReturnType();
-			this.returnTypes.add(new ClassListModel(listType, previousModel));
+			final Type listType = method.getGenericReturnType();
+			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
+			this.returnTypes.add(modelGenerated);
+			LOGGER.warn("Model List ==> {}", modelGenerated);
 			return;
 		} else {
 			LOGGER.warn("Model Object");
@@ -91,14 +98,18 @@ public class ApiModel {
 		this.originClass = clazz;
 		this.orignMethod = method;
 
-		final String methodPath = ApiTool.apiAnnotationGetPath(method);
-		final String methodType = ApiTool.apiAnnotationGetTypeRequest(method);
-		final String methodName = method.getName();
+		String tmpPath = ApiTool.apiAnnotationGetPath(method);
+		if (tmpPath == null) {
+			tmpPath = "";
+		}
+		this.restEndPoint = baseRestEndPoint + "/" + tmpPath;
+		this.restTypeRequest = ApiTool.apiAnnotationGetTypeRequest2(method);
+		this.name = method.getName();
 
 		this.description = ApiTool.apiAnnotationGetOperationDescription(method);
 		this.consumes = ApiTool.apiAnnotationGetConsumes2(consume, method);
 		this.produces = ApiTool.apiAnnotationProduces2(produce, method);
-		LOGGER.trace("    [{}] {} => {}/{}", methodType, methodName, baseRestEndPoint, methodPath);
+		LOGGER.trace("    [{}] {} => {}/{}", baseRestEndPoint, this.name, this.restEndPoint);
 		this.needGenerateProgress = ApiTool.apiAnnotationTypeScriptProgress(method);
 
 		updateReturnTypes(method, previousModel);
@@ -107,10 +118,6 @@ public class ApiModel {
 			LOGGER.trace("             - {}", elem);
 		}
 
-		final Map<String, List<ClassModel>> queryParams = new HashMap<>();
-		final Map<String, List<ClassModel>> pathParams = new HashMap<>();
-		final Map<String, List<ClassModel>> formDataParams = new HashMap<>();
-		final List<ClassModel> emptyElement = new ArrayList<>();
 		// LOGGER.info(" Parameters:");
 		for (final Parameter parameter : method.getParameters()) {
 			// Security context are internal parameter (not available from API)
@@ -126,26 +133,32 @@ public class ApiModel {
 				}
 			} else if (parameterType == List.class) {
 				final Type parameterrizedType = parameter.getParameterizedType();
-				parameterModel.add(ClassModel.getModelBase(parameterType, parameterrizedType, previousModel));
+				final ClassModel modelGenerated = ClassModel.getModel(parameterrizedType, previousModel);
+				parameterModel.add(modelGenerated);
 			} else if (parameterType == Map.class) {
 				final Type parameterrizedType = parameter.getParameterizedType();
-				parameterModel.add(ClassModel.getModelBase(parameterType, parameterrizedType, previousModel));
+				final ClassModel modelGenerated = ClassModel.getModel(parameterrizedType, previousModel);
+				parameterModel.add(modelGenerated);
 			} else {
-				parameterModel.add(ClassModel.getModel(parameterType, previousModel));
+				parameterModel.add(previousModel.add(parameterType));
 			}
 
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
 			if (queryParam != null) {
-				queryParams.put(queryParam, parameterModel);
+				this.queries.put(queryParam, parameterModel);
 			} else if (pathParam != null) {
-				pathParams.put(pathParam, parameterModel);
+				this.parameters.put(pathParam, parameterModel);
 			} else if (formDataParam != null) {
-				formDataParams.put(formDataParam, parameterModel);
+				this.multiPartParameters.put(formDataParam, parameterModel);
 			} else {
-				emptyElement.addAll(parameterModel);
+				this.unnamedElement.addAll(parameterModel);
 			}
 		}
+		if (this.unnamedElement.size() > 1) {
+			throw new IOException("Can not parse the API, enmpty element is more than 1 in " + this.name);
+		}
+
 	}
 }

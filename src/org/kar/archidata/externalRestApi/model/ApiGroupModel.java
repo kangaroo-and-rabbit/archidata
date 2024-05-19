@@ -20,16 +20,28 @@ public class ApiGroupModel {
 	// Name of the REST end-point name
 	public String restEndPoint;
 	// Name of the Class
-	String name;
+	public String name;
 	// Origin class reference
-	Class<?> originClass;
+	public Class<?> originClass;
 	// List of all API
 	public List<ApiModel> interfaces = new ArrayList<>();
+
+	public ApiModel getInterfaceNamed(final String name) {
+		for (final ApiModel model : this.interfaces) {
+			if (name.equals(model.name)) {
+				return model;
+			}
+		}
+		return null;
+	}
 
 	public ApiGroupModel(final Class<?> clazz, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
 		// the basic path has no specific elements...
 		this.restEndPoint = ApiTool.apiAnnotationGetPath(clazz);
+		if (this.restEndPoint == null) {
+			this.restEndPoint = "";
+		}
 		this.name = clazz.getSimpleName();
 
 		final List<String> consumes = ApiTool.apiAnnotationGetConsumes(clazz);
