@@ -3,6 +3,7 @@ package org.kar.archidata.externalRestApi.model;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Set;
 
 public class ClassListModel extends ClassModel {
 	public ClassModel valueModel;
@@ -15,6 +16,10 @@ public class ClassListModel extends ClassModel {
 		this.valueModel = getModel(clazz, previousModel);
 	}
 
+	public ClassListModel(final Type model, final ModelGroup previousModel) throws IOException {
+		this.valueModel = getModel(model, previousModel);
+	}
+
 	public ClassListModel(final ParameterizedType listType, final ModelGroup previousModel) throws IOException {
 		final Type model = listType.getActualTypeArguments()[0];
 		this.valueModel = getModel(model, previousModel);
@@ -25,4 +30,13 @@ public class ClassListModel extends ClassModel {
 		return "ClassListModel [valueModel=" + this.valueModel + "]";
 	}
 
+	@Override
+	public void analyze(final ModelGroup group) throws IOException {
+		throw new IOException("Analyze can not be done at this phase for List...");
+	}
+
+	@Override
+	public Set<ClassModel> getAlls() {
+		return this.valueModel.getAlls();
+	}
 }

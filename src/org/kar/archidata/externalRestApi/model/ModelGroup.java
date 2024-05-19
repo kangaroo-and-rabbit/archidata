@@ -6,6 +6,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.core.Response;
+
 public class ModelGroup {
 	static final Logger LOGGER = LoggerFactory.getLogger(ModelGroup.class);
 	public List<ClassModel> previousModel = new ArrayList<>();
@@ -16,7 +18,10 @@ public class ModelGroup {
 		this.previousModel = models;
 	}
 
-	public ClassModel add(final Class<?> clazz) {
+	public ClassModel add(Class<?> clazz) {
+		if (clazz == Response.class) {
+			clazz = Object.class;
+		}
 		//LOGGER.trace("Search element {}", clazz.getCanonicalName());
 		for (final ClassModel value : this.previousModel) {
 			if (value.isCompatible(clazz)) {
