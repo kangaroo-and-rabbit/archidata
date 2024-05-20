@@ -11,16 +11,19 @@ import jakarta.ws.rs.core.Response;
 public class ModelGroup {
 	static final Logger LOGGER = LoggerFactory.getLogger(ModelGroup.class);
 	public List<ClassModel> previousModel = new ArrayList<>();
-
+	
 	public ModelGroup() {}
-
+	
 	public ModelGroup(final List<ClassModel> models) {
 		this.previousModel = models;
 	}
-
+	
 	public ClassModel add(Class<?> clazz) {
 		if (clazz == Response.class) {
 			clazz = Object.class;
+		}
+		if (clazz == Number.class) {
+			return null;
 		}
 		//LOGGER.trace("Search element {}", clazz.getCanonicalName());
 		for (final ClassModel value : this.previousModel) {

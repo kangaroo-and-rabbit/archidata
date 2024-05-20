@@ -1,7 +1,11 @@
 package org.kar.archidata.externalRestApi.model;
 
 import java.lang.reflect.Field;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -109,6 +113,13 @@ public class ClassObjectModel extends ClassModel {
 		if (this.isPrimitive) {
 			return;
 		}
+		final List<Class<?>> basicClass = List.of(Void.class, void.class, Character.class, char.class, Short.class,
+				short.class, Integer.class, int.class, Long.class, long.class, Float.class, float.class, Double.class,
+				double.class, Date.class, Timestamp.class, LocalDate.class, LocalTime.class);
+		if (basicClass.contains(clazz)) {
+			return;
+		}
+		
 		// Local generation of class:
 		LOGGER.trace("parse class: '{}'", clazz.getCanonicalName());
 		final List<String> alreadyAdded = new ArrayList<>();
@@ -137,7 +148,7 @@ public class ClassObjectModel extends ClassModel {
 			this.fields.add(new FieldProperty(elem, previous));
 		}
 		this.name = clazz.getName();
-
+		
 		final String[] elems = this.name.split("\\$");
 		if (elems.length == 2) {
 			LOGGER.warn("Can have conflict in generation: {} (Remove class path) ==> {}", this.name, elems[1]);
@@ -156,6 +167,20 @@ public class ClassObjectModel extends ClassModel {
 	@Override
 	public Set<ClassModel> getAlls() {
 		return Set.of(this);
+	}
+
+	@Override
+	public List<String> getReadOnlyField() {
+		final List<String> out = new ArrayList<>();
+		for (final FieldProperty field : this.fields) {
+			if (field.readOnly()) {
+				out.add(field.name);
+			}
+		}
+		if (this.extendsClass != null) {
+			out.addAll(this.extendsClass.getReadOnlyField());
+		}
+		return out;
 	}
 
 }
