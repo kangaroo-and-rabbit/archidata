@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import org.kar.archidata.dataAccess.DataFactoryTsApi;
 import org.kar.archidata.externalRestApi.TsClassElement.DefinedPosition;
+import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ClassModel;
 
 public class TsGenerateApi {
@@ -40,17 +41,42 @@ public class TsGenerateApi {
 	public static void generateApi(final AnalyzeApi api, final String pathPackage) throws IOException {
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
-		// Generates all files
+		// Generates all MODEL files
 		for (final TsClassElement element : localModel) {
 			element.generateFile(pathPackage, tsGroup);
 		}
-		createIndex(pathPackage, tsGroup);
+		// Generate index of model files
+		createModelIndex(pathPackage, tsGroup);
 
+		for (final ApiGroupModel element : api.apiModels) {
+			TsApiGeneration.generateApiFile(element, pathPackage, tsGroup);
+		}
+		// Generate index of model files
+		createResourceIndex(pathPackage, api.apiModels);
+		
 		copyResourceFile("rest-tools.ts", pathPackage + File.separator + "rest-tools.ts");
-		//copyResourceFile("zod-tools.ts", pathPackage + File.separator + "zod-tools.ts");
 	}
 	
-	private static void createIndex(final String pathPackage, final TsClassElementGroup tsGroup) throws IOException {
+	private static void createResourceIndex(final String pathPackage, final List<ApiGroupModel> apiModels)
+			throws IOException {
+		final StringBuilder out = new StringBuilder("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				""");
+		for (final ApiGroupModel elem : apiModels) {
+			final String fileName = TsClassElement.determineFileName(elem.name);
+			out.append("export * from \"./");
+			out.append(fileName);
+			out.append("\"\n");
+		}
+		final FileWriter myWriter = new FileWriter(pathPackage + File.separator + "api" + File.separator + "index.ts");
+		myWriter.write(out.toString());
+		myWriter.close();
+	}
+
+	private static void createModelIndex(final String pathPackage, final TsClassElementGroup tsGroup)
+			throws IOException {
 		final StringBuilder out = new StringBuilder("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -68,7 +94,6 @@ public class TsGenerateApi {
 				pathPackage + File.separator + "model" + File.separator + "index.ts");
 		myWriter.write(out.toString());
 		myWriter.close();
-		
 	}
 
 	private static List<TsClassElement> generateApiModel(final AnalyzeApi api) {

@@ -35,6 +35,10 @@ public class TsClassElement {
 	public String comment = null;
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
 
+	public static String determineFileName(final String className) {
+		return className.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2").toLowerCase();
+	}
+	
 	public TsClassElement(final List<ClassModel> model, final String zodName, final String tsTypeName,
 			final String tsCheckType, final String declaration, final DefinedPosition nativeType) {
 		this.models = model;
@@ -43,8 +47,7 @@ public class TsClassElement {
 		this.tsCheckType = tsCheckType;
 		this.declaration = declaration;
 		this.nativeType = nativeType;
-		this.fileName = tsTypeName.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2")
-				.toLowerCase();
+		this.fileName = determineFileName(tsTypeName);
 	}
 
 	public TsClassElement(final ClassModel model) {
@@ -53,8 +56,7 @@ public class TsClassElement {
 		this.tsTypeName = model.getOriginClasses().getSimpleName();
 		this.tsCheckType = "is" + model.getOriginClasses().getSimpleName();
 		this.declaration = null;
-		this.fileName = this.tsTypeName.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2")
-				.toLowerCase();
+		this.fileName = determineFileName(this.tsTypeName);
 	}
 
 	public boolean isCompatible(final ClassModel model) {

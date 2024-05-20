@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory;
 
 public class ApiModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
-
+	
 	Class<?> originClass;
 	Method orignMethod;
-
+	
 	// Name of the REST end-point name
 	public String restEndPoint;
 	// Type of the request:
@@ -25,8 +25,8 @@ public class ApiModel {
 	// Description of the API
 	public String description;
 	// need to generate the progression of stream (if possible)
-	boolean needGenerateProgress;
-
+	public boolean needGenerateProgress;
+	
 	// List of types returned by the API
 	public List<ClassModel> returnTypes = new ArrayList<>();;
 	// Name of the API (function name)
@@ -39,12 +39,12 @@ public class ApiModel {
 	public final Map<String, List<ClassModel>> multiPartParameters = new HashMap<>();
 	// model of data available
 	public final List<ClassModel> unnamedElement = new ArrayList<>();
-
+	
 	// Possible input type of the REST API
 	public List<String> consumes = new ArrayList<>();
 	// Possible output type of the REST API
 	public List<String> produces = new ArrayList<>();
-
+	
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
 		final Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
@@ -66,7 +66,7 @@ public class ApiModel {
 			}
 			return;
 		}
-
+		
 		final Class<?> returnTypeModelRaw = method.getReturnType();
 		LOGGER.info("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
 		if (returnTypeModelRaw == Map.class) {
@@ -92,12 +92,12 @@ public class ApiModel {
 			LOGGER.warn("    - {}", elem);
 		}
 	}
-
+	
 	public ApiModel(final Class<?> clazz, final Method method, final String baseRestEndPoint,
 			final List<String> consume, final List<String> produce, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
 		this.orignMethod = method;
-
+		
 		String tmpPath = ApiTool.apiAnnotationGetPath(method);
 		if (tmpPath == null) {
 			tmpPath = "";
@@ -105,19 +105,19 @@ public class ApiModel {
 		this.restEndPoint = baseRestEndPoint + "/" + tmpPath;
 		this.restTypeRequest = ApiTool.apiAnnotationGetTypeRequest2(method);
 		this.name = method.getName();
-
+		
 		this.description = ApiTool.apiAnnotationGetOperationDescription(method);
 		this.consumes = ApiTool.apiAnnotationGetConsumes2(consume, method);
 		this.produces = ApiTool.apiAnnotationProduces2(produce, method);
 		LOGGER.trace("    [{}] {} => {}/{}", baseRestEndPoint, this.name, this.restEndPoint);
 		this.needGenerateProgress = ApiTool.apiAnnotationTypeScriptProgress(method);
-
+		
 		updateReturnTypes(method, previousModel);
 		LOGGER.trace("         return: {}", this.returnTypes.size());
 		for (final ClassModel elem : this.returnTypes) {
 			LOGGER.trace("             - {}", elem);
 		}
-
+		
 		// LOGGER.info(" Parameters:");
 		for (final Parameter parameter : method.getParameters()) {
 			// Security context are internal parameter (not available from API)
@@ -142,7 +142,7 @@ public class ApiModel {
 			} else {
 				parameterModel.add(previousModel.add(parameterType));
 			}
-
+			
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
@@ -159,6 +159,6 @@ public class ApiModel {
 		if (this.unnamedElement.size() > 1) {
 			throw new IOException("Can not parse the API, enmpty element is more than 1 in " + this.name);
 		}
-
+		
 	}
 }
