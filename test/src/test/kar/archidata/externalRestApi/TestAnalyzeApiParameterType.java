@@ -47,7 +47,7 @@ public class TestAnalyzeApiParameterType {
 	@Test
 	public void testBasicParameter() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(BasicParameter.class));
+		api.addAllApi(List.of(BasicParameter.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());
@@ -102,7 +102,7 @@ public class TestAnalyzeApiParameterType {
 	@Test
 	public void testListParameter() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ListParameter.class));
+		api.addAllApi(List.of(ListParameter.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
@@ -125,7 +125,7 @@ public class TestAnalyzeApiParameterType {
 	@Test
 	public void testMapParameter() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(MapParameter.class));
+		api.addAllApi(List.of(MapParameter.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());

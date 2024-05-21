@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Set;
 
 public class ClassEnumModel extends ClassModel {
-
+	
 	protected ClassEnumModel(final Class<?> clazz) {
 		this.originClasses = clazz;
 	}
-
+	
 	@Override
 	public String toString() {
 		final StringBuilder out = new StringBuilder();
@@ -19,25 +19,35 @@ public class ClassEnumModel extends ClassModel {
 		out.append("]");
 		return out.toString();
 	}
-
+	
 	final List<String> listOfValues = new ArrayList<>();
-
+	
 	@Override
 	public void analyze(final ModelGroup group) throws IOException {
+		if (this.analyzeDone) {
+			return;
+		}
+		this.analyzeDone = true;
 		// TODO: check if we really need to have multiple type for enums ???
+		// TODO: manage enum with int, String and bitField ...
 		final Class<?> clazz = this.originClasses;
 		final Object[] arr = clazz.getEnumConstants();
 		for (final Object elem : arr) {
 			this.listOfValues.add(elem.toString());
 		}
 	}
-
+	
 	public List<String> getListOfValues() {
 		return this.listOfValues;
 	}
-
+	
 	@Override
 	public Set<ClassModel> getAlls() {
+		return Set.of(this);
+	}
+	
+	@Override
+	public Set<ClassModel> getDependencyGroupModels() {
 		return Set.of(this);
 	}
 }

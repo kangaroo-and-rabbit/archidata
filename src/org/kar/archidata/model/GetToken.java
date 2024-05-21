@@ -8,13 +8,13 @@ import jakarta.persistence.Column;
 public class GetToken {
 	@Column(length = -1, nullable = false)
 	public String jwt;
-
+	
 	public GetToken() {
-
+		
 	}
-
+	
 	public GetToken(final String jwt) {
 		this.jwt = jwt;
 	}
-
+	
 }

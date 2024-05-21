@@ -11,16 +11,64 @@ import org.slf4j.LoggerFactory;
 
 public class AnalyzeApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeApi.class);
-	public List<ApiGroupModel> apiModels = new ArrayList<>();
-	public List<ClassModel> classModels = new ArrayList<>();
-
-	public void createApi(final List<Class<?>> classs) throws Exception {
-		final ModelGroup previousModel = new ModelGroup(this.classModels);
-		for (final Class<?> clazz : classs) {
-			final ApiGroupModel parsed = new ApiGroupModel(clazz, previousModel);
-			this.apiModels.add(parsed);
-		}
-		AnalyzeModel.fillModel(previousModel.previousModel);
+	protected final List<ApiGroupModel> apiModels = new ArrayList<>();
+	protected final ModelGroup modelGroup = new ModelGroup();
+	
+	public void addAllModel(final List<Class<?>> classes) throws Exception {
+		this.modelGroup.addAll(classes);
+		analyzeModels();
 	}
 
+	public void addModel(final Class<?> clazz) throws Exception {
+		this.modelGroup.add(clazz);
+		analyzeModels();
+	}
+
+	public void addApi(final Class<?> clazz) throws Exception {
+		this.apiModels.add(new ApiGroupModel(clazz, this.modelGroup));
+		analyzeModels();
+	}
+
+	public void addAllApi(final List<Class<?>> classes) throws Exception {
+		for (final Class<?> clazz : classes) {
+			this.apiModels.add(new ApiGroupModel(clazz, this.modelGroup));
+		}
+		analyzeModels();
+	}
+	
+	public List<ApiGroupModel> getAllApi() {
+		return this.apiModels;
+	}
+	
+	public List<ClassModel> getAllModel() {
+		return this.modelGroup.getModels();
+	}
+	
+	private void analyzeModels() throws Exception {
+		final List<ClassModel> dones = new ArrayList<>();
+		while (dones.size() < getAllModel().size()) {
+			final List<ClassModel> copyList = new ArrayList<>(this.modelGroup.getModels());
+			for (final ClassModel model : copyList) {
+				if (dones.contains(model)) {
+					continue;
+				}
+				LOGGER.info("Analyze: {}", model);
+				model.analyze(this.modelGroup);
+				dones.add(model);
+			}
+		}
+	}
+
+	public List<ClassModel> getCompatibleModels(final List<Class<?>> search) {
+		final List<ClassModel> out = new ArrayList<>();
+		for (final ClassModel model : getAllModel()) {
+			if (search.contains(model.getOriginClasses())) {
+				out.add(model);
+			}
+		}
+		if (out.isEmpty()) {
+			return null;
+		}
+		return out;
+	}
 }

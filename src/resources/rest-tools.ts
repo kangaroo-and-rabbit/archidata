@@ -50,23 +50,6 @@ export interface ModelResponseHttp {
     data: any;
 }
 
-export function isArrayOf<TYPE>(
-    data: any,
-    typeChecker: (subData: any) => subData is TYPE,
-    length?: number
-): data is TYPE[] {
-    if (!Array.isArray(data)) {
-        return false;
-    }
-    if (!data.every(typeChecker)) {
-        return false;
-    }
-    if (length !== undefined && data.length != length) {
-        return false;
-    }
-    return true;
-}
-
 function isNullOrUndefined(data: any): data is undefined | null {
     return data === undefined || data === null;
 }
@@ -325,8 +308,6 @@ export function RESTRequest({ restModel, restConfig, data, params, queries, call
     });
 }
 
-
-
 export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: any) => data is TYPE): Promise<TYPE> {
     return new Promise((resolve, reject) => {
         RESTRequest(request).then((value: ModelResponseHttp) => {
@@ -334,25 +315,6 @@ export function RESTRequestJson<TYPE>(request: RESTRequestType, checker: (data: 
                 console.log(`Have no check of MODEL in API: ${RESTUrl(request)}`);
                 resolve(value.data);
             } else if (checker(value.data)) {
-                resolve(value.data);
-            } else {
-                reject({
-                    time: Date().toString(),
-                    status: 950,
-                    error: "REST Fail to verify the data",
-                    statusMessage: "API cast ERROR",
-                    message: "api.ts Check type as fail"
-                } as RestErrorResponse);
-            }
-        }).catch((reason: RestErrorResponse) => {
-            reject(reason);
-        });
-    });
-}
-export function RESTRequestJsonArray<TYPE>(request: RESTRequestType, checker: (data: any) => data is TYPE): Promise<TYPE[]> {
-    return new Promise((resolve, reject) => {
-        RESTRequest(request).then((value: ModelResponseHttp) => {
-            if (isArrayOf(value.data, checker)) {
                 resolve(value.data);
             } else {
                 reject({

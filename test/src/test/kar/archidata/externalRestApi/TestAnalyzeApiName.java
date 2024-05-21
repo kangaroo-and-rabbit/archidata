@@ -29,7 +29,7 @@ public class TestAnalyzeApiName {
 	@Test
 	public void testNames() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ApiName.class));
+		api.addAllApi(List.of(ApiName.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals("ApiName", api.apiModels.get(0).name);

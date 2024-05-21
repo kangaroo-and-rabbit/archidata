@@ -1,8 +1,8 @@
 package org.kar.archidata.externalRestApi;
 
-public class GeneratePythonApi {
-
+public class PythonGenerateApi {
+	
 	public static void generateApi(final AnalyzeApi api) {
-
+		
 	}
 }

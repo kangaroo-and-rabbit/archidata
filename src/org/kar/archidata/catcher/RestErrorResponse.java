@@ -5,14 +5,21 @@ import java.util.UUID;
 
 import org.kar.archidata.tools.UuidUtils;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 
 public class RestErrorResponse {
+	@NotNull
 	public UUID uuid = UuidUtils.nextUUID();
+	@NotNull
 	public String name; // Mandatory for TS generic error
+	@NotNull
 	public String message; // Mandatory for TS generic error
+	@NotNull
 	public String time;
+	@NotNull
 	final public int status;
+	@NotNull
 	final public String statusMessage;
 
 	public RestErrorResponse(final Response.Status status, final String time, final String error,

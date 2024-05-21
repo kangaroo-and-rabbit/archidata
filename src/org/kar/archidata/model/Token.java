@@ -9,9 +9,9 @@ public class Token {
 	public String token;
 	public String createTime;
 	public String endValidityTime;
-
+	
 	public Token() {}
-
+	
 	public Token(final long id, final long userId, final String token, final String createTime,
 			final String endValidityTime) {
 		this.id = id;
@@ -20,7 +20,7 @@ public class Token {
 		this.createTime = createTime;
 		this.endValidityTime = endValidityTime;
 	}
-
+	
 	public Token(final ResultSet rs) {
 		int iii = 1;
 		try {
@@ -33,7 +33,7 @@ public class Token {
 			ex.printStackTrace();
 		}
 	}
-
+	
 	@Override
 	public String toString() {
 		return "Token{" + "id=" + this.id + ", userId=" + this.userId + ", token='" + this.token + '\''

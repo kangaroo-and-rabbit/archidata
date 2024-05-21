@@ -41,7 +41,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnVoid() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueVoid.class));
+		api.addAllApi(List.of(ReturnValueVoid.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -80,7 +80,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnInteger() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueInteger.class));
+		api.addAllApi(List.of(ReturnValueInteger.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -121,7 +121,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnShort() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueShort.class));
+		api.addAllApi(List.of(ReturnValueShort.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -162,7 +162,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnLong() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueLong.class));
+		api.addAllApi(List.of(ReturnValueLong.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -204,7 +204,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnFloat() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueFloat.class));
+		api.addAllApi(List.of(ReturnValueFloat.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -245,7 +245,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnDouble() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueDouble.class));
+		api.addAllApi(List.of(ReturnValueDouble.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -281,7 +281,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnString() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueString.class));
+		api.addAllApi(List.of(ReturnValueString.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
@@ -312,7 +312,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnAny() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueAny.class));
+		api.addAllApi(List.of(ReturnValueAny.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
@@ -348,7 +348,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnEnum() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueEnum.class));
+		api.addAllApi(List.of(ReturnValueEnum.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
@@ -394,7 +394,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnList() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueList.class));
+		api.addAllApi(List.of(ReturnValueList.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());
@@ -507,7 +507,7 @@ public class TestAnalyzeApiReturn {
 	@Test
 	public void testReturnMap() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(ReturnValueMap.class));
+		api.addAllApi(List.of(ReturnValueMap.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());

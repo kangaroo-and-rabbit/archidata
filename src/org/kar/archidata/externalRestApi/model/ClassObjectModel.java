@@ -15,11 +15,11 @@ import org.slf4j.LoggerFactory;
 
 public class ClassObjectModel extends ClassModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ClassObjectModel.class);
-
+	
 	public ClassObjectModel(final Class<?> clazz) {
 		this.originClasses = clazz;
 	}
-
+	
 	@Override
 	public String toString() {
 		final StringBuilder out = new StringBuilder();
@@ -28,7 +28,7 @@ public class ClassObjectModel extends ClassModel {
 		out.append("]");
 		return out.toString();
 	}
-
+	
 	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
@@ -48,66 +48,77 @@ public class ClassObjectModel extends ClassModel {
 		}
 		return false;
 	}
-
+	
 	public record FieldProperty(
 			String name,
 			ClassModel model,
 			String comment,
 			int limitSize,
-			boolean readOnly) {
-
+			boolean readOnly,
+			boolean notNull,
+			boolean nullable) {
+		
 		public FieldProperty(final String name, final ClassModel model, final String comment, final int limitSize,
-				final boolean readOnly) {
+				final boolean readOnly, final boolean notNull, final boolean nullable) {
 			this.name = name;
 			this.model = model;
 			this.comment = comment;
 			this.limitSize = limitSize;
 			this.readOnly = readOnly;
+			this.notNull = notNull;
+			this.nullable = nullable;
+			
 		}
-
+		
 		public FieldProperty(final Field field, final ModelGroup previous) throws Exception {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
 					AnnotationTools.getComment(field), //
 					AnnotationTools.getLimitSize(field), //
-					AnnotationTools.getSchemaReadOnly(field));
+					AnnotationTools.getSchemaReadOnly(field), //
+					AnnotationTools.getConstraintsNotNull(field), //
+					AnnotationTools.getColumnNotNull(field));
 		}
-
+		
 	}
-
+	
 	String name = "";
 	boolean isPrimitive = false;
 	String description = null;
 	String example = null;
 	ClassModel extendsClass = null;
 	List<FieldProperty> fields = new ArrayList<>();
-
+	
 	public String getName() {
 		return this.name;
 	}
-
+	
 	public boolean isPrimitive() {
 		return this.isPrimitive;
 	}
-
+	
 	public String getDescription() {
 		return this.description;
 	}
-
+	
 	public String getExample() {
 		return this.example;
 	}
-
+	
 	public ClassModel getExtendsClass() {
 		return this.extendsClass;
 	}
-
+	
 	public List<FieldProperty> getFields() {
 		return this.fields;
 	}
-
+	
 	@Override
 	public void analyze(final ModelGroup previous) throws Exception {
+		if (this.analyzeDone) {
+			return;
+		}
+		this.analyzeDone = true;
 		final Class<?> clazz = this.originClasses;
 		this.isPrimitive = clazz.isPrimitive();
 		if (this.isPrimitive) {
@@ -119,7 +130,7 @@ public class ClassObjectModel extends ClassModel {
 		if (basicClass.contains(clazz)) {
 			return;
 		}
-		
+
 		// Local generation of class:
 		LOGGER.trace("parse class: '{}'", clazz.getCanonicalName());
 		final List<String> alreadyAdded = new ArrayList<>();
@@ -148,7 +159,7 @@ public class ClassObjectModel extends ClassModel {
 			this.fields.add(new FieldProperty(elem, previous));
 		}
 		this.name = clazz.getName();
-		
+
 		final String[] elems = this.name.split("\\$");
 		if (elems.length == 2) {
 			LOGGER.warn("Can have conflict in generation: {} (Remove class path) ==> {}", this.name, elems[1]);
@@ -163,12 +174,17 @@ public class ClassObjectModel extends ClassModel {
 			this.dependencyModels.add(this.extendsClass);
 		}
 	}
-
+	
+	@Override
+	public Set<ClassModel> getDependencyGroupModels() {
+		return Set.of(this);
+	}
+	
 	@Override
 	public Set<ClassModel> getAlls() {
 		return Set.of(this);
 	}
-
+	
 	@Override
 	public List<String> getReadOnlyField() {
 		final List<String> out = new ArrayList<>();
@@ -182,5 +198,5 @@ public class ClassObjectModel extends ClassModel {
 		}
 		return out;
 	}
-
+	
 }

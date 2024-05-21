@@ -9,21 +9,24 @@ import java.util.Map;
 import java.util.Set;
 
 public abstract class ClassModel {
+	protected boolean analyzeDone = false;
 	protected Class<?> originClasses = null;
 	protected List<ClassModel> dependencyModels = new ArrayList<>();
-	
+
 	public Class<?> getOriginClasses() {
 		return this.originClasses;
 	}
-	
+
 	protected boolean isCompatible(final Class<?> clazz) {
 		return this.originClasses == clazz;
 	}
-	
+
 	public List<ClassModel> getDependencyModels() {
 		return this.dependencyModels;
 	}
 	
+	public abstract Set<ClassModel> getDependencyGroupModels();
+
 	public static ClassModel getModel(final Type type, final ModelGroup previousModel) throws IOException {
 		if (type instanceof final ParameterizedType paramType) {
 			final Type[] typeArguments = paramType.getActualTypeArguments();
@@ -37,7 +40,7 @@ public abstract class ClassModel {
 		}
 		return previousModel.add((Class<?>) type);
 	}
-	
+
 	public static ClassModel getModelBase(
 			final Class<?> clazz,
 			final Type parameterizedType,
@@ -53,7 +56,7 @@ public abstract class ClassModel {
 		*/
 		return getModel(parameterizedType, previousModel);
 	}
-	
+
 	public static ClassModel getModel(final Class<?> type, final ModelGroup previousModel) throws IOException {
 		if (type == List.class) {
 			throw new IOException("Fail to manage parametrized type...");
@@ -63,13 +66,13 @@ public abstract class ClassModel {
 		}
 		return previousModel.add(type);
 	}
-	
-	public abstract void analyze(final ModelGroup group) throws Exception;
-	
-	public abstract Set<ClassModel> getAlls();
 
+	public abstract void analyze(final ModelGroup group) throws Exception;
+
+	public abstract Set<ClassModel> getAlls();
+	
 	public List<String> getReadOnlyField() {
 		return List.of();
 	}
-	
+
 }

@@ -10,12 +10,14 @@ import jakarta.ws.rs.core.Response;
 
 public class ModelGroup {
 	static final Logger LOGGER = LoggerFactory.getLogger(ModelGroup.class);
-	public List<ClassModel> previousModel = new ArrayList<>();
-	
+	public List<ClassModel> models = new ArrayList<>();
+
 	public ModelGroup() {}
 	
-	public ModelGroup(final List<ClassModel> models) {
-		this.previousModel = models;
+	public void addAll(final List<Class<?>> classes) {
+		for (final Class<?> clazz : classes) {
+			add(clazz);
+		}
 	}
 	
 	public ClassModel add(Class<?> clazz) {
@@ -26,7 +28,7 @@ public class ModelGroup {
 			return null;
 		}
 		//LOGGER.trace("Search element {}", clazz.getCanonicalName());
-		for (final ClassModel value : this.previousModel) {
+		for (final ClassModel value : this.models) {
 			if (value.isCompatible(clazz)) {
 				//LOGGER.trace("  ==> return {}", value);
 				return value;
@@ -34,14 +36,18 @@ public class ModelGroup {
 		}
 		if (clazz.isEnum()) {
 			final ClassModel elem = new ClassEnumModel(clazz);
-			this.previousModel.add(elem);
+			this.models.add(elem);
 			//LOGGER.trace("  ==> return enum {}", elem);
 			return elem;
 		}
 		// create new model:
 		final ClassModel elem = new ClassObjectModel(clazz);
-		this.previousModel.add(elem);
+		this.models.add(elem);
 		//LOGGER.trace("  ==> return object {}", elem);
 		return elem;
+	}
+
+	public List<ClassModel> getModels() {
+		return this.models;
 	}
 }

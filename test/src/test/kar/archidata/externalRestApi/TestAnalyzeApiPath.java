@@ -37,7 +37,7 @@ public class TestAnalyzeApiPath {
 	@Test
 	public void testNoPath() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(NoPath.class));
+		api.addAllApi(List.of(NoPath.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals("", api.apiModels.get(0).restEndPoint);
@@ -82,7 +82,7 @@ public class TestAnalyzeApiPath {
 	@Test
 	public void testWithPath() throws Exception {
 		final AnalyzeApi api = new AnalyzeApi();
-		api.createApi(List.of(WithPath.class));
+		api.addAllApi(List.of(WithPath.class));
 
 		Assertions.assertEquals(1, api.apiModels.size());
 		Assertions.assertEquals("/kaboom", api.apiModels.get(0).restEndPoint);
