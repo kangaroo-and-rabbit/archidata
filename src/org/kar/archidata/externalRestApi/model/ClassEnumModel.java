@@ -1,8 +1,9 @@
 package org.kar.archidata.externalRestApi.model;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class ClassEnumModel extends ClassModel {
@@ -20,7 +21,7 @@ public class ClassEnumModel extends ClassModel {
 		return out.toString();
 	}
 	
-	final List<String> listOfValues = new ArrayList<>();
+	final Map<String, Object> listOfValues = new HashMap<>();
 	
 	@Override
 	public void analyze(final ModelGroup group) throws IOException {
@@ -28,16 +29,28 @@ public class ClassEnumModel extends ClassModel {
 			return;
 		}
 		this.analyzeDone = true;
-		// TODO: check if we really need to have multiple type for enums ???
-		// TODO: manage enum with int, String and bitField ...
 		final Class<?> clazz = this.originClasses;
-		final Object[] arr = clazz.getEnumConstants();
-		for (final Object elem : arr) {
-			this.listOfValues.add(elem.toString());
+		final Object[] constants = clazz.getEnumConstants();
+
+		// Try to get a get Value element to serialize:
+		try {
+			final Method getValueMethod = clazz.getMethod("getValue");
+			for (final Object constant : constants) {
+				final String name = constant.toString();
+				final Object value = getValueMethod.invoke(constant);
+				this.listOfValues.put(name, value);
+			}
+			return;
+		} catch (final Exception e) {
+			//e.printStackTrace();
+		}
+
+		for (final Object elem : constants) {
+			this.listOfValues.put(elem.toString(), elem.toString());
 		}
 	}
 	
-	public List<String> getListOfValues() {
+	public Map<String, Object> getListOfValues() {
 		return this.listOfValues;
 	}
 	

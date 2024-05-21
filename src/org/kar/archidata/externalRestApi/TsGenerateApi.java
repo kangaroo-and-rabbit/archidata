@@ -18,13 +18,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.kar.archidata.catcher.RestErrorResponse;
-import org.kar.archidata.dataAccess.DataFactoryTsApi;
 import org.kar.archidata.externalRestApi.TsClassElement.DefinedPosition;
 import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ClassModel;
 
 public class TsGenerateApi {
-
+	
 	public static void generateApi(final AnalyzeApi api, final String pathPackage) throws Exception {
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
@@ -34,7 +33,7 @@ public class TsGenerateApi {
 		}
 		// Generate index of model files
 		createModelIndex(pathPackage, tsGroup);
-		
+
 		for (final ApiGroupModel element : api.apiModels) {
 			TsApiGeneration.generateApiFile(element, pathPackage, tsGroup);
 		}
@@ -43,7 +42,7 @@ public class TsGenerateApi {
 		createIndex(pathPackage);
 		copyResourceFile("rest-tools.ts", pathPackage + File.separator + "rest-tools.ts");
 	}
-	
+
 	private static void createIndex(final String pathPackage) throws IOException {
 		final String out = """
 				/**
@@ -52,13 +51,13 @@ public class TsGenerateApi {
 				export * from \"./model\";
 				export * from \"./api\";
 				export * from \"./rest-tools\";
-
+				
 				""";
 		final FileWriter myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
 		myWriter.write(out);
 		myWriter.close();
 	}
-
+	
 	private static void createResourceIndex(final String pathPackage, final List<ApiGroupModel> apiModels)
 			throws IOException {
 		final StringBuilder out = new StringBuilder("""
@@ -80,7 +79,7 @@ public class TsGenerateApi {
 		myWriter.write(out.toString());
 		myWriter.close();
 	}
-	
+
 	private static void createModelIndex(final String pathPackage, final TsClassElementGroup tsGroup)
 			throws IOException {
 		final StringBuilder out = new StringBuilder("""
@@ -106,7 +105,7 @@ public class TsGenerateApi {
 		myWriter.write(out.toString());
 		myWriter.close();
 	}
-	
+
 	private static List<TsClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
 		// First step is to add all specific basic elements the wrap correctly the model
 		final List<TsClassElement> tsModels = new ArrayList<>();
@@ -210,11 +209,11 @@ public class TsGenerateApi {
 			tsModels.add(new TsClassElement(model));
 		}
 		return tsModels;
-		
-	}
 
+	}
+	
 	public static void copyResourceFile(final String name, final String destinationPath) throws IOException {
-		final InputStream ioStream = DataFactoryTsApi.class.getClassLoader().getResourceAsStream(name);
+		final InputStream ioStream = TsGenerateApi.class.getClassLoader().getResourceAsStream(name);
 		if (ioStream == null) {
 			throw new IllegalArgumentException("rest-tools.ts is not found");
 		}

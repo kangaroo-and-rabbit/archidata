@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.kar.archidata.externalRestApi.model.ClassEnumModel;
 import org.kar.archidata.externalRestApi.model.ClassListModel;
@@ -85,7 +86,7 @@ public class TsClassElement {
 			out.append(this.tsTypeName);
 			out.append(" = ");
 			out.append("zod.enum([");
-			for (final String elem : model.getListOfValues()) {
+			for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
 				if (!first) {
 					out.append(",\n\t");
 				} else {
@@ -93,7 +94,7 @@ public class TsClassElement {
 					first = false;
 				}
 				out.append("'");
-				out.append(elem);
+				out.append(elem.getKey());
 				out.append("'");
 			}
 			if (first) {
@@ -108,17 +109,22 @@ public class TsClassElement {
 			out.append("export enum ");
 			out.append(this.tsTypeName);
 			out.append("  {");
-			for (final String elem : model.getListOfValues()) {
+			for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
 				if (!first) {
 					out.append(",\n\t");
 				} else {
 					out.append("\n\t");
 					first = false;
 				}
-				out.append(elem);
-				out.append(" = '");
-				out.append(elem);
-				out.append("'");
+				out.append(elem.getKey());
+				out.append(" = ");
+				if (elem.getValue() instanceof final Integer value) {
+					out.append(value);
+				} else {
+					out.append("'");
+					out.append(elem.getValue());
+					out.append("'");
+				}
 			}
 			if (first) {
 				out.append("}");
