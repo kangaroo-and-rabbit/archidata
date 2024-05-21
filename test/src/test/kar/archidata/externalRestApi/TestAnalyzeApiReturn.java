@@ -43,10 +43,10 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueVoid.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getVoid1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getVoid1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -54,7 +54,7 @@ public class TestAnalyzeApiReturn {
 			Assertions.assertEquals(void.class, classModel.getOriginClasses());
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getVoid2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getVoid2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -82,11 +82,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueInteger.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check int
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getInteger1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getInteger1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -95,7 +95,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Integer
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getInteger2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getInteger2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -123,11 +123,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueShort.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check short
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getShort1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getShort1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -136,7 +136,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Short
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getShort2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getShort2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -164,11 +164,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueLong.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check long
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getLong1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getLong1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -177,7 +177,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Long
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getLong2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getLong2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			Assertions.assertInstanceOf(ClassObjectModel.class, model.returnTypes.get(0));
@@ -206,11 +206,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueFloat.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check float
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getFloat1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getFloat1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -219,7 +219,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Float
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getFloat2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getFloat2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -247,11 +247,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueDouble.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check double
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getDouble1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getDouble1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -260,7 +260,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Double
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getDouble2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getDouble2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -283,11 +283,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueString.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(1, api.getAllApi().get(0).interfaces.size());
 		// Check String
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getString");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getString");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -314,11 +314,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueAny.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		// Check Response ==> represent a Any value then it wrapped as Object
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getResponse");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getResponse");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -327,7 +327,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Object
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getObject");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getObject");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -350,11 +350,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueEnum.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(1, api.getAllApi().get(0).interfaces.size());
 		// Check Enum
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getEnum");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getEnum");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			final ClassEnumModel classModel = Assertions.assertInstanceOf(ClassEnumModel.class,
@@ -396,11 +396,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueList.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(5, api.getAllApi().get(0).interfaces.size());
 		// Check List<Integer>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getListInteger");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListInteger");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -413,7 +413,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check List<TestEnum>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getListEnum");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListEnum");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -426,7 +426,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check List<TestObject>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getListObject");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListObject");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -435,11 +435,11 @@ public class TestAnalyzeApiReturn {
 			// Level 1
 			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
 					classListModel.valueModel);
-			Assertions.assertEquals(Integer.class, classModelOfValue.getOriginClasses());
+			Assertions.assertEquals(TestObject.class, classModelOfValue.getOriginClasses());
 		}
 		// Check List<List<Integer>>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getListListInteger");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListListInteger");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -455,7 +455,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check List<Map<String, Integer>>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getListMapInteger");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListMapInteger");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -509,11 +509,11 @@ public class TestAnalyzeApiReturn {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ReturnValueMap.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(5, api.getAllApi().get(0).interfaces.size());
 		// Check Map<String, Integer>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getMapInteger");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapInteger");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -529,7 +529,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Map<String, TestEnum>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getMapEnum");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapEnum");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -545,7 +545,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Map<String, TestObject>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getMapObject");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapObject");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -561,7 +561,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Map<String, Map<String, Integer>>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getMapMap");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapMap");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0
@@ -583,7 +583,7 @@ public class TestAnalyzeApiReturn {
 		}
 		// Check Map<String, List<Integer>>
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("getMapList");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapList");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.returnTypes.size());
 			// Level 0

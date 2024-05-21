@@ -9,7 +9,6 @@ import java.util.List;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.AsyncType;
 import org.kar.archidata.annotation.TypeScriptProgress;
-import org.kar.archidata.dataAccess.DataFactoryZod.ClassElement;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.ws.rs.Consumes;
@@ -206,28 +205,4 @@ public class ApiTool {
 		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
 	}
 
-	public static String convertInTypeScriptType(final List<ClassElement> tmp, final boolean isList) {
-		String out = "";
-		for (final ClassElement elem : tmp) {
-			if (out.length() != 0) {
-				out += " | ";
-			}
-			out += elem.tsTypeName;
-			if (isList) {
-				out += "[]";
-			}
-		}
-		return out;
-	}
-
-	public static String convertInTypeScriptCheckType(final List<ClassElement> tmp) {
-		String out = "";
-		for (final ClassElement elem : tmp) {
-			if (out.length() != 0) {
-				out += " | ";
-			}
-			out += elem.tsCheckType;
-		}
-		return out;
-	}
 }

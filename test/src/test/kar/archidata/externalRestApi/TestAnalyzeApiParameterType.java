@@ -49,10 +49,10 @@ public class TestAnalyzeApiParameterType {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(BasicParameter.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(5, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(5, api.getAllApi().get(0).interfaces.size());
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setInteger1");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setInteger1");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.unnamedElement.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -60,7 +60,7 @@ public class TestAnalyzeApiParameterType {
 			Assertions.assertEquals(int.class, classModel.getOriginClasses());
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setInteger2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setInteger2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.unnamedElement.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -68,7 +68,7 @@ public class TestAnalyzeApiParameterType {
 			Assertions.assertEquals(Integer.class, classModel.getOriginClasses());
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setString");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setString");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.unnamedElement.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -76,7 +76,7 @@ public class TestAnalyzeApiParameterType {
 			Assertions.assertEquals(String.class, classModel.getOriginClasses());
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setObject");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setObject");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.unnamedElement.size());
 			final ClassObjectModel classModel = Assertions.assertInstanceOf(ClassObjectModel.class,
@@ -84,7 +84,7 @@ public class TestAnalyzeApiParameterType {
 			Assertions.assertEquals(TestObject.class, classModel.getOriginClasses());
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setEnum");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setEnum");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals(1, model.unnamedElement.size());
 			final ClassEnumModel classModel = Assertions.assertInstanceOf(ClassEnumModel.class,
@@ -104,9 +104,9 @@ public class TestAnalyzeApiParameterType {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ListParameter.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
-		final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setList");
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(1, api.getAllApi().get(0).interfaces.size());
+		final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setList");
 		Assertions.assertNotNull(model);
 		Assertions.assertEquals(1, model.unnamedElement.size());
 		final ClassListModel classModel = Assertions.assertInstanceOf(ClassListModel.class,
@@ -127,9 +127,9 @@ public class TestAnalyzeApiParameterType {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(MapParameter.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals(1, api.apiModels.get(0).interfaces.size());
-		final ApiModel model = api.apiModels.get(0).getInterfaceNamed("setMap");
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals(1, api.getAllApi().get(0).interfaces.size());
+		final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("setMap");
 		Assertions.assertNotNull(model);
 		Assertions.assertEquals(1, model.unnamedElement.size());
 		final ClassMapModel classModel = Assertions.assertInstanceOf(ClassMapModel.class, model.unnamedElement.get(0));

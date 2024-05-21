@@ -31,15 +31,15 @@ public class TestAnalyzeApiName {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ApiName.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals("ApiName", api.apiModels.get(0).name);
-		Assertions.assertEquals(2, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals("ApiName", api.getAllApi().get(0).name);
+		Assertions.assertEquals(2, api.getAllApi().get(0).interfaces.size());
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("firstName");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("firstName");
 			Assertions.assertNotNull(model);
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("SecondName");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("SecondName");
 			Assertions.assertNotNull(model);
 		}
 	}

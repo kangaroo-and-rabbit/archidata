@@ -1,12 +1,8 @@
 package test.kar.archidata.externalRestApi;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.kar.archidata.externalRestApi.AnalyzeModel;
-import org.kar.archidata.externalRestApi.model.ClassModel;
+import org.kar.archidata.externalRestApi.AnalyzeApi;
 import org.kar.archidata.externalRestApi.model.ClassObjectModel;
 import org.kar.archidata.externalRestApi.model.ClassObjectModel.FieldProperty;
 import org.slf4j.Logger;
@@ -21,10 +17,11 @@ public class TestAnalyzeModel {
 
 	@Test
 	public void testNames() throws Exception {
-		final ClassObjectModel model = new ClassObjectModel(TestObject.class);
-		final List<ClassModel> models = new ArrayList<>();
-		models.add(model);
-		AnalyzeModel.fillModel(models);
+		final AnalyzeApi apiInterface = new AnalyzeApi();
+		apiInterface.addModel(TestObject.class);
+		Assertions.assertEquals(2, apiInterface.getAllModel().size());
+		final ClassObjectModel model = Assertions.assertInstanceOf(ClassObjectModel.class,
+				apiInterface.getAllModel().get(0));
 
 		Assertions.assertEquals("TestObject", model.getName());
 		Assertions.assertEquals(false, model.isPrimitive());

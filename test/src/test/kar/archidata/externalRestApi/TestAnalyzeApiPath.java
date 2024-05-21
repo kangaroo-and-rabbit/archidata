@@ -39,21 +39,21 @@ public class TestAnalyzeApiPath {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(NoPath.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals("", api.apiModels.get(0).restEndPoint);
-		Assertions.assertEquals(3, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals("", api.getAllApi().get(0).restEndPoint);
+		Assertions.assertEquals(3, api.getAllApi().get(0).interfaces.size());
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("noPath");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("noPath");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/", model.restEndPoint);
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("withPath");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withPath");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/plop", model.restEndPoint);
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("withPath2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withPath2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("//plop", model.restEndPoint);
 		}
@@ -84,21 +84,21 @@ public class TestAnalyzeApiPath {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(WithPath.class));
 
-		Assertions.assertEquals(1, api.apiModels.size());
-		Assertions.assertEquals("/kaboom", api.apiModels.get(0).restEndPoint);
-		Assertions.assertEquals(3, api.apiModels.get(0).interfaces.size());
+		Assertions.assertEquals(1, api.getAllApi().size());
+		Assertions.assertEquals("/kaboom", api.getAllApi().get(0).restEndPoint);
+		Assertions.assertEquals(3, api.getAllApi().get(0).interfaces.size());
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("noPath");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("noPath");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/kaboom/", model.restEndPoint);
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("withPath");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withPath");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/kaboom/plop", model.restEndPoint);
 		}
 		{
-			final ApiModel model = api.apiModels.get(0).getInterfaceNamed("withPath2");
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withPath2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/kaboom//plop", model.restEndPoint);
 		}
