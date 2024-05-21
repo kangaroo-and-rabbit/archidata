@@ -13,7 +13,7 @@ public class AnalyzeApi {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeApi.class);
 	protected final List<ApiGroupModel> apiModels = new ArrayList<>();
 	protected final ModelGroup modelGroup = new ModelGroup();
-	
+
 	public void addAllModel(final List<Class<?>> classes) throws Exception {
 		this.modelGroup.addAll(classes);
 		analyzeModels();
@@ -35,15 +35,15 @@ public class AnalyzeApi {
 		}
 		analyzeModels();
 	}
-	
+
 	public List<ApiGroupModel> getAllApi() {
 		return this.apiModels;
 	}
-	
+
 	public List<ClassModel> getAllModel() {
 		return this.modelGroup.getModels();
 	}
-	
+
 	private void analyzeModels() throws Exception {
 		final List<ClassModel> dones = new ArrayList<>();
 		while (dones.size() < getAllModel().size()) {

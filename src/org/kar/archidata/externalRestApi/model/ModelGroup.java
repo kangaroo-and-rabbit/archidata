@@ -13,13 +13,13 @@ public class ModelGroup {
 	public List<ClassModel> models = new ArrayList<>();
 
 	public ModelGroup() {}
-	
+
 	public void addAll(final List<Class<?>> classes) {
 		for (final Class<?> clazz : classes) {
 			add(clazz);
 		}
 	}
-	
+
 	public ClassModel add(Class<?> clazz) {
 		if (clazz == Response.class) {
 			clazz = Object.class;

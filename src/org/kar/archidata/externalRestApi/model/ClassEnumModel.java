@@ -7,11 +7,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class ClassEnumModel extends ClassModel {
-	
+
 	protected ClassEnumModel(final Class<?> clazz) {
 		this.originClasses = clazz;
 	}
-	
+
 	@Override
 	public String toString() {
 		final StringBuilder out = new StringBuilder();
@@ -20,9 +20,9 @@ public class ClassEnumModel extends ClassModel {
 		out.append("]");
 		return out.toString();
 	}
-	
+
 	final Map<String, Object> listOfValues = new HashMap<>();
-	
+
 	@Override
 	public void analyze(final ModelGroup group) throws IOException {
 		if (this.analyzeDone) {
@@ -49,16 +49,16 @@ public class ClassEnumModel extends ClassModel {
 			this.listOfValues.put(elem.toString(), elem.toString());
 		}
 	}
-	
+
 	public Map<String, Object> getListOfValues() {
 		return this.listOfValues;
 	}
-	
+
 	@Override
 	public Set<ClassModel> getAlls() {
 		return Set.of(this);
 	}
-	
+
 	@Override
 	public Set<ClassModel> getDependencyGroupModels() {
 		return Set.of(this);

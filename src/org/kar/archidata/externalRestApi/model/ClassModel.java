@@ -24,7 +24,7 @@ public abstract class ClassModel {
 	public List<ClassModel> getDependencyModels() {
 		return this.dependencyModels;
 	}
-	
+
 	public abstract Set<ClassModel> getDependencyGroupModels();
 
 	public static ClassModel getModel(final Type type, final ModelGroup previousModel) throws IOException {
@@ -70,7 +70,7 @@ public abstract class ClassModel {
 	public abstract void analyze(final ModelGroup group) throws Exception;
 
 	public abstract Set<ClassModel> getAlls();
-	
+
 	public List<String> getReadOnlyField() {
 		return List.of();
 	}

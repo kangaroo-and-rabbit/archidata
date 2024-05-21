@@ -27,7 +27,7 @@ import jakarta.ws.rs.core.MediaType;
 
 public class TsApiGeneration {
 	static final Logger LOGGER = LoggerFactory.getLogger(TsApiGeneration.class);
-	
+
 	public static String getBaseHeader() {
 		return """
 				/**
@@ -130,14 +130,14 @@ public class TsApiGeneration {
 		}
 		return out.toString();
 	}
-	
+
 	public static String capitalizeFirstLetter(final String str) {
 		if (str == null || str.isEmpty()) {
 			return str;
 		}
 		return str.substring(0, 1).toUpperCase() + str.substring(1);
 	}
-	
+
 	public static void generateApiFile(
 			final ApiGroupModel element,
 			final String pathPackage,
@@ -429,5 +429,5 @@ public class TsApiGeneration {
 		myWriter.write(out.toString());
 		myWriter.close();
 	}
-	
+
 }
