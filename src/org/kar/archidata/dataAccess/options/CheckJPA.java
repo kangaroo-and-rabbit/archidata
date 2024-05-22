@@ -280,7 +280,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 							if (elemTyped.length() < limitSize.min()) {
 								throw new InputException(baseName + fieldName,
-										"Too small size (constraints) must be >= " + limitSize.max());
+										"Too small size (constraints) must be >= " + limitSize.min());
 							}
 						});
 					}
