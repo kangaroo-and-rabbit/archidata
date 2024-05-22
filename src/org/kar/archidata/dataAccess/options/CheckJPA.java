@@ -16,6 +16,7 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
+import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.exception.InputException;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		 * @param data The object that might be injected.
 		 * @param filterValue List of fields that might be check. If null, then all column must be checked.
 		 * @throws Exception Exception is generate if the data are incorrect. */
-		void check(final String baseName, final K data) throws Exception;
+		void check(final String baseName, final K data, final QueryOptions options) throws Exception;
 	}
 
 	protected Map<String, List<CheckInterface<T>>> checking = null;
@@ -66,20 +67,20 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 			for (final Field field : this.clazz.getFields()) {
 				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
 				if (AnnotationTools.isPrimaryKey(field)) {
-					add(fieldName, (final String baseName, final T data) -> {
+					add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 						throw new InputException(baseName + fieldName,
 								"This is a '@Id' (primaryKey) ==> can not be change");
 					});
 				}
 				if (AnnotationTools.getConstraintsNotNull(field)) {
-					add(fieldName, (final String baseName, final T data) -> {
+					add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 						if (field.get(data) == null) {
 							throw new InputException(baseName + fieldName, "Can not be null");
 						}
 					});
 				}
 				if (AnnotationTools.isCreatedAtField(field) || AnnotationTools.isUpdateAtField(field)) {
-					add(fieldName, (final String baseName, final T data) -> {
+					add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 						throw new InputException(baseName + fieldName, "It is forbidden to change this field");
 					});
 				}
@@ -88,7 +89,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (type == Long.class || type == long.class) {
 					final Long maxValue = AnnotationTools.getConstraintsMax(field);
 					if (maxValue != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -101,7 +102,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 					final Long minValue = AnnotationTools.getConstraintsMin(field);
 					if (minValue != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -114,12 +115,19 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
 							}
-							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+							final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
+							long count = 0;
+							if (condCheckers.isEmpty()) {
+								count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+							} else {
+								count = DataAccess.count(annotationManyToOne.targetEntity(), elem,
+										condCheckers.get(0).toCondition());
+							}
 							if (count == 0) {
 								throw new InputException(baseName + fieldName,
 										"Foreign element does not exist in the DB:" + elem);
@@ -131,7 +139,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final int maxValue = maxValueRoot.intValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -145,7 +153,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final int minValue = minValueRoot.intValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -158,7 +166,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -173,7 +181,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == UUID.class) {
 					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -191,7 +199,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final float maxValue = maxValueRoot.floatValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -205,7 +213,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final float minValue = minValueRoot.floatValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -220,7 +228,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final double maxValue = maxValueRoot.doubleValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -234,7 +242,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final double minValue = minValueRoot.doubleValue();
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -254,7 +262,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == String.class) {
 					final int maxSizeString = AnnotationTools.getLimitSize(field);
 					if (maxSizeString > 0) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -268,7 +276,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 					final Size limitSize = AnnotationTools.getConstraintsSize(field);
 					if (limitSize != null) {
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -287,7 +295,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					final String patternString = AnnotationTools.getConstraintsPattern(field);
 					if (patternString != null) {
 						final Pattern pattern = Pattern.compile(patternString);
-						add(fieldName, (final String baseName, final T data) -> {
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
 							final Object elem = field.get(data);
 							if (elem == null) {
 								return;
@@ -306,8 +314,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						// Here if we have an error it crash at start and no new instance after creation...
 						final CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor()
 								.newInstance();
-						add(fieldName, (final String baseName, final T data) -> {
-							instance.checkAll(baseName + fieldName + ".", field.get(data));
+						add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
+							instance.checkAll(baseName + fieldName + ".", field.get(data), options);
 						});
 					}
 				} else if (type.isEnum()) {
@@ -316,9 +324,17 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				// keep this is last ==> take more time...
 				if (AnnotationTools.isUnique(field)) {
 					// Create the request ...
-					add(fieldName, (final String baseName, final T data) -> {
-						final Object other = DataAccess.getWhere(this.clazz,
-								new Condition(new QueryCondition(fieldName, "==", field.get(data))));
+					add(fieldName, (final String baseName, final T data, final QueryOptions options) -> {
+						final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
+						Object other = null;
+						if (condCheckers.isEmpty()) {
+							other = DataAccess.getWhere(this.clazz,
+									new Condition(new QueryCondition(fieldName, "==", field.get(data))));
+						} else {
+							other = DataAccess.getWhere(this.clazz,
+									new Condition(new QueryCondition(fieldName, "==", field.get(data))),
+									condCheckers.get(0).toCondition());
+						}
 						if (other != null) {
 							throw new InputException(baseName + fieldName, "Name already exist in the DB");
 						}
@@ -333,7 +349,11 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 	}
 
 	@Override
-	public void check(final String baseName, final Object data, final List<String> filterValue) throws Exception {
+	public void check(
+			final String baseName,
+			final Object data,
+			final List<String> filterValue,
+			final QueryOptions options) throws Exception {
 		if (this.checking == null) {
 			initialize();
 		}
@@ -348,13 +368,13 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				continue;
 			}
 			for (final CheckInterface<T> action : actions) {
-				action.check(baseName, dataCasted);
+				action.check(baseName, dataCasted, options);
 			}
 		}
-		checkTyped(dataCasted, filterValue);
+		checkTyped(dataCasted, filterValue, options);
 	}
 
-	public void checkTyped(final T data, final List<String> filterValue) throws Exception {
+	public void checkTyped(final T data, final List<String> filterValue, final QueryOptions options) throws Exception {
 		// nothing to do ...
 	}
 }

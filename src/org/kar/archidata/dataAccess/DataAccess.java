@@ -796,7 +796,7 @@ public class DataAccess {
 		// External checker of data:
 		final List<CheckFunction> checks = options.get(CheckFunction.class);
 		for (final CheckFunction check : checks) {
-			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz));
+			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz), options);
 		}
 
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
@@ -1119,7 +1119,7 @@ public class DataAccess {
 		if (options != null) {
 			final List<CheckFunction> checks = options.get(CheckFunction.class);
 			for (final CheckFunction check : checks) {
-				check.getChecker().check("", data, filter.getValues());
+				check.getChecker().check("", data, filter.getValues(), options);
 			}
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
@@ -1293,14 +1293,18 @@ public class DataAccess {
 		return stmt.execute(query);
 	}
 
-	public static <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
+	public static <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
 		options.add(new Limit(1));
 		final List<T> values = getsWhere(clazz, options);
 		if (values.size() == 0) {
 			return null;
 		}
 		return values.get(0);
+	}
+
+	public static <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		return getWhere(clazz, options);
 	}
 
 	public static void generateSelectField(//
@@ -1484,12 +1488,19 @@ public class DataAccess {
 		return data;
 	}
 
-	public static <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id) throws Exception {
-		return DataAccess.countWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
+	public static <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		options.add(new Condition(getTableIdCondition(clazz, id)));
+		return DataAccess.countWhere(clazz, options);
 	}
 
 	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
+		return countWhere(clazz, options);
+	}
+
+	public static long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		DBEntry entry = DBInterfaceOption.getAutoEntry(options);

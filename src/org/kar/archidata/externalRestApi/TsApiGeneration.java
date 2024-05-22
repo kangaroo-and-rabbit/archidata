@@ -55,7 +55,7 @@ public class TsApiGeneration {
 		if (tsModel.nativeType != DefinedPosition.NATIVE) {
 			imports.add(model);
 		}
-		if (tsModel.nativeType == DefinedPosition.BASIC) {
+		if (tsModel.nativeType != DefinedPosition.NORMAL) {
 			return tsModel.tsTypeName;
 		}
 		if (writeMode) {

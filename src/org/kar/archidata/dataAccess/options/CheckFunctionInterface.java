@@ -3,6 +3,7 @@ package org.kar.archidata.dataAccess.options;
 import java.util.List;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.dataAccess.QueryOptions;
 
 /** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
 public interface CheckFunctionInterface {
@@ -11,10 +12,11 @@ public interface CheckFunctionInterface {
 	 * @param data The object that might be injected.
 	 * @param filterValue List of fields that might be check. If null, then all column must be checked.
 	 * @throws Exception Exception is generate if the data are incorrect. */
-	void check(final String baseName, Object data, List<String> filterValue) throws Exception;
+	void check(final String baseName, Object data, List<String> filterValue, final QueryOptions options)
+			throws Exception;
 
-	default void checkAll(final String baseName, final Object data) throws Exception {
-		check(baseName, data, AnnotationTools.getAllFieldsNames(data.getClass()));
+	default void checkAll(final String baseName, final Object data, final QueryOptions options) throws Exception {
+		check(baseName, data, AnnotationTools.getAllFieldsNames(data.getClass()), options);
 	}
 
 }
