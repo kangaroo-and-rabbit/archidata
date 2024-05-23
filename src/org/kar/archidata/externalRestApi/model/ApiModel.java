@@ -147,11 +147,17 @@ public class ApiModel {
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
 			if (queryParam != null) {
-				this.queries.put(queryParam, parameterModel);
+				if (!this.queries.containsKey(queryParam)) {
+					this.queries.put(queryParam, parameterModel);
+				}
 			} else if (pathParam != null) {
-				this.parameters.put(pathParam, parameterModel);
+				if (!this.parameters.containsKey(pathParam)) {
+					this.parameters.put(pathParam, parameterModel);
+				}
 			} else if (formDataParam != null) {
-				this.multiPartParameters.put(formDataParam, parameterModel);
+				if (!this.multiPartParameters.containsKey(formDataParam)) {
+					this.multiPartParameters.put(formDataParam, parameterModel);
+				}
 			} else {
 				this.unnamedElement.addAll(parameterModel);
 			}

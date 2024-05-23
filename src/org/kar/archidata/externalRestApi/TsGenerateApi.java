@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.glassfish.jersey.media.multipart.ContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.catcher.RestErrorResponse;
 import org.kar.archidata.externalRestApi.TsClassElement.DefinedPosition;
 import org.kar.archidata.externalRestApi.model.ApiGroupModel;
@@ -128,7 +130,8 @@ public class TsGenerateApi {
 			tsModels.add(
 					new TsClassElement(models, "zod.string()", "string", null, "zod.string()", DefinedPosition.NATIVE));
 		}
-		models = api.getCompatibleModels(List.of(InputStream.class));
+		models = api.getCompatibleModels(
+				List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class));
 		if (models != null) {
 			tsModels.add(new TsClassElement(models, "z.instanceof(File)", "File", null, "z.instanceof(File)",
 					DefinedPosition.NATIVE));

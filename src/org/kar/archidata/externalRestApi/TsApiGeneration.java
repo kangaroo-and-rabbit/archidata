@@ -348,11 +348,11 @@ public class TsApiGeneration {
 				data.append(", is");
 				data.append(returnModelNameIfComplex);
 			} else {
-				final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, tsGroup, imports,
-						false);
-				if (!"void".equals(returnType)) {
-					data.append(", is");
-					data.append(returnType);
+				final TsClassElement retType = tsGroup.find(interfaceElement.returnTypes.get(0));
+				if (retType.tsCheckType != null) {
+					data.append(", ");
+					data.append(retType.tsCheckType);
+					imports.add(interfaceElement.returnTypes.get(0));
 				}
 			}
 			data.append(");");
@@ -393,7 +393,9 @@ public class TsApiGeneration {
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			finalImportList.add("is" + tsModel.tsTypeName);
+			if (tsModel.tsCheckType != null) {
+				finalImportList.add(tsModel.tsCheckType);
+			}
 		}
 		for (final ClassModel model : zodImports) {
 			final TsClassElement tsModel = tsGroup.find(model);
