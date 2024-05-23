@@ -1,7 +1,6 @@
 package org.kar.archidata.dataAccess;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.kar.archidata.dataAccess.options.AccessDeletedItems;
@@ -25,10 +24,16 @@ public class QueryOptions {
 		if (elems == null || elems.length == 0) {
 			return;
 		}
-		Collections.addAll(this.options, elems);
+		for (final QueryOption elem : elems) {
+			add(elem);
+		}
+
 	}
 
 	public void add(final QueryOption option) {
+		if (option == null) {
+			return;
+		}
 		this.options.add(option);
 	}
 
