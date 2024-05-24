@@ -129,7 +129,8 @@ public class ApiModel {
 			final Class<?>[] asyncType = ApiTool.apiAnnotationGetAsyncType(parameter);
 			if (asyncType != null) {
 				for (final Class<?> elem : asyncType) {
-					parameterModel.add(new ClassListModel(elem, previousModel));
+					final ClassModel modelGenerated = ClassModel.getModel(elem, previousModel);
+					parameterModel.add(modelGenerated);
 				}
 			} else if (parameterType == List.class) {
 				final Type parameterrizedType = parameter.getParameterizedType();
