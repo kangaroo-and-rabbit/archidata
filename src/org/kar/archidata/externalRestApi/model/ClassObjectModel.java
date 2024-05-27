@@ -54,18 +54,20 @@ public class ClassObjectModel extends ClassModel {
 			ClassModel model,
 			String comment,
 			int limitSize,
-			boolean readOnly,
-			boolean notNull,
-			boolean nullable) {
+			Boolean readOnly,
+			Boolean notNull,
+			Boolean columnNotNull,
+			Boolean nullable) {
 
 		public FieldProperty(final String name, final ClassModel model, final String comment, final int limitSize,
-				final boolean readOnly, final boolean notNull, final boolean nullable) {
+				final Boolean readOnly, final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
 			this.name = name;
 			this.model = model;
 			this.comment = comment;
 			this.limitSize = limitSize;
 			this.readOnly = readOnly;
 			this.notNull = notNull;
+			this.columnNotNull = columnNotNull;
 			this.nullable = nullable;
 
 		}
@@ -77,7 +79,8 @@ public class ClassObjectModel extends ClassModel {
 					AnnotationTools.getLimitSize(field), //
 					AnnotationTools.getSchemaReadOnly(field), //
 					AnnotationTools.getConstraintsNotNull(field), //
-					AnnotationTools.getColumnNotNull(field));
+					AnnotationTools.getColumnNotNull(field), //
+					AnnotationTools.getNullable(field));
 		}
 
 	}

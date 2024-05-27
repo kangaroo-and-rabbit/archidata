@@ -216,10 +216,18 @@ public class TsClassElement {
 	}
 
 	public String optionalTypeZod(final FieldProperty field) {
+		// Common checking element (apply to List, Map, ...)
+		if (field.nullable()) {
+			return ".optional()";
+		}
+		if (field.notNull()) {
+			return "";
+		}
+		// Other object:
 		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
 			return "";
 		}
-		if (field.notNull()) {
+		if (field.columnNotNull()) {
 			return "";
 		}
 		return ".optional()";

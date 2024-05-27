@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -256,6 +257,14 @@ public class AnnotationTools {
 					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		return !((Column) annotation[0]).nullable();
+	}
+
+	public static boolean getNullable(final Field element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Nullable.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
 	}
 
 	public static boolean getConstraintsNotNull(final Field element) throws Exception {
