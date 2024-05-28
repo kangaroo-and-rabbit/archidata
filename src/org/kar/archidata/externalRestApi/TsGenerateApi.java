@@ -118,7 +118,7 @@ public class TsGenerateApi {
 		models = api.getCompatibleModels(List.of(Object.class));
 		if (models != null) {
 			tsModels.add(
-					new TsClassElement(models, "zod.object()", "object", null, "zod.object()", DefinedPosition.NATIVE));
+					new TsClassElement(models, "zod.any()", "object", null, "zod.object()", DefinedPosition.NATIVE));
 		}
 		// Map is binded to any ==> can not determine this complex model for now
 		models = api.getCompatibleModels(List.of(Map.class));
