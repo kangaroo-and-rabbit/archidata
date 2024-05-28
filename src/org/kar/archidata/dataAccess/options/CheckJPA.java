@@ -121,13 +121,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								return;
 							}
 							final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
-							long count = 0;
-							if (condCheckers.isEmpty()) {
-								count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
-							} else {
-								count = DataAccess.count(annotationManyToOne.targetEntity(), elem,
-										condCheckers.get(0).toCondition());
-							}
+							final Condition conditionCheck = condCheckers.isEmpty() ? null
+									: condCheckers.get(0).toCondition();
+							final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem,
+									conditionCheck);
 							if (count == 0) {
 								throw new InputException(baseName + fieldName,
 										"Foreign element does not exist in the DB:" + elem);
