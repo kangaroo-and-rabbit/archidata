@@ -64,6 +64,9 @@ public class ApiModel {
 					this.returnTypes.add(previousModel.add(clazz));
 				}
 			}
+			if (this.returnTypes.size() == 0) {
+				this.produces.clear();
+			}
 			return;
 		}
 
@@ -90,6 +93,9 @@ public class ApiModel {
 		LOGGER.warn("List of returns elements:");
 		for (final ClassModel elem : this.returnTypes) {
 			LOGGER.warn("    - {}", elem);
+		}
+		if (this.returnTypes.size() == 0) {
+			this.produces.clear();
 		}
 	}
 
@@ -166,6 +172,5 @@ public class ApiModel {
 		if (this.unnamedElement.size() > 1) {
 			throw new IOException("Can not parse the API, enmpty element is more than 1 in " + this.name);
 		}
-
 	}
 }

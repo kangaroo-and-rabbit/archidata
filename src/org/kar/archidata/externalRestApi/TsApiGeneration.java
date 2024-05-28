@@ -319,11 +319,15 @@ public class TsApiGeneration {
 				if (produces.size() > 1) {
 					data.append("\n\t\t\t\taccept: produce,");
 				} else {
-					for (final String elem : produces) {
-						if (MediaType.APPLICATION_JSON.equals(elem)) {
-							data.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
-							toolImports.add("HTTPMimeType");
-							break;
+					final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, tsGroup,
+							imports, false);
+					if (!"void".equals(returnType)) {
+						for (final String elem : produces) {
+							if (MediaType.APPLICATION_JSON.equals(elem)) {
+								data.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
+								toolImports.add("HTTPMimeType");
+								break;
+							}
 						}
 					}
 				}
