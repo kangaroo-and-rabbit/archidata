@@ -425,7 +425,7 @@ public class TsClassElement {
 		}
 		final Path path = Paths.get(pathPackage + File.separator + "model");
 		if (Files.notExists(path)) {
-			Files.createDirectory(path);
+			Files.createDirectories(path);
 		}
 		final FileWriter myWriter = new FileWriter(
 				pathPackage + File.separator + "model" + File.separator + this.fileName + ".ts");
