@@ -3,12 +3,12 @@ package org.kar.archidata.dataAccess.addOn.model;
 import java.util.List;
 
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.model.GenericData;
+import org.kar.archidata.model.GenericDataSoftDelete;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 
-public class TableCoversLongLong extends GenericData {
+public class TableCoversLongLong extends GenericDataSoftDelete {
 	public TableCoversLongLong() {
 		// nothing to do...
 	}
