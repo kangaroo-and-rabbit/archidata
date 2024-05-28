@@ -10,6 +10,10 @@ public class ConditionChecker extends QueryOption {
 		this.condition = items;
 	}
 
+	public ConditionChecker(final Condition cond) {
+		this.condition = cond.condition;
+	}
+
 	public ConditionChecker() {
 		this.condition = null;
 	}
