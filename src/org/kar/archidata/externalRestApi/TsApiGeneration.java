@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.kar.archidata.dataAccess.DataExport;
 import org.kar.archidata.externalRestApi.TsClassElement.DefinedPosition;
@@ -379,14 +380,14 @@ public class TsApiGeneration {
 			out.append("import { z as zod } from \"zod\"\n");
 		}
 
-		final List<String> finalImportList = new ArrayList<>();
+		final Set<String> finalImportSet = new TreeSet<>();
 
 		for (final ClassModel model : imports) {
 			final TsClassElement tsModel = tsGroup.find(model);
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			finalImportList.add(tsModel.tsTypeName);
+			finalImportSet.add(tsModel.tsTypeName);
 		}
 		for (final ClassModel model : isImports) {
 			final TsClassElement tsModel = tsGroup.find(model);
@@ -394,7 +395,7 @@ public class TsApiGeneration {
 				continue;
 			}
 			if (tsModel.tsCheckType != null) {
-				finalImportList.add(tsModel.tsCheckType);
+				finalImportSet.add(tsModel.tsCheckType);
 			}
 		}
 		for (final ClassModel model : zodImports) {
@@ -402,20 +403,19 @@ public class TsApiGeneration {
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			finalImportList.add("Zod" + tsModel.tsTypeName);
+			finalImportSet.add("Zod" + tsModel.tsTypeName);
 		}
 		for (final ClassModel model : writeImports) {
 			final TsClassElement tsModel = tsGroup.find(model);
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			finalImportList.add(tsModel.tsTypeName + "Write");
+			finalImportSet.add(tsModel.tsTypeName + "Write");
 		}
-		Collections.sort(finalImportList);
 
-		if (finalImportList.size() != 0) {
+		if (finalImportSet.size() != 0) {
 			out.append("import {");
-			for (final String elem : finalImportList) {
+			for (final String elem : finalImportSet) {
 				out.append("\n\t");
 				out.append(elem);
 				out.append(",");
