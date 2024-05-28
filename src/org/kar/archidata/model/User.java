@@ -16,6 +16,7 @@ CREATE TABLE `user` (
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.DataJson;
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.ws.rs.DefaultValue;
@@ -49,7 +51,8 @@ public class User extends GenericDataSoftDelete {
 
 	@Schema(description = "List of Id of the specific covers")
 	@DataJson(targetEntity = Data.class)
-	public List<Long> covers;
+	@Nullable
+	public List<UUID> covers;
 
 	@Override
 	public String toString() {
