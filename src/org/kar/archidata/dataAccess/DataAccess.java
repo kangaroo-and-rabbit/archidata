@@ -25,7 +25,7 @@ import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
 import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
-import org.kar.archidata.dataAccess.addOn.AddOnSQLTableExternalForeinKeyAsList;
+import org.kar.archidata.dataAccess.addOn.AddOnOneToMany;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.DBInterfaceOption;
@@ -64,7 +64,7 @@ public class DataAccess {
 	static {
 		addOn.add(new AddOnManyToMany());
 		addOn.add(new AddOnManyToOne());
-		addOn.add(new AddOnSQLTableExternalForeinKeyAsList());
+		addOn.add(new AddOnOneToMany());
 		addOn.add(new AddOnDataJson());
 	}
 

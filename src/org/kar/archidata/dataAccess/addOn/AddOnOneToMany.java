@@ -1,28 +1,36 @@
 package org.kar.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
+import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.options.Condition;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
 
 public class AddOnOneToMany implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToMany.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnOneToMany.class);
+	static final String SEPARATOR_LONG = "-";
 
 	/** Convert the list if external id in a string '-' separated
 	 * @param ids List of value (null are removed)
@@ -100,6 +108,21 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public boolean canRetrieve(final Field field) {
+		if (field.getType() != List.class) {
+			return false;
+		}
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
+		if (objectClass == Long.class || objectClass == UUID.class) {
+			return true;
+		}
+		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
+		if (decorators == null) {
+			return false;
+		}
+		if (decorators.targetEntity() == objectClass) {
+			return true;
+		}
 		return false;
 	}
 
@@ -113,11 +136,16 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			@NotNull final String name,
 			@NotNull final CountInOut count,
 			final QueryOptions options) {
+		if (field.getType() != List.class) {
+			return;
+		}
+		// Force a copy of the primaryKey to permit the async retrieve of the data
 		querySelect.append(" ");
 		querySelect.append(tableName);
 		querySelect.append(".");
-		querySelect.append(name);
-		count.inc();
+		querySelect.append(primaryKey);
+		querySelect.append(" AS tmp_");
+		querySelect.append(Integer.toString(count.value));
 	}
 
 	@Override
@@ -127,16 +155,74 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final Object data,
 			final CountInOut count,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws SQLException, IllegalArgumentException, IllegalAccessException {
-		final Long foreignKey = rs.getLong(count.value);
-		count.inc();
-		if (!rs.wasNull()) {
+			final List<LazyGetter> lazyCall) throws Exception {
+		if (field.getType() != List.class) {
+			LOGGER.error("Can not OneToMany with other than List Model: {}", field.getType().getCanonicalName());
+			return;
+		}
 
-			field.set(data, foreignKey);
+		Long parentIdTmp = null;
+		UUID parendUuidTmp = null;
+		try {
+			final String modelData = rs.getString(count.value);
+			parentIdTmp = Long.valueOf(modelData);
+			count.inc();
+		} catch (final NumberFormatException ex) {
+			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+			parendUuidTmp = idList.get(0);
+			count.inc();
+		}
+		final Long parentId = parentIdTmp;
+		final UUID parendUuid = parendUuidTmp;
+		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
+		if (decorators == null) {
+			return;
+		}
+		final String mappingKey = decorators.mappedBy();
+		// We get the parent ID ... ==> need to request the list of elements
+
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
+		if (objectClass == Long.class) {
+			LOGGER.error("Need to retreive all primary key of all elements");
+			//field.set(data, idList);
+			return;
+		} else if (objectClass == UUID.class) {
+			LOGGER.error("Need to retreive all primary key of all elements");
+			//field.set(data, idList);
+			return;
+		}
+		if (objectClass == decorators.targetEntity()) {
+			if (decorators.fetch() == FetchType.EAGER) {
+				throw new DataAccessException("EAGER is not supported for list of element...");
+			} else if (parentId != null) {
+				// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+				final LazyGetter lambda = () -> {
+					@SuppressWarnings("unchecked")
+					final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+							new Condition(new QueryCondition(mappingKey, "=", parentId)));
+					if (foreignData == null) {
+						return;
+					}
+					field.set(data, foreignData);
+				};
+				lazyCall.add(lambda);
+			} else if (parendUuid != null) {
+				final LazyGetter lambda = () -> {
+					@SuppressWarnings("unchecked")
+					final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+							new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
+					if (foreignData == null) {
+						return;
+					}
+					field.set(data, foreignData);
+				};
+				lazyCall.add(lambda);
+			}
 		}
 	}
 
-	// TODO : refacto this table to manage a generic table with dynamic name to be serializable with the default system
+	// TODO : refacto this table to manage a generic table with dynamic name to be serialize with the default system
 	@Override
 	public void createTables(
 			final String tableName,
@@ -148,7 +234,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final boolean createIfNotExist,
 			final boolean createDrop,
 			final int fieldId) throws Exception {
-		DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-				postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+		// This is a remote field ==> nothing to generate (it is stored in the remote object
 	}
 }

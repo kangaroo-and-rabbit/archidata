@@ -196,6 +196,7 @@ public class RESTApi {
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 
+	// TODO: add an API that permit to return a value
 	public <T, U> void delete(final Class<T> clazz, final String urlOffset)
 			throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
