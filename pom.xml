@@ -21,6 +21,7 @@
 		</repository>
 	</repositories>
 	<distributionManagement>
+		<!--
 		<repository>
 			<id>gitea</id>
 			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
@@ -28,6 +29,15 @@
 		<snapshotRepository>
 			<id>gitea</id>
 			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</snapshotRepository>
+		-->
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/kangaroo-and-rabbit/archidata</url>
+		</repository>
+		<snapshotRepository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/kangaroo-and-rabbit/archidata</url>
 		</snapshotRepository>
 	</distributionManagement>
 	<dependencyManagement>
