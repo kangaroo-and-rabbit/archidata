@@ -14,13 +14,35 @@
 		<jaxb.version>2.3.1</jaxb.version>
 		<istack.version>4.1.1</istack.version>
 	</properties>
+	<!--
 	<repositories>
 		<repository>
 			<id>gitea</id>
 			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
 		</repository>
 	</repositories>
+	-->
+	<repositories>
+		<repository>
+			<id>gitea-neofarm</id>
+			<url>https://gitea.neo.farm/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+	</repositories>
 	<distributionManagement>
+		<repository>
+			<id>gitea-neofarm</id>
+			<url>https://gitea.neo.farm/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+		<snapshotRepository>
+			<id>gitea-neofarm</id>
+			<url>https://gitea.neo.farm/api/packages/kangaroo-and-rabbit/maven</url>
+		</snapshotRepository>
+		<!--
+		<repository>
+			<id>gitea-neofarm</id>
+			<url>https://gitea.neo.farm/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+		-->
 		<!--
 		<repository>
 			<id>gitea</id>
@@ -30,7 +52,6 @@
 			<id>gitea</id>
 			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
 		</snapshotRepository>
-		-->
 		<repository>
 			<id>github</id>
 			<url>https://maven.pkg.github.com/kangaroo-and-rabbit/archidata</url>
@@ -39,6 +60,7 @@
 			<id>github</id>
 			<url>https://maven.pkg.github.com/kangaroo-and-rabbit/archidata</url>
 		</snapshotRepository>
+		-->
 	</distributionManagement>
 	<dependencyManagement>
 		<dependencies>
