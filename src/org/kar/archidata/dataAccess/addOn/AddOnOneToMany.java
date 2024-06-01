@@ -20,6 +20,7 @@ import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,6 +119,64 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		return false;
 	}
 
+	public void generateConcatQuery(
+			@NotNull final String tableName,
+			@NotNull final String primaryKey,
+			@NotNull final Field field,
+			@NotNull final StringBuilder querySelect,
+			@NotNull final StringBuilder query,
+			@NotNull final String name,
+			@NotNull final CountInOut count,
+			final QueryOptions options,
+			final Class<?> targetEntity,
+			final String mappedBy) throws Exception {
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
+		final String remoteTableName = AnnotationTools.getTableName(targetEntity);
+		final String remoteTablePrimaryKeyName = AnnotationTools
+				.getFieldName(AnnotationTools.getPrimaryKeyField(targetEntity));
+		final String tmpRemoteVariable = "tmp_" + Integer.toString(count.value);
+		final String remoteDeletedFieldName = AnnotationTools.getDeletedFieldName(targetEntity);
+
+		querySelect.append(" (SELECT GROUP_CONCAT(");
+		querySelect.append(tmpRemoteVariable);
+		querySelect.append(".");
+		querySelect.append(remoteTablePrimaryKeyName);
+		querySelect.append(" ");
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
+			querySelect.append(", ");
+		} else {
+			querySelect.append("SEPARATOR ");
+		}
+		querySelect.append("'");
+		if (objectClass == Long.class) {
+			querySelect.append(SEPARATOR_LONG);
+		}
+		querySelect.append("') FROM ");
+		querySelect.append(remoteTableName);
+		querySelect.append(" ");
+		querySelect.append(tmpRemoteVariable);
+		querySelect.append(" WHERE ");
+		if (remoteDeletedFieldName != null) {
+			querySelect.append(tmpRemoteVariable);
+			querySelect.append(".");
+			querySelect.append(remoteDeletedFieldName);
+			querySelect.append(" = false");
+			querySelect.append(" AND ");
+		}
+		querySelect.append(tableName);
+		querySelect.append(".");
+		querySelect.append(primaryKey);
+		querySelect.append(" = ");
+		querySelect.append(tmpRemoteVariable);
+		querySelect.append(".");
+		querySelect.append(mappedBy);
+		querySelect.append(" ");
+		querySelect.append(") AS ");
+		querySelect.append(name);
+		querySelect.append(" ");
+	}
+
 	@Override
 	public void generateQuery(
 			@NotNull final String tableName,
@@ -127,17 +186,35 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			@NotNull final StringBuilder query,
 			@NotNull final String name,
 			@NotNull final CountInOut count,
-			final QueryOptions options) {
+			final QueryOptions options) throws Exception {
 		if (field.getType() != List.class) {
 			return;
 		}
-		// Force a copy of the primaryKey to permit the async retrieve of the data
-		querySelect.append(" ");
-		querySelect.append(tableName);
-		querySelect.append(".");
-		querySelect.append(primaryKey);
-		querySelect.append(" AS tmp_");
-		querySelect.append(Integer.toString(count.value));
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
+		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
+		if (decorators == null) {
+			return;
+		}
+		// TODO: manage better the eager and lazy !!
+		if (objectClass == Long.class || objectClass == UUID.class) {
+			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options,
+					decorators.targetEntity(), decorators.mappedBy());
+			return;
+		}
+		if (objectClass == decorators.targetEntity()) {
+			if (decorators.fetch() == FetchType.EAGER) {
+				throw new DataAccessException("EAGER is not supported for list of element...");
+			} else {
+				// Force a copy of the primaryKey to permit the async retrieve of the data
+				querySelect.append(" ");
+				querySelect.append(tableName);
+				querySelect.append(".");
+				querySelect.append(primaryKey);
+				querySelect.append(" AS tmp_");
+				querySelect.append(Integer.toString(count.value));
+			}
+		}
 	}
 
 	@Override
@@ -152,64 +229,76 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			LOGGER.error("Can not OneToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
-
-		Long parentIdTmp = null;
-		UUID parendUuidTmp = null;
-		try {
-			final String modelData = rs.getString(count.value);
-			parentIdTmp = Long.valueOf(modelData);
-			count.inc();
-		} catch (final NumberFormatException ex) {
-			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
-			parendUuidTmp = idList.get(0);
-			count.inc();
-		}
-		final Long parentId = parentIdTmp;
-		final UUID parendUuid = parendUuidTmp;
+		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+				.getActualTypeArguments()[0];
 		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
 		if (decorators == null) {
 			return;
 		}
-		final String mappingKey = decorators.mappedBy();
-		// We get the parent ID ... ==> need to request the list of elements
-
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
 		if (objectClass == Long.class) {
-			LOGGER.error("Need to retreive all primary key of all elements");
-			//field.set(data, idList);
+			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
+			field.set(data, idList);
+			count.inc();
 			return;
 		} else if (objectClass == UUID.class) {
-			LOGGER.error("Need to retreive all primary key of all elements");
-			//field.set(data, idList);
+			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+			field.set(data, idList);
+			count.inc();
 			return;
 		}
 		if (objectClass == decorators.targetEntity()) {
-			if (decorators.fetch() == FetchType.EAGER) {
-				throw new DataAccessException("EAGER is not supported for list of element...");
-			} else if (parentId != null) {
-				// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-				final LazyGetter lambda = () -> {
-					@SuppressWarnings("unchecked")
-					final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
-							new Condition(new QueryCondition(mappingKey, "=", parentId)));
-					if (foreignData == null) {
-						return;
-					}
-					field.set(data, foreignData);
-				};
-				lazyCall.add(lambda);
-			} else if (parendUuid != null) {
-				final LazyGetter lambda = () -> {
-					@SuppressWarnings("unchecked")
-					final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
-							new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
-					if (foreignData == null) {
-						return;
-					}
-					field.set(data, foreignData);
-				};
-				lazyCall.add(lambda);
+
+			Long parentIdTmp = null;
+			UUID parendUuidTmp = null;
+			try {
+				final String modelData = rs.getString(count.value);
+				parentIdTmp = Long.valueOf(modelData);
+				count.inc();
+			} catch (final NumberFormatException ex) {
+				final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+				parendUuidTmp = idList.get(0);
+				count.inc();
+			}
+			final Long parentId = parentIdTmp;
+			final UUID parendUuid = parendUuidTmp;
+			final String mappingKey = decorators.mappedBy();
+			// We get the parent ID ... ==> need to request the list of elements
+			if (objectClass == Long.class) {
+				LOGGER.error("Need to retreive all primary key of all elements");
+				//field.set(data, idList);
+				return;
+			} else if (objectClass == UUID.class) {
+				LOGGER.error("Need to retreive all primary key of all elements");
+				//field.set(data, idList);
+				return;
+			}
+			if (objectClass == decorators.targetEntity()) {
+				if (decorators.fetch() == FetchType.EAGER) {
+					throw new DataAccessException("EAGER is not supported for list of element...");
+				} else if (parentId != null) {
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						@SuppressWarnings("unchecked")
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryCondition(mappingKey, "=", parentId)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				} else if (parendUuid != null) {
+					final LazyGetter lambda = () -> {
+						@SuppressWarnings("unchecked")
+						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
 			}
 		}
 	}

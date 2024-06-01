@@ -12,7 +12,7 @@ public class TypeOneToManyUUIDRoot extends UUIDGenericData {
 
 	public String otherData;
 
-	@OneToMany(targetEntity = TypeOneToManyUUIDRemote.class, mappedBy = "rootId")
+	@OneToMany(targetEntity = TypeOneToManyUUIDRemote.class, mappedBy = "rootUuid")
 	@Column(nullable = false)
 	public List<UUID> remoteIds;
 }

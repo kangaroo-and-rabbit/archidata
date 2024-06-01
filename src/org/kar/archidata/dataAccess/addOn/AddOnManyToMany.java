@@ -172,6 +172,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
+		// TODO: manage better the eager and lazy !!
 		if (objectClass == Long.class || objectClass == UUID.class) {
 			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 		}

@@ -153,13 +153,13 @@ public class TestOneToMany {
 		root.otherData = "plouf";
 		final TypeOneToManyUUIDRoot insertedRoot = DataAccess.insert(root);
 		Assertions.assertEquals(insertedRoot.otherData, root.otherData);
-		Assertions.assertNotNull(insertedRoot.remoteIds);
+		Assertions.assertNull(insertedRoot.remoteIds);
 
 		final TypeOneToManyUUIDRoot root2 = new TypeOneToManyUUIDRoot();
 		root2.otherData = "plouf 2";
 		final TypeOneToManyUUIDRoot insertedRoot2 = DataAccess.insert(root2);
 		Assertions.assertEquals(insertedRoot2.otherData, root2.otherData);
-		Assertions.assertNotNull(insertedRoot2.remoteIds);
+		Assertions.assertNull(insertedRoot2.remoteIds);
 
 		// Create Some Remotes
 
@@ -188,14 +188,14 @@ public class TestOneToMany {
 
 		final TypeOneToManyUUIDRoot retreiveRoot1 = DataAccess.get(TypeOneToManyUUIDRoot.class, insertedRoot.uuid);
 		Assertions.assertEquals(retreiveRoot1.otherData, insertedRoot.otherData);
-		Assertions.assertNull(retreiveRoot1.remoteIds);
+		Assertions.assertNotNull(retreiveRoot1.remoteIds);
 		Assertions.assertEquals(2, retreiveRoot1.remoteIds.size());
 		Assertions.assertEquals(insertedRemote10.uuid, retreiveRoot1.remoteIds.get(0));
 		Assertions.assertEquals(insertedRemote11.uuid, retreiveRoot1.remoteIds.get(1));
 
 		final TypeOneToManyUUIDRoot retreiveRoot2 = DataAccess.get(TypeOneToManyUUIDRoot.class, insertedRoot2.uuid);
 		Assertions.assertEquals(retreiveRoot2.otherData, insertedRoot2.otherData);
-		Assertions.assertNull(retreiveRoot2.remoteIds);
+		Assertions.assertNotNull(retreiveRoot2.remoteIds);
 		Assertions.assertEquals(1, retreiveRoot2.remoteIds.size());
 		Assertions.assertEquals(insertedRemote20.uuid, retreiveRoot2.remoteIds.get(0));
 
@@ -204,7 +204,7 @@ public class TestOneToMany {
 		final TypeOneToManyUUIDRootExpand retreiveRootExpand1 = DataAccess.get(TypeOneToManyUUIDRootExpand.class,
 				insertedRoot.uuid);
 		Assertions.assertEquals(retreiveRootExpand1.otherData, insertedRoot.otherData);
-		Assertions.assertNull(retreiveRootExpand1.remotes);
+		Assertions.assertNotNull(retreiveRootExpand1.remotes);
 		Assertions.assertEquals(2, retreiveRootExpand1.remotes.size());
 		Assertions.assertEquals(insertedRemote10.uuid, retreiveRootExpand1.remotes.get(0).uuid);
 		Assertions.assertEquals(insertedRemote10.rootUuid, retreiveRootExpand1.remotes.get(0).rootUuid);
@@ -216,7 +216,7 @@ public class TestOneToMany {
 		final TypeOneToManyUUIDRootExpand retreiveRootExpand2 = DataAccess.get(TypeOneToManyUUIDRootExpand.class,
 				insertedRoot2.uuid);
 		Assertions.assertEquals(retreiveRootExpand2.otherData, insertedRoot2.otherData);
-		Assertions.assertNull(retreiveRootExpand2.remotes);
+		Assertions.assertNotNull(retreiveRootExpand2.remotes);
 		Assertions.assertEquals(1, retreiveRootExpand2.remotes.size());
 		Assertions.assertEquals(insertedRemote20.uuid, retreiveRootExpand2.remotes.get(0).uuid);
 		Assertions.assertEquals(insertedRemote20.rootUuid, retreiveRootExpand2.remotes.get(0).rootUuid);
