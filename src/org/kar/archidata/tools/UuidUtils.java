@@ -47,7 +47,7 @@ public class UuidUtils {
 			this.base = startingUUID.until(Instant.now(), ChronoUnit.SECONDS);
 			final String serveurBaseUUID = System.getenv("UUID_SERVER_ID");
 			if (serveurBaseUUID != null) {
-				long serverId = Long.valueOf(serveurBaseUUID);
+				long serverId = Long.parseLong(serveurBaseUUID);
 				serverId %= 0xFFFF;
 				this.base += (serverId << (64 - 16));
 			} else {

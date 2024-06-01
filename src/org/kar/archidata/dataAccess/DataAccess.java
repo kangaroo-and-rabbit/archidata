@@ -969,13 +969,12 @@ public class DataAccess {
 							// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
 							/* final Object obj = generatedKeys.getObject(1); final BigInteger bigint = (BigInteger) generatedKeys.getObject(1); uniqueSQLUUID = UuidUtils.asUuid(bigint); final UUID
 							 * generatedUUID = (UUID) generatedKeys.getObject(1); System.out.println("UUID généré: " + generatedUUID); */
-							final Object obj = generatedKeys.getObject(1);
+							//final Object obj = generatedKeys.getObject(1);
 							final byte[] tmpid = generatedKeys.getBytes(1);
 							uniqueSQLUUID = UuidUtils.asUuid(tmpid);
 						} else {
 							uniqueSQLID = generatedKeys.getLong(1);
 						}
-
 					} else {
 						throw new SQLException("Creating node failed, no ID obtained (1).");
 					}
@@ -985,6 +984,7 @@ public class DataAccess {
 					throw new SQLException("Creating node failed, no ID obtained (2).");
 				}
 			}
+			ps.close();
 			if (primaryKeyField != null) {
 				if (primaryKeyField.getType() == Long.class) {
 					primaryKeyField.set(data, uniqueSQLID);
@@ -1228,7 +1228,9 @@ public class DataAccess {
 					}
 				}
 				condition.injectQuery(ps, iii);
-				return ps.executeUpdate();
+				final int out = ps.executeUpdate();
+				ps.close();
+				return out;
 			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -1572,10 +1574,6 @@ public class DataAccess {
 
 	public static <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
 		return getsWhere(clazz, option);
-	}
-
-	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id) throws Exception {
-		return delete(clazz, id, null);
 	}
 
 	/** Delete items with the specific Id (cf @Id) and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
