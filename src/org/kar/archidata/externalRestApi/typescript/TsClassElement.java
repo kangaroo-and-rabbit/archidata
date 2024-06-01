@@ -1,4 +1,4 @@
-package org.kar.archidata.externalRestApi;
+package org.kar.archidata.externalRestApi.typescript;
 
 import java.io.File;
 import java.io.FileWriter;

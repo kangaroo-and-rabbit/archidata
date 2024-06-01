@@ -1,4 +1,4 @@
-package org.kar.archidata.externalRestApi;
+package org.kar.archidata.externalRestApi.typescript;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.kar.archidata.dataAccess.DataExport;
-import org.kar.archidata.externalRestApi.TsClassElement.DefinedPosition;
 import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ApiModel;
 import org.kar.archidata.externalRestApi.model.ClassEnumModel;
@@ -21,6 +20,7 @@ import org.kar.archidata.externalRestApi.model.ClassMapModel;
 import org.kar.archidata.externalRestApi.model.ClassModel;
 import org.kar.archidata.externalRestApi.model.ClassObjectModel;
 import org.kar.archidata.externalRestApi.model.RestTypeRequest;
+import org.kar.archidata.externalRestApi.typescript.TsClassElement.DefinedPosition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
