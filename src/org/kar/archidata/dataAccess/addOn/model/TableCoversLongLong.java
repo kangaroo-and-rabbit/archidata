@@ -6,7 +6,6 @@ import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.model.GenericDataSoftDelete;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 
 public class TableCoversLongLong extends GenericDataSoftDelete {
 	public TableCoversLongLong() {
@@ -18,9 +17,6 @@ public class TableCoversLongLong extends GenericDataSoftDelete {
 		this.covers = covers;
 	}
 
-	@Column(nullable = false)
-	@Id
-	public Long id;
 	@DataJson()
 	@Column(nullable = false)
 	public List<Long> covers;

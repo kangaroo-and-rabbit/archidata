@@ -36,6 +36,9 @@ public class DBInterfaceOption extends QueryOption {
 	}
 
 	public static DBEntry getAutoEntry(final QueryOptions options) throws IOException {
+		if (options == null) {
+			return DBEntry.createInterface(GlobalConfiguration.dbConfig, false);
+		}
 		final List<DBInterfaceOption> dbOption = options.get(DBInterfaceOption.class);
 		if (dbOption.size() == 0) {
 			final List<DBInterfaceRoot> isRoot = options.get(DBInterfaceRoot.class);

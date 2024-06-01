@@ -318,12 +318,12 @@ public class MigrationEngine {
 		boolean find = false;
 		for (int iii = this.datas.size() - 1; iii >= 0; iii--) {
 			if (!find) {
-				if (this.datas.get(iii).getName() == currentVersion.name) {
+				if (this.datas.get(iii).getName().equals(currentVersion.name)) {
 					find = true;
 				}
 				continue;
 			}
-			if (this.datas.get(iii).getName() == currentVersion.name) {
+			if (this.datas.get(iii).getName().equals(currentVersion.name)) {
 				break;
 			}
 			toApply.add(this.datas.get(iii));

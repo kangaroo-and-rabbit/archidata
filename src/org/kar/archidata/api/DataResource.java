@@ -300,9 +300,10 @@ public class DataResource {
 		// logger.info("===================================================");
 		final Data value = getSmall(uuid);
 		if (value == null) {
-			Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		return buildStream(getFileData(uuid), range, value.mimeType);
+		return buildStream(getFileData(uuid), range,
+				value.mimeType == null ? "application/octet-stream" : value.mimeType);
 	}
 
 	@GET
@@ -389,9 +390,10 @@ public class DataResource {
 		// logger.info("===================================================");
 		final Data value = getSmall(uuid);
 		if (value == null) {
-			Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		return buildStream(getFileData(uuid), range, value.mimeType);
+		return buildStream(getFileData(uuid), range,
+				value.mimeType == null ? "application/octet-stream" : value.mimeType);
 	}
 
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541

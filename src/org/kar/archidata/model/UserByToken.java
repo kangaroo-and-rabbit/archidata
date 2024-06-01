@@ -22,7 +22,7 @@ public class UserByToken {
 		final Object data = this.right.get(key);
 		if (data instanceof final Boolean elem) {
 			if (value instanceof final Boolean castVal) {
-				if (elem == castVal) {
+				if (elem.equals(castVal)) {
 					return true;
 				}
 			}
@@ -38,7 +38,7 @@ public class UserByToken {
 		}
 		if (data instanceof final Long elem) {
 			if (value instanceof final Long castVal) {
-				if (elem == castVal) {
+				if (elem.equals(castVal)) {
 					return true;
 				}
 			}
@@ -46,7 +46,7 @@ public class UserByToken {
 		}
 		if (data instanceof final Double elem) {
 			if (value instanceof final Double castVal) {
-				if (elem == castVal) {
+				if (elem.equals(castVal)) {
 					return true;
 				}
 			}

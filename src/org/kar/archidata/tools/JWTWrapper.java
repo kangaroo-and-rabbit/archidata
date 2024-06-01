@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.Map;
@@ -219,6 +220,10 @@ public class JWTWrapper {
 		try {
 			// On the consumer side, parse the JWS and verify its RSA signature
 			final SignedJWT signedJWT = SignedJWT.parse(signedToken);
+			if (signedJWT == null) {
+				LOGGER.error("FAIL to parse signing");
+				return null;
+			}
 			if (ConfigBaseVariable.getTestMode() && signedToken.endsWith(TestSigner.test_signature)) {
 				LOGGER.warn("Someone use a test token: {}", signedToken);
 			} else if (rsaPublicJWK == null) {
@@ -226,7 +231,7 @@ public class JWTWrapper {
 				if (!ConfigBaseVariable.getTestMode()) {
 					return null;
 				}
-				final String rawSignature = signedJWT.getSigningInput().toString();
+				final String rawSignature = new String(signedJWT.getSigningInput(), StandardCharsets.UTF_8);
 				if (rawSignature.equals(TestSigner.test_signature)) {
 					// Test token : .application..
 				} else {

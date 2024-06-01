@@ -1115,10 +1115,13 @@ public class DataAccess {
 		return updateWhere(data, options);
 	}
 
-	public static <T> int updateWhere(final T data, final QueryOptions options) throws Exception {
+	public static <T> int updateWhere(final T data, QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
+		if (options == null) {
+			options = new QueryOptions();
+		}
 		final Condition condition = conditionFusionOrEmpty(options, true);
-		final List<FilterValue> filters = options.get(FilterValue.class);
+		final List<FilterValue> filters = options != null ? options.get(FilterValue.class) : new ArrayList<>();
 		if (filters.size() != 1) {
 			throw new DataAccessException("request a gets without/or with more 1 filter of values");
 		}
@@ -1365,6 +1368,9 @@ public class DataAccess {
 
 	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException {
+		if (options == null) {
+			return new Condition();
+		}
 		final List<Condition> conditions = options.get(Condition.class);
 		if (conditions.size() == 0) {
 			if (throwIfEmpty) {
