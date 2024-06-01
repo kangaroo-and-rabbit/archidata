@@ -27,14 +27,8 @@ import org.kar.archidata.externalRestApi.typescript.TsClassElement;
 import org.kar.archidata.externalRestApi.typescript.TsClassElement.DefinedPosition;
 import org.kar.archidata.externalRestApi.typescript.TsClassElementGroup;
 
-public class TsGenerateApi {
-	/**
-	 * Generate a full API tree for Typescript in a specific folder.
-	 * This generate a folder containing a full API with "model" filder and "api" folder.
-	 * The generation depend of Zod and can be strict compile.
-	 * @param api Data model to generate the api
-	 * @param pathPackage Path to store the api.
-	 */
+public class DotGenerateApi {
+
 	public static void generateApi(final AnalyzeApi api, final String pathPackage) throws Exception {
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
