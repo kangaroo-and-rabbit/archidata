@@ -5,7 +5,6 @@ import java.lang.reflect.ParameterizedType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -85,15 +84,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	@Override
 	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
 			throws SQLException, IllegalArgumentException, IllegalAccessException {
-		final Object data = field.get(rootObject);
-		iii.inc();
-		if (data == null) {
-			ps.setNull(iii.value, Types.BIGINT);
-		} else {
-			@SuppressWarnings("unchecked")
-			final String dataTmp = getStringOfIds((List<Long>) data);
-			ps.setString(iii.value, dataTmp);
-		}
+		throw new IllegalAccessException("Can not generate an inset of @OneToMany");
 	}
 
 	@Override
@@ -103,6 +94,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public boolean isInsertAsync(final Field field) throws Exception {
+		// TODO: can be implemented later...
 		return false;
 	}
 
