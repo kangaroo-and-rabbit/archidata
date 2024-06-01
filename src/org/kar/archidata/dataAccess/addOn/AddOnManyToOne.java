@@ -238,11 +238,31 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				if (dataNew != null && countNotNull.value != 0) {
 					field.set(data, dataNew);
 				}
-			} else {
+				return;
+			}
+			final Field remotePrimaryKeyField = AnnotationTools.getFieldOfId(objectClass);
+			final Class<?> remotePrimaryKeyType = remotePrimaryKeyField.getType();
+			if (remotePrimaryKeyType == Long.class) {
 				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
 				final Long foreignKey = rs.getLong(count.value);
 				count.inc();
 				if (!rs.wasNull()) {
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						// TODO: update to have get with abstract types ....
+						final Object foreignData = DataAccess.get(decorators.targetEntity(), foreignKey);
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
+			} else if (remotePrimaryKeyType == UUID.class) {
+				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
+				final UUID foreignKey = DataAccess.getListOfRawUUID(rs, count.value);
+				count.inc();
+				if (foreignKey != null) {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						// TODO: update to have get with abstract types ....

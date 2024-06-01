@@ -250,6 +250,14 @@ public class DataAccess {
 		return out;
 	}
 
+	public static UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+		final byte[] elem = rs.getBytes(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		return UuidUtils.asUuid(elem);
+	}
+
 	protected static <T> void setValuedb(
 			final Class<?> type,
 			final T data,
