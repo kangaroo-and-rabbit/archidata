@@ -14,6 +14,8 @@ import org.kar.archidata.migration.model.Migration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class MigrationEngine {
 	final static Logger LOGGER = LoggerFactory.getLogger(MigrationEngine.class);
 
@@ -103,6 +105,8 @@ public class MigrationEngine {
 	/** Process the automatic migration of the system
 	 * @param config SQL connection for the migration
 	 * @throws IOException Error if access on the DB */
+	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
+			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
 	public void migrateErrorThrow(final DBConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 		// check the integrity of the migrations:
