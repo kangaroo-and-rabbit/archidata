@@ -903,7 +903,7 @@ public class DataAccess {
 			for (final OrderBy order : orders) {
 				order.generateQuery(query, tableName);
 			}
-			LOGGER.warn("generate the query: '{}'", query.toString());
+			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
@@ -1430,7 +1430,7 @@ public class DataAccess {
 			} else if (limits.size() > 1) {
 				throw new DataAccessException("Request with multiple 'limit'...");
 			}
-			LOGGER.warn("generate the query: '{}'", query.toString());
+			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
@@ -1535,7 +1535,7 @@ public class DataAccess {
 			} else if (limits.size() > 1) {
 				throw new DataAccessException("Request with multiple 'limit'...");
 			}
-			LOGGER.warn("generate the query: '{}'", query.toString());
+			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
@@ -1824,7 +1824,7 @@ public class DataAccess {
 			} else if (limits.size() > 1) {
 				throw new DataAccessException("Request with multiple 'limit'...");
 			}
-			LOGGER.warn("generate the query: '{}'", query.toString());
+			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
 			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
