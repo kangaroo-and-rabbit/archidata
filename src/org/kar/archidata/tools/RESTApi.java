@@ -154,6 +154,9 @@ public class RESTApi {
 						"Fail to get the ERROR data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
+		if (clazz == Void.class || clazz == void.class) {
+			return null;
+		}
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
 		}
@@ -191,14 +194,31 @@ public class RESTApi {
 						"Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
+		if (clazz == Void.class || clazz == void.class) {
+			return null;
+		}
 		if (clazz.equals(String.class)) {
 			return (T) httpResponse.body();
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 
-	// TODO: add an API that permit to return a value
-	public <T, U> void delete(final Class<T> clazz, final String urlOffset)
+	/**
+	 * Call a DELETE on a REST API
+	 * @param urlOffset Offset to call the API
+	 */
+	public void delete(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		delete(Void.class, urlOffset);
+	}
+
+	/**
+	 * Call a DELETE on a REST API with retrieving some data
+	 * @param <T> Type of data that might be received.
+	 * @param clazz Class model of the data that might be parsed.
+	 * @param urlOffset Offset to call the API
+	 * @return The parsed object received.
+	 */
+	public <T> T delete(final Class<T> clazz, final String urlOffset)
 			throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
@@ -218,5 +238,12 @@ public class RESTApi {
 						"Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
+		if (clazz == Void.class || clazz == void.class) {
+			return null;
+		}
+		if (clazz.equals(String.class)) {
+			return (T) httpResponse.body();
+		}
+		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 }
