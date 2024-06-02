@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
@@ -56,7 +55,9 @@ public class RESTApi {
 						"Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
-		return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
+		//return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
+		return this.mapper.readValue(httpResponse.body(),
+				this.mapper.getTypeFactory().constructCollectionType(List.class, clazz));
 	}
 
 	public <T> T get(final Class<T> clazz, final String urlOffset)
