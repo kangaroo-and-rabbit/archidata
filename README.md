@@ -93,7 +93,12 @@ Enable the pre-commit checker
 
 > **_Note_**: You can change the code in `.git/hooks/pre-commit` by replacing `formatter:verify` with `formatter:format` to auto format the code @ every commit
 
+Run Spot-bug:
+------------
 
+```bash
+mvn spotbugs:check
+```
 
 Add Gitea in the dependency for the registry:
 =============================================
