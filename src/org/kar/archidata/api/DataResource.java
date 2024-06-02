@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +27,7 @@ import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.options.Condition;
+import org.kar.archidata.exception.FailException;
 import org.kar.archidata.filter.GenericContext;
 import org.kar.archidata.model.Data;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -191,7 +193,8 @@ public class DataResource {
 		LOGGER.info("Move done");
 	}
 
-	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData) {
+	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData)
+			throws FailException {
 		return saveFile(uploadedInputStream, DataResource.getTmpFileInData(idData));
 	}
 
@@ -208,35 +211,35 @@ public class DataResource {
 	}
 
 	// save uploaded file to a defined location on the server
-	static String saveFile(final InputStream uploadedInputStream, final String serverLocation) {
+	static String saveFile(final InputStream uploadedInputStream, final String serverLocation) throws FailException {
 		String out = "";
-		try {
-			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
-			int read = 0;
-			final byte[] bytes = new byte[CHUNK_SIZE_IN];
-			final MessageDigest md = MessageDigest.getInstance("SHA-512");
-
-			outpuStream = new FileOutputStream(new File(serverLocation));
-			while ((read = uploadedInputStream.read(bytes)) != -1) {
-				// logger.info("write {}", read);
-				md.update(bytes, 0, read);
-				outpuStream.write(bytes, 0, read);
-			}
-			LOGGER.info("Flush input stream ... {}", serverLocation);
-			System.out.flush();
-			outpuStream.flush();
-			outpuStream.close();
-			// create the end of sha512
-			final byte[] sha512Digest = md.digest();
-			// convert in hexadecimal
-			out = bytesToHex(sha512Digest);
-			uploadedInputStream.close();
+		MessageDigest md = null;
+		try (OutputStream outpuStream = new FileOutputStream(new File(serverLocation))) {
+			md = MessageDigest.getInstance("SHA-512");
 		} catch (final IOException ex) {
-			LOGGER.info("Can not write in temporary file ... ");
-			ex.printStackTrace();
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not write in temporary file", ex);
 		} catch (final NoSuchAlgorithmException ex) {
-			LOGGER.info("Can not find sha512 algorithms");
-			ex.printStackTrace();
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not find sha512 algorithms", ex);
+		}
+		if (md != null) {
+			try (OutputStream outpuStream = new FileOutputStream(new File(serverLocation))) {
+				int read = 0;
+				final byte[] bytes = new byte[CHUNK_SIZE_IN];
+				while ((read = uploadedInputStream.read(bytes)) != -1) {
+					// logger.info("write {}", read);
+					md.update(bytes, 0, read);
+					outpuStream.write(bytes, 0, read);
+				}
+				LOGGER.info("Flush input stream ... {}", serverLocation);
+				outpuStream.flush();
+				// create the end of sha512
+				final byte[] sha512Digest = md.digest();
+				// convert in hexadecimal
+				out = bytesToHex(sha512Digest);
+				uploadedInputStream.close();
+			} catch (final IOException ex) {
+				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not write in temporary file", ex);
+			}
 		}
 		return out;
 	}
@@ -267,7 +270,7 @@ public class DataResource {
 	public void uploadFile(
 			@Context final SecurityContext sc,
 			@FormDataParam("file") final InputStream fileInputStream,
-			@FormDataParam("file") final FormDataContentDisposition fileMetaData) {
+			@FormDataParam("file") final FormDataContentDisposition fileMetaData) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		LOGGER.info("===================================================");
 		LOGGER.info("== DATA uploadFile {}", (gc == null ? "null" : gc.userByToken));
@@ -277,8 +280,9 @@ public class DataResource {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (final IOException e) {
-			e.printStackTrace();
+		} catch (final IOException ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
+					"Impossible to create the folder in the server", ex);
 		}
 		saveFile(fileInputStream, filePath);
 	}
@@ -293,7 +297,7 @@ public class DataResource {
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid) throws Exception {
+			@PathParam("uuid") final UUID uuid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		LOGGER.info("== DATA retrieveDataId ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
@@ -302,8 +306,12 @@ public class DataResource {
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
-		return buildStream(getFileData(uuid), range,
-				value.mimeType == null ? "application/octet-stream" : value.mimeType);
+		try {
+			return buildStream(getFileData(uuid), range,
+					value.mimeType == null ? "application/octet-stream" : value.mimeType);
+		} catch (final Exception ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
+		}
 	}
 
 	@GET
@@ -317,7 +325,7 @@ public class DataResource {
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid) throws Exception {
+			@PathParam("uuid") final UUID uuid) throws FailException {
 		// GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
 		// logger.info("== DATA retrieveDataThumbnailId ? {}", (gc==null?"null":gc.user));
@@ -336,7 +344,12 @@ public class DataResource {
 		// || value.mimeType.contentEquals("image/webp")
 		) {
 			// reads input image
-			final BufferedImage inputImage = ImageIO.read(inputFile);
+			BufferedImage inputImage;
+			try {
+				inputImage = ImageIO.read(inputFile);
+			} catch (final IOException ex) {
+				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image", ex);
+			}
 			final int scaledWidth = 250;
 			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth()
 					* scaledWidth);
@@ -369,7 +382,11 @@ public class DataResource {
 			out.cacheControl(cc);
 			return out.build();
 		}
-		return buildStream(filePathName, range, value.mimeType);
+		try {
+			return buildStream(filePathName, range, value.mimeType);
+		} catch (final Exception ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
+		}
 	}
 
 	@GET
@@ -400,8 +417,10 @@ public class DataResource {
 	 *
 	 * @param range range header
 	 * @return Streaming output
+	 * @throws FileNotFoundException
 	 * @throws Exception IOException if an error occurs in streaming. */
-	private Response buildStream(final String filename, final String range, final String mimeType) throws Exception {
+	private Response buildStream(final String filename, final String range, final String mimeType)
+			throws FailException {
 		final File file = new File(filename);
 		// logger.info("request range : {}", range);
 		// range not requested : Firefox does not send range headers
@@ -448,19 +467,24 @@ public class DataResource {
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
 		// logger.info("responseRange: {}", responseRange);
-		final RandomAccessFile raf = new RandomAccessFile(file, "r");
-		raf.seek(from);
+		try (final RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+			raf.seek(from);
 
-		final long len = to - from + 1;
-		final MediaStreamer streamer = new MediaStreamer(len, raf);
-		final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT)
-				.header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
-				.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth())
-				.header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
-		if (mimeType != null) {
-			out.type(mimeType);
+			final long len = to - from + 1;
+			final MediaStreamer streamer = new MediaStreamer(len, raf);
+			final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT)
+					.header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
+					.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth())
+					.header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
+			if (mimeType != null) {
+				out.type(mimeType);
+			}
+			return out.build();
+		} catch (final FileNotFoundException ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to find the required file.", ex);
+		} catch (final IOException ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to access to the required file.", ex);
 		}
-		return out.build();
 	}
 
 	public static void undelete(final Long id) throws Exception {
