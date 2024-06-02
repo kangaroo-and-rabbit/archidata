@@ -13,11 +13,12 @@ public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 
 	@Override
 	public Response toResponse(final FailException exception) {
-		LOGGER.warn("Catch FailException:");
+		LOGGER.warn("Catch FailException: {}", exception.getLocalizedMessage());
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error UUID={}", ret.uuid);
-		// Not display backtrace ==> this may be a normal case ...
-		// exception.printStackTrace();
+		if (exception.exception != null) {
+			exception.exception.printStackTrace();
+		}
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
 
