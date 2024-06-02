@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.InternalServerErrorException;
 
@@ -797,6 +798,7 @@ public class DataAccess {
 		return out;
 	}
 
+	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
 	public static <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
@@ -1028,7 +1030,7 @@ public class DataAccess {
 	}
 
 	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
-			throws Exception {
+			throws DataAccessException {
 		// Find the ID field type ....
 		final Field idField = AnnotationTools.getIdField(clazz);
 		if (idField == null) {
@@ -1115,6 +1117,7 @@ public class DataAccess {
 		return updateWhere(data, options);
 	}
 
+	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
 	public static <T> int updateWhere(final T data, QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
 		if (options == null) {
@@ -1196,41 +1199,41 @@ public class DataAccess {
 			if (!firstField) {
 				LOGGER.debug("generate update query: '{}'", query.toString());
 				// prepare the request:
-				final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
-						Statement.RETURN_GENERATED_KEYS);
-				final CountInOut iii = new CountInOut(1);
-				for (final Field field : clazz.getFields()) {
-					// static field is only for internal global declaration ==> remove it ..
-					if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-						continue;
-					}
-					final String name = AnnotationTools.getFieldName(field);
-					if (!filter.getValues().contains(name)) {
-						continue;
-					} else if (AnnotationTools.isGenericField(field)) {
-						continue;
-					}
-					final DataAccessAddOn addOn = findAddOnforField(field);
-					if (addOn != null && !addOn.canInsert(field)) {
-						continue;
-					}
-					if (addOn == null) {
-						final Class<?> type = field.getType();
-						if (!type.isPrimitive()) {
-							final Object tmp = field.get(data);
-							if (tmp == null && field.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
-								continue;
-							}
+				try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+						Statement.RETURN_GENERATED_KEYS)) {
+					final CountInOut iii = new CountInOut(1);
+					for (final Field field : clazz.getFields()) {
+						// static field is only for internal global declaration ==> remove it ..
+						if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+							continue;
 						}
-						setValuedb(type, data, iii, field, ps);
-					} else {
-						addOn.insertData(ps, field, data, iii);
+						final String name = AnnotationTools.getFieldName(field);
+						if (!filter.getValues().contains(name)) {
+							continue;
+						} else if (AnnotationTools.isGenericField(field)) {
+							continue;
+						}
+						final DataAccessAddOn addOn = findAddOnforField(field);
+						if (addOn != null && !addOn.canInsert(field)) {
+							continue;
+						}
+						if (addOn == null) {
+							final Class<?> type = field.getType();
+							if (!type.isPrimitive()) {
+								final Object tmp = field.get(data);
+								if (tmp == null && field.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
+									continue;
+								}
+							}
+							setValuedb(type, data, iii, field, ps);
+						} else {
+							addOn.insertData(ps, field, data, iii);
+						}
 					}
+					condition.injectQuery(ps, iii);
+					final int out = ps.executeUpdate();
+					return out;
 				}
-				condition.injectQuery(ps, iii);
-				final int out = ps.executeUpdate();
-				ps.close();
-				return out;
 			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
@@ -1294,16 +1297,18 @@ public class DataAccess {
 			throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		final Statement stmt = entry.connection.createStatement();
-		return stmt.executeUpdate(query);
+		try (final Statement stmt = entry.connection.createStatement()) {
+			return stmt.executeUpdate(query);
+		}
 	}
 
 	public static boolean executeQuery(final String query, final QueryOption... option)
 			throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		final Statement stmt = entry.connection.createStatement();
-		return stmt.execute(query);
+		try (final Statement stmt = entry.connection.createStatement()) {
+			return stmt.execute(query);
+		}
 	}
 
 	public static <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
@@ -1395,14 +1400,13 @@ public class DataAccess {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
+	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+			throws DataAccessException, IOException {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final List<T> outs = new ArrayList<>();
-		// real add in the BDD:
-		try {
+		try (final DBEntry entry = DBInterfaceOption.getAutoEntry(options)) {
 			final CountInOut count = new CountInOut();
 			final StringBuilder querySelect = new StringBuilder();
 			StringBuilder query = new StringBuilder();
@@ -1432,33 +1436,33 @@ public class DataAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
-					Statement.RETURN_GENERATED_KEYS);
-			final CountInOut iii = new CountInOut(1);
-			condition.injectQuery(ps, iii);
-			if (limits.size() == 1) {
-				limits.get(0).injectQuery(ps, iii);
-			}
-			// execute the request
-			final ResultSet rs = ps.executeQuery();
-			while (rs.next()) {
-				count.value = 1;
-				final CountInOut countNotNull = new CountInOut(0);
-				final Object data = createObjectFromSQLRequest(rs, clazz, count, countNotNull, options, lazyCall);
-				final T out = (T) data;
-				outs.add(out);
-			}
-			LOGGER.info("Async calls: {}", lazyCall.size());
-			for (final LazyGetter elem : lazyCall) {
-				elem.doRequest();
+			try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+					Statement.RETURN_GENERATED_KEYS)) {
+				final CountInOut iii = new CountInOut(1);
+				condition.injectQuery(ps, iii);
+				if (limits.size() == 1) {
+					limits.get(0).injectQuery(ps, iii);
+				}
+				// execute the request
+				final ResultSet rs = ps.executeQuery();
+				while (rs.next()) {
+					count.value = 1;
+					final CountInOut countNotNull = new CountInOut(0);
+					final Object data = createObjectFromSQLRequest(rs, clazz, count, countNotNull, options, lazyCall);
+					final T out = (T) data;
+					outs.add(out);
+				}
+				LOGGER.info("Async calls: {}", lazyCall.size());
+				for (final LazyGetter elem : lazyCall) {
+					elem.doRequest();
+				}
 			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
-			throw ex;
+			throw new DataAccessException("Catch a SQL Exception: " + ex.getMessage());
 		} catch (final Exception ex) {
 			ex.printStackTrace();
-		} finally {
-			entry.close();
+			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
 		}
 		return outs;
 	}
@@ -1672,18 +1676,18 @@ public class DataAccess {
 		}
 	}
 
-	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws Exception {
+	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
 		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
 	}
 
 	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
-			throws Exception {
+			throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 
-	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
@@ -1691,7 +1695,12 @@ public class DataAccess {
 		if (deletedFieldName == null) {
 			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
 		}
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+		DBEntry entry;
+		try {
+			entry = DBInterfaceOption.getAutoEntry(options);
+		} catch (final IOException ex) {
+			throw new DataAccessException("Fail to connect the DB: " + ex.getMessage());
+		}
 		final StringBuilder query = new StringBuilder();
 		query.append("UPDATE `");
 		query.append(tableName);
@@ -1701,13 +1710,14 @@ public class DataAccess {
 		// need to disable the deleted false because the model must be unselected to be updated.
 		options.add(QueryOptions.ACCESS_DELETED_ITEMS);
 		condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-		try {
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
+		try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString())) {
 			final CountInOut iii = new CountInOut(1);
 			condition.injectQuery(ps, iii);
 			return ps.executeUpdate();
-		} finally {
-			entry.close();
+		} catch (final SQLException ex) {
+			throw new DataAccessException("Catch SQL error:" + ex.getMessage());
+		} catch (final Exception ex) {
+			throw new DataAccessException("Fail to excute the SQL query:" + ex.getMessage());
 		}
 	}
 
