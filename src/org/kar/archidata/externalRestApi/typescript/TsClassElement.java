@@ -181,12 +181,18 @@ public class TsClassElement {
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
 				out.append("import {");
 				out.append(tsModel.zodName);
+				if (tsModel.nativeType == DefinedPosition.NORMAL && !(tsModel.models.get(0).isNoWriteSpecificMode())) {
+					out.append(", ");
+					out.append(tsModel.zodName);
+					out.append("Write ");
+				}
 				out.append("} from \"./");
 				out.append(tsModel.fileName);
 				out.append("\";\n");
 			}
 		}
 		return out.toString();
+
 	}
 
 	private Object generateComment(final ClassObjectModel model) {
@@ -215,22 +221,38 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public String optionalTypeZod(final FieldProperty field) {
+	public boolean isOptionalTypeZod(final FieldProperty field) {
 		// Common checking element (apply to List, Map, ...)
 		if (field.nullable()) {
-			return ".optional()";
+			return true;
 		}
 		if (field.notNull()) {
-			return "";
+			return false;
 		}
 		// Other object:
 		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
-			return "";
+			return false;
 		}
 		if (field.columnNotNull()) {
-			return "";
+			return false;
 		}
-		return ".optional()";
+		return true;
+	}
+
+	public String optionalTypeZod(final FieldProperty field) {
+		// Common checking element (apply to List, Map, ...)
+		if (isOptionalTypeZod(field)) {
+			return ".optional()";
+		}
+		return "";
+	}
+
+	public String optionalWriteTypeZod(final FieldProperty field) {
+		// Common checking element (apply to List, Map, ...)
+		if (isOptionalTypeZod(field)) {
+			return ".nullable()";
+		}
+		return "";
 	}
 
 	public String maxSizeZod(final FieldProperty field) {
@@ -270,7 +292,9 @@ public class TsClassElement {
 		out.append(getBaseHeader());
 		out.append(generateImports(model.getDependencyModels(), tsGroup));
 		out.append("\n");
-
+		// ------------------------------------------------------------------------
+		// -- Generate read mode
+		// ------------------------------------------------------------------------
 		out.append(generateComment(model));
 		out.append("export const ");
 		out.append(this.zodName);
@@ -315,27 +339,85 @@ public class TsClassElement {
 		out.append("\n});\n");
 		out.append(generateZodInfer(this.tsTypeName, this.zodName));
 		out.append(generateExportCheckFunctionWrite(""));
+		// check if we need to generate write mode :
+		if (!model.isNoWriteSpecificMode()) {
+			// ------------------------------------------------------------------------
+			// -- Generate write mode
+			// ------------------------------------------------------------------------
+			//out.append(generateComment(model));
+			out.append("export const ");
+			out.append(this.zodName);
+			out.append("Write = ");
 
-		// Generate the Write Type associated.
-		out.append("\nexport const ");
-		out.append(this.zodName);
-		out.append("Write = ");
-		out.append(this.zodName);
-		if (omitField.size() != 0) {
-			out.append(".omit({\n");
-			for (final String elem : omitField) {
-				out.append("\t");
-				out.append(elem);
-				out.append(": true,\n");
+			if (model.getExtendsClass() != null) {
+				final ClassModel parentClass = model.getExtendsClass();
+				final TsClassElement tsParentModel = tsGroup.find(parentClass);
+				out.append(tsParentModel.zodName);
+				out.append("Write");
+				out.append(".extend({");
+			} else {
+				out.append("zod.object({");
 			}
-			out.append("\n})");
+			out.append("\n");
+			for (final FieldProperty field : model.getFields()) {
+				// remove all readOnly field
+				if (field.readOnly()) {
+					continue;
+				}
+				final ClassModel fieldModel = field.model();
+				if (field.comment() != null) {
+					out.append("\t/**\n");
+					out.append("\t * ");
+					out.append(field.comment());
+					out.append("\n\t */\n");
+				}
+				out.append("\t");
+				out.append(field.name());
+				out.append(": ");
+				if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
+					final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
+					out.append(tsFieldModel.zodName);
+				} else if (fieldModel instanceof final ClassListModel fieldListModel) {
+					final String data = generateTsList(fieldListModel, tsGroup);
+					out.append(data);
+				} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
+					final String data = generateTsMap(fieldMapModel, tsGroup);
+					out.append(data);
+				}
+				out.append(maxSizeZod(field));
+				out.append(optionalWriteTypeZod(field));
+				// all write field are optional
+				if (field.model() instanceof final ClassObjectModel plop) {
+					if (!plop.isPrimitive()) {
+						out.append(".optional()");
+					}
+				} else {
+					out.append(".optional()");
+				}
+				out.append(",\n");
+			}
+			out.append("\n});\n");
+			out.append(generateZodInfer(this.tsTypeName + "Write", this.zodName + "Write"));
+			// Check only the input value ==> no need of the output
+			out.append(generateExportCheckFunctionWrite("Write"));
+			// Generate the Write Type associated.
+			/*
+			out.append("\nexport const ");
+			out.append(this.zodName);
+			out.append("Write = ");
+			out.append(this.zodName);
+			if (omitField.size() != 0) {
+				out.append(".omit({\n");
+				for (final String elem : omitField) {
+					out.append("\t");
+					out.append(elem);
+					out.append(": true,\n");
+				}
+				out.append("\n})");
+			}
+			out.append(".partial();\n");
+			*/
 		}
-		out.append(".partial();\n");
-		out.append(generateZodInfer(this.tsTypeName + "Write", this.zodName + "Write"));
-
-		// Check only the input value ==> no need of the output
-		out.append(generateExportCheckFunctionWrite("Write"));
-
 		return out.toString();
 	}
 

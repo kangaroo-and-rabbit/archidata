@@ -80,6 +80,14 @@ public class AnnotationTools {
 		return ((Schema) annotation[0]).example();
 	}
 
+	public static boolean getNoWriteSpecificMode(final Class<?> element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(NoWriteSpecificMode.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
+	}
+
 	public static String getSchemaDescription(final Class<?> element) throws DataAccessException {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {

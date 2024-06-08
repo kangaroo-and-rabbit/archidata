@@ -11,10 +11,15 @@ import java.util.Set;
 public abstract class ClassModel {
 	protected boolean analyzeDone = false;
 	protected Class<?> originClasses = null;
+	protected boolean noWriteSpecificMode = false;
 	protected List<ClassModel> dependencyModels = new ArrayList<>();
 
 	public Class<?> getOriginClasses() {
 		return this.originClasses;
+	}
+
+	public boolean isNoWriteSpecificMode() {
+		return this.noWriteSpecificMode;
 	}
 
 	protected boolean isCompatible(final Class<?> clazz) {

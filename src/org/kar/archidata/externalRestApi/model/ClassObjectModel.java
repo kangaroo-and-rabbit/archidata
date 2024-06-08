@@ -123,6 +123,7 @@ public class ClassObjectModel extends ClassModel {
 		}
 		this.analyzeDone = true;
 		final Class<?> clazz = this.originClasses;
+		this.noWriteSpecificMode = AnnotationTools.getNoWriteSpecificMode(clazz);
 		this.isPrimitive = clazz.isPrimitive();
 		if (this.isPrimitive) {
 			return;

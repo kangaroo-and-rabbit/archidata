@@ -10,6 +10,7 @@ public class ClassEnumModel extends ClassModel {
 
 	protected ClassEnumModel(final Class<?> clazz) {
 		this.originClasses = clazz;
+		this.noWriteSpecificMode = true;
 	}
 
 	@Override

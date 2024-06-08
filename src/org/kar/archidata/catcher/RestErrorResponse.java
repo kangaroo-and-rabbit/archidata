@@ -3,12 +3,14 @@ package org.kar.archidata.catcher;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.kar.archidata.annotation.NoWriteSpecificMode;
 import org.kar.archidata.tools.UuidUtils;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 
+@NoWriteSpecificMode
 public class RestErrorResponse {
 	public UUID uuid = UuidUtils.nextUUID();
 	@NotNull
