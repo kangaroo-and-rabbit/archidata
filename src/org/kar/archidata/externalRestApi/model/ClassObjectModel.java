@@ -1,5 +1,6 @@
 package org.kar.archidata.externalRestApi.model;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -10,8 +11,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.validation.constraints.Size;
 
 public class ClassObjectModel extends ClassModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ClassObjectModel.class);
@@ -53,18 +57,25 @@ public class ClassObjectModel extends ClassModel {
 			String name,
 			ClassModel model,
 			String comment,
-			int limitSize,
+			int sizeMin, // String SizeMin
+			int sizeMax, // String SizeMax
+			Long min, // number min value
+			Long max, // number max value
 			Boolean readOnly,
 			Boolean notNull,
 			Boolean columnNotNull,
 			Boolean nullable) {
 
-		public FieldProperty(final String name, final ClassModel model, final String comment, final int limitSize,
-				final Boolean readOnly, final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
+		public FieldProperty(final String name, final ClassModel model, final String comment, final int sizeMin,
+				final int sizeMax, final Long min, final Long max, final Boolean readOnly, final Boolean notNull,
+				final Boolean columnNotNull, final Boolean nullable) {
 			this.name = name;
 			this.model = model;
 			this.comment = comment;
-			this.limitSize = limitSize;
+			this.sizeMin = sizeMin;
+			this.sizeMax = sizeMax;
+			this.min = min;
+			this.max = max;
 			this.readOnly = readOnly;
 			this.notNull = notNull;
 			this.columnNotNull = columnNotNull;
@@ -72,11 +83,26 @@ public class ClassObjectModel extends ClassModel {
 
 		}
 
-		public FieldProperty(final Field field, final ModelGroup previous) throws Exception {
+		private static int getStringMinSize(final Field field) throws DataAccessException {
+			final Size size = AnnotationTools.getConstraintsSize(field);
+			final int colomnLimitSize = AnnotationTools.getLimitSize(field);
+			return size != null ? size.min() : 0;
+		}
+
+		private static int getStringMaxSize(final Field field) throws DataAccessException {
+			final Size size = AnnotationTools.getConstraintsSize(field);
+			final int colomnLimitSize = AnnotationTools.getLimitSize(field);
+			return size == null ? colomnLimitSize : colomnLimitSize < size.max() ? colomnLimitSize : size.max();
+		}
+
+		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
 					AnnotationTools.getComment(field), //
-					AnnotationTools.getLimitSize(field), //
+					getStringMinSize(field), //
+					getStringMaxSize(field), //
+					AnnotationTools.getConstraintsMin(field), //
+					AnnotationTools.getConstraintsMax(field), //
 					AnnotationTools.getSchemaReadOnly(field), //
 					AnnotationTools.getConstraintsNotNull(field), //
 					AnnotationTools.getColumnNotNull(field), //
