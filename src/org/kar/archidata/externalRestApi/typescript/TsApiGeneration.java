@@ -192,7 +192,7 @@ public class TsApiGeneration {
 				data.append("\n\t\t\tdata,");
 			}
 			if (needGenerateProgress) {
-				data.append("\n\t\t\tcallback,");
+				data.append("\n\t\t\tcallbacks,");
 			}
 			data.append("\n\t\t}: {");
 			data.append("\n\t\trestConfig: RESTConfig,");
@@ -350,7 +350,7 @@ public class TsApiGeneration {
 				data.append("\n\t\t\tdata,");
 			}
 			if (needGenerateProgress) {
-				data.append("\n\t\t\tcallback,");
+				data.append("\n\t\t\tcallbacks,");
 			}
 			data.append("\n\t\t}");
 			if (returnComplexModel != null) {

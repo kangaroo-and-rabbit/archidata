@@ -237,7 +237,7 @@ export function RESTRequest({
   data,
   params,
   queries,
-  callback,
+  callbacks,
 }: RESTRequestType): Promise<ModelResponseHttp> {
   // Create the URL PATH:
   let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
@@ -268,10 +268,10 @@ export function RESTRequest({
   return new Promise((resolve, reject) => {
     let action: undefined | Promise<Response> = undefined;
     if (
-      isNullOrUndefined(callback) ||
-      (isNullOrUndefined(callback.progressDownload) &&
-        isNullOrUndefined(callback.progressUpload) &&
-        isNullOrUndefined(callback.abortHandle))
+      isNullOrUndefined(callbacks) ||
+      (isNullOrUndefined(callbacks.progressDownload) &&
+        isNullOrUndefined(callbacks.progressUpload) &&
+        isNullOrUndefined(callbacks.abortHandle))
     ) {
       // No information needed: call the generic fetch interface
       action = fetch(generateUrl, {
@@ -288,7 +288,7 @@ export function RESTRequest({
           headers,
           body,
         },
-        callback
+        callbacks
       );
     }
     action
