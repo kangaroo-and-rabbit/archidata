@@ -217,6 +217,15 @@ public class DataTools {
 	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
+			final InputStream fileInputStream,
+			final FormDataContentDisposition fileMetaData) {
+		return uploadCover(clazz, id, fileMetaData.getFileName(), fileInputStream, fileMetaData);
+	}
+
+	@Deprecated
+	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(
+			final Class<CLASS_TYPE> clazz,
+			final ID_TYPE id,
 			String fileName,
 			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) {
