@@ -22,6 +22,8 @@ import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.ReadAllColumn;
+import org.kar.archidata.exception.FailException;
+import org.kar.archidata.exception.InputException;
 import org.kar.archidata.model.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -214,73 +216,54 @@ public class DataTools {
 		return data;
 	}
 
-	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(
+	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final InputStream fileInputStream,
-			final FormDataContentDisposition fileMetaData) {
-		return uploadCover(clazz, id, fileMetaData.getFileName(), fileInputStream, fileMetaData);
-	}
-
-	@Deprecated
-	public static <CLASS_TYPE, ID_TYPE> Response uploadCover(
-			final Class<CLASS_TYPE> clazz,
-			final ID_TYPE id,
-			String fileName,
-			final InputStream fileInputStream,
-			final FormDataContentDisposition fileMetaData) {
-		try {
-			// correct input string stream :
-			fileName = multipartCorrection(fileName);
-
-			// public NodeSmall uploadFile(final FormDataMultiPart form) {
-			LOGGER.info("Upload media file: {}", fileMetaData);
-			LOGGER.info("    - id: {}", id);
-			LOGGER.info("    - file_name: ", fileName);
-			LOGGER.info("    - fileInputStream: {}", fileInputStream);
-			LOGGER.info("    - fileMetaData: {}", fileMetaData);
-			final CLASS_TYPE media = DataAccess.get(clazz, id);
-			if (media == null) {
-				return Response.notModified("Media Id does not exist or removed...").build();
-			}
-
-			final long tmpUID = getTmpDataId();
-			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
-			Data data = getWithSha512(sha512);
-			if (data == null) {
-				LOGGER.info("Need to add the data in the BDD ... ");
-				try {
-					data = createNewData(tmpUID, fileName, sha512);
-				} catch (final IOException ex) {
-					removeTemporaryFile(tmpUID);
-					ex.printStackTrace();
-					return Response.notModified("can not create input media").build();
-				} catch (final SQLException ex) {
-					ex.printStackTrace();
-					removeTemporaryFile(tmpUID);
-					return Response.notModified("Error in SQL insertion ...").build();
-				}
-			} else if (data.deleted) {
-				LOGGER.error("Data already exist but deleted");
-				undelete(data.uuid);
-				data.deleted = false;
-			} else {
-				LOGGER.error("Data already exist ... all good");
-			}
-			// Fist step: retrieve all the Id of each parents:...
-			LOGGER.info("Find typeNode");
-			if (id instanceof final Long idLong) {
-				AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
-			} else if (id instanceof final UUID idUUID) {
-				AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
-			} else {
-				throw new IOException("Fail to add Cover can not detect type...");
-			}
-			return Response.ok(DataAccess.get(clazz, id)).build();
-		} catch (final Exception ex) {
-			System.out.println("Cat ann unexpected error ... ");
-			ex.printStackTrace();
+			final FormDataContentDisposition fileMetaData) throws Exception {
+		// public NodeSmall uploadFile(final FormDataMultiPart form) {
+		LOGGER.info("Upload media file: {}", fileMetaData);
+		LOGGER.info("    - id: {}", id);
+		LOGGER.info("    - file_name: ", fileMetaData.getFileName());
+		LOGGER.info("    - fileInputStream: {}", fileInputStream);
+		LOGGER.info("    - fileMetaData: {}", fileMetaData);
+		final CLASS_TYPE media = DataAccess.get(clazz, id);
+		if (media == null) {
+			throw new InputException(clazz.getCanonicalName(),
+					"[" + id.toString() + "] Id does not exist or removed...");
 		}
-		return Response.serverError().build();
+
+		final long tmpUID = getTmpDataId();
+		final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+		Data data = getWithSha512(sha512);
+		if (data == null) {
+			LOGGER.info("Need to add the data in the BDD ... ");
+			try {
+				data = createNewData(tmpUID, fileMetaData.getFileName(), sha512);
+			} catch (final IOException ex) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_MODIFIED,
+						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+			} catch (final SQLException ex) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_MODIFIED,
+						clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
+			}
+		} else if (data.deleted) {
+			LOGGER.error("Data already exist but deleted");
+			undelete(data.uuid);
+			data.deleted = false;
+		} else {
+			LOGGER.error("Data already exist ... all good");
+		}
+		// Fist step: retrieve all the Id of each parents:...
+		LOGGER.info("Find typeNode");
+		if (id instanceof final Long idLong) {
+			AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
+		} else if (id instanceof final UUID idUUID) {
+			AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
+		} else {
+			throw new IOException("Fail to add Cover can not detect type...");
+		}
 	}
 }
