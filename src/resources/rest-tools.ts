@@ -74,7 +74,7 @@ export interface RESTRequestType {
   data?: any;
   params?: object;
   queries?: object;
-  callback?: RESTCallbacks;
+  callbacks?: RESTCallbacks;
 }
 
 function replaceAll(input, searchValue, replaceValue) {

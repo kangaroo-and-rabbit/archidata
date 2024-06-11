@@ -268,7 +268,7 @@ public class TsApiGeneration {
 				data.append(",");
 			}
 			if (needGenerateProgress) {
-				data.append("\n\t\tcallback?: RESTCallbacks,");
+				data.append("\n\t\tcallbacks?: RESTCallbacks,");
 				toolImports.add("RESTCallbacks");
 			}
 			data.append("\n\t}): Promise<");
