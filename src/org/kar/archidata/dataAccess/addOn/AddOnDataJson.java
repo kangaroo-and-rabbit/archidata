@@ -188,9 +188,21 @@ public class AddOnDataJson implements DataAccessAddOn {
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
 
+	/**
+	 * Adds a remoteKey to the covers list of a data entry identified by the given class type and ID.
+	 * If the covers list is null, it initializes it. If the remoteKey already exists in the list,
+	 * the method returns without making any changes.
+	 *
+	 * @param clazz     The class type to retrieve the table name from.
+	 * @param id        The ID of the data object to fetch.
+	 * @param column    The name of the column (currently not used, but may be used for specifying a field name).
+	 * @param remoteKey The UUID to add to the covers list.
+	 * @throws Exception If an error occurs during data retrieval or update.
+	 */
 	public static void addLink(final Class<?> clazz, final Long id, final String column, final UUID remoteKey)
 			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
+		// TODO: Get primary key name
 		final TableCoversLongUUID data = DataAccess.get(TableCoversLongUUID.class, id,
 				new OverrideTableName(tableName));
 		if (data.covers == null) {
@@ -205,10 +217,21 @@ public class AddOnDataJson implements DataAccessAddOn {
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));// TODO:  ,new OverrideFieldName("covers", column));
 	}
 
-	public static void addLink(final Class<?> clazz, final UUID id, final String column, final UUID remoteKey)
+	/**
+	 * Adds a remoteKey to the covers list of a data entry identified by the given class type and ID.
+	 * If the covers list is null, it initializes it. If the remoteKey already exists in the list,
+	 * the method returns without making any changes.
+	 *
+	 * @param clazz     The class type to retrieve the table name from.
+	 * @param id        The ID of the data object to fetch.
+	 * @param column    The name of the column (currently not used, but may be used for specifying a field name).
+	 * @param remoteKey The UUID to add to the covers list.
+	 * @throws Exception If an error occurs during data retrieval or update.
+	 */
+	public static void addLink(final Class<?> clazz, final UUID uuid, final String column, final UUID remoteKey)
 			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, id,
+		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, uuid,
 				new OverrideTableName(tableName));
 		if (data.covers == null) {
 			data.covers = new ArrayList<>();
@@ -222,10 +245,10 @@ public class AddOnDataJson implements DataAccessAddOn {
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void addLink(final Class<?> clazz, final UUID id, final String column, final Long remoteKey)
+	public static void addLink(final Class<?> clazz, final UUID uuid, final String column, final Long remoteKey)
 			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, id,
+		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, uuid,
 				new OverrideTableName(tableName));
 		if (data.covers == null) {
 			data.covers = new ArrayList<>();
@@ -236,13 +259,13 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 		}
 		data.covers.add(remoteKey);
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void removeLink(final Class<?> clazz, final UUID id, final String column, final Long remoteKey)
+	public static void removeLink(final Class<?> clazz, final UUID uuid, final String column, final Long remoteKey)
 			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, id,
+		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, uuid,
 				new OverrideTableName(tableName));
 		if (data.covers == null) {
 			return;
@@ -255,13 +278,13 @@ public class AddOnDataJson implements DataAccessAddOn {
 			newList.add(elem);
 		}
 		data.covers = newList;
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void removeLink(final Class<?> clazz, final UUID id, final String column, final UUID remoteKey)
+	public static void removeLink(final Class<?> clazz, final UUID uuid, final String column, final UUID remoteKey)
 			throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, id,
+		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, uuid,
 				new OverrideTableName(tableName));
 		if (data.covers == null) {
 			return;
@@ -314,9 +337,4 @@ public class AddOnDataJson implements DataAccessAddOn {
 		data.covers = newList;
 		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
-	/* public static <TYPE> void addLink(final Class<TYPE> clazz, final Object localKey, final String column, final Object remoteKey) throws Exception { final String tableName =
-	 * AnnotationTools.getTableName(clazz); final TYPE data = DataAccess.get(clazz, localKey); // TODO: add filter of the "column" // find the field column: // add the remoteKey in the list: // post
-	 * new data in the DB final String linkTableName = generateLinkTableName(this.tableName, this.column); final LinkTable insertElement = new LinkTable(this.localKey, this.remoteKey);
-	 * DataAccess.insert(insertElement, new OverrideTableName(linkTableName)); } */
-
 }

@@ -14,14 +14,14 @@ public class TableCoversUUIDUUID extends GenericDataSoftDelete {
 		// nothing to do...
 	}
 
-	public TableCoversUUIDUUID(final UUID id, final List<UUID> covers) {
-		this.id = id;
+	public TableCoversUUIDUUID(final UUID uuid, final List<UUID> covers) {
+		this.uuid = uuid;
 		this.covers = covers;
 	}
 
 	@Column(nullable = false)
 	@Id
-	public UUID id;
+	public UUID uuid;
 	@DataJson()
 	@Column(nullable = false)
 	public List<UUID> covers;
