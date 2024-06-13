@@ -3,11 +3,10 @@ package org.kar.archidata.dataAccess.addOn.model;
 import java.util.List;
 
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.model.GenericDataSoftDelete;
 
-import jakarta.persistence.Column;
+import jakarta.persistence.Id;
 
-public class TableCoversLongLong extends GenericDataSoftDelete {
+public class TableCoversLongLong {
 	public TableCoversLongLong() {
 		// nothing to do...
 	}
@@ -17,8 +16,10 @@ public class TableCoversLongLong extends GenericDataSoftDelete {
 		this.covers = covers;
 	}
 
+	@Id
+	public Long id;
+
 	@DataJson()
-	@Column(nullable = false)
 	public List<Long> covers;
 
 }

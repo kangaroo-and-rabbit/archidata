@@ -4,12 +4,10 @@ import java.util.List;
 import java.util.UUID;
 
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.model.GenericDataSoftDelete;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 
-public class TableCoversUUIDUUID extends GenericDataSoftDelete {
+public class TableCoversUUIDUUID {
 	public TableCoversUUIDUUID() {
 		// nothing to do...
 	}
@@ -19,11 +17,9 @@ public class TableCoversUUIDUUID extends GenericDataSoftDelete {
 		this.covers = covers;
 	}
 
-	@Column(nullable = false)
 	@Id
 	public UUID uuid;
 	@DataJson()
-	@Column(nullable = false)
 	public List<UUID> covers;
 
 }

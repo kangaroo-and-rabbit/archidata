@@ -224,7 +224,7 @@ public class DataTools {
 		// public NodeSmall uploadFile(final FormDataMultiPart form) {
 		LOGGER.info("Upload media file: {}", fileMetaData);
 		LOGGER.info("    - id: {}", id);
-		LOGGER.info("    - file_name: ", fileMetaData.getFileName());
+		LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
 		LOGGER.info("    - fileInputStream: {}", fileInputStream);
 		LOGGER.info("    - fileMetaData: {}", fileMetaData);
 		final CLASS_TYPE media = DataAccess.get(clazz, id);

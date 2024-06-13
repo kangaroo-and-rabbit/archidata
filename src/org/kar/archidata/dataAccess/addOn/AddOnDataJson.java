@@ -242,7 +242,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 		}
 		data.covers.add(remoteKey);
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
 	public static void addLink(final Class<?> clazz, final UUID uuid, final String column, final Long remoteKey)
@@ -297,7 +297,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			newList.add(elem);
 		}
 		data.covers = newList;
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
 	public static void removeLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey)
