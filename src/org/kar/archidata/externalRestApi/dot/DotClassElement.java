@@ -15,13 +15,13 @@ import org.slf4j.LoggerFactory;
 
 public class DotClassElement {
 	static final Logger LOGGER = LoggerFactory.getLogger(DotClassElement.class);
-	
+
 	public enum DefinedPosition {
 		NATIVE, // Native element of  dot language.
 		BASIC, // basic wrapping for JAVA type.
 		NORMAL // Normal Object to interpret.
 	}
-	
+
 	public List<ClassModel> models;
 	public String zodName;
 	public String dotTypeName;
@@ -30,11 +30,11 @@ public class DotClassElement {
 	public String fileName = null;
 	public String comment = null;
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
-	
+
 	public static String determineFileName(final String className) {
 		return className.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2").toLowerCase();
 	}
-	
+
 	public DotClassElement(final List<ClassModel> model, final String zodName, final String dotTypeName,
 			final String dotCheckType, final String declaration, final DefinedPosition nativeType) {
 		this.models = model;
@@ -43,17 +43,17 @@ public class DotClassElement {
 		this.declaration = declaration;
 		this.nativeType = nativeType;
 	}
-	
+
 	public DotClassElement(final ClassModel model) {
 		this.models = List.of(model);
 		this.dotTypeName = model.getOriginClasses().getSimpleName();
 		this.declaration = null;
 	}
-	
+
 	public boolean isCompatible(final ClassModel model) {
 		return this.models.contains(model);
 	}
-	
+
 	public String generateEnum(final ClassEnumModel model, final DotClassElementGroup dotGroup) throws IOException {
 		final StringBuilder out = new StringBuilder();
 		out.append("""
@@ -106,7 +106,7 @@ public class DotClassElement {
 		}
 		return out.toString();
 	}
-	
+
 	private Object generateComment(final ClassObjectModel model) {
 		final StringBuilder out = new StringBuilder();
 		if (model.getDescription() != null || model.getExample() != null) {
@@ -132,7 +132,7 @@ public class DotClassElement {
 		}
 		return out.toString();
 	}
-	
+
 	public String optionalTypeZod(final FieldProperty field) {
 		// Common checking element (apply to List, Map, ...)
 		if (field.nullable()) {
@@ -150,7 +150,7 @@ public class DotClassElement {
 		}
 		return ".optional()";
 	}
-	
+
 	public String maxSizeZod(final FieldProperty field) {
 		final StringBuilder builder = new StringBuilder();
 		final Class<?> clazz = field.model().getOriginClasses();
@@ -182,21 +182,61 @@ public class DotClassElement {
 		}
 		return builder.toString();
 	}
-	
+
 	public String readOnlyZod(final FieldProperty field) {
 		if (field.readOnly()) {
 			return ".readonly()";
 		}
 		return "";
 	}
-	
+
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
 		return out.toString();
 	}
-	
+
 	public String convertHtml(final String data) {
 		return data.replace("<", "&lt;").replace(">", "&gt;");
+	}
+
+	public static String generateClassModelTypescript(final ClassModel model, final DotClassElementGroup dotGroup)
+			throws IOException {
+		if (model instanceof ClassEnumModel) {
+			final DotClassElement dotFieldModel = dotGroup.find(model);
+			return dotFieldModel.dotTypeName;
+		} else if (model instanceof ClassObjectModel) {
+			final DotClassElement dotFieldModel = dotGroup.find(model);
+			return dotFieldModel.dotTypeName;
+		} else if (model instanceof final ClassListModel fieldListModel) {
+			return generateDotList(fieldListModel, dotGroup);
+		} else if (model instanceof final ClassMapModel fieldMapModel) {
+			return generateDotMap(fieldMapModel, dotGroup);
+		}
+		throw new IOException("Impossible model:" + model);
+	}
+
+	public static String generateClassModelTypescriptLink(final ClassModel model, final DotClassElementGroup dotGroup)
+			throws IOException {
+		if (model instanceof ClassEnumModel) {
+			final DotClassElement dotFieldModel = dotGroup.find(model);
+			return dotFieldModel.dotTypeName;
+		} else if (model instanceof ClassObjectModel) {
+			final DotClassElement dotFieldModel = dotGroup.find(model);
+			if (dotFieldModel.nativeType == DefinedPosition.NORMAL) {
+				return dotFieldModel.dotTypeName;
+			}
+		} else if (model instanceof final ClassListModel fieldListModel) {
+			final String className = generateDotListClassName(fieldListModel, dotGroup);
+			if (className != null) {
+				return className;
+			}
+		} else if (model instanceof final ClassMapModel fieldMapModel) {
+			final String className = generateDotMapClassName(fieldMapModel, dotGroup);
+			if (className != null) {
+				return className;
+			}
+		}
+		return null;
 	}
 
 	public String generateObject(final ClassObjectModel model, final DotClassElementGroup dotGroup) throws IOException {
@@ -235,58 +275,29 @@ public class DotClassElement {
 			out.append("\"><b> + ");
 			out.append(field.name());
 			out.append("</b>: ");
-			
-			if (fieldModel instanceof ClassEnumModel) {
-				final DotClassElement dotFieldModel = dotGroup.find(fieldModel);
-				out.append(dotFieldModel.dotTypeName);
+
+			out.append(generateClassModelTypescript(fieldModel, dotGroup));
+			final String remoteType = generateClassModelTypescriptLink(fieldModel, dotGroup);
+			if (remoteType != null) {
 				outLinks.append("\t");
 				outLinks.append(this.dotTypeName);
 				outLinks.append(":");
 				outLinks.append(field.name());
 				outLinks.append(":e -> ");
-				outLinks.append(dotFieldModel.dotTypeName);
+				outLinks.append(remoteType);
 				outLinks.append(":NAME:w\n");
-			} else if (fieldModel instanceof ClassObjectModel) {
-				final DotClassElement dotFieldModel = dotGroup.find(fieldModel);
-				out.append(dotFieldModel.dotTypeName);
-				if (dotFieldModel.nativeType == DefinedPosition.NORMAL) {
+			} else if (field.linkClass() != null) {
+				final String remoteLinkType = generateClassModelTypescriptLink(field.linkClass(), dotGroup);
+				if (remoteLinkType != null) {
+					outLinks.append("\t");
 					outLinks.append(this.dotTypeName);
 					outLinks.append(":");
 					outLinks.append(field.name());
 					outLinks.append(":e -> ");
-					outLinks.append(dotFieldModel.dotTypeName);
+					outLinks.append(remoteLinkType);
 					outLinks.append(":NAME:w\n");
 				}
-			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
-				final String data = generateDotList(fieldListModel, dotGroup);
-				out.append(data);
-				final String className = generateDotListClassName(fieldListModel, dotGroup);
-				if (className != null) {
-					outLinks.append(this.dotTypeName);
-					outLinks.append(":");
-					outLinks.append(field.name());
-					outLinks.append(":e -> ");
-					outLinks.append(className);
-					outLinks.append(":NAME:w\n");
-				}
-			} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
-				final String data = generateDotMap(fieldMapModel, dotGroup);
-				out.append(data);
-				final String className = generateDotMapClassName(fieldMapModel, dotGroup);
-				if (className != null) {
-					outLinks.append(this.dotTypeName);
-					outLinks.append(":");
-					outLinks.append(field.name());
-					outLinks.append(":e -> ");
-					outLinks.append(className);
-					outLinks.append(":NAME:w\n");
-				}
-			} /*
-				out.append(maxSizeZod(field));
-				out.append(readOnlyZod(field));
-				out.append(optionalTypeZod(field));
-				out.append(",\n");
-				*/
+			}
 			out.append("</td></tr>\n");
 		}
 		out.append("""
@@ -310,10 +321,10 @@ public class DotClassElement {
 			out.append("\tedge [dir=back arrowtail=diamond arrowsize=2]\n");
 			//out.append("\tedge [arrowhead=diamond arrowsize=2]\n");
 			out.append(outLinks.toString());
-			
+
 		}
 		return out.toString();
-		
+
 	}
 
 	private static String generateDotMap(final ClassMapModel model, final DotClassElementGroup dotGroup) {
@@ -349,12 +360,12 @@ public class DotClassElement {
 		out.append("&gt;");
 		return out.toString();
 	}
-	
+
 	private static String generateDotEnum(final ClassEnumModel model, final DotClassElementGroup dotGroup) {
 		final DotClassElement dotParentModel = dotGroup.find(model);
 		return dotParentModel.dotTypeName;
 	}
-	
+
 	private static String generateDotObject(final ClassObjectModel model, final DotClassElementGroup dotGroup) {
 		final DotClassElement dotParentModel = dotGroup.find(model);
 		return dotParentModel.dotTypeName;
@@ -369,7 +380,7 @@ public class DotClassElement {
 		}
 		return null;
 	}
-	
+
 	private static String generateDotListClassName(final ClassListModel model, final DotClassElementGroup dotGroup) {
 		if (model.valueModel instanceof final ClassListModel fieldListModel) {
 			return generateDotListClassName(fieldListModel, dotGroup);
@@ -380,7 +391,7 @@ public class DotClassElement {
 		}
 		return null;
 	}
-	
+
 	private static String generateDotMapClassName(final ClassMapModel model, final DotClassElementGroup dotGroup) {
 		if (model.valueModel instanceof final ClassListModel fieldListModel) {
 			return generateDotListClassName(fieldListModel, dotGroup);
@@ -410,7 +421,7 @@ public class DotClassElement {
 		out.append("&gt;");
 		return out.toString();
 	}
-	
+
 	public String generateFile(final DotClassElementGroup dotGroup) throws IOException {
 		if (this.nativeType == DefinedPosition.NATIVE) {
 			return "";
@@ -426,7 +437,7 @@ public class DotClassElement {
 		}
 		return data;
 	}
-	
+
 	private static String generateLocalModelBase(final ClassModel model, final DotClassElementGroup dotGroup)
 			throws IOException {
 		if (model instanceof final ClassObjectModel objectModel) {
@@ -443,7 +454,7 @@ public class DotClassElement {
 		}
 		return "";
 	}
-	
+
 	public static String generateLocalModel(
 			final String ModelName,
 			final List<ClassModel> models,
@@ -470,5 +481,5 @@ public class DotClassElement {
 		}
 		return out.toString();
 	}
-	
+
 }

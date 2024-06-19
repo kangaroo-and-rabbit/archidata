@@ -1,6 +1,7 @@
 package org.kar.archidata.externalRestApi.dot;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class DotApiGeneration {
 	static final Logger LOGGER = LoggerFactory.getLogger(DotApiGeneration.class);
-	
+
 	public static String generateClassEnumModelTypescript(
 			final ClassEnumModel model,
 			final DotClassElementGroup dotGroup,
@@ -28,7 +29,7 @@ public class DotApiGeneration {
 		final DotClassElement dotModel = dotGroup.find(model);
 		return dotModel.dotTypeName;
 	}
-	
+
 	public static String generateClassObjectModelTypescript(
 			final ClassObjectModel model,
 			final DotClassElementGroup dotGroup,
@@ -42,7 +43,7 @@ public class DotApiGeneration {
 		}
 		return dotModel.dotTypeName;
 	}
-	
+
 	public static String generateClassMapModelTypescript(
 			final ClassMapModel model,
 			final DotClassElementGroup dotGroup,
@@ -55,7 +56,7 @@ public class DotApiGeneration {
 		out.append("&gt;");
 		return out.toString();
 	}
-	
+
 	public static String generateClassListModelTypescript(
 			final ClassListModel model,
 			final DotClassElementGroup dotGroup,
@@ -66,7 +67,7 @@ public class DotApiGeneration {
 		out.append("&gt;");
 		return out.toString();
 	}
-	
+
 	public static String generateClassModelTypescript(
 			final ClassModel model,
 			final DotClassElementGroup dotGroup,
@@ -85,88 +86,61 @@ public class DotApiGeneration {
 		}
 		throw new IOException("Impossible model:" + model);
 	}
-	
+
 	public static String generateClassModelsTypescript(
 			final List<ClassModel> models,
-			final DotClassElementGroup dotGroup,
-			final Set<ClassModel> imports) throws IOException {
+			final DotClassElementGroup dotGroup) throws IOException {
 		if (models.size() == 0) {
 			return "void";
 		}
 		final StringBuilder out = new StringBuilder();
+		if (models.size() > 1) {
+			out.append("Union&lt;");
+		}
 		boolean isFirst = true;
 		for (final ClassModel model : models) {
 			if (isFirst) {
 				isFirst = false;
 			} else {
-				out.append(" | ");
+				out.append(", ");
 			}
-			final String data = generateClassModelTypescript(model, dotGroup, imports);
+			final String data = DotClassElement.generateClassModelTypescript(model, dotGroup);
 			out.append(data);
+		}
+		if (models.size() > 1) {
+			out.append("&gt;");
 		}
 		return out.toString();
 	}
-	
+
 	public static List<String> generateClassModelsLinks(
 			final List<ClassModel> models,
 			final DotClassElementGroup dotGroup) throws IOException {
-		// a ce point ca fait les union et tout et tou, mais il vas faloir fusionner avec les class ...
-		ICI CA PLANTE !!!
 		if (models.size() == 0) {
 			return null;
 		}
-		final StringBuilder out = new StringBuilder();
-		boolean isFirst = true;
+		final List<String> out = new ArrayList<>();
+		final boolean isFirst = true;
 		for (final ClassModel model : models) {
-			if (isFirst) {
-				isFirst = false;
-			} else {
-				out.append(" | ");
+			final String data = DotClassElement.generateClassModelTypescriptLink(model, dotGroup);
+			if (data != null) {
+				out.add(data);
 			}
-			final String data = generateClassModelTypescript(model, dotGroup, imports);
-			out.append(data);
 		}
-		return out.toString();
+		return out;
 	}
-	
+
 	public static String capitalizeFirstLetter(final String str) {
 		if (str == null || str.isEmpty()) {
 			return str;
 		}
 		return str.substring(0, 1).toUpperCase() + str.substring(1);
 	}
-	
+
 	public static String generateApiFile(final ApiGroupModel element, final DotClassElementGroup dotGroup)
 			throws IOException {
 		final StringBuilder data = new StringBuilder();
-		final String polkop = """
-				API_REST_PLOP [
-				       		shape=plain
-				       		label=<<table color="#FF3333" border="2" cellborder="1" cellspacing="0" cellpadding="4">
-				       			<tr>
-				       				<td><b>MY_CLASS_NAME</b><br/>(REST)</td>
-				       			</tr>
-				       			<tr>
-				       				<td>
-				       					<table border="0" cellborder="0" cellspacing="0" >
-				       						<tr>
-				       							<td align="left" port="PROPERTY_1_REF" >
-				       								+ plop(xxx: Kaboom) : KataPloof<br/>
-				       								&nbsp;&nbsp;&nbsp;&nbsp;/qsdqds/{id}/
-				       							</td>
-				       						</tr>
-				       						<tr>
-				       							<td align="left" port="PROPERTY_2_REF" >
-				       								+ plop(xxx: Kaboom) : KataPloof<br/>
-				       								&nbsp;&nbsp;&nbsp;&nbsp;/qsdqds/{id}/
-				       							</td>
-				       						</tr>
-				       					</table>
-				       				</td>
-				       			</tr>
-				       		</table>>
-				       	]
-				""";
+		final StringBuilder outLinks = new StringBuilder();
 		data.append("""
 					%s [
 						shape=plain
@@ -195,7 +169,9 @@ public class DotApiGeneration {
 				}
 			}
 			*/
-			data.append("\t\t\t\t\t<tr><td  align=\"left\"><b> + ");
+			data.append("\t\t\t\t\t<tr><td  align=\"left\" port=\"");
+			data.append(interfaceElement.name);
+			data.append("\"><b> + ");
 			data.append(interfaceElement.name);
 			data.append("(");
 			boolean hasParam = false;
@@ -248,7 +224,7 @@ public class DotApiGeneration {
 					hasParam2 = true;
 					data.append(pathEntry.getKey());
 					data.append(": ");
-					data.append(generateClassModelsTypescript(pathEntry.getValue(), dotGroup, writeImports));
+					data.append(generateClassModelsTypescript(pathEntry.getValue(), dotGroup));
 				}
 				data.append("}");
 			}
@@ -263,26 +239,18 @@ public class DotApiGeneration {
 							final DotClassElementGroup dotGroup,
 							final Set<ClassModel> imports) throws IOException {
 			*/
-			/*if (returnComplexModel != null) {
-				data.append(returnModelNameIfComplex);
-			} else*/ {
-				if (interfaceElement.returnTypes instanceof ClassEnumModel) {
-					final DotClassElement dotFieldModel = dotGroup.find(interfaceElement.returnTypes);
-					data.append(dotFieldModel.dotTypeName);
-					outLinks.append("\t");
-					outLinks.append(this.dotTypeName);
-					outLinks.append(":");
-					outLinks.append(field.name());
-					outLinks.append(":e -> ");
-					outLinks.append(dotFieldModel.dotTypeName);
-					outLinks.append(":NAME:w\n");
-				} else {
-					final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, dotGroup,
-							imports);
-					data.append(returnType);
-				}
+			final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, dotGroup);
+			data.append(returnType);
+			final List<String> returnLinks = generateClassModelsLinks(interfaceElement.returnTypes, dotGroup);
+			for (final String link : returnLinks) {
+				outLinks.append("\t");
+				outLinks.append(element.name);
+				outLinks.append(":");
+				outLinks.append(interfaceElement.name);
+				outLinks.append(":e -> ");
+				outLinks.append(link);
+				outLinks.append(":NAME:w\n");
 			}
-			
 			data.append("</b>");
 			//data.append("<br align=\"left\"/>&nbsp;&nbsp;&nbsp;&nbsp;");
 			data.append("</td></tr>\n\t\t\t\t\t\t\t<tr><td  align=\"left\">    ");
@@ -367,9 +335,9 @@ public class DotApiGeneration {
 		}
 		/*
 		data.append("\n}\n");
-		
+
 		final StringBuilder out = new StringBuilder();
-		
+
 		final List<String> toolImportsList = new ArrayList<>(toolImports);
 		Collections.sort(toolImportsList);
 		if (toolImportsList.size() != 0) {
@@ -381,13 +349,13 @@ public class DotApiGeneration {
 			}
 			out.append("\n} from \"../rest-tools\";\n\n");
 		}
-		
+
 		if (zodImports.size() != 0) {
 			out.append("import { z as zod } from \"zod\"\n");
 		}
-		
+
 		final Set<String> finalImportSet = new TreeSet<>();
-		
+
 		for (final ClassModel model : imports) {
 			final DotClassElement dotModel = dotGroup.find(model);
 			if (dotModel.nativeType == DefinedPosition.NATIVE) {
@@ -418,7 +386,7 @@ public class DotApiGeneration {
 			}
 			finalImportSet.add(dotModel.dotTypeName + "Write");
 		}
-		
+
 		if (finalImportSet.size() != 0) {
 			out.append("import {");
 			for (final String elem : finalImportSet) {
@@ -428,10 +396,10 @@ public class DotApiGeneration {
 			}
 			out.append("\n} from \"../model\";\n\n");
 		}
-		
+
 		out.append(data.toString());
 		*/
-		
+
 		data.append("""
 									</table>
 								</td>
@@ -439,7 +407,8 @@ public class DotApiGeneration {
 						</table>>
 					]
 				""");
+		data.append(outLinks.toString());
 		return data.toString();
 	}
-	
+
 }

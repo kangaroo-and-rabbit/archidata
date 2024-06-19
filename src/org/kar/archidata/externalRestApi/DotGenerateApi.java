@@ -23,7 +23,7 @@ import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ClassModel;
 
 public class DotGenerateApi {
-	
+
 	public static void generateApi(final AnalyzeApi api, final String pathDotFile) throws Exception {
 		final List<DotClassElement> localModel = generateApiModel(api);
 		final DotClassElementGroup dotGroup = new DotClassElementGroup(localModel);
@@ -64,18 +64,20 @@ public class DotGenerateApi {
 				myWriter.write("\n");
 			}
 			// create an invisible link to force all element to be link together:
-			String previous = null;
-			for (final ApiGroupModel element : api.apiModels) {
-				if (previous == null) {
+			if (false) {
+				String previous = null;
+				for (final ApiGroupModel element : api.apiModels) {
+					if (previous == null) {
+						previous = element.name;
+						continue;
+					}
+					myWriter.write("\t{ ");
+					myWriter.write(previous);
+					myWriter.write(":s -> ");
 					previous = element.name;
-					continue;
+					myWriter.write(previous);
+					myWriter.write(":n [style=invis]}\n");
 				}
-				myWriter.write("\t{ ");
-				myWriter.write(previous);
-				myWriter.write(":s -> ");
-				previous = element.name;
-				myWriter.write(previous);
-				myWriter.write(":n [style=invis]}\n");
 			}
 			/*
 			myWriter.write("""
@@ -105,7 +107,7 @@ public class DotGenerateApi {
 					""");
 		}
 	}
-	
+
 	private static List<DotClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
 		// First step is to add all specific basic elements the wrap correctly the model
 		final List<DotClassElement> dotModels = new ArrayList<>();
@@ -224,7 +226,7 @@ public class DotGenerateApi {
 			dotModels.add(new DotClassElement(model));
 		}
 		return dotModels;
-		
+
 	}
-	
+
 }

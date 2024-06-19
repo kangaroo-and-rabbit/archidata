@@ -15,6 +15,9 @@ import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.Size;
 
 public class ClassObjectModel extends ClassModel {
@@ -56,6 +59,7 @@ public class ClassObjectModel extends ClassModel {
 	public record FieldProperty(
 			String name,
 			ClassModel model,
+			ClassModel linkClass, // link class when use remote ID (ex: list<UUID>)
 			String comment,
 			int sizeMin, // String SizeMin
 			int sizeMax, // String SizeMax
@@ -66,11 +70,12 @@ public class ClassObjectModel extends ClassModel {
 			Boolean columnNotNull,
 			Boolean nullable) {
 
-		public FieldProperty(final String name, final ClassModel model, final String comment, final int sizeMin,
-				final int sizeMax, final Long min, final Long max, final Boolean readOnly, final Boolean notNull,
-				final Boolean columnNotNull, final Boolean nullable) {
+		public FieldProperty(final String name, final ClassModel model, final ClassModel linkClass,
+				final String comment, final int sizeMin, final int sizeMax, final Long min, final Long max,
+				final Boolean readOnly, final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
 			this.name = name;
 			this.model = model;
+			this.linkClass = linkClass;
 			this.comment = comment;
 			this.sizeMin = sizeMin;
 			this.sizeMax = sizeMax;
@@ -85,7 +90,6 @@ public class ClassObjectModel extends ClassModel {
 
 		private static int getStringMinSize(final Field field) throws DataAccessException {
 			final Size size = AnnotationTools.getConstraintsSize(field);
-			final int colomnLimitSize = AnnotationTools.getLimitSize(field);
 			return size != null ? size.min() : 0;
 		}
 
@@ -95,9 +99,43 @@ public class ClassObjectModel extends ClassModel {
 			return size == null ? colomnLimitSize : colomnLimitSize < size.max() ? colomnLimitSize : size.max();
 		}
 
+		private static Class<?> getSubModelIfExist2(final Field field) {
+			final ManyToOne manyToOne = AnnotationTools.getManyToOne(field);
+			if (manyToOne != null) {
+				if (manyToOne.targetEntity() != null && manyToOne.targetEntity() != void.class) {
+					return manyToOne.targetEntity();
+				}
+				return null;
+			}
+			final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
+			if (manyToMany != null) {
+				if (manyToMany.targetEntity() != null && manyToMany.targetEntity() != void.class) {
+					return manyToMany.targetEntity();
+				}
+				return null;
+			}
+			final OneToMany oneToMany = AnnotationTools.getOneToMany(field);
+			if (oneToMany != null) {
+				if (oneToMany.targetEntity() != null && oneToMany.targetEntity() != void.class) {
+					return oneToMany.targetEntity();
+				}
+				return null;
+			}
+			return null;
+		}
+
+		private static ClassModel getSubModelIfExist(final Field field, final ModelGroup previous) throws IOException {
+			final Class<?> tmp = getSubModelIfExist2(field);
+			if (tmp == null) {
+				return null;
+			}
+			return ClassModel.getModel(tmp, previous);
+		}
+
 		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
+					getSubModelIfExist(field, previous), //
 					AnnotationTools.getComment(field), //
 					getStringMinSize(field), //
 					getStringMaxSize(field), //

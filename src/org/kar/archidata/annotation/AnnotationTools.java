@@ -17,7 +17,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -136,16 +138,28 @@ public class AnnotationTools {
 		return ((DefaultValue) annotation[0]).value();
 	}
 
-	public static ManyToOne getManyToOne(final Field element) throws DataAccessException {
+	public static ManyToOne getManyToOne(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ManyToOne.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
-		}
 		return (ManyToOne) annotation[0];
+	}
+
+	public static ManyToMany getManyToMany(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ManyToMany.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (ManyToMany) annotation[0];
+	}
+
+	public static OneToMany getOneToMany(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(OneToMany.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (OneToMany) annotation[0];
 	}
 
 	public static DataJson getDataJson(final Field element) throws DataAccessException {
