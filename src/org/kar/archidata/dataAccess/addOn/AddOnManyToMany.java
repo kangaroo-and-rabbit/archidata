@@ -108,13 +108,18 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			@NotNull final String name,
 			@NotNull final CountInOut count,
 			final QueryOptions options) throws Exception {
+		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
 		final String linkTableName = generateLinkTableName(tableName, name);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final String tmpVariable = "tmp_" + Integer.toString(count.value);
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpVariable);
-		querySelect.append(".object2Id ");
+		if (manyToMany.mappedBy() == null) {
+			querySelect.append(".object2Id ");
+		} else {
+			querySelect.append(".object1Id ");
+		}
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(", ");
 		} else {
@@ -143,11 +148,19 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append(" = ");
 		querySelect.append(tmpVariable);
 		querySelect.append(".");
-		querySelect.append("object1Id ");
+		if (manyToMany.mappedBy() == null) {
+			querySelect.append("object1Id ");
+		} else {
+			querySelect.append("object2Id ");
+		}
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(" GROUP BY ");
 			querySelect.append(tmpVariable);
-			querySelect.append(".object1Id");
+			if (manyToMany.mappedBy() == null) {
+				querySelect.append(".object1Id");
+			} else {
+				querySelect.append(".object2Id");
+			}
 		}
 		querySelect.append(") AS ");
 		querySelect.append(name);
