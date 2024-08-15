@@ -1,5 +1,6 @@
 package org.kar.archidata.dataAccess.addOn.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,7 +15,7 @@ public class TableCoversLongUUID {
 
 	public TableCoversLongUUID(final Long id, final List<UUID> covers) {
 		this.id = id;
-		this.covers = covers;
+		this.covers = new ArrayList<>(covers);
 	}
 
 	@Id

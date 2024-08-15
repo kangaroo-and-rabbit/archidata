@@ -27,7 +27,7 @@ import jakarta.persistence.GenerationType;
 public class DataFactory {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactory.class);
 
-	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws Exception {
+	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws DataAccessException {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			if (type == UUID.class) {
 				return "binary(16)";

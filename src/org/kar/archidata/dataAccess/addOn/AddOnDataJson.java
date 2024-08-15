@@ -23,6 +23,7 @@ import org.kar.archidata.dataAccess.addOn.model.TableCoversLongUUID;
 import org.kar.archidata.dataAccess.addOn.model.TableCoversUUIDLong;
 import org.kar.archidata.dataAccess.addOn.model.TableCoversUUIDUUID;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field elem) throws Exception {
+	public String getSQLFieldType(final Field elem) throws DataAccessException {
 		final String fieldName = AnnotationTools.getFieldName(elem);
 		return DataFactory.convertTypeInSQL(String.class, fieldName);
 	}

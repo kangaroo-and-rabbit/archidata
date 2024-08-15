@@ -258,14 +258,10 @@ public class AnnotationTools {
 		return false;
 	}
 
-	public static String getFieldName(final Field element) throws DataAccessException {
+	public static String getFieldName(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return element.getName();
-		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		final String name = ((Column) annotation[0]).name();
 		if (name.isBlank()) {
