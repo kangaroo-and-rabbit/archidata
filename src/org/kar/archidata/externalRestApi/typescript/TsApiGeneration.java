@@ -3,6 +3,9 @@ package org.kar.archidata.externalRestApi.typescript;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -415,7 +418,10 @@ public class TsApiGeneration {
 		}
 		for (final ClassModel model : writeImports) {
 			final TsClassElement tsModel = tsGroup.find(model);
-			if (tsModel.nativeType == DefinedPosition.NATIVE) {
+			if (tsModel.nativeType != DefinedPosition.NORMAL) {
+				continue;
+			}
+			if (tsModel.models.get(0).isNoWriteSpecificMode()) {
 				continue;
 			}
 			finalImportSet.add(tsModel.tsTypeName + "Write");
@@ -433,6 +439,10 @@ public class TsApiGeneration {
 
 		out.append(data.toString());
 
+		final Path path = Paths.get(pathPackage + File.separator + "api");
+		if (Files.notExists(path)) {
+			Files.createDirectories(path);
+		}
 		final String fileName = TsClassElement.determineFileName(element.name);
 		final FileWriter myWriter = new FileWriter(
 				pathPackage + File.separator + "api" + File.separator + fileName + ".ts");
