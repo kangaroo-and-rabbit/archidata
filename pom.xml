@@ -54,6 +54,31 @@
 			<version>2.1.0-alpha1</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- Decode webP images -->
+		<dependency>
+		    <groupId>com.twelvemonkeys.imageio</groupId>
+		    <artifactId>imageio-webp</artifactId>
+		    <version>3.11.0</version>
+		</dependency>
+		<!-- Decode JPEG image -->
+		<dependency>
+		    <groupId>com.twelvemonkeys.imageio</groupId>
+		    <artifactId>imageio-jpeg</artifactId>
+		    <version>3.11.0</version>
+		</dependency>
+		<!-- Encode file in webp -->
+		<dependency>
+		    <groupId>com.github.gotson</groupId>
+		    <artifactId>webp-imageio</artifactId>
+		    <version>0.2.2</version>
+		</dependency>
+		<!-- Detect type of a file with mime type -->
+		<dependency>
+		    <groupId>org.apache.tika</groupId>
+		    <artifactId>tika-core</artifactId>
+		    <version>2.7.0</version>
+		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-multipart -->
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
@@ -96,11 +121,13 @@
 			<artifactId>istack-commons-runtime</artifactId>
 			<version>${istack.version}</version>
 		</dependency>
+		<!-- continu to be needed ??? -->
 		<dependency>
 			<groupId>org.glassfish.jersey.test-framework.providers</groupId>
 			<artifactId>jersey-test-framework-provider-grizzly2</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Serialize and un-serialize request in JSON-->
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
@@ -110,6 +137,7 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.17.1</version>
 		</dependency>
+		<!-- encode output in CSV -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-csv</artifactId>

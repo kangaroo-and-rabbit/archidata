@@ -11,9 +11,11 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.tika.Tika;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -28,6 +30,9 @@ import org.kar.archidata.model.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.client.ClientBuilder;
+import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 
 public class DataTools {
@@ -37,6 +42,9 @@ public class DataTools {
 	public final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some data */
 	private static long tmpFolderId = 1;
+	public final static String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
+	public final static String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
+	public final static String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
 
 	public static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
@@ -91,20 +99,12 @@ public class DataTools {
 		return null;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
-			throws IOException, SQLException {
-		// determine mime type:
-		String mimeType = "";
-		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
-		mimeType = switch (extension.toLowerCase()) {
-			case "jpg", "jpeg" -> "image/jpeg";
-			case "png" -> "image/png";
-			case "webp" -> "image/webp";
-			case "mka" -> "audio/x-matroska";
-			case "mkv" -> "video/x-matroska";
-			case "webm" -> "video/webm";
-			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
-		};
+	public static Data createNewData(
+			final long tmpUID,
+			final String originalFileName,
+			final String sha512,
+			final String mimeType) throws IOException, SQLException {
+
 		final String tmpPath = getTmpFileInData(tmpUID);
 		final long fileSize = Files.size(Paths.get(tmpPath));
 		Data out = new Data();
@@ -130,6 +130,23 @@ public class DataTools {
 		return out;
 	}
 
+	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+			throws IOException, SQLException {
+		// determine mime type:
+		String mimeType = "";
+		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
+		mimeType = switch (extension.toLowerCase()) {
+			case "jpg", "jpeg" -> "image/jpeg";
+			case "png" -> "image/png";
+			case "webp" -> "image/webp";
+			case "mka" -> "audio/x-matroska";
+			case "mkv" -> "video/x-matroska";
+			case "webm" -> "video/webm";
+			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
+		};
+		return createNewData(tmpUID, originalFileName, sha512, mimeType);
+	}
+
 	public static void undelete(final UUID id) {
 		try {
 			DataAccess.unsetDelete(Data.class, id);
@@ -140,6 +157,10 @@ public class DataTools {
 	}
 
 	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData) {
+		return saveFile(uploadedInputStream, getTmpFileInData(idData));
+	}
+
+	public static String saveTemporaryFile(final byte[] uploadedInputStream, final long idData) {
 		return saveFile(uploadedInputStream, getTmpFileInData(idData));
 	}
 
@@ -188,6 +209,31 @@ public class DataTools {
 		return out;
 	}
 
+	public static String saveFile(final byte[] bytes, final String serverLocation) {
+		String out = "";
+		try {
+			final OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
+			final MessageDigest md = MessageDigest.getInstance("SHA-512");
+			md.update(bytes, 0, bytes.length);
+			outpuStream.write(bytes, 0, bytes.length);
+
+			LOGGER.info("Flush input stream ... {}", serverLocation);
+			outpuStream.flush();
+			outpuStream.close();
+			// create the end of sha512
+			final byte[] sha512Digest = md.digest();
+			// convert in hexadecimal
+			out = bytesToHex(sha512Digest);
+		} catch (final IOException ex) {
+			LOGGER.error("Can not write in temporary file ... ");
+			ex.printStackTrace();
+		} catch (final NoSuchAlgorithmException ex) {
+			LOGGER.error("Can not find sha512 algorithms");
+			ex.printStackTrace();
+		}
+		return out;
+	}
+
 	// curl http://localhost:9993/api/users/3
 	// @Secured
 	/* @GET
@@ -214,6 +260,90 @@ public class DataTools {
 			return null;
 		}
 		return data;
+	}
+
+	public static String getMimeType(final byte[] data) {
+		final Tika tika = new Tika();
+		final String mimeType = tika.detect(data);
+		return mimeType;
+	}
+
+	public static <CLASS_TYPE, ID_TYPE> void uploadCoverFromUri(
+			final Class<CLASS_TYPE> clazz,
+			final ID_TYPE id,
+			final String url) throws Exception {
+
+		LOGGER.info("    - id: {}", id);
+		LOGGER.info("    - url: {} ", url);
+		final CLASS_TYPE media = DataAccess.get(clazz, id);
+		if (media == null) {
+			throw new InputException(clazz.getCanonicalName(),
+					"[" + id.toString() + "] Id does not exist or removed...");
+		}
+		// Download data:
+
+		final Client client = ClientBuilder.newClient();
+		byte[] dataResponse = null;
+		try {
+			final WebTarget target = client.target(url);
+			final Response response = target.request().get();
+			if (response.getStatus() != 200) {
+				throw new FailException(Response.Status.BAD_GATEWAY,
+						clazz.getCanonicalName() + "[" + id.toString() + "] Can not download the media");
+			}
+			dataResponse = response.readEntity(byte[].class);
+		} catch (final Exception ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
+					clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+		}
+		if (dataResponse == null) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE,
+					clazz.getCanonicalName() + "[" + id.toString() + "] Data does not exist");
+		}
+		if (dataResponse.length == 0 || dataResponse.length == 50 * 1024 * 1024) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE, clazz.getCanonicalName() + "[" + id.toString()
+					+ "] Data size is not correct " + dataResponse.length);
+		}
+
+		final long tmpUID = getTmpDataId();
+		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
+		Data data = getWithSha512(sha512);
+		final String mimeType = getMimeType(dataResponse);
+		if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE,
+					clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not accesptable: " + mimeType
+							+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+
+		}
+		if (data == null) {
+			LOGGER.info("Need to add the data in the BDD ... ");
+			try {
+				data = createNewData(tmpUID, url, sha512, mimeType);
+			} catch (final IOException ex) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_MODIFIED,
+						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+			} catch (final SQLException ex) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_MODIFIED,
+						clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
+			}
+		} else if (data.deleted) {
+			LOGGER.error("Data already exist but deleted");
+			undelete(data.uuid);
+			data.deleted = false;
+		} else {
+			LOGGER.error("Data already exist ... all good");
+		}
+		// Fist step: retrieve all the Id of each parents:...
+		LOGGER.info("Find typeNode");
+		if (id instanceof final Long idLong) {
+			AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
+		} else if (id instanceof final UUID idUUID) {
+			AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
+		} else {
+			throw new IOException("Fail to add Cover can not detect type...");
+		}
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(

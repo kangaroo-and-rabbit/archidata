@@ -27,7 +27,7 @@ public class RestErrorResponse {
 	@NotNull
 	@Column(length = 0)
 	final public String statusMessage;
-
+	
 	public RestErrorResponse(final Response.Status status, final String time, final String error,
 			final String message) {
 		this.time = time;
@@ -36,7 +36,7 @@ public class RestErrorResponse {
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-
+	
 	public RestErrorResponse(final Response.Status status, final String error, final String message) {
 		this.time = Instant.now().toString();
 		this.name = error;
@@ -44,7 +44,7 @@ public class RestErrorResponse {
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-
+	
 	public RestErrorResponse(final Response.Status status) {
 		this.name = "generic";
 		this.message = "";
@@ -52,5 +52,5 @@ public class RestErrorResponse {
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
 	}
-
+	
 }
