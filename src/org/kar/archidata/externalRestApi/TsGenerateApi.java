@@ -30,7 +30,7 @@ import org.kar.archidata.externalRestApi.typescript.TsClassElementGroup;
 public class TsGenerateApi {
 	/**
 	 * Generate a full API tree for Typescript in a specific folder.
-	 * This generate a folder containing a full API with "model" filder and "api" folder.
+	 * This generate a folder containing a full API with "model" folder and "api" folder.
 	 * The generation depend of Zod and can be strict compile.
 	 * @param api Data model to generate the api
 	 * @param pathPackage Path to store the api.

@@ -64,18 +64,18 @@ public class DataResource {
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */
 	private static long tmpFolderId = 1;
-	
+
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
 			// Log.print("Create folder: " + path);
 			Files.createDirectories(java.nio.file.Path.of(path));
 		}
 	}
-	
+
 	public static long getTmpDataId() {
 		return tmpFolderId++;
 	}
-	
+
 	public static String getTmpFileInData(final long tmpFolderId) {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
 		try {
@@ -85,7 +85,7 @@ public class DataResource {
 		}
 		return filePath;
 	}
-	
+
 	public static String getFileDataOld(final long tmpFolderId) {
 		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator
 				+ "data";
@@ -96,7 +96,7 @@ public class DataResource {
 		}
 		return filePath;
 	}
-	
+
 	public static String getFileData(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
@@ -113,11 +113,11 @@ public class DataResource {
 		filePath += part3;
 		return filePath;
 	}
-	
+
 	public static String getFileMetaData(final UUID uuid) {
 		return getFileData(uuid) + ".json";
 	}
-	
+
 	public static Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
@@ -128,7 +128,7 @@ public class DataResource {
 		}
 		return null;
 	}
-	
+
 	public static Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
@@ -139,7 +139,7 @@ public class DataResource {
 		}
 		return null;
 	}
-	
+
 	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
 			throws IOException {
 		// determine mime type:
@@ -159,7 +159,7 @@ public class DataResource {
 		injectedData.sha512 = sha512;
 		final String tmpPath = getTmpFileInData(tmpUID);
 		injectedData.size = Files.size(Paths.get(tmpPath));
-		
+
 		try {
 			injectedData = DataAccess.insert(injectedData);
 		} catch (final Exception e) {
@@ -173,7 +173,7 @@ public class DataResource {
 		LOGGER.info("Move done");
 		return injectedData;
 	}
-	
+
 	public static void modeFileOldModelToNewModel(final long id, final UUID uuid) throws IOException {
 		String mediaCurentPath = getFileDataOld(id);
 		String mediaDestPath = getFileData(uuid);
@@ -192,12 +192,12 @@ public class DataResource {
 		}
 		LOGGER.info("Move done");
 	}
-	
+
 	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData)
 			throws FailException {
 		return saveFile(uploadedInputStream, DataResource.getTmpFileInData(idData));
 	}
-	
+
 	public static void removeTemporaryFile(final long idData) {
 		final String filepath = DataResource.getTmpFileInData(idData);
 		if (Files.exists(Paths.get(filepath))) {
@@ -209,7 +209,7 @@ public class DataResource {
 			}
 		}
 	}
-	
+
 	// save uploaded file to a defined location on the server
 	static String saveFile(final InputStream uploadedInputStream, final String serverLocation) throws FailException {
 		String out = "";
@@ -243,7 +243,7 @@ public class DataResource {
 		}
 		return out;
 	}
-	
+
 	public static String bytesToHex(final byte[] bytes) {
 		final StringBuilder sb = new StringBuilder();
 		for (final byte b : bytes) {
@@ -251,7 +251,7 @@ public class DataResource {
 		}
 		return sb.toString();
 	}
-	
+
 	public Data getSmall(final UUID id) {
 		try {
 			return DataAccess.get(Data.class, id);
@@ -261,7 +261,7 @@ public class DataResource {
 		}
 		return null;
 	}
-	
+
 	@POST
 	@Path("/upload/")
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
@@ -286,7 +286,7 @@ public class DataResource {
 		}
 		saveFile(fileInputStream, filePath);
 	}
-	
+
 	@GET
 	@Path("{uuid}")
 	@PermitTokenInURI
@@ -313,7 +313,7 @@ public class DataResource {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
 	}
-	
+
 	@GET
 	@Path("thumbnail/{uuid}")
 	@RolesAllowed("USER")
@@ -400,7 +400,7 @@ public class DataResource {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
 	}
-	
+
 	@GET
 	@Path("{uuid}/{name}")
 	@PermitTokenInURI
@@ -424,7 +424,7 @@ public class DataResource {
 		return buildStream(getFileData(uuid), range,
 				value.mimeType == null ? "application/octet-stream" : value.mimeType);
 	}
-	
+
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
 	 *
 	 * @param range range header
@@ -463,12 +463,12 @@ public class DataResource {
 				out.type(mimeType);
 			}
 			return out.build();
-			
+
 		}
-		
+
 		final String[] ranges = range.split("=")[1].split("-");
 		final long from = Long.parseLong(ranges[0]);
-		
+
 		// logger.info("request range : {}", ranges.length);
 		// Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
 		long to = CHUNK_SIZE + from;
@@ -481,7 +481,7 @@ public class DataResource {
 		// logger.info("responseRange: {}", responseRange);
 		try (final RandomAccessFile raf = new RandomAccessFile(file, "r")) {
 			raf.seek(from);
-			
+
 			final long len = to - from + 1;
 			final MediaStreamer streamer = new MediaStreamer(len, raf);
 			final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT)
@@ -498,9 +498,9 @@ public class DataResource {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to access to the required file.", ex);
 		}
 	}
-	
+
 	public static void undelete(final Long id) throws Exception {
 		DataAccess.unsetDelete(Data.class, id);
 	}
-	
+
 }

@@ -56,29 +56,28 @@
 		</dependency>
 		<!-- Decode webP images -->
 		<dependency>
-		    <groupId>com.twelvemonkeys.imageio</groupId>
-		    <artifactId>imageio-webp</artifactId>
-		    <version>3.11.0</version>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-webp</artifactId>
+			<version>3.11.0</version>
 		</dependency>
 		<!-- Decode JPEG image -->
 		<dependency>
-		    <groupId>com.twelvemonkeys.imageio</groupId>
-		    <artifactId>imageio-jpeg</artifactId>
-		    <version>3.11.0</version>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-jpeg</artifactId>
+			<version>3.11.0</version>
 		</dependency>
 		<!-- Encode file in webp -->
 		<dependency>
-		    <groupId>com.github.gotson</groupId>
-		    <artifactId>webp-imageio</artifactId>
-		    <version>0.2.2</version>
+			<groupId>com.github.gotson</groupId>
+			<artifactId>webp-imageio</artifactId>
+			<version>0.2.2</version>
 		</dependency>
 		<!-- Detect type of a file with mime type -->
 		<dependency>
-		    <groupId>org.apache.tika</groupId>
-		    <artifactId>tika-core</artifactId>
-		    <version>2.7.0</version>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>2.7.0</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-multipart -->
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>

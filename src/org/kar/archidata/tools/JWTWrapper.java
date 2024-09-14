@@ -35,7 +35,7 @@ import com.nimbusds.jwt.SignedJWT;
 
 class TestSigner implements JWSSigner {
 	public static String test_signature = "TEST_SIGNATURE_FOR_LOCAL_TEST_AND_TEST_E2E";
-	
+
 	/** Signs the specified {@link JWSObject#getSigningInput input} of a {@link JWSObject JWS object}.
 	 *
 	 * @param header The JSON Web Signature (JWS) header. Must specify a supported JWS algorithm and must not be {@code null}.
@@ -49,13 +49,13 @@ class TestSigner implements JWSSigner {
 	public Base64URL sign(final JWSHeader header, final byte[] signingInput) throws JOSEException {
 		return new Base64URL(test_signature);
 	}
-	
+
 	@Override
 	public Set<JWSAlgorithm> supportedJWSAlgorithms() {
 		// TODO Auto-generated method stub
 		return Set.of(JWSAlgorithm.RS256);
 	}
-	
+
 	@Override
 	public JCAContext getJCAContext() {
 		// TODO Auto-generated method stub
@@ -65,20 +65,20 @@ class TestSigner implements JWSSigner {
 
 public class JWTWrapper {
 	static final Logger LOGGER = LoggerFactory.getLogger(JWTWrapper.class);
-	
+
 	private static RSAKey rsaJWK = null;
 	private static RSAKey rsaPublicJWK = null;
-	
+
 	public static class PublicKey {
 		public String key;
-		
+
 		public PublicKey(final String key) {
 			this.key = key;
 		}
-		
+
 		public PublicKey() {}
 	}
-	
+
 	public static void initLocalTokenRemote(final String ssoUri, final String application)
 			throws IOException, ParseException {
 		// check Token:
@@ -95,11 +95,11 @@ public class JWTWrapper {
 			con.setRequestProperty(AuthenticationFilter.APIKEY, ssoToken);
 		}
 		final int responseCode = con.getResponseCode();
-		
+
 		// LOGGER.debug("GET Response Code :: {}", responseCode);
 		if (responseCode == HttpURLConnection.HTTP_OK) { // success
 			final BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-			
+
 			String inputLine;
 			final StringBuffer response = new StringBuffer();
 			while ((inputLine = in.readLine()) != null) {
@@ -115,7 +115,7 @@ public class JWTWrapper {
 		}
 		LOGGER.debug("GET JWT validator token not worked response code {} from {} ", responseCode, obj);
 	}
-	
+
 	public static void initLocalToken(final String baseUUID) throws Exception {
 		// RSA signatures require a public and private RSA key pair, the public key
 		// must be made known to the JWS recipient in order to verify the signatures
@@ -139,7 +139,7 @@ public class JWTWrapper {
 			rsaPublicJWK = null;
 		}
 	}
-	
+
 	public static void initValidateToken(final String publicKey) {
 		try {
 			rsaPublicJWK = RSAKey.parse(publicKey);
@@ -147,16 +147,16 @@ public class JWTWrapper {
 			e.printStackTrace();
 			LOGGER.debug("Can not retrieve public Key !!!!!!!! RSAKey='{}'", publicKey);
 		}
-		
+
 	}
-	
+
 	public static String getPublicKeyJson() {
 		if (rsaPublicJWK == null) {
 			return null;
 		}
 		return rsaPublicJWK.toJSONString();
 	}
-	
+
 	public static java.security.interfaces.RSAPublicKey getPublicKeyJava() throws JOSEException {
 		if (rsaPublicJWK == null) {
 			return null;
@@ -164,7 +164,7 @@ public class JWTWrapper {
 		// Convert back to std Java interface
 		return rsaPublicJWK.toRSAPublicKey();
 	}
-	
+
 	/** Create a token with the provided elements
 	 * @param userID UniqueId of the USER (global unique ID)
 	 * @param userLogin Login of the user (never change)
@@ -187,12 +187,12 @@ public class JWTWrapper {
 		try {
 			// Create RSA-signer with the private key
 			final JWSSigner signer = new RSASSASigner(rsaJWK);
-			
+
 			LOGGER.warn("timeOutInMunites= {}", timeOutInMunites);
 			final Date now = new Date();
 			LOGGER.warn("now       = {}", now);
 			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
-			
+
 			LOGGER.warn("expiration= {}", expiration);
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
@@ -205,7 +205,7 @@ public class JWTWrapper {
 			final JWTClaimsSet claimsSet = builder.build();
 			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
 					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
-			
+
 			// Compute the RSA signature
 			signedJWT.sign(signer);
 			// serialize the output...
@@ -215,7 +215,7 @@ public class JWTWrapper {
 		}
 		return null;
 	}
-	
+
 	public static JWTClaimsSet validateToken(final String signedToken, final String isuer, final String application) {
 		try {
 			// On the consumer side, parse the JWS and verify its RSA signature
@@ -267,7 +267,7 @@ public class JWTWrapper {
 		}
 		return null;
 	}
-	
+
 	public static String createJwtTestToken(
 			final long userID,
 			final String userLogin,
@@ -280,10 +280,10 @@ public class JWTWrapper {
 		}
 		try {
 			final int timeOutInMunites = 3600;
-			
+
 			final Date now = new Date();
 			final Date expiration = new Date(new Date().getTime() + timeOutInMunites * 1000 /* ms */);
-			
+
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
@@ -295,10 +295,10 @@ public class JWTWrapper {
 			final JWTClaimsSet claimsSet = builder.build();
 			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
 					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
-			
+
 			// Compute the RSA signature
 			signedJWT.sign(new TestSigner());
-			
+
 			// serialize the output...
 			return signedJWT.serialize();
 		} catch (final Exception ex) {

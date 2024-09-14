@@ -18,7 +18,7 @@ import jakarta.ws.rs.core.Response.Status;
 //@Produces(MediaType.APPLICATION_JSON)
 public class ProxyResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyResource.class);
-	
+
 	@GET
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response getImageFromUrl(@QueryParam("url") final String url) {
