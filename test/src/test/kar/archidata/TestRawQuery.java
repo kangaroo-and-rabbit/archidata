@@ -11,11 +11,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataFactory;
-import org.kar.archidata.db.DBEntry;
-import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,22 +25,12 @@ public class TestRawQuery {
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
-		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
-			ConfigBaseVariable.dbType = "sqlite";
-			ConfigBaseVariable.dbHost = "memory";
-			// for test we need to connect all time the DB
-			ConfigBaseVariable.dbKeepConnected = "true";
-		}
-		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		entry.connect();
+		ConfigureDb.configure();
 	}
 
 	@AfterAll
 	public static void removeDataBase() throws IOException {
-		LOGGER.info("Remove the test db");
-		DBEntry.closeAllForceMode();
-		ConfigBaseVariable.clearAllValue();
+		ConfigureDb.clear();
 	}
 
 	@Order(1)
@@ -83,13 +70,13 @@ public class TestRawQuery {
 		test.floatData = 7.0F;
 		DataAccess.insert(test);
 		{
-			String query = """
+			final String query = """
 					SELECT *
 					FROM TypesTable
 					WHERE `intData` = ?
 					ORDER BY id DESC
 					""";
-			List<Object> parameters = List.of(Integer.valueOf(99));
+			final List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
 			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, query, parameters);
 
@@ -102,13 +89,13 @@ public class TestRawQuery {
 		}
 		{
 
-			String query = """
+			final String query = """
 					SELECT DISTINCT intData
 					FROM TypesTable
 					WHERE `intData` = ?
 					ORDER BY id DESC
 					""";
-			List<Object> parameters = List.of(Integer.valueOf(99));
+			final List<Object> parameters = List.of(Integer.valueOf(99));
 			// Try to retrieve all the data:
 			final List<TypesTable> retrieve = DataAccess.query(TypesTable.class, query, parameters);
 

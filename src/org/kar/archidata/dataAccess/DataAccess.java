@@ -1297,6 +1297,7 @@ public class DataAccess {
 			throws SQLException, IOException {
 		final QueryOptions options = new QueryOptions(option);
 		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+		LOGGER.info("Query : '{}'", query);
 		try (final Statement stmt = entry.connection.createStatement()) {
 			return stmt.executeUpdate(query);
 		}

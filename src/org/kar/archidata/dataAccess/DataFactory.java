@@ -165,7 +165,7 @@ public class DataFactory {
 		final String comment = AnnotationTools.getComment(elem);
 		final String defaultValue = AnnotationTools.getDefault(elem);
 
-		if (fieldId == 0) {
+		if (mainTableBuilder.toString().length() == 0) {
 			mainTableBuilder.append("\n\t\t`");
 		} else {
 			mainTableBuilder.append(",\n\t\t`");
@@ -404,6 +404,7 @@ public class DataFactory {
 			}
 			final boolean dataInThisObject = tmpOut.toString().length() > 0;
 			if (dataInThisObject) {
+				LOGGER.info("Previous Object : '{}'", reverseOut.toString());
 				final boolean dataInPreviousObject = reverseOut.toString().length() > 0;
 				if (dataInPreviousObject) {
 					tmpOut.append(", ");

@@ -63,6 +63,7 @@ public class DBEntry implements Closeable {
 			this.connection = DriverManager.getConnection(this.config.getUrl(), this.config.getLogin(),
 					this.config.getPassword());
 		} catch (final SQLException ex) {
+			LOGGER.error("Connection db fail: " + ex.getMessage() + " On URL: " + this.config.getUrl(true));
 			throw new IOException("Connection db fail: " + ex.getMessage() + " On URL: " + this.config.getUrl(true));
 		}
 

@@ -109,13 +109,18 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			@NotNull final CountInOut count,
 			final QueryOptions options) throws Exception {
 		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
-		final String linkTableName = generateLinkTableName(tableName, name);
+		String linkTableName = generateLinkTableName(tableName, name);
+		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
+			// TODO:  get the remote table name .....
+			final String remoteTableName = AnnotationTools.getTableName(manyToMany.targetEntity());
+			linkTableName = generateLinkTableName(remoteTableName, manyToMany.mappedBy());
+		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final String tmpVariable = "tmp_" + Integer.toString(count.value);
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpVariable);
-		if (manyToMany.mappedBy() == null) {
+		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
 			querySelect.append(".object2Id ");
 		} else {
 			querySelect.append(".object1Id ");
@@ -148,7 +153,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append(" = ");
 		querySelect.append(tmpVariable);
 		querySelect.append(".");
-		if (manyToMany.mappedBy() == null) {
+		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
 			querySelect.append("object1Id ");
 		} else {
 			querySelect.append("object2Id ");
@@ -156,7 +161,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(" GROUP BY ");
 			querySelect.append(tmpVariable);
-			if (manyToMany.mappedBy() == null) {
+			if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
 				querySelect.append(".object1Id");
 			} else {
 				querySelect.append(".object2Id");
@@ -522,6 +527,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final boolean createIfNotExist,
 			final boolean createDrop,
 			final int fieldId) throws Exception {
+
+		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
+		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
+			// not the reference model to create base:
+			return;
+		}
 		final String linkTableName = generateLinkTableNameField(tableName, field);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -540,7 +551,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				postActionList.addAll(sqlCommand);
 			}
 		} else if (primaryType == UUID.class) {
-
 			if (objectClass == Long.class) {
 				final List<String> sqlCommand = DataFactory.createTable(LinkTableUUIDLong.class, options);
 				postActionList.addAll(sqlCommand);
