@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.AsyncType;
+import org.kar.archidata.annotation.FormDataOptional;
 import org.kar.archidata.annotation.TypeScriptProgress;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -142,6 +143,14 @@ public class ApiTool {
 			return null;
 		}
 		return ((QueryParam) annotation[0]).value();
+	}
+
+	public static boolean apiAnnotationGetFormDataOptional(final Parameter element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataOptional.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
 	}
 
 	public static String apiAnnotationGetFormDataParam(final Parameter element) throws Exception {

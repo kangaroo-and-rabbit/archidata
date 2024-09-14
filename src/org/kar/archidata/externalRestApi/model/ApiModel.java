@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 public class ApiModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
 
+	public record OptionalClassModel(
+			List<ClassModel> model,
+			boolean optional) {}
+
 	Class<?> originClass;
 	Method orignMethod;
 
@@ -36,7 +40,7 @@ public class ApiModel {
 	// list of all query (?key...)
 	public final Map<String, List<ClassModel>> queries = new HashMap<>();
 	// when request multi-part, need to separate it.
-	public final Map<String, List<ClassModel>> multiPartParameters = new HashMap<>();
+	public final Map<String, OptionalClassModel> multiPartParameters = new HashMap<>();
 	// model of data available
 	public final List<ClassModel> unnamedElement = new ArrayList<>();
 
@@ -153,6 +157,7 @@ public class ApiModel {
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
+			final boolean formDataParamOptional = ApiTool.apiAnnotationGetFormDataOptional(parameter);
 			if (queryParam != null) {
 				if (!this.queries.containsKey(queryParam)) {
 					this.queries.put(queryParam, parameterModel);
@@ -163,7 +168,8 @@ public class ApiModel {
 				}
 			} else if (formDataParam != null) {
 				if (!this.multiPartParameters.containsKey(formDataParam)) {
-					this.multiPartParameters.put(formDataParam, parameterModel);
+					this.multiPartParameters.put(formDataParam,
+							new OptionalClassModel(parameterModel, formDataParamOptional));
 				}
 			} else {
 				this.unnamedElement.addAll(parameterModel);

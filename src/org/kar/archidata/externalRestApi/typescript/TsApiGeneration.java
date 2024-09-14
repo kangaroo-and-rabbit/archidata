@@ -17,6 +17,7 @@ import java.util.TreeSet;
 import org.kar.archidata.dataAccess.DataExport;
 import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ApiModel;
+import org.kar.archidata.externalRestApi.model.ApiModel.OptionalClassModel;
 import org.kar.archidata.externalRestApi.model.ClassEnumModel;
 import org.kar.archidata.externalRestApi.model.ClassListModel;
 import org.kar.archidata.externalRestApi.model.ClassMapModel;
@@ -229,12 +230,16 @@ public class TsApiGeneration {
 				data.append(",");
 			} else if (interfaceElement.multiPartParameters.size() != 0) {
 				data.append("\n\t\tdata: {");
-				for (final Entry<String, List<ClassModel>> pathEntry : interfaceElement.multiPartParameters
+				for (final Entry<String, OptionalClassModel> pathEntry : interfaceElement.multiPartParameters
 						.entrySet()) {
 					data.append("\n\t\t\t");
 					data.append(pathEntry.getKey());
+					if (pathEntry.getValue().optional()) {
+						data.append("?");
+					}
 					data.append(": ");
-					data.append(generateClassModelsTypescript(pathEntry.getValue(), tsGroup, imports, writeImports));
+					data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports,
+							writeImports));
 					data.append(",");
 				}
 				data.append("\n\t\t},");
