@@ -71,4 +71,25 @@ public class AnalyzeApi {
 		}
 		return out;
 	}
+
+	public void displayAllApi() {
+		LOGGER.info("List all API:");
+		for (final ApiGroupModel model : getAllApi()) {
+			LOGGER.info("    - {}: {}", model.name, model.getClass().getCanonicalName());
+		}
+
+	}
+
+	public void displayAllModel() {
+		LOGGER.info("List all Model:");
+		for (final ClassModel model : getAllModel()) {
+			final StringBuilder out = new StringBuilder();
+			for (final ClassModel classModel : model.getAlls()) {
+				out.append(classModel.getOriginClasses().getCanonicalName());
+				out.append(",");
+			}
+			LOGGER.info("    - {}", out.toString());
+		}
+	}
+
 }
