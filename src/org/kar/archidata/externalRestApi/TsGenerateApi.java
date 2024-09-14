@@ -118,6 +118,8 @@ public class TsGenerateApi {
 	}
 
 	private static List<TsClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
+		// needed for Rest interface
+		api.addModel(RestErrorResponse.class);
 		// First step is to add all specific basic elements the wrap correctly the model
 		final List<TsClassElement> tsModels = new ArrayList<>();
 		List<ClassModel> models = api.getCompatibleModels(List.of(Void.class, void.class));
@@ -205,8 +207,6 @@ public class TsGenerateApi {
 			tsModels.add(new TsClassElement(models, "ZodLocalTime", "LocalTime", "isLocalTime", "zod.string().time()",
 					DefinedPosition.BASIC));
 		}
-		// needed for Rest interface
-		api.addModel(RestErrorResponse.class);
 		for (final ClassModel model : api.getAllModel()) {
 			boolean alreadyExist = false;
 			for (final TsClassElement elem : tsModels) {
