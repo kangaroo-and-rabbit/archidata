@@ -10,6 +10,7 @@ import java.util.Set;
 import org.kar.archidata.externalRestApi.dot.DotClassElement.DefinedPosition;
 import org.kar.archidata.externalRestApi.model.ApiGroupModel;
 import org.kar.archidata.externalRestApi.model.ApiModel;
+import org.kar.archidata.externalRestApi.model.ApiModel.OptionalClassModel;
 import org.kar.archidata.externalRestApi.model.ClassEnumModel;
 import org.kar.archidata.externalRestApi.model.ClassListModel;
 import org.kar.archidata.externalRestApi.model.ClassMapModel;
@@ -216,7 +217,7 @@ public class DotApiGeneration {
 				hasParam = true;
 				boolean hasParam2 = false;
 				data.append("data: {");
-				for (final Entry<String, List<ClassModel>> pathEntry : interfaceElement.multiPartParameters
+				for (final Entry<String, OptionalClassModel> pathEntry : interfaceElement.multiPartParameters
 						.entrySet()) {
 					if (hasParam2) {
 						data.append(", ");
@@ -224,7 +225,7 @@ public class DotApiGeneration {
 					hasParam2 = true;
 					data.append(pathEntry.getKey());
 					data.append(": ");
-					data.append(generateClassModelsTypescript(pathEntry.getValue(), dotGroup));
+					data.append(generateClassModelsTypescript(pathEntry.getValue().model(), dotGroup));
 				}
 				data.append("}");
 			}
