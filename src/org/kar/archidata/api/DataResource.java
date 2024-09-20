@@ -479,7 +479,8 @@ public class DataResource {
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
 		// logger.info("responseRange: {}", responseRange);
-		try (final RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+		try {
+			final RandomAccessFile raf = new RandomAccessFile(file, "r");
 			raf.seek(from);
 
 			final long len = to - from + 1;
