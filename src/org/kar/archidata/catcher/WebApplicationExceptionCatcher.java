@@ -20,6 +20,7 @@ public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplic
 	}
 
 	private RestErrorResponse build(final WebApplicationException exception) {
+		exception.printStackTrace();
 		return new RestErrorResponse(exception.getResponse().getStatusInfo().toEnum(), "Catch system exception",
 				exception.getMessage());
 	}

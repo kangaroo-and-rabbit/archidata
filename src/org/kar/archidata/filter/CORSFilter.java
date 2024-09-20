@@ -16,8 +16,10 @@ public class CORSFilter implements ContainerResponseFilter {
 		// System.err.println("filter cors ..." + request.toString());
 
 		response.getHeaders().add("Access-Control-Allow-Origin", "*");
+		response.getHeaders().add("Access-Control-Allow-Range", "bytes");
+		response.getHeaders().add("access-control-expose-headers", "range");
 		response.getHeaders().add("Access-Control-Allow-Headers",
-				"Origin, content-type, Content-type, Accept, Authorization, mime-type, filename");
+				"Origin, content-type, Content-type, Accept, Authorization, mime-type, filename, Range");
 		response.getHeaders().add("Access-Control-Allow-Credentials", "true");
 		response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
 	}

@@ -304,9 +304,11 @@ public class DataResource {
 		// logger.info("===================================================");
 		final Data value = getSmall(uuid);
 		if (value == null) {
+			LOGGER.warn("Request data that does not exist : {}", uuid);
 			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
 		try {
+			LOGGER.warn("Generate stream : {}", uuid);
 			return buildStream(getFileData(uuid), range,
 					value.mimeType == null ? "application/octet-stream" : value.mimeType);
 		} catch (final Exception ex) {
@@ -478,7 +480,7 @@ public class DataResource {
 			to = file.length() - 1;
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
-		// logger.info("responseRange: {}", responseRange);
+		// LOGGER.info("responseRange: {}", responseRange);
 		try {
 			final RandomAccessFile raf = new RandomAccessFile(file, "r");
 			raf.seek(from);
