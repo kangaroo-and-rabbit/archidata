@@ -259,6 +259,9 @@ public class DataTools {
 		if (data.contentEquals("null")) {
 			return null;
 		}
+		if (data.contentEquals("undefined")) {
+			return null;
+		}
 		return data;
 	}
 
