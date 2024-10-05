@@ -3,6 +3,10 @@ package org.kar.archidata.dataAccess;
 import java.sql.PreparedStatement;
 import java.util.List;
 
+import org.bson.conversions.Bson;
+
+import com.mongodb.client.model.Filters;
+
 public class QueryInList<T> implements QueryItem {
 	protected final String key;
 	protected final String comparator;
@@ -49,5 +53,10 @@ public class QueryInList<T> implements QueryItem {
 			DataAccess.addElement(ps, elem, iii);
 			iii.inc();
 		}
+	}
+
+	@Override
+	public void generateFilter(final List<Bson> filters) {
+		filters.add(Filters.in(this.key, this.value));
 	}
 }

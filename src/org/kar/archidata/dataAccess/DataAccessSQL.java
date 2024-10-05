@@ -9,9 +9,12 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -19,19 +22,24 @@ import java.util.UUID;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
+import org.kar.archidata.dataAccess.addOn.AddOnOneToMany;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.DBInterfaceOption;
+import org.kar.archidata.dataAccess.options.DBInterfaceRoot;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.GroupBy;
 import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
-import org.kar.archidata.db.DbInterface;
-import org.kar.archidata.db.DbInterfaceMorphia;
-import org.kar.archidata.db.DbInterfaceSQL;
+import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ConfigBaseVariable;
+import org.kar.archidata.tools.DateTools;
 import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,29 +57,735 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
-public abstract class DataAccess {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
-
-	static public final DataAccess greateInterface(final DbInterface io) {
-		if (io instanceof final DbInterfaceMorphia ioMorphia) {
-			return DataAccessMorphia(ioMorphia);
-		} else if (io instanceof final DbInterfaceSQL ioSQL) {
-			
-		}
+public class DataAccessSQL extends DataAccess {
+	static final Logger LOGGER = LoggerFactory.getLogger(DataAccessSQL.class);
+	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
+	static final List<DataAccessAddOn> addOn = new ArrayList<>();
+	
+	static {
+		addOn.add(new AddOnManyToMany());
+		addOn.add(new AddOnManyToOne());
+		addOn.add(new AddOnOneToMany());
+		addOn.add(new AddOnDataJson());
+	}
+	
+	/** Add a new add-on on the current management.
+	 * @param addOn instantiate object on the Add-on */
+	public static void addAddOn(final DataAccessAddOn addOn) {
+		DataAccessSQL.addOn.add(addOn);
+	}
+	
+	public DataAccessSQL() {
+		
 	}
 	
 	public static boolean isDBExist(final String name, final QueryOption... option)
 			throws InternalServerErrorException {
+		final QueryOptions options = new QueryOptions(option);
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
+			// no base manage in sqLite ...
+			// TODO: check if the file exist or not ...
+			return true;
+		}
+		DBEntry entry;
+		try {
+			entry = DBInterfaceOption.getAutoEntry(options);
+		} catch (final IOException ex) {
+			ex.printStackTrace();
+			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
+			
+			// TODO: TO test
+			
+			return false;
+		}
+		try {
+			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
+			final PreparedStatement ps = entry.connection.prepareStatement("show databases");
+			final ResultSet rs = ps.executeQuery();
+			// LOGGER.info("List all tables: equals? '{}'", name);
+			while (rs.next()) {
+				final String data = rs.getString(1);
+				// LOGGER.info(" - '{}'", data);
+				if (name.equals(data)) {
+					return true;
+				}
+			}
+			return false;
+		} catch (final SQLException ex) {
+			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
+		} finally {
+			try {
+				entry.close();
+			} catch (final IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			entry = null;
+		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 	
 	public static boolean createDB(final String name) {
-		throw new InternalServerErrorException("Can Not manage the DB-access");
+		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
+			// no base manage in sqLite ...
+			// TODO: check if the file exist or not ...
+			return true;
+		}
+		try {
+			return 1 == DataAccessSQL.executeSimpleQuery("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
+		} catch (final SQLException | IOException ex) {
+			ex.printStackTrace();
+			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
+			return false;
+		}
 	}
 	
 	public static boolean isTableExist(final String name, final QueryOption... option)
 			throws InternalServerErrorException {
+		final QueryOptions options = new QueryOptions(option);
+		try {
+			String request = "";
+			if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
+				request = """
+						SELECT COUNT(*) AS total
+						FROM sqlite_master
+						WHERE type = 'table'
+						AND name = ?;
+						""";
+				// PreparedStatement ps = entry.connection.prepareStatement("show tables");
+				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+				final PreparedStatement ps = entry.connection.prepareStatement(request);
+				ps.setString(1, name);
+				final ResultSet ret = ps.executeQuery();
+				final int count = ret.getInt("total");
+				return count == 1;
+			} else {
+				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
+				final PreparedStatement ps = entry.connection.prepareStatement("show tables");
+				final ResultSet rs = ps.executeQuery();
+				// LOGGER.info("List all tables: equals? '{}'", name);
+				while (rs.next()) {
+					final String data = rs.getString(1);
+					// LOGGER.info(" - '{}'", data);
+					if (name.equals(data)) {
+						return true;
+					}
+				}
+				return false;
+			}
+		} catch (final SQLException ex) {
+			LOGGER.error("Can not check if the table exist SQL-error !!! {}", ex.getMessage());
+		} catch (final IOException ex) {
+			LOGGER.error("Can not check if the table exist!!! {}", ex.getMessage());
+		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}
+	
+	/** Extract a list of Long with "-" separated element from a SQL input data.
+	 * @param rs Result Set of the BDD
+	 * @param iii Id in the result set
+	 * @return The list of Long value
+	 * @throws SQLException if an error is generated in the SQL request. */
+	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator)
+			throws SQLException {
+		final String trackString = rs.getString(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final List<Long> out = new ArrayList<>();
+		final String[] elements = trackString.split(separator);
+		for (final String elem : elements) {
+			final Long tmp = Long.parseLong(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+	
+	/** Extract a list of UUID with "-" separated element from a SQL input data.
+	 * @param rs Result Set of the BDD
+	 * @param iii Id in the result set
+	 * @return The list of Long value
+	 * @throws SQLException if an error is generated in the SQL request. */
+	public static List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator)
+			throws SQLException {
+		final String trackString = rs.getString(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final List<UUID> out = new ArrayList<>();
+		final String[] elements = trackString.split(separator);
+		for (final String elem : elements) {
+			final UUID tmp = UUID.fromString(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+	
+	public static byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
+		final int inputLength = input.length;
+		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
+		final byte[][] groups = new byte[numOfGroups][16];
+		
+		for (int i = 0; i < numOfGroups; i++) {
+			final int startIndex = i * 16;
+			final int endIndex = Math.min(startIndex + 16, inputLength);
+			groups[i] = Arrays.copyOfRange(input, startIndex, endIndex);
+		}
+		
+		return groups;
+	}
+	
+	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii)
+			throws SQLException, DataAccessException {
+		final byte[] trackString = rs.getBytes(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final byte[][] elements = splitIntoGroupsOf16Bytes(trackString);
+		final List<UUID> out = new ArrayList<>();
+		for (final byte[] elem : elements) {
+			final UUID tmp = UuidUtils.asUuid(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+	
+	public static UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+		final byte[] elem = rs.getBytes(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		return UuidUtils.asUuid(elem);
+	}
+	
+	protected static <T> void setValuedb(
+			final Class<?> type,
+			final T data,
+			final CountInOut iii,
+			final Field field,
+			final PreparedStatement ps) throws Exception {
+		if (type == UUID.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.BINARY);
+			} else {
+				final byte[] dataByte = UuidUtils.asBytes((UUID) tmp);
+				ps.setBytes(iii.value, dataByte);
+			}
+		} else if (type == Long.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.BIGINT);
+			} else {
+				ps.setLong(iii.value, (Long) tmp);
+			}
+		} else if (type == long.class) {
+			ps.setLong(iii.value, field.getLong(data));
+		} else if (type == Integer.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setInt(iii.value, (Integer) tmp);
+			}
+		} else if (type == int.class) {
+			ps.setInt(iii.value, field.getInt(data));
+		} else if (type == Float.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.FLOAT);
+			} else {
+				ps.setFloat(iii.value, (Float) tmp);
+			}
+		} else if (type == float.class) {
+			ps.setFloat(iii.value, field.getFloat(data));
+		} else if (type == Double.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.DOUBLE);
+			} else {
+				ps.setDouble(iii.value, (Double) tmp);
+			}
+		} else if (type == Double.class) {
+			ps.setDouble(iii.value, field.getDouble(data));
+		} else if (type == Boolean.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setBoolean(iii.value, (Boolean) tmp);
+			}
+		} else if (type == boolean.class) {
+			ps.setBoolean(iii.value, field.getBoolean(data));
+		} else if (type == Timestamp.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setTimestamp(iii.value, (Timestamp) tmp);
+			}
+		} else if (type == Date.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
+				ps.setTimestamp(iii.value, sqlDate);
+			}
+		} else if (type == Instant.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final String sqlDate = ((Instant) tmp).toString();
+				ps.setString(iii.value, sqlDate);
+			}
+		} else if (type == LocalDate.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final java.sql.Date sqlDate = java.sql.Date.valueOf((LocalDate) tmp);
+				ps.setDate(iii.value, sqlDate);
+			}
+		} else if (type == LocalTime.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final java.sql.Time sqlDate = java.sql.Time.valueOf((LocalTime) tmp);
+				ps.setTime(iii.value, sqlDate);
+			}
+		} else if (type == String.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.VARCHAR);
+			} else {
+				ps.setString(iii.value, (String) tmp);
+			}
+		} else if (type.isEnum()) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.VARCHAR);
+			} else {
+				ps.setString(iii.value, tmp.toString());
+			}
+		} else {
+			throw new DataAccessException("Unknown Field Type");
+		}
+		iii.inc();
+	}
+	
+	protected static <T> void setValueFromDb(
+			final Class<?> type,
+			final Object data,
+			final CountInOut count,
+			final Field field,
+			final ResultSet rs,
+			final CountInOut countNotNull) throws Exception {
+		if (type == UUID.class) {
+			final byte[] tmp = rs.getBytes(count.value);
+			// final UUID tmp = rs.getObject(count.value, UUID.class);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				// field.set(data, tmp);
+				final UUID uuid = UuidUtils.asUuid(tmp);
+				field.set(data, uuid);
+				countNotNull.inc();
+			}
+		} else if (type == Long.class) {
+			final Long tmp = rs.getLong(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == long.class) {
+			final Long tmp = rs.getLong(count.value);
+			if (rs.wasNull()) {
+				// field.set(data, null);
+			} else {
+				field.setLong(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Integer.class) {
+			final Integer tmp = rs.getInt(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == int.class) {
+			final Integer tmp = rs.getInt(count.value);
+			if (rs.wasNull()) {
+				// field.set(data, null);
+			} else {
+				field.setInt(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Float.class) {
+			final Float tmp = rs.getFloat(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == float.class) {
+			final Float tmp = rs.getFloat(count.value);
+			if (rs.wasNull()) {
+				// field.set(data, null);
+			} else {
+				field.setFloat(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Double.class) {
+			final Double tmp = rs.getDouble(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == double.class) {
+			final Double tmp = rs.getDouble(count.value);
+			if (rs.wasNull()) {
+				// field.set(data, null);
+			} else {
+				field.setDouble(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Boolean.class) {
+			final Boolean tmp = rs.getBoolean(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == boolean.class) {
+			final Boolean tmp = rs.getBoolean(count.value);
+			if (rs.wasNull()) {
+				// field.set(data, null);
+			} else {
+				field.setBoolean(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Timestamp.class) {
+			final Timestamp tmp = rs.getTimestamp(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type == Date.class) {
+			try {
+				final Timestamp tmp = rs.getTimestamp(count.value);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					field.set(data, Date.from(tmp.toInstant()));
+					countNotNull.inc();
+				}
+			} catch (final SQLException ex) {
+				final String tmp = rs.getString(count.value);
+				LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					final Date date = DateTools.parseDate(tmp);
+					LOGGER.error("Fail to parse the SQL time !!! {}", date);
+					field.set(data, date);
+					countNotNull.inc();
+				}
+			}
+		} else if (type == Instant.class) {
+			final String tmp = rs.getString(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, Instant.parse(tmp));
+				countNotNull.inc();
+			}
+		} else if (type == LocalDate.class) {
+			final java.sql.Date tmp = rs.getDate(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp.toLocalDate());
+				countNotNull.inc();
+			}
+		} else if (type == LocalTime.class) {
+			final java.sql.Time tmp = rs.getTime(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp.toLocalTime());
+				countNotNull.inc();
+			}
+		} else if (type == String.class) {
+			final String tmp = rs.getString(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				field.set(data, tmp);
+				countNotNull.inc();
+			}
+		} else if (type.isEnum()) {
+			final String tmp = rs.getString(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				boolean find = false;
+				final Object[] arr = type.getEnumConstants();
+				for (final Object elem : arr) {
+					if (elem.toString().equals(tmp)) {
+						field.set(data, elem);
+						countNotNull.inc();
+						find = true;
+						break;
+					}
+				}
+				if (!find) {
+					throw new DataAccessException("Enum value does not exist in the Model: '" + tmp + "'");
+				}
+			}
+		} else {
+			throw new DataAccessException("Unknown Field Type");
+		}
+		count.inc();
+	}
+	
+	// TODO: this function will replace the previous one !!!
+	protected static RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
+		final Class<?> type = field.getType();
+		if (type == UUID.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				
+				final byte[] tmp = rs.getBytes(count);
+				// final UUID tmp = rs.getObject(count, UUID.class);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					// field.set(obj, tmp);
+					final UUID uuid = UuidUtils.asUuid(tmp);
+					field.set(obj, uuid);
+				}
+			};
+		}
+		if (type == Long.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Long tmp = rs.getLong(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == long.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Long tmp = rs.getLong(count);
+				if (rs.wasNull()) {
+					// field.set(data, null);
+				} else {
+					field.setLong(obj, tmp);
+				}
+			};
+		}
+		if (type == Integer.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Integer tmp = rs.getInt(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == int.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Integer tmp = rs.getInt(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setInt(obj, tmp);
+				}
+			};
+		}
+		if (type == Float.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Float tmp = rs.getFloat(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == float.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Float tmp = rs.getFloat(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setFloat(obj, tmp);
+				}
+			};
+		}
+		if (type == Double.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Double tmp = rs.getDouble(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == double.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Double tmp = rs.getDouble(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setDouble(obj, tmp);
+				}
+			};
+		}
+		if (type == Boolean.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Boolean tmp = rs.getBoolean(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == boolean.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Boolean tmp = rs.getBoolean(count);
+				if (rs.wasNull()) {
+					// field.set(obj, null);
+				} else {
+					field.setBoolean(obj, tmp);
+				}
+			};
+		}
+		if (type == Timestamp.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final Timestamp tmp = rs.getTimestamp(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type == Date.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				try {
+					final Timestamp tmp = rs.getTimestamp(count);
+					if (rs.wasNull()) {
+						field.set(obj, null);
+					} else {
+						field.set(obj, Date.from(tmp.toInstant()));
+					}
+				} catch (final SQLException ex) {
+					final String tmp = rs.getString(count);
+					LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
+					if (rs.wasNull()) {
+						field.set(obj, null);
+					} else {
+						final Date date = DateTools.parseDate(tmp);
+						LOGGER.error("Fail to parse the SQL time !!! {}", date);
+						field.set(obj, date);
+					}
+				}
+			};
+		}
+		if (type == Instant.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, Instant.parse(tmp));
+				}
+			};
+		}
+		if (type == LocalDate.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final java.sql.Date tmp = rs.getDate(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp.toLocalDate());
+				}
+			};
+		}
+		if (type == LocalTime.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final java.sql.Time tmp = rs.getTime(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp.toLocalTime());
+				}
+			};
+		}
+		if (type == String.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					field.set(obj, tmp);
+				}
+			};
+		}
+		if (type.isEnum()) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					boolean find = false;
+					final Object[] arr = type.getEnumConstants();
+					for (final Object elem : arr) {
+						if (elem.toString().equals(tmp)) {
+							field.set(obj, elem);
+							find = true;
+							break;
+						}
+					}
+					if (!find) {
+						throw new DataAccessException("Enum value does not exist in the Model: '" + tmp + "'");
+					}
+				}
+			};
+		}
+		throw new DataAccessException("Unknown Field Type");
+		
+	}
+	
+	public static boolean isAddOnField(final Field field) {
+		return findAddOnforField(field) != null;
+	}
+	
+	public static DataAccessAddOn findAddOnforField(final Field field) {
+		for (final DataAccessAddOn elem : addOn) {
+			if (elem.isCompatibleField(field)) {
+				return elem;
+			}
+		}
+		return null;
 	}
 	
 	// TODO: manage insert batch...
@@ -799,7 +1513,7 @@ public abstract class DataAccess {
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return DataAccess.countWhere(clazz, options);
+		return DataAccessSQL.countWhere(clazz, options);
 	}
 	
 	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
@@ -856,7 +1570,7 @@ public abstract class DataAccess {
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return DataAccess.getWhere(clazz, options.getAllArray());
+		return DataAccessSQL.getWhere(clazz, options.getAllArray());
 	}
 	
 	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
@@ -1128,7 +1842,7 @@ public abstract class DataAccess {
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
 				for (final Object elem : parameters) {
-					DataAccess.addElement(ps, elem, iii);
+					DataAccessSQL.addElement(ps, elem, iii);
 				}
 				iii.inc();
 			}

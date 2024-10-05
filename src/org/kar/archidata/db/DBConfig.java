@@ -1,6 +1,7 @@
 package org.kar.archidata.db;
 
 import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,10 +16,13 @@ public class DBConfig {
 	private final boolean keepConnected;
 
 	public DBConfig(final String type, final String hostname, final Integer port, final String login,
-			final String password, final String dbName, final boolean keepConnected) {
+			final String password, final String dbName, final boolean keepConnected) throws DataAccessException {
 		if (type == null) {
 			this.type = "mysql";
 		} else {
+			if (!"mysql".equals(type) && !"sqlite".equals(type) && !"mongo".equals(type)) {
+				throw new DataAccessException("unexpected DB type: '" + type + "'");
+			}
 			this.type = type;
 		}
 		if (hostname == null) {
@@ -27,7 +31,11 @@ public class DBConfig {
 			this.hostname = hostname;
 		}
 		if (port == null) {
-			this.port = 3306;
+			if ("mysql".equals(this.type)) {
+				this.port = 3306;
+			} else {
+				this.port = 27017;
+			}
 		} else {
 			this.port = port;
 		}
@@ -35,6 +43,7 @@ public class DBConfig {
 		this.password = password;
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
+		
 	}
 
 	@Override
@@ -82,11 +91,17 @@ public class DBConfig {
 			}
 			return "jdbc:sqlite:" + this.hostname + ".db";
 		}
-		if (isRoot) {
-			return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port
-					+ "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+		if ("mongo".equals(this.type)) {
+			return "mongodb:" + getLogin() + ":" + getPassword() + "//" + this.hostname + ":" + this.port;
 		}
-		return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName
-				+ "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+		if ("mysql".equals(this.type)) {
+			if (isRoot) {
+				return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port
+						+ "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+			}
+			return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName
+					+ "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
+		}
+		return "dead_code";
 	}
 }

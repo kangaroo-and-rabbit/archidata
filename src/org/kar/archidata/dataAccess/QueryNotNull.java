@@ -1,6 +1,11 @@
 package org.kar.archidata.dataAccess;
 
 import java.sql.PreparedStatement;
+import java.util.List;
+
+import org.bson.conversions.Bson;
+
+import com.mongodb.client.model.Filters;
 
 public class QueryNotNull implements QueryItem {
 	private final String key;
@@ -21,4 +26,9 @@ public class QueryNotNull implements QueryItem {
 
 	@Override
 	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {}
+
+	@Override
+	public void generateFilter(final List<Bson> filters) {
+		filters.add(Filters.exists(this.key));
+	}
 }

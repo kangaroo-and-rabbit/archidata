@@ -1,12 +1,20 @@
 package org.kar.archidata.dataAccess;
 
 import java.sql.PreparedStatement;
+import java.util.List;
+
+import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mongodb.client.model.Filters;
 
 public class QueryCondition implements QueryItem {
+	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
 	private final String key;
 	private final String comparator;
 	private final Object value;
-
+	
 	/**
 	 * Simple DB comparison element. Note the injected object is injected in the statement and not in the query directly.
 	 * @param key Field to check (the Model property name)
@@ -18,7 +26,7 @@ public class QueryCondition implements QueryItem {
 		this.comparator = comparator;
 		this.value = value;
 	}
-
+	
 	@Override
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (tableName != null) {
@@ -30,10 +38,30 @@ public class QueryCondition implements QueryItem {
 		query.append(this.comparator);
 		query.append(" ?");
 	}
-
+	
 	@Override
 	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		DataAccess.addElement(ps, this.value, iii);
 		iii.inc();
+	}
+
+	@Override
+	public void generateFilter(final List<Bson> filters) {
+		if ("=".equals(this.comparator)) {
+			filters.add(Filters.eq(this.key, this.value));
+		} else if ("!=".equals(this.comparator)) {
+			filters.add(Filters.ne(this.key, this.value));
+		} else if (">".equals(this.comparator)) {
+			filters.add(Filters.gt(this.key, this.value));
+		} else if (">=".equals(this.comparator)) {
+			filters.add(Filters.gte(this.key, this.value));
+		} else if ("<".equals(this.comparator)) {
+			filters.add(Filters.lt(this.key, this.value));
+		} else if ("<=".equals(this.comparator)) {
+			filters.add(Filters.lte(this.key, this.value));
+		} else {
+			LOGGER.error("Not manage comparison: '{}'", this.key);
+		}
+		
 	}
 }

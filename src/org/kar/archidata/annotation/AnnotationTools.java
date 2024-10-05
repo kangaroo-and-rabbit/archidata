@@ -11,6 +11,7 @@ import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import dev.morphia.annotations.Entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
@@ -31,6 +32,7 @@ import jakarta.ws.rs.DefaultValue;
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
 
+	// For SQL declaration table Name
 	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws DataAccessException {
 		if (options != null) {
 			final List<OverrideTableName> data = options.get(OverrideTableName.class);
@@ -41,19 +43,41 @@ public class AnnotationTools {
 		return AnnotationTools.getTableName(clazz);
 	}
 
-	public static String getTableName(final Class<?> element) throws DataAccessException {
+	// For SQL declaration table Name
+	public static String getTableName(final Class<?> element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
 		if (annotation.length == 0) {
 			// when no annotation is detected, then the table name is the class name
 			return element.getSimpleName();
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Table on " + element.getClass().getCanonicalName());
-		}
 		final String tmp = ((Table) annotation[0]).name();
 		if (tmp == null) {
 			return element.getSimpleName();
+		}
+		return tmp;
+	}
+
+	public static String getCollectionName(final Class<?> clazz, final QueryOptions options) {
+		if (options != null) {
+			// TODO: maybe change OverrideTableName with OverrideCollectionName
+			final List<OverrideTableName> data = options.get(OverrideTableName.class);
+			if (data.size() == 1) {
+				return data.get(0).getName();
+			}
+		}
+		return AnnotationTools.getCollectionName(clazz);
+	}
+
+	// For No-SQL Table/Collection Name
+	public static String getCollectionName(final Class<?> clazz) {
+		final Annotation[] annotation = clazz.getDeclaredAnnotationsByType(Entity.class);
+		if (annotation.length == 0) {
+			// when no annotation is detected, then the table name is the class name
+			return clazz.getSimpleName();
+		}
+		final String tmp = ((Entity) annotation[0]).value();
+		if (tmp == null) {
+			return clazz.getSimpleName();
 		}
 		return tmp;
 	}

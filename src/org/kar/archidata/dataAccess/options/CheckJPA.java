@@ -28,10 +28,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Size;
 
 public class CheckJPA<T> implements CheckFunctionInterface {
-
+	
 	private static final Logger LOGGER = LoggerFactory.getLogger(CheckJPA.class);
 	private final Class<?> clazz;
-
+	
 	/** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
 	public interface CheckInterface<K> {
 		/** This function implementation is design to check if the updated class is valid of not for insertion
@@ -40,9 +40,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		 * @throws Exception Exception is generate if the data are incorrect. */
 		void check(final String baseName, final K data, final QueryOptions options) throws Exception;
 	}
-
+	
 	protected Map<String, List<CheckInterface<T>>> checking = null;
-
+	
 	protected void add(final String field, final CheckInterface<T> checkFunction) {
 		List<CheckInterface<T>> actions = this.checking.get(field);
 		if (actions == null) {
@@ -51,11 +51,11 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 		actions.add(checkFunction);
 	}
-
+	
 	public CheckJPA(final Class<T> clazz) {
 		this.clazz = clazz;
 	}
-
+	
 	public void initialize() throws Exception {
 		if (this.checking != null) {
 			return;
@@ -84,7 +84,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						throw new InputException(baseName + fieldName, "It is forbidden to change this field");
 					});
 				}
-
+				
 				final Class<?> type = field.getType();
 				if (type == Long.class || type == long.class) {
 					final Long maxValue = AnnotationTools.getConstraintsMax(field);
@@ -131,7 +131,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 							}
 						});
 					}
-
+					
 				} else if (type == Integer.class || type == int.class) {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
@@ -191,7 +191,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						});
 					}
 				} else if (type == Boolean.class || type == boolean.class) {
-
+					
 				} else if (type == Float.class || type == float.class) {
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
@@ -251,11 +251,11 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						});
 					}
 				} else if (type == Date.class || type == Timestamp.class) {
-
+					
 				} else if (type == LocalDate.class) {
-
+					
 				} else if (type == LocalTime.class) {
-
+					
 				} else if (type == String.class) {
 					final int maxSizeString = AnnotationTools.getLimitSize(field);
 					if (maxSizeString > 0) {
@@ -337,14 +337,22 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						}
 					});
 				}
-
+				
 			}
 		} catch (final Exception ex) {
 			this.checking = null;
 			throw ex;
 		}
 	}
-
+	
+	public void check(final String baseName, final Object data) throws Exception {
+		check(baseName, data, null, null);
+	}
+	
+	public void check(final String baseName, final Object data, final List<String> filterValue) throws Exception {
+		check(baseName, data, filterValue, null);
+	}
+	
 	@Override
 	public void check(
 			final String baseName,
@@ -370,7 +378,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 		checkTyped(dataCasted, filterValue, options);
 	}
-
+	
 	public void checkTyped(final T data, final List<String> filterValue, final QueryOptions options) throws Exception {
 		// nothing to do ...
 	}
