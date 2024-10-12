@@ -14,7 +14,7 @@ public class QueryCondition implements QueryItem {
 	private final String key;
 	private final String comparator;
 	private final Object value;
-	
+
 	/**
 	 * Simple DB comparison element. Note the injected object is injected in the statement and not in the query directly.
 	 * @param key Field to check (the Model property name)
@@ -26,7 +26,7 @@ public class QueryCondition implements QueryItem {
 		this.comparator = comparator;
 		this.value = value;
 	}
-	
+
 	@Override
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (tableName != null) {
@@ -38,10 +38,11 @@ public class QueryCondition implements QueryItem {
 		query.append(this.comparator);
 		query.append(" ?");
 	}
-	
+
 	@Override
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
-		DataAccess.addElement(ps, this.value, iii);
+	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+			throws Exception {
+		ioDb.addElement(ps, this.value, iii);
 		iii.inc();
 	}
 
@@ -62,6 +63,6 @@ public class QueryCondition implements QueryItem {
 		} else {
 			LOGGER.error("Not manage comparison: '{}'", this.key);
 		}
-		
+
 	}
 }

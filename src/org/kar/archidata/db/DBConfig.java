@@ -43,7 +43,7 @@ public class DBConfig {
 		this.password = password;
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
-		
+
 	}
 
 	@Override
@@ -55,6 +55,10 @@ public class DBConfig {
 
 	public String getHostname() {
 		return this.hostname;
+	}
+
+	public String getType() {
+		return this.type;
 	}
 
 	public int getPort() {
@@ -92,7 +96,7 @@ public class DBConfig {
 			return "jdbc:sqlite:" + this.hostname + ".db";
 		}
 		if ("mongo".equals(this.type)) {
-			return "mongodb:" + getLogin() + ":" + getPassword() + "//" + this.hostname + ":" + this.port;
+			return "mongodb://" + getLogin() + ":" + getPassword() + "@" + this.hostname + ":" + this.port;
 		}
 		if ("mysql".equals(this.type)) {
 			if (isRoot) {

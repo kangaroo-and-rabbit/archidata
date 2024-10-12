@@ -1,14 +1,8 @@
 package org.kar.archidata.dataAccess.options;
 
-import java.io.IOException;
-import java.util.List;
-
-import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.db.DBConfig;
-import org.kar.archidata.db.DBEntry;
-
+@Deprecated
 public class DBInterfaceOption extends QueryOption {
+	/*
 	private DBEntry entry = null;
 	private final DBConfig config;
 	private final boolean root;
@@ -47,5 +41,6 @@ public class DBInterfaceOption extends QueryOption {
 			return dbOption.get(0).getEntry(options);
 		}
 	}
+	*/
 
 }

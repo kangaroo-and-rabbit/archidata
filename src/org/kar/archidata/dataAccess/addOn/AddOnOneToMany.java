@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryCondition;
@@ -83,8 +83,12 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
-			throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public void insertData(
+			final DataAccessSQL ioDb,
+			final PreparedStatement ps,
+			final Field field,
+			final Object rootObject,
+			final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
 		throw new IllegalAccessException("Can not generate an inset of @OneToMany");
 	}
 
@@ -219,6 +223,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
+			final DataAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -236,12 +241,12 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			return;
 		}
 		if (objectClass == Long.class) {
-			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
+			final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
 			field.set(data, idList);
 			count.inc();
 			return;
 		} else if (objectClass == UUID.class) {
-			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
 			return;
@@ -255,7 +260,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 				parentIdTmp = Long.valueOf(modelData);
 				count.inc();
 			} catch (final NumberFormatException ex) {
-				final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+				final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 				parendUuidTmp = idList.get(0);
 				count.inc();
 			}
@@ -279,7 +284,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryCondition(mappingKey, "=", parentId)));
 						if (foreignData == null) {
 							return;
@@ -290,7 +295,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 				} else if (parendUuid != null) {
 					final LazyGetter lambda = () -> {
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
 						if (foreignData == null) {
 							return;

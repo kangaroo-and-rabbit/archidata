@@ -10,15 +10,15 @@ import com.mongodb.client.model.Filters;
 
 public class QueryOr implements QueryItem {
 	protected final List<QueryItem> childs;
-	
+
 	public QueryOr(final List<QueryItem> childs) {
 		this.childs = childs;
 	}
-	
+
 	public QueryOr(final QueryItem... childs) {
 		this.childs = List.of(childs);
 	}
-	
+
 	@Override
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.childs.size() >= 1) {
@@ -37,14 +37,15 @@ public class QueryOr implements QueryItem {
 			query.append(")");
 		}
 	}
-	
+
 	@Override
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+			throws Exception {
 		for (final QueryItem elem : this.childs) {
-			elem.injectQuery(ps, iii);
+			elem.injectQuery(ioDb, ps, iii);
 		}
 	}
-	
+
 	@Override
 	public void generateFilter(final List<Bson> filters) {
 		final List<Bson> filtersLocal = new ArrayList<>();

@@ -3,6 +3,7 @@ package org.kar.archidata.dataAccess;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -28,7 +29,6 @@ import org.kar.archidata.dataAccess.addOn.AddOnManyToOne;
 import org.kar.archidata.dataAccess.addOn.AddOnOneToMany;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
-import org.kar.archidata.dataAccess.options.DBInterfaceOption;
 import org.kar.archidata.dataAccess.options.DBInterfaceRoot;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.GroupBy;
@@ -36,16 +36,13 @@ import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.db.DbInterfaceSQL;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.DateTools;
 import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.ws.rs.DefaultValue;
@@ -58,49 +55,44 @@ import jakarta.ws.rs.InternalServerErrorException;
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
 public class DataAccessSQL extends DataAccess {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataAccessSQL.class);
+	final static Logger LOGGER = LoggerFactory.getLogger(DataAccessSQL.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
-	static final List<DataAccessAddOn> addOn = new ArrayList<>();
-	
-	static {
+	final static List<DataAccessAddOn> addOn = new ArrayList<>();
+
+	{
 		addOn.add(new AddOnManyToMany());
 		addOn.add(new AddOnManyToOne());
 		addOn.add(new AddOnOneToMany());
 		addOn.add(new AddOnDataJson());
 	}
-	
+
 	/** Add a new add-on on the current management.
 	 * @param addOn instantiate object on the Add-on */
 	public static void addAddOn(final DataAccessAddOn addOn) {
 		DataAccessSQL.addOn.add(addOn);
 	}
-	
-	public DataAccessSQL() {
-		
+
+	private final DbInterfaceSQL db;
+
+	public DataAccessSQL(final DbInterfaceSQL db) {
+		this.db = db;
 	}
-	
-	public static boolean isDBExist(final String name, final QueryOption... option)
-			throws InternalServerErrorException {
+
+	public Connection getConnection() {
+		return this.db.getConnection();
+	}
+
+	@Override
+	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		final QueryOptions options = new QueryOptions(option);
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
 			return true;
 		}
-		DBEntry entry;
-		try {
-			entry = DBInterfaceOption.getAutoEntry(options);
-		} catch (final IOException ex) {
-			ex.printStackTrace();
-			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
-			
-			// TODO: TO test
-			
-			return false;
-		}
 		try {
 			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
-			final PreparedStatement ps = entry.connection.prepareStatement("show databases");
+			final PreparedStatement ps = this.db.getConnection().prepareStatement("show databases");
 			final ResultSet rs = ps.executeQuery();
 			// LOGGER.info("List all tables: equals? '{}'", name);
 			while (rs.next()) {
@@ -115,33 +107,33 @@ public class DataAccessSQL extends DataAccess {
 			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
 		} finally {
 			try {
-				entry.close();
+				this.db.close();
 			} catch (final IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			entry = null;
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
-	
-	public static boolean createDB(final String name) {
+
+	@Override
+	public boolean createDB(final String name) {
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
 			return true;
 		}
 		try {
-			return 1 == DataAccessSQL.executeSimpleQuery("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
+			return 1 == executeSimpleQuery("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
 		} catch (final SQLException | IOException ex) {
 			ex.printStackTrace();
 			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
 			return false;
 		}
 	}
-	
-	public static boolean isTableExist(final String name, final QueryOption... option)
-			throws InternalServerErrorException {
+
+	@Override
+	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		final QueryOptions options = new QueryOptions(option);
 		try {
 			String request = "";
@@ -152,17 +144,14 @@ public class DataAccessSQL extends DataAccess {
 						WHERE type = 'table'
 						AND name = ?;
 						""";
-				// PreparedStatement ps = entry.connection.prepareStatement("show tables");
-				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-				final PreparedStatement ps = entry.connection.prepareStatement(request);
+				final PreparedStatement ps = this.db.getConnection().prepareStatement(request);
 				ps.setString(1, name);
 				final ResultSet ret = ps.executeQuery();
 				final int count = ret.getInt("total");
 				return count == 1;
 			} else {
-				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
-				final PreparedStatement ps = entry.connection.prepareStatement("show tables");
+				final PreparedStatement ps = this.db.getConnection().prepareStatement("show tables");
 				final ResultSet rs = ps.executeQuery();
 				// LOGGER.info("List all tables: equals? '{}'", name);
 				while (rs.next()) {
@@ -176,19 +165,16 @@ public class DataAccessSQL extends DataAccess {
 			}
 		} catch (final SQLException ex) {
 			LOGGER.error("Can not check if the table exist SQL-error !!! {}", ex.getMessage());
-		} catch (final IOException ex) {
-			LOGGER.error("Can not check if the table exist!!! {}", ex.getMessage());
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
-	
+
 	/** Extract a list of Long with "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
 	 * @param iii Id in the result set
 	 * @return The list of Long value
 	 * @throws SQLException if an error is generated in the SQL request. */
-	public static List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator)
-			throws SQLException {
+	public List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator) throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -201,14 +187,13 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return out;
 	}
-	
+
 	/** Extract a list of UUID with "-" separated element from a SQL input data.
 	 * @param rs Result Set of the BDD
 	 * @param iii Id in the result set
 	 * @return The list of Long value
 	 * @throws SQLException if an error is generated in the SQL request. */
-	public static List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator)
-			throws SQLException {
+	public List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
 		final String trackString = rs.getString(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -221,23 +206,22 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return out;
 	}
-	
-	public static byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
+
+	public byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
 		final int inputLength = input.length;
 		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
 		final byte[][] groups = new byte[numOfGroups][16];
-		
+
 		for (int i = 0; i < numOfGroups; i++) {
 			final int startIndex = i * 16;
 			final int endIndex = Math.min(startIndex + 16, inputLength);
 			groups[i] = Arrays.copyOfRange(input, startIndex, endIndex);
 		}
-		
+
 		return groups;
 	}
-	
-	public static List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii)
-			throws SQLException, DataAccessException {
+
+	public List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
 		final byte[] trackString = rs.getBytes(iii);
 		if (rs.wasNull()) {
 			return null;
@@ -250,16 +234,16 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return out;
 	}
-	
-	public static UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+
+	public UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
 		final byte[] elem = rs.getBytes(iii);
 		if (rs.wasNull()) {
 			return null;
 		}
 		return UuidUtils.asUuid(elem);
 	}
-	
-	protected static <T> void setValuedb(
+
+	protected <T> void setValuedb(
 			final Class<?> type,
 			final T data,
 			final CountInOut iii,
@@ -376,8 +360,8 @@ public class DataAccessSQL extends DataAccess {
 		}
 		iii.inc();
 	}
-	
-	protected static <T> void setValueFromDb(
+
+	protected <T> void setValueFromDb(
 			final Class<?> type,
 			final Object data,
 			final CountInOut count,
@@ -560,13 +544,13 @@ public class DataAccessSQL extends DataAccess {
 		}
 		count.inc();
 	}
-	
+
 	// TODO: this function will replace the previous one !!!
-	protected static RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
+	protected RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
 		final Class<?> type = field.getType();
 		if (type == UUID.class) {
 			return (final ResultSet rs, final Object obj) -> {
-				
+
 				final byte[] tmp = rs.getBytes(count);
 				// final UUID tmp = rs.getObject(count, UUID.class);
 				if (rs.wasNull()) {
@@ -772,13 +756,13 @@ public class DataAccessSQL extends DataAccess {
 			};
 		}
 		throw new DataAccessException("Unknown Field Type");
-		
+
 	}
-	
+
 	public static boolean isAddOnField(final Field field) {
 		return findAddOnforField(field) != null;
 	}
-	
+
 	public static DataAccessAddOn findAddOnforField(final Field field) {
 		for (final DataAccessAddOn elem : addOn) {
 			if (elem.isCompatibleField(field)) {
@@ -787,29 +771,18 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return null;
 	}
-	
-	// TODO: manage insert batch...
-	public static <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
-		final List<T> out = new ArrayList<>();
-		for (final T elem : data) {
-			final T tmp = insert(elem, options);
-			out.add(tmp);
-		}
-		return out;
-	}
-	
+
+	@Override
 	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
-	public static <T> T insert(final T data, final QueryOption... option) throws Exception {
+	public <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
-		
+
 		// External checker of data:
 		final List<CheckFunction> checks = options.get(CheckFunction.class);
 		for (final CheckFunction check : checks) {
-			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz), options);
+			check.getChecker().check(this, "", data, AnnotationTools.getFieldsNames(clazz), options);
 		}
-		
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		Long uniqueSQLID = null;
 		UUID uniqueSQLUUID = null;
@@ -823,11 +796,11 @@ public class DataAccessSQL extends DataAccess {
 			query.append("INSERT INTO `");
 			query.append(tableName);
 			query.append("` (");
-			
+
 			boolean firstField = true;
 			int count = 0;
 			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
+				//  field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
@@ -851,7 +824,7 @@ public class DataAccessSQL extends DataAccess {
 				}
 			}
 			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
+				//  field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
@@ -907,9 +880,9 @@ public class DataAccessSQL extends DataAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+			final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
-			
+
 			final CountInOut iii = new CountInOut(1);
 			UUID uuid = null;
 			if (generateUUID) {
@@ -920,7 +893,7 @@ public class DataAccessSQL extends DataAccess {
 				iii.inc();
 			}
 			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
+				//  field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
@@ -941,7 +914,7 @@ public class DataAccessSQL extends DataAccess {
 				}
 				if (addOn != null) {
 					// Add-on specific insertion.
-					addOn.insertData(ps, elem, data, iii);
+					addOn.insertData(this, ps, elem, data, iii);
 				} else {
 					// Generic class insertion...
 					final Class<?> type = elem.getType();
@@ -1003,16 +976,14 @@ public class DataAccessSQL extends DataAccess {
 			LOGGER.error("Fail SQL request: {}", ex.getMessage());
 			ex.printStackTrace();
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
-		} finally {
-			entry.close();
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (uniqueSQLID != null) {
-				addOn.asyncInsert(tableName, uniqueSQLID, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, tableName, uniqueSQLID, field, field.get(data), asyncActions);
 			} else if (uniqueSQLUUID != null) {
-				addOn.asyncInsert(tableName, uniqueSQLUUID, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, tableName, uniqueSQLUUID, field, field.get(data), asyncActions);
 			}
 		}
 		for (final LazyGetter action : asyncActions) {
@@ -1020,105 +991,10 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return data;
 	}
-	
-	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
-	public static <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
-		final ObjectMapper mapper = new ObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		return insert(data);
-	}
-	
-	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
-			throws DataAccessException {
-		// Find the ID field type ....
-		final Field idField = AnnotationTools.getIdField(clazz);
-		if (idField == null) {
-			throw new DataAccessException(
-					"The class have no annotation @Id ==> can not determine the default type searching");
-		}
-		// check the compatibility of the id and the declared ID
-		final Class<?> typeClass = idField.getType();
-		if (idKey == null) {
-			throw new DataAccessException("Try to identify the ID type and object wa null.");
-		}
-		if (idKey.getClass() != typeClass) {
-			if (idKey.getClass() == Condition.class) {
-				throw new DataAccessException(
-						"Try to identify the ID type on a condition 'close' internal API error use xxxWhere(...) instead.");
-			}
-			throw new DataAccessException("Request update with the wrong type ...");
-		}
-		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
-	}
-	
-	/** Update an object with the inserted json data
-	 *
-	 * @param <T> Type of the object to insert
-	 * @param <ID_TYPE> Master key on the object manage with @Id
-	 * @param clazz Class reference of the insertion model
-	 * @param id Key to insert data
-	 * @param jsonData Json data (partial) values to update
-	 * @return the number of object updated
-	 * @throws Exception */
-	public static <T, ID_TYPE> int updateWithJson(
-			final Class<T> clazz,
-			final ID_TYPE id,
-			final String jsonData,
-			final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		options.add(new TransmitKey(id));
-		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
-	}
-	
-	public static <T> int updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		if (options.get(Condition.class).size() == 0) {
-			throw new DataAccessException("request a updateWhereWithJson without any condition");
-		}
-		final ObjectMapper mapper = new ObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		// Read the tree to filter injection of data:
-		final JsonNode root = mapper.readTree(jsonData);
-		final List<String> keys = new ArrayList<>();
-		final var iterator = root.fieldNames();
-		iterator.forEachRemaining(e -> keys.add(e));
-		options.add(new FilterValue(keys));
-		return updateWhere(data, options.getAllArray());
-	}
-	
-	public static <T, ID_TYPE> int update(final T data, final ID_TYPE id) throws Exception {
-		return update(data, id, AnnotationTools.getFieldsNames(data.getClass()));
-	}
-	
-	/** @param <T>
-	 * @param data
-	 * @param id
-	 * @param filterValue
-	 * @return the affected rows.
-	 * @throws Exception */
-	public static <T, ID_TYPE> int update(
-			final T data,
-			final ID_TYPE id,
-			final List<String> updateColomn,
-			final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(data.getClass(), id)));
-		options.add(new FilterValue(updateColomn));
-		options.add(new TransmitKey(id));
-		return updateWhere(data, options);
-	}
-	
-	public static <T> int updateWhere(final T data, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return updateWhere(data, options);
-	}
-	
+
+	@Override
 	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
-	public static <T> int updateWhere(final T data, QueryOptions options) throws Exception {
+	public <T> long updateWhere(final T data, QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
 		if (options == null) {
 			options = new QueryOptions();
@@ -1133,23 +1009,22 @@ public class DataAccessSQL extends DataAccess {
 		if (options != null) {
 			final List<CheckFunction> checks = options.get(CheckFunction.class);
 			for (final CheckFunction check : checks) {
-				check.getChecker().check("", data, filter.getValues(), options);
+				check.getChecker().check(this, "", data, filter.getValues(), options);
 			}
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		// real add in the BDD:
-		try (entry) {
+		try {
 			final String tableName = AnnotationTools.getTableName(clazz, options);
 			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
 			final StringBuilder query = new StringBuilder();
 			query.append("UPDATE `");
 			query.append(tableName);
 			query.append("` SET ");
-			
+
 			boolean firstField = true;
 			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
+				//  field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
@@ -1167,7 +1042,8 @@ public class DataAccessSQL extends DataAccess {
 							throw new DataAccessException(
 									"Fail to transmit Key to update the async update... (must have only 1)");
 						}
-						addOn.asyncUpdate(tableName, transmitKey.get(0).getKey(), field, field.get(data), asyncActions);
+						addOn.asyncUpdate(this, tableName, transmitKey.get(0).getKey(), field, field.get(data),
+								asyncActions);
 					}
 					continue;
 				}
@@ -1194,16 +1070,16 @@ public class DataAccessSQL extends DataAccess {
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			condition.whereAppendQuery(query, tableName, null, deletedFieldName);
-			
+
 			// If the first field is not set, then nothing to update n the main base:
 			if (!firstField) {
 				LOGGER.debug("generate update query: '{}'", query.toString());
 				// prepare the request:
-				try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+				try (final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
 						Statement.RETURN_GENERATED_KEYS)) {
 					final CountInOut iii = new CountInOut(1);
 					for (final Field field : clazz.getFields()) {
-						// static field is only for internal global declaration ==> remove it ..
+						//  field is only for internal global declaration ==> remove it ..
 						if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 							continue;
 						}
@@ -1227,10 +1103,10 @@ public class DataAccessSQL extends DataAccess {
 							}
 							setValuedb(type, data, iii, field, ps);
 						} else {
-							addOn.insertData(ps, field, data, iii);
+							addOn.insertData(this, ps, field, data, iii);
 						}
 					}
-					condition.injectQuery(ps, iii);
+					condition.injectQuery(this, ps, iii);
 					final int out = ps.executeUpdate();
 					return out;
 				}
@@ -1241,11 +1117,11 @@ public class DataAccessSQL extends DataAccess {
 		for (final LazyGetter action : asyncActions) {
 			action.doRequest();
 		}
-		return 0;
+		return 0L;
 	}
-	
-	public static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii)
-			throws Exception {
+
+	@Override
+	public void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);
@@ -1292,40 +1168,20 @@ public class DataAccessSQL extends DataAccess {
 			throw new DataAccessException("Not manage type ==> need to add it ...");
 		}
 	}
-	
-	public static int executeSimpleQuery(final String query, final QueryOption... option)
-			throws SQLException, IOException {
-		final QueryOptions options = new QueryOptions(option);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
+
+	public long executeSimpleQuery(final String query, final QueryOption... option) throws SQLException, IOException {
 		LOGGER.info("Query : '{}'", query);
-		try (final Statement stmt = entry.connection.createStatement()) {
+		try (final Statement stmt = this.db.getConnection().createStatement()) {
 			return stmt.executeUpdate(query);
 		}
 	}
-	
-	public static boolean executeQuery(final String query, final QueryOption... option)
-			throws SQLException, IOException {
-		final QueryOptions options = new QueryOptions(option);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		try (final Statement stmt = entry.connection.createStatement()) {
+
+	public boolean executeQuery(final String query, final QueryOption... option) throws SQLException, IOException {
+		try (final Statement stmt = this.db.getConnection().createStatement()) {
 			return stmt.execute(query);
 		}
 	}
-	
-	public static <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
-		options.add(new Limit(1));
-		final List<T> values = getsWhere(clazz, options);
-		if (values.size() == 0) {
-			return null;
-		}
-		return values.get(0);
-	}
-	
-	public static <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return getWhere(clazz, options);
-	}
-	
+
 	public static void generateSelectField(//
 			final StringBuilder querySelect, //
 			final StringBuilder query, //
@@ -1337,9 +1193,9 @@ public class DataAccessSQL extends DataAccess {
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String primaryKey = AnnotationTools.getPrimaryKeyField(clazz).getName();
 		boolean firstField = true;
-		
+
 		for (final Field elem : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
+			//  field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 				continue;
 			}
@@ -1368,46 +1224,16 @@ public class DataAccessSQL extends DataAccess {
 			}
 		}
 	}
-	
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return getsWhere(clazz, options);
-	}
-	
-	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
-			throws DataAccessException {
-		if (options == null) {
-			return new Condition();
-		}
-		final List<Condition> conditions = options.get(Condition.class);
-		if (conditions.size() == 0) {
-			if (throwIfEmpty) {
-				throw new DataAccessException("request a gets without any condition");
-			} else {
-				return new Condition();
-			}
-		}
-		Condition condition = null;
-		if (conditions.size() == 1) {
-			condition = conditions.get(0);
-		} else {
-			final QueryAnd andCondition = new QueryAnd();
-			for (final Condition cond : conditions) {
-				andCondition.add(cond.condition);
-			}
-			condition = new Condition(andCondition);
-		}
-		return condition;
-	}
-	
+
+	@Override
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final List<T> outs = new ArrayList<>();
-		try (final DBEntry entry = DBInterfaceOption.getAutoEntry(options)) {
+		try {
 			final CountInOut count = new CountInOut();
 			final StringBuilder querySelect = new StringBuilder();
 			StringBuilder query = new StringBuilder();
@@ -1416,7 +1242,7 @@ public class DataAccessSQL extends DataAccess {
 			query.append(" FROM `");
 			query.append(tableName);
 			query.append("` ");
-			
+
 			generateSelectField(querySelect, query, clazz, options, count);
 			querySelect.append(query.toString());
 			query = querySelect;
@@ -1437,12 +1263,12 @@ public class DataAccessSQL extends DataAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+			try (final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS)) {
 				final CountInOut iii = new CountInOut(1);
-				condition.injectQuery(ps, iii);
+				condition.injectQuery(this, ps, iii);
 				if (limits.size() == 1) {
-					limits.get(0).injectQuery(ps, iii);
+					limits.get(0).injectQuery(this, ps, iii);
 				}
 				// execute the request
 				final ResultSet rs = ps.executeQuery();
@@ -1467,8 +1293,8 @@ public class DataAccessSQL extends DataAccess {
 		}
 		return outs;
 	}
-	
-	public static Object createObjectFromSQLRequest(
+
+	public Object createObjectFromSQLRequest(
 			final ResultSet rs,
 			final Class<?> clazz,
 			final CountInOut count,
@@ -1488,7 +1314,7 @@ public class DataAccessSQL extends DataAccess {
 					"Can not find the default constructor for the class: " + clazz.getCanonicalName());
 		}
 		for (final Field elem : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
+			//  field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 				continue;
 			}
@@ -1501,30 +1327,18 @@ public class DataAccessSQL extends DataAccess {
 				continue;
 			}
 			if (addOn != null) {
-				addOn.fillFromQuery(rs, elem, data, count, options, lazyCall);
+				addOn.fillFromQuery(this, rs, elem, data, count, options, lazyCall);
 			} else {
 				setValueFromDb(elem.getType(), data, count, elem, rs, countNotNull);
 			}
 		}
 		return data;
 	}
-	
-	public static <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return DataAccessSQL.countWhere(clazz, options);
-	}
-	
-	public static long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return countWhere(clazz, options);
-	}
-	
-	public static long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
+
+	@Override
+	public long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		long count = 0;
 		// real add in the BDD:
 		try {
@@ -1542,12 +1356,12 @@ public class DataAccessSQL extends DataAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+			final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuery(ps, iii);
+			condition.injectQuery(this, ps, iii);
 			if (limits.size() == 1) {
-				limits.get(0).injectQuery(ps, iii);
+				limits.get(0).injectQuery(this, ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1559,104 +1373,37 @@ public class DataAccessSQL extends DataAccess {
 			throw ex;
 		} catch (final Exception ex) {
 			ex.printStackTrace();
-		} finally {
-			entry.close();
-			entry = null;
 		}
 		return count;
 	}
-	
-	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return DataAccessSQL.getWhere(clazz, options.getAllArray());
-	}
-	
-	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
-		return getsWhere(clazz);
-	}
-	
-	public static <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
-		return getsWhere(clazz, option);
-	}
-	
-	/** Delete items with the specific Id (cf @Id) and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
-	 * @param <ID_TYPE> Type of the reference @Id
-	 * @param clazz Data model that might remove element
-	 * @param id Unique Id of the model
-	 * @param options (Optional) Options of the request
-	 * @return Number of element that is removed. */
-	public static <ID_TYPE> int delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
-			throws Exception {
-		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		if (hasDeletedFieldName != null) {
-			return deleteSoft(clazz, id, options);
-		} else {
-			return deleteHard(clazz, id, options);
-		}
-	}
-	
-	/** Delete items with the specific condition and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
-	 * @param clazz Data model that might remove element.
-	 * @param condition Condition to remove elements.
-	 * @param options (Optional) Options of the request.
-	 * @return Number of element that is removed. */
-	public static int deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		
-		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		if (hasDeletedFieldName != null) {
-			return deleteSoftWhere(clazz, option);
-		} else {
-			return deleteHardWhere(clazz, option);
-		}
-	}
-	
-	public static <ID_TYPE> int deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return deleteHardWhere(clazz, options.getAllArray());
-	}
-	
-	public static int deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+
+	@Override
+	public long deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		// find the deleted field
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final StringBuilder query = new StringBuilder();
 		query.append("DELETE FROM `");
 		query.append(tableName);
 		query.append("` ");
 		condition.whereAppendQuery(query, tableName, null, deletedFieldName);
-		try {
-			LOGGER.debug("APPLY: {}", query.toString());
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			final CountInOut iii = new CountInOut(1);
-			condition.injectQuery(ps, iii);
-			return ps.executeUpdate();
-		} finally {
-			entry.close();
-		}
+		LOGGER.debug("APPLY: {}", query.toString());
+		final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString());
+		final CountInOut iii = new CountInOut(1);
+		condition.injectQuery(this, ps, iii);
+		return ps.executeUpdate();
 	}
-	
-	private static <ID_TYPE> int deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return deleteSoftWhere(clazz, options.getAllArray());
-	}
-	
-	public static int deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+
+	@Override
+	public long deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		/* String updateFieldName = null; if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) { updateFieldName = AnnotationTools.getUpdatedFieldName(clazz); } */
 		// find the deleted field
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final StringBuilder query = new StringBuilder();
 		query.append("UPDATE `");
 		query.append(tableName);
@@ -1666,41 +1413,23 @@ public class DataAccessSQL extends DataAccess {
 		/* The trigger work well, but the timestamp is store @ seconds... if (updateFieldName != null) { // done only in SQLite (the trigger does not work... query.append(", `");
 		 * query.append(updateFieldName); query.append("`=DATE()"); } */
 		condition.whereAppendQuery(query, tableName, null, deletedFieldName);
-		try {
-			LOGGER.debug("APPLY UPDATE: {}", query.toString());
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			final CountInOut iii = new CountInOut(1);
-			condition.injectQuery(ps, iii);
-			return ps.executeUpdate();
-		} finally {
-			entry.close();
-		}
+
+		LOGGER.debug("APPLY UPDATE: {}", query.toString());
+		final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString());
+		final CountInOut iii = new CountInOut(1);
+		condition.injectQuery(this, ps, iii);
+		return ps.executeUpdate();
+
 	}
-	
-	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
-		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
-	}
-	
-	public static <ID_TYPE> int unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
-			throws DataAccessException {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		return unsetDeleteWhere(clazz, options.getAllArray());
-	}
-	
-	public static int unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
+
+	@Override
+	public long unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
 			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
-		}
-		DBEntry entry;
-		try {
-			entry = DBInterfaceOption.getAutoEntry(options);
-		} catch (final IOException ex) {
-			throw new DataAccessException("Fail to connect the DB: " + ex.getMessage());
 		}
 		final StringBuilder query = new StringBuilder();
 		query.append("UPDATE `");
@@ -1711,9 +1440,9 @@ public class DataAccessSQL extends DataAccess {
 		// need to disable the deleted false because the model must be unselected to be updated.
 		options.add(QueryOptions.ACCESS_DELETED_ITEMS);
 		condition.whereAppendQuery(query, tableName, options, deletedFieldName);
-		try (final PreparedStatement ps = entry.connection.prepareStatement(query.toString())) {
+		try (final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString())) {
 			final CountInOut iii = new CountInOut(1);
-			condition.injectQuery(ps, iii);
+			condition.injectQuery(this, ps, iii);
 			return ps.executeUpdate();
 		} catch (final SQLException ex) {
 			throw new DataAccessException("Catch SQL error:" + ex.getMessage());
@@ -1721,72 +1450,63 @@ public class DataAccessSQL extends DataAccess {
 			throw new DataAccessException("Fail to excute the SQL query:" + ex.getMessage());
 		}
 	}
-	
-	public static void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
+
+	@Override
+	public void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final StringBuilder query = new StringBuilder();
 		query.append("DROP TABLE IF EXISTS `");
 		query.append(tableName);
 		query.append("`");
-		try {
-			LOGGER.trace("Execute Query: {}", query.toString());
-			// Remove main table
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			ps.executeUpdate();
-			// search subTable:
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				if (AnnotationTools.isGenericField(field)) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					addOn.drop(tableName, field);
-				}
+		LOGGER.trace("Execute Query: {}", query.toString());
+		// Remove main table
+		final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString());
+		ps.executeUpdate();
+		// search subTable:
+		for (final Field field : clazz.getFields()) {
+			//  field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
 			}
-		} finally {
-			entry.close();
+			if (AnnotationTools.isGenericField(field)) {
+				continue;
+			}
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null && !addOn.canInsert(field)) {
+				addOn.drop(this, tableName, field);
+			}
 		}
 	}
-	
-	public static void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
+
+	@Override
+	public void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
-		DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final StringBuilder query = new StringBuilder();
 		query.append("DELETE FROM `");
 		query.append(tableName);
 		query.append("`");
-		try {
-			LOGGER.trace("Execute Query: {}", query.toString());
-			// Remove main table
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			ps.executeUpdate();
-			// search subTable:
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				if (AnnotationTools.isGenericField(field)) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					addOn.cleanAll(tableName, field);
-				}
+		LOGGER.trace("Execute Query: {}", query.toString());
+		// Remove main table
+		final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString());
+		ps.executeUpdate();
+		// search subTable:
+		for (final Field field : clazz.getFields()) {
+			//  field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
 			}
-		} finally {
-			entry.close();
-			entry = null;
+			if (AnnotationTools.isGenericField(field)) {
+				continue;
+			}
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null && !addOn.canInsert(field)) {
+				addOn.cleanAll(this, tableName, field);
+			}
 		}
 	}
-	
+
 	/** Execute a simple query with external property.
 	 * @param <TYPE> Type of the data generate.
 	 * @param clazz Class that might be analyze.
@@ -1795,7 +1515,7 @@ public class DataAccessSQL extends DataAccess {
 	 * @param option Optional parameters
 	 * @return The list of element requested
 	 * @throws Exception */
-	public static <TYPE> List<TYPE> query(
+	public <TYPE> List<TYPE> query(
 			final Class<TYPE> clazz,
 			final String query,
 			final List<Object> parameters,
@@ -1803,16 +1523,13 @@ public class DataAccessSQL extends DataAccess {
 		final QueryOptions options = new QueryOptions(option);
 		return query(clazz, query, parameters, options);
 	}
-	
-	public static <TYPE> List<TYPE> query(
+
+	public <TYPE> List<TYPE> query(
 			final Class<TYPE> clazz,
 			final String queryBase,
 			final List<Object> parameters,
 			final QueryOptions options) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
-		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final StringBuilder query = new StringBuilder(queryBase);
 		final List<TYPE> outs = new ArrayList<>();
@@ -1820,7 +1537,7 @@ public class DataAccessSQL extends DataAccess {
 		try {
 			final CountInOut count = new CountInOut();
 			condition.whereAppendQuery(query, null, options, null);
-			
+
 			final List<GroupBy> groups = options.get(GroupBy.class);
 			for (final GroupBy group : groups) {
 				group.generateQuery(query, null);
@@ -1837,18 +1554,18 @@ public class DataAccessSQL extends DataAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+			final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
 				for (final Object elem : parameters) {
-					DataAccessSQL.addElement(ps, elem, iii);
+					addElement(ps, elem, iii);
 				}
 				iii.inc();
 			}
-			condition.injectQuery(ps, iii);
+			condition.injectQuery(this, ps, iii);
 			if (limits.size() == 1) {
-				limits.get(0).injectQuery(ps, iii);
+				limits.get(0).injectQuery(this, ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -1867,7 +1584,7 @@ public class DataAccessSQL extends DataAccess {
 				final RetreiveFromDB element = createSetValueFromDbCallback(jjj + 1, field);
 				actionToRetreive.add(element);
 			}
-			
+
 			while (rs.next()) {
 				count.value = 1;
 				Object data = null;
@@ -1896,8 +1613,6 @@ public class DataAccessSQL extends DataAccess {
 			throw ex;
 		} catch (final Exception ex) {
 			ex.printStackTrace();
-		} finally {
-			entry.close();
 		}
 		return outs;
 	}

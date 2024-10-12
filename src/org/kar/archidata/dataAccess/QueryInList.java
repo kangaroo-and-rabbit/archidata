@@ -48,9 +48,10 @@ public class QueryInList<T> implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+			throws Exception {
 		for (final Object elem : this.value) {
-			DataAccess.addElement(ps, elem, iii);
+			ioDb.addElement(ps, elem, iii);
 			iii.inc();
 		}
 	}

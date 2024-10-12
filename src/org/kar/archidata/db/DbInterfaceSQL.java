@@ -11,13 +11,13 @@ import org.slf4j.LoggerFactory;
 
 public class DbInterfaceSQL extends DbInterface implements Closeable {
 	final static Logger LOGGER = LoggerFactory.getLogger(DbInterfaceSQL.class);
-	
-	private final Connection connection;
-	
-	public DbInterfaceSQL(final DBConfig config, final String dbName, final Class<?>... classes) throws IOException {
+
+	private Connection connection = null;
+
+	public DbInterfaceSQL(final DBConfig config) throws IOException {
 		this(config.getUrl(), config.getLogin(), config.getPassword());
 	}
-	
+
 	public DbInterfaceSQL(final String dbUrl, final String login, final String password) throws IOException {
 		try {
 			this.connection = DriverManager.getConnection(dbUrl, login, password);
@@ -26,7 +26,7 @@ public class DbInterfaceSQL extends DbInterface implements Closeable {
 			throw new IOException("Connection db fail: " + ex.getMessage() + " On URL: " + dbUrl);
 		}
 	}
-	
+
 	public Connection getConnection() {
 		return this.connection;
 	}
@@ -35,6 +35,7 @@ public class DbInterfaceSQL extends DbInterface implements Closeable {
 	public void close() throws IOException {
 		try {
 			this.connection.close();
+			this.connection = null;
 		} catch (final SQLException ex) {
 			throw new IOException("Dis-connection db fail: " + ex.getMessage());
 		}

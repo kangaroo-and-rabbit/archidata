@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.kar.archidata.dataAccess.CountInOut;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.QueryItem;
 import org.kar.archidata.dataAccess.QueryOptions;
 
@@ -14,27 +15,28 @@ import com.mongodb.client.model.Filters;
 /** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
 public class Condition extends QueryOption {
 	public final QueryItem condition;
-	
+
 	public Condition(final QueryItem items) {
 		this.condition = items;
 	}
-	
+
 	public Condition() {
 		this.condition = null;
 	}
-	
+
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.condition != null) {
 			this.condition.generateQuery(query, tableName);
 		}
 	}
-	
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
+
+	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+			throws Exception {
 		if (this.condition != null) {
-			this.condition.injectQuery(ps, iii);
+			this.condition.injectQuery(ioDb, ps, iii);
 		}
 	}
-	
+
 	public void whereAppendQuery(
 			final StringBuilder query,
 			final String tableName,
@@ -67,7 +69,7 @@ public class Condition extends QueryOption {
 		}
 		query.append("\n");
 	}
-	
+
 	public Bson getFilter(final String collectionName, final QueryOptions options, final String deletedFieldName) {
 		boolean exclude_deleted = true;
 		if (options != null) {

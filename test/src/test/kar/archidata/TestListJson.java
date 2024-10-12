@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,8 @@ import test.kar.archidata.model.SerializeListAsJson;
 public class TestListJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
 
+	private DataAccess da = null;
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();
@@ -34,13 +37,19 @@ public class TestListJson {
 		ConfigureDb.clear();
 	}
 
+	public TestListJson() {
+		this.da = DataAccess.createInterface();
+	}
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJson.class);
-		for (final String elem : sqlCommand) {
-			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuery(elem);
+		if (this.da instanceof final DataAccessSQL daSQL) {
+			for (final String elem : sqlCommand) {
+				LOGGER.debug("request: '{}'", elem);
+				daSQL.executeSimpleQuery(elem);
+			}
 		}
 	}
 
@@ -55,7 +64,7 @@ public class TestListJson {
 		test.data.add(6);
 		test.data.add(51);
 
-		final SerializeListAsJson insertedData = DataAccess.insert(test);
+		final SerializeListAsJson insertedData = this.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
@@ -69,7 +78,7 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(4), insertedData.data.get(4));
 
 		// Try to retrieve all the data:
-		final SerializeListAsJson retrieve = DataAccess.get(SerializeListAsJson.class, insertedData.id);
+		final SerializeListAsJson retrieve = this.da.get(SerializeListAsJson.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);

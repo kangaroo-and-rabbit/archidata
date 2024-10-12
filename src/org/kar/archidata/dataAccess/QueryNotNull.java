@@ -25,7 +25,8 @@ public class QueryNotNull implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {}
+	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+			throws Exception {}
 
 	@Override
 	public void generateFilter(final List<Bson> filters) {

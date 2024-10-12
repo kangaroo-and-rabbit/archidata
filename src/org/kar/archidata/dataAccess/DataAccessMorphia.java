@@ -6,7 +6,6 @@ import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,24 +24,17 @@ import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
-import org.kar.archidata.dataAccess.options.DBInterfaceOption;
-import org.kar.archidata.dataAccess.options.DBInterfaceRoot;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
-import org.kar.archidata.dataAccess.options.TransmitKey;
-import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.db.DbInterfaceMorphia;
 import org.kar.archidata.exception.DataAccessException;
-import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.DateTools;
 import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -61,7 +53,7 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
-public class DataAccessMorphia {
+public class DataAccessMorphia extends DataAccess {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataAccessMorphia.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
@@ -87,105 +79,23 @@ public class DataAccessMorphia {
 		this.db = db;
 	}
 
+	public DbInterfaceMorphia getInterface() {
+		return this.db;
+	}
+
+	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		final QueryOptions options = new QueryOptions(option);
-		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
-			// no base manage in sqLite ...
-			// TODO: check if the file exist or not ...
-			return true;
-		}
-		DBEntry entry;
-		try {
-			entry = DBInterfaceOption.getAutoEntry(options);
-		} catch (final IOException ex) {
-			ex.printStackTrace();
-			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
-
-			// TODO: TO test
-
-			return false;
-		}
-		try {
-			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
-			final PreparedStatement ps = entry.connection.prepareStatement("show databases");
-			final ResultSet rs = ps.executeQuery();
-			// LOGGER.info("List all tables: equals? '{}'", name);
-			while (rs.next()) {
-				final String data = rs.getString(1);
-				// LOGGER.info(" - '{}'", data);
-				if (name.equals(data)) {
-					return true;
-				}
-			}
-			return false;
-		} catch (final SQLException ex) {
-			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
-		} finally {
-			try {
-				entry.close();
-			} catch (final IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			entry = null;
-		}
-		throw new InternalServerErrorException("Can Not manage the DB-access");
+		return true;
 	}
 
+	@Override
 	public boolean createDB(final String name) {
-		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
-			// no base manage in sqLite ...
-			// TODO: check if the file exist or not ...
-			return true;
-		}
-		try {
-			return 1 == executeSimpleQuery("CREATE DATABASE `" + name + "`;", new DBInterfaceRoot(true));
-		} catch (final SQLException | IOException ex) {
-			ex.printStackTrace();
-			LOGGER.error("Can not check if the DB exist!!! {}", ex.getMessage());
-			return false;
-		}
+		return true;
 	}
 
+	@Override
 	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		final QueryOptions options = new QueryOptions(option);
-		try {
-			String request = "";
-			if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
-				request = """
-						SELECT COUNT(*) AS total
-						FROM sqlite_master
-						WHERE type = 'table'
-						AND name = ?;
-						""";
-				// PreparedStatement ps = entry.connection.prepareStatement("show tables");
-				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-				final PreparedStatement ps = entry.connection.prepareStatement(request);
-				ps.setString(1, name);
-				final ResultSet ret = ps.executeQuery();
-				final int count = ret.getInt("total");
-				return count == 1;
-			} else {
-				final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
-				final PreparedStatement ps = entry.connection.prepareStatement("show tables");
-				final ResultSet rs = ps.executeQuery();
-				// LOGGER.info("List all tables: equals? '{}'", name);
-				while (rs.next()) {
-					final String data = rs.getString(1);
-					// LOGGER.info(" - '{}'", data);
-					if (name.equals(data)) {
-						return true;
-					}
-				}
-				return false;
-			}
-		} catch (final SQLException ex) {
-			LOGGER.error("Can not check if the table exist SQL-error !!! {}", ex.getMessage());
-		} catch (final IOException ex) {
-			LOGGER.error("Can not check if the table exist!!! {}", ex.getMessage());
-		}
-		throw new InternalServerErrorException("Can Not manage the DB-access");
+		return true;
 	}
 
 	/** Extract a list of Long with "-" separated element from a SQL input data.
@@ -270,7 +180,6 @@ public class DataAccessMorphia {
 			final Document docSet,
 			final Document docUnSet) throws Exception {
 		if (type == long.class) {
-
 			docSet.append(fieldName, field.getLong(data));
 			return;
 		}
@@ -497,7 +406,7 @@ public class DataAccessMorphia {
 			final String value = doc.getString(fieldName);
 			field.set(data, value);
 			return;
-			
+
 		}
 		if (type.isEnum()) {
 			final String value = doc.getString(fieldName);
@@ -749,16 +658,6 @@ public class DataAccessMorphia {
 		return null;
 	}
 
-	// TODO: manage insert batch...
-	public <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
-		final List<T> out = new ArrayList<>();
-		for (final T elem : data) {
-			final T tmp = insert(elem, options);
-			out.add(tmp);
-		}
-		return out;
-	}
-	
 	public long getNextSequenceLongValue(final String collectionName, String fieldName) {
 		if (fieldName == null || fieldName.isEmpty()) {
 			fieldName = "sequence_id";
@@ -784,6 +683,7 @@ public class DataAccessMorphia {
 		return updatedCounter.getLong(fieldName);
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
@@ -792,10 +692,9 @@ public class DataAccessMorphia {
 		// External checker of data:
 		final List<CheckFunction> checks = options.get(CheckFunction.class);
 		for (final CheckFunction check : checks) {
-			check.getChecker().check("", data, AnnotationTools.getFieldsNames(clazz), options);
+			check.getChecker().check(this, "", data, AnnotationTools.getFieldsNames(clazz), options);
 		}
 
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
 		Field primaryKeyField = null;
@@ -872,8 +771,6 @@ public class DataAccessMorphia {
 			LOGGER.error("Fail SQL request: {}", ex.getMessage());
 			ex.printStackTrace();
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
-		} finally {
-			entry.close();
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 		for (final Field field : asyncFieldUpdate) {
@@ -892,102 +789,7 @@ public class DataAccessMorphia {
 		return (T) getWhere(clazz, new Condition(new QueryCondition("_id", "=", insertedId)));
 	}
 
-	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
-	public <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
-		final ObjectMapper mapper = new ObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		return insert(data);
-	}
-
-	public <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
-			throws DataAccessException {
-		// Find the ID field type ....
-		final Field idField = AnnotationTools.getIdField(clazz);
-		if (idField == null) {
-			throw new DataAccessException(
-					"The class have no annotation @Id ==> can not determine the default type searching");
-		}
-		// check the compatibility of the id and the declared ID
-		final Class<?> typeClass = idField.getType();
-		if (idKey == null) {
-			throw new DataAccessException("Try to identify the ID type and object wa null.");
-		}
-		if (idKey.getClass() != typeClass) {
-			if (idKey.getClass() == Condition.class) {
-				throw new DataAccessException(
-						"Try to identify the ID type on a condition 'close' internal API error use xxxWhere(...) instead.");
-			}
-			throw new DataAccessException("Request update with the wrong type ...");
-		}
-		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
-	}
-
-	/** Update an object with the inserted json data
-	 *
-	 * @param <T> Type of the object to insert
-	 * @param <ID_TYPE> Master key on the object manage with @Id
-	 * @param clazz Class reference of the insertion model
-	 * @param id Key to insert data
-	 * @param jsonData Json data (partial) values to update
-	 * @return the number of object updated
-	 * @throws Exception */
-	public <T, ID_TYPE> long updateWithJson(
-			final Class<T> clazz,
-			final ID_TYPE id,
-			final String jsonData,
-			final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
-		options.add(new TransmitKey(id));
-		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
-	}
-
-	public <T> long updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		if (options.get(Condition.class).size() == 0) {
-			throw new DataAccessException("request a updateWhereWithJson without any condition");
-		}
-		final ObjectMapper mapper = new ObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		// Read the tree to filter injection of data:
-		final JsonNode root = mapper.readTree(jsonData);
-		final List<String> keys = new ArrayList<>();
-		final var iterator = root.fieldNames();
-		iterator.forEachRemaining(e -> keys.add(e));
-		options.add(new FilterValue(keys));
-		return updateWhere(data, options.getAllArray());
-	}
-
-	public <T, ID_TYPE> long update(final T data, final ID_TYPE id) throws Exception {
-		return update(data, id, AnnotationTools.getFieldsNames(data.getClass()));
-	}
-
-	/** @param <T>
-	 * @param data
-	 * @param id
-	 * @param filterValue
-	 * @return the affected rows.
-	 * @throws Exception */
-	public <T, ID_TYPE> long update(
-			final T data,
-			final ID_TYPE id,
-			final List<String> updateColomn,
-			final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(data.getClass(), id)));
-		options.add(new FilterValue(updateColomn));
-		options.add(new TransmitKey(id));
-		return updateWhere(data, options);
-	}
-
-	public <T> long updateWhere(final T data, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return updateWhere(data, options);
-	}
-
+	@Override
 	public <T> long updateWhere(final T data, QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
 		if (options == null) {
@@ -1003,7 +805,7 @@ public class DataAccessMorphia {
 		if (options != null) {
 			final List<CheckFunction> checks = options.get(CheckFunction.class);
 			for (final CheckFunction check : checks) {
-				check.getChecker().check("", data, filterKey.getValues(), options);
+				check.getChecker().check(this, "", data, filterKey.getValues(), options);
 			}
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
@@ -1011,7 +813,7 @@ public class DataAccessMorphia {
 		// real add in the BDD:
 		try {
 			final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-			
+
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			final Document docSet = new Document();
@@ -1090,6 +892,7 @@ public class DataAccessMorphia {
 		return 0;
 	}
 
+	@Override
 	public void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
@@ -1136,37 +939,6 @@ public class DataAccessMorphia {
 		} else {
 			throw new DataAccessException("Not manage type ==> need to add it ...");
 		}
-	}
-
-	public int executeSimpleQuery(final String query, final QueryOption... option) throws SQLException, IOException {
-		final QueryOptions options = new QueryOptions(option);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		LOGGER.info("Query : '{}'", query);
-		try (final Statement stmt = entry.connection.createStatement()) {
-			return stmt.executeUpdate(query);
-		}
-	}
-
-	public boolean executeQuery(final String query, final QueryOption... option) throws SQLException, IOException {
-		final QueryOptions options = new QueryOptions(option);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		try (final Statement stmt = entry.connection.createStatement()) {
-			return stmt.execute(query);
-		}
-	}
-
-	public <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
-		options.add(new Limit(1));
-		final List<T> values = getsWhere(clazz, options);
-		if (values.size() == 0) {
-			return null;
-		}
-		return values.get(0);
-	}
-
-	public <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return getWhere(clazz, options);
 	}
 
 	// This must be refactored to manage the .project of Morphia.
@@ -1216,11 +988,13 @@ public class DataAccessMorphia {
 		*/
 	}
 
+	@Override
 	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return getsWhere(clazz, options);
 	}
 
+	@Override
 	public Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException {
 		if (options == null) {
@@ -1247,10 +1021,11 @@ public class DataAccessMorphia {
 		return condition;
 	}
 
+	@Override
 	@SuppressWarnings("unchecked")
 	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
-		
+
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -1284,7 +1059,7 @@ public class DataAccessMorphia {
 				}
 				retFind = retFind.sort(sorts);
 			}
-			
+
 			final List<Limit> limits = options.get(Limit.class);
 			if (limits.size() == 1) {
 				retFind = retFind.limit((int) limits.get(0).getValue());
@@ -1363,17 +1138,20 @@ public class DataAccessMorphia {
 		return data;
 	}
 
+	@Override
 	public <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return this.countWhere(clazz, options);
 	}
 
+	@Override
 	public long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return countWhere(clazz, options);
 	}
 
+	@Override
 	public long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -1392,16 +1170,19 @@ public class DataAccessMorphia {
 		}
 	}
 
+	@Override
 	public <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return this.getWhere(clazz, options.getAllArray());
 	}
 
+	@Override
 	public <T> List<T> gets(final Class<T> clazz) throws Exception {
 		return getsWhere(clazz);
 	}
 
+	@Override
 	public <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
 		return getsWhere(clazz, option);
 	}
@@ -1412,6 +1193,7 @@ public class DataAccessMorphia {
 	 * @param id Unique Id of the model
 	 * @param options (Optional) Options of the request
 	 * @return Number of element that is removed. */
+	@Override
 	public <ID_TYPE> long delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
@@ -1427,6 +1209,7 @@ public class DataAccessMorphia {
 	 * @param condition Condition to remove elements.
 	 * @param options (Optional) Options of the request.
 	 * @return Number of element that is removed. */
+	@Override
 	public long deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
@@ -1436,6 +1219,7 @@ public class DataAccessMorphia {
 		}
 	}
 
+	@Override
 	public <ID_TYPE> long deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
@@ -1443,6 +1227,7 @@ public class DataAccessMorphia {
 		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
+	@Override
 	public long deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
@@ -1466,6 +1251,7 @@ public class DataAccessMorphia {
 		return deleteSoftWhere(clazz, options.getAllArray());
 	}
 
+	@Override
 	public long deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
@@ -1479,10 +1265,12 @@ public class DataAccessMorphia {
 		return ret.getModifiedCount();
 	}
 
+	@Override
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
 		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
 	}
 
+	@Override
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
@@ -1490,6 +1278,7 @@ public class DataAccessMorphia {
 		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 
+	@Override
 	public long unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
@@ -1506,6 +1295,7 @@ public class DataAccessMorphia {
 		return ret.getModifiedCount();
 	}
 
+	@Override
 	public void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
 		/*
 		final QueryOptions options = new QueryOptions(option);
@@ -1541,6 +1331,7 @@ public class DataAccessMorphia {
 		*/
 	}
 
+	@Override
 	public void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
 		/*
 		final QueryOptions options = new QueryOptions(option);

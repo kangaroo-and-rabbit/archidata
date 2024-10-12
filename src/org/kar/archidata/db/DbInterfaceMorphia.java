@@ -19,14 +19,18 @@ import dev.morphia.Datastore;
 import dev.morphia.Morphia;
 
 public class DbInterfaceMorphia extends DbInterface implements Closeable {
-	final static Logger LOGGER = LoggerFactory.getLogger(DbInterfaceMorphia.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(DbInterfaceMorphia.class);
 	private final MongoClient mongoClient;
 	private final Datastore datastore;
-	
+
+	public DbInterfaceMorphia(final DBConfig config, final Class<?>... classes) throws IOException {
+		this(config.getUrl(), config.getDbName(), classes);
+	}
+
 	public DbInterfaceMorphia(final String dbUrl, final String dbName, final Class<?>... classes) {
 		// Connect to MongoDB (simple form):
 		// final MongoClient mongoClient = MongoClients.create(dbUrl);
-		
+		LOGGER.info("Connect on the DB: {}", dbUrl);
 		// Connect to MongoDB (complex form):
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
@@ -37,7 +41,7 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		// Ajouter le CodecRegistry par défaut, le codec UUID et celui pour POJOs
 		//final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
 		//		MongoClientSettings.getDefaultCodecRegistry(), /*uuidCodecRegistry, */ pojoCodecRegistry);
-		
+
 		final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
@@ -55,11 +59,11 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		// Ensure indexes
 		this.datastore.ensureIndexes();
 	}
-	
+
 	public Datastore getDatastore() {
 		return this.datastore;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		this.mongoClient.close();

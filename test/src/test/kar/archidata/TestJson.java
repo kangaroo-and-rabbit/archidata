@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,8 @@ import test.kar.archidata.model.SimpleTable;
 public class TestJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestJson.class);
 
+	private DataAccess da = null;
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();
@@ -34,13 +37,19 @@ public class TestJson {
 		ConfigureDb.clear();
 	}
 
+	public TestJson() {
+		this.da = DataAccess.createInterface();
+	}
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeAsJson.class);
-		for (final String elem : sqlCommand) {
-			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuery(elem);
+		if (this.da instanceof final DataAccessSQL daSQL) {
+			for (final String elem : sqlCommand) {
+				LOGGER.debug("request: '{}'", elem);
+				daSQL.executeSimpleQuery(elem);
+			}
 		}
 	}
 
@@ -51,7 +60,7 @@ public class TestJson {
 		test.data = new SimpleTable();
 		test.data.data = "plopppopql";
 
-		final SerializeAsJson insertedData = DataAccess.insert(test);
+		final SerializeAsJson insertedData = this.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
@@ -61,7 +70,7 @@ public class TestJson {
 		Assertions.assertEquals(test.data.data, insertedData.data.data);
 
 		// Try to retrieve all the data:
-		final SerializeAsJson retrieve = DataAccess.get(SerializeAsJson.class, insertedData.id);
+		final SerializeAsJson retrieve = this.da.get(SerializeAsJson.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);

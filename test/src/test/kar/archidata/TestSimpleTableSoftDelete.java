@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -32,6 +33,8 @@ public class TestSimpleTableSoftDelete {
 	private static Long idOfTheObject = null;
 	private static Timestamp startAction = null;
 
+	private DataAccess da = null;
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		// Clear the static test:
@@ -46,25 +49,31 @@ public class TestSimpleTableSoftDelete {
 		ConfigureDb.clear();
 	}
 
+	public TestSimpleTableSoftDelete() {
+		this.da = DataAccess.createInterface();
+	}
+
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTableSoftDelete.startAction = Timestamp.from(Instant.now());
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTableSoftDelete.class);
-		for (final String elem : sqlCommand) {
-			LOGGER.debug("request: '{}'", elem);
-			DataAccess.executeSimpleQuery(elem);
+		if (this.da instanceof final DataAccessSQL daSQL) {
+			for (final String elem : sqlCommand) {
+				LOGGER.debug("request: '{}'", elem);
+				daSQL.executeSimpleQuery(elem);
+			}
 		}
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED;
-		final SimpleTableSoftDelete insertedData = DataAccess.insert(test);
+		final SimpleTableSoftDelete insertedData = this.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class, insertedData.id);
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -80,7 +89,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
 
 		Assertions.assertNotNull(retrieve);
@@ -107,8 +116,8 @@ public class TestSimpleTableSoftDelete {
 		// Delete the entry:
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
-		DataAccess.update(test, TestSimpleTableSoftDelete.idOfTheObject, List.of("data"));
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class,
+		this.da.update(test, TestSimpleTableSoftDelete.idOfTheObject, List.of("data"));
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
@@ -132,8 +141,8 @@ public class TestSimpleTableSoftDelete {
 			Thread.sleep(Duration.ofMillis(15));
 		}
 		// Delete the entry:
-		DataAccess.delete(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class,
+		this.da.delete(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject);
 		Assertions.assertNull(retrieve);
 	}
@@ -143,7 +152,7 @@ public class TestSimpleTableSoftDelete {
 	public void testReadDeletedObject() throws Exception {
 
 		// check if we set get deleted element
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -159,7 +168,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		final SimpleTableSoftDelete retrieve = DataAccess.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);

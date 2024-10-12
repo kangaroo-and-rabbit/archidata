@@ -12,22 +12,38 @@ public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
 
 	public static void configure() throws IOException {
-		if (true) {
-			if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
-				ConfigBaseVariable.dbType = "sqlite";
-				ConfigBaseVariable.dbHost = "memory";
-				// for test we need to connect all time the DB
-				ConfigBaseVariable.dbKeepConnected = "true";
-			}
-		} else {
-			// Enable this if you want to access to a local MySQL base to test with an adminer
+		String modeTest = System.getenv("TEST_E2E_MODE");
+		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
+			modeTest = "SQLITE-MEMORY";
+		} else if ("true".equalsIgnoreCase(modeTest)) {
+			modeTest = "MY-SQL";
+		}
+		// override the local test:
+		modeTest = "MONGO";
+		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
+			ConfigBaseVariable.dbType = "sqlite";
+			ConfigBaseVariable.dbHost = "memory";
+			// for test we need to connect all time the DB
+			ConfigBaseVariable.dbKeepConnected = "true";
+		} else if ("SQLITE".equalsIgnoreCase(modeTest)) {
+			ConfigBaseVariable.dbType = "sqlite";
+			ConfigBaseVariable.dbKeepConnected = "true";
+		} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
+			ConfigBaseVariable.dbType = "mysql";
 			ConfigBaseVariable.bdDatabase = "test_db";
 			ConfigBaseVariable.dbPort = "3906";
 			ConfigBaseVariable.dbUser = "root";
-			//ConfigBaseVariable.dbPassword = "password";
+		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
+			ConfigBaseVariable.dbType = "mongo";
+			ConfigBaseVariable.bdDatabase = "test_mongo_db";
+		} else {
+			// User local modification ...
+			ConfigBaseVariable.bdDatabase = "test_db";
+			ConfigBaseVariable.dbPort = "3906";
+			ConfigBaseVariable.dbUser = "root";
 		}
 		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
+		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.getDbconfig());
 		entry.connect();
 	}
 

@@ -383,8 +383,8 @@ public class DataFactory {
 				}
 				alreadyAdded.add(dataName);
 				LOGGER.trace("        + '{}'", elem.getName());
-				if (DataAccess.isAddOnField(elem)) {
-					final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
+				if (DataAccessSQL.isAddOnField(elem)) {
+					final DataAccessAddOn addOn = DataAccessSQL.findAddOnforField(elem);
 					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem),
 							elem.getType());
 					if (addOn != null) {

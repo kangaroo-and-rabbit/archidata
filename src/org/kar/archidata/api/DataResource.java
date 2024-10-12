@@ -56,7 +56,7 @@ import jakarta.ws.rs.core.StreamingOutput;
 // https://stackoverflow.com/questions/35367113/jersey-webservice-scalable-approach-to-download-file-and-reply-to-client
 // https://gist.github.com/aitoroses/4f7a2b197b732a6a691d
 
-@Path("/data")
+// TODO: must be inherited and set the default dataAccess interface @Path("/data")
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
@@ -64,6 +64,7 @@ public class DataResource {
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */
 	private static long tmpFolderId = 1;
+	protected final DataAccess da = DataAccess.createInterface();
 
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
@@ -118,10 +119,10 @@ public class DataResource {
 		return getFileData(uuid) + ".json";
 	}
 
-	public static Data getWithSha512(final String sha512) {
+	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
+			return this.da.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -129,10 +130,10 @@ public class DataResource {
 		return null;
 	}
 
-	public static Data getWithId(final long id) {
+	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
-			return DataAccess.get(Data.class, id);
+			return this.da.get(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -140,7 +141,7 @@ public class DataResource {
 		return null;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
 			throws IOException {
 		// determine mime type:
 		Data injectedData = new Data();
@@ -161,7 +162,7 @@ public class DataResource {
 		injectedData.size = Files.size(Paths.get(tmpPath));
 
 		try {
-			injectedData = DataAccess.insert(injectedData);
+			injectedData = this.da.insert(injectedData);
 		} catch (final Exception e) {
 			e.printStackTrace();
 			return null;
@@ -254,7 +255,7 @@ public class DataResource {
 
 	public Data getSmall(final UUID id) {
 		try {
-			return DataAccess.get(Data.class, id);
+			return this.da.get(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -500,8 +501,8 @@ public class DataResource {
 		}
 	}
 
-	public static void undelete(final Long id) throws Exception {
-		DataAccess.unsetDelete(Data.class, id);
+	public void undelete(final Long id) throws Exception {
+		this.da.unsetDelete(Data.class, id);
 	}
 
 }

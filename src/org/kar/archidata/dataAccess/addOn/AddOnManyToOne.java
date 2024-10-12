@@ -9,8 +9,8 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -48,8 +48,12 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
-			throws Exception {
+	public void insertData(
+			final DataAccessSQL ioDb,
+			final PreparedStatement ps,
+			final Field field,
+			final Object rootObject,
+			final CountInOut iii) throws Exception {
 		final Object data = field.get(rootObject);
 		if (data == null) {
 			if (field.getType() == Long.class) {
@@ -149,7 +153,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		if (field.getType() == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
 				// TODO: rework this to have a lazy mode ...
-				DataAccess.generateSelectField(querySelect, query, field.getType(), options, count);
+				DataAccessSQL.generateSelectField(querySelect, query, field.getType(), options, count);
 				final Class<?> subType = field.getType();
 				final String subTableName = AnnotationTools.getTableName(subType);
 				final Field idField = AnnotationTools.getFieldOfId(subType);
@@ -178,6 +182,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
+			final DataAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -233,8 +238,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		if (objectClass == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
 				final CountInOut countNotNull = new CountInOut(0);
-				final Object dataNew = DataAccess.createObjectFromSQLRequest(rs, objectClass, count, countNotNull,
-						options, lazyCall);
+				final Object dataNew = ioDb.createObjectFromSQLRequest(rs, objectClass, count, countNotNull, options,
+						lazyCall);
 				if (dataNew != null && countNotNull.value != 0) {
 					field.set(data, dataNew);
 				}
@@ -250,7 +255,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						// TODO: update to have get with abstract types ....
-						final Object foreignData = DataAccess.get(decorators.targetEntity(), foreignKey);
+						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
 							return;
 						}
@@ -260,13 +265,13 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				}
 			} else if (remotePrimaryKeyType == UUID.class) {
 				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
-				final UUID foreignKey = DataAccess.getListOfRawUUID(rs, count.value);
+				final UUID foreignKey = ioDb.getListOfRawUUID(rs, count.value);
 				count.inc();
 				if (foreignKey != null) {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						// TODO: update to have get with abstract types ....
-						final Object foreignData = DataAccess.get(decorators.targetEntity(), foreignKey);
+						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
 							return;
 						}

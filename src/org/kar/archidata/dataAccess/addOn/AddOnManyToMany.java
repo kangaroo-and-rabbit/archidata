@@ -13,6 +13,8 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccessMorphia;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryAnd;
@@ -56,8 +58,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
-			throws SQLException, IllegalArgumentException, IllegalAccessException {
+	public void insertData(
+			final DataAccessSQL ioDb,
+			final PreparedStatement ps,
+			final Field field,
+			final Object rootObject,
+			final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
 
 	}
 
@@ -209,6 +215,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
+			final DataAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -222,12 +229,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		if (objectClass == Long.class) {
-			final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
+			final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
 			field.set(data, idList);
 			count.inc();
 			return;
 		} else if (objectClass == UUID.class) {
-			final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
 			return;
@@ -241,7 +248,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			if (decorators.fetch() == FetchType.EAGER) {
 				throw new DataAccessException("EAGER is not supported for list of element...");
 			} else if (foreignKeyType == Long.class) {
-				final List<Long> idList = DataAccess.getListOfIds(rs, count.value, SEPARATOR_LONG);
+				final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
 				// field.set(data, idList);
 				count.inc();
 				if (idList != null && idList.size() > 0) {
@@ -251,7 +258,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField, childs)));
 						if (foreignData == null) {
 							return;
@@ -261,7 +268,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					lazyCall.add(lambda);
 				}
 			} else if (foreignKeyType == UUID.class) {
-				final List<UUID> idList = DataAccess.getListOfRawUUIDs(rs, count.value);
+				final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 				// field.set(data, idList);
 				count.inc();
 				if (idList != null && idList.size() > 0) {
@@ -271,7 +278,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
-						final Object foreignData = DataAccess.getsWhere(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField, childs)));
 						if (foreignData == null) {
 							return;
@@ -291,6 +298,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
+			final DataAccessSQL ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -312,30 +320,30 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (localKey instanceof final Long localKeyLong) {
 			if (objectClass == Long.class) {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
+					ioDb.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
 							new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
 				});
-				asyncInsert(tableName, localKey, field, data, actions);
+				asyncInsert(ioDb, tableName, localKey, field, data, actions);
 			} else {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableLongUUID.class, new OverrideTableName(linkTableName),
+					ioDb.deleteWhere(LinkTableLongUUID.class, new OverrideTableName(linkTableName),
 							new Condition(new QueryCondition("object1Id", "=", localKeyLong)));
 				});
-				asyncInsert(tableName, localKey, field, data, actions);
+				asyncInsert(ioDb, tableName, localKey, field, data, actions);
 			}
 		} else if (localKey instanceof final UUID localKeyUUID) {
 			if (objectClass == Long.class) {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableUUIDLong.class, new OverrideTableName(linkTableName),
+					ioDb.deleteWhere(LinkTableUUIDLong.class, new OverrideTableName(linkTableName),
 							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
 				});
-				asyncInsert(tableName, localKey, field, data, actions);
+				asyncInsert(ioDb, tableName, localKey, field, data, actions);
 			} else {
 				actions.add(() -> {
-					DataAccess.deleteWhere(LinkTableUUIDUUID.class, new OverrideTableName(linkTableName),
+					ioDb.deleteWhere(LinkTableUUIDUUID.class, new OverrideTableName(linkTableName),
 							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)));
 				});
-				asyncInsert(tableName, localKey, field, data, actions);
+				asyncInsert(ioDb, tableName, localKey, field, data, actions);
 			}
 		}
 	}
@@ -347,6 +355,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncInsert(
+			final DataAccessSQL ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -389,7 +398,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					return;
 				}
 				actions.add(() -> {
-					DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName));
 				});
 			} else {
 				// ========================================================
@@ -412,7 +421,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					return;
 				}
 				actions.add(() -> {
-					DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName));
 				});
 			}
 		} else if (localKey instanceof final UUID localKeyUUID) {
@@ -437,7 +446,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					return;
 				}
 				actions.add(() -> {
-					DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName));
 				});
 			} else {
 				// ========================================================
@@ -460,7 +469,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					return;
 				}
 				actions.add(() -> {
-					DataAccess.insertMultiple(insertElements, new OverrideTableName(linkTableName));
+					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName));
 				});
 			}
 		} else {
@@ -471,7 +480,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void drop(final String tableName, final Field field) throws Exception {
+	public void drop(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -480,11 +489,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		DataAccess.drop(LinkTableLongLong.class, new OverrideTableName(linkTableName));
+		ioDb.drop(LinkTableLongLong.class, new OverrideTableName(linkTableName));
 	}
 
 	@Override
-	public void cleanAll(final String tableName, final Field field) throws Exception {
+	public void cleanAll(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -493,27 +502,47 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		DataAccess.cleanAll(LinkTableLongLong.class, new OverrideTableName(linkTableName));
+		ioDb.cleanAll(LinkTableLongLong.class, new OverrideTableName(linkTableName));
 	}
 
-	public static void addLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final String linkTableName = generateLinkTableName(tableName, column);
-		/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
-		 * DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">"); } */
-		final LinkTableLongLong insertElement = new LinkTableLongLong(localKey, remoteKey);
-		DataAccess.insert(insertElement, new OverrideTableName(linkTableName));
+	public static void addLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final long localKey,
+			final String column,
+			final long remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final String linkTableName = generateLinkTableName(tableName, column);
+			/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
+			 * DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">"); } */
+			final LinkTableLongLong insertElement = new LinkTableLongLong(localKey, remoteKey);
+			daSQL.insert(insertElement, new OverrideTableName(linkTableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
+		}
 
 	}
 
-	public static int removeLink(final Class<?> clazz, final long localKey, final String column, final long remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final String linkTableName = generateLinkTableName(tableName, column);
-		return DataAccess.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
-				new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
-						new QueryCondition("object2Id", "=", remoteKey))));
+	public static long removeLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final long localKey,
+			final String column,
+			final long remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final String linkTableName = generateLinkTableName(tableName, column);
+			return daSQL.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
+					new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
+							new QueryCondition("object2Id", "=", remoteKey))));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+			return 0L;
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
+		}
 	}
 
 	@Override

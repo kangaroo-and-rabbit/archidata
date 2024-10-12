@@ -72,6 +72,9 @@ public class ConfigBaseVariable {
 
 	public static String getDBPort() {
 		if (dbPort == null) {
+			if (getDBType().equals("mongo")) {
+				return "27017";
+			}
 			return "3306";
 		}
 		return dbPort;

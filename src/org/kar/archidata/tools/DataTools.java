@@ -77,9 +77,9 @@ public class DataTools {
 		return filePath;
 	}
 
-	public static Data getWithSha512(final String sha512) {
+	public static Data getWithSha512(final DataAccess ioDb, final String sha512) {
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
+			return ioDb.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
 					new ReadAllColumn());
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
@@ -88,9 +88,9 @@ public class DataTools {
 		return null;
 	}
 
-	public static Data getWithId(final long id) {
+	public static Data getWithId(final DataAccess ioDb, final long id) {
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryAnd(
+			return ioDb.getWhere(Data.class, new Condition(new QueryAnd(
 					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
@@ -100,6 +100,7 @@ public class DataTools {
 	}
 
 	public static Data createNewData(
+			final DataAccess ioDb,
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512,
@@ -113,7 +114,7 @@ public class DataTools {
 			out.sha512 = sha512;
 			out.mimeType = mimeType;
 			out.size = fileSize;
-			out = DataAccess.insert(out);
+			out = ioDb.insert(out);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -130,8 +131,11 @@ public class DataTools {
 		return out;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
-			throws IOException, SQLException {
+	public static Data createNewData(
+			final DataAccess ioDb,
+			final long tmpUID,
+			final String originalFileName,
+			final String sha512) throws IOException, SQLException {
 		// determine mime type:
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
@@ -144,12 +148,12 @@ public class DataTools {
 			case "webm" -> "video/webm";
 			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
 		};
-		return createNewData(tmpUID, originalFileName, sha512, mimeType);
+		return createNewData(ioDb, tmpUID, originalFileName, sha512, mimeType);
 	}
 
-	public static void undelete(final UUID id) {
+	public static void undelete(final DataAccess ioDb, final UUID id) {
 		try {
-			DataAccess.unsetDelete(Data.class, id);
+			ioDb.unsetDelete(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -272,13 +276,14 @@ public class DataTools {
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCoverFromUri(
+			final DataAccess ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final String url) throws Exception {
 
 		LOGGER.info("    - id: {}", id);
 		LOGGER.info("    - url: {} ", url);
-		final CLASS_TYPE media = DataAccess.get(clazz, id);
+		final CLASS_TYPE media = ioDb.get(clazz, id);
 		if (media == null) {
 			throw new InputException(clazz.getCanonicalName(),
 					"[" + id.toString() + "] Id does not exist or removed...");
@@ -310,7 +315,7 @@ public class DataTools {
 
 		final long tmpUID = getTmpDataId();
 		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
-		Data data = getWithSha512(sha512);
+		Data data = getWithSha512(ioDb, sha512);
 		final String mimeType = getMimeType(dataResponse);
 		if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
 			throw new FailException(Response.Status.NOT_ACCEPTABLE,
@@ -321,7 +326,7 @@ public class DataTools {
 		if (data == null) {
 			LOGGER.info("Need to add the data in the BDD ... ");
 			try {
-				data = createNewData(tmpUID, url, sha512, mimeType);
+				data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
 			} catch (final IOException ex) {
 				removeTemporaryFile(tmpUID);
 				throw new FailException(Response.Status.NOT_MODIFIED,
@@ -333,7 +338,7 @@ public class DataTools {
 			}
 		} else if (data.deleted) {
 			LOGGER.error("Data already exist but deleted");
-			undelete(data.uuid);
+			undelete(ioDb, data.uuid);
 			data.deleted = false;
 		} else {
 			LOGGER.error("Data already exist ... all good");
@@ -341,15 +346,16 @@ public class DataTools {
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
 		if (id instanceof final Long idLong) {
-			AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
+			AddOnDataJson.addLink(ioDb, clazz, idLong, "covers", data.uuid);
 		} else if (id instanceof final UUID idUUID) {
-			AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
+			AddOnDataJson.addLink(ioDb, clazz, idUUID, "covers", data.uuid);
 		} else {
 			throw new IOException("Fail to add Cover can not detect type...");
 		}
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
+			final DataAccess ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final InputStream fileInputStream,
@@ -360,7 +366,7 @@ public class DataTools {
 		LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
 		LOGGER.info("    - fileInputStream: {}", fileInputStream);
 		LOGGER.info("    - fileMetaData: {}", fileMetaData);
-		final CLASS_TYPE media = DataAccess.get(clazz, id);
+		final CLASS_TYPE media = ioDb.get(clazz, id);
 		if (media == null) {
 			throw new InputException(clazz.getCanonicalName(),
 					"[" + id.toString() + "] Id does not exist or removed...");
@@ -368,11 +374,11 @@ public class DataTools {
 
 		final long tmpUID = getTmpDataId();
 		final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
-		Data data = getWithSha512(sha512);
+		Data data = getWithSha512(ioDb, sha512);
 		if (data == null) {
 			LOGGER.info("Need to add the data in the BDD ... ");
 			try {
-				data = createNewData(tmpUID, fileMetaData.getFileName(), sha512);
+				data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
 			} catch (final IOException ex) {
 				removeTemporaryFile(tmpUID);
 				throw new FailException(Response.Status.NOT_MODIFIED,
@@ -384,7 +390,7 @@ public class DataTools {
 			}
 		} else if (data.deleted) {
 			LOGGER.error("Data already exist but deleted");
-			undelete(data.uuid);
+			undelete(ioDb, data.uuid);
 			data.deleted = false;
 		} else {
 			LOGGER.error("Data already exist ... all good");
@@ -392,9 +398,9 @@ public class DataTools {
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
 		if (id instanceof final Long idLong) {
-			AddOnDataJson.addLink(clazz, idLong, "covers", data.uuid);
+			AddOnDataJson.addLink(ioDb, clazz, idLong, "covers", data.uuid);
 		} else if (id instanceof final UUID idUUID) {
-			AddOnDataJson.addLink(clazz, idUUID, "covers", data.uuid);
+			AddOnDataJson.addLink(ioDb, clazz, idUUID, "covers", data.uuid);
 		} else {
 			throw new IOException("Fail to add Cover can not detect type...");
 		}

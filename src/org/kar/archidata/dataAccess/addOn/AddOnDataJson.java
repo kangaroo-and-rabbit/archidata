@@ -10,11 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessAddOn;
+import org.kar.archidata.dataAccess.DataAccessMorphia;
+import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -31,6 +34,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -55,7 +60,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final PreparedStatement ps, final Field field, final Object rootObject, final CountInOut iii)
+	public void insertData(
+			final DataAccessSQL ioDb,
+			final PreparedStatement ps,
+			final Field field,
+			final Object rootObject,
+			final CountInOut iii)
 			throws IllegalArgumentException, IllegalAccessException, SQLException, JsonProcessingException {
 		final Object data = field.get(rootObject);
 		if (data == null) {
@@ -102,6 +112,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
+			final DataAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -172,11 +183,14 @@ public class AddOnDataJson implements DataAccessAddOn {
 				postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class);
 	}
 
-	public static void addLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey)
-			throws Exception {
+	public static void addLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final Long id,
+			final String column,
+			final Long remoteKey) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversLongLong data = DataAccess.get(TableCoversLongLong.class, id,
-				new OverrideTableName(tableName));
+		final TableCoversLongLong data = ioDb.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
 		if (data.covers == null) {
 			data.covers = new ArrayList<>();
 		}
@@ -186,7 +200,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 		}
 		data.covers.add(remoteKey);
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		ioDb.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
 
 	/**
@@ -200,22 +214,31 @@ public class AddOnDataJson implements DataAccessAddOn {
 	 * @param remoteKey The UUID to add to the covers list.
 	 * @throws Exception If an error occurs during data retrieval or update.
 	 */
-	public static void addLink(final Class<?> clazz, final Long id, final String column, final UUID remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		// TODO: Get primary key name
-		final TableCoversLongUUID data = DataAccess.get(TableCoversLongUUID.class, id,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			data.covers = new ArrayList<>();
-		}
-		for (final UUID elem : data.covers) {
-			if (elem.equals(remoteKey)) {
-				return;
+	public static void addLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final Long id,
+			final String column,
+			final UUID remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			// TODO: Get primary key name
+			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
+			if (data.covers == null) {
+				data.covers = new ArrayList<>();
 			}
+			for (final UUID elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					return;
+				}
+			}
+			data.covers.add(remoteKey);
+			ioDb.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));// TODO:  ,new OverrideFieldName("covers", column));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		data.covers.add(remoteKey);
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));// TODO:  ,new OverrideFieldName("covers", column));
 	}
 
 	/**
@@ -229,113 +252,210 @@ public class AddOnDataJson implements DataAccessAddOn {
 	 * @param remoteKey The UUID to add to the covers list.
 	 * @throws Exception If an error occurs during data retrieval or update.
 	 */
-	public static void addLink(final Class<?> clazz, final UUID uuid, final String column, final UUID remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, uuid,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			data.covers = new ArrayList<>();
+	public static void addLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final UUID uuid,
+			final String column,
+			final UUID remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
+					new OverrideTableName(tableName));
+			if (data.covers == null) {
+				data.covers = new ArrayList<>();
+			}
+			for (final UUID elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					return;
+				}
+			}
+			data.covers.add(remoteKey);
+			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		for (final UUID elem : data.covers) {
-			if (elem.equals(remoteKey)) {
+	}
+
+	public static void addLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final UUID uuid,
+			final String column,
+			final Long remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
+					new OverrideTableName(tableName));
+			if (data.covers == null) {
+				data.covers = new ArrayList<>();
+			}
+			for (final Long elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					return;
+				}
+			}
+			data.covers.add(remoteKey);
+			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
+		}
+	}
+
+	public static void removeLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final UUID uuid,
+			final String column,
+			final Long remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
+					new OverrideTableName(tableName));
+			if (data.covers == null) {
 				return;
 			}
+			final List<Long> newList = new ArrayList<>();
+			for (final Long elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.covers = newList;
+			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		data.covers.add(remoteKey);
-		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void addLink(final Class<?> clazz, final UUID uuid, final String column, final Long remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, uuid,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			data.covers = new ArrayList<>();
-		}
-		for (final Long elem : data.covers) {
-			if (elem.equals(remoteKey)) {
+	public static void removeLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final UUID uuid,
+			final String column,
+			final UUID remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
+					new OverrideTableName(tableName));
+			if (data.covers == null) {
 				return;
 			}
+			final List<UUID> newList = new ArrayList<>();
+			for (final UUID elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.covers = newList;
+			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		data.covers.add(remoteKey);
-		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void removeLink(final Class<?> clazz, final UUID uuid, final String column, final Long remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDLong data = DataAccess.get(TableCoversUUIDLong.class, uuid,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			return;
-		}
-		final List<Long> newList = new ArrayList<>();
-		for (final Long elem : data.covers) {
-			if (elem.equals(remoteKey)) {
-				continue;
+	public static void removeLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final Long id,
+			final String column,
+			final Long remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversLongLong data = ioDb.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
+			if (data.covers == null) {
+				return;
 			}
-			newList.add(elem);
+			final List<Long> newList = new ArrayList<>();
+			for (final Long elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.covers = newList;
+			ioDb.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		data.covers = newList;
-		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
 	}
 
-	public static void removeLink(final Class<?> clazz, final UUID uuid, final String column, final UUID remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversUUIDUUID data = DataAccess.get(TableCoversUUIDUUID.class, uuid,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			return;
-		}
-		final List<UUID> newList = new ArrayList<>();
-		for (final UUID elem : data.covers) {
-			if (elem.equals(remoteKey)) {
-				continue;
+	public static void removeLink(
+			final DataAccess ioDb,
+			final Class<?> clazz,
+			final Long id,
+			final String column,
+			final UUID remoteKey) throws Exception {
+		if (ioDb instanceof final DataAccessSQL daSQL) {
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
+			if (data.covers == null) {
+				return;
 			}
-			newList.add(elem);
-		}
-		data.covers = newList;
-		DataAccess.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
-	}
+			final List<UUID> newList = new ArrayList<>();
+			for (final UUID elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.covers = newList;
+		} else if (ioDb instanceof final DataAccessMorphia dam) {
+			final String collectionName = AnnotationTools.getCollectionName(clazz);
+			final Field primaryfield = AnnotationTools.getPrimaryKeyField(clazz);
+			final String primaryFieldName = AnnotationTools.getFieldName(primaryfield);
 
-	public static void removeLink(final Class<?> clazz, final Long id, final String column, final Long remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversLongLong data = DataAccess.get(TableCoversLongLong.class, id,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			return;
-		}
-		final List<Long> newList = new ArrayList<>();
-		for (final Long elem : data.covers) {
-			if (elem.equals(remoteKey)) {
-				continue;
+			final MongoCollection<Document> collection = dam.getInterface().getDatastore().getDatabase()
+					.getCollection(collectionName);
+			// retrieve previous value:
+			final Document ret = collection.find(Filters.eq(primaryFieldName, id)).first();
+			if (ret == null) {
+				throw new DataAccessException("Element does not exist ...");
 			}
-			newList.add(elem);
-		}
-		data.covers = newList;
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
-	}
+			final List<UUID> newList = new ArrayList<>();
+			final List listValues = ret.get(remoteKey, newList.getClass());
+			/*
+			final Document actions = new Document();
 
-	public static void removeLink(final Class<?> clazz, final Long id, final String column, final UUID remoteKey)
-			throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final TableCoversLongUUID data = DataAccess.get(TableCoversLongUUID.class, id,
-				new OverrideTableName(tableName));
-		if (data.covers == null) {
-			return;
-		}
-		final List<UUID> newList = new ArrayList<>();
-		for (final UUID elem : data.covers) {
-			if (elem.equals(remoteKey)) {
-				continue;
+			// update value:
+			final Document actions = new Document();
+			if (!docSet.isEmpty()) {
+				actions.append("$set", docSet);
 			}
-			newList.add(elem);
+			if (!docUnSet.isEmpty()) {
+				actions.append("$unset", docUnSet);
+			}
+			LOGGER.info("update some values: {}", actions.toJson());
+			final UpdateResult ret = collection.updateMany(filters, actions);
+			return ret.getModifiedCount();
+
+			final TableCoversLongUUID data = ioDb.getDocument(tableName, id);
+			if (data.covers == null) {
+				return;
+			}
+			final List<UUID> newList = new ArrayList<>();
+			for (final UUID elem : data.covers) {
+				if (elem.equals(remoteKey)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.covers = newList;
+			*/
+		} else {
+			throw new DataAccessException("DataAccess Not managed");
 		}
-		data.covers = newList;
-		DataAccess.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
 	}
 }
