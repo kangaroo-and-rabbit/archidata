@@ -7,8 +7,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.kar.archidata.annotation.ARCHIVE;
 import org.kar.archidata.annotation.AsyncType;
 import org.kar.archidata.annotation.FormDataOptional;
+import org.kar.archidata.annotation.RESTORE;
 import org.kar.archidata.annotation.TypeScriptProgress;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -107,6 +109,12 @@ public class ApiTool {
 		if (element.getDeclaredAnnotationsByType(DELETE.class).length == 1) {
 			return "DELETE";
 		}
+		if (element.getDeclaredAnnotationsByType(RESTORE.class).length == 1) {
+			return "RESTORE";
+		}
+		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
+			return "ARCHIVE";
+		}
 		return null;
 	}
 
@@ -125,6 +133,12 @@ public class ApiTool {
 		}
 		if (element.getDeclaredAnnotationsByType(DELETE.class).length == 1) {
 			return RestTypeRequest.DELETE;
+		}
+		if (element.getDeclaredAnnotationsByType(RESTORE.class).length == 1) {
+			return RestTypeRequest.RESTORE;
+		}
+		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
+			return RestTypeRequest.ARCHIVE;
 		}
 		return null;
 	}

@@ -19,7 +19,7 @@ public class ConfigureDb {
 			modeTest = "MY-SQL";
 		}
 		// override the local test:
-		modeTest = "MONGO";
+		//modeTest = "MONGO";
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
 			ConfigBaseVariable.dbHost = "memory";
