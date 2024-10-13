@@ -7,6 +7,7 @@ import org.bson.UuidRepresentation;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
+import org.kar.archidata.converter.morphia.SqlTimestampCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +36,7 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
 		//final CodecRegistry uuidCodecRegistry = CodecRegistries.fromCodecs(new UUIDCodec());
+		final CodecRegistry SqlTimestampCodecRegistry = CodecRegistries.fromCodecs(new SqlTimestampCodec());
 		// Créer un CodecRegistry pour POJOs
 		final CodecRegistry pojoCodecRegistry = CodecRegistries
 				.fromProviders(PojoCodecProvider.builder().automatic(true).build());
@@ -45,7 +47,7 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
-				pojoCodecRegistry);
+				pojoCodecRegistry, SqlTimestampCodecRegistry);
 		// Configurer MongoClientSettings
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString)//
@@ -53,7 +55,7 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 				.uuidRepresentation(UuidRepresentation.STANDARD)//
 				.build();
 		this.mongoClient = MongoClients.create(clientSettings);
-		this.datastore = Morphia.createDatastore(this.mongoClient, "karusic");
+		this.datastore = Morphia.createDatastore(this.mongoClient, dbName);
 		// Map entities
 		this.datastore.getMapper().map(classes);
 		// Ensure indexes

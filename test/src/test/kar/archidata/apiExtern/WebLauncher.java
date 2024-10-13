@@ -36,7 +36,6 @@ public class WebLauncher {
 	private final DataAccess da;
 
 	public WebLauncher() {
-		ConfigBaseVariable.bdDatabase = "karusic";
 		this.da = DataAccess.createInterface();
 	}
 

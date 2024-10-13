@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -179,6 +180,10 @@ public class DataAccessMorphia extends DataAccess {
 			final String fieldName,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
+		if (field.get(data) == null) {
+			docUnSet.append(fieldName, "");
+			return;
+		}
 		if (type == long.class) {
 			docSet.append(fieldName, field.getLong(data));
 			return;
@@ -331,76 +336,33 @@ public class DataAccessMorphia extends DataAccess {
 			return;
 		}
 		if (type == Timestamp.class) {
-			LOGGER.error("TODO: TimeStamp ... ");
-			/*
-			final Timestamp tmp = rs.getTimestamp(count.value);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, tmp);
-				countNotNull.inc();
-			}
-			*/
+			final Date value = doc.get(fieldName, Date.class);
+			final Timestamp newData = new Timestamp(value.getTime());
+			field.set(data, newData);
+			return;
 		}
 		if (type == Date.class) {
-			LOGGER.error("TODO: Date ... ");
-			/*
-			try {
-				final Timestamp tmp = rs.getTimestamp(count.value);
-				if (rs.wasNull()) {
-					field.set(data, null);
-				} else {
-					field.set(data, Date.from(tmp.toInstant()));
-					countNotNull.inc();
-				}
-			} catch (final SQLException ex) {
-				final String tmp = rs.getString(count.value);
-				LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
-				if (rs.wasNull()) {
-					field.set(data, null);
-				} else {
-					final Date date = DateTools.parseDate(tmp);
-					LOGGER.error("Fail to parse the SQL time !!! {}", date);
-					field.set(data, date);
-					countNotNull.inc();
-				}
-			}*/
+			final Date value = doc.get(fieldName, Date.class);
+			field.set(data, value);
+			return;
 		}
 		if (type == Instant.class) {
-			LOGGER.error("TODO: Instant ... ");
-			/*
-			final String tmp = rs.getString(count.value);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, Instant.parse(tmp));
-				countNotNull.inc();
-			}
-			*/
+			final Date value = doc.get(fieldName, Date.class);
+			final Instant newData = value.toInstant();
+			field.set(data, newData);
+			return;
 		}
 		if (type == LocalDate.class) {
-			LOGGER.error("TODO: LocalDate ... ");
-			/*
-			final java.sql.Date tmp = rs.getDate(count.value);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, tmp.toLocalDate());
-				countNotNull.inc();
-			}
-			*/
+			final Date value = doc.get(fieldName, Date.class);
+			final LocalDate newData = value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+			field.set(data, newData);
+			return;
 		}
 		if (type == LocalTime.class) {
-			LOGGER.error("TODO: LocalTime ... ");
-			/*
-			final java.sql.Time tmp = rs.getTime(count.value);
-			if (rs.wasNull()) {
-				field.set(data, null);
-			} else {
-				field.set(data, tmp.toLocalTime());
-				countNotNull.inc();
-			}
-			*/
+			final Long value = doc.getLong(fieldName);
+			final LocalTime newData = LocalTime.ofNanoOfDay(value);
+			field.set(data, newData);
+			return;
 		}
 		if (type == String.class) {
 			final String value = doc.getString(fieldName);

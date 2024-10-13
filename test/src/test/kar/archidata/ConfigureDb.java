@@ -19,14 +19,16 @@ public class ConfigureDb {
 			modeTest = "MY-SQL";
 		}
 		// override the local test:
-		//modeTest = "MONGO";
+		modeTest = "MONGO";
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
+			ConfigBaseVariable.bdDatabase = null;
 			ConfigBaseVariable.dbHost = "memory";
 			// for test we need to connect all time the DB
 			ConfigBaseVariable.dbKeepConnected = "true";
 		} else if ("SQLITE".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
+			ConfigBaseVariable.bdDatabase = null;
 			ConfigBaseVariable.dbKeepConnected = "true";
 		} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "mysql";
@@ -35,6 +37,7 @@ public class ConfigureDb {
 			ConfigBaseVariable.dbUser = "root";
 		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "mongo";
+			ConfigBaseVariable.bdDatabase = "test_db";
 			ConfigBaseVariable.bdDatabase = "test_mongo_db";
 		} else {
 			// User local modification ...

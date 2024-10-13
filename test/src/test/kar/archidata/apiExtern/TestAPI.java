@@ -8,12 +8,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.RESTApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.apiExtern.model.SimpleArchiveTable;
 
@@ -30,6 +30,7 @@ public class TestAPI {
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
+		ConfigureDb.configure();
 		LOGGER.info("configure server ...");
 		webInterface = new WebLauncherTest();
 		LOGGER.info("Clean previous table");
@@ -46,9 +47,7 @@ public class TestAPI {
 		LOGGER.info("Kill the web server");
 		webInterface.stop();
 		webInterface = null;
-		LOGGER.info("Remove the test db");
-		DBEntry.closeAllForceMode();
-		ConfigBaseVariable.clearAllValue();
+		ConfigureDb.clear();
 	}
 
 	@Order(1)
