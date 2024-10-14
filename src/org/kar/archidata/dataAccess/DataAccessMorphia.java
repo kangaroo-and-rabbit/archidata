@@ -1259,74 +1259,17 @@ public class DataAccessMorphia extends DataAccess {
 
 	@Override
 	public void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
-		/*
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		final StringBuilder query = new StringBuilder();
-		query.append("DROP TABLE IF EXISTS `");
-		query.append(tableName);
-		query.append("`");
-		try {
-			LOGGER.trace("Execute Query: {}", query.toString());
-			// Remove main table
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			ps.executeUpdate();
-			// search subTable:
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				if (AnnotationTools.isGenericField(field)) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					LOGGER.error("TODO: Add on not managed ... ");
-					//addOn.drop(tableName, field);
-				}
-			}
-		} finally {
-			entry.close();
-		}
-		*/
+		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		collection.drop();
 	}
 
 	@Override
 	public void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
-		/*
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		DBEntry entry = DBInterfaceOption.getAutoEntry(options);
-		final StringBuilder query = new StringBuilder();
-		query.append("DELETE FROM `");
-		query.append(tableName);
-		query.append("`");
-		try {
-			LOGGER.trace("Execute Query: {}", query.toString());
-			// Remove main table
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString());
-			ps.executeUpdate();
-			// search subTable:
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				if (AnnotationTools.isGenericField(field)) {
-					continue;
-				}
-				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					LOGGER.error("TODO: Add on not managed ... ");
-					//addOn.cleanAll(tableName, field);
-				}
-			}
-		} finally {
-			entry.close();
-			entry = null;
-		}
-		*/
+		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		collection.deleteMany(new Document());
 	}
 }

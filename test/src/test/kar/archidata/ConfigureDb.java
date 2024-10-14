@@ -3,6 +3,7 @@ package test.kar.archidata;
 import java.io.IOException;
 
 import org.kar.archidata.GlobalConfiguration;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
@@ -52,6 +53,8 @@ public class ConfigureDb {
 
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
+		final DataAccess da = DataAccess.createInterface();
+		//da.cleanAll(null, null);
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 
