@@ -28,7 +28,7 @@ public class DataFactory {
 	static final Logger LOGGER = LoggerFactory.getLogger(DataFactory.class);
 
 	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws DataAccessException {
-		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
+		if ("sql".equals(ConfigBaseVariable.getDBType())) {
 			if (type == UUID.class) {
 				return "binary(16)";
 			}
@@ -82,7 +82,7 @@ public class DataFactory {
 				out.append(")");
 				return out.toString();
 			}
-		} else {
+		} else if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			if (type == UUID.class) {
 				return "BINARY(16)";
 			}
@@ -138,6 +138,9 @@ public class DataFactory {
 				out.append(" ) )");
 				return out.toString();
 			}
+		} else if ("mongo".equals(ConfigBaseVariable.getDBType())) {
+			// no importance for mango ...
+			return "text";
 		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}

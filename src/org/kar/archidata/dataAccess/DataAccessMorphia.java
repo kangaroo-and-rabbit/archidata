@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.result.DeleteResult;
@@ -86,12 +87,20 @@ public class DataAccessMorphia extends DataAccess {
 
 	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
+		// in Mongo DB we do not need to create a DB, then we have no need to check if it exist
 		return true;
 	}
 
 	@Override
 	public boolean createDB(final String name) {
+		// in Mongo DB we do not need to create a DB
 		return true;
+	}
+
+	@Override
+	public void deleteDB(final String name) {
+		final MongoDatabase database = this.db.getClient().getDatabase(name);
+		database.drop();
 	}
 
 	@Override

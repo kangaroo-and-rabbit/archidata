@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
+	final static private String modeTestForced = "MONGO";
 
 	public static void configure() throws IOException {
 		String modeTest = System.getenv("TEST_E2E_MODE");
@@ -20,7 +21,9 @@ public class ConfigureDb {
 			modeTest = "MY-SQL";
 		}
 		// override the local test:
-		modeTest = "MONGO";
+		if (modeTestForced != null) {
+			modeTest = modeTestForced;
+		}
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
 			ConfigBaseVariable.bdDatabase = null;
@@ -49,12 +52,38 @@ public class ConfigureDb {
 		// Connect the dataBase...
 		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.getDbconfig());
 		entry.connect();
+
+		removeDB();
+	}
+
+	public static void removeDB() {
+
+		final DataAccess da = DataAccess.createInterface();
+
+		String modeTest = System.getenv("TEST_E2E_MODE");
+		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
+			modeTest = "SQLITE-MEMORY";
+		} else if ("true".equalsIgnoreCase(modeTest)) {
+			modeTest = "MY-SQL";
+		}
+		// override the local test:
+		if (modeTestForced != null) {
+			modeTest = modeTestForced;
+		}
+		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
+			// nothing to do ...
+		} else if ("SQLITE".equalsIgnoreCase(modeTest)) {
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
+		} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
+		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
+		} else {}
 	}
 
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
-		final DataAccess da = DataAccess.createInterface();
-		//da.cleanAll(null, null);
+		removeDB();
 		DBEntry.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
 

@@ -52,7 +52,7 @@ public class TestMigrationFirstInitWithMigration {
 		// add migration for old version
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new Migration2());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig());
+		Assertions.assertDoesNotThrow(() -> migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig()));
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 95.0;

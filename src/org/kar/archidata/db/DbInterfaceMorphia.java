@@ -66,6 +66,10 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		return this.datastore;
 	}
 
+	public MongoClient getClient() {
+		return this.mongoClient;
+	}
+
 	@Override
 	public void close() throws IOException {
 		this.mongoClient.close();

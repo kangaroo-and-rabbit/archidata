@@ -75,6 +75,10 @@ public abstract class DataAccess {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 
+	public void deleteDB(final String name) {
+		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}
+
 	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
