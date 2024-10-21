@@ -222,13 +222,66 @@ public class RESTApi {
 	 */
 	public <T> T delete(final Class<T> clazz, final String urlOffset)
 			throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return simpleRequest("DELETE", clazz, urlOffset);
+	}
+
+	/**
+	 * Call an ARCHIVE on a REST API
+	 * @param urlOffset Offset to call the API
+	 */
+	public void archive(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		archive(Void.class, urlOffset);
+	}
+
+	/**
+	 * Call a ARCHIVE on a REST API with retrieving some data
+	 * @param <T> Type of data that might be received.
+	 * @param clazz Class model of the data that might be parsed.
+	 * @param urlOffset Offset to call the API
+	 * @return The parsed object received.
+	 */
+	public <T> T archive(final Class<T> clazz, final String urlOffset)
+			throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return simpleRequest("ARCHIVE", clazz, urlOffset);
+	}
+
+	/**
+	 * Call an RESTORE on a REST API
+	 * @param urlOffset Offset to call the API
+	 */
+	public void restore(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+		restore(Void.class, urlOffset);
+	}
+
+	/**
+	 * Call a RESTORE on a REST API with retrieving some data
+	 * @param <T> Type of data that might be received.
+	 * @param clazz Class model of the data that might be parsed.
+	 * @param urlOffset Offset to call the API
+	 * @return The parsed object received.
+	 */
+	public <T> T restore(final Class<T> clazz, final String urlOffset)
+			throws RESTErrorResponseExeption, IOException, InterruptedException {
+		return simpleRequest("RESTORE", clazz, urlOffset);
+	}
+
+	/**
+	 * Call a key on a REST API with retrieving some data
+	 * @param <T> Type of data that might be received.
+	 * @param model name of the key for the REST call
+	 * @param clazz Class model of the data that might be parsed.
+	 * @param urlOffset Offset to call the API
+	 * @return The parsed object received.
+	 */
+	public <T> T simpleRequest(final String model, final Class<T> clazz, final String urlOffset)
+			throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
-		final HttpRequest request = requestBuilding.DELETE().build();
+		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString("")).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
