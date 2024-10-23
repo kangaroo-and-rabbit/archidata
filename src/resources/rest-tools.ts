@@ -252,9 +252,14 @@ export function RESTRequest({
   if (restModel.accept !== undefined) {
     headers["Accept"] = restModel.accept;
   }
-  if (restModel.requestType !== HTTPRequestModel.GET) {
+  if (restModel.requestType !== HTTPRequestModel.GET &&
+	restModel.requestType !== HTTPRequestModel.ARCHIVE &&
+	restModel.requestType !== HTTPRequestModel.RESTORE
+  ) {
     // if Get we have not a content type, the body is empty
-    if (restModel.contentType !== HTTPMimeType.MULTIPART) {
+    if (restModel.contentType !== HTTPMimeType.MULTIPART &&
+	  restModel.contentType !== undefined
+	) {
       // special case of multi-part ==> no content type otherwise the browser does not set the ";bundary=--****"
       headers["Content-Type"] = restModel.contentType;
     }
