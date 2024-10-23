@@ -120,7 +120,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String tmpVariable = "tmp_" + Integer.toString(count.value);
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpVariable);
-		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+		final boolean mode = manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0;
+		if (mode) {
 			querySelect.append(".object2Id ");
 		} else {
 			querySelect.append(".object1Id ");
@@ -128,6 +129,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(", ");
 		} else {
+			querySelect.append("ORDER BY uuid ASC ");
 			querySelect.append("SEPARATOR ");
 		}
 		querySelect.append("'");
@@ -153,7 +155,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append(" = ");
 		querySelect.append(tmpVariable);
 		querySelect.append(".");
-		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+		if (mode) {
 			querySelect.append("object1Id ");
 		} else {
 			querySelect.append("object2Id ");
@@ -161,7 +163,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(" GROUP BY ");
 			querySelect.append(tmpVariable);
-			if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+			if (mode) {
 				querySelect.append(".object1Id");
 			} else {
 				querySelect.append(".object2Id");
