@@ -7,11 +7,15 @@
 import { RestErrorResponse, isRestErrorResponse } from "./model";
 
 export enum HTTPRequestModel {
+  ARCHIVE = "ARCHIVE",
   DELETE = "DELETE",
+  HEAD = "HEAD",
   GET = "GET",
+  OPTION = "OPTION",
   PATCH = "PATCH",
   POST = "POST",
   PUT = "PUT",
+  RESTORE = "RESTORE",
 }
 export enum HTTPMimeType {
   ALL = "*/*",
