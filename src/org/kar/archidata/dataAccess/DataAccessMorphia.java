@@ -23,6 +23,11 @@ import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.addOnMongo.AddOnDataJson;
+import org.kar.archidata.dataAccess.addOnMongo.AddOnManyToMany;
+import org.kar.archidata.dataAccess.addOnMongo.AddOnManyToOne;
+import org.kar.archidata.dataAccess.addOnMongo.AddOnOneToMany;
+import org.kar.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.FilterValue;
@@ -60,13 +65,12 @@ public class DataAccessMorphia extends DataAccess {
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
-	/*static {
+	static {
 		addOn.add(new AddOnManyToMany());
 		addOn.add(new AddOnManyToOne());
 		addOn.add(new AddOnOneToMany());
 		addOn.add(new AddOnDataJson());
 	}
-	*/
 
 	/** Add a new add-on on the current management.
 	 * @param addOn instantiate object on the Add-on

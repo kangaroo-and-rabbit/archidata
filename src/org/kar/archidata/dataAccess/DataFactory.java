@@ -14,6 +14,7 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.addOnSQL.DataAccessAddOn;
 import org.kar.archidata.dataAccess.options.CreateDropTable;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;

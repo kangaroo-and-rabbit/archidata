@@ -1,10 +1,15 @@
-package org.kar.archidata.dataAccess;
+package org.kar.archidata.dataAccess.addOnSQL;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+
+import org.kar.archidata.dataAccess.CountInOut;
+import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.LazyGetter;
+import org.kar.archidata.dataAccess.QueryOptions;
 
 import jakarta.validation.constraints.NotNull;
 

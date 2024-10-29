@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess.addOn;
+package org.kar.archidata.dataAccess.addOnSQL;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -9,7 +9,6 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;

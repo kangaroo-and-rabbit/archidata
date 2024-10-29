@@ -1,18 +1,16 @@
-package org.kar.archidata.dataAccess.addOn.model;
-
-import java.util.UUID;
+package org.kar.archidata.dataAccess.addOnSQL.model;
 
 import org.kar.archidata.model.UUIDGenericDataSoftDelete;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 
-public class LinkTableLongUUID extends UUIDGenericDataSoftDelete {
-	public LinkTableLongUUID() {
+public class LinkTableLongLong extends UUIDGenericDataSoftDelete {
+	public LinkTableLongLong() {
 		// nothing to do...
 	}
 
-	public LinkTableLongUUID(final long object1Id, final UUID object2Id) {
+	public LinkTableLongLong(final long object1Id, final long object2Id) {
 		this.object1Id = object1Id;
 		this.object2Id = object2Id;
 	}
@@ -22,6 +20,6 @@ public class LinkTableLongUUID extends UUIDGenericDataSoftDelete {
 	public Long object1Id;
 	@Schema(description = "Object reference 2")
 	@Column(nullable = false)
-	public UUID object2Id;
+	public Long object2Id;
 
 }

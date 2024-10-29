@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess.addOn.model;
+package org.kar.archidata.dataAccess.addOnSQL.model;
 
 import java.util.List;
 import java.util.UUID;

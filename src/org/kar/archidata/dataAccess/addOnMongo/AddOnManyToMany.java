@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess.addOn;
+package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -12,19 +12,17 @@ import java.util.UUID;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataAccessMorphia;
-import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryInList;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.dataAccess.addOn.model.LinkTableLongLong;
-import org.kar.archidata.dataAccess.addOn.model.LinkTableLongUUID;
-import org.kar.archidata.dataAccess.addOn.model.LinkTableUUIDLong;
-import org.kar.archidata.dataAccess.addOn.model.LinkTableUUIDUUID;
+import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableLongLong;
+import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableLongUUID;
+import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableUUIDLong;
+import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableUUIDUUID;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
@@ -59,7 +57,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
@@ -215,7 +213,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -298,7 +296,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -355,7 +353,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncInsert(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -480,7 +478,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void drop(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	public void drop(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -493,7 +491,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void cleanAll(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	public void cleanAll(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -511,7 +509,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
@@ -532,7 +530,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			return daSQL.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),

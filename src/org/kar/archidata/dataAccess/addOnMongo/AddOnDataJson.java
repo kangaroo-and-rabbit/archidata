@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess.addOn;
+package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -15,16 +15,14 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessAddOn;
 import org.kar.archidata.dataAccess.DataAccessMorphia;
-import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.dataAccess.addOn.model.TableCoversLongLong;
-import org.kar.archidata.dataAccess.addOn.model.TableCoversLongUUID;
-import org.kar.archidata.dataAccess.addOn.model.TableCoversUUIDLong;
-import org.kar.archidata.dataAccess.addOn.model.TableCoversUUIDUUID;
+import org.kar.archidata.dataAccess.addOnSQL.model.TableCoversLongLong;
+import org.kar.archidata.dataAccess.addOnSQL.model.TableCoversLongUUID;
+import org.kar.archidata.dataAccess.addOnSQL.model.TableCoversUUIDLong;
+import org.kar.archidata.dataAccess.addOnSQL.model.TableCoversUUIDUUID;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -61,7 +59,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
@@ -112,7 +110,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DataAccessMorphia ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -220,7 +218,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Long id,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			// TODO: Get primary key name
 			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
@@ -258,7 +256,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final UUID uuid,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
 					new OverrideTableName(tableName));
@@ -285,7 +283,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final UUID uuid,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
 					new OverrideTableName(tableName));
@@ -312,7 +310,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final UUID uuid,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
 					new OverrideTableName(tableName));
@@ -341,7 +339,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final UUID uuid,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
 					new OverrideTableName(tableName));
@@ -370,7 +368,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Long id,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversLongLong data = ioDb.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
 			if (data.covers == null) {
@@ -398,7 +396,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Long id,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DataAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
 			if (data.covers == null) {
