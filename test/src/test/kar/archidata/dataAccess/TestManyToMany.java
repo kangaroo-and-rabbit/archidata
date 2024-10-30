@@ -14,7 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.DataAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
-import org.kar.archidata.dataAccess.addOn.AddOnManyToMany;
+import org.kar.archidata.dataAccess.addOnSQL.AddOnManyToMany;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

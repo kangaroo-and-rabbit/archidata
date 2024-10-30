@@ -2,6 +2,7 @@ package test.kar.archidata.dataAccess.model;
 
 import java.util.List;
 
+import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -10,6 +11,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Table(name = "TypeOneToManyRoot")
+//for Mongo
+@Entity(value = "TypeOneToManyRoot")
 public class TypeOneToManyRootExpand {
 
 	@Id

@@ -23,8 +23,6 @@ import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
-import org.kar.archidata.dataAccess.addOnMongo.AddOnDataJson;
-import org.kar.archidata.dataAccess.addOnMongo.AddOnManyToMany;
 import org.kar.archidata.dataAccess.addOnMongo.AddOnManyToOne;
 import org.kar.archidata.dataAccess.addOnMongo.AddOnOneToMany;
 import org.kar.archidata.dataAccess.addOnMongo.DataAccessAddOn;
@@ -66,10 +64,10 @@ public class DataAccessMorphia extends DataAccess {
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
 	static {
-		addOn.add(new AddOnManyToMany());
+		//addOn.add(new AddOnManyToMany());
 		addOn.add(new AddOnManyToOne());
 		addOn.add(new AddOnOneToMany());
-		addOn.add(new AddOnDataJson());
+		// no need, native support in mango .... addOn.add(new AddOnDataJson());
 	}
 
 	/** Add a new add-on on the current management.
@@ -306,13 +304,8 @@ public class DataAccessMorphia extends DataAccess {
 
 	}
 
-	protected <T> void setValueFromDoc(
-			final Class<?> type,
-			final Object data,
-			final CountInOut count,
-			final Field field,
-			final Document doc,
-			final CountInOut countNotNull) throws Exception {
+	public <T> void setValueFromDoc(final Class<?> type, final Object data, final Field field, final Document doc)
+			throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(field);
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
@@ -390,7 +383,6 @@ public class DataAccessMorphia extends DataAccess {
 			for (final Object elem : arr) {
 				if (elem.toString().equals(value)) {
 					field.set(data, elem);
-					countNotNull.inc();
 					find = true;
 					break;
 				}
@@ -751,10 +743,10 @@ public class DataAccessMorphia extends DataAccess {
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (uniqueId instanceof final Long id) {
-				LOGGER.error("TODO: Add on not managed ... ");
+				LOGGER.error("TODO: Add on not managed .1. ");
 				//addOn.asyncInsert(tableName, id, field, field.get(data), asyncActions);
 			} else if (uniqueId instanceof final UUID uuid) {
-				LOGGER.error("TODO: Add on not managed ... ");
+				LOGGER.error("TODO: Add on not managed .2. ");
 				//addOn.asyncInsert(tableName, uuid, field, field.get(data), asyncActions);
 			}
 		}
@@ -807,7 +799,7 @@ public class DataAccessMorphia extends DataAccess {
 				final DataAccessAddOn addOn = findAddOnforField(field);
 				if (addOn != null && !addOn.canInsert(field)) {
 					if (addOn.isInsertAsync(field)) {
-						LOGGER.error("TODO: Add on not managed ... ");
+						LOGGER.error("TODO: Add on not managed .3. ");
 						/*
 						final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
 						if (transmitKey.size() != 1) {
@@ -820,8 +812,7 @@ public class DataAccessMorphia extends DataAccess {
 					continue;
 				}
 				if (addOn != null) {
-					LOGGER.error("TODO: Add on not managed ... ");
-					//addOn.insertData(ps, field, data, iii);
+					addOn.insertData(this, field, data, docSet, docUnSet);
 				} else {
 					final Class<?> type = field.getType();
 					if (!type.isPrimitive()) {
@@ -831,16 +822,6 @@ public class DataAccessMorphia extends DataAccess {
 						}
 					}
 					setValuedb(type, data, field, name, docSet, docUnSet);
-					/*
-					if (!field.getClass().isPrimitive()) {
-						final Object tmp = field.get(data);
-						if (tmp != null) {
-							docSet.append(name, tmp);
-						} else {
-							docUnSet.append(name, null);
-						}
-					}
-					*/
 				}
 
 			}
@@ -951,7 +932,7 @@ public class DataAccessMorphia extends DataAccess {
 			}
 			querySelect.append(" ");
 			if (addOn != null) {
-				LOGGER.error("TODO: Add on not managed ... ");
+				LOGGER.error("TODO: Add on not managed .5. ");
 				//addOn.generateQuery(tableName, primaryKey, elem, querySelect, query, name, count, options);
 			} else {
 				querySelect.append(tableName);
@@ -1008,7 +989,6 @@ public class DataAccessMorphia extends DataAccess {
 		final List<T> outs = new ArrayList<>();
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		try {
-			final CountInOut count = new CountInOut();
 			// Select values to read
 			//generateSelectField(querySelect, query, clazz, options, count);
 			// Generate the filtering of the data:
@@ -1046,10 +1026,8 @@ public class DataAccessMorphia extends DataAccess {
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					count.value = 1;
-					final CountInOut countNotNull = new CountInOut(0);
 					System.out.println(doc.toJson()); // Affichage du document en format JSON
-					final Object data = createObjectFromDocument(doc, clazz, count, countNotNull, options, lazyCall);
+					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					final T out = (T) data;
 					outs.add(out);
 				}
@@ -1071,8 +1049,6 @@ public class DataAccessMorphia extends DataAccess {
 	public Object createObjectFromDocument(
 			final Document doc,
 			final Class<?> clazz,
-			final CountInOut count,
-			final CountInOut countNotNull,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
@@ -1102,12 +1078,10 @@ public class DataAccessMorphia extends DataAccess {
 				continue;
 			}
 			if (addOn != null) {
-				LOGGER.error("TODO: Add on not managed ... ");
-				//addOn.fillFromDoc(doc, elem, data, count, options, lazyCall);
-				//addOn.fillFromQuery(rs, elem, data, count, options, lazyCall);
+				LOGGER.error("TODO: Add on not managed .6. ");
+				addOn.fillFromDoc(this, doc, elem, data, options, lazyCall);
 			} else {
-				setValueFromDoc(elem.getType(), data, count, elem, doc, countNotNull);
-				//setValueFromDb(elem.getType(), data, count, elem, rs, countNotNull);
+				setValueFromDoc(elem.getType(), data, elem, doc);
 			}
 		}
 		return data;

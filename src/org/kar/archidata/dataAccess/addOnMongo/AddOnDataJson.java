@@ -2,9 +2,6 @@ package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoCollection;
@@ -60,11 +56,10 @@ public class AddOnDataJson implements DataAccessAddOn {
 	@Override
 	public void insertData(
 			final DataAccessMorphia ioDb,
-			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
-			final CountInOut iii)
-			throws IllegalArgumentException, IllegalAccessException, SQLException, JsonProcessingException {
+			final Document docSet,
+			final Document docUnSet) throws Exception {
 		final Object data = field.get(rootObject);
 		if (data == null) {
 			ps.setNull(iii.value, Types.VARCHAR);
@@ -109,16 +104,20 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuery(
+	public void fillFromDoc(
 			final DataAccessMorphia ioDb,
-			final ResultSet rs,
+			final Document doc,
 			final Field field,
 			final Object data,
-			final CountInOut count,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
+
+		final String fieldName = AnnotationTools.getFieldName(field);
+		if (!doc.containsKey(fieldName)) {
+			field.set(data, null);
+			return;
+		}
 		final String jsonData = rs.getString(count.value);
-		count.inc();
 		if (!rs.wasNull()) {
 			final ObjectMapper objectMapper = new ObjectMapper();
 			if (field.getType() == List.class) {

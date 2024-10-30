@@ -2,7 +2,6 @@ package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -10,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccessMorphia;
@@ -84,10 +84,10 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	@Override
 	public void insertData(
 			final DataAccessMorphia ioDb,
-			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
-			final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
+			final Document docSet,
+			final Document docUnSet) throws Exception {
 		throw new IllegalAccessException("Can not generate an inset of @OneToMany");
 	}
 
@@ -221,33 +221,33 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void fillFromQuery(
+	public void fillFromDoc(
 			final DataAccessMorphia ioDb,
-			final ResultSet rs,
+			final Document doc,
 			final Field field,
 			final Object data,
-			final CountInOut count,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not OneToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
 		}
+
+		final String fieldName = AnnotationTools.getFieldName(field);
+		if (!doc.containsKey(fieldName)) {
+			field.set(data, null);
+			return;
+		}
+
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
 		if (decorators == null) {
 			return;
 		}
-		if (objectClass == Long.class) {
-			final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
-			field.set(data, idList);
-			count.inc();
-			return;
-		} else if (objectClass == UUID.class) {
-			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
-			field.set(data, idList);
-			count.inc();
+		if (objectClass == Long.class || objectClass == UUID.class) {
+			final Object value = doc.get(fieldName, field.getType());
+			field.set(data, value);
 			return;
 		}
 		if (objectClass == decorators.targetEntity()) {
@@ -255,13 +255,14 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			Long parentIdTmp = null;
 			UUID parendUuidTmp = null;
 			try {
-				final String modelData = rs.getString(count.value);
-				parentIdTmp = Long.valueOf(modelData);
-				count.inc();
-			} catch (final NumberFormatException ex) {
-				final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
-				parendUuidTmp = idList.get(0);
-				count.inc();
+				final Object value = doc.get(fieldName);
+				if (value instanceof final Long valueCasted) {
+					parentIdTmp = valueCasted;
+				} else if (value instanceof final UUID valueCasted) {
+					parendUuidTmp = valueCasted;
+				}
+			} catch (final Exception ex) {
+				LOGGER.error("fail to find the correct type... {}", ex.getMessage());
 			}
 			final Long parentId = parentIdTmp;
 			final UUID parendUuid = parendUuidTmp;
@@ -277,10 +278,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 				return;
 			}
 			if (objectClass == decorators.targetEntity()) {
-				if (decorators.fetch() == FetchType.EAGER) {
-					throw new DataAccessException("EAGER is not supported for list of element...");
-				} else if (parentId != null) {
-					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+				if (parentId != null) {
 					final LazyGetter lambda = () -> {
 						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),

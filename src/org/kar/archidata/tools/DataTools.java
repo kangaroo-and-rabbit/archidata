@@ -21,7 +21,7 @@ import org.kar.archidata.api.DataResource;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
-import org.kar.archidata.dataAccess.addOn.AddOnDataJson;
+import org.kar.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.ReadAllColumn;
 import org.kar.archidata.exception.FailException;

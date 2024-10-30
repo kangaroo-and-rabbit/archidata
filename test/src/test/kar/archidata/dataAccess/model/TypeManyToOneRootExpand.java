@@ -2,12 +2,15 @@ package test.kar.archidata.dataAccess.model;
 
 import org.kar.archidata.model.GenericData;
 
+import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Table(name = "TypeManyToOneRoot")
+//for Mongo
+@Entity(value = "TypeManyToOneRoot")
 public class TypeManyToOneRootExpand extends GenericData {
 
 	public String otherData;

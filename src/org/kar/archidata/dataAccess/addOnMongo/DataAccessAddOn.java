@@ -1,11 +1,10 @@
 package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.bson.Document;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccessMorphia;
 import org.kar.archidata.dataAccess.LazyGetter;
@@ -34,8 +33,12 @@ public interface DataAccessAddOn {
 	 * @param iii The index of injection
 	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException */
-	void insertData(final DataAccessMorphia ioDb, PreparedStatement ps, final Field field, Object data, CountInOut iii)
-			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
+	void insertData(
+			final DataAccessMorphia ioDb,
+			final Field field,
+			final Object rootObject,
+			final Document docSet,
+			final Document docUnSet) throws Exception;
 
 	/** Element can insert in the single request
 	 * @param field
@@ -62,12 +65,11 @@ public interface DataAccessAddOn {
 			QueryOptions options) throws Exception;
 
 	// Return the number of colomn read
-	void fillFromQuery(
+	void fillFromDoc(
 			final DataAccessMorphia ioDb,
-			ResultSet rs,
+			Document doc,
 			Field field,
 			Object data,
-			CountInOut count,
 			QueryOptions options,
 			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;

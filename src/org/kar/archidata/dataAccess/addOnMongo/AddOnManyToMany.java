@@ -2,13 +2,11 @@ package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -30,7 +28,6 @@ import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 import jakarta.validation.constraints.NotNull;
 
@@ -58,10 +55,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	@Override
 	public void insertData(
 			final DataAccessMorphia ioDb,
-			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
-			final CountInOut iii) throws SQLException, IllegalArgumentException, IllegalAccessException {
+			final Document docSet,
+			final Document docUnSet) throws Exception {
 
 	}
 
@@ -194,7 +191,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		// TODO: manage better the eager and lazy !!
 		if (objectClass == Long.class || objectClass == UUID.class) {
 			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 		}
@@ -203,25 +199,27 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			return;
 		}
 		if (objectClass == decorators.targetEntity()) {
-			if (decorators.fetch() == FetchType.EAGER) {
-				throw new DataAccessException("EAGER is not supported for list of element...");
-			} else {
-				generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
-			}
+			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
+
 		}
 	}
 
 	@Override
-	public void fillFromQuery(
+	public void fillFromDoc(
 			final DataAccessMorphia ioDb,
-			final ResultSet rs,
+			final Document doc,
 			final Field field,
 			final Object data,
-			final CountInOut count,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
+			return;
+		}
+
+		final String fieldName = AnnotationTools.getFieldName(field);
+		if (!doc.containsKey(fieldName)) {
+			field.set(data, null);
 			return;
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -243,9 +241,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		if (objectClass == decorators.targetEntity()) {
 			final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
-			if (decorators.fetch() == FetchType.EAGER) {
-				throw new DataAccessException("EAGER is not supported for list of element...");
-			} else if (foreignKeyType == Long.class) {
+			if (foreignKeyType == Long.class) {
 				final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
 				// field.set(data, idList);
 				count.inc();
