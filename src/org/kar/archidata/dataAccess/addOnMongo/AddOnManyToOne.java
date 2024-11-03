@@ -158,7 +158,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		// local field to manage no remote object to retrieve.
 		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
 				|| field.getType() == String.class || field.getType() == UUID.class) {
-			ioDb.setValueFromDoc(field.getType(), data, field, doc);
+			ioDb.setValueFromDoc(field.getType(), data, field, doc, lazyCall);
 			return;
 		}
 		final Class<?> objectClass = field.getType();

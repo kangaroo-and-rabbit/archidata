@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import dev.morphia.annotations.Entity;
+import dev.morphia.mapping.Mapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
@@ -76,7 +77,7 @@ public class AnnotationTools {
 			return clazz.getSimpleName();
 		}
 		final String tmp = ((Entity) annotation[0]).value();
-		if (tmp == null) {
+		if (tmp == null || tmp.length() == 0 || Mapper.IGNORED_FIELDNAME.equals(tmp)) {
 			return clazz.getSimpleName();
 		}
 		return tmp;

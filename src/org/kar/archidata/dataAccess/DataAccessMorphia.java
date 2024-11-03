@@ -44,6 +44,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
@@ -304,8 +305,12 @@ public class DataAccessMorphia extends DataAccess {
 
 	}
 
-	public <T> void setValueFromDoc(final Class<?> type, final Object data, final Field field, final Document doc)
-			throws Exception {
+	public <T> void setValueFromDoc(
+			final Class<?> type,
+			final Object data,
+			final Field field,
+			final Document doc,
+			final List<LazyGetter> lazyCall) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(field);
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
@@ -374,7 +379,11 @@ public class DataAccessMorphia extends DataAccess {
 			final String value = doc.getString(fieldName);
 			field.set(data, value);
 			return;
-
+		}
+		if (type == UUID.class) {
+			final Object value = doc.get(fieldName, field.getType());
+			field.set(data, value);
+			return;
 		}
 		if (type.isEnum()) {
 			final String value = doc.getString(fieldName);
@@ -392,8 +401,15 @@ public class DataAccessMorphia extends DataAccess {
 			}
 			return;
 		}
-		final Object value = doc.get(fieldName, field.getType());
-		field.set(data, value);
+		if (List.class == field.getType()) {
+			final Object value = doc.get(fieldName, field.getType());
+			field.set(data, value);
+		} else {
+			final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(), null,
+					lazyCall);
+			field.set(data, value);
+		}
+
 		return;
 		//throw new ArchiveException("wrong type of field [" + fieldName + "]: " + doc.toJson());
 	}
@@ -612,6 +628,51 @@ public class DataAccessMorphia extends DataAccess {
 
 	}
 
+	protected Object convertDefaultField(String data, final Field field) throws Exception {
+		if (data.startsWith("'") && data.endsWith("'")) {
+			data = data.substring(1, data.length() - 1);
+		}
+		final Class<?> type = field.getType();
+		if (type == UUID.class) {
+
+		}
+		if (type == Long.class || type == long.class) {
+			return Long.parseLong(data);
+		}
+		if (type == Integer.class || type == int.class) {
+			return Integer.parseInt(data);
+		}
+		if (type == Float.class || type == float.class) {
+			return Float.parseFloat(data);
+		}
+		if (type == Double.class || type == double.class) {
+			return Double.parseDouble(data);
+		}
+		if (type == Boolean.class || type == boolean.class) {
+			return Boolean.parseBoolean(data);
+		}
+		if (type == Timestamp.class) {}
+		if (type == Date.class) {}
+		if (type == Instant.class) {}
+		if (type == LocalDate.class) {}
+		if (type == LocalTime.class) {}
+		if (type == String.class) {}
+		if (type.isEnum()) {
+			final boolean find = false;
+			final Object[] arr = type.getEnumConstants();
+			for (final Object elem : arr) {
+				if (elem.toString().equals(data)) {
+					return elem;
+				}
+			}
+			if (!find) {
+				throw new DataAccessException("Enum value does not exist in the Model: '" + data + "'");
+			}
+		}
+		LOGGER.warn("Request default of unknow native type {} => {}", type.getCanonicalName(), data);
+		return null;
+	}
+
 	public boolean isAddOnField(final Field field) {
 		return findAddOnforField(field) != null;
 	}
@@ -678,7 +739,7 @@ public class DataAccessMorphia extends DataAccess {
 					continue;
 				}
 				final String tableFieldName = AnnotationTools.getFieldName(field);
-				final Object currentInsertValue = field.get(data);
+				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					primaryKeyField = field;
 					if (primaryKeyField.getType() == UUID.class) {
@@ -714,11 +775,17 @@ public class DataAccessMorphia extends DataAccess {
 					doc.append(tableFieldName, Date.from(Instant.now()));
 					continue;
 				}
-				if (!field.getClass().isPrimitive()) {
-					if (currentInsertValue == null) {
-						final DefaultValue[] defaultValue = field.getDeclaredAnnotationsByType(DefaultValue.class);
-						LOGGER.error("TODO: convert default value in the correct value for the DB...");
+				if (currentInsertValue == null && !field.getClass().isPrimitive()) {
+					final DefaultValue[] defaultValue = field.getDeclaredAnnotationsByType(DefaultValue.class);
+					LOGGER.error("TODO: convert default value in the correct value for the DB...");
+					if (defaultValue.length == 0) {
 						continue;
+					} else {
+						final String value = defaultValue[0].value();
+						if (value == null) {
+							continue;
+						}
+						currentInsertValue = convertDefaultField(value, field);
 					}
 				}
 				doc.append(tableFieldName, currentInsertValue);
@@ -790,8 +857,14 @@ public class DataAccessMorphia extends DataAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String name = AnnotationTools.getFieldName(field);
-				if (!filterKey.getValues().contains(name)) {
+				final String fieldName = AnnotationTools.getFieldName(field);
+				// update field is not conditioned by filter:
+				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+				if (updateTime) {
+					docSet.append(fieldName, Date.from(Instant.now()));
+					continue;
+				}
+				if (!filterKey.getValues().contains(fieldName)) {
 					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
@@ -821,7 +894,7 @@ public class DataAccessMorphia extends DataAccess {
 							continue;
 						}
 					}
-					setValuedb(type, data, field, name, docSet, docUnSet);
+					setValuedb(type, data, field, fieldName, docSet, docUnSet);
 				}
 
 			}
@@ -836,7 +909,7 @@ public class DataAccessMorphia extends DataAccess {
 			if (!docUnSet.isEmpty()) {
 				actions.append("$unset", docUnSet);
 			}
-			LOGGER.info("update some values: {}", actions.toJson());
+			LOGGER.info("updateWhere with value: {}", actions.toJson());
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			return ret.getModifiedCount();
 		} catch (final SQLException ex) {
@@ -897,19 +970,10 @@ public class DataAccessMorphia extends DataAccess {
 		}
 	}
 
-	// This must be refactored to manage the .project of Morphia.
-	public void generateSelectField(//
-			final StringBuilder querySelect, //
-			final StringBuilder query, //
-			final Class<?> clazz, //
-			final QueryOptions options, //
-			final CountInOut count//
-	) throws Exception {
-		/*
+	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
+		// TODO: list of user select fields.
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final String primaryKey = AnnotationTools.getPrimaryKeyField(clazz).getName();
-		boolean firstField = true;
+		final List<String> fieldsName = new ArrayList<>();
 
 		for (final Field elem : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
@@ -925,29 +989,9 @@ public class DataAccessMorphia extends DataAccess {
 				continue;
 			}
 			final String name = AnnotationTools.getFieldName(elem);
-			if (firstField) {
-				firstField = false;
-			} else {
-				querySelect.append(",");
-			}
-			querySelect.append(" ");
-			if (addOn != null) {
-				LOGGER.error("TODO: Add on not managed .5. ");
-				//addOn.generateQuery(tableName, primaryKey, elem, querySelect, query, name, count, options);
-			} else {
-				querySelect.append(tableName);
-				querySelect.append(".");
-				querySelect.append(name);
-				count.inc();
-			}
+			fieldsName.add(name);
 		}
-		*/
-	}
-
-	@Override
-	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		return getsWhere(clazz, options);
+		return fieldsName;
 	}
 
 	@Override
@@ -989,13 +1033,11 @@ public class DataAccessMorphia extends DataAccess {
 		final List<T> outs = new ArrayList<>();
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		try {
-			// Select values to read
-			//generateSelectField(querySelect, query, clazz, options, count);
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			FindIterable<Document> retFind = null;
 			if (filters != null) {
-				LOGGER.info("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
+				//LOGGER.info("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
 				retFind = collection.find(filters);
 			} else {
 				retFind = collection.find();
@@ -1021,12 +1063,17 @@ public class DataAccessMorphia extends DataAccess {
 			} else if (limits.size() > 1) {
 				throw new DataAccessException("Request with multiple 'limit'...");
 			}
+			// Select values to read
+			final List<String> listFields = generateSelectField(clazz, options);
+			listFields.add("_id");
+			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
+			LOGGER.info("GetsWhere ...");
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					System.out.println(doc.toJson()); // Affichage du document en format JSON
+					LOGGER.info("    - getWhere value: {}", doc.toJson());
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					final T out = (T) data;
 					outs.add(out);
@@ -1081,7 +1128,7 @@ public class DataAccessMorphia extends DataAccess {
 				LOGGER.error("TODO: Add on not managed .6. ");
 				addOn.fillFromDoc(this, doc, elem, data, options, lazyCall);
 			} else {
-				setValueFromDoc(elem.getType(), data, elem, doc);
+				setValueFromDoc(elem.getType(), data, elem, doc, lazyCall);
 			}
 		}
 		return data;
@@ -1124,48 +1171,6 @@ public class DataAccessMorphia extends DataAccess {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
 		return this.getWhere(clazz, options.getAllArray());
-	}
-
-	@Override
-	public <T> List<T> gets(final Class<T> clazz) throws Exception {
-		return getsWhere(clazz);
-	}
-
-	@Override
-	public <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
-		return getsWhere(clazz, option);
-	}
-
-	/** Delete items with the specific Id (cf @Id) and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
-	 * @param <ID_TYPE> Type of the reference @Id
-	 * @param clazz Data model that might remove element
-	 * @param id Unique Id of the model
-	 * @param options (Optional) Options of the request
-	 * @return Number of element that is removed. */
-	@Override
-	public <ID_TYPE> long delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
-			throws Exception {
-		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		if (hasDeletedFieldName != null) {
-			return deleteSoft(clazz, id, options);
-		} else {
-			return deleteHard(clazz, id, options);
-		}
-	}
-
-	/** Delete items with the specific condition and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
-	 * @param clazz Data model that might remove element.
-	 * @param condition Condition to remove elements.
-	 * @param options (Optional) Options of the request.
-	 * @return Number of element that is removed. */
-	@Override
-	public long deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
-		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		if (hasDeletedFieldName != null) {
-			return deleteSoftWhere(clazz, option);
-		} else {
-			return deleteHardWhere(clazz, option);
-		}
 	}
 
 	@Override

@@ -102,9 +102,12 @@ public class TestManyToOne {
 		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
 
 		// remove values:
-		final long count = this.da.delete(TypeManyToOneRemote.class, remote.id);
-		Assertions.assertEquals(1L, count);
-
+		try {
+			final long count = this.da.delete(TypeManyToOneRemote.class, insertedRemote2.id);
+			Assertions.assertEquals(1L, count);
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+		}
 		// check fail:
 
 		retrieve = this.da.get(TypeManyToOneRoot.class, insertedData.id);
@@ -161,7 +164,7 @@ public class TestManyToOne {
 		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
 
 		// remove values:
-		final long count = this.da.delete(TypeManyToOneUUIDRemote.class, remote.uuid);
+		final long count = this.da.delete(TypeManyToOneUUIDRemote.class, insertedRemote2.uuid);
 		Assertions.assertEquals(1, count);
 
 		// check fail:

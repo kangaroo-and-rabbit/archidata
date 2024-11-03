@@ -4,8 +4,10 @@ import java.util.List;
 
 import org.kar.archidata.model.GenericData;
 
+import dev.morphia.annotations.Entity;
 import jakarta.persistence.OneToMany;
 
+@Entity
 public class TypeOneToManyRoot extends GenericData {
 
 	public String otherData;

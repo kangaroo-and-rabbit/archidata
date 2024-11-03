@@ -93,7 +93,6 @@ public class TestSimpleTableSoftDelete {
 		// check the full values
 		final SimpleTableSoftDelete retrieve = this.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
-
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);

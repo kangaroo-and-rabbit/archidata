@@ -12,10 +12,12 @@ public class DBEntry implements Closeable {
 	final static Logger LOGGER = LoggerFactory.getLogger(DBEntry.class);
 	private final DBConfig config;
 	private DbInterface ioDb;
+	private Class<?> classes[] = {};
 	private static List<DBEntry> stored = new ArrayList<>();
 
 	private DBEntry(final DBConfig config, final boolean root, final Class<?>... classes) throws IOException {
 		this.config = config;
+		this.classes = classes;
 		if (root) {
 			connectRoot();
 		} else {
@@ -23,11 +25,12 @@ public class DBEntry implements Closeable {
 		}
 	}
 
-	public static DBEntry createInterface(final DBConfig config) throws IOException {
-		return createInterface(config, false);
+	public static DBEntry createInterface(final DBConfig config, final Class<?>... classes) throws IOException {
+		return createInterface(config, false, classes);
 	}
 
-	public static DBEntry createInterface(final DBConfig config, final boolean root) throws IOException {
+	public static DBEntry createInterface(final DBConfig config, final boolean root, final Class<?>... classes)
+			throws IOException {
 		if (config.getKeepConnected()) {
 			for (final DBEntry elem : stored) {
 				if (elem == null) {
@@ -41,7 +44,7 @@ public class DBEntry implements Closeable {
 			stored.add(tmp);
 			return tmp;
 		} else {
-			return new DBEntry(config, root);
+			return new DBEntry(config, root, classes);
 		}
 	}
 
@@ -52,7 +55,7 @@ public class DBEntry implements Closeable {
 		} else if ("sqlite".equals(this.config.getType())) {
 			this.ioDb = new DbInterfaceSQL(this.config);
 		} else if ("mongo".equals(this.config.getType())) {
-			this.ioDb = new DbInterfaceMorphia(this.config);
+			this.ioDb = new DbInterfaceMorphia(this.config, this.classes);
 		} else {
 			throw new IOException("DB type: '" + this.config.getType() + "'is not managed");
 		}
@@ -64,7 +67,7 @@ public class DBEntry implements Closeable {
 		} else if ("sqlite".equals(this.config.getType())) {
 			this.ioDb = new DbInterfaceSQL(this.config);
 		} else if ("mongo".equals(this.config.getType())) {
-			this.ioDb = new DbInterfaceMorphia(this.config);
+			this.ioDb = new DbInterfaceMorphia(this.config, this.classes);
 		} else {
 			throw new IOException("DB type: '" + this.config.getType() + "'is not managed");
 		}

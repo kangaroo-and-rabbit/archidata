@@ -1,6 +1,7 @@
 package test.kar.archidata;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -8,6 +9,29 @@ import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import test.kar.archidata.dataAccess.model.SerializeAsJson;
+import test.kar.archidata.dataAccess.model.SerializeListAsJson;
+import test.kar.archidata.dataAccess.model.SimpleTable;
+import test.kar.archidata.dataAccess.model.SimpleTableSoftDelete;
+import test.kar.archidata.dataAccess.model.TypeManyToManyRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToManyRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToManyRootExpand;
+import test.kar.archidata.dataAccess.model.TypeManyToOneRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToOneRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToOneRootExpand;
+import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
+import test.kar.archidata.dataAccess.model.TypeOneToManyRemote;
+import test.kar.archidata.dataAccess.model.TypeOneToManyRoot;
+import test.kar.archidata.dataAccess.model.TypeOneToManyRootExpand;
+import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRemote;
+import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRoot;
+import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRootExpand;
+import test.kar.archidata.dataAccess.model.TypesEnum1;
+import test.kar.archidata.dataAccess.model.TypesEnum2;
+import test.kar.archidata.dataAccess.model.TypesTable;
 
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
@@ -24,6 +48,29 @@ public class ConfigureDb {
 		if (modeTestForced != null) {
 			modeTest = modeTestForced;
 		}
+		final List<Class<?>> listObject = List.of( //
+				SerializeAsJson.class, //
+				SerializeListAsJson.class, //
+				SimpleTable.class, //
+				SimpleTableSoftDelete.class, //
+				TypeManyToManyRemote.class, //
+				TypeManyToManyRoot.class, //
+				TypeManyToManyRootExpand.class, //
+				TypeManyToOneRemote.class, //
+				TypeManyToOneRoot.class, //
+				TypeManyToOneRootExpand.class, //
+				TypeManyToOneUUIDRemote.class, //
+				TypeManyToOneUUIDRoot.class, //
+				TypeManyToOneUUIDRootExpand.class, //
+				TypeOneToManyRemote.class, //
+				TypeOneToManyRoot.class, //
+				TypeOneToManyRootExpand.class, //
+				TypeOneToManyUUIDRemote.class, //
+				TypeOneToManyUUIDRoot.class, //
+				TypeOneToManyUUIDRootExpand.class, //
+				TypesEnum1.class, //
+				TypesEnum2.class, //
+				TypesTable.class);
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
 			ConfigBaseVariable.bdDatabase = null;
@@ -50,7 +97,8 @@ public class ConfigureDb {
 			ConfigBaseVariable.dbUser = "root";
 		}
 		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.getDbconfig());
+		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.getDbconfig(),
+				listObject.toArray(new Class<?>[0]));
 		entry.connect();
 
 		removeDB();

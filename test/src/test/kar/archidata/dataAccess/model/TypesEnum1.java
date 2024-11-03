@@ -1,10 +1,12 @@
 package test.kar.archidata.dataAccess.model;
 
+import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
+@Entity
 public class TypesEnum1 {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

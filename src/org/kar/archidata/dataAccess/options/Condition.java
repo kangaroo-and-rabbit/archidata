@@ -77,7 +77,7 @@ public class Condition extends QueryOption {
 		}
 		final List<Bson> filter = new ArrayList<>();
 		if (exclude_deleted && deletedFieldName != null) {
-			filter.add(Filters.ne(deletedFieldName, false));
+			filter.add(Filters.eq(deletedFieldName, false));
 		}
 		// Check if we have a condition to generate
 		if (this.condition != null) {

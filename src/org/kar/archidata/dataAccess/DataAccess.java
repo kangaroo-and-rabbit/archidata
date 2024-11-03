@@ -94,7 +94,7 @@ public abstract class DataAccess {
 		// check the compatibility of the id and the declared ID
 		final Class<?> typeClass = idField.getType();
 		if (idKey == null) {
-			throw new DataAccessException("Try to identify the ID type and object wa null.");
+			throw new DataAccessException("Try to identify the ID type and object was null.");
 		}
 		if (idKey.getClass() != typeClass) {
 			if (idKey.getClass() == Condition.class) {
@@ -198,43 +198,43 @@ public abstract class DataAccess {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);
 		} else if (value instanceof final Long tmp) {
-			this.LOGGER.debug("Inject Long => {}", tmp);
+			LOGGER.debug("Inject Long => {}", tmp);
 			ps.setLong(iii.value, tmp);
 		} else if (value instanceof final Integer tmp) {
-			this.LOGGER.debug("Inject Integer => {}", tmp);
+			LOGGER.debug("Inject Integer => {}", tmp);
 			ps.setInt(iii.value, tmp);
 		} else if (value instanceof final String tmp) {
-			this.LOGGER.debug("Inject String => {}", tmp);
+			LOGGER.debug("Inject String => {}", tmp);
 			ps.setString(iii.value, tmp);
 		} else if (value instanceof final Short tmp) {
-			this.LOGGER.debug("Inject Short => {}", tmp);
+			LOGGER.debug("Inject Short => {}", tmp);
 			ps.setShort(iii.value, tmp);
 		} else if (value instanceof final Byte tmp) {
-			this.LOGGER.debug("Inject Byte => {}", tmp);
+			LOGGER.debug("Inject Byte => {}", tmp);
 			ps.setByte(iii.value, tmp);
 		} else if (value instanceof final Float tmp) {
-			this.LOGGER.debug("Inject Float => {}", tmp);
+			LOGGER.debug("Inject Float => {}", tmp);
 			ps.setFloat(iii.value, tmp);
 		} else if (value instanceof final Double tmp) {
-			this.LOGGER.debug("Inject Double => {}", tmp);
+			LOGGER.debug("Inject Double => {}", tmp);
 			ps.setDouble(iii.value, tmp);
 		} else if (value instanceof final Boolean tmp) {
-			this.LOGGER.debug("Inject Boolean => {}", tmp);
+			LOGGER.debug("Inject Boolean => {}", tmp);
 			ps.setBoolean(iii.value, tmp);
 		} else if (value instanceof final Timestamp tmp) {
-			this.LOGGER.debug("Inject Timestamp => {}", tmp);
+			LOGGER.debug("Inject Timestamp => {}", tmp);
 			ps.setTimestamp(iii.value, tmp);
 		} else if (value instanceof final Date tmp) {
-			this.LOGGER.debug("Inject Date => {}", tmp);
+			LOGGER.debug("Inject Date => {}", tmp);
 			ps.setTimestamp(iii.value, java.sql.Timestamp.from((tmp).toInstant()));
 		} else if (value instanceof final LocalDate tmp) {
-			this.LOGGER.debug("Inject LocalDate => {}", tmp);
+			LOGGER.debug("Inject LocalDate => {}", tmp);
 			ps.setDate(iii.value, java.sql.Date.valueOf(tmp));
 		} else if (value instanceof final LocalTime tmp) {
-			this.LOGGER.debug("Inject LocalTime => {}", tmp);
+			LOGGER.debug("Inject LocalTime => {}", tmp);
 			ps.setTime(iii.value, java.sql.Time.valueOf(tmp));
 		} else if (value.getClass().isEnum()) {
-			this.LOGGER.debug("Inject ENUM => {}", value.toString());
+			LOGGER.debug("Inject ENUM => {}", value.toString());
 			ps.setString(iii.value, value.toString());
 		} else {
 			throw new DataAccessException("Not manage type ==> need to add it ...");

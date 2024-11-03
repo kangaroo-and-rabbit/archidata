@@ -45,7 +45,7 @@ public class TestJson {
 
 	@Order(1)
 	@Test
-	public void testTableInsertAndRetrieve() throws Exception {
+	public void testTableFactory() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeAsJson.class);
 		if (this.da instanceof final DataAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
