@@ -1,0 +1,14 @@
+{
+  "CHECKS": {
+    "regexp": "\\[(API,)?(API|DEV-OPS|DOC|FEAT|FIX|FIX\\-CI|STYLE)\\]( \\([A-Za-z0-9.\\-/_]+\\))? (:)?( )?[A-Za-z0-9 ,.'\\-!/_]+$"
+  },
+  "LABEL": {
+    "color": "EEEEEE",
+    "name": "title needs formatting"
+  },
+  "MESSAGES": {
+    "failure": "Failing CI test",
+    "notice": "Title of the PR MUST respect format: [{TYPE}] clear description without typos in english\n  with {TYPE}:\n    * [API] Change API that permit to access on the application (un-compatibility only). This one can specifically added with [API,{TYPE}]\n    * [DEV-OPS] Update automatic build system, method to deliver application/packages, ...\n    * [DOC] Update or add some documentation.\n    * [FEAT] Develop a new feature\n    * [FIX] When fixing issue\n    * [FIX-CI] When the CI fail to build and we apply a correction to set it work again.\n    * [STYLE] Update of the style tools/checker, or add/remove rules.\n  Examples:\n    [FEAT] My beautiful feature\n    [API,FIX] Change API to fix typo\n    [FIX] (module) Correct part of ...",
+    "success": "All OK"
+  }
+}
