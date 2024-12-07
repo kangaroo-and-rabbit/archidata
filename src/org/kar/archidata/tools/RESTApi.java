@@ -121,7 +121,7 @@ public class RESTApi {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, String body)
+	public <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, String body)
 			throws RESTErrorResponseExeption, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
@@ -166,7 +166,7 @@ public class RESTApi {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected <T> T modelSendMap(
+	public <T> T modelSendMap(
 			final String model,
 			final Class<T> clazz,
 			final String urlOffset,
