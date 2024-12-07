@@ -1246,6 +1246,10 @@ public class DataAccess {
 
 	public static void addElement(final PreparedStatement ps, final Object value, final CountInOut iii)
 			throws Exception {
+		if (value == null) {
+			ps.setNull(iii.value, Types.INTEGER);
+			return;
+		}
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);
