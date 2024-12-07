@@ -21,6 +21,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -233,6 +234,14 @@ public class AnnotationTools {
 					"Must not have more than 1 element @Pattern on " + element.getClass().getCanonicalName());
 		}
 		return ((Pattern) annotation[0]).regexp();
+	}
+
+	public static boolean getConstraintsEmail(final Field element) throws DataAccessException {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Email.class);
+		if (annotation.length == 0) {
+			return false;
+		}
+		return true;
 	}
 
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {

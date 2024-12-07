@@ -401,6 +401,27 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
+					if (AnnotationTools.getConstraintsEmail(field)) {
+						final String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+						final Pattern pattern = Pattern.compile(emailPattern);
+						add(fieldName,
+								(
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final String elemTyped = (String) elem;
+									if (!pattern.matcher(elemTyped).find()) {
+										throw new InputException(baseName + fieldName,
+												"does not match the required pattern[email] (constraints) must be '"
+														+ emailPattern + "'");
+									}
+								});
+					}
 				} else if (type == JsonValue.class) {
 					final DataJson jsonAnnotation = AnnotationTools.getDataJson(field);
 					if (jsonAnnotation != null && jsonAnnotation.checker() != CheckFunctionVoid.class) {
