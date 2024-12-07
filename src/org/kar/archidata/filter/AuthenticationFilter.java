@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.catcher.RestErrorResponse;
+import org.kar.archidata.exception.SystemException;
 import org.kar.archidata.model.UserByToken;
 import org.kar.archidata.tools.JWTWrapper;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import jakarta.annotation.Priority;
 import jakarta.annotation.security.DenyAll;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -42,18 +44,40 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	@Context
 	private ResourceInfo resourceInfo;
 	protected final String applicationName;
+	protected final String issuer;
 
 	public static final String AUTHENTICATION_SCHEME = "Bearer";
 	public static final String APIKEY = "ApiKey";
 
 	public AuthenticationFilter(final String applicationName) {
 		this.applicationName = applicationName;
+		this.issuer = "KarAuth";
+	}
+
+	public AuthenticationFilter(final String applicationName, final String issuer) {
+		this.applicationName = applicationName;
+		this.issuer = issuer;
+	}
+
+	public String getRequestedPath(final ContainerRequestContext requestContext) {
+		final Class<?> resourceClass = this.resourceInfo.getResourceClass();
+		final Method resourceMethod = this.resourceInfo.getResourceMethod();
+		final String classPath = resourceClass.isAnnotationPresent(Path.class)
+				? resourceClass.getAnnotation(Path.class).value()
+				: "";
+		final String methodPath = resourceMethod.isAnnotationPresent(Path.class)
+				? resourceMethod.getAnnotation(Path.class).value()
+				: "";
+		final String fullPath = (classPath.startsWith("/") ? "" : "/") + classPath
+				+ (methodPath.startsWith("/") ? "" : "/") + methodPath;
+		return fullPath;
 	}
 
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
 		 * logger.debug("-----------------------------------------------------"); logger.debug("   for:{}", requestContext.getUriInfo().getPath()); */
+
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
 		if (method.isAnnotationPresent(DenyAll.class)) {
@@ -140,12 +164,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final List<String> roles = Arrays.asList(rolesAnnotation.value());
 		// check if the user have the right:
 		boolean haveRight = false;
-		for (final String role : roles) {
-			if (userContext.isUserInRole(role)) {
-				haveRight = true;
-				break;
-			}
+		try {
+			haveRight = checkRight(requestContext, userContext, roles);
+		} catch (final SystemException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+
 		// Is user valid?
 		if (!haveRight) {
 			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
@@ -155,6 +180,18 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		requestContext.setSecurityContext(userContext);
 		// logger.debug("Get local user : {} / {}", user, userByToken);
+	}
+
+	protected boolean checkRight(
+			final ContainerRequestContext requestContext,
+			final MySecurityContext userContext,
+			final List<String> roles) throws SystemException {
+		for (final String role : roles) {
+			if (userContext.isUserInRole(this.applicationName, role)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean isTokenBasedAuthentication(final String authorizationHeader) {
@@ -193,7 +230,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	// must be override to be good implementation
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
 		// logger.debug(" validate token : " + authorization);
-		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, "KarAuth", null);
+		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, null);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
 			LOGGER.error("The token is not valid: '{}'", authorization);
@@ -208,13 +245,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		user.type = UserByToken.TYPE_USER;
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
-			final Map<String, Map<String, Object>> rights = (Map<String, Map<String, Object>>) ret.getClaim("right");
+			LOGGER.info("Detect right in Authentication Filer: {}", rowRight);
+			user.right = (Map<String, Map<String, Object>>) ret.getClaim("right");
+			/*
 			if (rights.containsKey(this.applicationName)) {
 				user.right = rights.get(this.applicationName);
 			} else {
 				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName,
 						rights);
 			}
+			*/
 		}
 		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
 		return user;
