@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -152,7 +154,10 @@ public class AddOnDataJson implements DataAccessAddOn {
 				}
 				LOGGER.warn("Maybe fail to translate Model in datajson list: List<{}>", listClass.getCanonicalName());
 			}
-			final Object dataParsed = objectMapper.readValue(jsonData, field.getType());
+			final TypeFactory typeFactory = objectMapper.getTypeFactory();
+			final JavaType fieldType = typeFactory.constructType(field.getGenericType());
+			final Object dataParsed = objectMapper.readValue(jsonData, fieldType);
+			//final Object dataParsed = objectMapper.readValue(jsonData, field.getType());
 			field.set(data, dataParsed);
 		}
 	}
