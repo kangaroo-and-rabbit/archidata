@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessMorphia;
+import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryCondition;
@@ -83,7 +83,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
 			final Document docSet,
@@ -222,7 +222,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromDoc(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,

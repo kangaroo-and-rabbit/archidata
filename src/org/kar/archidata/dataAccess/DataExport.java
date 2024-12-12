@@ -244,7 +244,7 @@ public class DataExport {
 	}
 
 	public static TableQuery queryTable(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final List<TableQueryTypes> headers,
 			final String query,
 			final List<Object> parameters,
@@ -254,7 +254,7 @@ public class DataExport {
 	}
 
 	public static TableQuery queryTable(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final List<TableQueryTypes> headers,
 			final String queryBase,
 			final List<Object> parameters,

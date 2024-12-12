@@ -25,7 +25,7 @@ public class QueryNull implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
 			throws Exception {}
 
 	@Override

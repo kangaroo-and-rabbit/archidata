@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.client.model.Filters;
 
 public class QueryCondition implements QueryItem {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(DBAccess.class);
 	private final String key;
 	private final String comparator;
 	private final Object value;
@@ -40,7 +40,7 @@ public class QueryCondition implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
 			throws Exception {
 		ioDb.addElement(ps, this.value, iii);
 		iii.inc();

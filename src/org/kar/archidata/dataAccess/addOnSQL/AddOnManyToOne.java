@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -48,7 +48,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
@@ -152,7 +152,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		if (field.getType() == decorators.targetEntity()) {
 			if (decorators.fetch() == FetchType.EAGER) {
 				// TODO: rework this to have a lazy mode ...
-				DataAccessSQL.generateSelectField(querySelect, query, field.getType(), options, count);
+				DBAccessSQL.generateSelectField(querySelect, query, field.getType(), options, count);
 				final Class<?> subType = field.getType();
 				final String subTableName = AnnotationTools.getTableName(subType);
 				final Field idField = AnnotationTools.getFieldOfId(subType);
@@ -181,7 +181,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,

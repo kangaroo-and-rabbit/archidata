@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.db.DBConfig;
@@ -24,17 +24,17 @@ public class MigrationEngine {
 	// initialization of the migration if the DB is not present...
 	private MigrationInterface init;
 
-	protected final DataAccess da;
+	protected final DBAccess da;
 
 	/** Migration engine constructor (empty). */
-	public MigrationEngine(final DataAccess da) {
+	public MigrationEngine(final DBAccess da) {
 		this(da, new ArrayList<>(), null);
 	}
 
 	/** Migration engine constructor (specific mode).
 	 * @param datas All the migration ordered.
 	 * @param init Initialization migration model. */
-	public MigrationEngine(final DataAccess da, final List<MigrationInterface> datas, final MigrationInterface init) {
+	public MigrationEngine(final DBAccess da, final List<MigrationInterface> datas, final MigrationInterface init) {
 		this.datas = datas;
 		this.init = init;
 		this.da = da;
@@ -159,7 +159,7 @@ public class MigrationEngine {
 		LOGGER.info("DB '{}' exist.", config.getDbName());
 		// STEP 2: Check migration table exist:
 		LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
-		if (this.da instanceof final DataAccessSQL daSQL) {
+		if (this.da instanceof final DBAccessSQL daSQL) {
 			exist = this.da.isTableExist("KAR_migration");
 			if (!exist) {
 				LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");

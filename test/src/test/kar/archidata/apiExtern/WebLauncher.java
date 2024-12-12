@@ -17,7 +17,7 @@ import org.kar.archidata.UpdateJwtPublicKey;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.api.ProxyResource;
 import org.kar.archidata.catcher.GenericCatcher;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.filter.CORSFilter;
 import org.kar.archidata.filter.OptionFilter;
 import org.kar.archidata.migration.MigrationEngine;
@@ -33,10 +33,10 @@ public class WebLauncher {
 	protected UpdateJwtPublicKey keyUpdater = null;
 	protected HttpServer server = null;
 
-	private final DataAccess da;
+	private final DBAccess da;
 
 	public WebLauncher() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	private static URI getBaseURI() {

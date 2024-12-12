@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessMorphia;
+import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
 
@@ -34,7 +34,7 @@ public interface DataAccessAddOn {
 	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException */
 	void insertData(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
 			final Document docSet,
@@ -66,7 +66,7 @@ public interface DataAccessAddOn {
 
 	// Return the number of colomn read
 	void fillFromDoc(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			Document doc,
 			Field field,
 			Object data,
@@ -108,7 +108,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final String tableName,
 			final Object localId,
 			final Field field,
@@ -131,7 +131,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final String tableName,
 			final Object localId,
 			final Field field,
@@ -140,11 +140,11 @@ public interface DataAccessAddOn {
 
 	}
 
-	default void drop(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 
 	}
 
-	default void cleanAll(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	default void cleanAll(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 
 	}
 

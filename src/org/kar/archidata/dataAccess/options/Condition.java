@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.bson.conversions.Bson;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.QueryItem;
 import org.kar.archidata.dataAccess.QueryOptions;
 
@@ -30,7 +30,7 @@ public class Condition extends QueryOption {
 		}
 	}
 
-	public void injectQuery(final DataAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
 			throws Exception {
 		if (this.condition != null) {
 			this.condition.injectQuery(ioDb, ps, iii);

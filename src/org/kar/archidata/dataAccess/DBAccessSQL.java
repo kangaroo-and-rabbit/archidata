@@ -55,8 +55,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
-public class DataAccessSQL extends DataAccess {
-	final static Logger LOGGER = LoggerFactory.getLogger(DataAccessSQL.class);
+public class DBAccessSQL extends DBAccess {
+	final static Logger LOGGER = LoggerFactory.getLogger(DBAccessSQL.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	final static List<DataAccessAddOn> addOn = new ArrayList<>();
 
@@ -70,12 +70,12 @@ public class DataAccessSQL extends DataAccess {
 	/** Add a new add-on on the current management.
 	 * @param addOn instantiate object on the Add-on */
 	public static void addAddOn(final DataAccessAddOn addOn) {
-		DataAccessSQL.addOn.add(addOn);
+		DBAccessSQL.addOn.add(addOn);
 	}
 
 	private final DbInterfaceSQL db;
 
-	public DataAccessSQL(final DbInterfaceSQL db) {
+	public DBAccessSQL(final DbInterfaceSQL db) {
 		this.db = db;
 	}
 
@@ -1121,7 +1121,6 @@ public class DataAccessSQL extends DataAccess {
 		return 0L;
 	}
 
-	@Override
 	public void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
@@ -1616,5 +1615,11 @@ public class DataAccessSQL extends DataAccess {
 			ex.printStackTrace();
 		}
 		return outs;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
+
 	}
 }

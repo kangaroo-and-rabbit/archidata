@@ -9,8 +9,8 @@ import java.util.UUID;
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessMorphia;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryAnd;
@@ -54,7 +54,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
 			final Document docSet,
@@ -206,7 +206,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromDoc(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,
@@ -292,7 +292,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -349,7 +349,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncInsert(
-			final DataAccessMorphia ioDb,
+			final DBAccessMorphia ioDb,
 			final String tableName,
 			final Object localKey,
 			final Field field,
@@ -474,7 +474,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void drop(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	public void drop(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -487,7 +487,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void cleanAll(final DataAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	public void cleanAll(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field);
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
@@ -500,19 +500,19 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	public static void addLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessMorphia daSQL) {
+		if (ioDb instanceof final DBAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
 			 * DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">"); } */
 			final LinkTableLongLong insertElement = new LinkTableLongLong(localKey, remoteKey);
 			daSQL.insert(insertElement, new OverrideTableName(linkTableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -521,18 +521,18 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	public static long removeLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessMorphia daSQL) {
+		if (ioDb instanceof final DBAccessMorphia daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			return daSQL.deleteWhere(LinkTableLongLong.class, new OverrideTableName(linkTableName),
 					new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
 							new QueryCondition("object2Id", "=", remoteKey))));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 			return 0L;
 		} else {
 			throw new DataAccessException("DataAccess Not managed");

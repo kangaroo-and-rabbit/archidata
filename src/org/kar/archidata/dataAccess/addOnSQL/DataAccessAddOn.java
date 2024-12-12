@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
 
@@ -34,7 +34,7 @@ public interface DataAccessAddOn {
 	 * @param iii The index of injection
 	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException */
-	void insertData(final DataAccessSQL ioDb, PreparedStatement ps, final Field field, Object data, CountInOut iii)
+	void insertData(final DBAccessSQL ioDb, PreparedStatement ps, final Field field, Object data, CountInOut iii)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/** Element can insert in the single request
@@ -63,7 +63,7 @@ public interface DataAccessAddOn {
 
 	// Return the number of colomn read
 	void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			ResultSet rs,
 			Field field,
 			Object data,
@@ -106,7 +106,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final String tableName,
 			final Object localId,
 			final Field field,
@@ -129,7 +129,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final String tableName,
 			final Object localId,
 			final Field field,
@@ -138,11 +138,11 @@ public interface DataAccessAddOn {
 
 	}
 
-	default void drop(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	default void drop(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
 
 	}
 
-	default void cleanAll(final DataAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	default void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
 
 	}
 

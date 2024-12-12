@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.migration.MigrationException;
 import org.slf4j.Logger;
@@ -26,10 +26,10 @@ import test.kar.archidata.migration.model.TypesMigrationInitialisationFirst;
 public class TestMigrationFail {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestMigrationFirstInit.class);
 
-	private DataAccess da = null;
+	private DBAccess da = null;
 
 	public TestMigrationFail() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	@BeforeAll

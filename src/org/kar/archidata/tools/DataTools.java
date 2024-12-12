@@ -18,7 +18,7 @@ import java.util.UUID;
 import org.apache.tika.Tika;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.api.DataResource;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.addOnSQL.AddOnDataJson;
@@ -77,7 +77,7 @@ public class DataTools {
 		return filePath;
 	}
 
-	public static Data getWithSha512(final DataAccess ioDb, final String sha512) {
+	public static Data getWithSha512(final DBAccess ioDb, final String sha512) {
 		try {
 			return ioDb.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
 					new ReadAllColumn());
@@ -88,7 +88,7 @@ public class DataTools {
 		return null;
 	}
 
-	public static Data getWithId(final DataAccess ioDb, final long id) {
+	public static Data getWithId(final DBAccess ioDb, final long id) {
 		try {
 			return ioDb.getWhere(Data.class, new Condition(new QueryAnd(
 					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
@@ -100,7 +100,7 @@ public class DataTools {
 	}
 
 	public static Data createNewData(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512,
@@ -132,7 +132,7 @@ public class DataTools {
 	}
 
 	public static Data createNewData(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512) throws IOException, SQLException {
@@ -151,7 +151,7 @@ public class DataTools {
 		return createNewData(ioDb, tmpUID, originalFileName, sha512, mimeType);
 	}
 
-	public static void undelete(final DataAccess ioDb, final UUID id) {
+	public static void undelete(final DBAccess ioDb, final UUID id) {
 		try {
 			ioDb.unsetDelete(Data.class, id);
 		} catch (final Exception e) {
@@ -276,7 +276,7 @@ public class DataTools {
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCoverFromUri(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final String url) throws Exception {
@@ -355,7 +355,7 @@ public class DataTools {
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final InputStream fileInputStream,

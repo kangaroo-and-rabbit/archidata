@@ -3,9 +3,6 @@ package org.kar.archidata.dataAccess;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,7 +31,6 @@ import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.db.DbInterfaceMorphia;
 import org.kar.archidata.exception.DataAccessException;
-import org.kar.archidata.tools.DateTools;
 import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,8 +55,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
-public class DataAccessMorphia extends DataAccess {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataAccessMorphia.class);
+public class DBAccessMorphia extends DBAccess {
+	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMorphia.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
@@ -75,12 +71,12 @@ public class DataAccessMorphia extends DataAccess {
 	 * @param addOn instantiate object on the Add-on
 	 */
 	public static void addAddOn(final DataAccessAddOn addOn) {
-		DataAccessMorphia.addOn.add(addOn);
+		DBAccessMorphia.addOn.add(addOn);
 	}
 
 	private final DbInterfaceMorphia db;
 
-	public DataAccessMorphia(final DbInterfaceMorphia db) {
+	public DBAccessMorphia(final DbInterfaceMorphia db) {
 		this.db = db;
 	}
 
@@ -111,44 +107,6 @@ public class DataAccessMorphia extends DataAccess {
 		return true;
 	}
 
-	/** Extract a list of Long with "-" separated element from a SQL input data.
-	 * @param rs Result Set of the BDD
-	 * @param iii Id in the result set
-	 * @return The list of Long value
-	 * @throws SQLException if an error is generated in the SQL request. */
-	public List<Long> getListOfIds(final ResultSet rs, final int iii, final String separator) throws SQLException {
-		final String trackString = rs.getString(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		final List<Long> out = new ArrayList<>();
-		final String[] elements = trackString.split(separator);
-		for (final String elem : elements) {
-			final Long tmp = Long.parseLong(elem);
-			out.add(tmp);
-		}
-		return out;
-	}
-
-	/** Extract a list of UUID with "-" separated element from a SQL input data.
-	 * @param rs Result Set of the BDD
-	 * @param iii Id in the result set
-	 * @return The list of Long value
-	 * @throws SQLException if an error is generated in the SQL request. */
-	public List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
-		final String trackString = rs.getString(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		final List<UUID> out = new ArrayList<>();
-		final String[] elements = trackString.split(separator);
-		for (final String elem : elements) {
-			final UUID tmp = UUID.fromString(elem);
-			out.add(tmp);
-		}
-		return out;
-	}
-
 	public byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
 		final int inputLength = input.length;
 		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
@@ -162,29 +120,7 @@ public class DataAccessMorphia extends DataAccess {
 
 		return groups;
 	}
-
-	public List<UUID> getListOfRawUUIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
-		final byte[] trackString = rs.getBytes(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		final byte[][] elements = splitIntoGroupsOf16Bytes(trackString);
-		final List<UUID> out = new ArrayList<>();
-		for (final byte[] elem : elements) {
-			final UUID tmp = UuidUtils.asUuid(elem);
-			out.add(tmp);
-		}
-		return out;
-	}
-
-	public UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
-		final byte[] elem = rs.getBytes(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		return UuidUtils.asUuid(elem);
-	}
-
+	
 	protected <T> void setValuedb(
 			final Class<?> type,
 			final T data,
@@ -413,221 +349,7 @@ public class DataAccessMorphia extends DataAccess {
 		return;
 		//throw new ArchiveException("wrong type of field [" + fieldName + "]: " + doc.toJson());
 	}
-
-	// TODO: this function will replace the previous one !!!
-	protected RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
-		final Class<?> type = field.getType();
-		if (type == UUID.class) {
-			return (final ResultSet rs, final Object obj) -> {
-
-				final byte[] tmp = rs.getBytes(count);
-				// final UUID tmp = rs.getObject(count, UUID.class);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					// field.set(obj, tmp);
-					final UUID uuid = UuidUtils.asUuid(tmp);
-					field.set(obj, uuid);
-				}
-			};
-		}
-		if (type == Long.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Long tmp = rs.getLong(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == long.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Long tmp = rs.getLong(count);
-				if (rs.wasNull()) {
-					// field.set(data, null);
-				} else {
-					field.setLong(obj, tmp);
-				}
-			};
-		}
-		if (type == Integer.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Integer tmp = rs.getInt(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == int.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Integer tmp = rs.getInt(count);
-				if (rs.wasNull()) {
-					// field.set(obj, null);
-				} else {
-					field.setInt(obj, tmp);
-				}
-			};
-		}
-		if (type == Float.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Float tmp = rs.getFloat(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == float.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Float tmp = rs.getFloat(count);
-				if (rs.wasNull()) {
-					// field.set(obj, null);
-				} else {
-					field.setFloat(obj, tmp);
-				}
-			};
-		}
-		if (type == Double.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Double tmp = rs.getDouble(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == double.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Double tmp = rs.getDouble(count);
-				if (rs.wasNull()) {
-					// field.set(obj, null);
-				} else {
-					field.setDouble(obj, tmp);
-				}
-			};
-		}
-		if (type == Boolean.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Boolean tmp = rs.getBoolean(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == boolean.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Boolean tmp = rs.getBoolean(count);
-				if (rs.wasNull()) {
-					// field.set(obj, null);
-				} else {
-					field.setBoolean(obj, tmp);
-				}
-			};
-		}
-		if (type == Timestamp.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final Timestamp tmp = rs.getTimestamp(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type == Date.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				try {
-					final Timestamp tmp = rs.getTimestamp(count);
-					if (rs.wasNull()) {
-						field.set(obj, null);
-					} else {
-						field.set(obj, Date.from(tmp.toInstant()));
-					}
-				} catch (final SQLException ex) {
-					final String tmp = rs.getString(count);
-					LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
-					if (rs.wasNull()) {
-						field.set(obj, null);
-					} else {
-						final Date date = DateTools.parseDate(tmp);
-						LOGGER.error("Fail to parse the SQL time !!! {}", date);
-						field.set(obj, date);
-					}
-				}
-			};
-		}
-		if (type == Instant.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final String tmp = rs.getString(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, Instant.parse(tmp));
-				}
-			};
-		}
-		if (type == LocalDate.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final java.sql.Date tmp = rs.getDate(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp.toLocalDate());
-				}
-			};
-		}
-		if (type == LocalTime.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final java.sql.Time tmp = rs.getTime(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp.toLocalTime());
-				}
-			};
-		}
-		if (type == String.class) {
-			return (final ResultSet rs, final Object obj) -> {
-				final String tmp = rs.getString(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					field.set(obj, tmp);
-				}
-			};
-		}
-		if (type.isEnum()) {
-			return (final ResultSet rs, final Object obj) -> {
-				final String tmp = rs.getString(count);
-				if (rs.wasNull()) {
-					field.set(obj, null);
-				} else {
-					boolean find = false;
-					final Object[] arr = type.getEnumConstants();
-					for (final Object elem : arr) {
-						if (elem.toString().equals(tmp)) {
-							field.set(obj, elem);
-							find = true;
-							break;
-						}
-					}
-					if (!find) {
-						throw new DataAccessException("Enum value does not exist in the Model: '" + tmp + "'");
-					}
-				}
-			};
-		}
-		throw new DataAccessException("Unknown Field Type");
-
-	}
-
+	
 	protected Object convertDefaultField(String data, final Field field) throws Exception {
 		if (data.startsWith("'") && data.endsWith("'")) {
 			data = data.substring(1, data.length() - 1);
@@ -912,62 +634,13 @@ public class DataAccessMorphia extends DataAccess {
 			LOGGER.info("updateWhere with value: {}", actions.toJson());
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			return ret.getModifiedCount();
-		} catch (final SQLException ex) {
+		} catch (final Exception ex) {
 			ex.printStackTrace();
 		}
 		for (final LazyGetter action : asyncActions) {
 			action.doRequest();
 		}
 		return 0;
-	}
-
-	@Override
-	public void addElement(final PreparedStatement ps, final Object value, final CountInOut iii) throws Exception {
-		if (value instanceof final UUID tmp) {
-			final byte[] dataByte = UuidUtils.asBytes(tmp);
-			ps.setBytes(iii.value, dataByte);
-		} else if (value instanceof final Long tmp) {
-			LOGGER.debug("Inject Long => {}", tmp);
-			ps.setLong(iii.value, tmp);
-		} else if (value instanceof final Integer tmp) {
-			LOGGER.debug("Inject Integer => {}", tmp);
-			ps.setInt(iii.value, tmp);
-		} else if (value instanceof final String tmp) {
-			LOGGER.debug("Inject String => {}", tmp);
-			ps.setString(iii.value, tmp);
-		} else if (value instanceof final Short tmp) {
-			LOGGER.debug("Inject Short => {}", tmp);
-			ps.setShort(iii.value, tmp);
-		} else if (value instanceof final Byte tmp) {
-			LOGGER.debug("Inject Byte => {}", tmp);
-			ps.setByte(iii.value, tmp);
-		} else if (value instanceof final Float tmp) {
-			LOGGER.debug("Inject Float => {}", tmp);
-			ps.setFloat(iii.value, tmp);
-		} else if (value instanceof final Double tmp) {
-			LOGGER.debug("Inject Double => {}", tmp);
-			ps.setDouble(iii.value, tmp);
-		} else if (value instanceof final Boolean tmp) {
-			LOGGER.debug("Inject Boolean => {}", tmp);
-			ps.setBoolean(iii.value, tmp);
-		} else if (value instanceof final Timestamp tmp) {
-			LOGGER.debug("Inject Timestamp => {}", tmp);
-			ps.setTimestamp(iii.value, tmp);
-		} else if (value instanceof final Date tmp) {
-			LOGGER.debug("Inject Date => {}", tmp);
-			ps.setTimestamp(iii.value, java.sql.Timestamp.from((tmp).toInstant()));
-		} else if (value instanceof final LocalDate tmp) {
-			LOGGER.debug("Inject LocalDate => {}", tmp);
-			ps.setDate(iii.value, java.sql.Date.valueOf(tmp));
-		} else if (value instanceof final LocalTime tmp) {
-			LOGGER.debug("Inject LocalTime => {}", tmp);
-			ps.setTime(iii.value, java.sql.Time.valueOf(tmp));
-		} else if (value.getClass().isEnum()) {
-			LOGGER.debug("Inject ENUM => {}", value.toString());
-			ps.setString(iii.value, value.toString());
-		} else {
-			throw new DataAccessException("Not manage type ==> need to add it ...");
-		}
 	}
 
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
@@ -1083,9 +756,6 @@ public class DataAccessMorphia extends DataAccess {
 					elem.doRequest();
 				}
 			}
-		} catch (final SQLException ex) {
-			ex.printStackTrace();
-			throw new DataAccessException("Catch a SQL Exception: " + ex.getMessage());
 		} catch (final Exception ex) {
 			ex.printStackTrace();
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
@@ -1198,7 +868,8 @@ public class DataAccessMorphia extends DataAccess {
 		return retFind.getDeletedCount();
 	}
 
-	private <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+	@Override
+	public <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id)));
@@ -1263,5 +934,11 @@ public class DataAccessMorphia extends DataAccess {
 		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		collection.deleteMany(new Document());
+	}
+
+	@Override
+	public void close() throws IOException {
+		// TODO Auto-generated method stub
+		
 	}
 }

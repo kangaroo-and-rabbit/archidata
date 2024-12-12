@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.exception.DataAccessException;
@@ -38,7 +38,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		 * @param data The object that might be injected.
 		 * @param filterValue List of fields that might be check. If null, then all column must be checked.
 		 * @throws Exception Exception is generate if the data are incorrect. */
-		void check(DataAccess ioDb, final String baseName, final K data, final QueryOptions options) throws Exception;
+		void check(DBAccess ioDb, final String baseName, final K data, final QueryOptions options) throws Exception;
 	}
 
 	protected Map<String, List<CheckInterface<T>>> checking = null;
@@ -69,7 +69,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isPrimaryKey(field)) {
 					add(fieldName,
 							(
-									final DataAccess ioDb,
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final QueryOptions options) -> {
@@ -80,7 +80,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.getConstraintsNotNull(field)) {
 					add(fieldName,
 							(
-									final DataAccess ioDb,
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final QueryOptions options) -> {
@@ -92,7 +92,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isCreatedAtField(field) || AnnotationTools.isUpdateAtField(field)) {
 					add(fieldName,
 							(
-									final DataAccess ioDb,
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final QueryOptions options) -> {
@@ -106,7 +106,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValue != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -125,7 +125,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValue != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -144,7 +144,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -170,7 +170,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final int maxValue = maxValueRoot.intValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -190,7 +190,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final int minValue = minValueRoot.intValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -209,7 +209,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -229,7 +229,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -252,7 +252,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final float maxValue = maxValueRoot.floatValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -272,7 +272,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final float minValue = minValueRoot.floatValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -293,7 +293,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final double maxValue = maxValueRoot.doubleValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -313,7 +313,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final double minValue = minValueRoot.doubleValue();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -339,7 +339,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxSizeString > 0) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -358,7 +358,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (limitSize != null) {
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -382,7 +382,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final Pattern pattern = Pattern.compile(patternString);
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -406,7 +406,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								.newInstance();
 						add(fieldName,
 								(
-										final DataAccess ioDb,
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final QueryOptions options) -> {
@@ -421,7 +421,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					// Create the request ...
 					add(fieldName,
 							(
-									final DataAccess ioDb,
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final QueryOptions options) -> {
@@ -448,18 +448,18 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 	}
 
-	public void check(final DataAccess ioDb, final String baseName, final Object data) throws Exception {
+	public void check(final DBAccess ioDb, final String baseName, final Object data) throws Exception {
 		check(ioDb, baseName, data, null, null);
 	}
 
-	public void check(final DataAccess ioDb, final String baseName, final Object data, final List<String> filterValue)
+	public void check(final DBAccess ioDb, final String baseName, final Object data, final List<String> filterValue)
 			throws Exception {
 		check(ioDb, baseName, data, filterValue, null);
 	}
 
 	@Override
 	public void check(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final String baseName,
 			final Object data,
 			final List<String> filterValue,

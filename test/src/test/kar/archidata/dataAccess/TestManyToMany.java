@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.addOnSQL.AddOnManyToMany;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ import test.kar.archidata.dataAccess.model.TypeManyToManyRootExpand;
 public class TestManyToMany {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToMany.class);
 
-	private DataAccess da = null;
+	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -42,7 +42,7 @@ public class TestManyToMany {
 	}
 
 	public TestManyToMany() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	@Order(1)
@@ -51,7 +51,7 @@ public class TestManyToMany {
 		final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyRoot.class);
 		final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyRemote.class);
 		sqlCommand.addAll(sqlCommand2);
-		if (this.da instanceof final DataAccessSQL daSQL) {
+		if (this.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);

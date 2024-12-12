@@ -5,7 +5,7 @@ import java.util.List;
 import org.kar.archidata.annotation.ARCHIVE;
 import org.kar.archidata.annotation.AsyncType;
 import org.kar.archidata.annotation.RESTORE;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,7 @@ import test.kar.archidata.dataAccess.model.SimpleTable;
 public class TestResourceSample {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestResource.class);
-	private final DataAccess da = DataAccess.createInterface();
+	private final DBAccess da = DBAccess.createInterface();
 
 	@GET
 	@PermitAll

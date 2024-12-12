@@ -14,9 +14,9 @@ import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessMorphia;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessMorphia;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -60,7 +60,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
@@ -111,7 +111,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,
@@ -183,7 +183,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void addLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Long id,
 			final String column,
@@ -214,12 +214,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	 * @throws Exception If an error occurs during data retrieval or update.
 	 */
 	public static void addLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Long id,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			// TODO: Get primary key name
 			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
@@ -233,7 +233,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers.add(remoteKey);
 			ioDb.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));// TODO:  ,new OverrideFieldName("covers", column));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -252,12 +252,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	 * @throws Exception If an error occurs during data retrieval or update.
 	 */
 	public static void addLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final UUID uuid,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
 					new OverrideTableName(tableName));
@@ -271,7 +271,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers.add(remoteKey);
 			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -279,12 +279,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void addLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final UUID uuid,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
 					new OverrideTableName(tableName));
@@ -298,7 +298,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers.add(remoteKey);
 			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -306,12 +306,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void removeLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final UUID uuid,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDLong data = ioDb.get(TableCoversUUIDLong.class, uuid,
 					new OverrideTableName(tableName));
@@ -327,7 +327,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers = newList;
 			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -335,12 +335,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void removeLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final UUID uuid,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversUUIDUUID data = ioDb.get(TableCoversUUIDUUID.class, uuid,
 					new OverrideTableName(tableName));
@@ -356,7 +356,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers = newList;
 			ioDb.update(data, data.uuid, List.of("covers"), new OverrideTableName(tableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -364,12 +364,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void removeLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Long id,
 			final String column,
 			final Long remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversLongLong data = ioDb.get(TableCoversLongLong.class, id, new OverrideTableName(tableName));
 			if (data.covers == null) {
@@ -384,7 +384,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			data.covers = newList;
 			ioDb.update(data, data.id, List.of("covers"), new OverrideTableName(tableName));
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -392,12 +392,12 @@ public class AddOnDataJson implements DataAccessAddOn {
 	}
 
 	public static void removeLink(
-			final DataAccess ioDb,
+			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Long id,
 			final String column,
 			final UUID remoteKey) throws Exception {
-		if (ioDb instanceof final DataAccessSQL daSQL) {
+		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final TableCoversLongUUID data = ioDb.get(TableCoversLongUUID.class, id, new OverrideTableName(tableName));
 			if (data.covers == null) {
@@ -411,7 +411,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 				newList.add(elem);
 			}
 			data.covers = newList;
-		} else if (ioDb instanceof final DataAccessMorphia dam) {
+		} else if (ioDb instanceof final DBAccessMorphia dam) {
 			final String collectionName = AnnotationTools.getCollectionName(clazz);
 			final Field primaryfield = AnnotationTools.getPrimaryKeyField(clazz);
 			final String primaryFieldName = AnnotationTools.getFieldName(primaryfield);

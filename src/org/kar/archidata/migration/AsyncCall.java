@@ -1,7 +1,7 @@
 package org.kar.archidata.migration;
 
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 
 public interface AsyncCall {
-	void doRequest(DataAccess da) throws Exception;
+	void doRequest(DBAccess da) throws Exception;
 }

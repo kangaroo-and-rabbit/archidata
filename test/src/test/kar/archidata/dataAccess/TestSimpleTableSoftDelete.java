@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -35,7 +35,7 @@ public class TestSimpleTableSoftDelete {
 	private static Long idOfTheObject = null;
 	private static Timestamp startAction = null;
 
-	private DataAccess da = null;
+	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -52,7 +52,7 @@ public class TestSimpleTableSoftDelete {
 	}
 
 	public TestSimpleTableSoftDelete() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	@Order(1)
@@ -60,7 +60,7 @@ public class TestSimpleTableSoftDelete {
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTableSoftDelete.startAction = Timestamp.from(Instant.now());
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTableSoftDelete.class);
-		if (this.da instanceof final DataAccessSQL daSQL) {
+		if (this.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);

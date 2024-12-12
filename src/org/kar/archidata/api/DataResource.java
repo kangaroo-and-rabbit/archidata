@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.exception.FailException;
@@ -64,7 +64,7 @@ public class DataResource {
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */
 	private static long tmpFolderId = 1;
-	protected final DataAccess da = DataAccess.createInterface();
+	protected final DBAccess da = DBAccess.createInterface();
 
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {

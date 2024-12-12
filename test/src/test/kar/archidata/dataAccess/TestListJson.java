@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ import test.kar.archidata.dataAccess.model.SerializeListAsJson;
 public class TestListJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
 
-	private DataAccess da = null;
+	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -40,14 +40,14 @@ public class TestListJson {
 	}
 
 	public TestListJson() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJson.class);
-		if (this.da instanceof final DataAccessSQL daSQL) {
+		if (this.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);

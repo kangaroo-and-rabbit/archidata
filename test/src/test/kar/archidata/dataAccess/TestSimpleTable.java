@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ public class TestSimpleTable {
 	private static Long idOfTheObject = null;
 	private static Timestamp startAction = null;
 
-	private DataAccess da = null;
+	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -50,7 +50,7 @@ public class TestSimpleTable {
 	}
 
 	public TestSimpleTable() {
-		this.da = DataAccess.createInterface();
+		this.da = DBAccess.createInterface();
 	}
 
 	@Order(1)
@@ -58,7 +58,7 @@ public class TestSimpleTable {
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTable.startAction = Timestamp.from(Instant.now());
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTable.class);
-		if (this.da instanceof final DataAccessSQL daSQL) {
+		if (this.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);

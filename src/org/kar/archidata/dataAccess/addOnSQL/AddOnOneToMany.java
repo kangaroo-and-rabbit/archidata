@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.CountInOut;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryCondition;
@@ -83,7 +83,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final PreparedStatement ps,
 			final Field field,
 			final Object rootObject,
@@ -222,7 +222,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromQuery(
-			final DataAccessSQL ioDb,
+			final DBAccessSQL ioDb,
 			final ResultSet rs,
 			final Field field,
 			final Object data,

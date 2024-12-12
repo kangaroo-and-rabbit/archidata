@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.List;
 
 import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.db.DBInterfaceFactory;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +35,8 @@ import test.kar.archidata.dataAccess.model.TypesTable;
 
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
-	final static private String modeTestForced = "MONGO";
-
+	final static private String modeTestForced = null;//"MONGO";
+	
 	public static void configure() throws IOException {
 		String modeTest = System.getenv("TEST_E2E_MODE");
 		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
@@ -97,17 +97,17 @@ public class ConfigureDb {
 			ConfigBaseVariable.dbUser = "root";
 		}
 		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.getDbconfig(),
+		final DBInterfaceFactory entry = DBInterfaceFactory.create(GlobalConfiguration.getDbconfig(),
 				listObject.toArray(new Class<?>[0]));
 		entry.connect();
-
+		
 		removeDB();
 	}
-
+	
 	public static void removeDB() {
-
-		final DataAccess da = DataAccess.createInterface();
-
+		
+		final DBAccess da = DBAccess.createInterface();
+		
 		String modeTest = System.getenv("TEST_E2E_MODE");
 		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
 			modeTest = "SQLITE-MEMORY";
@@ -128,12 +128,12 @@ public class ConfigureDb {
 			da.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else {}
 	}
-
+	
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
 		removeDB();
-		DBEntry.closeAllForceMode();
+		DBInterfaceFactory.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
-
+		
 	}
 }

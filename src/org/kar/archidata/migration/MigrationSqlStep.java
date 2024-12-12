@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.dataAccess.DataAccessSQL;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.migration.model.Migration;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -70,7 +70,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean applyMigration(final DataAccess da, final StringBuilder log, final Migration model)
+	public boolean applyMigration(final DBAccess da, final StringBuilder log, final Migration model)
 			throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
@@ -106,7 +106,7 @@ public class MigrationSqlStep implements MigrationInterface {
 			}
 			try {
 				if (action.action() != null) {
-					if (da instanceof final DataAccessSQL ioDBSQL) {
+					if (da instanceof final DBAccessSQL ioDBSQL) {
 						ioDBSQL.executeQuery(action.action());
 					}
 				} else {
@@ -145,7 +145,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean revertMigration(final DataAccess da, final StringBuilder log) throws Exception {
+	public boolean revertMigration(final DBAccess da, final StringBuilder log) throws Exception {
 		generateRevertStep();
 		return false;
 	}
