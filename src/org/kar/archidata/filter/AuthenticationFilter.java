@@ -187,7 +187,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			final MySecurityContext userContext,
 			final List<String> roles) throws SystemException {
 		for (final String role : roles) {
-			if (userContext.isUserInRole(this.applicationName, role)) {
+			if (userContext.isUserInRole(this.applicationName + "/" + role)) {
 				return true;
 			}
 		}
@@ -245,7 +245,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		user.type = UserByToken.TYPE_USER;
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
-			LOGGER.info("Detect right in Authentication Filer: {}", rowRight);
+			LOGGER.info("Detect right in Authentication Filter: {}", rowRight);
 			user.right = (Map<String, Map<String, Object>>) ret.getClaim("right");
 			/*
 			if (rights.containsKey(this.applicationName)) {

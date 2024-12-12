@@ -26,17 +26,7 @@ public class MySecurityContext implements SecurityContext {
 		return this.contextPrincipale;
 	}
 
-	public boolean isUserInRole(final String group, final String role) {
-		if (this.contextPrincipale.userByToken != null) {
-			final Object value = this.contextPrincipale.userByToken.getRight(group, role);
-			if (value instanceof final Boolean ret) {
-				return ret;
-			}
-		}
-		return false;
-	}
-
-	public Object getUserInRole(final String group, final String role) {
+	public Object getRightOfRoleInGroup(final String group, final String role) {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.getRight(group, role);
 		}
@@ -57,10 +47,95 @@ public class MySecurityContext implements SecurityContext {
 		return false;
 	}
 
+	// Not sure the Long type is definitive.
+	public Long getUserID() {
+		if (this.contextPrincipale.userByToken != null) {
+			return this.contextPrincipale.userByToken.id;
+		}
+		return null;
+	}
+
+	public boolean checkRightInGroup(
+			final String group,
+			final String role,
+			final boolean needRead,
+			final boolean needWrite) {
+		if ("USER".equals(role)) {
+			if (groupExist(group)) {
+				return true;
+			}
+			return false;
+		}
+		// get associated Roles:
+		final Object rightPart = getRightOfRoleInGroup(group, role);
+		LOGGER.info("detect : {}", rightPart);
+		long dataRight = 0;
+		if (rightPart instanceof final Long rightPartCasted) {
+			dataRight = rightPartCasted;
+		} else if (rightPart instanceof final Integer rightPartCasted) {
+			dataRight = rightPartCasted;
+		}
+		if (dataRight == PartRight.READ_WRITE.getValue()) {
+			return true;
+		}
+		if (!needRead && needWrite && dataRight == PartRight.WRITE.getValue()) {
+			return true;
+		}
+		if (needRead && !needWrite && dataRight == PartRight.READ.getValue()) {
+			return true;
+		}
+		return false;
+	}
+
 	@Override
 	public boolean isUserInRole(final String role) {
-		// TODO Auto-generated method stub
-		return isUserInRole("???", role);
+		String roleEdit = role;
+		boolean needRead = false;
+		boolean needWrite = false;
+		// Check if the API overwrite the right needed for this API.
+		if (roleEdit.contains(":")) {
+			if (roleEdit.endsWith(":w")) {
+				try {
+					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
+				} catch (final IndexOutOfBoundsException ex) {
+					LOGGER.error("Fail to extract role of '{}'", role);
+					ex.printStackTrace();
+					return false;
+				}
+				needWrite = true;
+			} else if (roleEdit.endsWith(":r")) {
+				try {
+					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
+				} catch (final IndexOutOfBoundsException ex) {
+					LOGGER.error("Fail to extract role of '{}'", role);
+					ex.printStackTrace();
+					return false;
+				}
+				needRead = true;
+			} else if (roleEdit.endsWith(":rw")) {
+				try {
+					roleEdit = roleEdit.substring(0, roleEdit.length() - 3);
+				} catch (final IndexOutOfBoundsException ex) {
+					LOGGER.error("Fail to extract role of '{}'", role);
+					ex.printStackTrace();
+					return false;
+				}
+				needRead = true;
+				needWrite = true;
+			} else {
+				LOGGER.error("Request check right of an unknow right mode: {} (after ':')", roleEdit);
+				return false;
+			}
+		}
+		if (roleEdit.contains("/")) {
+			final String[] elements = roleEdit.split("/");
+			return checkRightInGroup(elements[0], elements[1], needRead, needWrite);
+		}
+		// Special case, if the token is valid, it is an USER ...
+		if ("USER".equals(roleEdit)) {
+			return true;
+		}
+		return checkRightInGroup("?system?", roleEdit, needRead, needWrite);
 	}
 
 	public Object getRole(final String role) {
