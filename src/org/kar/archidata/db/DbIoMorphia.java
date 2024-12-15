@@ -26,10 +26,6 @@ public class DbIoMorphia extends DbIo implements Closeable {
 
 	public DbIoMorphia(final DbConfig config) throws IOException {
 		super(config);
-		// If we want to stay connected, we instantiate a basic connection (only force close can remove it).
-		if (this.config.getKeepConnected()) {
-			open();
-		}
 	}
 
 	public Datastore getDatastore() {

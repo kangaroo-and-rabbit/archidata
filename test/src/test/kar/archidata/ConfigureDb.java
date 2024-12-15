@@ -122,14 +122,15 @@ public class ConfigureDb {
 			da.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
 			da.deleteDB(ConfigBaseVariable.bdDatabase);
-		} else {}
+		}
 	}
 
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
 		removeDB();
+		// The connection is by default open ==> close it at the end of test:
+		da.close();
 		DbIoFactory.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
-		da.close();
 	}
 }

@@ -31,6 +31,7 @@ public class DbIoFactory {
 		}
 		final DbIo dbIo = createInstance(config);
 		if (config.getKeepConnected()) {
+			dbIo.open();
 			dbIoStored.add(dbIo);
 		}
 		dbIo.open();

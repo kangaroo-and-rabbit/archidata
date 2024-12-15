@@ -15,10 +15,6 @@ public class DbIoSql extends DbIo {
 
 	public DbIoSql(final DbConfig config) throws IOException {
 		super(config);
-		// If we want to stay connected, we instantiate a basic connection (only force close can remove it).
-		if (this.config.getKeepConnected()) {
-			open();
-		}
 	}
 
 	public Connection getConnection() {
