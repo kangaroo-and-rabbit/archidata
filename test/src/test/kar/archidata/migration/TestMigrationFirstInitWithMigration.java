@@ -11,13 +11,15 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.db.DbConfig;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.migration.model.Migration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.migration.model.TypesMigrationInitialisationCurrent;
@@ -29,7 +31,7 @@ public class TestMigrationFirstInitWithMigration {
 
 	private DBAccess da = null;
 
-	public TestMigrationFirstInitWithMigration() {
+	public TestMigrationFirstInitWithMigration() throws InternalServerErrorException, IOException, DataAccessException {
 		this.da = DBAccess.createInterface();
 	}
 
@@ -52,7 +54,7 @@ public class TestMigrationFirstInitWithMigration {
 		// add migration for old version
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new Migration2());
-		Assertions.assertDoesNotThrow(() -> migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig()));
+		Assertions.assertDoesNotThrow(() -> migrationEngine.migrateErrorThrow(new DbConfig()));
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 95.0;
@@ -76,7 +78,7 @@ public class TestMigrationFirstInitWithMigration {
 		// add migration for old version
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new Migration2());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig());
+		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 99.0;

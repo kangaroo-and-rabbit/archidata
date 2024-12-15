@@ -68,22 +68,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					add(fieldName,
-							(
-									final DBAccess ioDb,
-									final String baseName,
-									final T data,
-									final QueryOptions options) -> {
+							(final DBAccess ioDb, final String baseName, final T data, final QueryOptions options) -> {
 								throw new InputException(baseName + fieldName,
 										"This is a '@Id' (primaryKey) ==> can not be change");
 							});
 				}
 				if (AnnotationTools.getConstraintsNotNull(field)) {
 					add(fieldName,
-							(
-									final DBAccess ioDb,
-									final String baseName,
-									final T data,
-									final QueryOptions options) -> {
+							(final DBAccess ioDb, final String baseName, final T data, final QueryOptions options) -> {
 								if (field.get(data) == null) {
 									throw new InputException(baseName + fieldName, "Can not be null");
 								}
@@ -91,11 +83,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				}
 				if (AnnotationTools.isCreatedAtField(field) || AnnotationTools.isUpdateAtField(field)) {
 					add(fieldName,
-							(
-									final DBAccess ioDb,
-									final String baseName,
-									final T data,
-									final QueryOptions options) -> {
+							(final DBAccess ioDb, final String baseName, final T data, final QueryOptions options) -> {
 								throw new InputException(baseName + fieldName, "It is forbidden to change this field");
 							});
 				}
@@ -420,11 +408,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isUnique(field)) {
 					// Create the request ...
 					add(fieldName,
-							(
-									final DBAccess ioDb,
-									final String baseName,
-									final T data,
-									final QueryOptions options) -> {
+							(final DBAccess ioDb, final String baseName, final T data, final QueryOptions options) -> {
 								final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
 								Object other = null;
 								if (condCheckers.isEmpty()) {

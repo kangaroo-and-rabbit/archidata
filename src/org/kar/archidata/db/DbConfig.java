@@ -1,11 +1,14 @@
 package org.kar.archidata.db;
 
+import java.util.List;
+
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DBConfig {
+public class DbConfig {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccess.class);
 	private final String type;
 	private final String hostname;
@@ -14,9 +17,17 @@ public class DBConfig {
 	private final String password;
 	private final String dbName;
 	private final boolean keepConnected;
+	private final List<Class<?>> classes;
 
-	public DBConfig(final String type, final String hostname, final Integer port, final String login,
-			final String password, final String dbName, final boolean keepConnected) throws DataAccessException {
+	public DbConfig() throws DataAccessException {
+		this(ConfigBaseVariable.getDBType(), ConfigBaseVariable.getDBHost(), ConfigBaseVariable.getDBPort(),
+				ConfigBaseVariable.getDBLogin(), ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
+				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getBbInterfacesClasses()));
+	}
+
+	public DbConfig(final String type, final String hostname, final Short port, final String login,
+			final String password, final String dbName, final boolean keepConnected, final List<Class<?>> classes)
+			throws DataAccessException {
 		if (type == null) {
 			this.type = "mysql";
 		} else {
@@ -43,6 +54,7 @@ public class DBConfig {
 		this.password = password;
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
+		this.classes = classes;
 
 	}
 
@@ -79,6 +91,10 @@ public class DBConfig {
 
 	public boolean getKeepConnected() {
 		return this.keepConnected;
+	}
+
+	public List<Class<?>> getClasses() {
+		return this.classes;
 	}
 
 	public String getUrl() {

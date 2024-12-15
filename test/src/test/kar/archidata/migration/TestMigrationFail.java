@@ -10,13 +10,15 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.db.DbConfig;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.migration.MigrationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.migration.model.TypesMigrationInitialisationFirst;
@@ -28,7 +30,7 @@ public class TestMigrationFail {
 
 	private DBAccess da = null;
 
-	public TestMigrationFail() {
+	public TestMigrationFail() throws InternalServerErrorException, IOException, DataAccessException {
 		this.da = DBAccess.createInterface();
 	}
 
@@ -48,7 +50,7 @@ public class TestMigrationFail {
 		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
 		// add initialization:
 		migrationEngine.setInit(new InitializationFirst());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig());
+		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationFirst test = new TypesMigrationInitialisationFirst();
 		test.testData = 95.0;
@@ -66,7 +68,7 @@ public class TestMigrationFail {
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new MigrationFail());
 		Assertions.assertThrows(MigrationException.class, () -> {
-			migrationEngine.migrateErrorThrow(GlobalConfiguration.getDbconfig());
+			migrationEngine.migrateErrorThrow(new DbConfig());
 		});
 	}
 

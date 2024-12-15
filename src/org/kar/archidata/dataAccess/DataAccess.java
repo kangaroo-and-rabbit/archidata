@@ -19,27 +19,28 @@ import jakarta.ws.rs.InternalServerErrorException;
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
 public class DataAccess {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
 
 	public DataAccess() {
 
 	}
 
 	public static boolean isDBExist(final String name, final QueryOption... options)
-			throws InternalServerErrorException, IOException {
+			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DBAccess db = DBAccess.createInterface()) {
 			return db.isDBExist(name, options);
 		}
 	}
 
-	public static boolean createDB(final String name) throws IOException {
+	public static boolean createDB(final String name)
+			throws IOException, InternalServerErrorException, DataAccessException {
 		try (DBAccess db = DBAccess.createInterface()) {
 			return db.createDB(name);
 		}
 	}
 
 	public static boolean isTableExist(final String name, final QueryOption... options)
-			throws InternalServerErrorException, IOException {
+			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DBAccess db = DBAccess.createInterface()) {
 			return db.isTableExist(name, options);
 		}
@@ -160,7 +161,6 @@ public class DataAccess {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		try (DBAccess db = DBAccess.createInterface()) {

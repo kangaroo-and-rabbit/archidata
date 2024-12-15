@@ -9,12 +9,14 @@ import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.db.DBConfig;
+import org.kar.archidata.db.DbConfig;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.migration.model.Migration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.ws.rs.InternalServerErrorException;
 
 public class MigrationEngine {
 	final static Logger LOGGER = LoggerFactory.getLogger(MigrationEngine.class);
@@ -25,6 +27,10 @@ public class MigrationEngine {
 	private MigrationInterface init;
 
 	protected final DBAccess da;
+
+	public MigrationEngine() throws InternalServerErrorException, IOException, DataAccessException {
+		this(DBAccess.createInterface());
+	}
 
 	/** Migration engine constructor (empty). */
 	public MigrationEngine(final DBAccess da) {
@@ -90,7 +96,7 @@ public class MigrationEngine {
 	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
 	 * @param config SQL connection for the migration.
 	 * @throws InterruptedException user interrupt the migration */
-	public void migrateWaitAdmin(final DBConfig config) throws InterruptedException {
+	public void migrateWaitAdmin(final DbConfig config) throws InterruptedException {
 		try {
 			migrateErrorThrow(config);
 		} catch (final Exception ex) {
@@ -110,7 +116,7 @@ public class MigrationEngine {
 	 * @throws IOException Error if access on the DB */
 	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
 			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
-	public void migrateErrorThrow(final DBConfig config) throws MigrationException {
+	public void migrateErrorThrow(final DbConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 		// check the integrity of the migrations:
 		LOGGER.info("List of availlable Migration: ");

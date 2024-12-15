@@ -16,8 +16,7 @@ public class Limit extends QueryOption {
 		query.append(" LIMIT ? \n");
 	}
 
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
 		ioDb.addElement(ps, this.limit, iii);
 		iii.inc();
 	}

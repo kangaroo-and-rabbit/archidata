@@ -70,8 +70,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean applyMigration(final DBAccess da, final StringBuilder log, final Migration model)
-			throws Exception {
+	public boolean applyMigration(final DBAccess da, final StringBuilder log, final Migration model) throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
 			generateStep();

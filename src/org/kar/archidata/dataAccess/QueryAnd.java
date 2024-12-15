@@ -45,8 +45,7 @@ public class QueryAnd implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
 		for (final QueryItem elem : this.childs) {
 			elem.injectQuery(ioDb, ps, iii);
 		}

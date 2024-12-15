@@ -12,12 +12,12 @@ import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.UpdateJwtPublicKey;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.api.ProxyResource;
 import org.kar.archidata.catcher.GenericCatcher;
-import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.db.DbConfig;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.filter.CORSFilter;
 import org.kar.archidata.filter.OptionFilter;
 import org.kar.archidata.migration.MigrationEngine;
@@ -33,11 +33,7 @@ public class WebLauncher {
 	protected UpdateJwtPublicKey keyUpdater = null;
 	protected HttpServer server = null;
 
-	private final DBAccess da;
-
-	public WebLauncher() {
-		this.da = DBAccess.createInterface();
-	}
+	public WebLauncher() {}
 
 	private static URI getBaseURI() {
 		return UriBuilder.fromUri(ConfigBaseVariable.getlocalAddress()).build();
@@ -45,13 +41,13 @@ public class WebLauncher {
 
 	public void migrateDB() throws Exception {
 		WebLauncher.LOGGER.info("Create migration engine");
-		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
+		final MigrationEngine migrationEngine = new MigrationEngine();
 		WebLauncher.LOGGER.info("Add initialization");
 		//migrationEngine.setInit(new Initialization());
 		WebLauncher.LOGGER.info("Add migration since last version");
 		//migrationEngine.add(new Migration20231126());
 		WebLauncher.LOGGER.info("Migrate the DB [START]");
-		migrationEngine.migrateWaitAdmin(GlobalConfiguration.getDbconfig());
+		migrationEngine.migrateWaitAdmin(new DbConfig());
 		WebLauncher.LOGGER.info("Migrate the DB [STOP]");
 	}
 
@@ -89,7 +85,7 @@ public class WebLauncher {
 		}
 	}
 
-	public void process() throws InterruptedException {
+	public void process() throws InterruptedException, DataAccessException {
 
 		ImageIO.scanForPlugins();
 		plop("jpeg");
@@ -127,8 +123,8 @@ public class WebLauncher {
 		// System.out.println(" getDBLogin: '" + ConfigVariable.getDBLogin() + "'");
 		// System.out.println(" getDBPassword: '" + ConfigVariable.getDBPassword() + "'");
 		// System.out.println(" getDBName: '" + ConfigVariable.getDBName() + "'");
-		System.out.println(" ==> " + GlobalConfiguration.getDbconfig());
-		System.out.println("OAuth service " + getBaseURI());
+		LOGGER.info(" ==> {}", new DbConfig());
+		LOGGER.info("OAuth service {}", getBaseURI());
 		this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc);
 		final HttpServer serverLink = this.server;
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

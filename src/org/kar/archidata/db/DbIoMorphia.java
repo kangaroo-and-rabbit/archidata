@@ -19,16 +19,35 @@ import com.mongodb.client.MongoClients;
 import dev.morphia.Datastore;
 import dev.morphia.Morphia;
 
-public class DbInterfaceMorphia extends DbInterface implements Closeable {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DbInterfaceMorphia.class);
-	private final MongoClient mongoClient;
-	private final Datastore datastore;
+public class DbIoMorphia extends DbIo implements Closeable {
+	private final static Logger LOGGER = LoggerFactory.getLogger(DbIoMorphia.class);
+	private MongoClient mongoClient = null;
+	private Datastore datastore = null;
 
-	public DbInterfaceMorphia(final DBConfig config, final Class<?>... classes) throws IOException {
-		this(config.getUrl(), config.getDbName(), classes);
+	public DbIoMorphia(final DbConfig config) throws IOException {
+		super(config);
 	}
 
-	public DbInterfaceMorphia(final String dbUrl, final String dbName, final Class<?>... classes) {
+	public Datastore getDatastore() {
+		return this.datastore;
+	}
+
+	public MongoClient getClient() {
+		return this.mongoClient;
+	}
+
+	@Override
+	synchronized public void closeImplement() throws IOException {
+		this.mongoClient.close();
+		this.mongoClient = null;
+		this.datastore = null;
+	}
+
+	@Override
+	synchronized public void openImplement() throws IOException {
+		final Class<?>[] classes = this.config.getClasses().toArray(new Class<?>[0]);
+		final String dbUrl = this.config.getUrl();
+		final String dbName = this.config.getDbName();
 		// Connect to MongoDB (simple form):
 		// final MongoClient mongoClient = MongoClients.create(dbUrl);
 		LOGGER.info("Connect on the DB: {}", dbUrl);
@@ -60,19 +79,5 @@ public class DbInterfaceMorphia extends DbInterface implements Closeable {
 		this.datastore.getMapper().map(classes);
 		// Ensure indexes
 		this.datastore.ensureIndexes();
-	}
-
-	public Datastore getDatastore() {
-		return this.datastore;
-	}
-
-	public MongoClient getClient() {
-		return this.mongoClient;
-	}
-
-	@Override
-	public void close() throws IOException {
-		this.mongoClient.close();
-
 	}
 }

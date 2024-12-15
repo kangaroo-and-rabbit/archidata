@@ -37,7 +37,7 @@ import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
-import org.kar.archidata.db.DbInterfaceSQL;
+import org.kar.archidata.db.DbIoSql;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.DateTools;
@@ -73,9 +73,9 @@ public class DBAccessSQL extends DBAccess {
 		DBAccessSQL.addOn.add(addOn);
 	}
 
-	private final DbInterfaceSQL db;
+	private final DbIoSql db;
 
-	public DBAccessSQL(final DbInterfaceSQL db) {
+	public DBAccessSQL(final DbIoSql db) {
 		this.db = db;
 	}
 
@@ -1616,7 +1616,7 @@ public class DBAccessSQL extends DBAccess {
 		}
 		return outs;
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub

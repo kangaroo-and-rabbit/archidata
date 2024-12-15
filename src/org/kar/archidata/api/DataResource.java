@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
-import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.exception.FailException;
@@ -64,7 +64,6 @@ public class DataResource {
 	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */
 	private static long tmpFolderId = 1;
-	protected final DBAccess da = DBAccess.createInterface();
 
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
@@ -122,7 +121,7 @@ public class DataResource {
 	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return this.da.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
+			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -133,7 +132,7 @@ public class DataResource {
 	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
-			return this.da.get(Data.class, id);
+			return DataAccess.get(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -162,7 +161,7 @@ public class DataResource {
 		injectedData.size = Files.size(Paths.get(tmpPath));
 
 		try {
-			injectedData = this.da.insert(injectedData);
+			injectedData = DataAccess.insert(injectedData);
 		} catch (final Exception e) {
 			e.printStackTrace();
 			return null;
@@ -255,7 +254,7 @@ public class DataResource {
 
 	public Data getSmall(final UUID id) {
 		try {
-			return this.da.get(Data.class, id);
+			return DataAccess.get(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -502,7 +501,7 @@ public class DataResource {
 	}
 
 	public void undelete(final Long id) throws Exception {
-		this.da.unsetDelete(Data.class, id);
+		DataAccess.unsetDelete(Data.class, id);
 	}
 
 }

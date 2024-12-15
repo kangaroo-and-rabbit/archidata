@@ -29,7 +29,7 @@ import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
-import org.kar.archidata.db.DbInterfaceMorphia;
+import org.kar.archidata.db.DbIoMorphia;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.UuidUtils;
 import org.slf4j.Logger;
@@ -74,13 +74,13 @@ public class DBAccessMorphia extends DBAccess {
 		DBAccessMorphia.addOn.add(addOn);
 	}
 
-	private final DbInterfaceMorphia db;
+	private final DbIoMorphia db;
 
-	public DBAccessMorphia(final DbInterfaceMorphia db) {
+	public DBAccessMorphia(final DbIoMorphia db) {
 		this.db = db;
 	}
 
-	public DbInterfaceMorphia getInterface() {
+	public DbIoMorphia getInterface() {
 		return this.db;
 	}
 
@@ -120,7 +120,7 @@ public class DBAccessMorphia extends DBAccess {
 
 		return groups;
 	}
-	
+
 	protected <T> void setValuedb(
 			final Class<?> type,
 			final T data,
@@ -349,7 +349,7 @@ public class DBAccessMorphia extends DBAccess {
 		return;
 		//throw new ArchiveException("wrong type of field [" + fieldName + "]: " + doc.toJson());
 	}
-	
+
 	protected Object convertDefaultField(String data, final Field field) throws Exception {
 		if (data.startsWith("'") && data.endsWith("'")) {
 			data = data.substring(1, data.length() - 1);
@@ -939,6 +939,6 @@ public class DBAccessMorphia extends DBAccess {
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 }

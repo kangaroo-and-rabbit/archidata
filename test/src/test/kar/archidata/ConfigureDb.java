@@ -3,13 +3,14 @@ package test.kar.archidata;
 import java.io.IOException;
 import java.util.List;
 
-import org.kar.archidata.GlobalConfiguration;
 import org.kar.archidata.dataAccess.DBAccess;
-import org.kar.archidata.db.DBInterfaceFactory;
+import org.kar.archidata.db.DbIoFactory;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.dataAccess.model.SerializeAsJson;
 import test.kar.archidata.dataAccess.model.SerializeListAsJson;
 import test.kar.archidata.dataAccess.model.SimpleTable;
@@ -36,8 +37,9 @@ import test.kar.archidata.dataAccess.model.TypesTable;
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
 	final static private String modeTestForced = null;//"MONGO";
-	
-	public static void configure() throws IOException {
+	static DBAccess dba = null;
+
+	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
 		String modeTest = System.getenv("TEST_E2E_MODE");
 		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
 			modeTest = "SQLITE-MEMORY";
@@ -97,17 +99,12 @@ public class ConfigureDb {
 			ConfigBaseVariable.dbUser = "root";
 		}
 		// Connect the dataBase...
-		final DBInterfaceFactory entry = DBInterfaceFactory.create(GlobalConfiguration.getDbconfig(),
-				listObject.toArray(new Class<?>[0]));
-		entry.connect();
-		
+		dba = DBAccess.createInterface();
+
 		removeDB();
 	}
-	
+
 	public static void removeDB() {
-		
-		final DBAccess da = DBAccess.createInterface();
-		
 		String modeTest = System.getenv("TEST_E2E_MODE");
 		if (modeTest == null || modeTest.isEmpty() || "false".equalsIgnoreCase(modeTest)) {
 			modeTest = "SQLITE-MEMORY";
@@ -121,19 +118,19 @@ public class ConfigureDb {
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			// nothing to do ...
 		} else if ("SQLITE".equalsIgnoreCase(modeTest)) {
-			da.deleteDB(ConfigBaseVariable.bdDatabase);
+			dba.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
-			da.deleteDB(ConfigBaseVariable.bdDatabase);
+			dba.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
-			da.deleteDB(ConfigBaseVariable.bdDatabase);
+			dba.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else {}
 	}
-	
+
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
 		removeDB();
-		DBInterfaceFactory.closeAllForceMode();
+		DbIoFactory.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
-		
+
 	}
 }

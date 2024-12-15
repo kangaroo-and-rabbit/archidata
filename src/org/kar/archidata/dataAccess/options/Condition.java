@@ -30,8 +30,7 @@ public class Condition extends QueryOption {
 		}
 	}
 
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
 		if (this.condition != null) {
 			this.condition.injectQuery(ioDb, ps, iii);
 		}

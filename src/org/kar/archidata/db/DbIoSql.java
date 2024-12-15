@@ -9,16 +9,27 @@ import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DbInterfaceSQL extends DbInterface implements Closeable {
-	final static Logger LOGGER = LoggerFactory.getLogger(DbInterfaceSQL.class);
+public class DbIoSql extends DbIo implements Closeable {
+	final static Logger LOGGER = LoggerFactory.getLogger(DbIoSql.class);
 
 	private Connection connection = null;
 
-	public DbInterfaceSQL(final DBConfig config) throws IOException {
-		this(config.getUrl(), config.getLogin(), config.getPassword());
+	public DbIoSql(final DbConfig config) throws IOException {
+		super(config);
 	}
 
-	public DbInterfaceSQL(final String dbUrl, final String login, final String password) throws IOException {
+	public Connection getConnection() {
+		if (this.connection == null) {
+			LOGGER.error("Request closed connection !!!");
+		}
+		return this.connection;
+	}
+
+	@Override
+	synchronized public void openImplement() throws IOException {
+		final String dbUrl = this.config.getUrl();
+		final String login = this.config.getLogin();
+		final String password = this.config.getPassword();
 		try {
 			this.connection = DriverManager.getConnection(dbUrl, login, password);
 		} catch (final SQLException ex) {
@@ -27,12 +38,12 @@ public class DbInterfaceSQL extends DbInterface implements Closeable {
 		}
 	}
 
-	public Connection getConnection() {
-		return this.connection;
-	}
-
 	@Override
-	public void close() throws IOException {
+	synchronized public void closeImplement() throws IOException {
+		if (this.connection == null) {
+			LOGGER.error("Request close of un-open connection !!!");
+			return;
+		}
 		try {
 			this.connection.close();
 			this.connection = null;

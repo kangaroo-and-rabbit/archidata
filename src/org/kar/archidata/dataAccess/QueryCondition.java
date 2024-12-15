@@ -40,8 +40,7 @@ public class QueryCondition implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
 		ioDb.addElement(ps, this.value, iii);
 		iii.inc();
 	}

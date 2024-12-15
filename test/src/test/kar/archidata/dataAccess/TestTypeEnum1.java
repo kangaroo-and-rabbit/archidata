@@ -14,9 +14,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
+import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.dataAccess.model.Enum1ForTest;
@@ -39,7 +41,7 @@ public class TestTypeEnum1 {
 		ConfigureDb.clear();
 	}
 
-	public TestTypeEnum1() {
+	public TestTypeEnum1() throws InternalServerErrorException, IOException, DataAccessException {
 		this.da = DBAccess.createInterface();
 	}
 
