@@ -76,8 +76,14 @@ public class DBAccessMorphia extends DBAccess {
 
 	private final DbIoMorphia db;
 
-	public DBAccessMorphia(final DbIoMorphia db) {
+	public DBAccessMorphia(final DbIoMorphia db) throws IOException {
 		this.db = db;
+		db.open();
+	}
+
+	@Override
+	public void close() throws IOException {
+		this.db.close();
 	}
 
 	public DbIoMorphia getInterface() {
@@ -936,9 +942,4 @@ public class DBAccessMorphia extends DBAccess {
 		collection.deleteMany(new Document());
 	}
 
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
-	}
 }

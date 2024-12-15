@@ -75,8 +75,14 @@ public class DBAccessSQL extends DBAccess {
 
 	private final DbIoSql db;
 
-	public DBAccessSQL(final DbIoSql db) {
+	public DBAccessSQL(final DbIoSql db) throws IOException {
 		this.db = db;
+		db.open();
+	}
+
+	@Override
+	public void close() throws IOException {
+		this.db.close();
 	}
 
 	public Connection getConnection() {
@@ -91,9 +97,8 @@ public class DBAccessSQL extends DBAccess {
 			// TODO: check if the file exist or not ...
 			return true;
 		}
-		try {
+		try (final PreparedStatement ps = getConnection().prepareStatement("show databases")) {
 			// TODO : Maybe connect with a temporary not specified connection interface to a db ...
-			final PreparedStatement ps = this.db.getConnection().prepareStatement("show databases");
 			final ResultSet rs = ps.executeQuery();
 			// LOGGER.info("List all tables: equals? '{}'", name);
 			while (rs.next()) {
@@ -106,13 +111,6 @@ public class DBAccessSQL extends DBAccess {
 			return false;
 		} catch (final SQLException ex) {
 			LOGGER.error("Can not check if the DB exist SQL-error !!! {}", ex.getMessage());
-		} finally {
-			try {
-				this.db.close();
-			} catch (final IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
@@ -881,7 +879,7 @@ public class DBAccessSQL extends DBAccess {
 			}
 			LOGGER.debug("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = this.db.getConnection().prepareStatement(query.toString(),
+			final PreparedStatement ps = getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
 
 			final CountInOut iii = new CountInOut(1);
@@ -1617,9 +1615,4 @@ public class DBAccessSQL extends DBAccess {
 		return outs;
 	}
 
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
-	}
 }

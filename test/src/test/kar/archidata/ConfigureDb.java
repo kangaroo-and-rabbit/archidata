@@ -37,7 +37,7 @@ import test.kar.archidata.dataAccess.model.TypesTable;
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
 	final static private String modeTestForced = null;//"MONGO";
-	static DBAccess dba = null;
+	public static DBAccess da = null;
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
 		String modeTest = System.getenv("TEST_E2E_MODE");
@@ -99,8 +99,7 @@ public class ConfigureDb {
 			ConfigBaseVariable.dbUser = "root";
 		}
 		// Connect the dataBase...
-		dba = DBAccess.createInterface();
-
+		da = DBAccess.createInterface();
 		removeDB();
 	}
 
@@ -118,11 +117,11 @@ public class ConfigureDb {
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			// nothing to do ...
 		} else if ("SQLITE".equalsIgnoreCase(modeTest)) {
-			dba.deleteDB(ConfigBaseVariable.bdDatabase);
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
-			dba.deleteDB(ConfigBaseVariable.bdDatabase);
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
-			dba.deleteDB(ConfigBaseVariable.bdDatabase);
+			da.deleteDB(ConfigBaseVariable.bdDatabase);
 		} else {}
 	}
 
@@ -131,6 +130,6 @@ public class ConfigureDb {
 		removeDB();
 		DbIoFactory.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
-
+		da.close();
 	}
 }

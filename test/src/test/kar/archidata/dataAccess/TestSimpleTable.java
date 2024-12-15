@@ -14,15 +14,12 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.dataAccess.model.SimpleTable;
@@ -35,8 +32,6 @@ public class TestSimpleTable {
 	private static final String DATA_INJECTED_2 = "dsqfsdfqsdfsqdf";
 	private static Long idOfTheObject = null;
 	private static Timestamp startAction = null;
-
-	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -51,16 +46,12 @@ public class TestSimpleTable {
 		ConfigureDb.clear();
 	}
 
-	public TestSimpleTable() throws InternalServerErrorException, IOException, DataAccessException {
-		this.da = DBAccess.createInterface();
-	}
-
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTable.startAction = Timestamp.from(Instant.now());
 		final List<String> sqlCommand = DataFactory.createTable(SimpleTable.class);
-		if (this.da instanceof final DBAccessSQL daSQL) {
+		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);
@@ -68,14 +59,14 @@ public class TestSimpleTable {
 		}
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED;
-		final SimpleTable insertedData = this.da.insert(test);
+		final SimpleTable insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, insertedData.id);
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -90,7 +81,7 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				QueryOptions.READ_ALL_COLOMN);
 
 		Assertions.assertNotNull(retrieve);
@@ -113,8 +104,8 @@ public class TestSimpleTable {
 		// Delete the entry:
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED_2;
-		this.da.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+		ConfigureDb.da.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -130,8 +121,8 @@ public class TestSimpleTable {
 	@Test
 	public void testDeleteTheObject() throws Exception {
 		// Delete the entry:
-		this.da.delete(SimpleTable.class, TestSimpleTable.idOfTheObject);
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject);
+		ConfigureDb.da.delete(SimpleTable.class, TestSimpleTable.idOfTheObject);
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject);
 		Assertions.assertNull(retrieve);
 	}
 
@@ -140,7 +131,7 @@ public class TestSimpleTable {
 	public void testReadDeletedObject() throws Exception {
 
 		// check if we set get deleted element
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				QueryOptions.ACCESS_DELETED_ITEMS);
 		Assertions.assertNull(retrieve);
 
@@ -150,7 +141,7 @@ public class TestSimpleTable {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		final SimpleTable retrieve = this.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
+		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNull(retrieve);
 

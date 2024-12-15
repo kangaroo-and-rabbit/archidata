@@ -1,8 +1,6 @@
 package org.kar.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -26,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 
@@ -60,6 +56,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Object rootObject,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
+		/*
 		final Object data = field.get(rootObject);
 		if (data == null) {
 			ps.setNull(iii.value, Types.VARCHAR);
@@ -68,6 +65,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		final String dataString = objectMapper.writeValueAsString(data);
 		ps.setString(iii.value, dataString);
 		iii.inc();
+		*/
 	}
 
 	@Override
@@ -111,7 +109,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Object data,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
-
+		/*
 		final String fieldName = AnnotationTools.getFieldName(field);
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
@@ -163,6 +161,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Object dataParsed = objectMapper.readValue(jsonData, field.getType());
 			field.set(data, dataParsed);
 		}
+		*/
 	}
 
 	@Override

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class DbIoFactory {
 	final static Logger LOGGER = LoggerFactory.getLogger(DbIoFactory.class);
-	private static List<DbIo> stored = new ArrayList<>();
+	private static List<DbIo> dbIoStored = new ArrayList<>();
 
 	private DbIoFactory() throws IOException {}
 
@@ -20,21 +20,21 @@ public class DbIoFactory {
 	}
 
 	public static DbIo create(final DbConfig config) throws IOException {
-		for (final DbIo elem : stored) {
-			if (elem == null) {
+		for (final DbIo dbIo : dbIoStored) {
+			if (dbIo == null) {
 				continue;
 			}
-			if (elem.compatible(config)) {
-				elem.open();
-				return elem;
+			if (dbIo.compatible(config)) {
+				dbIo.open();
+				return dbIo;
 			}
 		}
-		final DbIo tmp = createInstance(config);
+		final DbIo dbIo = createInstance(config);
 		if (config.getKeepConnected()) {
-			stored.add(tmp);
+			dbIoStored.add(dbIo);
 		}
-		tmp.open();
-		return tmp;
+		dbIo.open();
+		return dbIo;
 	}
 
 	private static DbIo createInstance(final DbConfig config) throws IOException {
@@ -51,15 +51,15 @@ public class DbIoFactory {
 	}
 
 	public static void close() throws IOException {
-		for (final DbIo entry : stored) {
-			entry.close();
+		for (final DbIo dbIo : dbIoStored) {
+			dbIo.close();
 		}
 	}
 
 	public static void closeAllForceMode() throws IOException {
-		for (final DbIo entry : stored) {
+		for (final DbIo entry : dbIoStored) {
 			entry.closeForce();
 		}
-		stored = new ArrayList<>();
+		dbIoStored = new ArrayList<>();
 	}
 }

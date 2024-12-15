@@ -1,6 +1,7 @@
 package org.kar.archidata.db;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.exception.DataAccessException;
@@ -123,5 +124,32 @@ public class DbConfig {
 					+ "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
 		}
 		return "dead_code";
+	}
+
+	@Override
+	public boolean equals(final Object other) {
+		if (this == other) {
+			return true;
+		}
+		if (other == null || getClass() != other.getClass()) {
+			return false;
+		}
+		if (other instanceof final DbConfig dbConfig) {
+			return this.port == dbConfig.port //
+					&& this.keepConnected == dbConfig.keepConnected //
+					&& Objects.equals(this.type, dbConfig.type) //
+					&& Objects.equals(this.hostname, dbConfig.hostname) //
+					&& Objects.equals(this.login, dbConfig.login) //
+					&& Objects.equals(this.password, dbConfig.password) //
+					&& Objects.equals(this.dbName, dbConfig.dbName) //
+					&& Objects.equals(this.classes, dbConfig.classes);
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(this.type, this.hostname, this.port, this.login, this.password, this.dbName,
+				this.keepConnected, this.classes);
 	}
 }

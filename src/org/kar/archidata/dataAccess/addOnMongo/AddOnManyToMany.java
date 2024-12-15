@@ -15,7 +15,6 @@ import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
-import org.kar.archidata.dataAccess.QueryInList;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableLongLong;
 import org.kar.archidata.dataAccess.addOnSQL.model.LinkTableLongUUID;
@@ -212,6 +211,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final Object data,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
+		/*
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
@@ -283,6 +283,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				}
 			}
 		}
+		*/
 	}
 
 	@Override

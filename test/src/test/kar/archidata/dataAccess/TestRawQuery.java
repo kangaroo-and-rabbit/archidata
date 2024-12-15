@@ -11,14 +11,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
-import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.dataAccess.model.TypesTable;
@@ -27,8 +24,6 @@ import test.kar.archidata.dataAccess.model.TypesTable;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestRawQuery {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypes.class);
-
-	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -40,18 +35,11 @@ public class TestRawQuery {
 		ConfigureDb.clear();
 	}
 
-	public TestRawQuery() throws InternalServerErrorException, IOException, DataAccessException {
-		this.da = DBAccess.createInterface();
-		if (this.da instanceof final DBAccessSQL daSQL) {
-			LOGGER.error("lkjddlkj");
-		}
-	}
-
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(TypesTable.class);
-		if (this.da instanceof final DBAccessSQL daSQL) {
+		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);
@@ -62,30 +50,30 @@ public class TestRawQuery {
 	@Order(2)
 	@Test
 	public void testGet() throws Exception {
-		if (this.da instanceof final DBAccessSQL daSQL) {
+		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 
 			final TypesTable test = new TypesTable();
 			test.intData = 95;
 			test.floatData = 1.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 96;
 			test.floatData = 2.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 97;
 			test.floatData = 3.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 98;
 			test.floatData = 4.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 99;
 			test.floatData = 5.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 99;
 			test.floatData = 6.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			test.intData = 99;
 			test.floatData = 7.0F;
-			this.da.insert(test);
+			ConfigureDb.da.insert(test);
 			{
 				final String query = """
 						SELECT *

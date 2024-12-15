@@ -10,14 +10,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.db.DbConfig;
-import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.migration.MigrationEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.migration.model.TypesMigrationInitialisationCurrent;
@@ -27,12 +24,6 @@ import test.kar.archidata.migration.model.TypesMigrationInitialisationFirst;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestMigrationFirstInit {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestMigrationFail.class);
-
-	private DBAccess da = null;
-
-	public TestMigrationFirstInit() throws InternalServerErrorException, IOException, DataAccessException {
-		this.da = DBAccess.createInterface();
-	}
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -47,14 +38,14 @@ public class TestMigrationFirstInit {
 	@Order(1)
 	@Test
 	public void testInitialMigration() throws Exception {
-		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
+		final MigrationEngine migrationEngine = new MigrationEngine();
 		// add initialization:
 		migrationEngine.setInit(new InitializationFirst());
 		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationFirst test = new TypesMigrationInitialisationFirst();
 		test.testData = 95.0;
-		final TypesMigrationInitialisationFirst insertedData = this.da.insert(test);
+		final TypesMigrationInitialisationFirst insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(95.0, insertedData.testData);
 	}
@@ -62,14 +53,14 @@ public class TestMigrationFirstInit {
 	@Order(2)
 	@Test
 	public void testInitialMigrationReopen() throws Exception {
-		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
+		final MigrationEngine migrationEngine = new MigrationEngine();
 		// add initialization:
 		migrationEngine.setInit(new InitializationFirst());
 		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationFirst test = new TypesMigrationInitialisationFirst();
 		test.testData = 99.0;
-		final TypesMigrationInitialisationFirst insertedData = this.da.insert(test);
+		final TypesMigrationInitialisationFirst insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(99.0, insertedData.testData);
 	}
@@ -77,7 +68,7 @@ public class TestMigrationFirstInit {
 	@Order(3)
 	@Test
 	public void testUpdateTwoMigration() throws Exception {
-		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
+		final MigrationEngine migrationEngine = new MigrationEngine();
 		// add initialization:
 		migrationEngine.setInit(new InitializationCurrent());
 		migrationEngine.add(new Migration1());
@@ -86,7 +77,7 @@ public class TestMigrationFirstInit {
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 125.0;
-		final TypesMigrationInitialisationCurrent insertedData = this.da.insert(test);
+		final TypesMigrationInitialisationCurrent insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(125.0, insertedData.testDataMigration2);
 	}
@@ -94,7 +85,7 @@ public class TestMigrationFirstInit {
 	@Order(4)
 	@Test
 	public void testUpdateTwoMigrationReopen() throws Exception {
-		final MigrationEngine migrationEngine = new MigrationEngine(this.da);
+		final MigrationEngine migrationEngine = new MigrationEngine();
 		// add initialization:
 		migrationEngine.setInit(new InitializationCurrent());
 		migrationEngine.add(new Migration1());
@@ -103,7 +94,7 @@ public class TestMigrationFirstInit {
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 2563.0;
-		final TypesMigrationInitialisationCurrent insertedData = this.da.insert(test);
+		final TypesMigrationInitialisationCurrent insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(2563.0, insertedData.testDataMigration2);
 	}

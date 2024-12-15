@@ -47,9 +47,19 @@ public abstract class DBAccess implements Closeable {
 
 	public static final DBAccess createInterface(final DbIo io) throws InternalServerErrorException {
 		if (io instanceof final DbIoMorphia ioMorphia) {
-			return new DBAccessMorphia(ioMorphia);
+			try {
+				return new DBAccessMorphia(ioMorphia);
+			} catch (final IOException e) {
+				e.printStackTrace();
+				throw new InternalServerErrorException("Fail to create DB interface.");
+			}
 		} else if (io instanceof final DbIoSql ioSQL) {
-			return new DBAccessSQL(ioSQL);
+			try {
+				return new DBAccessSQL(ioSQL);
+			} catch (final IOException e) {
+				e.printStackTrace();
+				throw new InternalServerErrorException("Fail to create DB interface.");
+			}
 		}
 		throw new InternalServerErrorException("unknow DB interface ... ");
 	}

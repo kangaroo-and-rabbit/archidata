@@ -11,55 +11,60 @@ public abstract class DbIo implements Closeable {
 
 	// we count the number of connection in the system to prevent disconnection in a middle of a stream.
 	private int count = 0;
+
+	private static int idCount = 0;
+	protected final int id;
 	protected final DbConfig config;
 
 	protected DbIo(final DbConfig config) throws IOException {
+		this.id = idCount;
+		idCount += 10;
 		this.config = config;
-		// If we want to stay connected, we instantiate a basic connection (only force close can remove it).
-		if (this.config.getKeepConnected()) {
-			open();
-		}
 	}
 
 	@Override
 	public synchronized final void close() throws IOException {
+		LOGGER.error("[{}] >>>>>>>>>>> Request close count={}", this.id, this.count);
 		if (this.count <= 0) {
-			LOGGER.error("Request one more close: {}", this.getClass().getCanonicalName());
+			LOGGER.error("[{}] >>>>>>>>>>> Request one more close: {}", this.id, this.getClass().getCanonicalName());
 			return;
 		}
 		this.count--;
 		if (this.count == 0) {
-			LOGGER.warn("close: {}", this.getClass().getCanonicalName());
+			LOGGER.warn("v>>>>>>>>>>> close: {}", this.id, this.getClass().getCanonicalName());
 			closeImplement();
 		} else {
-			LOGGER.debug("postponed close: {}", this.getClass().getCanonicalName());
+			LOGGER.debug("v>>>>>>>>>>> postponed close: {}", this.id, this.getClass().getCanonicalName());
 		}
 	}
 
 	public synchronized final void closeForce() throws IOException {
-		LOGGER.warn("Request Force close: {}", this.getClass().getCanonicalName());
+		LOGGER.warn("[{}] >>>>>>>>>>> Request Force close count={}", this.id, this.count);
 		if (this.count == 0) {
-			LOGGER.info("Nothing to do in force close, DB is already closed");
+			LOGGER.info("[{}] >>>>>>>>>>> Nothing to do in force close, DB is already closed", this.id);
 			return;
 		}
 		if (this.config.getKeepConnected()) {
 			if (this.count >= 2) {
-				LOGGER.error("close: {} with {} connection on it", this.getClass().getCanonicalName(), this.count - 1);
+				LOGGER.error("[{}] >>>>>>>>>>> force close: {} with {} connection on it", this.id,
+						this.getClass().getCanonicalName(), this.count - 1);
 			}
 		} else if (this.count >= 1) {
-			LOGGER.error("close: {} with {} connection on it", this.getClass().getCanonicalName(), this.count);
+			LOGGER.error("[{}] >>>>>>>>>>> force close: {} with {} connection on it", this.id,
+					this.getClass().getCanonicalName(), this.count);
 		}
 		this.count = 0;
-		LOGGER.warn("close: {}", this.getClass().getCanonicalName());
+		LOGGER.warn("[{}] >>>>>>>>>>> force close: {}", this.id, this.getClass().getCanonicalName());
 		closeImplement();
 	}
 
 	public synchronized final void open() throws IOException {
+		LOGGER.warn("[{}] >>>>>>>>>>> Request open count={}", this.id, this.count);
 		if (this.count == 0) {
-			LOGGER.warn("open: {}", this.getClass().getCanonicalName());
+			LOGGER.warn("[{}] >>>>>>>>>>> open: {}", this.id, this.getClass().getCanonicalName());
 			openImplement();
 		} else {
-			LOGGER.debug("already open: {}", this.getClass().getCanonicalName());
+			LOGGER.debug("[{}] >>>>>>>>>>> already open: {}", this.id, this.getClass().getCanonicalName());
 		}
 		this.count++;
 

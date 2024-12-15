@@ -12,14 +12,11 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
-import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.ws.rs.InternalServerErrorException;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.dataAccess.model.SerializeListAsJson;
@@ -28,8 +25,6 @@ import test.kar.archidata.dataAccess.model.SerializeListAsJson;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestListJson {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
-
-	private DBAccess da = null;
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -41,15 +36,11 @@ public class TestListJson {
 		ConfigureDb.clear();
 	}
 
-	public TestListJson() throws InternalServerErrorException, IOException, DataAccessException {
-		this.da = DBAccess.createInterface();
-	}
-
 	@Order(1)
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJson.class);
-		if (this.da instanceof final DBAccessSQL daSQL) {
+		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
 				daSQL.executeSimpleQuery(elem);
@@ -68,7 +59,7 @@ public class TestListJson {
 		test.data.add(6);
 		test.data.add(51);
 
-		final SerializeListAsJson insertedData = this.da.insert(test);
+		final SerializeListAsJson insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
@@ -82,7 +73,7 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(4), insertedData.data.get(4));
 
 		// Try to retrieve all the data:
-		final SerializeListAsJson retrieve = this.da.get(SerializeListAsJson.class, insertedData.id);
+		final SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
