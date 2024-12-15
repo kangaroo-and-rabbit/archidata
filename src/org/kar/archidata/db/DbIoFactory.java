@@ -34,7 +34,6 @@ public class DbIoFactory {
 			dbIo.open();
 			dbIoStored.add(dbIo);
 		}
-		dbIo.open();
 		return dbIo;
 	}
 

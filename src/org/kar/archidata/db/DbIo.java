@@ -24,47 +24,45 @@ public abstract class DbIo implements Closeable {
 
 	@Override
 	public synchronized final void close() throws IOException {
-		LOGGER.error("[{}] >>>>>>>>>>> Request close count={}", this.id, this.count);
+		LOGGER.trace("[{}] Request close count={}", this.id, this.count);
 		if (this.count <= 0) {
-			LOGGER.error("[{}] >>>>>>>>>>> Request one more close: {}", this.id, this.getClass().getCanonicalName());
+			LOGGER.error("[{}] Request one more close", this.id);
 			return;
 		}
 		this.count--;
 		if (this.count == 0) {
-			LOGGER.warn("v>>>>>>>>>>> close: {}", this.id, this.getClass().getCanonicalName());
+			LOGGER.trace("[{}] close", this.id);
 			closeImplement();
 		} else {
-			LOGGER.debug("v>>>>>>>>>>> postponed close: {}", this.id, this.getClass().getCanonicalName());
+			LOGGER.trace("[{}] postponed close", this.id);
 		}
 	}
 
 	public synchronized final void closeForce() throws IOException {
-		LOGGER.warn("[{}] >>>>>>>>>>> Request Force close count={}", this.id, this.count);
+		LOGGER.trace("[{}] Request Force close count={}", this.id, this.count);
 		if (this.count == 0) {
-			LOGGER.info("[{}] >>>>>>>>>>> Nothing to do in force close, DB is already closed", this.id);
+			LOGGER.trace("[{}] Nothing to do in force close, DB is already closed", this.id);
 			return;
 		}
 		if (this.config.getKeepConnected()) {
 			if (this.count >= 2) {
-				LOGGER.error("[{}] >>>>>>>>>>> force close: {} with {} connection on it", this.id,
-						this.getClass().getCanonicalName(), this.count - 1);
+				LOGGER.error("[{}] Force close: with {} connection on it", this.id, this.count - 1);
 			}
 		} else if (this.count >= 1) {
-			LOGGER.error("[{}] >>>>>>>>>>> force close: {} with {} connection on it", this.id,
-					this.getClass().getCanonicalName(), this.count);
+			LOGGER.error("[{}] Force close: with {} connection on it", this.id, this.count);
 		}
 		this.count = 0;
-		LOGGER.warn("[{}] >>>>>>>>>>> force close: {}", this.id, this.getClass().getCanonicalName());
+		LOGGER.trace("[{}] Force close", this.id);
 		closeImplement();
 	}
 
 	public synchronized final void open() throws IOException {
-		LOGGER.warn("[{}] >>>>>>>>>>> Request open count={}", this.id, this.count);
+		LOGGER.trace("[{}] Request open count={}", this.id, this.count);
 		if (this.count == 0) {
-			LOGGER.warn("[{}] >>>>>>>>>>> open: {}", this.id, this.getClass().getCanonicalName());
+			LOGGER.trace("[{}] open", this.id);
 			openImplement();
 		} else {
-			LOGGER.debug("[{}] >>>>>>>>>>> already open: {}", this.id, this.getClass().getCanonicalName());
+			LOGGER.trace("[{}] open: already done", this.id);
 		}
 		this.count++;
 
