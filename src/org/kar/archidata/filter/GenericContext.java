@@ -19,4 +19,11 @@ public class GenericContext implements Principal {
 		}
 		return this.userByToken.name;
 	}
+
+	public Long getUserID() {
+		if (this.userByToken != null) {
+			return this.userByToken.id;
+		}
+		return null;
+	}
 }
