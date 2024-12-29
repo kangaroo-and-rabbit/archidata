@@ -1,6 +1,6 @@
 package org.kar.archidata.migration;
 
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.migration.model.Migration;
 
 public interface MigrationInterface {
@@ -13,13 +13,13 @@ public interface MigrationInterface {
 	 * @param log Stored data in the BDD for the migration progression.
 	 * @param migration Migration post data on each step...
 	 * @return true if migration is finished. */
-	boolean applyMigration(DBEntry entry, StringBuilder log, Migration model) throws Exception;
+	boolean applyMigration(DBAccess entry, StringBuilder log, Migration model) throws Exception;
 
 	/** Remove a migration the system to the previous version.
 	 * @param entry DB interface for the migration.
 	 * @param log Stored data in the BDD for the migration progression.
 	 * @return true if migration is finished. */
-	boolean revertMigration(DBEntry entry, StringBuilder log) throws Exception;
+	boolean revertMigration(DBAccess entry, StringBuilder log) throws Exception;
 
 	/** Get the number of step in the migration process.
 	 * @return count of SQL access. */

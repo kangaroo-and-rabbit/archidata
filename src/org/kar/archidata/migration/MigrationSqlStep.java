@@ -5,9 +5,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
-import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.migration.model.Migration;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
@@ -70,8 +70,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean applyMigration(final DBEntry entry, final StringBuilder log, final Migration model)
-			throws Exception {
+	public boolean applyMigration(final DBAccess da, final StringBuilder log, final Migration model) throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
 			generateStep();
@@ -106,9 +105,11 @@ public class MigrationSqlStep implements MigrationInterface {
 			}
 			try {
 				if (action.action() != null) {
-					DataAccess.executeQuery(action.action());
+					if (da instanceof final DBAccessSQL ioDBSQL) {
+						ioDBSQL.executeQuery(action.action());
+					}
 				} else {
-					action.async().doRequest();
+					action.async().doRequest(da);
 				}
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
@@ -117,7 +118,7 @@ public class MigrationSqlStep implements MigrationInterface {
 				model.stepId = iii + 1;
 				model.log = log.toString();
 				try {
-					DataAccess.update(model, model.id, List.of("stepId", "log"));
+					da.update(model, model.id, List.of("stepId", "log"));
 				} catch (final Exception e) {
 					e.printStackTrace();
 				}
@@ -128,7 +129,7 @@ public class MigrationSqlStep implements MigrationInterface {
 			model.stepId = iii + 1;
 			model.log = log.toString();
 			try {
-				DataAccess.update(model, model.id, List.of("stepId", "log"));
+				da.update(model, model.id, List.of("stepId", "log"));
 			} catch (final Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -143,7 +144,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean revertMigration(final DBEntry entry, final StringBuilder log) throws Exception {
+	public boolean revertMigration(final DBAccess da, final StringBuilder log) throws Exception {
 		generateRevertStep();
 		return false;
 	}

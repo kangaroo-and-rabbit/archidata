@@ -1,5 +1,8 @@
 package test.kar.archidata.migration;
 
+import java.io.IOException;
+
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.migration.MigrationSqlStep;
 
 class MigrationFail extends MigrationSqlStep {
@@ -16,10 +19,9 @@ class MigrationFail extends MigrationSqlStep {
 	@Override
 	public void generateStep() throws Exception {
 
-		addAction("""
-				ALTER TABLE `TestTableMigrationqs`
-					RENAME COLUMN `testDataMisqdgration1` TO `testDataMiqsdgration2`
-				""");
+		addAction((final DBAccess da) -> {
+			throw new IOException("FAIL migration");
+		});
 		display();
 	}
 

@@ -11,15 +11,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.migration.model.Migration;
-import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.migration.model.TypesMigrationInitialisationCurrent;
 
@@ -30,22 +28,12 @@ public class TestMigrationFirstInitWithMigration {
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
-		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
-			ConfigBaseVariable.dbType = "sqlite";
-			ConfigBaseVariable.dbHost = "memory";
-			// for test we need to connect all time the DB
-			ConfigBaseVariable.dbKeepConnected = "true";
-		}
-		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		entry.connect();
+		ConfigureDb.configure();
 	}
 
 	@AfterAll
 	public static void removeDataBase() throws IOException {
-		LOGGER.info("Remove the test db");
-		DBEntry.closeAllForceMode();
-		ConfigBaseVariable.clearAllValue();
+		ConfigureDb.clear();
 	}
 
 	@Order(1)
@@ -57,15 +45,15 @@ public class TestMigrationFirstInitWithMigration {
 		// add migration for old version
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new Migration2());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.dbConfig);
+		Assertions.assertDoesNotThrow(() -> migrationEngine.migrateErrorThrow(new DbConfig()));
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 95.0;
-		final TypesMigrationInitialisationCurrent insertedData = DataAccess.insert(test);
+		final TypesMigrationInitialisationCurrent insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(95.0, insertedData.testDataMigration2);
 
-		final List<Migration> elements = DataAccess.gets(Migration.class);
+		final List<Migration> elements = ConfigureDb.da.gets(Migration.class);
 		LOGGER.info("List of migrations:");
 		for (final Migration elem : elements) {
 			LOGGER.info("    - {} => {}", elem.id, elem.name);
@@ -81,11 +69,11 @@ public class TestMigrationFirstInitWithMigration {
 		// add migration for old version
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new Migration2());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.dbConfig);
+		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationCurrent test = new TypesMigrationInitialisationCurrent();
 		test.testDataMigration2 = 99.0;
-		final TypesMigrationInitialisationCurrent insertedData = DataAccess.insert(test);
+		final TypesMigrationInitialisationCurrent insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(99.0, insertedData.testDataMigration2);
 	}

@@ -19,12 +19,10 @@ import java.util.UUID;
 import org.kar.archidata.dataAccess.exportTools.TableQuery;
 import org.kar.archidata.dataAccess.exportTools.TableQueryTypes;
 import org.kar.archidata.dataAccess.options.Condition;
-import org.kar.archidata.dataAccess.options.DBInterfaceOption;
 import org.kar.archidata.dataAccess.options.GroupBy;
 import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
-import org.kar.archidata.db.DBEntry;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.DateTools;
 import org.slf4j.Logger;
@@ -246,24 +244,24 @@ public class DataExport {
 	}
 
 	public static TableQuery queryTable(
+			final DBAccessSQL ioDb,
 			final List<TableQueryTypes> headers,
 			final String query,
 			final List<Object> parameters,
 			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return queryTable(headers, query, parameters, options);
+		return queryTable(ioDb, headers, query, parameters, options);
 	}
 
 	public static TableQuery queryTable(
+			final DBAccessSQL ioDb,
 			final List<TableQueryTypes> headers,
 			final String queryBase,
 			final List<Object> parameters,
 			final QueryOptions options) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
-		// TODO ... final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final DBEntry entry = DBInterfaceOption.getAutoEntry(options);
 
-		final Condition condition = DataAccess.conditionFusionOrEmpty(options, false);
+		final Condition condition = ioDb.conditionFusionOrEmpty(options, false);
 		final StringBuilder query = new StringBuilder(queryBase);
 		final TableQuery out = new TableQuery(headers);
 		// real add in the BDD:
@@ -286,18 +284,18 @@ public class DataExport {
 			}
 			LOGGER.warn("generate the query: '{}'", query.toString());
 			// prepare the request:
-			final PreparedStatement ps = entry.connection.prepareStatement(query.toString(),
+			final PreparedStatement ps = ioDb.getConnection().prepareStatement(query.toString(),
 					Statement.RETURN_GENERATED_KEYS);
 			final CountInOut iii = new CountInOut(1);
 			if (parameters != null) {
 				for (final Object elem : parameters) {
-					DataAccess.addElement(ps, elem, iii);
+					ioDb.addElement(ps, elem, iii);
 				}
 				iii.inc();
 			}
-			condition.injectQuery(ps, iii);
+			condition.injectQuery(ioDb, ps, iii);
 			if (limits.size() == 1) {
-				limits.get(0).injectQuery(ps, iii);
+				limits.get(0).injectQuery(ioDb, ps, iii);
 			}
 			// execute the request
 			final ResultSet rs = ps.executeQuery();
@@ -332,8 +330,6 @@ public class DataExport {
 			throw ex;
 		} catch (final Exception ex) {
 			ex.printStackTrace();
-		} finally {
-			entry.close();
 		}
 		return out;
 	}

@@ -3,7 +3,9 @@ package org.kar.archidata.dataAccess.options;
 import java.sql.PreparedStatement;
 import java.util.List;
 
+import org.bson.Document;
 import org.kar.archidata.dataAccess.CountInOut;
+import org.kar.archidata.dataAccess.options.OrderItem.Order;
 
 public class OrderBy extends QueryOption {
 	protected final List<OrderItem> childs;
@@ -39,5 +41,11 @@ public class OrderBy extends QueryOption {
 
 	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
 		// nothing to add.
+	}
+
+	public void generateSort(final Document data) {
+		for (final OrderItem elem : this.childs) {
+			data.append(elem.value, elem.order == Order.ASC ? 1 : -1);
+		}
 	}
 }

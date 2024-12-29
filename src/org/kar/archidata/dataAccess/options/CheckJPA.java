@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
+import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -35,13 +36,18 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 	/** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
 	public interface CheckInterface<K> {
 		/** This function implementation is design to check if the updated class is valid of not for insertion
+		 * @param ioDb Access on the Data-Base
 		 * @param baseName Base of the name input that is displayed in exception generated.
 		 * @param data The object that might be injected.
 		 * @param modifiedValue List of fields that modification is requested.
 		 * @param options Some query option that the checker can need to generate basic check.
 		 * @throws Exception Exception is generate if the data are incorrect. */
-		void check(final String baseName, final K data, List<String> modifiedValue, final QueryOptions options)
-				throws Exception;
+		void check(
+				final DBAccess ioDb,
+				final String baseName,
+				final K data,
+				List<String> modifiedValue,
+				final QueryOptions options) throws Exception;
 	}
 
 	protected Map<String, List<CheckInterface<T>>> checking = null;
@@ -72,6 +78,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isPrimaryKey(field)) {
 					add(fieldName,
 							(
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final List<String> modifiedValue,
@@ -83,6 +90,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.getConstraintsNotNull(field)) {
 					add(fieldName,
 							(
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final List<String> modifiedValue,
@@ -95,6 +103,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (AnnotationTools.isCreatedAtField(field) || AnnotationTools.isUpdateAtField(field)) {
 					add(fieldName,
 							(
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final List<String> modifiedValue,
@@ -109,6 +118,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValue != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -128,6 +138,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValue != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -147,6 +158,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -173,6 +185,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final int maxValue = maxValueRoot.intValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -193,6 +206,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final int minValue = minValueRoot.intValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -212,6 +226,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -232,6 +247,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -255,6 +271,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final float maxValue = maxValueRoot.floatValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -275,6 +292,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final float minValue = minValueRoot.floatValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -296,6 +314,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final double maxValue = maxValueRoot.doubleValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -316,6 +335,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final double minValue = minValueRoot.doubleValue();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -342,6 +362,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxSizeString > 0) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -361,6 +382,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (limitSize != null) {
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -385,6 +407,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final Pattern pattern = Pattern.compile(patternString);
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -406,6 +429,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						final Pattern pattern = Pattern.compile(emailPattern);
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
@@ -430,11 +454,12 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								.newInstance();
 						add(fieldName,
 								(
+										final DBAccess ioDb,
 										final String baseName,
 										final T data,
 										final List<String> modifiedValue,
 										final QueryOptions options) -> {
-									instance.checkAll(baseName + fieldName + ".", field.get(data), options);
+									instance.checkAll(ioDb, baseName + fieldName + ".", field.get(data), options);
 								});
 					}
 				} else if (type.isEnum()) {
@@ -445,6 +470,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					// Create the request ...
 					add(fieldName,
 							(
+									final DBAccess ioDb,
 									final String baseName,
 									final T data,
 									final List<String> modifiedValue,
@@ -472,8 +498,18 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 	}
 
+	public void check(final DBAccess ioDb, final String baseName, final Object data) throws Exception {
+		check(ioDb, baseName, data, null, null);
+	}
+
+	public void check(final DBAccess ioDb, final String baseName, final Object data, final List<String> filterValue)
+			throws Exception {
+		check(ioDb, baseName, data, filterValue, null);
+	}
+
 	@Override
 	public void check(
+			final DBAccess ioDb,
 			final String baseName,
 			final Object data,
 			final List<String> modifiedValue,
@@ -492,7 +528,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				continue;
 			}
 			for (final CheckInterface<T> action : actions) {
-				action.check(baseName, dataCasted, modifiedValue, options);
+				action.check(ioDb, baseName, dataCasted, modifiedValue, options);
 			}
 		}
 		checkTyped(dataCasted, modifiedValue, options);
@@ -502,4 +538,5 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 			throws Exception {
 		// nothing to do ...
 	}
+
 }

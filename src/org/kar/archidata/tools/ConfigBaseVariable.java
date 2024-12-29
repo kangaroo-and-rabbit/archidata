@@ -17,6 +17,7 @@ public class ConfigBaseVariable {
 	static public String eMailFrom;
 	static public String eMailLogin;
 	static public String eMailPassword;
+	static public Class<?>[] dbInterfacesClasses;
 
 	// For test only
 	public static void clearAllValue() {
@@ -36,6 +37,7 @@ public class ConfigBaseVariable {
 		eMailFrom = System.getenv("EMAIL_FROM");
 		eMailLogin = System.getenv("EMAIL_LOGIN");
 		eMailPassword = System.getenv("EMAIL_PASSWORD");
+		dbInterfacesClasses = new Class<?>[0];
 	}
 
 	static {
@@ -70,11 +72,17 @@ public class ConfigBaseVariable {
 		return dbHost;
 	}
 
-	public static String getDBPort() {
+	public static Short getDBPort() {
 		if (dbPort == null) {
-			return "3306";
+			if (getDBType().equals("mongo")) {
+				return 27017;
+			}
+			return 3306;
 		}
-		return dbPort;
+		if (dbPort == null) {
+			return null;
+		}
+		return Short.parseShort(dbPort);
 	}
 
 	public static String getDBLogin() {
@@ -139,4 +147,11 @@ public class ConfigBaseVariable {
 		return new EMailConfig(eMailFrom, eMailLogin, eMailPassword);
 	}
 
+	public static Class<?>[] getBbInterfacesClasses() {
+		return dbInterfacesClasses;
+	}
+
+	public static void setBbInterfacesClasses(final Class<?>[] data) {
+		dbInterfacesClasses = data;
+	}
 }

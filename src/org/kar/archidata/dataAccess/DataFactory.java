@@ -14,6 +14,7 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
+import org.kar.archidata.dataAccess.addOnSQL.DataAccessAddOn;
 import org.kar.archidata.dataAccess.options.CreateDropTable;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
@@ -25,10 +26,11 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.persistence.GenerationType;
 
 public class DataFactory {
-	static final Logger LOGGER = LoggerFactory.getLogger(DataFactory.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataFactory.class);
 
 	public static String convertTypeInSQL(final Class<?> type, final String fieldName) throws DataAccessException {
-		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
+		final String typelocal = ConfigBaseVariable.getDBType();
+		if ("mysql".equals(typelocal)) {
 			if (type == UUID.class) {
 				return "binary(16)";
 			}
@@ -82,7 +84,7 @@ public class DataFactory {
 				out.append(")");
 				return out.toString();
 			}
-		} else {
+		} else if ("sqlite".equals(typelocal)) {
 			if (type == UUID.class) {
 				return "BINARY(16)";
 			}
@@ -138,6 +140,9 @@ public class DataFactory {
 				out.append(" ) )");
 				return out.toString();
 			}
+		} else if ("mongo".equals(typelocal)) {
+			// no importance for mango ...
+			return "text";
 		}
 		throw new DataAccessException("Imcompatible type of element in object for: " + type.getCanonicalName());
 	}
@@ -162,7 +167,7 @@ public class DataFactory {
 
 		final boolean createTime = elem.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 		final boolean updateTime = elem.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-		final String comment = AnnotationTools.getComment(elem);
+		final String comment = AnnotationTools.getSchemaDescription(elem);
 		final String defaultValue = AnnotationTools.getDefault(elem);
 
 		if (mainTableBuilder.toString().length() == 0) {
@@ -383,8 +388,8 @@ public class DataFactory {
 				}
 				alreadyAdded.add(dataName);
 				LOGGER.trace("        + '{}'", elem.getName());
-				if (DataAccess.isAddOnField(elem)) {
-					final DataAccessAddOn addOn = DataAccess.findAddOnforField(elem);
+				if (DBAccessSQL.isAddOnField(elem)) {
+					final DataAccessAddOn addOn = DBAccessSQL.findAddOnforField(elem);
 					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem),
 							elem.getType());
 					if (addOn != null) {

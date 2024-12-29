@@ -5,16 +5,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.kar.archidata.dataAccess.DataAccess;
+import org.kar.archidata.dataAccess.DBAccess;
+import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
-import org.kar.archidata.db.DBConfig;
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.migration.model.Migration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jakarta.ws.rs.InternalServerErrorException;
 
 public class MigrationEngine {
 	final static Logger LOGGER = LoggerFactory.getLogger(MigrationEngine.class);
@@ -52,17 +53,17 @@ public class MigrationEngine {
 	/** Get the current version/migration name
 	 * @return Model represent the last migration. If null then no migration has been done.
 	 * @throws MigrationException */
-	public Migration getCurrentVersion() throws MigrationException {
-		if (!DataAccess.isTableExist("KAR_migration")) {
+	public Migration getCurrentVersion(final DBAccess da) throws MigrationException {
+		if (!da.isTableExist("KAR_migration")) {
 			return null;
 		}
 		try {
 			List<Migration> data = null;
 			try {
-				data = DataAccess.gets(Migration.class, QueryOptions.READ_ALL_COLOMN);
+				data = da.gets(Migration.class, QueryOptions.READ_ALL_COLOMN);
 			} catch (final Exception e) {
 				// Previous version does not have the same timeCode...
-				data = DataAccess.gets(Migration.class);
+				data = da.gets(Migration.class);
 			}
 			if (data == null) {
 				LOGGER.error("Can not collect the migration table in the DB:{}");
@@ -87,7 +88,7 @@ public class MigrationEngine {
 	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
 	 * @param config SQL connection for the migration.
 	 * @throws InterruptedException user interrupt the migration */
-	public void migrateWaitAdmin(final DBConfig config) throws InterruptedException {
+	public void migrateWaitAdmin(final DbConfig config) throws InterruptedException {
 		try {
 			migrateErrorThrow(config);
 		} catch (final Exception ex) {
@@ -102,13 +103,7 @@ public class MigrationEngine {
 		}
 	}
 
-	/** Process the automatic migration of the system
-	 * @param config SQL connection for the migration
-	 * @throws IOException Error if access on the DB */
-	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
-			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
-	public void migrateErrorThrow(final DBConfig config) throws MigrationException {
-		LOGGER.info("Execute migration ... [BEGIN]");
+	private void listAvailableMigration() throws MigrationException {
 		// check the integrity of the migrations:
 		LOGGER.info("List of availlable Migration: ");
 		for (final MigrationInterface elem : this.datas) {
@@ -132,129 +127,154 @@ public class MigrationEngine {
 				}
 			}
 		}
+	}
 
-		// STEP 1: Check the DB exist:
-		LOGGER.info("Verify existance of '{}'", config.getDbName());
-		boolean exist = DataAccess.isDBExist(config.getDbName());
-		if (!exist) {
-			LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", config.getDbName());
-			// create the local DB:
-			DataAccess.createDB(config.getDbName());
-		}
-		exist = DataAccess.isDBExist(config.getDbName());
-		while (!exist) {
-			LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", config.getDbName());
-			LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
-			try {
-				Thread.sleep(30000);
-			} catch (final InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
+		final DbConfig config = configInput.clone();
+		config.setDbName(null);
+		final String dbName = configInput.getDbName();
+		LOGGER.info("Verify existance of '{}'", dbName);
+		try (final DBAccess da = DBAccess.createInterface(config)) {
+			boolean exist = da.isDBExist(dbName);
+			if (!exist) {
+				LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", dbName);
+				// create the local DB:
+				da.createDB(dbName);
 			}
-			exist = DataAccess.isDBExist(config.getDbName());
-		}
-		LOGGER.info("DB '{}' exist.", config.getDbName());
-		// STEP 2: Check migration table exist:
-		LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
-		// TODO: set the class in parameters instead of string...
-		exist = DataAccess.isTableExist("KAR_migration");
-		if (!exist) {
-			LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");
-			// create the table:
-			List<String> sqlQuery;
-			try {
-				sqlQuery = DataFactory.createTable(Migration.class);
-			} catch (final Exception ex) {
-				ex.printStackTrace();
-				throw new MigrationException(
-						"Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
-			}
-			LOGGER.info("Create Table with : {}", sqlQuery.get(0));
-			try {
-				DataAccess.executeQuery(sqlQuery.get(0));
-			} catch (SQLException | IOException ex) {
-				ex.printStackTrace();
-				throw new MigrationException(
-						"Fail to create the local DB model for migaration ==> wait administrator interventions");
-			}
-		}
-		final Migration currentVersion = getCurrentVersion();
-		List<MigrationInterface> toApply = new ArrayList<>();
-		boolean needPlaceholder = false;
-		if (currentVersion == null) {
-			// This is a first migration
-			LOGGER.info("First installation of the system ==> Create the DB");
-			if (this.init == null) {
-				// No initialization class ==> manage a historical creation mode...
-				toApply = this.datas;
-			} else {
-				// Select Initialization class if it exist
-				toApply.add(this.init);
-				needPlaceholder = true;
-			}
-		} else {
-			if (!currentVersion.terminated) {
-				throw new MigrationException("An error occured in the last migration: '" + currentVersion.name
-						+ "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
-			}
-			LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
-			boolean find = this.init != null && this.init.getName().equals(currentVersion.name);
-			if (find) {
-				toApply = this.datas;
-			} else {
-				LOGGER.info(" ===> Check what must be apply:");
-				for (final MigrationInterface elem : this.datas) {
-					LOGGER.info("     - {}", elem.getName());
-					if (!find) {
-						if (currentVersion.name.equals(elem.getName())) {
-							LOGGER.info("        == current version");
-							find = true;
-						}
-						continue;
-					}
-					LOGGER.info("        ++ add ");
-					toApply.add(elem);
-				}
-			}
-		}
-		DBEntry entry;
-		try {
-			entry = DBEntry.createInterface(config);
-			final int id = 0;
-			final int count = toApply.size();
-			for (final MigrationInterface elem : toApply) {
-				migrateSingle(entry, elem, id, count);
-			}
-		} catch (final IOException e) {
-			e.printStackTrace();
-			throw new MigrationException("An error occured in the migration (can not access to the DB): '"
-					+ currentVersion.name + "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
-		}
-		if (needPlaceholder) {
-			if (this.datas.size() == 0) {
-				// No placeholder needed, the model have no migration in the current version...
-			} else {
-				// we insert a placeholder to simulate the last migration is well done.
-				final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
-				Migration migrationResult = new Migration();
-				migrationResult.id = 1000L;
-				migrationResult.name = placeholderName;
-				migrationResult.stepId = 0;
-				migrationResult.terminated = true;
-				migrationResult.count = 0;
-				migrationResult.log = "Place-holder for first initialization";
+			exist = da.isDBExist(dbName);
+			while (!exist) {
+				LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
+				LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
 				try {
-					migrationResult = DataAccess.insert(migrationResult);
-				} catch (final Exception e) {
+					Thread.sleep(30000);
+				} catch (final InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				exist = da.isDBExist(dbName);
 			}
+		} catch (final InternalServerErrorException e) {
+			e.printStackTrace();
+			throw new MigrationException("TODO ...");
+		} catch (final IOException e) {
+			e.printStackTrace();
+			throw new MigrationException("TODO ...");
 		}
-		LOGGER.info("Execute migration ... [ END ]");
 	}
 
-	public void migrateSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count)
+	/** Process the automatic migration of the system
+	 * @param config SQL connection for the migration
+	 * @throws IOException Error if access on the DB */
+	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
+			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
+	public void migrateErrorThrow(final DbConfig config) throws MigrationException {
+		LOGGER.info("Execute migration ... [BEGIN]");
+		listAvailableMigration();
+		// STEP 1: Check the DB exist:
+		createTableIfAbleOrWaitAdmin(config);
+		LOGGER.info("DB '{}' exist.", config.getDbName());
+		try (final DBAccess da = DBAccess.createInterface(config)) {
+			// STEP 2: Check migration table exist:
+			LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
+			if (da instanceof final DBAccessSQL daSQL) {
+				final boolean exist = da.isTableExist("KAR_migration");
+				if (!exist) {
+					LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");
+					// create the table:
+					List<String> sqlQuery;
+					try {
+						sqlQuery = DataFactory.createTable(Migration.class);
+					} catch (final Exception ex) {
+						ex.printStackTrace();
+						throw new MigrationException(
+								"Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
+					}
+					LOGGER.info("Create Table with : {}", sqlQuery.get(0));
+					try {
+						daSQL.executeQuery(sqlQuery.get(0));
+					} catch (SQLException | IOException ex) {
+						ex.printStackTrace();
+						throw new MigrationException(
+								"Fail to create the local DB model for migaration ==> wait administrator interventions");
+					}
+				}
+			}
+			final Migration currentVersion = getCurrentVersion(da);
+			List<MigrationInterface> toApply = new ArrayList<>();
+			boolean needPlaceholder = false;
+			if (currentVersion == null) {
+				// This is a first migration
+				LOGGER.info("First installation of the system ==> Create the DB");
+				if (this.init == null) {
+					// No initialization class ==> manage a historical creation mode...
+					toApply = this.datas;
+				} else {
+					// Select Initialization class if it exist
+					toApply.add(this.init);
+					needPlaceholder = true;
+				}
+			} else {
+				if (!currentVersion.terminated) {
+					throw new MigrationException("An error occured in the last migration: '" + currentVersion.name
+							+ "' defect @" + currentVersion.stepId + "/" + currentVersion.count);
+				}
+				LOGGER.info("Upgrade the system Current version: {}", currentVersion.name);
+				boolean find = this.init != null && this.init.getName().equals(currentVersion.name);
+				if (find) {
+					toApply = this.datas;
+				} else {
+					LOGGER.info(" ===> Check what must be apply:");
+					for (final MigrationInterface elem : this.datas) {
+						LOGGER.info("     - {}", elem.getName());
+						if (!find) {
+							if (currentVersion.name.equals(elem.getName())) {
+								LOGGER.info("        == current version");
+								find = true;
+							}
+							continue;
+						}
+						LOGGER.info("        ++ add ");
+						toApply.add(elem);
+					}
+				}
+			}
+			final int id = 0;
+			final int count = toApply.size();
+			for (final MigrationInterface elem : toApply) {
+				migrateSingle(da, elem, id, count);
+			}
+			if (needPlaceholder) {
+				if (this.datas.size() == 0) {
+					// No placeholder needed, the model have no migration in the current version...
+				} else {
+					// we insert a placeholder to simulate the last migration is well done.
+					final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
+					Migration migrationResult = new Migration();
+					migrationResult.id = 1000L;
+					migrationResult.name = placeholderName;
+					migrationResult.stepId = 0;
+					migrationResult.terminated = true;
+					migrationResult.count = 0;
+					migrationResult.log = "Place-holder for first initialization";
+					try {
+						migrationResult = da.insert(migrationResult);
+					} catch (final Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+			LOGGER.info("Execute migration ... [ END ]");
+		} catch (final InternalServerErrorException e) {
+			e.printStackTrace();
+			throw new MigrationException("TODO ...");
+		} catch (final IOException e) {
+			e.printStackTrace();
+			throw new MigrationException("TODO ...");
+		}
+	}
+
+	public void migrateSingle(final DBAccess da, final MigrationInterface elem, final int id, final int count)
 			throws MigrationException {
 		LOGGER.info("---------------------------------------------------------");
 		LOGGER.info("-- Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
@@ -274,7 +294,7 @@ public class MigrationEngine {
 		}
 		migrationResult.log = log.toString();
 		try {
-			migrationResult = DataAccess.insert(migrationResult);
+			migrationResult = da.insert(migrationResult);
 		} catch (final Exception e) {
 			e.printStackTrace();
 			throw new MigrationException(
@@ -282,7 +302,7 @@ public class MigrationEngine {
 		}
 		boolean ret = true;
 		try {
-			ret = elem.applyMigration(entry, log, migrationResult);
+			ret = elem.applyMigration(da, log, migrationResult);
 		} catch (final Exception e) {
 			log.append("\nFail in the migration apply ");
 			log.append(e.getLocalizedMessage());
@@ -293,7 +313,7 @@ public class MigrationEngine {
 		if (ret) {
 			migrationResult.terminated = true;
 			try {
-				DataAccess.update(migrationResult, migrationResult.id, List.of("terminated"));
+				da.update(migrationResult, migrationResult.id, List.of("terminated"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException(
@@ -303,7 +323,7 @@ public class MigrationEngine {
 			try {
 				log.append("Fail in the migration engine...");
 				migrationResult.log = log.toString();
-				DataAccess.update(migrationResult, migrationResult.id, List.of("log"));
+				da.update(migrationResult, migrationResult.id, List.of("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException("Fail to update migration Log in the migration table: "
@@ -316,8 +336,8 @@ public class MigrationEngine {
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
 
-	public void revertTo(final DBEntry entry, final String migrationName) throws MigrationException {
-		final Migration currentVersion = getCurrentVersion();
+	public void revertTo(final DBAccess da, final String migrationName) throws MigrationException {
+		final Migration currentVersion = getCurrentVersion(da);
 		final List<MigrationInterface> toApply = new ArrayList<>();
 		boolean find = false;
 		for (int iii = this.datas.size() - 1; iii >= 0; iii--) {
@@ -335,11 +355,11 @@ public class MigrationEngine {
 		final int id = 0;
 		final int count = toApply.size();
 		for (final MigrationInterface elem : toApply) {
-			revertSingle(entry, elem, id, count);
+			revertSingle(da, elem, id, count);
 		}
 	}
 
-	public void revertSingle(final DBEntry entry, final MigrationInterface elem, final int id, final int count) {
+	public void revertSingle(final DBAccess da, final MigrationInterface elem, final int id, final int count) {
 		LOGGER.info("Revert migration: {} [BEGIN]", elem.getName());
 
 		LOGGER.info("Revert migration: {} [ END ]", elem.getName());

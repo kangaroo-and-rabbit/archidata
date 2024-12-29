@@ -10,15 +10,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kar.archidata.GlobalConfiguration;
-import org.kar.archidata.dataAccess.DataAccess;
-import org.kar.archidata.db.DBEntry;
+import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.migration.MigrationException;
-import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.migration.model.TypesMigrationInitialisationFirst;
 
@@ -29,22 +27,12 @@ public class TestMigrationFail {
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
-		if (!"true".equalsIgnoreCase(System.getenv("TEST_E2E_MODE"))) {
-			ConfigBaseVariable.dbType = "sqlite";
-			ConfigBaseVariable.dbHost = "memory";
-			// for test we need to connect all time the DB
-			ConfigBaseVariable.dbKeepConnected = "true";
-		}
-		// Connect the dataBase...
-		final DBEntry entry = DBEntry.createInterface(GlobalConfiguration.dbConfig);
-		entry.connect();
+		ConfigureDb.configure();
 	}
 
 	@AfterAll
 	public static void removeDataBase() throws IOException {
-		LOGGER.info("Remove the test db");
-		DBEntry.closeAllForceMode();
-		ConfigBaseVariable.clearAllValue();
+		ConfigureDb.clear();
 	}
 
 	@Order(1)
@@ -53,11 +41,11 @@ public class TestMigrationFail {
 		final MigrationEngine migrationEngine = new MigrationEngine();
 		// add initialization:
 		migrationEngine.setInit(new InitializationFirst());
-		migrationEngine.migrateErrorThrow(GlobalConfiguration.dbConfig);
+		migrationEngine.migrateErrorThrow(new DbConfig());
 
 		final TypesMigrationInitialisationFirst test = new TypesMigrationInitialisationFirst();
 		test.testData = 95.0;
-		final TypesMigrationInitialisationFirst insertedData = DataAccess.insert(test);
+		final TypesMigrationInitialisationFirst insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertEquals(95.0, insertedData.testData);
 	}
@@ -71,7 +59,7 @@ public class TestMigrationFail {
 		migrationEngine.add(new Migration1());
 		migrationEngine.add(new MigrationFail());
 		Assertions.assertThrows(MigrationException.class, () -> {
-			migrationEngine.migrateErrorThrow(GlobalConfiguration.dbConfig);
+			migrationEngine.migrateErrorThrow(new DbConfig());
 		});
 	}
 

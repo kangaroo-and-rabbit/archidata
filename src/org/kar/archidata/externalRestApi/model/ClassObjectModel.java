@@ -136,7 +136,7 @@ public class ClassObjectModel extends ClassModel {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
 					getSubModelIfExist(field, previous), //
-					AnnotationTools.getComment(field), //
+					AnnotationTools.getSchemaDescription(field), //
 					getStringMinSize(field), //
 					getStringMaxSize(field), //
 					AnnotationTools.getConstraintsMin(field), //

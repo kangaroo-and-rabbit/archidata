@@ -1,7 +1,12 @@
 package org.kar.archidata.dataAccess;
 
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.List;
+
+import org.bson.conversions.Bson;
+
+import com.mongodb.client.model.Filters;
 
 public class QueryOr implements QueryItem {
 	protected final List<QueryItem> childs;
@@ -34,9 +39,18 @@ public class QueryOr implements QueryItem {
 	}
 
 	@Override
-	public void injectQuery(final PreparedStatement ps, final CountInOut iii) throws Exception {
+	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
 		for (final QueryItem elem : this.childs) {
-			elem.injectQuery(ps, iii);
+			elem.injectQuery(ioDb, ps, iii);
 		}
+	}
+
+	@Override
+	public void generateFilter(final List<Bson> filters) {
+		final List<Bson> filtersLocal = new ArrayList<>();
+		for (final QueryItem elem : this.childs) {
+			elem.generateFilter(filtersLocal);
+		}
+		filters.add(Filters.or(filtersLocal.toArray(new Bson[0])));
 	}
 }
