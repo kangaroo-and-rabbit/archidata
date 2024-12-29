@@ -84,26 +84,18 @@ public class AnnotationTools {
 		return tmp;
 	}
 
-	public static boolean getSchemaReadOnly(final Field element) throws DataAccessException {
+	public static boolean getSchemaReadOnly(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return false;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
-		}
 		return ((Schema) annotation[0]).readOnly();
 	}
 
-	public static String getSchemaExample(final Class<?> element) throws DataAccessException {
+	public static String getSchemaExample(final Class<?> element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
-		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
 		}
 		return ((Schema) annotation[0]).example();
 	}
@@ -116,50 +108,26 @@ public class AnnotationTools {
 		return true;
 	}
 
-	public static String getSchemaDescription(final Class<?> element) throws DataAccessException {
+	public static String getSchemaDescription(final Class<?> element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
-		}
 		return ((Schema) annotation[0]).description();
 	}
 
-	public static String getSchemaDescription(final Field element) throws DataAccessException {
+	public static String getSchemaDescription(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Schema on " + element.getClass().getCanonicalName());
-		}
 		return ((Schema) annotation[0]).description();
 	}
 
-	public static String getComment(final Field element) throws DataAccessException {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataComment.class);
-		if (annotation.length == 0) {
-			return getSchemaDescription(element);
-		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @DataComment on " + element.getClass().getCanonicalName());
-		}
-		return ((DataComment) annotation[0]).value();
-	}
-
-	public static String getDefault(final Field element) throws DataAccessException {
+	public static String getDefault(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DefaultValue.class);
 		if (annotation.length == 0) {
 			return null;
-		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @DataDefault on " + element.getClass().getCanonicalName());
 		}
 		return ((DefaultValue) annotation[0]).value();
 	}
@@ -188,80 +156,56 @@ public class AnnotationTools {
 		return (OneToMany) annotation[0];
 	}
 
-	public static DataJson getDataJson(final Field element) throws DataAccessException {
+	public static DataJson getDataJson(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataJson.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @ManyToOne on " + element.getClass().getCanonicalName());
-		}
 		return (DataJson) annotation[0];
 	}
 
-	public static Long getConstraintsMax(final Field element) throws DataAccessException {
+	public static Long getConstraintsMax(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Max.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
-		}
 		return ((Max) annotation[0]).value();
 	}
 
-	public static Long getConstraintsMin(final Field element) throws DataAccessException {
+	public static Long getConstraintsMin(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Min.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
-		}
 		return ((Min) annotation[0]).value();
 	}
 
-	public static int getLimitSize(final Field element) throws DataAccessException {
+	public static int getLimitSize(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return 255;
-		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
 		}
 		final int length = ((Column) annotation[0]).length();
 		return length <= 0 ? 0 : length;
 	}
 
-	public static Size getConstraintsSize(final Field element) throws DataAccessException {
+	public static Size getConstraintsSize(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Size.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Size on " + element.getClass().getCanonicalName());
-		}
 		return (Size) annotation[0];
 	}
 
-	public static String getConstraintsPattern(final Field element) throws DataAccessException {
+	public static String getConstraintsPattern(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Pattern.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Pattern on " + element.getClass().getCanonicalName());
-		}
 		return ((Pattern) annotation[0]).regexp();
 	}
 
-	public static boolean getConstraintsEmail(final Field element) throws DataAccessException {
+	public static boolean getConstraintsEmail(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Email.class);
 		if (annotation.length == 0) {
 			return false;
@@ -304,19 +248,15 @@ public class AnnotationTools {
 		return name;
 	}
 
-	public static boolean getColumnNotNull(final Field element) throws DataAccessException {
+	public static boolean getColumnNotNull(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return false;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
-		}
 		return !((Column) annotation[0]).nullable();
 	}
 
-	public static boolean getNullable(final Field element) throws DataAccessException {
+	public static boolean getNullable(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Nullable.class);
 		if (annotation.length == 0) {
 			return false;
@@ -324,19 +264,15 @@ public class AnnotationTools {
 		return true;
 	}
 
-	public static boolean getConstraintsNotNull(final Field element) throws DataAccessException {
+	public static boolean getConstraintsNotNull(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(NotNull.class);
 		if (annotation.length == 0) {
 			return false;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @NotNull on " + element.getClass().getCanonicalName());
-		}
 		return true;
 	}
 
-	public static Field getPrimaryKeyField(final Class<?> clazz) throws DataAccessException {
+	public static Field getPrimaryKeyField(final Class<?> clazz) {
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
@@ -349,7 +285,7 @@ public class AnnotationTools {
 		return null;
 	}
 
-	public static boolean isPrimaryKey(final Field element) throws DataAccessException {
+	public static boolean isPrimaryKey(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Id.class);
 		if (annotation.length == 0) {
 			return false;
@@ -357,51 +293,43 @@ public class AnnotationTools {
 		return true;
 	}
 
-	public static boolean isUnique(final Field element) throws DataAccessException {
+	public static boolean isUnique(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return false;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
-		}
 		return ((Column) annotation[0]).unique();
 	}
 
-	public static GenerationType getStrategy(final Field element) throws DataAccessException {
+	public static GenerationType getStrategy(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(GeneratedValue.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		if (annotation.length > 1) {
-			throw new DataAccessException(
-					"Must not have more than 1 element @Column on " + element.getClass().getCanonicalName());
-		}
 		return ((GeneratedValue) annotation[0]).strategy();
 	}
 
-	public static boolean isDeletedField(final Field element) throws DataAccessException {
+	public static boolean isDeletedField(final Field element) {
 		return element.getDeclaredAnnotationsByType(DataDeleted.class).length != 0;
 	}
 
-	public static boolean isCreatedAtField(final Field element) throws DataAccessException {
+	public static boolean isCreatedAtField(final Field element) {
 		return element.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 	}
 
-	public static boolean isUpdateAtField(final Field element) throws DataAccessException {
+	public static boolean isUpdateAtField(final Field element) {
 		return element.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 	}
 
-	public static boolean isdefaultNotRead(final Field element) throws DataAccessException {
+	public static boolean isdefaultNotRead(final Field element) {
 		return element.getDeclaredAnnotationsByType(DataNotRead.class).length != 0;
 	}
 
-	public static boolean isIdField(final Field element) throws DataAccessException {
+	public static boolean isIdField(final Field element) {
 		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
 	}
 
-	public static String getDeletedFieldName(final Class<?> clazz) throws DataAccessException {
+	public static String getDeletedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
@@ -418,7 +346,7 @@ public class AnnotationTools {
 		return null;
 	}
 
-	public static String getUpdatedFieldName(final Class<?> clazz) throws DataAccessException {
+	public static String getUpdatedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
@@ -452,16 +380,15 @@ public class AnnotationTools {
 		return null;
 	}
 
-	public static List<String> getFieldsNames(final Class<?> clazz) throws DataAccessException {
+	public static List<String> getFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, false);
 	}
 
-	public static List<String> getAllFieldsNames(final Class<?> clazz) throws DataAccessException {
+	public static List<String> getAllFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, true);
 	}
 
-	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full)
-			throws DataAccessException {
+	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) {
 		final List<String> out = new ArrayList<>();
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
@@ -476,12 +403,12 @@ public class AnnotationTools {
 		return out;
 	}
 
-	public static boolean isGenericField(final Field elem) throws DataAccessException {
+	public static boolean isGenericField(final Field elem) {
 		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem)
 				|| AnnotationTools.isUpdateAtField(elem) || AnnotationTools.isDeletedField(elem);
 	}
 
-	public static Field getFieldOfId(final Class<?> clazz) throws DataAccessException {
+	public static Field getFieldOfId(final Class<?> clazz) {
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
@@ -494,7 +421,7 @@ public class AnnotationTools {
 		return null;
 	}
 
-	public static Field getFieldNamed(final Class<?> clazz, final String name) throws DataAccessException {
+	public static Field getFieldNamed(final Class<?> clazz, final String name) {
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
