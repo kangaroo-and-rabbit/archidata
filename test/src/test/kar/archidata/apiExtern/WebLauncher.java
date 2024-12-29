@@ -22,11 +22,13 @@ import org.kar.archidata.filter.CORSFilter;
 import org.kar.archidata.filter.OptionFilter;
 import org.kar.archidata.migration.MigrationEngine;
 import org.kar.archidata.tools.ConfigBaseVariable;
+import org.kar.archidata.tools.ContextGenericTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.UriBuilder;
 import test.kar.archidata.apiExtern.resource.TestResource;
+import test.kar.archidata.apiExtern.resource.TimeResource;
 
 public class WebLauncher {
 	final static Logger LOGGER = LoggerFactory.getLogger(WebLauncher.class);
@@ -109,8 +111,11 @@ public class WebLauncher {
 		GenericCatcher.addAll(rc);
 		// add default resource:
 		rc.register(TestResource.class);
+		rc.register(TimeResource.class);
 		rc.register(DataResource.class);
 		rc.register(ProxyResource.class);
+
+		ContextGenericTools.addJsr310(rc);
 
 		// add jackson to be discover when we are ins standalone server
 		rc.register(JacksonFeature.class);

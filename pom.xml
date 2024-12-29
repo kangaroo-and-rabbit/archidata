@@ -134,18 +134,18 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.18.0-rc1</version>
+			<version>2.18.1</version>
 		</dependency>
 		<!-- encode output in CSV -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-csv</artifactId>
-			<version>2.18.0-rc1</version>
+			<version>2.18.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.18.0-rc1</version>
+			<version>2.18.1</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
