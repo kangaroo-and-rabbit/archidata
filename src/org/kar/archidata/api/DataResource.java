@@ -118,7 +118,7 @@ public class DataResource {
 		return getFileData(uuid) + ".json";
 	}
 
-	public static Data getWithSha512(final String sha512) {
+	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
 			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
@@ -129,7 +129,7 @@ public class DataResource {
 		return null;
 	}
 
-	public static Data getWithId(final long id) {
+	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
 			return DataAccess.get(Data.class, id);
@@ -140,7 +140,7 @@ public class DataResource {
 		return null;
 	}
 
-	public static Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
 			throws IOException {
 		// determine mime type:
 		Data injectedData = new Data();
@@ -304,11 +304,9 @@ public class DataResource {
 		// logger.info("===================================================");
 		final Data value = getSmall(uuid);
 		if (value == null) {
-			LOGGER.warn("Request data that does not exist : {}", uuid);
 			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
 		}
 		try {
-			LOGGER.warn("Generate stream : {}", uuid);
 			return buildStream(getFileData(uuid), range,
 					value.mimeType == null ? "application/octet-stream" : value.mimeType);
 		} catch (final Exception ex) {
@@ -502,7 +500,7 @@ public class DataResource {
 		}
 	}
 
-	public static void undelete(final Long id) throws Exception {
+	public void undelete(final Long id) throws Exception {
 		DataAccess.unsetDelete(Data.class, id);
 	}
 
