@@ -52,7 +52,13 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 
 	protected Map<String, List<CheckInterface<T>>> checking = null;
 
-	protected void add(final String field, final CheckInterface<T> checkFunction) {
+	protected void add(final String field, final CheckInterface<T> checkFunction) throws DataAccessException {
+		if (!AnnotationTools.hasFieldsName(this.clazz, field)) {
+			LOGGER.error("Try to add a JPA Filter on an inexistant Field: '{}' not in {}", field,
+					AnnotationTools.getAllFieldsNames(this.clazz));
+			throw new DataAccessException("Try to add a JPA Filter on an inexistant Field: '" + field + "' not in "
+					+ AnnotationTools.getAllFieldsNames(this.clazz));
+		}
 		List<CheckInterface<T>> actions = this.checking.get(field);
 		if (actions == null) {
 			actions = new ArrayList<>();

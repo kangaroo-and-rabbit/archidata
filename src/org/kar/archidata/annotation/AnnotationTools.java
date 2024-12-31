@@ -380,6 +380,19 @@ public class AnnotationTools {
 		return null;
 	}
 
+	public static boolean hasFieldsName(final Class<?> clazz, final String name) {
+		for (final Field field : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			if (AnnotationTools.getFieldName(field).equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static List<String> getFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, false);
 	}
