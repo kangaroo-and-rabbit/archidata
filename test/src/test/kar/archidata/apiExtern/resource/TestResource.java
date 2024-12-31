@@ -35,7 +35,7 @@ public class TestResource {
 	@GET
 	@PermitAll
 	public List<SimpleArchiveTable> gets() throws Exception {
-		return this.data;
+		return TestResource.data;
 	}
 
 	@GET
@@ -43,7 +43,7 @@ public class TestResource {
 	@PermitAll
 	public SimpleArchiveTable get(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("get({})", id);
-		for (final SimpleArchiveTable elem : this.data) {
+		for (final SimpleArchiveTable elem : TestResource.data) {
 			if (elem.id.equals(id)) {
 				return elem;
 			}
@@ -56,8 +56,9 @@ public class TestResource {
 	@PermitAll
 	public SimpleArchiveTable archive(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("archive({})", id);
-		for (final SimpleArchiveTable elem : this.data) {
+		for (final SimpleArchiveTable elem : TestResource.data) {
 			if (elem.id.equals(id)) {
+				elem.updatedAt = new Date();
 				elem.archive = new Date();
 				return elem;
 			}
@@ -70,8 +71,9 @@ public class TestResource {
 	@PermitAll
 	public SimpleArchiveTable restore(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("restore({})", id);
-		for (final SimpleArchiveTable elem : this.data) {
+		for (final SimpleArchiveTable elem : TestResource.data) {
 			if (elem.id.equals(id)) {
+				elem.updatedAt = new Date();
 				elem.archive = null;
 				return elem;
 			}
@@ -84,8 +86,10 @@ public class TestResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public SimpleArchiveTable post(final SimpleArchiveTable data) throws Exception {
 		LOGGER.info("post(...)");
-		data.id = this.uniqueId;
-		this.uniqueId += 5;
+		data.id = TestResource.uniqueId;
+		TestResource.uniqueId += 5;
+		data.updatedAt = new Date();
+		data.createdAt = new Date();
 		this.data.add(data);
 		return data;
 	}
@@ -115,7 +119,7 @@ public class TestResource {
 	@PermitAll
 	public void remove(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("remove({})", id);
-		this.data.removeIf(e -> e.id.equals(id));
+		TestResource.data.removeIf(e -> e.id.equals(id));
 	}
 
 }
