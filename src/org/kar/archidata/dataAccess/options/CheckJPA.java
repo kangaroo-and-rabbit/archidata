@@ -465,6 +465,22 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type.isEnum()) {
 					// nothing to do.
 				}
+				final DataJson dataJson = AnnotationTools.getDataJson(field);
+				if (dataJson != null && dataJson.checker() != null) {
+					final CheckFunctionInterface checkerInstance = dataJson.checker().getDeclaredConstructor()
+							.newInstance();
+					add(fieldName,
+							(
+									final DBAccess ioDb,
+									final String baseName,
+									final T data,
+									final List<String> modifiedValue,
+									final QueryOptions options) -> {
+								// get the field of the specific element
+								final Object tmpData = field.get(data);
+								checkerInstance.check(ioDb, baseName, tmpData, null, options);
+							});
+				}
 				// keep this is last ==> take more time...
 				if (AnnotationTools.isUnique(field)) {
 					// Create the request ...
@@ -498,13 +514,21 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 	}
 
+	public void check(final Object data) throws Exception {
+		check(null, "", data, null, null);
+	}
+
+	public void check(final String baseName, final Object data) throws Exception {
+		check(null, baseName, data, null, null);
+	}
+
 	public void check(final DBAccess ioDb, final String baseName, final Object data) throws Exception {
 		check(ioDb, baseName, data, null, null);
 	}
 
-	public void check(final DBAccess ioDb, final String baseName, final Object data, final List<String> filterValue)
+	public void check(final DBAccess ioDb, final String baseName, final Object data, final List<String> modifiedValue)
 			throws Exception {
-		check(ioDb, baseName, data, filterValue, null);
+		check(ioDb, baseName, data, modifiedValue, null);
 	}
 
 	@Override
@@ -512,10 +536,13 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 			final DBAccess ioDb,
 			final String baseName,
 			final Object data,
-			final List<String> modifiedValue,
+			List<String> modifiedValue,
 			final QueryOptions options) throws Exception {
 		if (this.checking == null) {
 			initialize();
+		}
+		if (modifiedValue == null) {
+			modifiedValue = AnnotationTools.getAllFieldsNames(this.clazz);
 		}
 		if (!(this.clazz.isAssignableFrom(data.getClass()))) {
 			throw new DataAccessException("Incompatatyble type of Object" + data.getClass().getCanonicalName());
