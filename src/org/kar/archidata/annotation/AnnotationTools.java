@@ -286,11 +286,15 @@ public class AnnotationTools {
 	}
 
 	public static boolean isPrimaryKey(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Id.class);
-		if (annotation.length == 0) {
-			return false;
+		final Annotation[] annotationSQL = element.getDeclaredAnnotationsByType(Id.class);
+		if (annotationSQL.length > 0) {
+			return true;
 		}
-		return true;
+		final Annotation[] annotationMongo = element.getDeclaredAnnotationsByType(dev.morphia.annotations.Id.class);
+		if (annotationMongo.length > 0) {
+			return true;
+		}
+		return false;
 	}
 
 	public static boolean isUnique(final Field element) {

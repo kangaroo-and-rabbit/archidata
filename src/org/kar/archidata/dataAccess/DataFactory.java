@@ -10,12 +10,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.addOnSQL.DataAccessAddOn;
 import org.kar.archidata.dataAccess.options.CreateDropTable;
+import org.kar.archidata.dataAccess.options.OptionSpecifyType;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
@@ -33,6 +35,10 @@ public class DataFactory {
 		if ("mysql".equals(typelocal)) {
 			if (type == UUID.class) {
 				return "binary(16)";
+			}
+			if (type == ObjectId.class) {
+				return "varchar(24)";
+				// return "binary(12)";
 			}
 			if (type == Long.class || type == long.class) {
 				return "bigint";
@@ -87,6 +93,10 @@ public class DataFactory {
 		} else if ("sqlite".equals(typelocal)) {
 			if (type == UUID.class) {
 				return "BINARY(16)";
+			}
+			if (type == ObjectId.class) {
+				return "text";
+				//return "BINARY(12)";
 			}
 			if (type == Long.class || type == long.class) {
 				return "INTEGER";
@@ -387,23 +397,38 @@ public class DataFactory {
 					continue;
 				}
 				alreadyAdded.add(dataName);
+
+				List<OptionSpecifyType> specificTypes = new ArrayList<>();
+				if (options != null) {
+					specificTypes = options.get(OptionSpecifyType.class);
+				}
+				Class<?> basicType = elem.getType();
+				if (basicType == Object.class) {
+					for (final OptionSpecifyType specify : specificTypes) {
+						if (specify.name.equals(elem.getName())) {
+							basicType = specify.clazz;
+							LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'",
+									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
+							break;
+						}
+					}
+				}
 				LOGGER.trace("        + '{}'", elem.getName());
 				if (DBAccessSQL.isAddOnField(elem)) {
 					final DataAccessAddOn addOn = DBAccessSQL.findAddOnforField(elem);
-					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem),
-							elem.getType());
+					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), basicType);
 					if (addOn != null) {
 						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList,
 								createIfNotExist, createDrop, fieldId);
 					} else {
-						throw new DataAccessException("Element matked as add-on but add-on does not loaded: table:"
-								+ tableName + " field name=" + AnnotationTools.getFieldName(elem) + " type="
-								+ elem.getType());
+						throw new DataAccessException(
+								"Element matked as add-on but add-on does not loaded: table:" + tableName
+										+ " field name=" + AnnotationTools.getFieldName(elem) + " type=" + basicType);
 					}
 				} else {
-					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
+					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), basicType);
 					DataFactory.createTablesSpecificType(tableName, tablePrimaryKeyField, elem, tmpOut, preActionList,
-							postActionList, createIfNotExist, createDrop, fieldId, elem.getType());
+							postActionList, createIfNotExist, createDrop, fieldId, basicType);
 				}
 				fieldId++;
 			}

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class OIDGenericData extends GenericTiming {
 	@Id
+	//@jakarta.persistence.Id
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique ObjectID of the object", required = false, readOnly = true, example = "65161616841351")
 	@NotNull

@@ -35,6 +35,7 @@ import org.kar.archidata.dataAccess.options.DBInterfaceRoot;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.GroupBy;
 import org.kar.archidata.dataAccess.options.Limit;
+import org.kar.archidata.dataAccess.options.OptionSpecifyType;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
@@ -296,7 +297,7 @@ public class DBAccessSQL extends DBAccess {
 		return new ObjectId(elem);
 	}
 
-	protected <T> void setValuedb(
+	protected <T> void setValueToDb(
 			final Class<?> type,
 			final T data,
 			final CountInOut iii,
@@ -417,7 +418,7 @@ public class DBAccessSQL extends DBAccess {
 				ps.setString(iii.value, tmp.toString());
 			}
 		} else {
-			throw new DataAccessException("Unknown Field Type");
+			throw new DataAccessException("Unknown Field Type: " + type.getCanonicalName());
 		}
 		iii.inc();
 	}
@@ -611,7 +612,7 @@ public class DBAccessSQL extends DBAccess {
 				}
 			}
 		} else {
-			throw new DataAccessException("Unknown Field Type");
+			throw new DataAccessException("Unknown Field Type: " + type.getCanonicalName());
 		}
 		count.inc();
 	}
@@ -874,6 +875,7 @@ public class DBAccessSQL extends DBAccess {
 		Field primaryKeyField = null;
 		boolean generateUUID = false;
 		boolean generateOID = false;
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		// real add in the BDD:
 		try {
 			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
@@ -1013,14 +1015,24 @@ public class DBAccessSQL extends DBAccess {
 					addOn.insertData(this, ps, elem, data, iii);
 				} else {
 					// Generic class insertion...
-					final Class<?> type = elem.getType();
+					Class<?> type = elem.getType();
 					if (!type.isPrimitive()) {
 						final Object tmp = elem.get(data);
 						if (tmp == null && elem.getDeclaredAnnotationsByType(DefaultValue.class).length != 0) {
 							continue;
 						}
 					}
-					setValuedb(type, data, iii, elem, ps);
+					if (type == Object.class) {
+						for (final OptionSpecifyType specify : specificTypes) {
+							if (specify.name.equals(elem.getName())) {
+								type = specify.clazz;
+								LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'",
+										elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
+								break;
+							}
+						}
+					}
+					setValueToDb(type, data, iii, elem, ps);
 				}
 				count++;
 			}
@@ -1207,7 +1219,7 @@ public class DBAccessSQL extends DBAccess {
 									continue;
 								}
 							}
-							setValuedb(type, data, iii, field, ps);
+							setValueToDb(type, data, iii, field, ps);
 						} else {
 							addOn.insertData(this, ps, field, data, iii);
 						}
@@ -1415,6 +1427,7 @@ public class DBAccessSQL extends DBAccess {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		// TODO: manage class that is defined inside a class ==> Not manage for now...
 		Object data = null;
 		for (final Constructor<?> contructor : clazz.getConstructors()) {
@@ -1442,7 +1455,18 @@ public class DBAccessSQL extends DBAccess {
 			if (addOn != null) {
 				addOn.fillFromQuery(this, rs, elem, data, count, options, lazyCall);
 			} else {
-				setValueFromDb(elem.getType(), data, count, elem, rs, countNotNull);
+				Class<?> type = elem.getType();
+				if (type == Object.class) {
+					for (final OptionSpecifyType specify : specificTypes) {
+						if (specify.name.equals(elem.getName())) {
+							type = specify.clazz;
+							LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'",
+									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
+							break;
+						}
+					}
+				}
+				setValueFromDb(type, data, count, elem, rs, countNotNull);
 			}
 		}
 		return data;
