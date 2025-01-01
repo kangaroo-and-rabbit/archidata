@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
@@ -223,6 +224,20 @@ public class DBAccessSQL extends DBAccess {
 		return out;
 	}
 
+	public List<ObjectId> getListOfOIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
+		final String trackString = rs.getString(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final List<ObjectId> out = new ArrayList<>();
+		final String[] elements = trackString.split(separator);
+		for (final String elem : elements) {
+			final ObjectId tmp = new ObjectId(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+
 	public byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
 		final int inputLength = input.length;
 		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
@@ -251,6 +266,20 @@ public class DBAccessSQL extends DBAccess {
 		return out;
 	}
 
+	public List<ObjectId> getListOfRawOIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+		final byte[] trackString = rs.getBytes(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		final byte[][] elements = splitIntoGroupsOf16Bytes(trackString);
+		final List<ObjectId> out = new ArrayList<>();
+		for (final byte[] elem : elements) {
+			final ObjectId tmp = new ObjectId(elem);
+			out.add(tmp);
+		}
+		return out;
+	}
+
 	public UUID getListOfRawUUID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
 		final byte[] elem = rs.getBytes(iii);
 		if (rs.wasNull()) {
@@ -259,13 +288,29 @@ public class DBAccessSQL extends DBAccess {
 		return UuidUtils.asUuid(elem);
 	}
 
+	public ObjectId getListOfRawOID(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
+		final byte[] elem = rs.getBytes(iii);
+		if (rs.wasNull()) {
+			return null;
+		}
+		return new ObjectId(elem);
+	}
+
 	protected <T> void setValuedb(
 			final Class<?> type,
 			final T data,
 			final CountInOut iii,
 			final Field field,
 			final PreparedStatement ps) throws Exception {
-		if (type == UUID.class) {
+		if (type == ObjectId.class) {
+			final Object tmp = field.get(data);
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.BINARY);
+			} else {
+				final String dataString = ((ObjectId) tmp).toHexString();
+				ps.setString(iii.value, dataString);
+			}
+		} else if (type == UUID.class) {
 			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BINARY);
@@ -384,7 +429,17 @@ public class DBAccessSQL extends DBAccess {
 			final Field field,
 			final ResultSet rs,
 			final CountInOut countNotNull) throws Exception {
-		if (type == UUID.class) {
+		if (type == ObjectId.class) {
+			final String tmp = rs.getString(count.value);
+			if (rs.wasNull()) {
+				field.set(data, null);
+			} else {
+				// field.set(data, tmp);
+				final ObjectId objectId = new ObjectId(tmp);
+				field.set(data, objectId);
+				countNotNull.inc();
+			}
+		} else if (type == UUID.class) {
 			final byte[] tmp = rs.getBytes(count.value);
 			// final UUID tmp = rs.getObject(count.value, UUID.class);
 			if (rs.wasNull()) {
@@ -564,6 +619,18 @@ public class DBAccessSQL extends DBAccess {
 	// TODO: this function will replace the previous one !!!
 	protected RetreiveFromDB createSetValueFromDbCallback(final int count, final Field field) throws Exception {
 		final Class<?> type = field.getType();
+		if (type == ObjectId.class) {
+			return (final ResultSet rs, final Object obj) -> {
+				final String tmp = rs.getString(count);
+				if (rs.wasNull()) {
+					field.set(obj, null);
+				} else {
+					// field.set(obj, tmp);
+					final ObjectId objectId = new ObjectId(tmp);
+					field.set(obj, objectId);
+				}
+			};
+		}
 		if (type == UUID.class) {
 			return (final ResultSet rs, final Object obj) -> {
 
@@ -802,9 +869,11 @@ public class DBAccessSQL extends DBAccess {
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		Long uniqueSQLID = null;
 		UUID uniqueSQLUUID = null;
+		ObjectId uniqueSQLOID = null;
 		final String tableName = AnnotationTools.getTableName(clazz, options);
 		Field primaryKeyField = null;
 		boolean generateUUID = false;
+		boolean generateOID = false;
 		// real add in the BDD:
 		try {
 			// boolean createIfNotExist = clazz.getDeclaredAnnotationsByType(SQLIfNotExists.class).length != 0;
@@ -822,10 +891,14 @@ public class DBAccessSQL extends DBAccess {
 				}
 				if (AnnotationTools.isPrimaryKey(field)) {
 					primaryKeyField = field;
-					if (primaryKeyField.getType() != UUID.class) {
+					if (primaryKeyField.getType() != UUID.class && primaryKeyField.getType() != ObjectId.class) {
 						break;
 					}
-					generateUUID = true;
+					if (primaryKeyField.getType() == UUID.class) {
+						generateUUID = true;
+					} else {
+						generateOID = true;
+					}
 					count++;
 					final String name = AnnotationTools.getFieldName(field);
 					if (firstField) {
@@ -908,6 +981,13 @@ public class DBAccessSQL extends DBAccess {
 				addElement(ps, uuid, iii);
 				iii.inc();
 			}
+			ObjectId oid = null;
+			if (generateOID) {
+				firstField = false;
+				oid = new ObjectId();
+				addElement(ps, oid, iii);
+				iii.inc();
+			}
 			for (final Field elem : clazz.getFields()) {
 				//  field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
@@ -953,6 +1033,9 @@ public class DBAccessSQL extends DBAccess {
 			if (generateUUID) {
 				// we generate the UUID, otherwise we can not retrieve it
 				uniqueSQLUUID = uuid;
+			} else if (generateOID) {
+				// we generate the UUID, otherwise we can not retrieve it
+				uniqueSQLOID = oid;
 			} else {
 				try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
 					if (generatedKeys.next()) {
@@ -963,6 +1046,9 @@ public class DBAccessSQL extends DBAccess {
 							//final Object obj = generatedKeys.getObject(1);
 							final byte[] tmpid = generatedKeys.getBytes(1);
 							uniqueSQLUUID = UuidUtils.asUuid(tmpid);
+						} else if (primaryKeyField.getType() == ObjectId.class) {
+							final String tmpid = generatedKeys.getString(1);
+							uniqueSQLOID = new ObjectId(tmpid);
 						} else {
 							uniqueSQLID = generatedKeys.getLong(1);
 						}
@@ -983,6 +1069,8 @@ public class DBAccessSQL extends DBAccess {
 					primaryKeyField.setLong(data, uniqueSQLID);
 				} else if (primaryKeyField.getType() == UUID.class) {
 					primaryKeyField.set(data, uniqueSQLUUID);
+				} else if (primaryKeyField.getType() == ObjectId.class) {
+					primaryKeyField.set(data, uniqueSQLOID);
 				} else {
 					LOGGER.error("Can not manage the primary filed !!!");
 				}
@@ -1000,6 +1088,8 @@ public class DBAccessSQL extends DBAccess {
 				addOn.asyncInsert(this, tableName, uniqueSQLID, field, field.get(data), asyncActions);
 			} else if (uniqueSQLUUID != null) {
 				addOn.asyncInsert(this, tableName, uniqueSQLUUID, field, field.get(data), asyncActions);
+			} else if (uniqueSQLOID != null) {
+				addOn.asyncInsert(this, tableName, uniqueSQLOID, field, field.get(data), asyncActions);
 			}
 		}
 		for (final LazyGetter action : asyncActions) {
@@ -1144,6 +1234,10 @@ public class DBAccessSQL extends DBAccess {
 		if (value instanceof final UUID tmp) {
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);
+		} else if (value instanceof final ObjectId tmp) {
+			final String dataString = tmp.toHexString();
+			LOGGER.debug("Inject oid => {}", dataString);
+			ps.setString(iii.value, dataString);
 		} else if (value instanceof final Long tmp) {
 			LOGGER.debug("Inject Long => {}", tmp);
 			ps.setLong(iii.value, tmp);
