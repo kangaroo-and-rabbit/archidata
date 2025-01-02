@@ -665,7 +665,7 @@ public class DBAccessMorphia extends DBAccess {
 			if (addOn != null && !addOn.canRetrieve(elem)) {
 				continue;
 			}
-			final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
+			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
 				continue;
 			}
@@ -798,7 +798,7 @@ public class DBAccessMorphia extends DBAccess {
 			if (addOn != null && !addOn.canRetrieve(elem)) {
 				continue;
 			}
-			final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
+			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
 				continue;
 			}

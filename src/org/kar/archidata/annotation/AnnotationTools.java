@@ -346,7 +346,7 @@ public class AnnotationTools {
 		return element.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 	}
 
-	public static boolean isdefaultNotRead(final Field element) {
+	public static boolean isDefaultNotRead(final Field element) {
 		return element.getDeclaredAnnotationsByType(DataNotRead.class).length != 0;
 	}
 

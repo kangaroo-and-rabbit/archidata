@@ -1329,7 +1329,7 @@ public class DBAccessSQL extends DBAccess {
 			if (addOn != null && !addOn.canRetrieve(elem)) {
 				continue;
 			}
-			final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
+			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
 				continue;
 			}
@@ -1449,7 +1449,7 @@ public class DBAccessSQL extends DBAccess {
 			if (addOn != null && !addOn.canRetrieve(elem)) {
 				continue;
 			}
-			final boolean notRead = AnnotationTools.isdefaultNotRead(elem);
+			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
 				continue;
 			}
@@ -1461,7 +1461,7 @@ public class DBAccessSQL extends DBAccess {
 					for (final OptionSpecifyType specify : specificTypes) {
 						if (specify.name.equals(elem.getName())) {
 							type = specify.clazz;
-							LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'",
+							LOGGER.trace("Detect overwrite of typing var={} ... '{}' => '{}'", elem.getName(),
 									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
 							break;
 						}
