@@ -10,6 +10,7 @@ import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.Limit;
+import org.kar.archidata.dataAccess.options.OptionSpecifyType;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.dataAccess.options.TransmitKey;
 import org.kar.archidata.db.DbConfig;
@@ -80,8 +81,10 @@ public abstract class DBAccess implements Closeable {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}
 
-	public <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
-			throws DataAccessException {
+	public <ID_TYPE> QueryCondition getTableIdCondition(
+			final Class<?> clazz,
+			final ID_TYPE idKey,
+			final QueryOptions options) throws DataAccessException {
 		// Find the ID field type ....
 		final Field idField = AnnotationTools.getIdField(clazz);
 		if (idField == null) {
@@ -89,9 +92,21 @@ public abstract class DBAccess implements Closeable {
 					"The class have no annotation @Id ==> can not determine the default type searching");
 		}
 		// check the compatibility of the id and the declared ID
-		final Class<?> typeClass = idField.getType();
+		Class<?> typeClass = idField.getType();
 		if (idKey == null) {
 			throw new DataAccessException("Try to identify the ID type and object was null.");
+		}
+		final String fieldName = AnnotationTools.getFieldName(idField, options).inTable();
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
+		if (typeClass == Object.class) {
+			for (final OptionSpecifyType specify : specificTypes) {
+				if (specify.name.equals(fieldName)) {
+					typeClass = specify.clazz;
+					LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'", typeClass.getCanonicalName(),
+							specify.clazz.getCanonicalName());
+					break;
+				}
+			}
 		}
 		if (idKey.getClass() != typeClass) {
 			if (idKey.getClass() == Condition.class) {
@@ -100,7 +115,7 @@ public abstract class DBAccess implements Closeable {
 			}
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
-		return new QueryCondition(AnnotationTools.getFieldName(idField), "=", idKey);
+		return new QueryCondition(fieldName, "=", idKey);
 	}
 
 	// TODO: manage insert batch...
@@ -138,7 +153,7 @@ public abstract class DBAccess implements Closeable {
 			final String jsonData,
 			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		options.add(new TransmitKey(id));
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
@@ -177,7 +192,7 @@ public abstract class DBAccess implements Closeable {
 			final List<String> updateColomn,
 			final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(data.getClass(), id)));
+		options.add(new Condition(getTableIdCondition(data.getClass(), id, options)));
 		options.add(new FilterValue(updateColomn));
 		options.add(new TransmitKey(id));
 		return updateWhere(data, options);
@@ -240,7 +255,7 @@ public abstract class DBAccess implements Closeable {
 
 	public <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return countWhere(clazz, options);
 	}
 
@@ -253,7 +268,7 @@ public abstract class DBAccess implements Closeable {
 
 	public <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return getWhere(clazz, options.getAllArray());
 	}
 
@@ -298,7 +313,7 @@ public abstract class DBAccess implements Closeable {
 	public <ID_TYPE> long deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
@@ -307,20 +322,20 @@ public abstract class DBAccess implements Closeable {
 	public <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return deleteSoftWhere(clazz, options.getAllArray());
 	}
 
 	public abstract long deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception;
 
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
-		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
+		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id, new QueryOptions())));
 	}
 
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 

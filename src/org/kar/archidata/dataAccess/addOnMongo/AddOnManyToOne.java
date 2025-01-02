@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.DataFactory;
@@ -26,10 +27,10 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field field) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
+	public String getSQLFieldType(final Field field, final QueryOptions options) throws Exception {
+		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 		try {
-			return DataFactory.convertTypeInSQL(field.getType(), fieldName);
+			return DataFactory.convertTypeInSQL(field.getType(), fieldName.inTable());
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -46,35 +47,36 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
+			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
+		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 		final Object data = field.get(rootObject);
 		if (field.get(data) == null) {
-			docUnSet.append(fieldName, "");
+			docUnSet.append(fieldName.inTable(), "");
 			return;
 		} else if (field.getType() == Long.class) {
 			final Long dataTyped = (Long) data;
-			docSet.append(fieldName, dataTyped);
+			docSet.append(fieldName.inTable(), dataTyped);
 		} else if (field.getType() == Integer.class) {
 			final Integer dataTyped = (Integer) data;
-			docSet.append(fieldName, dataTyped);
+			docSet.append(fieldName.inTable(), dataTyped);
 		} else if (field.getType() == Short.class) {
 			final Short dataTyped = (Short) data;
-			docSet.append(fieldName, dataTyped);
+			docSet.append(fieldName.inTable(), dataTyped);
 		} else if (field.getType() == String.class) {
 			final String dataTyped = (String) data;
-			docSet.append(fieldName, dataTyped);
+			docSet.append(fieldName.inTable(), dataTyped);
 		} else if (field.getType() == UUID.class) {
 			final UUID dataTyped = (UUID) data;
-			docSet.append(fieldName, dataTyped);
+			docSet.append(fieldName.inTable(), dataTyped);
 		} else {
 			final Field idField = AnnotationTools.getFieldOfId(field.getType());
 			final Object uid = idField.get(data);
 			if (uid == null) {
-				docUnSet.append(fieldName, "");
+				docUnSet.append(fieldName.inTable(), "");
 			} else {
-				docSet.append(fieldName, uid);
+				docSet.append(fieldName.inTable(), uid);
 			}
 		}
 	}
@@ -150,15 +152,15 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 
-		final String fieldName = AnnotationTools.getFieldName(field);
-		if (!doc.containsKey(fieldName)) {
+		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
+		if (!doc.containsKey(fieldName.inTable())) {
 			field.set(data, null);
 			return;
 		}
 		// local field to manage no remote object to retrieve.
 		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
 				|| field.getType() == String.class || field.getType() == UUID.class) {
-			ioDb.setValueFromDoc(field.getType(), data, field, doc, lazyCall);
+			ioDb.setValueFromDoc(field.getType(), data, field, doc, lazyCall, options);
 			return;
 		}
 		final Class<?> objectClass = field.getType();
@@ -215,16 +217,17 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final List<String> postActionList,
 			final boolean createIfNotExist,
 			final boolean createDrop,
-			final int fieldId) throws Exception {
+			final int fieldId,
+			final QueryOptions options) throws Exception {
 		final Class<?> classType = field.getType();
 		if (classType == Long.class || classType == Integer.class || classType == Short.class
 				|| classType == String.class || classType == UUID.class) {
 			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, classType);
+					postActionList, createIfNotExist, createDrop, fieldId, classType, options);
 		} else {
 			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
 			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+					postActionList, createIfNotExist, createDrop, fieldId, Long.class, options);
 		}
 	}
 }

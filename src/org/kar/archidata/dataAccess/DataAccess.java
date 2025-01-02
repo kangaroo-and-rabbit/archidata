@@ -67,10 +67,12 @@ public class DataAccess {
 		}
 	}
 
-	public static <ID_TYPE> QueryCondition getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey)
-			throws DataAccessException, IOException {
+	public static <ID_TYPE> QueryCondition getTableIdCondition(
+			final Class<?> clazz,
+			final ID_TYPE idKey,
+			final QueryOptions options) throws DataAccessException, IOException {
 		try (DBAccess db = DBAccess.createInterface()) {
-			return db.getTableIdCondition(clazz, idKey);
+			return db.getTableIdCondition(clazz, idKey, options);
 		}
 	}
 

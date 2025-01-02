@@ -21,7 +21,9 @@ public interface DataAccessAddOn {
 	/** Get the SQL type that is needed to declare for the specific Field Type.
 	 * @param elem Field to declare.
 	 * @return SQL type to create. */
-	String getSQLFieldType(Field elem) throws Exception;
+	default String getSQLFieldType(final Field elem, final QueryOptions options) throws Exception {
+		return null;
+	}
 
 	/** Check if the field is manage by the local add-on
 	 * @param elem Field to inspect.
@@ -81,16 +83,19 @@ public interface DataAccessAddOn {
 	 * @param createDrop
 	 * @param fieldId
 	 * @throws Exception */
-	void createTables(
-			String tableName,
+	default void createTables(
+			final String tableName,
 			final Field primaryField,
-			Field field,
-			StringBuilder mainTableBuilder,
-			List<String> preActionList,
-			List<String> postActionList,
-			boolean createIfNotExist,
-			boolean createDrop,
-			int fieldId) throws Exception;
+			final Field field,
+			final StringBuilder mainTableBuilder,
+			final List<String> preActionList,
+			final List<String> postActionList,
+			final boolean createIfNotExist,
+			final boolean createDrop,
+			final int fieldId,
+			final QueryOptions options) throws Exception {
+
+	}
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
@@ -111,7 +116,8 @@ public interface DataAccessAddOn {
 			final Object localId,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 
 	}
 
@@ -134,15 +140,18 @@ public interface DataAccessAddOn {
 			final Object localId,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 
 	}
 
-	default void drop(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	default void drop(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
 
 	}
 
-	default void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
+	default void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
 
 	}
 

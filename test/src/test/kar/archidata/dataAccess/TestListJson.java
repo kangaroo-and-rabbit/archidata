@@ -14,6 +14,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
+import org.kar.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,6 +86,56 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(2), retrieve.data.get(2));
 		Assertions.assertEquals(test.data.get(3), retrieve.data.get(3));
 		Assertions.assertEquals(test.data.get(4), retrieve.data.get(4));
+	}
+
+	@Order(3)
+	@Test
+	public void testToolInsert() throws Exception {
+		final SerializeListAsJson test = new SerializeListAsJson();
+		test.data = new ArrayList<>();
+
+		final SerializeListAsJson insertedData = ConfigureDb.da.insert(test);
+
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.id);
+		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.data);
+		Assertions.assertEquals(0, insertedData.data.size());
+
+		final Integer firstDataInserted1 = 111;
+		final Integer firstDataInserted2 = 222;
+		final Integer firstDataInserted3 = 333;
+		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
+				firstDataInserted1);
+		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
+				firstDataInserted2);
+		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
+				firstDataInserted3);
+
+		// Try to retrieve all the data:
+		SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.data);
+		Assertions.assertEquals(3, retrieve.data.size());
+		Assertions.assertEquals(firstDataInserted1, retrieve.data.get(0));
+		Assertions.assertEquals(firstDataInserted2, retrieve.data.get(1));
+		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(2));
+
+		AddOnDataJson.removeLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
+				firstDataInserted2);
+		// Try to retrieve all the data:
+		retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.id);
+		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.data);
+		Assertions.assertEquals(2, retrieve.data.size());
+		Assertions.assertEquals(firstDataInserted1, retrieve.data.get(0));
+		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(1));
 	}
 
 }

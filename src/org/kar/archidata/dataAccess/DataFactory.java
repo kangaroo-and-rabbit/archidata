@@ -167,8 +167,9 @@ public class DataFactory {
 			final boolean createIfNotExist,
 			final boolean createDrop,
 			final int fieldId,
-			final Class<?> classModel) throws Exception {
-		final String name = AnnotationTools.getFieldName(elem);
+			final Class<?> classModel,
+			final QueryOptions options) throws Exception {
+		final String name = AnnotationTools.getFieldName(elem, options).inTable();
 		final int limitSize = AnnotationTools.getLimitSize(elem);
 		final boolean notNull = AnnotationTools.getColumnNotNull(elem);
 
@@ -314,7 +315,10 @@ public class DataFactory {
 		}
 	}
 
-	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
+	private static boolean isFieldFromSuperClass(
+			final Class<?> model,
+			final String filedName,
+			final QueryOptions options) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
 			return false;
@@ -322,7 +326,7 @@ public class DataFactory {
 		for (final Field field : superClass.getFields()) {
 			String name;
 			try {
-				name = AnnotationTools.getFieldName(field);
+				name = AnnotationTools.getFieldName(field, options).inTable();
 				if (filedName.equals(name)) {
 					return true;
 				}
@@ -370,7 +374,7 @@ public class DataFactory {
 		for (final Field elem : clazz.getFields()) {
 			// DEtect the primary key (support only one primary key right now...
 			if (AnnotationTools.isPrimaryKey(elem)) {
-				primaryKeys.add(AnnotationTools.getFieldName(elem));
+				primaryKeys.add(AnnotationTools.getFieldName(elem, options).inTable());
 			}
 		}
 		// Here we insert the data in the reverse mode ==> the parent class add there parameter at the start (we reorder the field with the parenting).
@@ -387,8 +391,8 @@ public class DataFactory {
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
 					continue;
 				}
-				final String dataName = AnnotationTools.getFieldName(elem);
-				if (isFieldFromSuperClass(currentClazz, dataName)) {
+				final String dataName = AnnotationTools.getFieldName(elem, options).inTable();
+				if (isFieldFromSuperClass(currentClazz, dataName, options)) {
 					LOGGER.trace("        SKIP:  '{}'", elem.getName());
 					continue;
 				}
@@ -416,19 +420,21 @@ public class DataFactory {
 				LOGGER.trace("        + '{}'", elem.getName());
 				if (DBAccessSQL.isAddOnField(elem)) {
 					final DataAccessAddOn addOn = DBAccessSQL.findAddOnforField(elem);
-					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)", AnnotationTools.getFieldName(elem), basicType);
+					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)",
+							AnnotationTools.getFieldName(elem, options).inTable(), basicType);
 					if (addOn != null) {
 						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList,
-								createIfNotExist, createDrop, fieldId);
+								createIfNotExist, createDrop, fieldId, options);
 					} else {
-						throw new DataAccessException(
-								"Element matked as add-on but add-on does not loaded: table:" + tableName
-										+ " field name=" + AnnotationTools.getFieldName(elem) + " type=" + basicType);
+						throw new DataAccessException("Element matked as add-on but add-on does not loaded: table:"
+								+ tableName + " field name=" + AnnotationTools.getFieldName(elem, options).inTable()
+								+ " type=" + basicType);
 					}
 				} else {
-					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), basicType);
+					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem, options).inTable(),
+							basicType);
 					DataFactory.createTablesSpecificType(tableName, tablePrimaryKeyField, elem, tmpOut, preActionList,
-							postActionList, createIfNotExist, createDrop, fieldId, basicType);
+							postActionList, createIfNotExist, createDrop, fieldId, basicType, options);
 				}
 				fieldId++;
 			}

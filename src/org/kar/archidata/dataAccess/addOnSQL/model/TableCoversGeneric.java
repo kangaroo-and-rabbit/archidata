@@ -6,20 +6,20 @@ import org.kar.archidata.annotation.DataJson;
 
 import jakarta.persistence.Id;
 
-public class TableCoversLongLong {
-	public TableCoversLongLong() {
+public class TableCoversGeneric {
+	public TableCoversGeneric() {
 		// nothing to do...
 	}
 
-	public TableCoversLongLong(final Long id, final List<Long> covers) {
+	public TableCoversGeneric(final Object id, final List<Object> covers) {
 		this.id = id;
 		this.covers = covers;
 	}
 
 	@Id
-	public Long id;
+	public Object id;
 
 	@DataJson()
-	public List<Long> covers;
+	public List<Object> covers;
 
 }

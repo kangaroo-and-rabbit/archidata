@@ -20,7 +20,9 @@ public interface DataAccessAddOn {
 	/** Get the SQL type that is needed to declare for the specific Field Type.
 	 * @param elem Field to declare.
 	 * @return SQL type to create. */
-	String getSQLFieldType(Field elem) throws Exception;
+	default String getSQLFieldType(final Field elem, final QueryOptions options) throws Exception {
+		return null;
+	}
 
 	/** Check if the field is manage by the local add-on
 	 * @param elem Field to inspect.
@@ -37,6 +39,7 @@ public interface DataAccessAddOn {
 			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
+			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception;
 
@@ -92,7 +95,8 @@ public interface DataAccessAddOn {
 			List<String> postActionList,
 			boolean createIfNotExist,
 			boolean createDrop,
-			int fieldId) throws Exception;
+			int fieldId,
+			final QueryOptions options) throws Exception;
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
@@ -113,7 +117,8 @@ public interface DataAccessAddOn {
 			final Object localId,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 
 	}
 
@@ -136,15 +141,21 @@ public interface DataAccessAddOn {
 			final Object localId,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 
 	}
 
-	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
 
 	}
 
-	default void cleanAll(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
+	default void cleanAll(
+			final DBAccessMorphia ioDb,
+			final String tableName,
+			final Field field,
+			final QueryOptions options) throws Exception {
 
 	}
 

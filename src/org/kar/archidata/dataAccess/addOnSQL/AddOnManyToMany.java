@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
@@ -41,11 +42,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	@Override
 	public Class<?> getAnnotationClass() {
 		return ManyToMany.class;
-	}
-
-	@Override
-	public String getSQLFieldType(final Field elem) {
-		return null;
 	}
 
 	@Override
@@ -89,9 +85,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return false;
 	}
 
-	public static String generateLinkTableNameField(final String tableName, final Field field) throws Exception {
-		final String name = AnnotationTools.getFieldName(field);
-		return generateLinkTableName(tableName, name);
+	public static String generateLinkTableNameField(
+			final String tableName,
+			final Field field,
+			final QueryOptions options) throws Exception {
+		final FieldName name = AnnotationTools.getFieldName(field, options);
+		return generateLinkTableName(tableName, name.inTable());
 	}
 
 	public static String generateLinkTableName(final String tableName, final String name) {
@@ -249,14 +248,15 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				// field.set(data, idList);
 				count.inc();
 				if (idList != null && idList.size() > 0) {
-					final String idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass));
+					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
+							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-								new Condition(new QueryInList<>(idField, childs)));
+								new Condition(new QueryInList<>(idField.inTable(), childs)));
 						if (foreignData == null) {
 							return;
 						}
@@ -269,14 +269,15 @@ public class AddOnManyToMany implements DataAccessAddOn {
 				// field.set(data, idList);
 				count.inc();
 				if (idList != null && idList.size() > 0) {
-					final String idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass));
+					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
+							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 					final LazyGetter lambda = () -> {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-								new Condition(new QueryInList<>(idField, childs)));
+								new Condition(new QueryInList<>(idField.inTable(), childs)));
 						if (foreignData == null) {
 							return;
 						}
@@ -300,7 +301,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final Object localKey,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
@@ -311,8 +313,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 
 		actions.add(() -> {
 			ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
@@ -320,7 +322,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					new OptionSpecifyType("object1Id", localKey.getClass()),
 					new OptionSpecifyType("object2Id", objectClass));
 		});
-		asyncInsert(ioDb, tableName, localKey, field, data, actions);
+		asyncInsert(ioDb, tableName, localKey, field, data, actions, options);
 	}
 
 	@Override
@@ -335,7 +337,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final Object localKey,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		if (data == null) {
 			return;
 		}
@@ -349,8 +352,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 		@SuppressWarnings("unchecked")
 		final List<Long> dataCasted = (List<Long>) data;
 		if (dataCasted.size() == 0) {
@@ -375,16 +378,18 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void drop(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
+	public void drop(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 		ioDb.drop(LinkTableGeneric.class, new OverrideTableName(linkTableName));
 	}
 
 	@Override
-	public void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field) throws Exception {
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
+	public void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 		ioDb.cleanAll(LinkTableGeneric.class, new OverrideTableName(linkTableName));
 	}
 
@@ -397,8 +402,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (ioDb instanceof final DBAccessSQL daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
-			/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
-			 * DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<" + objectClass.getCanonicalName() + ">"); } */
 			final LinkTableGeneric insertElement = new LinkTableGeneric(localKey, remoteKey);
 			daSQL.insert(insertElement, new OverrideTableName(linkTableName),
 					new OptionSpecifyType("object1Id", localKey.getClass()),
@@ -442,20 +445,21 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final List<String> postActionList,
 			final boolean createIfNotExist,
 			final boolean createDrop,
-			final int fieldId) throws Exception {
+			final int fieldId,
+			final QueryOptions options) throws Exception {
 		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
 		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
 			// not the reference model to create base:
 			return;
 		}
-		final String linkTableName = generateLinkTableNameField(tableName, field);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
+		final String linkTableName = generateLinkTableNameField(tableName, field, options);
+		final QueryOptions options2 = new QueryOptions(new OverrideTableName(linkTableName));
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final Class<?> primaryType = primaryField.getType();
-		options.add(new OptionSpecifyType("object1Id", primaryType));
-		options.add(new OptionSpecifyType("object2Id", objectClass));
-		final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options);
+		options2.add(new OptionSpecifyType("object1Id", primaryType));
+		options2.add(new OptionSpecifyType("object2Id", objectClass));
+		final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options2);
 		postActionList.addAll(sqlCommand);
 	}
 }

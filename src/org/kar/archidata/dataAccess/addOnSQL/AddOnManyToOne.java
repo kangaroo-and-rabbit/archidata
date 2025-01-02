@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
@@ -31,10 +32,10 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field field) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
+	public String getSQLFieldType(final Field field, final QueryOptions options) throws Exception {
+		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 		try {
-			return DataFactory.convertTypeInSQL(field.getType(), fieldName);
+			return DataFactory.convertTypeInSQL(field.getType(), fieldName.inTable());
 		} catch (final Exception e) {
 			e.printStackTrace();
 		}
@@ -161,11 +162,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				query.append("` ON ");
 				query.append(subTableName);
 				query.append(".");
-				query.append(AnnotationTools.getFieldName(idField));
+				query.append(AnnotationTools.getFieldName(idField, options).inTable());
 				query.append(" = ");
 				query.append(tableName);
 				query.append(".");
-				query.append(AnnotationTools.getFieldName(field));
+				query.append(AnnotationTools.getFieldName(field, options).inTable());
 			} else {
 				querySelect.append(" ");
 				querySelect.append(tableName);
@@ -293,16 +294,17 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final List<String> postActionList,
 			final boolean createIfNotExist,
 			final boolean createDrop,
-			final int fieldId) throws Exception {
+			final int fieldId,
+			final QueryOptions options) throws Exception {
 		final Class<?> classType = field.getType();
 		if (classType == Long.class || classType == Integer.class || classType == Short.class
 				|| classType == String.class || classType == UUID.class) {
 			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, classType);
+					postActionList, createIfNotExist, createDrop, fieldId, classType, options);
 		} else {
 			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
 			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, Long.class);
+					postActionList, createIfNotExist, createDrop, fieldId, Long.class, options);
 		}
 	}
 }

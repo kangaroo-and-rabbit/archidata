@@ -44,7 +44,7 @@ public class ClassObjectModel extends ClassModel {
 		for (final Field field : superClass.getFields()) {
 			String name;
 			try {
-				name = AnnotationTools.getFieldName(field);
+				name = AnnotationTools.getFieldNameRaw(field);
 				if (filedName.equals(name)) {
 					return true;
 				}
@@ -217,7 +217,7 @@ public class ClassObjectModel extends ClassModel {
 			}
 			alreadyAdded.add(dataName);
 			LOGGER.trace("        + '{}'", elem.getName());
-			LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem), elem.getType());
+			LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldNameRaw(elem), elem.getType());
 			final FieldProperty porperty = new FieldProperty(elem, previous);
 			for (final ClassModel depModel : porperty.model().getAlls()) {
 				if (!this.dependencyModels.contains(depModel)) {

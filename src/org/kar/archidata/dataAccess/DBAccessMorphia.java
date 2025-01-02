@@ -253,8 +253,9 @@ public class DBAccessMorphia extends DBAccess {
 			final Object data,
 			final Field field,
 			final Document doc,
-			final List<LazyGetter> lazyCall) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
+			final List<LazyGetter> lazyCall,
+			final QueryOptions options) throws Exception {
+		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
 			return;
@@ -467,7 +468,7 @@ public class DBAccessMorphia extends DBAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String tableFieldName = AnnotationTools.getFieldName(field);
+				final String tableFieldName = AnnotationTools.getFieldName(field, options).inTable();
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					primaryKeyField = field;
@@ -586,7 +587,7 @@ public class DBAccessMorphia extends DBAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String fieldName = AnnotationTools.getFieldName(field);
+				final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 				// update field is not conditioned by filter:
 				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 				if (updateTime) {
@@ -614,7 +615,7 @@ public class DBAccessMorphia extends DBAccess {
 					continue;
 				}
 				if (addOn != null) {
-					addOn.insertData(this, field, data, docSet, docUnSet);
+					addOn.insertData(this, field, data, options, docSet, docUnSet);
 				} else {
 					final Class<?> type = field.getType();
 					if (!type.isPrimitive()) {
@@ -668,7 +669,7 @@ public class DBAccessMorphia extends DBAccess {
 			if (!readAllfields && notRead) {
 				continue;
 			}
-			final String name = AnnotationTools.getFieldName(elem);
+			final String name = AnnotationTools.getFieldName(elem, options).inTable();
 			fieldsName.add(name);
 		}
 		return fieldsName;
@@ -805,7 +806,7 @@ public class DBAccessMorphia extends DBAccess {
 				LOGGER.error("TODO: Add on not managed .6. ");
 				addOn.fillFromDoc(this, doc, elem, data, options, lazyCall);
 			} else {
-				setValueFromDoc(elem.getType(), data, elem, doc, lazyCall);
+				setValueFromDoc(elem.getType(), data, elem, doc, lazyCall, options);
 			}
 		}
 		return data;
@@ -814,7 +815,7 @@ public class DBAccessMorphia extends DBAccess {
 	@Override
 	public <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return this.countWhere(clazz, options);
 	}
 
@@ -846,7 +847,7 @@ public class DBAccessMorphia extends DBAccess {
 	@Override
 	public <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return this.getWhere(clazz, options.getAllArray());
 	}
 
@@ -854,7 +855,7 @@ public class DBAccessMorphia extends DBAccess {
 	public <ID_TYPE> long deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
@@ -879,7 +880,7 @@ public class DBAccessMorphia extends DBAccess {
 	public <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return deleteSoftWhere(clazz, options.getAllArray());
 	}
 
@@ -899,14 +900,14 @@ public class DBAccessMorphia extends DBAccess {
 
 	@Override
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
-		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id)));
+		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id, new QueryOptions())));
 	}
 
 	@Override
 	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id)));
+		options.add(new Condition(getTableIdCondition(clazz, id, options)));
 		return unsetDeleteWhere(clazz, options.getAllArray());
 	}
 

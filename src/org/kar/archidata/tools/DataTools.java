@@ -345,13 +345,7 @@ public class DataTools {
 		}
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
-		if (id instanceof final Long idLong) {
-			AddOnDataJson.addLink(ioDb, clazz, idLong, "covers", data.uuid);
-		} else if (id instanceof final UUID idUUID) {
-			AddOnDataJson.addLink(ioDb, clazz, idUUID, "covers", data.uuid);
-		} else {
-			throw new IOException("Fail to add Cover can not detect type...");
-		}
+		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.uuid);
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
@@ -397,12 +391,6 @@ public class DataTools {
 		}
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
-		if (id instanceof final Long idLong) {
-			AddOnDataJson.addLink(ioDb, clazz, idLong, "covers", data.uuid);
-		} else if (id instanceof final UUID idUUID) {
-			AddOnDataJson.addLink(ioDb, clazz, idUUID, "covers", data.uuid);
-		} else {
-			throw new IOException("Fail to add Cover can not detect type...");
-		}
+		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.uuid);
 	}
 }

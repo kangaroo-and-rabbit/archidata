@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
@@ -64,10 +65,10 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field field) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
+	public String getSQLFieldType(final Field field, final QueryOptions options) throws Exception {
+		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 		try {
-			return DataFactory.convertTypeInSQL(Long.class, fieldName);
+			return DataFactory.convertTypeInSQL(Long.class, fieldName.inTable());
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -136,15 +137,15 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final String remoteTableName = AnnotationTools.getTableName(targetEntity);
-		final String remoteTablePrimaryKeyName = AnnotationTools
-				.getFieldName(AnnotationTools.getPrimaryKeyField(targetEntity));
+		final FieldName remoteTablePrimaryKeyName = AnnotationTools
+				.getFieldName(AnnotationTools.getPrimaryKeyField(targetEntity), options);
 		final String tmpRemoteVariable = "tmp_" + Integer.toString(count.value);
 		final String remoteDeletedFieldName = AnnotationTools.getDeletedFieldName(targetEntity);
 
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpRemoteVariable);
 		querySelect.append(".");
-		querySelect.append(remoteTablePrimaryKeyName);
+		querySelect.append(remoteTablePrimaryKeyName.inTable());
 		querySelect.append(" ");
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(", ");
@@ -307,18 +308,4 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		}
 	}
 
-	// TODO : refacto this table to manage a generic table with dynamic name to be serialize with the default system
-	@Override
-	public void createTables(
-			final String tableName,
-			final Field primaryField,
-			final Field field,
-			final StringBuilder mainTableBuilder,
-			final List<String> preActionList,
-			final List<String> postActionList,
-			final boolean createIfNotExist,
-			final boolean createDrop,
-			final int fieldId) throws Exception {
-		// This is a remote field ==> nothing to generate (it is stored in the remote object
-	}
 }

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.options.OptionRenameColumn;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -236,7 +237,7 @@ public class AnnotationTools {
 		return false;
 	}
 
-	public static String getFieldName(final Field element) {
+	public static String getFieldNameRaw(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
 		if (annotation.length == 0) {
 			return element.getName();
@@ -246,6 +247,26 @@ public class AnnotationTools {
 			return element.getName();
 		}
 		return name;
+	}
+
+	public record FieldName(
+			String inStruct,
+			String inTable) {};
+
+	public static FieldName getFieldName(final Field element, final QueryOptions options) {
+		final String inStructName = getFieldNameRaw(element);
+		String inTableName = inStructName;
+		if (options != null) {
+			final List<OptionRenameColumn> renamesColumn = options.get(OptionRenameColumn.class);
+			for (final OptionRenameColumn rename : renamesColumn) {
+				if (rename.columnName.equals(inStructName)) {
+					inTableName = rename.colomnNewName;
+					LOGGER.trace("Detect overwrite of column name '{}' => '{}'", inStructName, inTableName);
+					break;
+				}
+			}
+		}
+		return new FieldName(inStructName, inTableName);
 	}
 
 	public static boolean getColumnNotNull(final Field element) {
@@ -333,6 +354,7 @@ public class AnnotationTools {
 		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
 	}
 
+	// Note: delete field can not be renamed with OptionRenameColumn
 	public static String getDeletedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : clazz.getFields()) {
@@ -341,7 +363,7 @@ public class AnnotationTools {
 					continue;
 				}
 				if (AnnotationTools.isDeletedField(elem)) {
-					return AnnotationTools.getFieldName(elem);
+					return AnnotationTools.getFieldNameRaw(elem);
 				}
 			}
 		} catch (final Exception ex) {
@@ -350,6 +372,7 @@ public class AnnotationTools {
 		return null;
 	}
 
+	// Note: update field can not be renamed with OptionRenameColumn
 	public static String getUpdatedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : clazz.getFields()) {
@@ -358,7 +381,7 @@ public class AnnotationTools {
 					continue;
 				}
 				if (AnnotationTools.isUpdateAtField(elem)) {
-					return AnnotationTools.getFieldName(elem);
+					return AnnotationTools.getFieldNameRaw(elem);
 				}
 			}
 		} catch (final Exception ex) {
@@ -390,7 +413,7 @@ public class AnnotationTools {
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
-			if (AnnotationTools.getFieldName(field).equals(name)) {
+			if (AnnotationTools.getFieldNameRaw(field).equals(name)) {
 				return true;
 			}
 		}
@@ -415,7 +438,7 @@ public class AnnotationTools {
 			if (!full && AnnotationTools.isGenericField(field)) {
 				continue;
 			}
-			out.add(AnnotationTools.getFieldName(field));
+			out.add(AnnotationTools.getFieldNameRaw(field));
 		}
 		return out;
 	}
@@ -444,7 +467,7 @@ public class AnnotationTools {
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
-			if (AnnotationTools.getFieldName(field).equals(name)) {
+			if (AnnotationTools.getFieldNameRaw(field).equals(name)) {
 				return field;
 			}
 		}

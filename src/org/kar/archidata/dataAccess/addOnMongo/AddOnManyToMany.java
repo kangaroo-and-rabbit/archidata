@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
@@ -39,11 +40,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field elem) {
-		return null;
-	}
-
-	@Override
 	public boolean isCompatibleField(final Field elem) {
 		final ManyToMany decorators = elem.getDeclaredAnnotation(ManyToMany.class);
 		return decorators != null;
@@ -54,6 +50,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
+			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
 
@@ -84,9 +81,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return false;
 	}
 
-	public static String generateLinkTableNameField(final String tableName, final Field field) throws Exception {
-		final String name = AnnotationTools.getFieldName(field);
-		return generateLinkTableName(tableName, name);
+	public static String generateLinkTableNameField(
+			final String tableName,
+			final Field field,
+			final QueryOptions options) throws Exception {
+		final FieldName name = AnnotationTools.getFieldName(field, options);
+		return generateLinkTableName(tableName, name.inTable());
 	}
 
 	public static String generateLinkTableName(final String tableName, final String name) {
@@ -296,7 +296,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final Object localKey,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		if (field.getType() != List.class) {
 			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
 			return;
@@ -307,46 +308,16 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 
-		if (localKey instanceof final Long localKeyLong) {
-			if (objectClass == Long.class) {
-				actions.add(() -> {
-					ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-							new Condition(new QueryCondition("object1Id", "=", localKeyLong)),
-							new OptionSpecifyType("object1Id", Long.class),
-							new OptionSpecifyType("object2Id", Long.class));
-				});
-				asyncInsert(ioDb, tableName, localKey, field, data, actions);
-			} else {
-				actions.add(() -> {
-					ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-							new Condition(new QueryCondition("object1Id", "=", localKeyLong)),
-							new OptionSpecifyType("object1Id", Long.class),
-							new OptionSpecifyType("object2Id", UUID.class));
-				});
-				asyncInsert(ioDb, tableName, localKey, field, data, actions);
-			}
-		} else if (localKey instanceof final UUID localKeyUUID) {
-			if (objectClass == Long.class) {
-				actions.add(() -> {
-					ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)),
-							new OptionSpecifyType("object1Id", UUID.class),
-							new OptionSpecifyType("object2Id", Long.class));
-				});
-				asyncInsert(ioDb, tableName, localKey, field, data, actions);
-			} else {
-				actions.add(() -> {
-					ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-							new Condition(new QueryCondition("object1Id", "=", localKeyUUID)),
-							new OptionSpecifyType("object1Id", UUID.class),
-							new OptionSpecifyType("object2Id", UUID.class));
-				});
-				asyncInsert(ioDb, tableName, localKey, field, data, actions);
-			}
-		}
+		actions.add(() -> {
+			ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
+					new Condition(new QueryCondition("object1Id", "=", localKey)),
+					new OptionSpecifyType("object1Id", localKey.getClass()),
+					new OptionSpecifyType("object2Id", objectClass));
+		});
+		asyncInsert(ioDb, tableName, localKey, field, data, actions, options);
 	}
 
 	@Override
@@ -361,7 +332,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final Object localKey,
 			final Field field,
 			final Object data,
-			final List<LazyGetter> actions) throws Exception {
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		if (data == null) {
 			return;
 		}
@@ -375,136 +347,50 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
 					+ objectClass.getCanonicalName() + ">");
 		}
-		final String columnName = AnnotationTools.getFieldName(field);
-		final String linkTableName = generateLinkTableName(tableName, columnName);
-		if (localKey instanceof final Long localKeyLong) {
-			if (objectClass == Long.class) {
-				// ========================================================
-				// == Link a "Long" primary Key with List<Long>
-				// ========================================================
-				@SuppressWarnings("unchecked")
-				final List<Long> dataCasted = (List<Long>) data;
-				if (dataCasted.size() == 0) {
-					return;
-				}
-				final List<LinkTableGeneric> insertElements = new ArrayList<>();
-				for (final Long remoteKey : dataCasted) {
-					if (remoteKey == null) {
-						throw new DataAccessException("Try to insert remote key with null value");
-					}
-					insertElements.add(new LinkTableGeneric(localKeyLong, remoteKey));
-				}
-				if (insertElements.size() == 0) {
-					LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
-					return;
-				}
-				actions.add(() -> {
-					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
-							new OptionSpecifyType("object1Id", Long.class),
-							new OptionSpecifyType("object2Id", Long.class));
-				});
-			} else {
-				// ========================================================
-				// == Link a "Long" primary Key with List<UUID>
-				// ========================================================
-				@SuppressWarnings("unchecked")
-				final List<UUID> dataCasted = (List<UUID>) data;
-				if (dataCasted.size() == 0) {
-					return;
-				}
-				final List<LinkTableGeneric> insertElements = new ArrayList<>();
-				for (final UUID remoteKey : dataCasted) {
-					if (remoteKey == null) {
-						throw new DataAccessException("Try to insert remote key with null value");
-					}
-					insertElements.add(new LinkTableGeneric(localKeyLong, remoteKey));
-				}
-				if (insertElements.size() == 0) {
-					LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
-					return;
-				}
-				actions.add(() -> {
-					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
-							new OptionSpecifyType("object1Id", Long.class),
-							new OptionSpecifyType("object2Id", UUID.class));
-				});
-			}
-		} else if (localKey instanceof final UUID localKeyUUID) {
-			if (objectClass == Long.class) {
-				// ========================================================
-				// == Link a "UUID" primary Key with List<Long>
-				// ========================================================
-				@SuppressWarnings("unchecked")
-				final List<Long> dataCasted = (List<Long>) data;
-				if (dataCasted.size() == 0) {
-					return;
-				}
-				final List<LinkTableGeneric> insertElements = new ArrayList<>();
-				for (final Long remoteKey : dataCasted) {
-					if (remoteKey == null) {
-						throw new DataAccessException("Try to insert remote key with null value");
-					}
-					insertElements.add(new LinkTableGeneric(localKeyUUID, remoteKey));
-				}
-				if (insertElements.size() == 0) {
-					LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
-					return;
-				}
-				actions.add(() -> {
-					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
-							new OptionSpecifyType("object1Id", UUID.class),
-							new OptionSpecifyType("object2Id", Long.class));
-				});
-			} else {
-				// ========================================================
-				// == Link a "UUID" primary Key with List<UUID>
-				// ========================================================
-				@SuppressWarnings("unchecked")
-				final List<UUID> dataCasted = (List<UUID>) data;
-				if (dataCasted.size() == 0) {
-					return;
-				}
-				final List<LinkTableGeneric> insertElements = new ArrayList<>();
-				for (final UUID remoteKey : dataCasted) {
-					if (remoteKey == null) {
-						throw new DataAccessException("Try to insert remote key with null value");
-					}
-					insertElements.add(new LinkTableGeneric(localKeyUUID, remoteKey));
-				}
-				if (insertElements.size() == 0) {
-					LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
-					return;
-				}
-				actions.add(() -> {
-					ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
-							new OptionSpecifyType("object1Id", UUID.class),
-							new OptionSpecifyType("object2Id", UUID.class));
-				});
-			}
-		} else {
-			throw new DataAccessException("Not manage access of remte key like ManyToMany other than Long or UUID: "
-					+ localKey.getClass().getCanonicalName());
-		}
+		final FieldName columnName = AnnotationTools.getFieldName(field, options);
+		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 
+		@SuppressWarnings("unchecked")
+		final List<Object> dataCasted = (List<Object>) data;
+		if (dataCasted.size() == 0) {
+			return;
+		}
+		final List<LinkTableGeneric> insertElements = new ArrayList<>();
+		for (final Object remoteKey : dataCasted) {
+			if (remoteKey == null) {
+				throw new DataAccessException("Try to insert remote key with null value");
+			}
+			insertElements.add(new LinkTableGeneric(localKey, remoteKey));
+		}
+		if (insertElements.size() == 0) {
+			LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
+			return;
+		}
+		actions.add(() -> {
+			ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
+					new OptionSpecifyType("object1Id", localKey.getClass()),
+					new OptionSpecifyType("object2Id", objectClass));
+		});
 	}
 
 	@Override
-	public void drop(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
-		final String columnName = AnnotationTools.getFieldName(field);
+	public void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)
+			throws Exception {
+		final String columnName = AnnotationTools.getFieldName(field, options).inTable();
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
-					+ objectClass.getCanonicalName() + ">");
-		}
 		ioDb.drop(LinkTableGeneric.class, new OverrideTableName(linkTableName),
 				new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
 	}
 
 	@Override
-	public void cleanAll(final DBAccessMorphia ioDb, final String tableName, final Field field) throws Exception {
-		final String columnName = AnnotationTools.getFieldName(field);
+	public void cleanAll(
+			final DBAccessMorphia ioDb,
+			final String tableName,
+			final Field field,
+			final QueryOptions options) throws Exception {
+		final String columnName = AnnotationTools.getFieldName(field, options).inTable();
 		final String linkTableName = generateLinkTableName(tableName, columnName);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
@@ -568,49 +454,22 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final List<String> postActionList,
 			final boolean createIfNotExist,
 			final boolean createDrop,
-			final int fieldId) throws Exception {
+			final int fieldId,
+			final QueryOptions options) throws Exception {
 
 		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
 		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
 			// not the reference model to create base:
 			return;
 		}
-		final String linkTableName = generateLinkTableNameField(tableName, field);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(linkTableName));
+		final String linkTableName = generateLinkTableNameField(tableName, field, options);
+		final QueryOptions options2 = new QueryOptions(new OverrideTableName(linkTableName));
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
-					+ objectClass.getCanonicalName() + ">");
-		}
 		final Class<?> primaryType = primaryField.getType();
-		if (primaryType == Long.class) {
-			if (objectClass == Long.class) {
-				options.add(new OptionSpecifyType("object1Id", Long.class));
-				options.add(new OptionSpecifyType("object2Id", Long.class));
-				final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options);
-				postActionList.addAll(sqlCommand);
-			} else {
-				options.add(new OptionSpecifyType("object1Id", Long.class));
-				options.add(new OptionSpecifyType("object2Id", UUID.class));
-				final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options);
-				postActionList.addAll(sqlCommand);
-			}
-		} else if (primaryType == UUID.class) {
-			if (objectClass == Long.class) {
-				options.add(new OptionSpecifyType("object1Id", UUID.class));
-				options.add(new OptionSpecifyType("object2Id", Long.class));
-				final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options);
-				postActionList.addAll(sqlCommand);
-			} else {
-				options.add(new OptionSpecifyType("object1Id", UUID.class));
-				options.add(new OptionSpecifyType("object2Id", UUID.class));
-				final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options);
-				postActionList.addAll(sqlCommand);
-			}
-		} else {
-			throw new DataAccessException("Can not ManyToMany with other than primary key type Long or UUID Model: "
-					+ primaryType.getCanonicalName());
-		}
+		options2.add(new OptionSpecifyType("object1Id", primaryType));
+		options2.add(new OptionSpecifyType("object2Id", objectClass));
+		final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options2);
+		postActionList.addAll(sqlCommand);
 	}
 }

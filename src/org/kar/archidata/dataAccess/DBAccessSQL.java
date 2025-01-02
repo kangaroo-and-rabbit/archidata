@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.addOnSQL.AddOnDataJson;
@@ -902,7 +903,7 @@ public class DBAccessSQL extends DBAccess {
 						generateOID = true;
 					}
 					count++;
-					final String name = AnnotationTools.getFieldName(field);
+					final String name = AnnotationTools.getFieldName(field, options).inTable();
 					if (firstField) {
 						firstField = false;
 					} else {
@@ -944,7 +945,7 @@ public class DBAccessSQL extends DBAccess {
 					}
 				}
 				count++;
-				final String name = AnnotationTools.getFieldName(field);
+				final String name = AnnotationTools.getFieldName(field, options).inTable();
 				if (firstField) {
 					firstField = false;
 				} else {
@@ -1097,11 +1098,11 @@ public class DBAccessSQL extends DBAccess {
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (uniqueSQLID != null) {
-				addOn.asyncInsert(this, tableName, uniqueSQLID, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, tableName, uniqueSQLID, field, field.get(data), asyncActions, options);
 			} else if (uniqueSQLUUID != null) {
-				addOn.asyncInsert(this, tableName, uniqueSQLUUID, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, tableName, uniqueSQLUUID, field, field.get(data), asyncActions, options);
 			} else if (uniqueSQLOID != null) {
-				addOn.asyncInsert(this, tableName, uniqueSQLOID, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, tableName, uniqueSQLOID, field, field.get(data), asyncActions, options);
 			}
 		}
 		for (final LazyGetter action : asyncActions) {
@@ -1146,8 +1147,8 @@ public class DBAccessSQL extends DBAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String name = AnnotationTools.getFieldName(field);
-				if (!filter.getValues().contains(name)) {
+				final FieldName name = AnnotationTools.getFieldName(field, options);
+				if (!filter.getValues().contains(name.inStruct())) {
 					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
@@ -1161,7 +1162,7 @@ public class DBAccessSQL extends DBAccess {
 									"Fail to transmit Key to update the async update... (must have only 1)");
 						}
 						addOn.asyncUpdate(this, tableName, transmitKey.get(0).getKey(), field, field.get(data),
-								asyncActions);
+								asyncActions, options);
 					}
 					continue;
 				}
@@ -1177,7 +1178,7 @@ public class DBAccessSQL extends DBAccess {
 					query.append(",");
 				}
 				query.append(" `");
-				query.append(name);
+				query.append(name.inTable());
 				query.append("` = ? ");
 			}
 			query.append(" ");
@@ -1201,7 +1202,7 @@ public class DBAccessSQL extends DBAccess {
 						if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 							continue;
 						}
-						final String name = AnnotationTools.getFieldName(field);
+						final String name = AnnotationTools.getFieldName(field, options).inStruct();
 						if (!filter.getValues().contains(name)) {
 							continue;
 						} else if (AnnotationTools.isGenericField(field)) {
@@ -1332,7 +1333,7 @@ public class DBAccessSQL extends DBAccess {
 			if (!readAllfields && notRead) {
 				continue;
 			}
-			final String name = AnnotationTools.getFieldName(elem);
+			final String name = AnnotationTools.getFieldName(elem, options).inTable();
 			if (firstField) {
 				firstField = false;
 			} else {
@@ -1611,7 +1612,7 @@ public class DBAccessSQL extends DBAccess {
 			}
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (addOn != null && !addOn.canInsert(field)) {
-				addOn.drop(this, tableName, field);
+				addOn.drop(this, tableName, field, options);
 			}
 		}
 	}
@@ -1639,7 +1640,7 @@ public class DBAccessSQL extends DBAccess {
 			}
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (addOn != null && !addOn.canInsert(field)) {
-				addOn.cleanAll(this, tableName, field);
+				addOn.cleanAll(this, tableName, field, options);
 			}
 		}
 	}

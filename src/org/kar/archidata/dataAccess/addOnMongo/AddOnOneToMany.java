@@ -11,9 +11,9 @@ import java.util.stream.Collectors;
 
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
-import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
@@ -64,18 +64,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public String getSQLFieldType(final Field field) throws Exception {
-		final String fieldName = AnnotationTools.getFieldName(field);
-		try {
-			return DataFactory.convertTypeInSQL(Long.class, fieldName);
-		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	@Override
 	public boolean isCompatibleField(final Field field) {
 		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
 		return decorators != null;
@@ -86,6 +74,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final DBAccessMorphia ioDb,
 			final Field field,
 			final Object rootObject,
+			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
 		throw new IllegalAccessException("Can not generate an inset of @OneToMany");
@@ -136,15 +125,15 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final String remoteTableName = AnnotationTools.getTableName(targetEntity);
-		final String remoteTablePrimaryKeyName = AnnotationTools
-				.getFieldName(AnnotationTools.getPrimaryKeyField(targetEntity));
+		final FieldName remoteTablePrimaryKeyName = AnnotationTools
+				.getFieldName(AnnotationTools.getPrimaryKeyField(targetEntity), options);
 		final String tmpRemoteVariable = "tmp_" + Integer.toString(count.value);
 		final String remoteDeletedFieldName = AnnotationTools.getDeletedFieldName(targetEntity);
 
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpRemoteVariable);
 		querySelect.append(".");
-		querySelect.append(remoteTablePrimaryKeyName);
+		querySelect.append(remoteTablePrimaryKeyName.inTable());
 		querySelect.append(" ");
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(", ");
@@ -233,7 +222,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			return;
 		}
 
-		final String fieldName = AnnotationTools.getFieldName(field);
+		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
 			return;
@@ -316,7 +305,8 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final List<String> postActionList,
 			final boolean createIfNotExist,
 			final boolean createDrop,
-			final int fieldId) throws Exception {
+			final int fieldId,
+			final QueryOptions options) throws Exception {
 		// This is a remote field ==> nothing to generate (it is stored in the remote object
 	}
 }
