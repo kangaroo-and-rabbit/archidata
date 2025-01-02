@@ -351,7 +351,10 @@ public class AnnotationTools {
 	}
 
 	public static boolean isIdField(final Field element) {
-		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
+		if (element.getDeclaredAnnotationsByType(Id.class).length != 0) {
+			return true;
+		}
+		return element.getDeclaredAnnotationsByType(dev.morphia.annotations.Id.class).length != 0;
 	}
 
 	// Note: delete field can not be renamed with OptionRenameColumn
