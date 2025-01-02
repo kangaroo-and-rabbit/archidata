@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.Limit;
@@ -97,11 +98,11 @@ public abstract class DBAccess implements Closeable {
 		if (idKey == null) {
 			throw new DataAccessException("Try to identify the ID type and object was null.");
 		}
-		final String fieldName = AnnotationTools.getFieldName(idField, options).inTable();
+		final FieldName fieldName = AnnotationTools.getFieldName(idField, options);
 		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		if (typeClass == Object.class) {
 			for (final OptionSpecifyType specify : specificTypes) {
-				if (specify.name.equals(fieldName)) {
+				if (specify.name.equals(fieldName.inStruct())) {
 					typeClass = specify.clazz;
 					LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'", typeClass.getCanonicalName(),
 							specify.clazz.getCanonicalName());
@@ -116,7 +117,7 @@ public abstract class DBAccess implements Closeable {
 			}
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
-		return new QueryCondition(fieldName, "=", idKey);
+		return new QueryCondition(fieldName.inTable(), "=", idKey);
 	}
 
 	// TODO: manage insert batch...

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.annotation.DataJson;
@@ -25,6 +26,7 @@ import org.kar.archidata.dataAccess.options.OptionRenameColumn;
 import org.kar.archidata.dataAccess.options.OptionSpecifyType;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ContextGenericTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,13 +119,24 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final CountInOut count,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		final String jsonData = rs.getString(count.value);
 		count.inc();
 		if (!rs.wasNull()) {
 			final ObjectMapper objectMapper = ContextGenericTools.createObjectMapper();
 			if (field.getType() == List.class) {
 				final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-				final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+				Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+				if (listClass == Object.class) {
+					for (final OptionSpecifyType specify : specificTypes) {
+						if (specify.name.equals(field.getName())) {
+							listClass = specify.clazz;
+							LOGGER.trace("Detect overwrite of typing var={} ... '{}' => '{}'", field.getName(),
+									listClass.getCanonicalName(), specify.clazz.getCanonicalName());
+							break;
+						}
+					}
+				}
 				if (listClass == Long.class) {
 					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Long>>() {});
 					field.set(data, dataParsed);
@@ -159,12 +172,32 @@ public class AddOnDataJson implements DataAccessAddOn {
 					field.set(data, dataParsed);
 					return;
 				}
+				if (listClass == ObjectId.class) {
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<ObjectId>>() {});
+					field.set(data, dataParsed);
+					return;
+				}
 				LOGGER.warn("Maybe fail to translate Model in datajson list: List<{}>", listClass.getCanonicalName());
 			}
 			final TypeFactory typeFactory = objectMapper.getTypeFactory();
-			final JavaType fieldType = typeFactory.constructType(field.getGenericType());
-			final Object dataParsed = objectMapper.readValue(jsonData, fieldType);
-			field.set(data, dataParsed);
+			Class<?> listClass = field.getType();
+			if (listClass == Object.class) {
+				for (final OptionSpecifyType specify : specificTypes) {
+					if (specify.name.equals(field.getName())) {
+						listClass = specify.clazz;
+						LOGGER.trace("Detect overwrite of typing var={} ... '{}' => '{}'", field.getName(),
+								listClass.getCanonicalName(), specify.clazz.getCanonicalName());
+						break;
+					}
+				}
+				final JavaType javaType = typeFactory.constructType(listClass);
+				final Object dataParsed = objectMapper.readValue(jsonData, javaType);
+				field.set(data, dataParsed);
+			} else {
+				final JavaType fieldType = typeFactory.constructType(field.getGenericType());
+				final Object dataParsed = objectMapper.readValue(jsonData, fieldType);
+				field.set(data, dataParsed);
+			}
 		}
 	}
 
