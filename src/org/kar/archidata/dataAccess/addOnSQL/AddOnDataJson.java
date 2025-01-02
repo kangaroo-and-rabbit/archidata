@@ -69,7 +69,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		if (data == null) {
 			ps.setNull(iii.value, Types.VARCHAR);
 		}
-		final ObjectMapper objectMapper = new ObjectMapper();
+		final ObjectMapper objectMapper = ContextGenericTools.createObjectMapper();
 		final String dataString = objectMapper.writeValueAsString(data);
 		ps.setString(iii.value, dataString);
 		iii.inc();
@@ -120,7 +120,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		final String jsonData = rs.getString(count.value);
 		count.inc();
 		if (!rs.wasNull()) {
-			final ObjectMapper objectMapper = new ObjectMapper();
+			final ObjectMapper objectMapper = ContextGenericTools.createObjectMapper();
 			if (field.getType() == List.class) {
 				final ParameterizedType listType = (ParameterizedType) field.getGenericType();
 				final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];

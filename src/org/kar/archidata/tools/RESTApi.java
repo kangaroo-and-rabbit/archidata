@@ -17,9 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.ws.rs.core.HttpHeaders;
 
@@ -31,11 +29,7 @@ public class RESTApi {
 
 	public RESTApi(final String baseUrl) {
 		this.baseUrl = baseUrl;
-		this.mapper = new ObjectMapper();
-		// add by default support of LocalTime and LocalDate and LocalDateTime
-		this.mapper.registerModule(new JavaTimeModule()); // Module for Java 8+ Date and Time API
-		this.mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
+		this.mapper = ContextGenericTools.createObjectMapper();
 	}
 
 	public void setToken(final String token) {

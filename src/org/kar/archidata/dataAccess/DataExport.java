@@ -24,6 +24,7 @@ import org.kar.archidata.dataAccess.options.Limit;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ContextGenericTools;
 import org.kar.archidata.tools.DateTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -391,7 +392,7 @@ public class DataExport {
 		}
 		if (MediaType.APPLICATION_JSON.equals(accept)) {
 			LOGGER.info("Start mapping josn");
-			final ObjectMapper objectMapper = new ObjectMapper();
+			final ObjectMapper objectMapper = ContextGenericTools.createObjectMapper();
 			LOGGER.info("Start find modules josn");
 			objectMapper.findAndRegisterModules();
 			LOGGER.info("Start map object");

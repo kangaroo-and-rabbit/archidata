@@ -19,6 +19,7 @@ import org.kar.archidata.db.DbIoFactory;
 import org.kar.archidata.db.DbIoMorphia;
 import org.kar.archidata.db.DbIoSql;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.ContextGenericTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +133,7 @@ public abstract class DBAccess implements Closeable {
 
 	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
 	public <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
-		final ObjectMapper mapper = new ObjectMapper();
+		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
 		return insert(data);
@@ -164,7 +165,7 @@ public abstract class DBAccess implements Closeable {
 		if (options.get(Condition.class).size() == 0) {
 			throw new DataAccessException("request a updateWhereWithJson without any condition");
 		}
-		final ObjectMapper mapper = new ObjectMapper();
+		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
 		// parse the object to be sure the data are valid:
 		final T data = mapper.readValue(jsonData, clazz);
 		// Read the tree to filter injection of data:

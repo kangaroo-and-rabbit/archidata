@@ -108,7 +108,7 @@ public class JWTWrapper {
 			in.close();
 			// print result
 			LOGGER.debug(response.toString());
-			final ObjectMapper mapper = new ObjectMapper();
+			final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
 			final PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
 			rsaPublicJWK = RSAKey.parse(values.key);
 			return;
