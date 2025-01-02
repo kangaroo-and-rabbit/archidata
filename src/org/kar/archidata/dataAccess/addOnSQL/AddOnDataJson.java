@@ -125,37 +125,37 @@ public class AddOnDataJson implements DataAccessAddOn {
 				final ParameterizedType listType = (ParameterizedType) field.getGenericType();
 				final Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
 				if (listClass == Long.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Long>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Long>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == Float.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Float>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Float>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == Double.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Double>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Double>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == Integer.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Integer>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Integer>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == Short.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Short>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<Short>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == String.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<String>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<String>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
 				if (listClass == UUID.class) {
-					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<UUID>>() {});// field.getType());
+					final Object dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<UUID>>() {});
 					field.set(data, dataParsed);
 					return;
 				}
