@@ -101,10 +101,19 @@ public class DataResource {
 
 	public static String getFileData(final ObjectId oid) {
 		final String stringOid = oid.toHexString();
-		final String part1 = stringOid.substring(0, 2);
-		final String part2 = stringOid.substring(2, 4);
-		final String part3 = stringOid.substring(4);
-		final String finalPath = part1 + File.separator + part2;
+		String dir1 = stringOid.substring(0, 2);
+		String dir2 = stringOid.substring(2, 4);
+		String dir3 = stringOid.substring(4, 6);
+		try {
+			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			final byte[] hashBytes = digest.digest(oid.toByteArray());
+			dir1 = String.format("%02x", hashBytes[0]);
+			dir2 = String.format("%02x", hashBytes[1]);
+			dir3 = String.format("%02x", hashBytes[2]);
+		} catch (final NoSuchAlgorithmException ex) {
+			LOGGER.error("Fail to generate the hash of the objectId ==> ise direct value ... {}", ex.getMessage());
+		}
+		final String finalPath = dir1 + File.separator + dir2 + File.separator + dir3;
 		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_oid" + File.separator + finalPath
 				+ File.separator;
 		try {
@@ -112,7 +121,7 @@ public class DataResource {
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
-		filePath += part3;
+		filePath += stringOid;
 		return filePath;
 	}
 
