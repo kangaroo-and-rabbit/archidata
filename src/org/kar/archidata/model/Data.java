@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 @Table(name = "data")
 @DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Data extends UUIDGenericDataSoftDelete {
+public class Data extends OIDGenericDataSoftDelete {
 	@Column(length = 128, nullable = false)
 	@Schema(description = "Sha512 of the data")
 	public String sha512;

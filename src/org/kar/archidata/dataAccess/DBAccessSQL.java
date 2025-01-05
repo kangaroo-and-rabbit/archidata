@@ -207,39 +207,6 @@ public class DBAccessSQL extends DBAccess {
 		return out;
 	}
 
-	/** Extract a list of UUID with "-" separated element from a SQL input data.
-	 * @param rs Result Set of the BDD
-	 * @param iii Id in the result set
-	 * @return The list of Long value
-	 * @throws SQLException if an error is generated in the SQL request. */
-	public List<UUID> getListOfUUIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
-		final String trackString = rs.getString(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		final List<UUID> out = new ArrayList<>();
-		final String[] elements = trackString.split(separator);
-		for (final String elem : elements) {
-			final UUID tmp = UUID.fromString(elem);
-			out.add(tmp);
-		}
-		return out;
-	}
-
-	public List<ObjectId> getListOfOIDs(final ResultSet rs, final int iii, final String separator) throws SQLException {
-		final String trackString = rs.getString(iii);
-		if (rs.wasNull()) {
-			return null;
-		}
-		final List<ObjectId> out = new ArrayList<>();
-		final String[] elements = trackString.split(separator);
-		for (final String elem : elements) {
-			final ObjectId tmp = new ObjectId(elem);
-			out.add(tmp);
-		}
-		return out;
-	}
-
 	public byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
 		final int inputLength = input.length;
 		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
@@ -309,8 +276,8 @@ public class DBAccessSQL extends DBAccess {
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BINARY);
 			} else {
-				final String dataString = ((ObjectId) tmp).toHexString();
-				ps.setString(iii.value, dataString);
+				final byte[] dataByte = ((ObjectId) tmp).toByteArray();
+				ps.setBytes(iii.value, dataByte);
 			}
 		} else if (type == UUID.class) {
 			final Object tmp = field.get(data);
@@ -432,7 +399,7 @@ public class DBAccessSQL extends DBAccess {
 			final ResultSet rs,
 			final CountInOut countNotNull) throws Exception {
 		if (type == ObjectId.class) {
-			final String tmp = rs.getString(count.value);
+			final byte[] tmp = rs.getBytes(count.value);
 			if (rs.wasNull()) {
 				field.set(data, null);
 			} else {
@@ -623,7 +590,7 @@ public class DBAccessSQL extends DBAccess {
 		final Class<?> type = field.getType();
 		if (type == ObjectId.class) {
 			return (final ResultSet rs, final Object obj) -> {
-				final String tmp = rs.getString(count);
+				final byte[] tmp = rs.getBytes(count);
 				if (rs.wasNull()) {
 					field.set(obj, null);
 				} else {
@@ -1055,12 +1022,12 @@ public class DBAccessSQL extends DBAccess {
 						if (primaryKeyField.getType() == UUID.class) {
 							// uniqueSQLUUID = generatedKeys.getObject(1, UUID.class);
 							/* final Object obj = generatedKeys.getObject(1); final BigInteger bigint = (BigInteger) generatedKeys.getObject(1); uniqueSQLUUID = UuidUtils.asUuid(bigint); final UUID
-							 * generatedUUID = (UUID) generatedKeys.getObject(1); System.out.println("UUID généré: " + generatedUUID); */
+							 * generatedUUID = (UUID) generatedKeys.getObject(1); LOGGER.trace("UUID généré: " + generatedUUID); */
 							//final Object obj = generatedKeys.getObject(1);
 							final byte[] tmpid = generatedKeys.getBytes(1);
 							uniqueSQLUUID = UuidUtils.asUuid(tmpid);
 						} else if (primaryKeyField.getType() == ObjectId.class) {
-							final String tmpid = generatedKeys.getString(1);
+							final byte[] tmpid = generatedKeys.getBytes(1);
 							uniqueSQLOID = new ObjectId(tmpid);
 						} else {
 							uniqueSQLID = generatedKeys.getLong(1);
@@ -1245,12 +1212,13 @@ public class DBAccessSQL extends DBAccess {
 			return;
 		}
 		if (value instanceof final UUID tmp) {
+			LOGGER.debug("Inject uuid => {}", tmp);
 			final byte[] dataByte = UuidUtils.asBytes(tmp);
 			ps.setBytes(iii.value, dataByte);
 		} else if (value instanceof final ObjectId tmp) {
-			final String dataString = tmp.toHexString();
-			LOGGER.debug("Inject oid => {}", dataString);
-			ps.setString(iii.value, dataString);
+			final byte[] dataByte = tmp.toByteArray();
+			LOGGER.debug("Inject oid => {}", tmp.toHexString());
+			ps.setBytes(iii.value, dataByte);
 		} else if (value instanceof final Long tmp) {
 			LOGGER.debug("Inject Long => {}", tmp);
 			ps.setLong(iii.value, tmp);

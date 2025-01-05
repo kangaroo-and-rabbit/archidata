@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import javax.imageio.ImageIO;
 
+import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
@@ -86,24 +87,25 @@ public class DataResource {
 		return filePath;
 	}
 
-	public static String getFileDataOld(final long tmpFolderId) {
-		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator
+	public static String getFileDataOld(final UUID uuid) {
+		final String stringUUID = uuid.toString();
+		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + stringUUID + File.separator
 				+ "data";
 		try {
-			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + tmpFolderId + File.separator);
+			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + stringUUID + File.separator);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return filePath;
 	}
 
-	public static String getFileData(final UUID uuid) {
-		final String stringUUID = uuid.toString();
-		final String part1 = stringUUID.substring(0, 2);
-		final String part2 = stringUUID.substring(2, 4);
-		final String part3 = stringUUID.substring(4);
+	public static String getFileData(final ObjectId oid) {
+		final String stringOid = oid.toHexString();
+		final String part1 = stringOid.substring(0, 2);
+		final String part2 = stringOid.substring(2, 4);
+		final String part3 = stringOid.substring(4);
 		final String finalPath = part1 + File.separator + part2;
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath
+		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_oid" + File.separator + finalPath
 				+ File.separator;
 		try {
 			createFolder(filePath);
@@ -114,8 +116,8 @@ public class DataResource {
 		return filePath;
 	}
 
-	public static String getFileMetaData(final UUID uuid) {
-		return getFileData(uuid) + ".json";
+	public static String getFileMetaData(final ObjectId oid) {
+		return getFileData(oid) + ".json";
 	}
 
 	public Data getWithSha512(final String sha512) {
@@ -166,7 +168,7 @@ public class DataResource {
 			e.printStackTrace();
 			return null;
 		}
-		final String mediaPath = getFileData(injectedData.uuid);
+		final String mediaPath = getFileData(injectedData.oid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
@@ -174,9 +176,9 @@ public class DataResource {
 		return injectedData;
 	}
 
-	public static void modeFileOldModelToNewModel(final long id, final UUID uuid) throws IOException {
-		String mediaCurentPath = getFileDataOld(id);
-		String mediaDestPath = getFileData(uuid);
+	public static void modeFileOldModelToNewModel(final UUID uuid, final ObjectId oid) throws IOException {
+		String mediaCurentPath = getFileDataOld(uuid);
+		String mediaDestPath = getFileData(oid);
 		LOGGER.info("src = {}", mediaCurentPath);
 		LOGGER.info("dst = {}", mediaDestPath);
 		if (Files.exists(Paths.get(mediaCurentPath))) {
@@ -252,9 +254,9 @@ public class DataResource {
 		return sb.toString();
 	}
 
-	public Data getSmall(final UUID id) {
+	public Data getSmall(final ObjectId oid) {
 		try {
-			return DataAccess.get(Data.class, id);
+			return DataAccess.get(Data.class, oid);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -288,7 +290,7 @@ public class DataResource {
 	}
 
 	@GET
-	@Path("{uuid}")
+	@Path("{oid}")
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
@@ -297,17 +299,17 @@ public class DataResource {
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid) throws FailException {
+			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataId ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataId ? oid={} user={}", oid, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
-		final Data value = getSmall(uuid);
+		final Data value = getSmall(oid);
 		if (value == null) {
-			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
 		try {
-			return buildStream(getFileData(uuid), range,
+			return buildStream(getFileData(oid), range,
 					value.mimeType == null ? "application/octet-stream" : value.mimeType);
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
@@ -315,7 +317,7 @@ public class DataResource {
 	}
 
 	@GET
-	@Path("thumbnail/{uuid}")
+	@Path("thumbnail/{oid}")
 	@RolesAllowed("USER")
 	@PermitTokenInURI
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
@@ -325,19 +327,19 @@ public class DataResource {
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid) throws FailException {
+			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		LOGGER.info("===================================================");
 		LOGGER.info("== DATA retrieveDataThumbnailId ? {}", (gc == null ? "null" : gc.userByToken));
 		LOGGER.info("===================================================");
-		final Data value = getSmall(uuid);
+		final Data value = getSmall(oid);
 		if (value == null) {
-			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
-		final String filePathName = getFileData(uuid);
+		final String filePathName = getFileData(oid);
 		final File inputFile = new File(filePathName);
 		if (!inputFile.exists()) {
-			return Response.status(404).entity("{\"error\":\"media Does not exist: " + uuid + "\"}")
+			return Response.status(404).entity("{\"error\":\"media Does not exist: " + oid + "\"}")
 					.type("application/json").build();
 		}
 		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
@@ -402,7 +404,7 @@ public class DataResource {
 	}
 
 	@GET
-	@Path("{uuid}/{name}")
+	@Path("{oid}/{name}")
 	@PermitTokenInURI
 	@RolesAllowed("USER")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
@@ -411,17 +413,17 @@ public class DataResource {
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
-			@PathParam("uuid") final UUID uuid,
+			@PathParam("oid") final ObjectId oid,
 			@PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
 		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", uuid, (gc == null ? "null" : gc.userByToken));
+		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", oid, (gc == null ? "null" : gc.userByToken));
 		// logger.info("===================================================");
-		final Data value = getSmall(uuid);
+		final Data value = getSmall(oid);
 		if (value == null) {
-			return Response.status(404).entity("media NOT FOUND: " + uuid).type("text/plain").build();
+			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
-		return buildStream(getFileData(uuid), range,
+		return buildStream(getFileData(oid), range,
 				value.mimeType == null ? "application/octet-stream" : value.mimeType);
 	}
 

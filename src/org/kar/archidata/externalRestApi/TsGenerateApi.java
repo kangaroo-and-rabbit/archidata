@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.catcher.RestErrorResponse;
@@ -155,6 +156,12 @@ public class TsGenerateApi {
 		models = api.getCompatibleModels(List.of(UUID.class));
 		if (models != null) {
 			tsModels.add(new TsClassElement(models, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()",
+					DefinedPosition.BASIC));
+		}
+		models = api.getCompatibleModels(List.of(ObjectId.class));
+		if (models != null) {
+			tsModels.add(new TsClassElement(models, "ZodObjectId", "ObjectId", "isObjectId",
+					"zod.string().length(24, \"Invalid ObjectId length\").regex(/^[a-fA-F0-9]{24}$/, \"Invalid ObjectId format\")",
 					DefinedPosition.BASIC));
 		}
 		models = api.getCompatibleModels(List.of(Long.class, long.class));

@@ -37,8 +37,7 @@ public class DataFactory {
 				return "binary(16)";
 			}
 			if (type == ObjectId.class) {
-				return "varchar(24)";
-				// return "binary(12)";
+				return "binary(12)";
 			}
 			if (type == Long.class || type == long.class) {
 				return "bigint";
@@ -95,8 +94,7 @@ public class DataFactory {
 				return "BINARY(16)";
 			}
 			if (type == ObjectId.class) {
-				return "text";
-				//return "BINARY(12)";
+				return "BINARY(12)";
 			}
 			if (type == Long.class || type == long.class) {
 				return "INTEGER";

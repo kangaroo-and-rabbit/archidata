@@ -13,9 +13,9 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.tika.Tika;
+import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.dataAccess.DBAccess;
@@ -121,7 +121,7 @@ public class DataTools {
 			return null;
 		}
 
-		final String mediaPath = DataResource.getFileData(out.uuid);
+		final String mediaPath = DataResource.getFileData(out.oid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
@@ -151,9 +151,9 @@ public class DataTools {
 		return createNewData(ioDb, tmpUID, originalFileName, sha512, mimeType);
 	}
 
-	public static void undelete(final DBAccess ioDb, final UUID id) {
+	public static void undelete(final DBAccess ioDb, final ObjectId oid) {
 		try {
-			ioDb.unsetDelete(Data.class, id);
+			ioDb.unsetDelete(Data.class, oid);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -338,14 +338,14 @@ public class DataTools {
 			}
 		} else if (data.deleted) {
 			LOGGER.error("Data already exist but deleted");
-			undelete(ioDb, data.uuid);
+			undelete(ioDb, data.oid);
 			data.deleted = false;
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
-		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.uuid);
+		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.oid);
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
@@ -384,13 +384,13 @@ public class DataTools {
 			}
 		} else if (data.deleted) {
 			LOGGER.error("Data already exist but deleted");
-			undelete(ioDb, data.uuid);
+			undelete(ioDb, data.oid);
 			data.deleted = false;
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
-		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.uuid);
+		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.oid);
 	}
 }
