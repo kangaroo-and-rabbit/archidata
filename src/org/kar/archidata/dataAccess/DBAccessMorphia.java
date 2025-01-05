@@ -529,7 +529,7 @@ public class DBAccessMorphia extends DBAccess {
 			final Document insertedDocument = collection.find(new Document("_id", insertedId)).first();
 
 			// Afficher le document récupéré
-			System.out.println("Inserted document: " + insertedDocument);
+			LOGGER.trace("Inserted document: " + insertedDocument);
 
 		} catch (final Exception ex) {
 			LOGGER.error("Fail SQL request: {}", ex.getMessage());

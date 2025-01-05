@@ -2,14 +2,17 @@ package org.kar.archidata;
 
 import org.kar.archidata.tools.ConfigBaseVariable;
 import org.kar.archidata.tools.JWTWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UpdateJwtPublicKey extends Thread {
+	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateJwtPublicKey.class);
 	boolean kill = false;
 
 	@Override
 	public void run() {
 		if (ConfigBaseVariable.getSSOAddress() == null) {
-			System.out.println("SSO INTERFACE is not provided ==> work alone.");
+			LOGGER.warn("SSO INTERFACE is not provided ==> work alone.");
 			// No SO provided, kill the thread.
 			return;
 		}
@@ -19,7 +22,7 @@ public class UpdateJwtPublicKey extends Thread {
 				JWTWrapper.initLocalTokenRemote(ConfigBaseVariable.getSSOAddress(), "archidata");
 			} catch (final Exception e1) {
 				e1.printStackTrace();
-				System.out.println("Can not retreive the basic tocken");
+				LOGGER.error("Can not retreive the basic tocken");
 				return;
 			}
 			try {

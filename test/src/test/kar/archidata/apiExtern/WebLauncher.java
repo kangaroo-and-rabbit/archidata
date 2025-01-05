@@ -68,22 +68,22 @@ public class WebLauncher {
 
 	public void plop(final String aaa) {
 		// List available Image Readers
-		System.out.println("Available Image Readers:");
+		WebLauncher.LOGGER.trace("Available Image Readers:");
 		final Iterator<ImageReader> readers = ImageIO.getImageReadersByFormatName(aaa);
 		while (readers.hasNext()) {
 			final ImageReader reader = readers.next();
-			System.out.println("Reader: " + reader.getOriginatingProvider().getDescription(null));
-			System.out.println("Reader CN: " + reader.getOriginatingProvider().getPluginClassName());
+			WebLauncher.LOGGER.trace("Reader: " + reader.getOriginatingProvider().getDescription(null));
+			WebLauncher.LOGGER.trace("Reader CN: " + reader.getOriginatingProvider().getPluginClassName());
 			// ImageIO.deregisterServiceProvider(reader.getOriginatingProvider());
 		}
 
 		// List available Image Writers
-		System.out.println("\nAvailable Image Writers:");
+		WebLauncher.LOGGER.trace("\nAvailable Image Writers:");
 		final Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName(aaa);
 		while (writers.hasNext()) {
 			final ImageWriter writer = writers.next();
-			System.out.println("Writer: " + writer.getOriginatingProvider().getDescription(null));
-			System.out.println("Writer CN: " + writer.getOriginatingProvider().getPluginClassName());
+			WebLauncher.LOGGER.trace("Writer: " + writer.getOriginatingProvider().getDescription(null));
+			WebLauncher.LOGGER.trace("Writer CN: " + writer.getOriginatingProvider().getPluginClassName());
 		}
 	}
 
@@ -135,7 +135,7 @@ public class WebLauncher {
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
-				System.out.println("Stopping server..");
+				LOGGER.warn("Stopping server..");
 				serverLink.shutdownNow();
 			}
 		}, "shutdownHook"));

@@ -99,7 +99,7 @@ public class WebLauncher {
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			@Override
 			public void run() {
-				System.out.println("Stopping server..");
+				WebLauncher.LOGGER.info("Stopping server..");
 				serverLink.shutdownNow();
 			}
 		}, "shutdownHook"));
