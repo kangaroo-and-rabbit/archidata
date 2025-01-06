@@ -89,13 +89,18 @@ public class DataResource {
 
 	public static String getFileDataOld(final UUID uuid) {
 		final String stringUUID = uuid.toString();
-		final String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + stringUUID + File.separator
-				+ "data";
+		final String part1 = stringUUID.substring(0, 2);
+		final String part2 = stringUUID.substring(2, 4);
+		final String part3 = stringUUID.substring(4);
+		final String finalPath = part1 + File.separator + part2;
+		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath
+				+ File.separator;
 		try {
-			createFolder(ConfigBaseVariable.getMediaDataFolder() + File.separator + stringUUID + File.separator);
+			createFolder(filePath);
 		} catch (final IOException e) {
 			e.printStackTrace();
 		}
+		filePath += part3;
 		return filePath;
 	}
 
