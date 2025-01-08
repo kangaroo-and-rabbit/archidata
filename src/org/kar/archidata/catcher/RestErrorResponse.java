@@ -1,10 +1,9 @@
 package org.kar.archidata.catcher;
 
 import java.time.Instant;
-import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.NoWriteSpecificMode;
-import org.kar.archidata.tools.UuidUtils;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
@@ -12,7 +11,7 @@ import jakarta.ws.rs.core.Response;
 
 @NoWriteSpecificMode
 public class RestErrorResponse {
-	public UUID uuid = UuidUtils.nextUUID();
+	public ObjectId oid = new ObjectId();
 	@NotNull
 	@Column(length = 0)
 	public String name; // Mandatory for TS generic error

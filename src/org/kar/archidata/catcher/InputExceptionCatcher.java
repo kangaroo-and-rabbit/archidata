@@ -15,7 +15,7 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 	public Response toResponse(final InputException exception) {
 		LOGGER.warn("Catch InputException:");
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error UUID={} ==> '{}'=>'{}'", ret.uuid, exception.missingVariable,
+		LOGGER.error("Error OID={} ==> '{}'=>'{}'", ret.oid, exception.missingVariable,
 				exception.getLocalizedMessage());
 		// exception.printStackTrace();
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();

@@ -1,17 +1,18 @@
 package org.kar.archidata.exception;
 
-import java.util.UUID;
+import org.bson.types.ObjectId;
 
-public class RESTErrorResponseExeption extends Exception {
-	public UUID uuid;
+public class RESTErrorResponseException extends Exception {
+	private static final long serialVersionUID = 1L;
+	public ObjectId oid;
 	public String time;
 	public String name;
 	public String message;
 	public int status;
 	public String statusMessage;
 
-	public RESTErrorResponseExeption() {
-		this.uuid = null;
+	public RESTErrorResponseException() {
+		this.oid = new ObjectId();
 		this.time = null;
 		this.name = null;
 		this.message = null;
@@ -19,9 +20,9 @@ public class RESTErrorResponseExeption extends Exception {
 		this.statusMessage = null;
 	}
 
-	public RESTErrorResponseExeption(final UUID uuid, final String time, final String name, final String message,
+	public RESTErrorResponseException(final ObjectId oid, final String time, final String name, final String message,
 			final int status, final String statusMessage) {
-		this.uuid = uuid;
+		this.oid = oid;
 		this.time = time;
 		this.name = name;
 		this.message = message;
@@ -31,7 +32,7 @@ public class RESTErrorResponseExeption extends Exception {
 
 	@Override
 	public String toString() {
-		return "RESTErrorResponseExeption [uuid=" + this.uuid + ", time=" + this.time + ", name=" + this.name
+		return "RESTErrorResponseExeption [oid=" + this.oid + ", time=" + this.time + ", name=" + this.name
 				+ ", message=" + this.message + ", status=" + this.status + ", statusMessage=" + this.statusMessage
 				+ "]";
 	}

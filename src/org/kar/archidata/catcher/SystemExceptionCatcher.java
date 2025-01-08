@@ -15,7 +15,7 @@ public class SystemExceptionCatcher implements ExceptionMapper<SystemException> 
 	public Response toResponse(final SystemException exception) {
 		LOGGER.warn("Catch SystemException:");
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		exception.printStackTrace();
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}

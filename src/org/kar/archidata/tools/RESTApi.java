@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Map;
 
-import org.kar.archidata.exception.RESTErrorResponseExeption;
+import org.kar.archidata.exception.RESTErrorResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ public class RESTApi {
 	}
 
 	public <T> List<T> gets(final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
@@ -48,8 +48,8 @@ public class RESTApi {
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
-				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(),
-						RESTErrorResponseExeption.class);
+				final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
+						RESTErrorResponseException.class);
 				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException(
@@ -62,57 +62,57 @@ public class RESTApi {
 	}
 
 	public <T> T get(final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("GET", clazz, urlOffset, null);
 	}
 
 	public <T, U> T post(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("POST", clazz, urlOffset, data);
 	}
 
 	public <T, U> T postJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("POST", clazz, urlOffset, body);
 	}
 
 	public <T> T postMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("POST", clazz, urlOffset, data);
 	}
 
 	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("PUT", clazz, urlOffset, data);
 	}
 
 	public <T, U> T putJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("PUT", clazz, urlOffset, body);
 	}
 
 	public <T> T putMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("PUT", clazz, urlOffset, data);
 	}
 
 	public <T, U> T patch(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("PATCH", clazz, urlOffset, data);
 	}
 
 	public <T, U> T patchJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("PATCH", clazz, urlOffset, body);
 	}
 
 	public <T> T patchMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("PATCH", clazz, urlOffset, data);
 	}
 
 	protected <T, U> T modelSend(final String model, final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		if (data == null) {
 			return modelSendJson(model, clazz, urlOffset, null);
 		} else {
@@ -123,7 +123,7 @@ public class RESTApi {
 
 	@SuppressWarnings("unchecked")
 	public <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, String body)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
@@ -138,13 +138,14 @@ public class RESTApi {
 		} else {
 			requestBuilding = requestBuilding.header("Content-Type", "application/json");
 		}
+		LOGGER.trace("publish body: {}", body);
 		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			LOGGER.trace("Receive Error: {}", httpResponse.body());
 			try {
-				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(),
-						RESTErrorResponseExeption.class);
+				final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
+						RESTErrorResponseException.class);
 				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException(
@@ -171,7 +172,7 @@ public class RESTApi {
 			final String model,
 			final Class<T> clazz,
 			final String urlOffset,
-			final Map<String, Object> data) throws RESTErrorResponseExeption, IOException, InterruptedException {
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		String body = null;
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
@@ -189,8 +190,8 @@ public class RESTApi {
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
-				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(),
-						RESTErrorResponseExeption.class);
+				final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
+						RESTErrorResponseException.class);
 				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException(
@@ -210,7 +211,7 @@ public class RESTApi {
 	 * Call a DELETE on a REST API
 	 * @param urlOffset Offset to call the API
 	 */
-	public void delete(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	public void delete(final String urlOffset) throws RESTErrorResponseException, IOException, InterruptedException {
 		delete(Void.class, urlOffset);
 	}
 
@@ -222,7 +223,7 @@ public class RESTApi {
 	 * @return The parsed object received.
 	 */
 	public <T> T delete(final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return simpleRequest("DELETE", clazz, urlOffset);
 	}
 
@@ -230,7 +231,7 @@ public class RESTApi {
 	 * Call an ARCHIVE on a REST API
 	 * @param urlOffset Offset to call the API
 	 */
-	public void archive(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	public void archive(final String urlOffset) throws RESTErrorResponseException, IOException, InterruptedException {
 		archive(Void.class, urlOffset);
 	}
 
@@ -242,7 +243,7 @@ public class RESTApi {
 	 * @return The parsed object received.
 	 */
 	public <T> T archive(final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return simpleRequest("ARCHIVE", clazz, urlOffset);
 	}
 
@@ -250,7 +251,7 @@ public class RESTApi {
 	 * Call an RESTORE on a REST API
 	 * @param urlOffset Offset to call the API
 	 */
-	public void restore(final String urlOffset) throws RESTErrorResponseExeption, IOException, InterruptedException {
+	public void restore(final String urlOffset) throws RESTErrorResponseException, IOException, InterruptedException {
 		restore(Void.class, urlOffset);
 	}
 
@@ -262,7 +263,7 @@ public class RESTApi {
 	 * @return The parsed object received.
 	 */
 	public <T> T restore(final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		return simpleRequest("RESTORE", clazz, urlOffset);
 	}
 
@@ -275,7 +276,7 @@ public class RESTApi {
 	 * @return The parsed object received.
 	 */
 	public <T> T simpleRequest(final String model, final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseExeption, IOException, InterruptedException {
+			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
@@ -286,8 +287,8 @@ public class RESTApi {
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			try {
-				final RESTErrorResponseExeption out = this.mapper.readValue(httpResponse.body(),
-						RESTErrorResponseExeption.class);
+				final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
+						RESTErrorResponseException.class);
 				throw out;
 			} catch (final MismatchedInputException ex) {
 				throw new IOException(

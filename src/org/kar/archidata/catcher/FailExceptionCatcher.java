@@ -15,7 +15,7 @@ public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 	public Response toResponse(final FailException exception) {
 		LOGGER.warn("Catch FailException: {}", exception.getLocalizedMessage());
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		if (exception.exception != null) {
 			exception.exception.printStackTrace();
 		}

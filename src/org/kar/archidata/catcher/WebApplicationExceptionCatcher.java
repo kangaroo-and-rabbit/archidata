@@ -14,7 +14,7 @@ public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplic
 	@Override
 	public Response toResponse(final WebApplicationException exception) {
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		return Response.status(exception.getResponse().getStatusInfo().toEnum()).entity(ret)
 				.type(MediaType.APPLICATION_JSON).build();
 	}

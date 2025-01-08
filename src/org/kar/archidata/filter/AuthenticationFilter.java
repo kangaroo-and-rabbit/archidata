@@ -208,7 +208,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// The WWW-Authenticate header is sent along with the response
 		LOGGER.warn("abortWithUnauthorized:");
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.UNAUTHORIZED, "Unauthorized", message);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		requestContext.abortWith(Response.status(ret.status)
 				.header(HttpHeaders.WWW_AUTHENTICATE,
 						AUTHENTICATION_SCHEME + " base64(HEADER).base64(CONTENT).base64(KEY)")
@@ -217,7 +217,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 	private void abortWithForbidden(final ContainerRequestContext requestContext, final String message) {
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", message);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		requestContext.abortWith(Response.status(ret.status).header(HttpHeaders.WWW_AUTHENTICATE, message).entity(ret)
 				.type(MediaType.APPLICATION_JSON).build());
 	}

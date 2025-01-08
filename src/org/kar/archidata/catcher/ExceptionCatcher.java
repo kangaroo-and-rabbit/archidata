@@ -14,7 +14,7 @@ public class ExceptionCatcher implements ExceptionMapper<Exception> {
 	public Response toResponse(final Exception exception) {
 		LOGGER.warn("Catch exception (not managed...):");
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error UUID={}", ret.uuid);
+		LOGGER.error("Error OID={}", ret.oid);
 		exception.printStackTrace();
 		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON)
 				.build();
