@@ -61,20 +61,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 public class DBAccessSQL extends DBAccess {
 	final static Logger LOGGER = LoggerFactory.getLogger(DBAccessSQL.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
-	final static List<DataAccessAddOn> addOn = new ArrayList<>();
-
-	{
-		addOn.add(new AddOnManyToMany());
-		addOn.add(new AddOnManyToOne());
-		addOn.add(new AddOnOneToMany());
-		addOn.add(new AddOnDataJson());
-	}
-
-	/** Add a new add-on on the current management.
-	 * @param addOn instantiate object on the Add-on */
-	public static void addAddOn(final DataAccessAddOn addOn) {
-		DBAccessSQL.addOn.add(addOn);
-	}
+	final static List<DataAccessAddOn> addOn = List.of(new AddOnManyToMany(), new AddOnManyToOne(),
+			new AddOnOneToMany(), new AddOnDataJson());
 
 	private final DbIoSql db;
 
