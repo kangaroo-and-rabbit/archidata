@@ -119,7 +119,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final boolean isApplicationToken = apikeyHeader != null;
 		final boolean isJwtToken = isTokenBasedAuthentication(authorizationHeader);
 		if (!isApplicationToken && !isJwtToken) {
-			LOGGER.warn("REJECTED unauthorized: {}", requestContext.getUriInfo().getPath());
+			LOGGER.warn("REJECTED unauthorized: /{}", requestContext.getUriInfo().getPath());
 			abortWithUnauthorized(requestContext, "REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
 			return;
 		}
