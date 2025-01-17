@@ -198,7 +198,7 @@ public class JWTWrapper {
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
-			if (rights != null && !rights.isEmpty()) {
+			if (rights != null) {
 				builder.claim("right", rights);
 			}
 			// Prepare JWT with claims set
