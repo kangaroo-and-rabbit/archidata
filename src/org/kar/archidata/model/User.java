@@ -48,7 +48,8 @@ public class User extends GenericDataSoftDelete {
 
 	@DefaultValue("'0'")
 	@Column(nullable = false)
-	public boolean blocked = false;
+	@Nullable
+	public Boolean blocked = false;
 	@Column(length = 512)
 	public String blockedReason;
 
