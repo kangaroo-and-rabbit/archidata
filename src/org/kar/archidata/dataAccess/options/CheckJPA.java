@@ -476,7 +476,47 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (dataJson != null && dataJson.checker() != null) {
 					final CheckFunctionInterface checkerInstance = dataJson.checker().getDeclaredConstructor()
 							.newInstance();
-					// check if the type is a list, set, ...
+					if (Collection.class.isAssignableFrom(field.getType())) {
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									// get the field of the specific element
+									final Object tmpData = field.get(data);
+									// It is not the objective of this element to check if it is authorize to set NULL
+									if (tmpData == null) {
+										return;
+									}
+									final Collection<?> tmpCollection = (Collection<?>) tmpData;
+									final Object[] elements = tmpCollection.toArray();
+									for (int iii = 0; iii < elements.length; iii++) {
+										if (elements[iii] != null) {
+											checkerInstance.check(ioDb, baseName + fieldName + '[' + iii + "].",
+													elements[iii], null, options);
+										}
+									}
+								});
+					} else {
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									// get the field of the specific element
+									final Object tmpData = field.get(data);
+									// It is not the objective of this element to check if it is authorize to set NULL
+									if (tmpData == null) {
+										return;
+									}
+									checkerInstance.check(ioDb, baseName + fieldName + '.', tmpData, null, options);
+								});
+					}
+				}
 					add(fieldName,
 							(
 									final DBAccess ioDb,
