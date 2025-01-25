@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CollectionItemNotNull;
 import org.kar.archidata.annotation.CollectionItemUnique;
+import org.kar.archidata.annotation.CollectionNotEmpty;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -574,6 +575,27 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								}
 							});
 				}
+				final CollectionNotEmpty collectionNotEmpty = AnnotationTools.getCollectionNotEmpty(field);
+				if (collectionNotEmpty != null) {
+					if (!Collection.class.isAssignableFrom(field.getType())) {
+						throw new DataAccessException(
+								"Request @collectionNotEmpty on a non collection field: '" + fieldName + "'");
+					}
+					add(fieldName,
+							(
+									final DBAccess ioDb,
+									final String baseName,
+									final T data,
+									final List<String> modifiedValue,
+									final QueryOptions options) -> {
+								final Object tmpData = field.get(data);
+								if (tmpData == null) {
+									return;
+								}
+								final Collection<?> tmpCollection = (Collection<?>) tmpData;
+								if (tmpCollection.isEmpty()) {
+									throw new InputException(baseName + fieldName, "Can not be empty");
+								}
 							});
 				}
 				// keep this is last ==> take more time...

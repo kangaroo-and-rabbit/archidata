@@ -101,6 +101,14 @@ public class AnnotationTools {
 		return (CollectionItemUnique) annotation[0];
 	}
 
+	public static CollectionNotEmpty getCollectionNotEmpty(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionNotEmpty.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (CollectionNotEmpty) annotation[0];
+	}
+
 	public static boolean getSchemaReadOnly(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
