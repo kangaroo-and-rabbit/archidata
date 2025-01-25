@@ -158,7 +158,7 @@ public class DBAccessSQL extends DBAccess {
 			} else {
 				// TODO : Maybe connect with a temporary not specified connection interface to a db ...
 				final PreparedStatement ps = this.db.getConnection()
-						.prepareStatement("SHOW TABLES IN `" + this.db.getCongig().getDbName() + "`");
+						.prepareStatement("SHOW TABLES IN `" + this.db.getConfig().getDbName() + "`");
 				final ResultSet rs = ps.executeQuery();
 				// LOGGER.info("List all tables: equals? '{}'", name);
 				while (rs.next()) {

@@ -76,7 +76,7 @@ public abstract class DbIo implements Closeable {
 		return this.config.equals(config);
 	}
 
-	public DbConfig getCongig() {
+	public DbConfig getConfig() {
 		return this.config;
 	}
 }
