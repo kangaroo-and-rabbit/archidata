@@ -93,6 +93,14 @@ public class AnnotationTools {
 		return (CollectionItemNotNull) annotation[0];
 	}
 
+	public static CollectionItemUnique getCollectionItemUnique(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionItemUnique.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (CollectionItemUnique) annotation[0];
+	}
+
 	public static boolean getSchemaReadOnly(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {

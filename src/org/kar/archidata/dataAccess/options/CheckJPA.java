@@ -8,13 +8,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.CollectionItemNotNull;
+import org.kar.archidata.annotation.CollectionItemUnique;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -518,6 +521,12 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								});
 					}
 				}
+				final CollectionItemUnique collectionUnique = AnnotationTools.getCollectionItemUnique(field);
+				if (collectionUnique != null) {
+					if (!Collection.class.isAssignableFrom(field.getType())) {
+						throw new DataAccessException(
+								"Request @CollectionItemUnique on a non collection field: '" + fieldName + "'");
+					}
 					add(fieldName,
 							(
 									final DBAccess ioDb,
@@ -525,24 +534,18 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final T data,
 									final List<String> modifiedValue,
 									final QueryOptions options) -> {
-								// get the field of the specific element
 								final Object tmpData = field.get(data);
-								// It is not the objective of this element to check if it is authorize to set NULL
 								if (tmpData == null) {
 									return;
 								}
-								if (tmpData instanceof Collection) {
-									final Collection<?> tmpCollection = (Collection<?>) tmpData;
-									final Object[] elements = tmpCollection.toArray();
-									for (int iii = 0; iii < elements.length; iii++) {
-										if (elements[iii] != null) {
-											checkerInstance.check(ioDb, baseName + '.' + fieldName + '[' + iii + ']',
-													elements[iii], null, options);
-										}
-									}
-
-								} else {
-									checkerInstance.check(ioDb, baseName + '.' + fieldName, tmpData, null, options);
+								final Collection<?> tmpCollection = (Collection<?>) tmpData;
+								final Set<Object> uniqueValues = new HashSet<>(tmpCollection);
+								if (uniqueValues.size() != tmpCollection.size()) {
+									throw new InputException(baseName + fieldName,
+											"Cannot insert multiple times the same elements");
+								}
+							});
+				}
 				final CollectionItemNotNull collectionNotNull = AnnotationTools.getCollectionItemNotNull(field);
 				if (collectionNotNull != null) {
 					if (!Collection.class.isAssignableFrom(field.getType())) {
