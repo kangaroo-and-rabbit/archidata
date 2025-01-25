@@ -85,6 +85,14 @@ public class AnnotationTools {
 		return tmp;
 	}
 
+	public static CollectionItemNotNull getCollectionItemNotNull(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionItemNotNull.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (CollectionItemNotNull) annotation[0];
+	}
+
 	public static boolean getSchemaReadOnly(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {

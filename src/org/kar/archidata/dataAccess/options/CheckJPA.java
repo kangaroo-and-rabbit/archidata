@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.CollectionItemNotNull;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -542,8 +543,34 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 
 								} else {
 									checkerInstance.check(ioDb, baseName + '.' + fieldName, tmpData, null, options);
+				final CollectionItemNotNull collectionNotNull = AnnotationTools.getCollectionItemNotNull(field);
+				if (collectionNotNull != null) {
+					if (!Collection.class.isAssignableFrom(field.getType())) {
+						throw new DataAccessException(
+								"Request @CollectionItemNotNull on a non collection field: '" + fieldName + "'");
+					}
+					add(fieldName,
+							(
+									final DBAccess ioDb,
+									final String baseName,
+									final T data,
+									final List<String> modifiedValue,
+									final QueryOptions options) -> {
+								final Object tmpData = field.get(data);
+								if (tmpData == null) {
+									return;
 								}
 
+								final Collection<?> tmpCollection = (Collection<?>) tmpData;
+								final Object[] elements = tmpCollection.toArray();
+								for (int iii = 0; iii < elements.length; iii++) {
+									if (elements[iii] == null) {
+										throw new InputException(baseName + fieldName + '[' + iii + ']',
+												"This collection can not conatain NULL item");
+									}
+								}
+							});
+				}
 							});
 				}
 				// keep this is last ==> take more time...
