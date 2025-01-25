@@ -100,9 +100,6 @@ public class ConfigBaseVariable {
 	}
 
 	public static String getDBName() {
-		if (bdDatabase == null) {
-			return "unknown";
-		}
 		return bdDatabase;
 	}
 
