@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -475,6 +476,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				if (dataJson != null && dataJson.checker() != null) {
 					final CheckFunctionInterface checkerInstance = dataJson.checker().getDeclaredConstructor()
 							.newInstance();
+					// check if the type is a list, set, ...
 					add(fieldName,
 							(
 									final DBAccess ioDb,
@@ -484,7 +486,24 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final QueryOptions options) -> {
 								// get the field of the specific element
 								final Object tmpData = field.get(data);
-								checkerInstance.check(ioDb, baseName, tmpData, null, options);
+								// It is not the objective of this element to check if it is authorize to set NULL
+								if (tmpData == null) {
+									return;
+								}
+								if (tmpData instanceof Collection) {
+									final Collection<?> tmpCollection = (Collection<?>) tmpData;
+									final Object[] elements = tmpCollection.toArray();
+									for (int iii = 0; iii < elements.length; iii++) {
+										if (elements[iii] != null) {
+											checkerInstance.check(ioDb, baseName + '.' + fieldName + '[' + iii + ']',
+													elements[iii], null, options);
+										}
+									}
+
+								} else {
+									checkerInstance.check(ioDb, baseName + '.' + fieldName, tmpData, null, options);
+								}
+
 							});
 				}
 				// keep this is last ==> take more time...
