@@ -355,12 +355,12 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final FieldName columnName = AnnotationTools.getFieldName(field, options);
 		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
 		@SuppressWarnings("unchecked")
-		final List<Long> dataCasted = (List<Long>) data;
+		final List<Object> dataCasted = (List<Object>) data;
 		if (dataCasted.size() == 0) {
 			return;
 		}
 		final List<LinkTableGeneric> insertElements = new ArrayList<>();
-		for (final Long remoteKey : dataCasted) {
+		for (final Object remoteKey : dataCasted) {
 			if (remoteKey == null) {
 				throw new DataAccessException("Try to insert remote key with null value");
 			}
