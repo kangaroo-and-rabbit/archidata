@@ -26,7 +26,7 @@ public class MySecurityContext implements SecurityContext {
 		return this.contextPrincipale;
 	}
 
-	public Object getRightOfRoleInGroup(final String group, final String role) {
+	public PartRight getRightOfRoleInGroup(final String group, final String role) {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.getRight(group, role);
 		}
@@ -67,21 +67,15 @@ public class MySecurityContext implements SecurityContext {
 			return false;
 		}
 		// get associated Roles:
-		final Object rightPart = getRightOfRoleInGroup(group, role);
+		final PartRight rightPart = getRightOfRoleInGroup(group, role);
 		LOGGER.info("detect : {}", rightPart);
-		long dataRight = 0;
-		if (rightPart instanceof final Long rightPartCasted) {
-			dataRight = rightPartCasted;
-		} else if (rightPart instanceof final Integer rightPartCasted) {
-			dataRight = rightPartCasted;
-		}
-		if (dataRight == PartRight.READ_WRITE.getValue()) {
+		if (PartRight.READ_WRITE.equals(rightPart)) {
 			return true;
 		}
-		if (!needRead && needWrite && dataRight == PartRight.WRITE.getValue()) {
+		if (!needRead && needWrite && PartRight.WRITE.equals(rightPart)) {
 			return true;
 		}
-		if (needRead && !needWrite && dataRight == PartRight.READ.getValue()) {
+		if (needRead && !needWrite && PartRight.READ.equals(rightPart)) {
 			return true;
 		}
 		return false;

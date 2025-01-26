@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.kar.archidata.filter.PartRight;
+
 public class UserByToken {
 	public static final int TYPE_USER = -1;
 	public static final int TYPE_APPLICATION = -2;
@@ -11,10 +13,11 @@ public class UserByToken {
 	public Integer type = null;
 
 	public Long id = null;
-	public Long parentId = null; // FOr application, this is the id of the application, and of user token, this is the USERID
+	// For application, this is the id of the application, and of user token, this is the USERID
+	public Long parentId = null;
 	public String name = null;
 	// Right map
-	public Map<String, Map<String, Object>> right = new HashMap<>();
+	public Map<String, Map<String, PartRight>> right = new HashMap<>();
 
 	public Set<String> getGroups() {
 		return this.right.keySet();
@@ -27,11 +30,11 @@ public class UserByToken {
 		return this.right.containsKey(group);
 	}
 
-	public Object getRight(final String group, final String key) {
+	public PartRight getRight(final String group, final String key) {
 		if (!this.right.containsKey(group)) {
 			return null;
 		}
-		final Map<String, Object> rightGroup = this.right.get(group);
+		final Map<String, PartRight> rightGroup = this.right.get(group);
 		if (!rightGroup.containsKey(key)) {
 			return null;
 		}

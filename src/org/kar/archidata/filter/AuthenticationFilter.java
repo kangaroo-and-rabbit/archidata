@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 // https://stackoverflow.com/questions/26777083/best-practice-for-rest-token-based-authentication-with-jax-rs-and-jersey
 // https://stackoverflow.com/questions/26777083/best-practice-for-rest-token-based-authentication-with-jax-rs-and-jersey/45814178#45814178
@@ -246,7 +245,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
 			LOGGER.info("Detect right in Authentication Filter: {}", rowRight);
-			user.right = (Map<String, Map<String, Object>>) ret.getClaim("right");
+			user.right = RightSafeCaster.safeCastAndTransform(ret.getClaim("right"));
 			/*
 			if (rights.containsKey(this.applicationName)) {
 				user.right = rights.get(this.applicationName);
