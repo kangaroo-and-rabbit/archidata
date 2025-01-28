@@ -1,6 +1,6 @@
 package test.kar.archidata.checker.model;
 
-import org.kar.archidata.dataAccess.options.CheckJPA;
+import org.kar.archidata.checker.CheckJPA;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;

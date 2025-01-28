@@ -1,6 +1,6 @@
 package test.kar.archidata.dataAccess.model;
 
-import org.kar.archidata.dataAccess.options.CheckJPA;
+import org.kar.archidata.checker.CheckJPA;
 
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;

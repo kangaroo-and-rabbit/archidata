@@ -7,11 +7,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.kar.archidata.annotation.ARCHIVE;
 import org.kar.archidata.annotation.AsyncType;
 import org.kar.archidata.annotation.FormDataOptional;
-import org.kar.archidata.annotation.RESTORE;
 import org.kar.archidata.annotation.TypeScriptProgress;
+import org.kar.archidata.annotation.method.ARCHIVE;
+import org.kar.archidata.annotation.method.RESTORE;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.ws.rs.Consumes;

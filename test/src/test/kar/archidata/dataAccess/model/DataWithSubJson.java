@@ -1,8 +1,8 @@
 package test.kar.archidata.dataAccess.model;
 
-import org.kar.archidata.annotation.Checker;
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.dataAccess.options.CheckJPA;
+import org.kar.archidata.annotation.checker.Checker;
+import org.kar.archidata.checker.CheckJPA;
 
 public class DataWithSubJson {
 	// Simple checker declaration

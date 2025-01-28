@@ -1,4 +1,4 @@
-package org.kar.archidata.dataAccess.options;
+package org.kar.archidata.checker;
 
 import java.lang.reflect.Field;
 import java.sql.Timestamp;
@@ -16,14 +16,18 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
-import org.kar.archidata.annotation.Checker;
-import org.kar.archidata.annotation.CollectionItemNotNull;
-import org.kar.archidata.annotation.CollectionItemUnique;
-import org.kar.archidata.annotation.CollectionNotEmpty;
+import org.kar.archidata.annotation.checker.Checker;
+import org.kar.archidata.annotation.checker.CollectionItemNotNull;
+import org.kar.archidata.annotation.checker.CollectionItemUnique;
+import org.kar.archidata.annotation.checker.CollectionNotEmpty;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
+import org.kar.archidata.dataAccess.options.CheckFunctionInterface;
+import org.kar.archidata.dataAccess.options.CheckFunctionVoid;
+import org.kar.archidata.dataAccess.options.Condition;
+import org.kar.archidata.dataAccess.options.ConditionChecker;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.exception.InputException;
 import org.slf4j.Logger;

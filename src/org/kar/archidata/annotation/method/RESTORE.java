@@ -1,4 +1,4 @@
-package org.kar.archidata.annotation;
+package org.kar.archidata.annotation.method;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

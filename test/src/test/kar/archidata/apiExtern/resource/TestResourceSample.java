@@ -2,9 +2,9 @@ package test.kar.archidata.apiExtern.resource;
 
 import java.util.List;
 
-import org.kar.archidata.annotation.ARCHIVE;
 import org.kar.archidata.annotation.AsyncType;
-import org.kar.archidata.annotation.RESTORE;
+import org.kar.archidata.annotation.method.ARCHIVE;
+import org.kar.archidata.annotation.method.RESTORE;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

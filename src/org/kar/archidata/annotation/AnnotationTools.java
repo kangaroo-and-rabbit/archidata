@@ -5,6 +5,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.kar.archidata.annotation.checker.Checker;
+import org.kar.archidata.annotation.checker.CollectionItemNotNull;
+import org.kar.archidata.annotation.checker.CollectionItemUnique;
+import org.kar.archidata.annotation.checker.CollectionNotEmpty;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.options.OptionRenameColumn;
 import org.kar.archidata.dataAccess.options.OverrideTableName;
