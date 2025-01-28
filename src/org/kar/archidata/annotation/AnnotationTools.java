@@ -189,6 +189,14 @@ public class AnnotationTools {
 		return (DataJson) annotation[0];
 	}
 
+	public static Checker[] getCheckers(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Checker.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return (Checker[]) annotation;
+	}
+
 	public static Long getConstraintsMax(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Max.class);
 		if (annotation.length == 0) {

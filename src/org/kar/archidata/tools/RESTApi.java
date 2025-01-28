@@ -56,7 +56,6 @@ public class RESTApi {
 						"Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
-		//return this.mapper.readValue(httpResponse.body(), new TypeReference<List<T>>() {});
 		return this.mapper.readValue(httpResponse.body(),
 				this.mapper.getTypeFactory().constructCollectionType(List.class, clazz));
 	}

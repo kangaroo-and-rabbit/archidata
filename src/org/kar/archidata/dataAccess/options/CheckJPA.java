@@ -16,10 +16,10 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.Checker;
 import org.kar.archidata.annotation.CollectionItemNotNull;
 import org.kar.archidata.annotation.CollectionItemUnique;
 import org.kar.archidata.annotation.CollectionNotEmpty;
-import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
@@ -28,8 +28,6 @@ import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.exception.InputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.annotation.JsonValue;
 
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.Size;
@@ -458,68 +456,57 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-				} else if (type == JsonValue.class) {
-					final DataJson jsonAnnotation = AnnotationTools.getDataJson(field);
-					if (jsonAnnotation != null && jsonAnnotation.checker() != CheckFunctionVoid.class) {
-						// Here if we have an error it crash at start and no new instance after creation...
-						final CheckFunctionInterface instance = jsonAnnotation.checker().getDeclaredConstructor()
-								.newInstance();
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									instance.checkAll(ioDb, baseName + fieldName + ".", field.get(data), options);
-								});
-					}
 				} else if (type.isEnum()) {
 					// nothing to do.
 				}
-				final DataJson dataJson = AnnotationTools.getDataJson(field);
-				if (dataJson != null && dataJson.checker() != null) {
-					final CheckFunctionInterface checkerInstance = dataJson.checker().getDeclaredConstructor()
-							.newInstance();
-					if (Collection.class.isAssignableFrom(field.getType())) {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									// get the field of the specific element
-									final Object tmpData = field.get(data);
-									// It is not the objective of this element to check if it is authorize to set NULL
-									if (tmpData == null) {
-										return;
-									}
-									final Collection<?> tmpCollection = (Collection<?>) tmpData;
-									final Object[] elements = tmpCollection.toArray();
-									for (int iii = 0; iii < elements.length; iii++) {
-										if (elements[iii] != null) {
-											checkerInstance.check(ioDb, baseName + fieldName + '[' + iii + "].",
-													elements[iii], null, options);
+				final Checker[] checkers = AnnotationTools.getCheckers(field);
+				if (checkers != null) {
+					for (final Checker checker : checkers) {
+						if (checker == null || checker.value() == CheckFunctionVoid.class) {
+							continue;
+						}
+						final CheckFunctionInterface checkerInstance = checker.value().getDeclaredConstructor()
+								.newInstance();
+						if (Collection.class.isAssignableFrom(field.getType())) {
+							add(fieldName,
+									(
+											final DBAccess ioDb,
+											final String baseName,
+											final T data,
+											final List<String> modifiedValue,
+											final QueryOptions options) -> {
+										// get the field of the specific element
+										final Object tmpData = field.get(data);
+										// It is not the objective of this element to check if it is authorize to set NULL
+										if (tmpData == null) {
+											return;
 										}
-									}
-								});
-					} else {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									// get the field of the specific element
-									final Object tmpData = field.get(data);
-									// It is not the objective of this element to check if it is authorize to set NULL
-									if (tmpData == null) {
-										return;
-									}
-									checkerInstance.check(ioDb, baseName + fieldName + '.', tmpData, null, options);
-								});
+										final Collection<?> tmpCollection = (Collection<?>) tmpData;
+										final Object[] elements = tmpCollection.toArray();
+										for (int iii = 0; iii < elements.length; iii++) {
+											if (elements[iii] != null) {
+												checkerInstance.check(ioDb, baseName + fieldName + '[' + iii + "].",
+														elements[iii], null, options);
+											}
+										}
+									});
+						} else {
+							add(fieldName,
+									(
+											final DBAccess ioDb,
+											final String baseName,
+											final T data,
+											final List<String> modifiedValue,
+											final QueryOptions options) -> {
+										// get the field of the specific element
+										final Object tmpData = field.get(data);
+										// It is not the objective of this element to check if it is authorize to set NULL
+										if (tmpData == null) {
+											return;
+										}
+										checkerInstance.check(ioDb, baseName + fieldName + '.', tmpData, null, options);
+									});
+						}
 					}
 				}
 				final CollectionItemUnique collectionUnique = AnnotationTools.getCollectionItemUnique(field);

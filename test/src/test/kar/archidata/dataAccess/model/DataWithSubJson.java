@@ -1,5 +1,6 @@
 package test.kar.archidata.dataAccess.model;
 
+import org.kar.archidata.annotation.Checker;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.options.CheckJPA;
 
@@ -11,6 +12,7 @@ public class DataWithSubJson {
 		}
 	}
 
-	@DataJson(checker = DataInJson.DataInJsonChecker.class)
+	@DataJson()
+	@Checker(DataInJson.DataInJsonChecker.class)
 	public DataInJson dataSerialized;
 }
