@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 
 public class CheckJPA<T> implements CheckFunctionInterface {
@@ -124,6 +126,60 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 
 				final Class<?> type = field.getType();
 				if (type == Long.class || type == long.class) {
+					final DecimalMax maxValueDecimal = AnnotationTools.getConstraintsDecimalMax(field);
+					if (maxValueDecimal != null) {
+						final long maxValue = Long.parseLong(maxValueDecimal.value());
+						final boolean inclusive = maxValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Long elemTyped = (Long) elem;
+									if (inclusive) {
+										if (elemTyped > maxValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too height max: " + maxValue);
+										}
+									} else if (elemTyped >= maxValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too height max: " + maxValue);
+									}
+								});
+					}
+					final DecimalMin minValueDecimal = AnnotationTools.getConstraintsDecimalMin(field);
+					if (minValueDecimal != null) {
+						final long minValue = Long.parseLong(minValueDecimal.value());
+						final boolean inclusive = minValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Long elemTyped = (Long) elem;
+									if (inclusive) {
+										if (elemTyped < minValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too Low min: " + minValue);
+										}
+									} else if (elemTyped <= minValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too Low min: " + minValue);
+									}
+								});
+					}
 					final Long maxValue = AnnotationTools.getConstraintsMax(field);
 					if (maxValue != null) {
 						add(fieldName,
@@ -190,6 +246,61 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					}
 
 				} else if (type == Integer.class || type == int.class) {
+					final DecimalMax maxValueDecimal = AnnotationTools.getConstraintsDecimalMax(field);
+					if (maxValueDecimal != null) {
+						final int maxValue = Integer.parseInt(maxValueDecimal.value());
+						final boolean inclusive = maxValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Integer elemTyped = (Integer) elem;
+									if (inclusive) {
+										if (elemTyped > maxValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too height max: " + maxValue);
+										}
+									} else if (elemTyped >= maxValue) {
+
+										throw new InputException(baseName + fieldName,
+												"Value too height max: " + maxValue);
+									}
+								});
+					}
+					final DecimalMin minValueDecimal = AnnotationTools.getConstraintsDecimalMin(field);
+					if (minValueDecimal != null) {
+						final int minValue = Integer.parseInt(minValueDecimal.value());
+						final boolean inclusive = minValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Integer elemTyped = (Integer) elem;
+									if (inclusive) {
+										if (elemTyped < minValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too Low min: " + minValue);
+										}
+									} else if (elemTyped <= minValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too Low min: " + minValue);
+									}
+								});
+					}
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final int maxValue = maxValueRoot.intValue();
@@ -276,6 +387,60 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == Boolean.class || type == boolean.class) {
 
 				} else if (type == Float.class || type == float.class) {
+					final DecimalMax maxValueDecimal = AnnotationTools.getConstraintsDecimalMax(field);
+					if (maxValueDecimal != null) {
+						final float maxValue = Float.parseFloat(maxValueDecimal.value());
+						final boolean inclusive = maxValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Float elemTyped = (Float) elem;
+									if (inclusive) {
+										if (elemTyped > maxValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too height max: " + maxValue);
+										}
+									} else if (elemTyped >= maxValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too height max: " + maxValue);
+									}
+								});
+					}
+					final DecimalMin minValueDecimal = AnnotationTools.getConstraintsDecimalMin(field);
+					if (minValueDecimal != null) {
+						final float minValue = Float.parseFloat(minValueDecimal.value());
+						final boolean inclusive = minValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Float elemTyped = (Float) elem;
+									if (inclusive) {
+										if (elemTyped < minValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too Low min: " + minValue);
+										}
+									} else if (elemTyped <= minValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too Low min: " + minValue);
+									}
+								});
+					}
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final float maxValue = maxValueRoot.floatValue();
@@ -291,6 +456,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 										return;
 									}
 									final Float elemTyped = (Float) elem;
+
 									if (elemTyped > maxValue) {
 										throw new InputException(baseName + fieldName,
 												"Value too height max: " + maxValue);
@@ -319,6 +485,60 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								});
 					}
 				} else if (type == Double.class || type == double.class) {
+					final DecimalMax maxValueDecimal = AnnotationTools.getConstraintsDecimalMax(field);
+					if (maxValueDecimal != null) {
+						final double maxValue = Float.parseFloat(maxValueDecimal.value());
+						final boolean inclusive = maxValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Double elemTyped = (Double) elem;
+									if (inclusive) {
+										if (elemTyped > maxValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too height max: " + maxValue);
+										}
+									} else if (elemTyped >= maxValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too height max: " + maxValue);
+									}
+								});
+					}
+					final DecimalMin minValueDecimal = AnnotationTools.getConstraintsDecimalMin(field);
+					if (minValueDecimal != null) {
+						final double minValue = Float.parseFloat(minValueDecimal.value());
+						final boolean inclusive = minValueDecimal.inclusive();
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object elem = field.get(data);
+									if (elem == null) {
+										return;
+									}
+									final Double elemTyped = (Double) elem;
+									if (inclusive) {
+										if (elemTyped < minValue) {
+											throw new InputException(baseName + fieldName,
+													"Value too Low min: " + minValue);
+										}
+									} else if (elemTyped <= minValue) {
+										throw new InputException(baseName + fieldName,
+												"Value too Low min: " + minValue);
+									}
+								});
+					}
 					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final double maxValue = maxValueRoot.doubleValue();

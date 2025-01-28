@@ -24,6 +24,8 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -195,6 +197,22 @@ public class AnnotationTools {
 			return null;
 		}
 		return (Checker[]) annotation;
+	}
+
+	public static DecimalMin getConstraintsDecimalMin(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DecimalMin.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return ((DecimalMin) annotation[0]);
+	}
+
+	public static DecimalMax getConstraintsDecimalMax(final Field element) {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DecimalMax.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		return ((DecimalMax) annotation[0]);
 	}
 
 	public static Long getConstraintsMax(final Field element) {
