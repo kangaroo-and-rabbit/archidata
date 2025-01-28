@@ -21,7 +21,6 @@ import org.kar.archidata.annotation.checker.CollectionItemNotNull;
 import org.kar.archidata.annotation.checker.CollectionItemUnique;
 import org.kar.archidata.annotation.checker.CollectionNotEmpty;
 import org.kar.archidata.dataAccess.DBAccess;
-import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.options.CheckFunctionInterface;
@@ -240,7 +239,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
 									final Condition conditionCheck = condCheckers.isEmpty() ? null
 											: condCheckers.get(0).toCondition();
-									final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem,
+									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem,
 											conditionCheck);
 									if (count == 0) {
 										throw new InputException(baseName + fieldName,
@@ -360,7 +359,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									if (elem == null) {
 										return;
 									}
-									final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem);
 									if (count == 0) {
 										throw new InputException(baseName + fieldName,
 												"Foreign element does not exist in the DB:" + elem);
@@ -381,7 +380,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									if (elem == null) {
 										return;
 									}
-									final long count = DataAccess.count(annotationManyToOne.targetEntity(), elem);
+									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem);
 									if (count == 0) {
 										throw new InputException(baseName + fieldName,
 												"Foreign element does not exist in the DB:" + elem);
@@ -822,10 +821,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
 								Object other = null;
 								if (condCheckers.isEmpty()) {
-									other = DataAccess.getWhere(this.clazz,
+									other = ioDb.getWhere(this.clazz,
 											new Condition(new QueryCondition(fieldName, "==", field.get(data))));
 								} else {
-									other = DataAccess.getWhere(this.clazz,
+									other = ioDb.getWhere(this.clazz,
 											new Condition(new QueryCondition(fieldName, "==", field.get(data))),
 											condCheckers.get(0).toCondition());
 								}
