@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
@@ -223,31 +222,6 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
-					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									final Object elem = field.get(data);
-									if (elem == null) {
-										return;
-									}
-									final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
-									final Condition conditionCheck = condCheckers.isEmpty() ? null
-											: condCheckers.get(0).toCondition();
-									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem,
-											conditionCheck);
-									if (count == 0) {
-										throw new InputException(baseName + fieldName,
-												"Foreign element does not exist in the DB:" + elem);
-									}
-								});
-					}
-
 				} else if (type == Integer.class || type == int.class) {
 					final DecimalMax maxValueDecimal = AnnotationTools.getConstraintsDecimalMax(field);
 					if (maxValueDecimal != null) {
@@ -343,47 +317,6 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									if (elemTyped < minValue) {
 										throw new InputException(baseName + fieldName,
 												"Value too Low min: " + minValue);
-									}
-								});
-					}
-					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
-					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									final Object elem = field.get(data);
-									if (elem == null) {
-										return;
-									}
-									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem);
-									if (count == 0) {
-										throw new InputException(baseName + fieldName,
-												"Foreign element does not exist in the DB:" + elem);
-									}
-								});
-					}
-				} else if (type == UUID.class) {
-					final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
-					if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									final Object elem = field.get(data);
-									if (elem == null) {
-										return;
-									}
-									final long count = ioDb.count(annotationManyToOne.targetEntity(), elem);
-									if (count == 0) {
-										throw new InputException(baseName + fieldName,
-												"Foreign element does not exist in the DB:" + elem);
 									}
 								});
 					}
@@ -731,6 +664,29 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									});
 						}
 					}
+				}
+				final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
+				if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
+					add(fieldName,
+							(
+									final DBAccess ioDb,
+									final String baseName,
+									final T data,
+									final List<String> modifiedValue,
+									final QueryOptions options) -> {
+								final Object elem = field.get(data);
+								if (elem == null) {
+									return;
+								}
+								final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
+								final Condition conditionCheck = condCheckers.isEmpty() ? null
+										: condCheckers.get(0).toCondition();
+								final long count = ioDb.count(annotationManyToOne.targetEntity(), elem, conditionCheck);
+								if (count == 0) {
+									throw new InputException(baseName + fieldName,
+											"Foreign element does not exist in the DB:" + elem);
+								}
+							});
 				}
 				final CollectionItemUnique collectionUnique = AnnotationTools.getCollectionItemUnique(field);
 				if (collectionUnique != null) {
