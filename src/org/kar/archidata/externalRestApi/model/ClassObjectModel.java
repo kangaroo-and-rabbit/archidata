@@ -18,6 +18,12 @@ import org.slf4j.LoggerFactory;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class ClassObjectModel extends ClassModel {
@@ -61,24 +67,31 @@ public class ClassObjectModel extends ClassModel {
 			ClassModel model,
 			ClassModel linkClass, // link class when use remote ID (ex: list<UUID>)
 			String comment,
-			int sizeMin, // String SizeMin
-			int sizeMax, // String SizeMax
-			Long min, // number min value
-			Long max, // number max value
+			Size stringSize, // String Size
+			Min min, // number min value
+			Max max, // number max value
+			DecimalMin decimalMin,
+			DecimalMax decimalMax,
+			Pattern pattern,
+			Email email,
 			Boolean readOnly,
 			Boolean notNull,
 			Boolean columnNotNull,
 			Boolean nullable) {
 
 		public FieldProperty(final String name, final ClassModel model, final ClassModel linkClass,
-				final String comment, final int sizeMin, final int sizeMax, final Long min, final Long max,
-				final Boolean readOnly, final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
+				final String comment, final Size stringSize, final Min min, final Max max, final DecimalMin decimalMin,
+				final DecimalMax decimalMax, final Pattern pattern, final Email email, final Boolean readOnly,
+				final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
 			this.name = name;
 			this.model = model;
 			this.linkClass = linkClass;
 			this.comment = comment;
-			this.sizeMin = sizeMin;
-			this.sizeMax = sizeMax;
+			this.stringSize = stringSize;
+			this.decimalMin = decimalMin;
+			this.decimalMax = decimalMax;
+			this.pattern = pattern;
+			this.email = email;
 			this.min = min;
 			this.max = max;
 			this.readOnly = readOnly;
@@ -86,17 +99,6 @@ public class ClassObjectModel extends ClassModel {
 			this.columnNotNull = columnNotNull;
 			this.nullable = nullable;
 
-		}
-
-		private static int getStringMinSize(final Field field) throws DataAccessException {
-			final Size size = AnnotationTools.getConstraintsSize(field);
-			return size != null ? size.min() : 0;
-		}
-
-		private static int getStringMaxSize(final Field field) throws DataAccessException {
-			final Size size = AnnotationTools.getConstraintsSize(field);
-			final int colomnLimitSize = AnnotationTools.getLimitSize(field);
-			return size == null ? colomnLimitSize : colomnLimitSize < size.max() ? colomnLimitSize : size.max();
 		}
 
 		private static Class<?> getSubModelIfExist2(final Field field) {
@@ -137,10 +139,13 @@ public class ClassObjectModel extends ClassModel {
 					ClassModel.getModel(field.getGenericType(), previous), //
 					getSubModelIfExist(field, previous), //
 					AnnotationTools.getSchemaDescription(field), //
-					getStringMinSize(field), //
-					getStringMaxSize(field), //
+					AnnotationTools.getConstraintsSize(field), //
 					AnnotationTools.getConstraintsMin(field), //
 					AnnotationTools.getConstraintsMax(field), //
+					AnnotationTools.getConstraintsDecimalMin(field), //
+					AnnotationTools.getConstraintsDecimalMax(field), //
+					AnnotationTools.getConstraintsPattern(field), //
+					AnnotationTools.getConstraintsEmail(field), //
 					AnnotationTools.getSchemaReadOnly(field), //
 					AnnotationTools.getConstraintsNotNull(field), //
 					AnnotationTools.getColumnNotNull(field), //

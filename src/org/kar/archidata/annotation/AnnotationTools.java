@@ -195,7 +195,7 @@ public class AnnotationTools {
 		return (DataJson) annotation[0];
 	}
 
-	public static Checker[] getCheckers(final Field element) {
+	public static Checker[] getConstraintsCheckers(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Checker.class);
 		if (annotation.length == 0) {
 			return null;
@@ -219,20 +219,20 @@ public class AnnotationTools {
 		return ((DecimalMax) annotation[0]);
 	}
 
-	public static Long getConstraintsMax(final Field element) {
+	public static Max getConstraintsMax(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Max.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Max) annotation[0]).value();
+		return ((Max) annotation[0]);
 	}
 
-	public static Long getConstraintsMin(final Field element) {
+	public static Min getConstraintsMin(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Min.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Min) annotation[0]).value();
+		return ((Min) annotation[0]);
 	}
 
 	public static int getLimitSize(final Field element) {
@@ -252,20 +252,20 @@ public class AnnotationTools {
 		return (Size) annotation[0];
 	}
 
-	public static String getConstraintsPattern(final Field element) {
+	public static Pattern getConstraintsPattern(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Pattern.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Pattern) annotation[0]).regexp();
+		return (Pattern) annotation[0];
 	}
 
-	public static boolean getConstraintsEmail(final Field element) {
+	public static Email getConstraintsEmail(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Email.class);
 		if (annotation.length == 0) {
-			return false;
+			return null;
 		}
-		return true;
+		return (Email) annotation[0];
 	}
 
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {

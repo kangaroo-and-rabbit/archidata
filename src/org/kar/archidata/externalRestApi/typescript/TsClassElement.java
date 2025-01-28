@@ -259,29 +259,55 @@ public class TsClassElement {
 		final StringBuilder builder = new StringBuilder();
 		final Class<?> clazz = field.model().getOriginClasses();
 		if (clazz == String.class) {
-			if (field.sizeMin() > 0) {
+			if (field.stringSize() != null) {
 				builder.append(".min(");
-				builder.append(field.sizeMin());
+				builder.append(field.stringSize().min());
 				builder.append(")");
 			}
-			if (field.sizeMax() > 0) {
+			if (field.stringSize() != null) {
 				builder.append(".max(");
-				builder.append(field.sizeMax());
+				builder.append(field.stringSize().max());
 				builder.append(")");
 			}
+			/*Must be tested before
+			if (field.pattern() != null) {
+				builder.append(".regex((");
+				builder.append(field.pattern().regexp());
+				builder.append(")");
+			}*/
+			/*Must be tested before
+			if (field.email() != null) {
+				builder.append(".regex((");
+				builder.append(field.email().regexp());
+				builder.append(")");
+			}*/
 		}
 		if (clazz == short.class || clazz == Short.class || clazz == int.class || clazz == Integer.class
 				|| clazz == long.class || clazz == Long.class || clazz == float.class || clazz == Float.class
 				|| clazz == double.class || clazz == Double.class) {
-			if (field.min() != null && field.min() > 0) {
+			if (field.min() != null) {
 				builder.append(".min(");
-				builder.append(field.min());
+				builder.append(field.min().value());
 				builder.append(")");
 			}
-			if (field.max() != null && field.max() > 0) {
+			if (field.max() != null) {
 				builder.append(".max(");
-				builder.append(field.max());
+				builder.append(field.max().value());
 				builder.append(")");
+			}
+			if (field.decimalMax() != null) {
+				builder.append(".max(");
+				builder.append(field.decimalMax().value());
+				builder.append(", { inclusive: ");
+				builder.append(field.decimalMax().inclusive() ? "true" : "false");
+				builder.append("})");
+			}
+			if (field.decimalMin() != null) {
+				builder.append(".min(");
+				builder.append(field.decimalMin().value());
+				builder.append(", { inclusive: ");
+				builder.append(field.decimalMin().inclusive() ? "true" : "false");
+				builder.append("})");
 			}
 		}
 		return builder.toString();

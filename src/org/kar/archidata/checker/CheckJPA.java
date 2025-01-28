@@ -34,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 public class CheckJPA<T> implements CheckFunctionInterface {
@@ -182,8 +184,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long maxValue = AnnotationTools.getConstraintsMax(field);
+					final Max maxValue = AnnotationTools.getConstraintsMax(field);
 					if (maxValue != null) {
+						final Long maxValueTmp = maxValue.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -196,14 +199,15 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 										return;
 									}
 									final Long elemTyped = (Long) elem;
-									if (elemTyped > maxValue) {
+									if (elemTyped > maxValueTmp) {
 										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+												"Value too height max: " + maxValueTmp);
 									}
 								});
 					}
-					final Long minValue = AnnotationTools.getConstraintsMin(field);
+					final Min minValue = AnnotationTools.getConstraintsMin(field);
 					if (minValue != null) {
+						final Long minValueTmp = minValue.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -216,9 +220,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 										return;
 									}
 									final Long elemTyped = (Long) elem;
-									if (elemTyped < minValue) {
+									if (elemTyped < minValueTmp) {
 										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+												"Value too Low min: " + minValueTmp);
 									}
 								});
 					}
@@ -278,9 +282,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						final int maxValue = maxValueRoot.intValue();
+						final int maxValue = (int) maxValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -299,9 +303,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
+					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						final int minValue = minValueRoot.intValue();
+						final int minValue = (int) minValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -377,9 +381,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						final float maxValue = maxValueRoot.floatValue();
+						final float maxValue = maxValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -399,9 +403,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
+					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						final float minValue = minValueRoot.floatValue();
+						final float minValue = minValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -475,9 +479,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long maxValueRoot = AnnotationTools.getConstraintsMax(field);
+					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
-						final double maxValue = maxValueRoot.doubleValue();
+						final double maxValue = maxValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -496,9 +500,9 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final Long minValueRoot = AnnotationTools.getConstraintsMin(field);
+					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
-						final double minValue = minValueRoot.doubleValue();
+						final double minValue = minValueRoot.value();
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -524,26 +528,6 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type == LocalTime.class) {
 
 				} else if (type == String.class) {
-					final int maxSizeString = AnnotationTools.getLimitSize(field);
-					if (maxSizeString > 0) {
-						add(fieldName,
-								(
-										final DBAccess ioDb,
-										final String baseName,
-										final T data,
-										final List<String> modifiedValue,
-										final QueryOptions options) -> {
-									final Object elem = field.get(data);
-									if (elem == null) {
-										return;
-									}
-									final String elemTyped = (String) elem;
-									if (elemTyped.length() > maxSizeString) {
-										throw new InputException(baseName + fieldName,
-												"Too long size must be <= " + maxSizeString);
-									}
-								});
-					}
 					final Size limitSize = AnnotationTools.getConstraintsSize(field);
 					if (limitSize != null) {
 						add(fieldName,
@@ -568,9 +552,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 								});
 					}
-					final String patternString = AnnotationTools.getConstraintsPattern(field);
-					if (patternString != null) {
-						final Pattern pattern = Pattern.compile(patternString);
+					final jakarta.validation.constraints.Pattern patternString = AnnotationTools
+							.getConstraintsPattern(field);
+					if (patternString != null && patternString.regexp() != null) {
+						final Pattern pattern = Pattern.compile(patternString.regexp());
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -585,12 +570,12 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final String elemTyped = (String) elem;
 									if (!pattern.matcher(elemTyped).find()) {
 										throw new InputException(baseName + fieldName,
-												"does not match the required pattern (constraints) must be '"
-														+ patternString + "'");
+												"does not match the required pattern (constraints) must be '" + pattern
+														+ "'");
 									}
 								});
 					}
-					if (AnnotationTools.getConstraintsEmail(field)) {
+					if (AnnotationTools.getConstraintsEmail(field) != null) {
 						final String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
 						final Pattern pattern = Pattern.compile(emailPattern);
 						add(fieldName,
@@ -615,7 +600,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				} else if (type.isEnum()) {
 					// nothing to do.
 				}
-				final Checker[] checkers = AnnotationTools.getCheckers(field);
+				final Checker[] checkers = AnnotationTools.getConstraintsCheckers(field);
 				if (checkers != null) {
 					for (final Checker checker : checkers) {
 						if (checker == null || checker.value() == CheckFunctionVoid.class) {
