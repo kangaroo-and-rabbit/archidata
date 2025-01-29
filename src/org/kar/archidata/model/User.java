@@ -51,6 +51,7 @@ public class User extends GenericDataSoftDelete {
 	@Nullable
 	public Boolean blocked = false;
 	@Column(length = 512)
+	@Size(max = 512)
 	public String blockedReason;
 
 	@Schema(description = "List of Id of the specific covers")
