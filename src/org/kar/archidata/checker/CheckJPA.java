@@ -134,6 +134,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValueDecimal != null) {
 						final long maxValue = Long.parseLong(maxValueDecimal.value());
 						final boolean inclusive = maxValueDecimal.inclusive();
+						final String exceptionComment = "Value too height max=" + maxValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -148,12 +150,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Long elemTyped = (Long) elem;
 									if (inclusive) {
 										if (elemTyped > maxValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too height max: " + maxValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped >= maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -161,6 +161,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValueDecimal != null) {
 						final long minValue = Long.parseLong(minValueDecimal.value());
 						final boolean inclusive = minValueDecimal.inclusive();
+						final String exceptionComment = "Value too low min=" + minValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -175,18 +177,17 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Long elemTyped = (Long) elem;
 									if (inclusive) {
 										if (elemTyped < minValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too Low min: " + minValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped <= minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Max maxValue = AnnotationTools.getConstraintsMax(field);
 					if (maxValue != null) {
 						final Long maxValueTmp = maxValue.value();
+						final String exceptionComment = "Value too height max=" + maxValueTmp + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -200,14 +201,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Long elemTyped = (Long) elem;
 									if (elemTyped > maxValueTmp) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValueTmp);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Min minValue = AnnotationTools.getConstraintsMin(field);
 					if (minValue != null) {
 						final Long minValueTmp = minValue.value();
+						final String exceptionComment = "Value too low min=" + minValueTmp + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -221,8 +222,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Long elemTyped = (Long) elem;
 									if (elemTyped < minValueTmp) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValueTmp);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -231,6 +231,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValueDecimal != null) {
 						final int maxValue = Integer.parseInt(maxValueDecimal.value());
 						final boolean inclusive = maxValueDecimal.inclusive();
+						final String exceptionComment = "Value too height max=" + maxValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -245,13 +247,11 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Integer elemTyped = (Integer) elem;
 									if (inclusive) {
 										if (elemTyped > maxValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too height max: " + maxValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped >= maxValue) {
 
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -259,6 +259,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValueDecimal != null) {
 						final int minValue = Integer.parseInt(minValueDecimal.value());
 						final boolean inclusive = minValueDecimal.inclusive();
+						final String exceptionComment = "Value too low min=" + minValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -273,18 +275,17 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Integer elemTyped = (Integer) elem;
 									if (inclusive) {
 										if (elemTyped < minValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too Low min: " + minValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped <= minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final int maxValue = (int) maxValueRoot.value();
+						final String exceptionComment = "Value too height max=" + maxValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -298,14 +299,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Integer elemTyped = (Integer) elem;
 									if (elemTyped > maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final int minValue = (int) minValueRoot.value();
+						final String exceptionComment = "Value too low min=" + minValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -319,8 +320,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Integer elemTyped = (Integer) elem;
 									if (elemTyped < minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -331,6 +331,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValueDecimal != null) {
 						final float maxValue = Float.parseFloat(maxValueDecimal.value());
 						final boolean inclusive = maxValueDecimal.inclusive();
+						final String exceptionComment = "Value too height max=" + maxValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -345,12 +347,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Float elemTyped = (Float) elem;
 									if (inclusive) {
 										if (elemTyped > maxValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too height max: " + maxValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped >= maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -358,6 +358,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValueDecimal != null) {
 						final float minValue = Float.parseFloat(minValueDecimal.value());
 						final boolean inclusive = minValueDecimal.inclusive();
+						final String exceptionComment = "Value too low min=" + minValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -372,18 +374,17 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Float elemTyped = (Float) elem;
 									if (inclusive) {
 										if (elemTyped < minValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too Low min: " + minValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped <= minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final float maxValue = maxValueRoot.value();
+						final String exceptionComment = "Value too height max=" + maxValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -398,14 +399,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Float elemTyped = (Float) elem;
 
 									if (elemTyped > maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final float minValue = minValueRoot.value();
+						final String exceptionComment = "Value too low min=" + minValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -419,8 +420,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Float elemTyped = (Float) elem;
 									if (elemTyped < minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -429,6 +429,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (maxValueDecimal != null) {
 						final double maxValue = Float.parseFloat(maxValueDecimal.value());
 						final boolean inclusive = maxValueDecimal.inclusive();
+						final String exceptionComment = "Value too height max=" + maxValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -443,12 +445,10 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final Double elemTyped = (Double) elem;
 									if (inclusive) {
 										if (elemTyped > maxValue) {
-											throw new InputException(baseName + fieldName,
-													"Value too height max: " + maxValue);
+											throw new InputException(baseName + fieldName, exceptionComment);
 										}
 									} else if (elemTyped >= maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -456,6 +456,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 					if (minValueDecimal != null) {
 						final double minValue = Float.parseFloat(minValueDecimal.value());
 						final boolean inclusive = minValueDecimal.inclusive();
+						final String exceptionComment = "Value too low min=" + minValue
+								+ (inclusive ? " (inclusive)" : " (exclusive)");
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -474,14 +476,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 													"Value too Low min: " + minValue);
 										}
 									} else if (elemTyped <= minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Max maxValueRoot = AnnotationTools.getConstraintsMax(field);
 					if (maxValueRoot != null) {
 						final double maxValue = maxValueRoot.value();
+						final String exceptionComment = "Value too height max=" + maxValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -495,14 +497,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Double elemTyped = (Double) elem;
 									if (elemTyped > maxValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too height max: " + maxValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
 					final Min minValueRoot = AnnotationTools.getConstraintsMin(field);
 					if (minValueRoot != null) {
 						final double minValue = minValueRoot.value();
+						final String exceptionComment = "Value too low min=" + minValue + " (inclusive)";
 						add(fieldName,
 								(
 										final DBAccess ioDb,
@@ -516,8 +518,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									}
 									final Double elemTyped = (Double) elem;
 									if (elemTyped < minValue) {
-										throw new InputException(baseName + fieldName,
-												"Value too Low min: " + minValue);
+										throw new InputException(baseName + fieldName, exceptionComment);
 									}
 								});
 					}
@@ -721,7 +722,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								for (int iii = 0; iii < elements.length; iii++) {
 									if (elements[iii] == null) {
 										throw new InputException(baseName + fieldName + '[' + iii + ']',
-												"This collection can not conatain NULL item");
+												"Collection can not contain NULL item");
 									}
 								}
 							});
@@ -745,7 +746,7 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 								}
 								final Collection<?> tmpCollection = (Collection<?>) tmpData;
 								if (tmpCollection.isEmpty()) {
-									throw new InputException(baseName + fieldName, "Can not be empty");
+									throw new InputException(baseName + fieldName, "Collection can not be empty");
 								}
 							});
 				}
@@ -770,7 +771,8 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 											condCheckers.get(0).toCondition());
 								}
 								if (other != null) {
-									throw new InputException(baseName + fieldName, "Name already exist in the DB");
+									throw new InputException(baseName + fieldName,
+											"The field is already exist in the DB");
 								}
 							});
 				}
