@@ -68,7 +68,6 @@ public class MySecurityContext implements SecurityContext {
 		}
 		// get associated Roles:
 		final PartRight rightPart = getRightOfRoleInGroup(group, role);
-		LOGGER.info("detect : {}", rightPart);
 		if (PartRight.READ_WRITE.equals(rightPart)) {
 			return true;
 		}
