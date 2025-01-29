@@ -41,6 +41,24 @@ import jakarta.ws.rs.DefaultValue;
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
 
+	public static <TYPE extends Annotation> TYPE get(final Field element, final Class<TYPE> clazz) {
+		final TYPE[] annotations = element.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations[0];
+	}
+
+	public static <TYPE extends Annotation> TYPE[] gets(final Field element, final Class<TYPE> clazz) {
+		final TYPE[] annotations = element.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations;
+	}
+
 	// For SQL declaration table Name
 	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws DataAccessException {
 		if (options != null) {
@@ -92,27 +110,15 @@ public class AnnotationTools {
 	}
 
 	public static CollectionItemNotNull getCollectionItemNotNull(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionItemNotNull.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (CollectionItemNotNull) annotation[0];
+		return get(element, CollectionItemNotNull.class);
 	}
 
 	public static CollectionItemUnique getCollectionItemUnique(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionItemUnique.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (CollectionItemUnique) annotation[0];
+		return get(element, CollectionItemUnique.class);
 	}
 
 	public static CollectionNotEmpty getCollectionNotEmpty(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(CollectionNotEmpty.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (CollectionNotEmpty) annotation[0];
+		return get(element, CollectionNotEmpty.class);
 	}
 
 	public static boolean getSchemaReadOnly(final Field element) {
@@ -164,75 +170,39 @@ public class AnnotationTools {
 	}
 
 	public static ManyToOne getManyToOne(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ManyToOne.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (ManyToOne) annotation[0];
+		return get(element, ManyToOne.class);
 	}
 
 	public static ManyToMany getManyToMany(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ManyToMany.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (ManyToMany) annotation[0];
+		return get(element, ManyToMany.class);
 	}
 
 	public static OneToMany getOneToMany(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(OneToMany.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (OneToMany) annotation[0];
+		return get(element, OneToMany.class);
 	}
 
 	public static DataJson getDataJson(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DataJson.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (DataJson) annotation[0];
+		return get(element, DataJson.class);
 	}
 
 	public static Checker[] getConstraintsCheckers(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Checker.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (Checker[]) annotation;
+		return gets(element, Checker.class);
 	}
 
 	public static DecimalMin getConstraintsDecimalMin(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DecimalMin.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((DecimalMin) annotation[0]);
+		return get(element, DecimalMin.class);
 	}
 
 	public static DecimalMax getConstraintsDecimalMax(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DecimalMax.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((DecimalMax) annotation[0]);
+		return get(element, DecimalMax.class);
 	}
 
 	public static Max getConstraintsMax(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Max.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((Max) annotation[0]);
+		return get(element, Max.class);
 	}
 
 	public static Min getConstraintsMin(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Min.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((Min) annotation[0]);
+		return get(element, Min.class);
 	}
 
 	public static int getLimitSize(final Field element) {
@@ -245,27 +215,15 @@ public class AnnotationTools {
 	}
 
 	public static Size getConstraintsSize(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Size.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (Size) annotation[0];
+		return get(element, Size.class);
 	}
 
 	public static Pattern getConstraintsPattern(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Pattern.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (Pattern) annotation[0];
+		return get(element, Pattern.class);
 	}
 
 	public static Email getConstraintsEmail(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Email.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return (Email) annotation[0];
+		return get(element, Email.class);
 	}
 
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
