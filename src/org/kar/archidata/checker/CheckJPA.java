@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.checker.CheckForeignKey;
 import org.kar.archidata.annotation.checker.Checker;
 import org.kar.archidata.annotation.checker.CollectionItemNotNull;
 import org.kar.archidata.annotation.checker.CollectionItemUnique;
@@ -651,6 +652,64 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 						}
 					}
 				}
+				final CheckForeignKey foreighKey = AnnotationTools.get(field, CheckForeignKey.class);
+				if (foreighKey != null) {
+					if (Collection.class.isAssignableFrom(field.getType())) {
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									// get the field of the specific element
+									final Object tmpData = field.get(data);
+									// It is not the objective of this element to check if it is authorize to set NULL
+									if (tmpData == null) {
+										return;
+									}
+									final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
+									final Condition conditionCheck = condCheckers.isEmpty() ? null
+											: condCheckers.get(0).toCondition();
+									final Collection<?> tmpCollection = (Collection<?>) tmpData;
+									final Object[] elements = tmpCollection.toArray();
+									for (int iii = 0; iii < elements.length; iii++) {
+										if (elements[iii] == null) {
+											continue;
+										}
+										final Long count = ioDb.count(foreighKey.target(), elements[iii],
+												conditionCheck);
+										if (count != 1) {
+											throw new InputException(baseName + fieldName + '[' + iii + ']',
+													"Foreign-key does not exist in the DB:" + elements[iii]);
+
+										}
+									}
+								});
+					} else {
+						add(fieldName,
+								(
+										final DBAccess ioDb,
+										final String baseName,
+										final T data,
+										final List<String> modifiedValue,
+										final QueryOptions options) -> {
+									final Object tmpData = field.get(data);
+									if (tmpData == null) {
+										return;
+									}
+									final List<ConditionChecker> condCheckers = options.get(ConditionChecker.class);
+									final Condition conditionCheck = condCheckers.isEmpty() ? null
+											: condCheckers.get(0).toCondition();
+									final Long count = ioDb.count(foreighKey.target(), tmpData, conditionCheck);
+									if (count != 1) {
+										throw new InputException(baseName + fieldName,
+												"Foreign-key does not exist in the DB:" + tmpData);
+									}
+								});
+					}
+				}
+				// check if we really want to keep it ...
 				final ManyToOne annotationManyToOne = AnnotationTools.getManyToOne(field);
 				if (annotationManyToOne != null && annotationManyToOne.targetEntity() != null) {
 					add(fieldName,
