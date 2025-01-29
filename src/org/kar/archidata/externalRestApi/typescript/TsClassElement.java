@@ -260,14 +260,17 @@ public class TsClassElement {
 		final Class<?> clazz = field.model().getOriginClasses();
 		if (clazz == String.class) {
 			if (field.stringSize() != null) {
-				builder.append(".min(");
-				builder.append(field.stringSize().min());
-				builder.append(")");
-			}
-			if (field.stringSize() != null) {
-				builder.append(".max(");
-				builder.append(field.stringSize().max());
-				builder.append(")");
+				if (field.stringSize().min() > 0) {
+					// A string size can not be lower at 0
+					builder.append(".min(");
+					builder.append(field.stringSize().min());
+					builder.append(")");
+				}
+				if (field.stringSize().max() != Integer.MAX_VALUE) {
+					builder.append(".max(");
+					builder.append(field.stringSize().max());
+					builder.append(")");
+				}
 			}
 			/*Must be tested before
 			if (field.pattern() != null) {
