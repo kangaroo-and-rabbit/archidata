@@ -289,28 +289,32 @@ public class TsClassElement {
 				|| clazz == long.class || clazz == Long.class || clazz == float.class || clazz == Float.class
 				|| clazz == double.class || clazz == Double.class) {
 			if (field.min() != null) {
-				builder.append(".min(");
+				builder.append(".gte(");
 				builder.append(field.min().value());
 				builder.append(")");
 			}
 			if (field.max() != null) {
-				builder.append(".max(");
+				builder.append(".lte(");
 				builder.append(field.max().value());
 				builder.append(")");
 			}
 			if (field.decimalMax() != null) {
-				builder.append(".max(");
+				if (field.decimalMax().inclusive()) {
+					builder.append(".lte(");
+				} else {
+					builder.append(".lt(");
+				}
 				builder.append(field.decimalMax().value());
-				builder.append(", { inclusive: ");
-				builder.append(field.decimalMax().inclusive() ? "true" : "false");
-				builder.append("})");
+				builder.append(")");
 			}
 			if (field.decimalMin() != null) {
-				builder.append(".min(");
+				if (field.decimalMin().inclusive()) {
+					builder.append(".gte(");
+				} else {
+					builder.append(".gt(");
+				}
 				builder.append(field.decimalMin().value());
-				builder.append(", { inclusive: ");
-				builder.append(field.decimalMin().inclusive() ? "true" : "false");
-				builder.append("})");
+				builder.append(")");
 			}
 		}
 		return builder.toString();
