@@ -353,16 +353,19 @@ public class TsClassElement {
 		out.append("export const ");
 		out.append(this.zodName);
 		out.append(" = ");
+		// Check if the object is empty:
+		boolean isEmpty = model.getFields().size() == 0;
 
 		if (model.getExtendsClass() != null) {
 			final ClassModel parentClass = model.getExtendsClass();
 			final TsClassElement tsParentModel = tsGroup.find(parentClass);
 			out.append(tsParentModel.zodName);
-			out.append(".extend({");
+			if (!isEmpty) {
+				out.append(".extend({\n");
+			}
 		} else {
-			out.append("zod.object({");
+			out.append("zod.object({\n");
 		}
-		out.append("\n");
 		for (final FieldProperty field : model.getFields()) {
 			final ClassModel fieldModel = field.model();
 			if (field.comment() != null) {
@@ -390,7 +393,11 @@ public class TsClassElement {
 			out.append(",\n");
 		}
 		final List<String> omitField = model.getReadOnlyField();
-		out.append("\n});\n");
+		if (model.getExtendsClass() != null && isEmpty) {
+			out.append(";\n");
+		} else {
+			out.append("\n});\n");
+		}
 		out.append(generateZodInfer(this.tsTypeName, this.zodName));
 		out.append(generateExportCheckFunctionWrite(""));
 		// check if we need to generate write mode :
@@ -402,17 +409,18 @@ public class TsClassElement {
 			out.append("export const ");
 			out.append(this.zodName);
 			out.append("Write = ");
-
+			isEmpty = model.getFields().stream().filter(field -> !field.readOnly()).count() == 0;
 			if (model.getExtendsClass() != null) {
 				final ClassModel parentClass = model.getExtendsClass();
 				final TsClassElement tsParentModel = tsGroup.find(parentClass);
 				out.append(tsParentModel.zodName);
 				out.append("Write");
-				out.append(".extend({");
+				if (!isEmpty) {
+					out.append(".extend({\n");
+				}
 			} else {
-				out.append("zod.object({");
+				out.append("zod.object({\n");
 			}
-			out.append("\n");
 			for (final FieldProperty field : model.getFields()) {
 				// remove all readOnly field
 				if (field.readOnly()) {
@@ -450,7 +458,11 @@ public class TsClassElement {
 				}
 				out.append(",\n");
 			}
-			out.append("\n});\n");
+			if (model.getExtendsClass() != null && isEmpty) {
+				out.append(";\n");
+			} else {
+				out.append("\n});\n");
+			}
 			out.append(generateZodInfer(this.tsTypeName + "Write", this.zodName + "Write"));
 			// Check only the input value ==> no need of the output
 			out.append(generateExportCheckFunctionWrite("Write"));
