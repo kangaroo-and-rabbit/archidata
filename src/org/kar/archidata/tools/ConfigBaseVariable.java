@@ -3,6 +3,7 @@ package org.kar.archidata.tools;
 public class ConfigBaseVariable {
 	static public String tmpDataFolder;
 	static public String dataFolder;
+	static public String dbAbleToCreate;
 	static public String dbType;
 	static public String dbHost;
 	static public String dbPort;
@@ -23,6 +24,7 @@ public class ConfigBaseVariable {
 	public static void clearAllValue() {
 		tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
 		dataFolder = System.getenv("DATA_FOLDER");
+		dbAbleToCreate = System.getenv("DB_ABLE_TO_CREATE");
 		dbType = System.getenv("DB_TYPE");
 		dbHost = System.getenv("DB_HOST");
 		dbPort = System.getenv("DB_PORT");
@@ -56,6 +58,13 @@ public class ConfigBaseVariable {
 			return "/application/data/media";
 		}
 		return dataFolder;
+	}
+
+	public static boolean getDBAbleToCreate() {
+		if (dbAbleToCreate == null) {
+			return true;
+		}
+		return Boolean.getBoolean(dbAbleToCreate);
 	}
 
 	public static String getDBType() {

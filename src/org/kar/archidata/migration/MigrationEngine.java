@@ -11,6 +11,7 @@ import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.migration.model.Migration;
+import org.kar.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,35 +131,40 @@ public class MigrationEngine {
 	}
 
 	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
-		final DbConfig config = configInput.clone();
-		config.setDbName(null);
-		final String dbName = configInput.getDbName();
-		LOGGER.info("Verify existance of '{}'", dbName);
-		try (final DBAccess da = DBAccess.createInterface(config)) {
-			boolean exist = da.isDBExist(dbName);
-			if (!exist) {
-				LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", dbName);
-				// create the local DB:
-				da.createDB(dbName);
-			}
-			exist = da.isDBExist(dbName);
-			while (!exist) {
-				LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
-				LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
-				try {
-					Thread.sleep(30000);
-				} catch (final InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+		if (ConfigBaseVariable.getDBAbleToCreate()) {
+			final DbConfig config = configInput.clone();
+			config.setDbName(null);
+			final String dbName = configInput.getDbName();
+			LOGGER.info("Verify existance of '{}'", dbName);
+			try (final DBAccess da = DBAccess.createInterface(config)) {
+				boolean exist = da.isDBExist(dbName);
+				if (!exist) {
+					LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", dbName);
+					// create the local DB:
+					da.createDB(dbName);
 				}
 				exist = da.isDBExist(dbName);
+				while (!exist) {
+					LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
+					LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
+					try {
+						Thread.sleep(30000);
+					} catch (final InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					exist = da.isDBExist(dbName);
+				}
+			} catch (final InternalServerErrorException e) {
+				e.printStackTrace();
+				throw new MigrationException("TODO ...");
+			} catch (final IOException e) {
+				e.printStackTrace();
+				throw new MigrationException("TODO ...");
 			}
-		} catch (final InternalServerErrorException e) {
-			e.printStackTrace();
-			throw new MigrationException("TODO ...");
-		} catch (final IOException e) {
-			e.printStackTrace();
-			throw new MigrationException("TODO ...");
+		} else {
+			final String dbName = configInput.getDbName();
+			LOGGER.warn("DB: '{}' is not check if it EXIST", dbName);
 		}
 	}
 
