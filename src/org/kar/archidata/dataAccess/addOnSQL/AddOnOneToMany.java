@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
@@ -110,7 +111,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass == Long.class || objectClass == UUID.class) {
+		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
 		}
 		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
@@ -201,7 +202,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			return;
 		}
 		// TODO: manage better the eager and lazy !!
-		if (objectClass == Long.class || objectClass == UUID.class) {
+		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options,
 					decorators.targetEntity(), decorators.mappedBy());
 			return;
@@ -250,22 +251,35 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			field.set(data, idList);
 			count.inc();
 			return;
+		} else if (objectClass == ObjectId.class) {
+			final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
+			field.set(data, idList);
+			count.inc();
+			return;
 		}
 		if (objectClass == decorators.targetEntity()) {
-
 			Long parentIdTmp = null;
 			UUID parendUuidTmp = null;
+			ObjectId parendOidTmp = null;
 			try {
 				final String modelData = rs.getString(count.value);
 				parentIdTmp = Long.valueOf(modelData);
 				count.inc();
 			} catch (final NumberFormatException ex) {
-				final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
-				parendUuidTmp = idList.get(0);
-				count.inc();
+				try {
+					final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
+					parendUuidTmp = idList.get(0);
+					count.inc();
+				} catch (final NumberFormatException ex2) {
+					// TODO : How to manage ObjectId ==> I am not sure it works well...
+					final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
+					parendOidTmp = idList.get(0);
+					count.inc();
+				}
 			}
 			final Long parentId = parentIdTmp;
 			final UUID parendUuid = parendUuidTmp;
+			final ObjectId parendOid = parendOidTmp;
 			final String mappingKey = decorators.mappedBy();
 			// We get the parent ID ... ==> need to request the list of elements
 			if (objectClass == Long.class) {
@@ -273,6 +287,10 @@ public class AddOnOneToMany implements DataAccessAddOn {
 				//field.set(data, idList);
 				return;
 			} else if (objectClass == UUID.class) {
+				LOGGER.error("Need to retreive all primary key of all elements");
+				//field.set(data, idList);
+				return;
+			} else if (objectClass == ObjectId.class) {
 				LOGGER.error("Need to retreive all primary key of all elements");
 				//field.set(data, idList);
 				return;
@@ -297,6 +315,17 @@ public class AddOnOneToMany implements DataAccessAddOn {
 						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				} else if (parendOid != null) {
+					final LazyGetter lambda = () -> {
+						@SuppressWarnings("unchecked")
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryCondition(mappingKey, "=", parendOid)));
 						if (foreignData == null) {
 							return;
 						}

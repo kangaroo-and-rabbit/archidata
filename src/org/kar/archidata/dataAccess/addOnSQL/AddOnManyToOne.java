@@ -7,6 +7,7 @@ import java.sql.Types;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
@@ -66,6 +67,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				ps.setNull(iii.value, Types.VARCHAR);
 			} else if (field.getType() == UUID.class) {
 				ps.setNull(iii.value, Types.BINARY);
+			} else if (field.getType() == ObjectId.class) {
+				ps.setNull(iii.value, Types.BINARY);
 			}
 		} else if (field.getType() == Long.class) {
 			final Long dataTyped = (Long) data;
@@ -84,6 +87,11 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			LOGGER.info("Generate UUTD for DB: {}", dataTyped);
 			final byte[] dataByte = UuidUtils.asBytes(dataTyped);
 			ps.setBytes(iii.value, dataByte);
+		} else if (field.getType() == ObjectId.class) {
+			final ObjectId dataTyped = (ObjectId) data;
+			LOGGER.info("Generate ObjectId for DB: {}", dataTyped);
+			final byte[] dataByte = dataTyped.toByteArray();
+			ps.setBytes(iii.value, dataByte);
 		} else {
 			final Field idField = AnnotationTools.getFieldOfId(field.getType());
 			final Object uid = idField.get(data);
@@ -101,7 +109,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	@Override
 	public boolean canInsert(final Field field) {
 		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
-				|| field.getType() == String.class || field.getType() == UUID.class) {
+				|| field.getType() == String.class || field.getType() == UUID.class
+				|| field.getType() == ObjectId.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -120,7 +129,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 	public boolean canRetrieve(final Field field) {
 		final Class<?> classType = field.getType();
 		if (classType == Long.class || classType == Integer.class || classType == Short.class
-				|| classType == String.class || classType == UUID.class) {
+				|| classType == String.class || classType == UUID.class || classType == ObjectId.class) {
 			return true;
 		}
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
@@ -141,7 +150,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			@NotNull final CountInOut count,
 			final QueryOptions options) throws Exception {
 		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
-				|| field.getType() == String.class || field.getType() == UUID.class) {
+				|| field.getType() == String.class || field.getType() == UUID.class
+				|| field.getType() == ObjectId.class) {
 			querySelect.append(" ");
 			querySelect.append(tableName);
 			querySelect.append(".");
@@ -230,6 +240,15 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			}
 			return;
 		}
+		if (field.getType() == ObjectId.class) {
+			final byte[] tmp = rs.getBytes(count.value);
+			count.inc();
+			if (!rs.wasNull()) {
+				final ObjectId foreignKey = new ObjectId(tmp);
+				field.set(data, foreignKey);
+			}
+			return;
+		}
 		final Class<?> objectClass = field.getType();
 		final ManyToOne decorators = field.getDeclaredAnnotation(ManyToOne.class);
 		if (decorators == null) {
@@ -279,6 +298,22 @@ public class AddOnManyToOne implements DataAccessAddOn {
 					};
 					lazyCall.add(lambda);
 				}
+			} else if (remotePrimaryKeyType == ObjectId.class) {
+				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
+				final ObjectId foreignKey = ioDb.getListOfRawOID(rs, count.value);
+				count.inc();
+				if (foreignKey != null) {
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						// TODO: update to have get with abstract types ....
+						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
 			}
 		}
 	}
@@ -298,7 +333,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final QueryOptions options) throws Exception {
 		final Class<?> classType = field.getType();
 		if (classType == Long.class || classType == Integer.class || classType == Short.class
-				|| classType == String.class || classType == UUID.class) {
+				|| classType == String.class || classType == UUID.class || classType == ObjectId.class) {
 			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
 					postActionList, createIfNotExist, createDrop, fieldId, classType, options);
 		} else {

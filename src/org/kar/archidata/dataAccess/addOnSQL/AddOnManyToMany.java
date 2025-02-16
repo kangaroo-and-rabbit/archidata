@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.dataAccess.CountInOut;
@@ -72,7 +73,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass == Long.class || objectClass == UUID.class) {
+		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
@@ -135,7 +136,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append("'");
 		if (objectClass == Long.class) {
 			querySelect.append(SEPARATOR_LONG);
-		} else if (objectClass == UUID.class) {} else {
+		} else if (objectClass == UUID.class) {
+			// ???
+		} else if (objectClass == ObjectId.class) {
+			// ???
+		} else {
 			final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
 			if (foreignKeyType == Long.class) {
 				querySelect.append(SEPARATOR_LONG);
@@ -193,7 +198,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		// TODO: manage better the eager and lazy !!
-		if (objectClass == Long.class || objectClass == UUID.class) {
+		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
@@ -231,6 +236,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			return;
 		} else if (objectClass == UUID.class) {
 			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
+			field.set(data, idList);
+			count.inc();
+			return;
+		} else if (objectClass == ObjectId.class) {
+			final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
 			return;
@@ -285,6 +295,27 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					};
 					lazyCall.add(lambda);
 				}
+			} else if (foreignKeyType == ObjectId.class) {
+				final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
+				// field.set(data, idList);
+				count.inc();
+				if (idList != null && idList.size() > 0) {
+					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
+							options);
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						final List<ObjectId> childs = new ArrayList<>(idList);
+						// TODO: update to have get with abstract types ....
+						@SuppressWarnings("unchecked")
+						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+								new Condition(new QueryInList<>(idField.inTable(), childs)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
 			}
 		}
 	}
@@ -309,9 +340,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
-					+ objectClass.getCanonicalName() + ">");
+		if (objectClass != Long.class && objectClass != UUID.class && objectClass != ObjectId.class) {
+			throw new DataAccessException(
+					"Can not ManyToMany with other than List<Long> or List<UUID> or List<ObjectId> Model: List<"
+							+ objectClass.getCanonicalName() + ">");
 		}
 		final FieldName columnName = AnnotationTools.getFieldName(field, options);
 		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
@@ -348,9 +380,10 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass != Long.class && objectClass != UUID.class) {
-			throw new DataAccessException("Can not ManyToMany with other than List<Long> or List<UUID> Model: List<"
-					+ objectClass.getCanonicalName() + ">");
+		if (objectClass != Long.class && objectClass != UUID.class && objectClass != ObjectId.class) {
+			throw new DataAccessException(
+					"Can not ManyToMany with other than List<Long> or List<UUID> or List<ObjectId> Model: List<"
+							+ objectClass.getCanonicalName() + ">");
 		}
 		final FieldName columnName = AnnotationTools.getFieldName(field, options);
 		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
