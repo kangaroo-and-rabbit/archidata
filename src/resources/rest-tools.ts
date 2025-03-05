@@ -54,6 +54,15 @@ export interface ModelResponseHttp {
   data: any;
 }
 
+export type ErrorRestApiCallback = (response: Response) => void;
+
+let errorApiGlobalCallback: ErrorRestApiCallback|undefined = undefined;
+
+export const setErrorApiGlobalCallback = (callback:ErrorRestApiCallback) => {
+	errorApiGlobalCallback = callback;
+} 
+
+
 function isNullOrUndefined(data: any): data is undefined | null {
   return data === undefined || data === null;
 }
@@ -302,6 +311,10 @@ export function RESTRequest({
     }
     action
       .then((response: Response) => {
+		if(errorApiGlobalCallback && 400 <= response.status && response.status <= 499) {
+			// Detect an error and trigger the generic error callback:
+			errorApiGlobalCallback(response);
+		}
         if (response.status >= 200 && response.status <= 299) {
           const contentType = response.headers.get("Content-Type");
           if (
