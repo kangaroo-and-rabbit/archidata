@@ -15,14 +15,14 @@ import jakarta.persistence.Column;
 public class GenericTiming {
 	@DataNotRead
 	@CreationTimestamp
-	@Column(nullable = false)
+	@Column(nullable = false, insertable = false, updatable = false)
 	@Schema(description = "Create time of the object", required = false, example = "2000-01-23T01:23:45.678+01:00", readOnly = true)
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	@Nullable
 	public Date createdAt = null;
 	@DataNotRead
 	@UpdateTimestamp
-	@Column(nullable = false)
+	@Column(nullable = false, insertable = false, updatable = false)
 	@Schema(description = "When update the object", required = false, example = "2000-01-23T00:23:45.678Z", readOnly = true)
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	// public Instant updatedAt = null;
