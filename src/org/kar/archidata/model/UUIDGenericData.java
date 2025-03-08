@@ -2,8 +2,8 @@ package org.kar.archidata.model;
 
 import java.util.UUID;
 
-import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;

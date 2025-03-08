@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.kar.archidata.annotation.ApiGenerationMode;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.kar.archidata.tools.AnnotationCreator;
 
 public class ClassEnumModel extends ClassModel {

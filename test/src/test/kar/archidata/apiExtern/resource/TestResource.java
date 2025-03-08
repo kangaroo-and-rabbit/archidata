@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.kar.archidata.annotation.AsyncType;
+import org.kar.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.kar.archidata.annotation.method.ARCHIVE;
 import org.kar.archidata.annotation.method.RESTORE;
 import org.kar.archidata.exception.NotFoundException;
@@ -100,7 +100,7 @@ public class TestResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public SimpleArchiveTable patch(
 			@PathParam("id") final Long id,
-			@AsyncType(SimpleArchiveTable.class) final String jsonRequest) throws Exception {
+			@ApiAsyncType(SimpleArchiveTable.class) final String jsonRequest) throws Exception {
 		LOGGER.info("patch({})", id);
 		throw new NotFoundException("element does not exist: " + id);
 	}

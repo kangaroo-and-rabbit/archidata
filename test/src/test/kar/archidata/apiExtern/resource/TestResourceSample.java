@@ -2,7 +2,7 @@ package test.kar.archidata.apiExtern.resource;
 
 import java.util.List;
 
-import org.kar.archidata.annotation.AsyncType;
+import org.kar.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.kar.archidata.annotation.method.ARCHIVE;
 import org.kar.archidata.annotation.method.RESTORE;
 import org.kar.archidata.dataAccess.DataAccess;
@@ -66,7 +66,7 @@ public class TestResourceSample {
 	@Path("{id}")
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
-	public SimpleTable patch(@PathParam("id") final Long id, @AsyncType(SimpleTable.class) final String jsonRequest)
+	public SimpleTable patch(@PathParam("id") final Long id, @ApiAsyncType(SimpleTable.class) final String jsonRequest)
 			throws Exception {
 		DataAccess.updateWithJson(SimpleTable.class, id, jsonRequest);
 		return DataAccess.get(SimpleTable.class, id);

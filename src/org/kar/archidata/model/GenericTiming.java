@@ -2,11 +2,11 @@ package org.kar.archidata.model;
 
 import java.util.Date;
 
-import org.kar.archidata.annotation.ApiGenerationMode;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataNotRead;
 import org.kar.archidata.annotation.UpdateTimestamp;
-import org.kar.archidata.annotation.checker.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 

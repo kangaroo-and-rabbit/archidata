@@ -3,7 +3,7 @@ package org.kar.archidata.catcher;
 import java.time.Instant;
 
 import org.bson.types.ObjectId;
-import org.kar.archidata.annotation.ApiGenerationMode;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;

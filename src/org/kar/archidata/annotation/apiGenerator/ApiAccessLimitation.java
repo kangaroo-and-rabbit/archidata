@@ -1,4 +1,4 @@
-package org.kar.archidata.annotation.checker;
+package org.kar.archidata.annotation.apiGenerator;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;

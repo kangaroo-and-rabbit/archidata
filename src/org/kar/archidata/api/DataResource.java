@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
 import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.kar.archidata.annotation.ApiInputOptional;
+import org.kar.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;

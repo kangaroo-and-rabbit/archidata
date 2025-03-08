@@ -1,8 +1,8 @@
 package org.kar.archidata.model;
 
 import org.bson.types.ObjectId;
-import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 import dev.morphia.annotations.Id;
 import io.swagger.v3.oas.annotations.media.Schema;

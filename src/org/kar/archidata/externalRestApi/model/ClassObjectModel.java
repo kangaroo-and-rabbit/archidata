@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.kar.archidata.annotation.AnnotationTools;
-import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package org.kar.archidata.annotation;
+package org.kar.archidata.annotation.apiGenerator;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -68,4 +68,4 @@ import java.lang.annotation.Target;
  */
 @Target({ ElementType.PARAMETER, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface TypeScriptProgress {}
+public @interface ApiTypeScriptProgress {}

@@ -1,7 +1,7 @@
 package org.kar.archidata.model;
 
 import org.kar.archidata.annotation.DataIfNotExists;
-import org.kar.archidata.annotation.checker.ApiAccessLimitation;
+import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
