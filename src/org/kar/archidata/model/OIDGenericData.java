@@ -2,7 +2,7 @@ package org.kar.archidata.model;
 
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 
 import dev.morphia.annotations.Id;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +16,6 @@ public class OIDGenericData extends GenericTiming {
 	@Column(nullable = false, unique = true, name = "_id")
 	@Schema(description = "Unique ObjectID of the object", example = "65161616841351")
 	@NotNull
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public ObjectId oid = null;
 }

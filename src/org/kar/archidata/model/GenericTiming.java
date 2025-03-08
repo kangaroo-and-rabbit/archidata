@@ -6,7 +6,7 @@ import org.kar.archidata.annotation.ApiGenerationMode;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.DataNotRead;
 import org.kar.archidata.annotation.UpdateTimestamp;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 
@@ -22,7 +22,7 @@ public class GenericTiming {
 	@Schema(description = "Create time of the object", example = "2000-01-23T01:23:45.678+01:00")
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	@Nullable
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public Date createdAt = null;
 	@DataNotRead
 	@UpdateTimestamp
@@ -30,6 +30,6 @@ public class GenericTiming {
 	@Schema(description = "When update the object", example = "2000-01-23T00:23:45.678Z")
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	@Nullable
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public Date updatedAt = null;
 }

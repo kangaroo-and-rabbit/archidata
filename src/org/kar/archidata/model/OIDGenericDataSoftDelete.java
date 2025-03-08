@@ -3,7 +3,7 @@ package org.kar.archidata.model;
 import org.kar.archidata.annotation.ApiGenerationMode;
 import org.kar.archidata.annotation.DataDeleted;
 import org.kar.archidata.annotation.DataNotRead;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
@@ -18,6 +18,6 @@ public class OIDGenericDataSoftDelete extends OIDGenericData {
 	@DataDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@Nullable
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public Boolean deleted = null;
 }

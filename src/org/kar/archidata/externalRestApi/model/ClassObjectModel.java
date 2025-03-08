@@ -12,7 +12,7 @@ import java.util.Set;
 
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;
@@ -81,7 +81,7 @@ public class ClassObjectModel extends ClassModel {
 			DecimalMax decimalMax,
 			Pattern pattern,
 			Email email,
-			AccessLimitation accessLimitation,
+			ApiAccessLimitation accessLimitation,
 			Boolean notNull,
 			Boolean columnNotNull,
 			Boolean nullable) {
@@ -89,7 +89,7 @@ public class ClassObjectModel extends ClassModel {
 		public FieldProperty(final String name, final ClassModel model, final ClassModel linkClass,
 				final String comment, final Size stringSize, final Min min, final Max max, final DecimalMin decimalMin,
 				final DecimalMax decimalMax, final Pattern pattern, final Email email,
-				final AccessLimitation accessLimitation, final Boolean notNull, final Boolean columnNotNull,
+				final ApiAccessLimitation accessLimitation, final Boolean notNull, final Boolean columnNotNull,
 				final Boolean nullable) {
 			this.name = name;
 			this.model = model;
@@ -103,7 +103,7 @@ public class ClassObjectModel extends ClassModel {
 			this.min = min;
 			this.max = max;
 			if (accessLimitation == null) {
-				this.accessLimitation = AnnotationCreator.createAnnotation(AccessLimitation.class);
+				this.accessLimitation = AnnotationCreator.createAnnotation(ApiAccessLimitation.class);
 			} else {
 				this.accessLimitation = accessLimitation;
 			}
@@ -158,7 +158,7 @@ public class ClassObjectModel extends ClassModel {
 					AnnotationTools.getConstraintsDecimalMax(field), //
 					AnnotationTools.getConstraintsPattern(field), //
 					AnnotationTools.getConstraintsEmail(field), //
-					AnnotationTools.get(field, AccessLimitation.class), //
+					AnnotationTools.get(field, ApiAccessLimitation.class), //
 					AnnotationTools.getConstraintsNotNull(field), //
 					AnnotationTools.getColumnNotNull(field), //
 					AnnotationTools.getNullable(field));

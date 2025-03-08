@@ -1,7 +1,7 @@
 package org.kar.archidata.model;
 
 import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
@@ -15,6 +15,6 @@ public class GenericData extends GenericTiming {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique Id of the object", example = "123456")
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public Long id = null;
 }

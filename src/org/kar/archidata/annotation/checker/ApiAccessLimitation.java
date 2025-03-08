@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target(FIELD)
-public @interface AccessLimitation {
+public @interface ApiAccessLimitation {
 	/**
 	 * (Optional) The field is accessible in creation (POST)
 	 */

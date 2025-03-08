@@ -3,7 +3,7 @@ package org.kar.archidata.model;
 import java.util.UUID;
 
 import org.kar.archidata.annotation.ApiGenerationMode;
-import org.kar.archidata.annotation.checker.AccessLimitation;
+import org.kar.archidata.annotation.checker.ApiAccessLimitation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
@@ -18,6 +18,6 @@ public class UUIDGenericData extends GenericTiming {
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique UUID of the object", example = "e6b33c1c-d24d-11ee-b616-02420a030102")
 	@NotNull
-	@AccessLimitation(creatable = false, updatable = false)
+	@ApiAccessLimitation(creatable = false, updatable = false)
 	public UUID uuid = null;
 }
