@@ -8,18 +8,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.kar.archidata.annotation.ApiGenerationMode;
+import org.kar.archidata.tools.AnnotationCreator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class ClassModel {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassModel.class);
 	protected boolean analyzeDone = false;
 	protected Class<?> originClasses = null;
-	protected boolean noWriteSpecificMode = false;
+	protected ApiGenerationMode apiGenerationMode = AnnotationCreator.createAnnotation(ApiGenerationMode.class);
 	protected List<ClassModel> dependencyModels = new ArrayList<>();
 
 	public Class<?> getOriginClasses() {
 		return this.originClasses;
 	}
 
-	public boolean isNoWriteSpecificMode() {
-		return this.noWriteSpecificMode;
+	public ApiGenerationMode getApiGenerationMode() {
+		return this.apiGenerationMode;
 	}
 
 	protected boolean isCompatible(final Class<?> clazz) {
@@ -76,7 +82,15 @@ public abstract class ClassModel {
 
 	public abstract Set<ClassModel> getAlls();
 
-	public List<String> getReadOnlyField() {
+	public List<String> getReadOnlyFields() {
+		return List.of();
+	}
+
+	public List<String> getCreateFields() {
+		return List.of();
+	}
+
+	public List<String> getUpdateFields() {
 		return List.of();
 	}
 

@@ -2,6 +2,7 @@ package org.kar.archidata.annotation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +42,24 @@ import jakarta.ws.rs.DefaultValue;
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
 
+	public static <TYPE extends Annotation> TYPE get(final Parameter param, final Class<TYPE> clazz) {
+		final TYPE[] annotations = param.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations[0];
+	}
+
+	public static <TYPE extends Annotation> TYPE[] gets(final Parameter param, final Class<TYPE> clazz) {
+		final TYPE[] annotations = param.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations;
+	}
+
 	public static <TYPE extends Annotation> TYPE get(final Field element, final Class<TYPE> clazz) {
 		final TYPE[] annotations = element.getDeclaredAnnotationsByType(clazz);
 
@@ -52,6 +71,24 @@ public class AnnotationTools {
 
 	public static <TYPE extends Annotation> TYPE[] gets(final Field element, final Class<TYPE> clazz) {
 		final TYPE[] annotations = element.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations;
+	}
+
+	public static <TYPE extends Annotation> TYPE get(final Class<?> classObject, final Class<TYPE> clazz) {
+		final TYPE[] annotations = classObject.getDeclaredAnnotationsByType(clazz);
+
+		if (annotations.length == 0) {
+			return null;
+		}
+		return annotations[0];
+	}
+
+	public static <TYPE extends Annotation> TYPE[] gets(final Class<?> classObject, final Class<TYPE> clazz) {
+		final TYPE[] annotations = classObject.getDeclaredAnnotationsByType(clazz);
 
 		if (annotations.length == 0) {
 			return null;
@@ -121,28 +158,12 @@ public class AnnotationTools {
 		return get(element, CollectionNotEmpty.class);
 	}
 
-	public static boolean getSchemaReadOnly(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
-		if (annotation.length == 0) {
-			return false;
-		}
-		return ((Schema) annotation[0]).readOnly();
-	}
-
 	public static String getSchemaExample(final Class<?> element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
 		return ((Schema) annotation[0]).example();
-	}
-
-	public static boolean getNoWriteSpecificMode(final Class<?> element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(NoWriteSpecificMode.class);
-		if (annotation.length == 0) {
-			return false;
-		}
-		return true;
 	}
 
 	public static String getSchemaDescription(final Class<?> element) {

@@ -3,13 +3,13 @@ package org.kar.archidata.catcher;
 import java.time.Instant;
 
 import org.bson.types.ObjectId;
-import org.kar.archidata.annotation.NoWriteSpecificMode;
+import org.kar.archidata.annotation.ApiGenerationMode;
 
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 
-@NoWriteSpecificMode
+@ApiGenerationMode
 public class RestErrorResponse {
 	public ObjectId oid = new ObjectId();
 	@NotNull

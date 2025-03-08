@@ -32,9 +32,9 @@ import java.lang.annotation.Target;
  *     @Operation(description = "Add a cover on a specific album")
  *     @TypeScriptProgress
  *     public Album uploadCover(@PathParam("id") final Long id,
- *                              @FormDataOptional @FormDataParam("uri") final String uri,
- *                              @FormDataOptional @FormDataParam("file") final InputStream fileInputStream,
- *                              @FormDataOptional @FormDataParam("file") final FormDataContentDisposition fileMetaData)
+ *                              @ApiInputOptional @FormDataParam("uri") final String uri,
+ *                              @ApiInputOptional @FormDataParam("file") final InputStream fileInputStream,
+ *                              @ApiInputOptional @FormDataParam("file") final FormDataContentDisposition fileMetaData)
  *             throws Exception {
  *         // some code
  *     }
@@ -71,6 +71,6 @@ import java.lang.annotation.Target;
  */
 @Target({ ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FormDataOptional {
+public @interface ApiInputOptional {
 
 }

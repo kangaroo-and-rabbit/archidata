@@ -6,11 +6,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ClassEnumModel extends ClassModel {
+import org.kar.archidata.annotation.ApiGenerationMode;
+import org.kar.archidata.tools.AnnotationCreator;
 
+public class ClassEnumModel extends ClassModel {
 	protected ClassEnumModel(final Class<?> clazz) {
 		this.originClasses = clazz;
-		this.noWriteSpecificMode = true;
+		this.apiGenerationMode = AnnotationCreator.createAnnotation(ApiGenerationMode.class, "readable", true,
+				"creatable", false, "updatable", false);
 	}
 
 	@Override

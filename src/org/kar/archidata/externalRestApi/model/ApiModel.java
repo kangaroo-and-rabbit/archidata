@@ -9,8 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.kar.archidata.annotation.AnnotationTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.core.Context;
 
 public class ApiModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
@@ -37,6 +41,8 @@ public class ApiModel {
 	public String name;
 	// list of all parameters (/{key}/...
 	public final Map<String, List<ClassModel>> parameters = new HashMap<>();
+	// list of all headers of the request (/{key}/...
+	public final Map<String, OptionalClassModel> headers = new HashMap<>();
 	// list of all query (?key...)
 	public final Map<String, List<ClassModel>> queries = new HashMap<>();
 	// when request multi-part, need to separate it.
@@ -153,11 +159,12 @@ public class ApiModel {
 			} else {
 				parameterModel.add(previousModel.add(parameterType));
 			}
-
+			final Context contextAnnotation = AnnotationTools.get(parameter, Context.class);
+			final HeaderParam headerParam = AnnotationTools.get(parameter, HeaderParam.class);
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
-			final boolean formDataParamOptional = ApiTool.apiAnnotationGetFormDataOptional(parameter);
+			final boolean apiInputOptional = ApiTool.apiAnnotationGetApiInputOptional(parameter);
 			if (queryParam != null) {
 				if (!this.queries.containsKey(queryParam)) {
 					this.queries.put(queryParam, parameterModel);
@@ -169,7 +176,13 @@ public class ApiModel {
 			} else if (formDataParam != null) {
 				if (!this.multiPartParameters.containsKey(formDataParam)) {
 					this.multiPartParameters.put(formDataParam,
-							new OptionalClassModel(parameterModel, formDataParamOptional));
+							new OptionalClassModel(parameterModel, apiInputOptional));
+				}
+			} else if (contextAnnotation != null) {
+				// out of scope parameters
+			} else if (headerParam != null) {
+				if (!this.headers.containsKey(headerParam.value())) {
+					this.headers.put(headerParam.value(), new OptionalClassModel(parameterModel, apiInputOptional));
 				}
 			} else {
 				this.unnamedElement.addAll(parameterModel);

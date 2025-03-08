@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.ApiGenerationMode;
+import org.kar.archidata.annotation.checker.AccessLimitation;
 import org.kar.archidata.exception.DataAccessException;
+import org.kar.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +34,10 @@ public class ClassObjectModel extends ClassModel {
 
 	public ClassObjectModel(final Class<?> clazz) {
 		this.originClasses = clazz;
+		final ApiGenerationMode tmp = AnnotationTools.get(clazz, ApiGenerationMode.class);
+		if (tmp != null) {
+			this.apiGenerationMode = tmp;
+		}
 	}
 
 	@Override
@@ -74,15 +81,16 @@ public class ClassObjectModel extends ClassModel {
 			DecimalMax decimalMax,
 			Pattern pattern,
 			Email email,
-			Boolean readOnly,
+			AccessLimitation accessLimitation,
 			Boolean notNull,
 			Boolean columnNotNull,
 			Boolean nullable) {
 
 		public FieldProperty(final String name, final ClassModel model, final ClassModel linkClass,
 				final String comment, final Size stringSize, final Min min, final Max max, final DecimalMin decimalMin,
-				final DecimalMax decimalMax, final Pattern pattern, final Email email, final Boolean readOnly,
-				final Boolean notNull, final Boolean columnNotNull, final Boolean nullable) {
+				final DecimalMax decimalMax, final Pattern pattern, final Email email,
+				final AccessLimitation accessLimitation, final Boolean notNull, final Boolean columnNotNull,
+				final Boolean nullable) {
 			this.name = name;
 			this.model = model;
 			this.linkClass = linkClass;
@@ -94,7 +102,11 @@ public class ClassObjectModel extends ClassModel {
 			this.email = email;
 			this.min = min;
 			this.max = max;
-			this.readOnly = readOnly;
+			if (accessLimitation == null) {
+				this.accessLimitation = AnnotationCreator.createAnnotation(AccessLimitation.class);
+			} else {
+				this.accessLimitation = accessLimitation;
+			}
 			this.notNull = notNull;
 			this.columnNotNull = columnNotNull;
 			this.nullable = nullable;
@@ -146,7 +158,7 @@ public class ClassObjectModel extends ClassModel {
 					AnnotationTools.getConstraintsDecimalMax(field), //
 					AnnotationTools.getConstraintsPattern(field), //
 					AnnotationTools.getConstraintsEmail(field), //
-					AnnotationTools.getSchemaReadOnly(field), //
+					AnnotationTools.get(field, AccessLimitation.class), //
 					AnnotationTools.getConstraintsNotNull(field), //
 					AnnotationTools.getColumnNotNull(field), //
 					AnnotationTools.getNullable(field));
@@ -192,7 +204,6 @@ public class ClassObjectModel extends ClassModel {
 		}
 		this.analyzeDone = true;
 		final Class<?> clazz = this.originClasses;
-		this.noWriteSpecificMode = AnnotationTools.getNoWriteSpecificMode(clazz);
 		this.isPrimitive = clazz.isPrimitive();
 		if (this.isPrimitive) {
 			return;
@@ -259,15 +270,43 @@ public class ClassObjectModel extends ClassModel {
 	}
 
 	@Override
-	public List<String> getReadOnlyField() {
+	public List<String> getReadOnlyFields() {
 		final List<String> out = new ArrayList<>();
 		for (final FieldProperty field : this.fields) {
-			if (field.readOnly()) {
+			if (!field.accessLimitation().creatable() && !field.accessLimitation().updatable()) {
 				out.add(field.name);
 			}
 		}
 		if (this.extendsClass != null) {
-			out.addAll(this.extendsClass.getReadOnlyField());
+			out.addAll(this.extendsClass.getReadOnlyFields());
+		}
+		return out;
+	}
+
+	@Override
+	public List<String> getCreateFields() {
+		final List<String> out = new ArrayList<>();
+		for (final FieldProperty field : this.fields) {
+			if (field.accessLimitation().creatable()) {
+				out.add(field.name);
+			}
+		}
+		if (this.extendsClass != null) {
+			out.addAll(this.extendsClass.getReadOnlyFields());
+		}
+		return out;
+	}
+
+	@Override
+	public List<String> getUpdateFields() {
+		final List<String> out = new ArrayList<>();
+		for (final FieldProperty field : this.fields) {
+			if (field.accessLimitation().updatable()) {
+				out.add(field.name);
+			}
+		}
+		if (this.extendsClass != null) {
+			out.addAll(this.extendsClass.getReadOnlyFields());
 		}
 		return out;
 	}

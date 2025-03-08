@@ -45,7 +45,9 @@ public class TsApiGeneration {
 			final ClassEnumModel model,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		imports.add(model);
 		final TsClassElement tsModel = tsGroup.find(model);
 		return tsModel.tsTypeName;
@@ -55,34 +57,47 @@ public class TsApiGeneration {
 			final ClassObjectModel model,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		final TsClassElement tsModel = tsGroup.find(model);
 		if (tsModel.nativeType != DefinedPosition.NATIVE) {
-			if (importWrite == null || tsModel.models.get(0).isNoWriteSpecificMode()) {
-				imports.add(model);
+			if (importCreate != null && tsModel.models.get(0).getApiGenerationMode().create()) {
+				importCreate.add(model);
+			} else if (importUpdate != null && tsModel.models.get(0).getApiGenerationMode().update()) {
+				importUpdate.add(model);
 			} else {
-				importWrite.add(model);
+				imports.add(model);
 			}
 		}
+		String out = tsModel.tsTypeName;
 		if (tsModel.nativeType != DefinedPosition.NORMAL) {
-			return tsModel.tsTypeName;
+			out = tsModel.tsTypeName;
+		} else if (importCreate != null && tsModel.models.get(0).getApiGenerationMode().create()) {
+			out = tsModel.tsTypeName + TsClassElement.MODEL_TYPE_CREATE;
+		} else if (importUpdate != null && tsModel.models.get(0).getApiGenerationMode().update()) {
+			out = tsModel.tsTypeName + TsClassElement.MODEL_TYPE_UPDATE;
 		}
-		if (importWrite != null && !tsModel.models.get(0).isNoWriteSpecificMode()) {
-			return tsModel.tsTypeName + "Write";
+		if (partialObject) {
+			return "Partial<" + out + ">";
 		}
-		return tsModel.tsTypeName;
+		return out;
 	}
 
 	public static String generateClassMapModelTypescript(
 			final ClassMapModel model,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		final StringBuilder out = new StringBuilder();
 		out.append("{[key: ");
-		out.append(generateClassModelTypescript(model.keyModel, tsGroup, imports, importWrite));
+		out.append(generateClassModelTypescript(model.keyModel, tsGroup, imports, importUpdate, importCreate,
+				partialObject));
 		out.append("]: ");
-		out.append(generateClassModelTypescript(model.valueModel, tsGroup, imports, importWrite));
+		out.append(generateClassModelTypescript(model.valueModel, tsGroup, imports, importUpdate, importCreate,
+				partialObject));
 		out.append(";}");
 		return out.toString();
 	}
@@ -91,9 +106,12 @@ public class TsApiGeneration {
 			final ClassListModel model,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		final StringBuilder out = new StringBuilder();
-		out.append(generateClassModelTypescript(model.valueModel, tsGroup, imports, importWrite));
+		out.append(generateClassModelTypescript(model.valueModel, tsGroup, imports, importUpdate, importCreate,
+				partialObject));
 		out.append("[]");
 		return out.toString();
 	}
@@ -102,18 +120,24 @@ public class TsApiGeneration {
 			final ClassModel model,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		if (model instanceof final ClassObjectModel objectModel) {
-			return generateClassObjectModelTypescript(objectModel, tsGroup, imports, importWrite);
+			return generateClassObjectModelTypescript(objectModel, tsGroup, imports, importUpdate, importCreate,
+					partialObject);
 		}
 		if (model instanceof final ClassListModel listModel) {
-			return generateClassListModelTypescript(listModel, tsGroup, imports, importWrite);
+			return generateClassListModelTypescript(listModel, tsGroup, imports, importUpdate, importCreate,
+					partialObject);
 		}
 		if (model instanceof final ClassMapModel mapModel) {
-			return generateClassMapModelTypescript(mapModel, tsGroup, imports, importWrite);
+			return generateClassMapModelTypescript(mapModel, tsGroup, imports, importUpdate, importCreate,
+					partialObject);
 		}
 		if (model instanceof final ClassEnumModel enumModel) {
-			return generateClassEnumModelTypescript(enumModel, tsGroup, imports, importWrite);
+			return generateClassEnumModelTypescript(enumModel, tsGroup, imports, importUpdate, importCreate,
+					partialObject);
 		}
 		throw new IOException("Impossible model:" + model);
 	}
@@ -122,7 +146,9 @@ public class TsApiGeneration {
 			final List<ClassModel> models,
 			final TsClassElementGroup tsGroup,
 			final Set<ClassModel> imports,
-			final Set<ClassModel> importWrite) throws IOException {
+			final Set<ClassModel> importUpdate,
+			final Set<ClassModel> importCreate,
+			final boolean partialObject) throws IOException {
 		if (models.size() == 0) {
 			return "void";
 		}
@@ -134,7 +160,8 @@ public class TsApiGeneration {
 			} else {
 				out.append(" | ");
 			}
-			final String data = generateClassModelTypescript(model, tsGroup, imports, importWrite);
+			final String data = generateClassModelTypescript(model, tsGroup, imports, importUpdate, importCreate,
+					partialObject);
 			out.append(data);
 		}
 		return out.toString();
@@ -159,7 +186,8 @@ public class TsApiGeneration {
 		final Set<ClassModel> imports = new HashSet<>();
 		final Set<ClassModel> zodImports = new HashSet<>();
 		final Set<ClassModel> isImports = new HashSet<>();
-		final Set<ClassModel> writeImports = new HashSet<>();
+		final Set<ClassModel> updateImports = new HashSet<>();
+		final Set<ClassModel> createImports = new HashSet<>();
 		final Set<String> toolImports = new HashSet<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
 			final List<String> consumes = interfaceElement.consumes;
@@ -172,6 +200,7 @@ public class TsApiGeneration {
 				data.append("\n\n");
 				data.append(returnComplexModel.replaceAll("(?m)^", "\t"));
 				for (final ClassModel elem : interfaceElement.returnTypes) {
+					// TODO maybe need to update this with the type of zod requested (like update, create ...
 					zodImports.addAll(elem.getDependencyGroupModels());
 				}
 			}
@@ -195,6 +224,9 @@ public class TsApiGeneration {
 			if (interfaceElement.unnamedElement.size() == 1 || interfaceElement.multiPartParameters.size() != 0) {
 				data.append("\n\t\t\tdata,");
 			}
+			if (!interfaceElement.headers.isEmpty()) {
+				data.append("\n\t\t\theaders,");
+			}
 			if (needGenerateProgress) {
 				data.append("\n\t\t\tcallbacks,");
 			}
@@ -207,7 +239,8 @@ public class TsApiGeneration {
 					data.append("\n\t\t\t");
 					data.append(queryEntry.getKey());
 					data.append("?: ");
-					data.append(generateClassModelsTypescript(queryEntry.getValue(), tsGroup, imports, null));
+					data.append(
+							generateClassModelsTypescript(queryEntry.getValue(), tsGroup, imports, null, null, false));
 					data.append(",");
 				}
 				data.append("\n\t\t},");
@@ -218,15 +251,27 @@ public class TsApiGeneration {
 					data.append("\n\t\t\t");
 					data.append(paramEntry.getKey());
 					data.append(": ");
-					data.append(generateClassModelsTypescript(paramEntry.getValue(), tsGroup, imports, null));
+					data.append(
+							generateClassModelsTypescript(paramEntry.getValue(), tsGroup, imports, null, null, false));
 					data.append(",");
 				}
 				data.append("\n\t\t},");
 			}
 			if (interfaceElement.unnamedElement.size() == 1) {
 				data.append("\n\t\tdata: ");
-				data.append(generateClassModelTypescript(interfaceElement.unnamedElement.get(0), tsGroup, imports,
-						writeImports));
+				if (interfaceElement.restTypeRequest == RestTypeRequest.POST) {
+					data.append(generateClassModelTypescript(interfaceElement.unnamedElement.get(0), tsGroup, imports,
+							null, createImports, false));
+				} else if (interfaceElement.restTypeRequest == RestTypeRequest.PUT) {
+					data.append(generateClassModelTypescript(interfaceElement.unnamedElement.get(0), tsGroup, imports,
+							updateImports, null, false));
+				} else if (interfaceElement.restTypeRequest == RestTypeRequest.PATCH) {
+					data.append(generateClassModelTypescript(interfaceElement.unnamedElement.get(0), tsGroup, imports,
+							updateImports, null, true));
+				} else {
+					data.append(generateClassModelTypescript(interfaceElement.unnamedElement.get(0), tsGroup, imports,
+							null, null, true));
+				}
 				data.append(",");
 			} else if (interfaceElement.multiPartParameters.size() != 0) {
 				data.append("\n\t\tdata: {");
@@ -238,8 +283,34 @@ public class TsApiGeneration {
 						data.append("?");
 					}
 					data.append(": ");
-					data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports,
-							writeImports));
+					if (interfaceElement.restTypeRequest == RestTypeRequest.POST) {
+						data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports, null,
+								createImports, false));
+					} else if (interfaceElement.restTypeRequest == RestTypeRequest.PUT) {
+						data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports,
+								updateImports, null, false));
+					} else if (interfaceElement.restTypeRequest == RestTypeRequest.PATCH) {
+						data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports,
+								updateImports, null, true));
+					} else {
+						data.append(generateClassModelsTypescript(pathEntry.getValue().model(), tsGroup, imports, null,
+								null, true));
+					}
+					data.append(",");
+				}
+				data.append("\n\t\t},");
+			}
+			if (!interfaceElement.headers.isEmpty()) {
+				data.append("\n\t\theaders?: {");
+				for (final Entry<String, OptionalClassModel> headerEntry : interfaceElement.headers.entrySet()) {
+					data.append("\n\t\t\t");
+					data.append(headerEntry.getKey());
+					if (headerEntry.getValue().optional()) {
+						data.append("?");
+					}
+					data.append(": ");
+					data.append(generateClassModelsTypescript(headerEntry.getValue().model(), tsGroup, imports, null,
+							null, false));
 					data.append(",");
 				}
 				data.append("\n\t\t},");
@@ -287,7 +358,7 @@ public class TsApiGeneration {
 				toolImports.add("RESTRequestJson");
 			} else {
 				final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, tsGroup, imports,
-						null);
+						null, null, false);
 				data.append(returnType);
 				data.append("> {");
 				if ("void".equals(returnType)) {
@@ -332,7 +403,7 @@ public class TsApiGeneration {
 					data.append("\n\t\t\t\taccept: produce,");
 				} else {
 					final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, tsGroup,
-							imports, null);
+							imports, null, null, false);
 					if (!"void".equals(returnType)) {
 						for (final String elem : produces) {
 							if (MediaType.APPLICATION_JSON.equals(elem)) {
@@ -359,6 +430,9 @@ public class TsApiGeneration {
 			}
 			if (needGenerateProgress) {
 				data.append("\n\t\t\tcallbacks,");
+			}
+			if (!interfaceElement.headers.isEmpty()) {
+				data.append("\n\t\t\theaders,");
 			}
 			data.append("\n\t\t}");
 			if (returnComplexModel != null) {
@@ -419,17 +493,30 @@ public class TsApiGeneration {
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
+			if (!tsModel.models.get(0).getApiGenerationMode().read()) {
+				continue;
+			}
 			finalImportSet.add("Zod" + tsModel.tsTypeName);
 		}
-		for (final ClassModel model : writeImports) {
+		for (final ClassModel model : updateImports) {
 			final TsClassElement tsModel = tsGroup.find(model);
 			if (tsModel.nativeType != DefinedPosition.NORMAL) {
 				continue;
 			}
-			if (tsModel.models.get(0).isNoWriteSpecificMode()) {
+			if (!tsModel.models.get(0).getApiGenerationMode().update()) {
 				continue;
 			}
-			finalImportSet.add(tsModel.tsTypeName + "Write");
+			finalImportSet.add(tsModel.tsTypeName + TsClassElement.MODEL_TYPE_UPDATE);
+		}
+		for (final ClassModel model : createImports) {
+			final TsClassElement tsModel = tsGroup.find(model);
+			if (tsModel.nativeType != DefinedPosition.NORMAL) {
+				continue;
+			}
+			if (!tsModel.models.get(0).getApiGenerationMode().create()) {
+				continue;
+			}
+			finalImportSet.add(tsModel.tsTypeName + TsClassElement.MODEL_TYPE_CREATE);
 		}
 
 		if (finalImportSet.size() != 0) {
