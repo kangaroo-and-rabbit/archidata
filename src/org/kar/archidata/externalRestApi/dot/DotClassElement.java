@@ -151,13 +151,6 @@ public class DotClassElement {
 		return ".optional()";
 	}
 
-	public String readOnlyZod(final FieldProperty field) {
-		if (field.readOnly()) {
-			return ".readonly()";
-		}
-		return "";
-	}
-
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
 		return out.toString();

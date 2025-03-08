@@ -3,30 +3,29 @@
  * @copyright 2024, Edouard DUPIN, all right reserved
  * @license MPL-2
  */
-
-import { RestErrorResponse, isRestErrorResponse } from "./model";
+import { RestErrorResponse, isRestErrorResponse } from './model';
 
 export enum HTTPRequestModel {
-  ARCHIVE = "ARCHIVE",
-  DELETE = "DELETE",
-  HEAD = "HEAD",
-  GET = "GET",
-  OPTION = "OPTION",
-  PATCH = "PATCH",
-  POST = "POST",
-  PUT = "PUT",
-  RESTORE = "RESTORE",
+  ARCHIVE = 'ARCHIVE',
+  DELETE = 'DELETE',
+  HEAD = 'HEAD',
+  GET = 'GET',
+  OPTION = 'OPTION',
+  PATCH = 'PATCH',
+  POST = 'POST',
+  PUT = 'PUT',
+  RESTORE = 'RESTORE',
 }
 export enum HTTPMimeType {
-  ALL = "*/*",
-  CSV = "text/csv",
-  IMAGE = "image/*",
-  IMAGE_JPEG = "image/jpeg",
-  IMAGE_PNG = "image/png",
-  JSON = "application/json",
-  MULTIPART = "multipart/form-data",
-  OCTET_STREAM = "application/octet-stream",
-  TEXT_PLAIN = "text/plain",
+  ALL = '*/*',
+  CSV = 'text/csv',
+  IMAGE = 'image/*',
+  IMAGE_JPEG = 'image/jpeg',
+  IMAGE_PNG = 'image/png',
+  JSON = 'application/json',
+  MULTIPART = 'multipart/form-data',
+  OCTET_STREAM = 'application/octet-stream',
+  TEXT_PLAIN = 'text/plain',
 }
 
 export interface RESTConfig {
@@ -56,12 +55,11 @@ export interface ModelResponseHttp {
 
 export type ErrorRestApiCallback = (response: Response) => void;
 
-let errorApiGlobalCallback: ErrorRestApiCallback|undefined = undefined;
+let errorApiGlobalCallback: ErrorRestApiCallback | undefined = undefined;
 
-export const setErrorApiGlobalCallback = (callback:ErrorRestApiCallback) => {
-	errorApiGlobalCallback = callback;
-} 
-
+export const setErrorApiGlobalCallback = (callback: ErrorRestApiCallback) => {
+  errorApiGlobalCallback = callback;
+};
 
 function isNullOrUndefined(data: any): data is undefined | null {
   return data === undefined || data === null;
@@ -87,6 +85,7 @@ export interface RESTRequestType {
   data?: any;
   params?: object;
   queries?: object;
+  headers?: any;
   callbacks?: RESTCallbacks;
 }
 
@@ -96,15 +95,15 @@ function replaceAll(input, searchValue, replaceValue) {
 
 function removeTrailingSlashes(input: string): string {
   if (isNullOrUndefined(input)) {
-    return "undefined";
+    return 'undefined';
   }
-  return input.replace(/\/+$/, "");
+  return input.replace(/\/+$/, '');
 }
 function removeLeadingSlashes(input: string): string {
   if (isNullOrUndefined(input)) {
-    return "";
+    return '';
   }
-  return input.replace(/^\/+/, "");
+  return input.replace(/^\/+/, '');
 }
 
 export function RESTUrl({
@@ -142,9 +141,9 @@ export function RESTUrl({
     }
   }
   if (restConfig.token !== undefined && restModel.tokenInUrl === true) {
-    searchParams.append("Authorization", `Bearer ${restConfig.token}`);
+    searchParams.append('Authorization', `Bearer ${restConfig.token}`);
   }
-  return generateUrl + "?" + searchParams.toString();
+  return generateUrl + '?' + searchParams.toString();
 }
 
 export function fetchProgress(
@@ -168,7 +167,7 @@ export function fetchProgress(
   return new Promise((resolve, reject) => {
     // Stream the upload progress
     if (progressUpload) {
-      xhr.io?.upload.addEventListener("progress", (dataEvent) => {
+      xhr.io?.upload.addEventListener('progress', (dataEvent) => {
         if (dataEvent.lengthComputable) {
           progressUpload(dataEvent.loaded, dataEvent.total);
         }
@@ -176,7 +175,7 @@ export function fetchProgress(
     }
     // Stream the download progress
     if (progressDownload) {
-      xhr.io?.addEventListener("progress", (dataEvent) => {
+      xhr.io?.addEventListener('progress', (dataEvent) => {
         if (dataEvent.lengthComputable) {
           progressDownload(dataEvent.loaded, dataEvent.total);
         }
@@ -196,19 +195,19 @@ export function fetchProgress(
       };
     }
     // Check if we have an internal Fail:
-    xhr.io?.addEventListener("error", () => {
+    xhr.io?.addEventListener('error', () => {
       xhr.io = undefined;
-      reject(new TypeError("Failed to fetch"));
+      reject(new TypeError('Failed to fetch'));
     });
 
     // Capture the end of the stream
-    xhr.io?.addEventListener("loadend", () => {
+    xhr.io?.addEventListener('loadend', () => {
       if (xhr.io?.readyState !== XMLHttpRequest.DONE) {
         return;
       }
       if (xhr.io?.status === 0) {
         //the stream has been aborted
-        reject(new TypeError("Fetch has been aborted"));
+        reject(new TypeError('Fetch has been aborted'));
         return;
       }
       // Stream is ended, transform in a generic response:
@@ -218,17 +217,17 @@ export function fetchProgress(
       });
       const headersArray = replaceAll(
         xhr.io.getAllResponseHeaders().trim(),
-        "\r\n",
-        "\n"
-      ).split("\n");
+        '\r\n',
+        '\n'
+      ).split('\n');
       headersArray.forEach(function (header) {
-        const firstColonIndex = header.indexOf(":");
+        const firstColonIndex = header.indexOf(':');
         if (firstColonIndex !== -1) {
           const key = header.substring(0, firstColonIndex).trim();
           const value = header.substring(firstColonIndex + 1).trim();
           response.headers.set(key, value);
         } else {
-          response.headers.set(header, "");
+          response.headers.set(header, '');
         }
       });
       xhr.io = undefined;
@@ -250,27 +249,29 @@ export function RESTRequest({
   data,
   params,
   queries,
+  headers = {},
   callbacks,
 }: RESTRequestType): Promise<ModelResponseHttp> {
   // Create the URL PATH:
   let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
-  let headers: any = {};
   if (restConfig.token !== undefined && restModel.tokenInUrl !== true) {
-    headers["Authorization"] = `Bearer ${restConfig.token}`;
+    headers['Authorization'] = `Bearer ${restConfig.token}`;
   }
   if (restModel.accept !== undefined) {
-    headers["Accept"] = restModel.accept;
+    headers['Accept'] = restModel.accept;
   }
-  if (restModel.requestType !== HTTPRequestModel.GET &&
-	restModel.requestType !== HTTPRequestModel.ARCHIVE &&
-	restModel.requestType !== HTTPRequestModel.RESTORE
+  if (
+    restModel.requestType !== HTTPRequestModel.GET &&
+    restModel.requestType !== HTTPRequestModel.ARCHIVE &&
+    restModel.requestType !== HTTPRequestModel.RESTORE
   ) {
     // if Get we have not a content type, the body is empty
-    if (restModel.contentType !== HTTPMimeType.MULTIPART &&
-	  restModel.contentType !== undefined
-	) {
+    if (
+      restModel.contentType !== HTTPMimeType.MULTIPART &&
+      restModel.contentType !== undefined
+    ) {
       // special case of multi-part ==> no content type otherwise the browser does not set the ";bundary=--****"
-      headers["Content-Type"] = restModel.contentType;
+      headers['Content-Type'] = restModel.contentType;
     }
   }
   let body = data;
@@ -311,23 +312,27 @@ export function RESTRequest({
     }
     action
       .then((response: Response) => {
-		if(errorApiGlobalCallback && 400 <= response.status && response.status <= 499) {
-			// Detect an error and trigger the generic error callback:
-			errorApiGlobalCallback(response);
-		}
+        if (
+          errorApiGlobalCallback &&
+          400 <= response.status &&
+          response.status <= 499
+        ) {
+          // Detect an error and trigger the generic error callback:
+          errorApiGlobalCallback(response);
+        }
         if (response.status >= 200 && response.status <= 299) {
-          const contentType = response.headers.get("Content-Type");
+          const contentType = response.headers.get('Content-Type');
           if (
             !isNullOrUndefined(restModel.accept) &&
             restModel.accept !== contentType
           ) {
             reject({
-              name: "Model accept type incompatible",
+              name: 'Model accept type incompatible',
               time: Date().toString(),
               status: 901,
               message: `REST Content type are not compatible: ${restModel.accept} != ${contentType}`,
-              statusMessage: "Fetch error",
-              error: "rest-tools.ts Wrong type in the message return type",
+              statusMessage: 'Fetch error',
+              error: 'rest-tools.ts Wrong type in the message return type',
             } as RestErrorResponse);
           } else if (contentType === HTTPMimeType.JSON) {
             response
@@ -337,12 +342,12 @@ export function RESTRequest({
               })
               .catch((reason: Error) => {
                 reject({
-                  name: "API serialization error",
+                  name: 'API serialization error',
                   time: Date().toString(),
                   status: 902,
                   message: `REST parse json fail: ${reason}`,
-                  statusMessage: "Fetch parse error",
-                  error: "rest-tools.ts Wrong message model to parse",
+                  statusMessage: 'Fetch parse error',
+                  error: 'rest-tools.ts Wrong message model to parse',
                 } as RestErrorResponse);
               });
           } else {
@@ -362,22 +367,22 @@ export function RESTRequest({
                   .text()
                   .then((dataError: string) => {
                     reject({
-                      name: "API serialization error",
+                      name: 'API serialization error',
                       time: Date().toString(),
                       status: 903,
                       message: `REST parse error json with wrong type fail. ${dataError}`,
-                      statusMessage: "Fetch parse error",
-                      error: "rest-tools.ts Wrong message model to parse",
+                      statusMessage: 'Fetch parse error',
+                      error: 'rest-tools.ts Wrong message model to parse',
                     } as RestErrorResponse);
                   })
                   .catch((reason: any) => {
                     reject({
-                      name: "API serialization error",
+                      name: 'API serialization error',
                       time: Date().toString(),
                       status: response.status,
                       message: `unmanaged error model: ??? with error: ${reason}`,
-                      statusMessage: "Fetch ERROR parse error",
-                      error: "rest-tools.ts Wrong message model to parse",
+                      statusMessage: 'Fetch ERROR parse error',
+                      error: 'rest-tools.ts Wrong message model to parse',
                     } as RestErrorResponse);
                   });
               }
@@ -387,22 +392,22 @@ export function RESTRequest({
                 .text()
                 .then((dataError: string) => {
                   reject({
-                    name: "API serialization error",
+                    name: 'API serialization error',
                     time: Date().toString(),
                     status: response.status,
                     message: `unmanaged error model: ${dataError} with error: ${reason}`,
-                    statusMessage: "Fetch ERROR TEXT parse error",
-                    error: "rest-tools.ts Wrong message model to parse",
+                    statusMessage: 'Fetch ERROR TEXT parse error',
+                    error: 'rest-tools.ts Wrong message model to parse',
                   } as RestErrorResponse);
                 })
                 .catch((reason: any) => {
                   reject({
-                    name: "API serialization error",
+                    name: 'API serialization error',
                     time: Date().toString(),
                     status: response.status,
                     message: `unmanaged error model: ??? with error: ${reason}`,
-                    statusMessage: "Fetch ERROR TEXT FAIL",
-                    error: "rest-tools.ts Wrong message model to parse",
+                    statusMessage: 'Fetch ERROR TEXT FAIL',
+                    error: 'rest-tools.ts Wrong message model to parse',
                   } as RestErrorResponse);
                 });
             });
@@ -413,12 +418,12 @@ export function RESTRequest({
           reject(error);
         } else {
           reject({
-            name: "Request fail",
+            name: 'Request fail',
             time: Date(),
             status: 999,
             message: error,
-            statusMessage: "Fetch catch error",
-            error: "rest-tools.ts detect an error in the fetch request",
+            statusMessage: 'Fetch catch error',
+            error: 'rest-tools.ts detect an error in the fetch request',
           });
         }
       });
@@ -439,12 +444,12 @@ export function RESTRequestJson<TYPE>(
           resolve(value.data);
         } else {
           reject({
-            name: "Model check fail",
+            name: 'Model check fail',
             time: Date().toString(),
             status: 950,
-            error: "REST Fail to verify the data",
-            statusMessage: "API cast ERROR",
-            message: "api.ts Check type as fail",
+            error: 'REST Fail to verify the data',
+            statusMessage: 'API cast ERROR',
+            message: 'api.ts Check type as fail',
           } as RestErrorResponse);
         }
       })

@@ -24,6 +24,7 @@ import javax.imageio.ImageIO;
 import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.kar.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.kar.archidata.annotation.security.PermitTokenInURI;
 import org.kar.archidata.dataAccess.DataAccess;
 import org.kar.archidata.dataAccess.QueryCondition;
@@ -426,7 +427,7 @@ public class DataResource {
 	public Response retrieveDataFull(
 			@Context final SecurityContext sc,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
-			@HeaderParam("Range") final String range,
+			@ApiInputOptional @HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid,
 			@PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();

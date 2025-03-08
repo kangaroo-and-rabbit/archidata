@@ -7,9 +7,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.kar.archidata.annotation.AsyncType;
-import org.kar.archidata.annotation.FormDataOptional;
-import org.kar.archidata.annotation.TypeScriptProgress;
+import org.kar.archidata.annotation.apiGenerator.ApiInputOptional;
+import org.kar.archidata.annotation.apiGenerator.ApiAsyncType;
+import org.kar.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
 import org.kar.archidata.annotation.method.ARCHIVE;
 import org.kar.archidata.annotation.method.RESTORE;
 
@@ -53,7 +53,7 @@ public class ApiTool {
 	}
 
 	public static boolean apiAnnotationTypeScriptProgress(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(TypeScriptProgress.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiTypeScriptProgress.class);
 		if (annotation.length == 0) {
 			return false;
 		}
@@ -159,8 +159,8 @@ public class ApiTool {
 		return ((QueryParam) annotation[0]).value();
 	}
 
-	public static boolean apiAnnotationGetFormDataOptional(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataOptional.class);
+	public static boolean apiAnnotationGetApiInputOptional(final Parameter element) throws Exception {
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiInputOptional.class);
 		if (annotation.length == 0) {
 			return false;
 		}
@@ -176,19 +176,19 @@ public class ApiTool {
 	}
 
 	public static Class<?>[] apiAnnotationGetAsyncType(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiAsyncType.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((AsyncType) annotation[0]).value();
+		return ((ApiAsyncType) annotation[0]).value();
 	}
 
 	public static Class<?>[] apiAnnotationGetAsyncType(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(AsyncType.class);
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiAsyncType.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((AsyncType) annotation[0]).value();
+		return ((ApiAsyncType) annotation[0]).value();
 	}
 
 	public static List<String> apiAnnotationGetConsumes(final Method element) throws Exception {

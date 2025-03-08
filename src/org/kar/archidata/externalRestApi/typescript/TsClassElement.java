@@ -27,6 +27,9 @@ public class TsClassElement {
 		NORMAL // Normal Object to interpret.
 	}
 
+	public static final String MODEL_TYPE_UPDATE = "Update";
+	public static final String MODEL_TYPE_CREATE = "Create";
+
 	public List<ClassModel> models;
 	public String zodName;
 	public String tsTypeName;
@@ -138,7 +141,7 @@ public class TsClassElement {
 			out.append(this.tsTypeName);
 			out.append(");\n");
 		}
-		out.append(generateExportCheckFunctionWrite(""));
+		out.append(generateExportCheckFunctionAppended(""));
 		return out.toString();
 	}
 
@@ -168,9 +171,9 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	private String generateExportCheckFunctionWrite(final String writeString) {
-		return generateExportCheckFunction(this.tsCheckType + writeString, this.tsTypeName + writeString,
-				this.zodName + writeString);
+	private String generateExportCheckFunctionAppended(final String appendString) {
+		return generateExportCheckFunction(this.tsCheckType + appendString, this.tsTypeName + appendString,
+				this.zodName + appendString);
 	}
 
 	public String generateImports(final List<ClassModel> depModels, final TsClassElementGroup tsGroup)
@@ -180,11 +183,23 @@ public class TsClassElement {
 			final TsClassElement tsModel = tsGroup.find(depModel);
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
 				out.append("import {");
-				out.append(tsModel.zodName);
-				if (tsModel.nativeType == DefinedPosition.NORMAL && !(tsModel.models.get(0).isNoWriteSpecificMode())) {
+				if (tsModel.nativeType != DefinedPosition.NORMAL
+						|| tsModel.models.get(0).getApiGenerationMode().read()) {
+					out.append(tsModel.zodName);
+				}
+				if (tsModel.nativeType == DefinedPosition.NORMAL
+						&& tsModel.models.get(0).getApiGenerationMode().update()) {
 					out.append(", ");
 					out.append(tsModel.zodName);
-					out.append("Write ");
+					out.append(MODEL_TYPE_UPDATE);
+					out.append(" ");
+				}
+				if (tsModel.nativeType == DefinedPosition.NORMAL
+						&& tsModel.models.get(0).getApiGenerationMode().create()) {
+					out.append(", ");
+					out.append(tsModel.zodName);
+					out.append(MODEL_TYPE_CREATE);
+					out.append(" ");
 				}
 				out.append("} from \"./");
 				out.append(tsModel.fileName);
@@ -321,7 +336,7 @@ public class TsClassElement {
 	}
 
 	public String readOnlyZod(final FieldProperty field) {
-		if (field.readOnly()) {
+		if (!field.accessLimitation().creatable() && !field.accessLimitation().updatable()) {
 			return ".readonly()";
 		}
 		return "";
@@ -343,18 +358,32 @@ public class TsClassElement {
 
 	public String generateObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) throws IOException {
 		final StringBuilder out = new StringBuilder();
+
 		out.append(getBaseHeader());
 		out.append(generateImports(model.getDependencyModels(), tsGroup));
 		out.append("\n");
-		// ------------------------------------------------------------------------
-		// -- Generate read mode
-		// ------------------------------------------------------------------------
+
+		if (model.getApiGenerationMode().read()) {
+			out.append(generateObjectRead(model, tsGroup));
+		}
+		if (model.getApiGenerationMode().update()) {
+			out.append(generateObjectUpdate(model, tsGroup));
+		}
+		if (model.getApiGenerationMode().create()) {
+			out.append(generateObjectCreate(model, tsGroup));
+		}
+		return out.toString();
+	}
+
+	public String generateObjectRead(final ClassObjectModel model, final TsClassElementGroup tsGroup)
+			throws IOException {
+		final StringBuilder out = new StringBuilder();
 		out.append(generateComment(model));
 		out.append("export const ");
 		out.append(this.zodName);
 		out.append(" = ");
 		// Check if the object is empty:
-		boolean isEmpty = model.getFields().size() == 0;
+		final boolean isEmpty = model.getFields().size() == 0;
 
 		if (model.getExtendsClass() != null) {
 			final ClassModel parentClass = model.getExtendsClass();
@@ -392,98 +421,138 @@ public class TsClassElement {
 			out.append(optionalTypeZod(field));
 			out.append(",\n");
 		}
-		final List<String> omitField = model.getReadOnlyField();
 		if (model.getExtendsClass() != null && isEmpty) {
 			out.append(";\n");
 		} else {
 			out.append("\n});\n");
 		}
 		out.append(generateZodInfer(this.tsTypeName, this.zodName));
-		out.append(generateExportCheckFunctionWrite(""));
-		// check if we need to generate write mode :
-		if (!model.isNoWriteSpecificMode()) {
-			// ------------------------------------------------------------------------
-			// -- Generate write mode
-			// ------------------------------------------------------------------------
-			//out.append(generateComment(model));
-			out.append("export const ");
-			out.append(this.zodName);
-			out.append("Write = ");
-			isEmpty = model.getFields().stream().filter(field -> !field.readOnly()).count() == 0;
-			if (model.getExtendsClass() != null) {
-				final ClassModel parentClass = model.getExtendsClass();
-				final TsClassElement tsParentModel = tsGroup.find(parentClass);
-				out.append(tsParentModel.zodName);
-				out.append("Write");
-				if (!isEmpty) {
-					out.append(".extend({\n");
-				}
-			} else {
-				out.append("zod.object({\n");
+		out.append(generateExportCheckFunctionAppended(""));
+		return out.toString();
+	}
+
+	public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup)
+			throws IOException {
+		final StringBuilder out = new StringBuilder();
+		final String modeleType = MODEL_TYPE_UPDATE;
+		out.append("export const ");
+		out.append(this.zodName);
+		out.append(modeleType);
+		out.append(" = ");
+		// Check if at minimum One fiend is updatable to generate the local object
+		final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().updatable())
+				.count() == 0;
+		if (model.getExtendsClass() != null) {
+			final ClassModel parentClass = model.getExtendsClass();
+			final TsClassElement tsParentModel = tsGroup.find(parentClass);
+			out.append(tsParentModel.zodName);
+			out.append(modeleType);
+			if (!isEmpty) {
+				out.append(".extend({\n");
 			}
-			for (final FieldProperty field : model.getFields()) {
-				// remove all readOnly field
-				if (field.readOnly()) {
-					continue;
-				}
-				final ClassModel fieldModel = field.model();
-				if (field.comment() != null) {
-					out.append("\t/**\n");
-					out.append("\t * ");
-					out.append(field.comment());
-					out.append("\n\t */\n");
-				}
-				out.append("\t");
-				out.append(field.name());
-				out.append(": ");
-				if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
-					final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
-					out.append(tsFieldModel.zodName);
-				} else if (fieldModel instanceof final ClassListModel fieldListModel) {
-					final String data = generateTsList(fieldListModel, tsGroup);
-					out.append(data);
-				} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
-					final String data = generateTsMap(fieldMapModel, tsGroup);
-					out.append(data);
-				}
-				out.append(maxSizeZod(field));
-				out.append(optionalWriteTypeZod(field));
-				// all write field are optional
-				if (field.model() instanceof final ClassObjectModel plop) {
-					if (!plop.isPrimitive()) {
-						out.append(".optional()");
-					}
-				} else {
-					out.append(".optional()");
-				}
-				out.append(",\n");
-			}
-			if (model.getExtendsClass() != null && isEmpty) {
-				out.append(";\n");
-			} else {
-				out.append("\n});\n");
-			}
-			out.append(generateZodInfer(this.tsTypeName + "Write", this.zodName + "Write"));
-			// Check only the input value ==> no need of the output
-			out.append(generateExportCheckFunctionWrite("Write"));
-			// Generate the Write Type associated.
-			/*
-			out.append("\nexport const ");
-			out.append(this.zodName);
-			out.append("Write = ");
-			out.append(this.zodName);
-			if (omitField.size() != 0) {
-				out.append(".omit({\n");
-				for (final String elem : omitField) {
-					out.append("\t");
-					out.append(elem);
-					out.append(": true,\n");
-				}
-				out.append("\n})");
-			}
-			out.append(".partial();\n");
-			*/
+		} else {
+			out.append("zod.object({\n");
 		}
+		for (final FieldProperty field : model.getFields()) {
+			// remove all readOnly field
+			if (!field.accessLimitation().updatable()) {
+				continue;
+			}
+			final ClassModel fieldModel = field.model();
+			if (field.comment() != null) {
+				out.append("\t/**\n");
+				out.append("\t * ");
+				out.append(field.comment());
+				out.append("\n\t */\n");
+			}
+			out.append("\t");
+			out.append(field.name());
+			out.append(": ");
+			if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
+				final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
+				out.append(tsFieldModel.zodName);
+			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
+				final String data = generateTsList(fieldListModel, tsGroup);
+				out.append(data);
+			} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
+				final String data = generateTsMap(fieldMapModel, tsGroup);
+				out.append(data);
+			}
+			out.append(maxSizeZod(field));
+			out.append(optionalWriteTypeZod(field));
+			out.append(optionalTypeZod(field));
+			out.append(",\n");
+		}
+		if (model.getExtendsClass() != null && isEmpty) {
+			out.append(";\n");
+		} else {
+			out.append("\n});\n");
+		}
+		out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
+		// Check only the input value ==> no need of the output
+		out.append(generateExportCheckFunctionAppended(modeleType));
+		return out.toString();
+	}
+
+	public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup)
+			throws IOException {
+		final StringBuilder out = new StringBuilder();
+		final String modeleType = MODEL_TYPE_CREATE;
+		out.append("export const ");
+		out.append(this.zodName);
+		out.append(modeleType);
+		out.append(" = ");
+		final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().creatable())
+				.count() == 0;
+		if (model.getExtendsClass() != null) {
+			final ClassModel parentClass = model.getExtendsClass();
+			final TsClassElement tsParentModel = tsGroup.find(parentClass);
+			out.append(tsParentModel.zodName);
+			out.append(modeleType);
+			if (!isEmpty) {
+				out.append(".extend({\n");
+			}
+		} else {
+			out.append("zod.object({\n");
+		}
+		for (final FieldProperty field : model.getFields()) {
+			// remove all readOnly field
+			if (!field.accessLimitation().creatable()) {
+				continue;
+			}
+			final ClassModel fieldModel = field.model();
+			if (field.comment() != null) {
+				out.append("\t/**\n");
+				out.append("\t * ");
+				out.append(field.comment());
+				out.append("\n\t */\n");
+			}
+			out.append("\t");
+			out.append(field.name());
+			out.append(": ");
+			if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
+				final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
+				out.append(tsFieldModel.zodName);
+			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
+				final String data = generateTsList(fieldListModel, tsGroup);
+				out.append(data);
+			} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
+				final String data = generateTsMap(fieldMapModel, tsGroup);
+				out.append(data);
+			}
+			out.append(maxSizeZod(field));
+			out.append(optionalWriteTypeZod(field));
+			out.append(optionalTypeZod(field));
+			out.append(",\n");
+		}
+		if (model.getExtendsClass() != null && isEmpty) {
+			out.append(";\n");
+		} else {
+			out.append("\n});\n");
+		}
+		out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
+		// Check only the input value ==> no need of the output
+		out.append(generateExportCheckFunctionAppended(modeleType));
 		return out.toString();
 	}
 
