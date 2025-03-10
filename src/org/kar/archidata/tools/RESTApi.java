@@ -36,7 +36,7 @@ public class RESTApi {
 		this.token = token;
 	}
 
-	public <T> List<T> gets(final Class<T> clazz, final String urlOffset)
+	public <TYPE_RESPONSE> List<TYPE_RESPONSE> gets(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
@@ -60,58 +60,79 @@ public class RESTApi {
 				this.mapper.getTypeFactory().constructCollectionType(List.class, clazz));
 	}
 
-	public <T> T get(final Class<T> clazz, final String urlOffset)
+	public <TYPE_RESPONSE> TYPE_RESPONSE get(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("GET", clazz, urlOffset, null);
 	}
 
-	public <T, U> T post(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSET, TYPE_BODY> TYPE_RESPONSET post(
+			final Class<TYPE_RESPONSET> clazz,
+			final String urlOffset,
+			final TYPE_BODY data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("POST", clazz, urlOffset, data);
 	}
 
-	public <T, U> T postJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE postJson(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final String body) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("POST", clazz, urlOffset, body);
 	}
 
-	public <T> T postMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE postMap(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("POST", clazz, urlOffset, data);
 	}
 
-	public <T, U> T put(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE, TYPE_BODY> TYPE_RESPONSE put(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final TYPE_BODY data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("PUT", clazz, urlOffset, data);
 	}
 
-	public <T, U> T putJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE putJson(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final String body) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("PUT", clazz, urlOffset, body);
 	}
 
-	public <T> T putMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE putMap(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("PUT", clazz, urlOffset, data);
 	}
 
-	public <T, U> T patch(final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE, TYPE_BODY> TYPE_RESPONSE patch(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final TYPE_BODY data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSend("PATCH", clazz, urlOffset, data);
 	}
 
-	public <T, U> T patchJson(final Class<T> clazz, final String urlOffset, final String body)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE, TYPE_BODY> TYPE_RESPONSE patchJson(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final String body) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendJson("PATCH", clazz, urlOffset, body);
 	}
 
-	public <T> T patchMap(final Class<T> clazz, final String urlOffset, final Map<String, Object> data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE patchMap(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
 		return modelSendMap("PATCH", clazz, urlOffset, data);
 	}
 
-	protected <T, U> T modelSend(final String model, final Class<T> clazz, final String urlOffset, final U data)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	protected <TYPE_RESPONSE, TYPE_BODY> TYPE_RESPONSE modelSend(
+			final String model,
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final TYPE_BODY data) throws RESTErrorResponseException, IOException, InterruptedException {
 		if (data == null) {
 			return modelSendJson(model, clazz, urlOffset, null);
 		} else {
@@ -121,8 +142,11 @@ public class RESTApi {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T, U> T modelSendJson(final String model, final Class<T> clazz, final String urlOffset, String body)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE modelSendJson(
+			final String model,
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			String body) throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
@@ -160,16 +184,16 @@ public class RESTApi {
 			return null;
 		}
 		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
+			return (TYPE_RESPONSE) httpResponse.body();
 		}
 		LOGGER.trace("Receive model: {} with data: '{}'", clazz.getCanonicalName(), httpResponse.body());
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> T modelSendMap(
+	public <TYPE_RESPONSE> TYPE_RESPONSE modelSendMap(
 			final String model,
-			final Class<T> clazz,
+			final Class<TYPE_RESPONSE> clazz,
 			final String urlOffset,
 			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
@@ -201,7 +225,7 @@ public class RESTApi {
 			return null;
 		}
 		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
+			return (TYPE_RESPONSE) httpResponse.body();
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
@@ -216,12 +240,12 @@ public class RESTApi {
 
 	/**
 	 * Call a DELETE on a REST API with retrieving some data
-	 * @param <T> Type of data that might be received.
+	 * @param <TYPE_RESPONSE> Type of data that might be received.
 	 * @param clazz Class model of the data that might be parsed.
 	 * @param urlOffset Offset to call the API
 	 * @return The parsed object received.
 	 */
-	public <T> T delete(final Class<T> clazz, final String urlOffset)
+	public <TYPE_RESPONSE> TYPE_RESPONSE delete(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		return simpleRequest("DELETE", clazz, urlOffset);
 	}
@@ -236,12 +260,12 @@ public class RESTApi {
 
 	/**
 	 * Call a ARCHIVE on a REST API with retrieving some data
-	 * @param <T> Type of data that might be received.
+	 * @param <TYPE_RESPONSE> Type of data that might be received.
 	 * @param clazz Class model of the data that might be parsed.
 	 * @param urlOffset Offset to call the API
 	 * @return The parsed object received.
 	 */
-	public <T> T archive(final Class<T> clazz, final String urlOffset)
+	public <TYPE_RESPONSE> TYPE_RESPONSE archive(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		return simpleRequest("ARCHIVE", clazz, urlOffset);
 	}
@@ -268,14 +292,16 @@ public class RESTApi {
 
 	/**
 	 * Call a key on a REST API with retrieving some data
-	 * @param <T> Type of data that might be received.
+	 * @param <TYPE_RESPONSE> Type of data that might be received.
 	 * @param model name of the key for the REST call
 	 * @param clazz Class model of the data that might be parsed.
 	 * @param urlOffset Offset to call the API
 	 * @return The parsed object received.
 	 */
-	public <T> T simpleRequest(final String model, final Class<T> clazz, final String urlOffset)
-			throws RESTErrorResponseException, IOException, InterruptedException {
+	public <TYPE_RESPONSE> TYPE_RESPONSE simpleRequest(
+			final String model,
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset) throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
@@ -298,7 +324,7 @@ public class RESTApi {
 			return null;
 		}
 		if (clazz.equals(String.class)) {
-			return (T) httpResponse.body();
+			return (TYPE_RESPONSE) httpResponse.body();
 		}
 		return this.mapper.readValue(httpResponse.body(), clazz);
 	}
