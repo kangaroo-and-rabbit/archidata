@@ -2,6 +2,7 @@ package org.kar.archidata.tools;
 
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
+import org.kar.archidata.checker.ValidationFilter;
 import org.kar.archidata.converter.jackson.JacksonModules;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +32,6 @@ public class ContextGenericTools {
 		provider.setMapper(objectMapper);
 		// Record it on the Resource configuration
 		rc.register(provider);
-
+		rc.register(new ValidationFilter());
 	}
 }
