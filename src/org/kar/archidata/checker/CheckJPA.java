@@ -1,6 +1,9 @@
 package org.kar.archidata.checker;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -11,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -33,6 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -61,19 +67,52 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 				final QueryOptions options) throws Exception;
 	}
 
-	protected Map<String, List<CheckInterface<T>>> checking = null;
+	public interface CheckInterfaceExtended<K> {
+		/** This function implementation is design to check if the updated class is valid of not for insertion
+		 * @param ioDb Access on the Data-Base
+		 * @param baseName Base of the name input that is displayed in exception generated.
+		 * @param data The object that might be injected.
+		 * @param modifiedValue List of fields that modification is requested.
+		 * @param options Some query option that the checker can need to generate basic check.
+		 * @param checkMode Check mode of the data normal, create or update.
+		 * @throws Exception Exception is generate if the data are incorrect. */
+		void check(
+				final DBAccess ioDb,
+				final String baseName,
+				final K data,
+				List<String> modifiedValue,
+				final QueryOptions options,
+				TypeOfCheck checkMode) throws Exception;
+	}
 
-	protected void add(final String field, final CheckInterface<T> checkFunction) throws DataAccessException {
+	protected Map<String, List<CheckInterface<T>>> checking = null;
+	protected Map<String, List<CheckInterfaceExtended<T>>> checkingExtended = null;
+
+	protected void checkFieldExist(final String field) throws DataAccessException {
 		if (!AnnotationTools.hasFieldsName(this.clazz, field)) {
 			LOGGER.error("Try to add a JPA Filter on an inexistant Field: '{}' not in {}", field,
 					AnnotationTools.getAllFieldsNames(this.clazz));
 			throw new DataAccessException("Try to add a JPA Filter on an inexistant Field: '" + field + "' not in "
 					+ AnnotationTools.getAllFieldsNames(this.clazz));
 		}
+	}
+
+	protected void add(final String field, final CheckInterface<T> checkFunction) throws DataAccessException {
+		checkFieldExist(field);
 		List<CheckInterface<T>> actions = this.checking.get(field);
 		if (actions == null) {
 			actions = new ArrayList<>();
 			this.checking.put(field, actions);
+		}
+		actions.add(checkFunction);
+	}
+
+	protected void add(final String field, final CheckInterfaceExtended<T> checkFunction) throws DataAccessException {
+		checkFieldExist(field);
+		List<CheckInterfaceExtended<T>> actions = this.checkingExtended.get(field);
+		if (actions == null) {
+			actions = new ArrayList<>();
+			this.checkingExtended.put(field, actions);
 		}
 		actions.add(checkFunction);
 	}
@@ -92,7 +131,13 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 			final List<String> primaryKeys = new ArrayList<>();
 			for (final Field field : this.clazz.getFields()) {
 				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
-				if (AnnotationTools.isPrimaryKey(field)) {
+				// move throught all annotation and find the generic annotation:
+				for (final Annotation annotation : field.getAnnotations()) {
+					final Constraint parentAnnotation = annotation.getClass().getAnnotation(Constraint.class);
+					if (parentAnnotation == null) {
+						continue;
+					}
+					Objects.requireNonNull(parentAnnotation.validatedBy());
 					add(fieldName,
 							(
 									final DBAccess ioDb,
@@ -100,8 +145,31 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 									final T data,
 									final List<String> modifiedValue,
 									final QueryOptions options) -> {
-								throw new InputException(baseName + fieldName,
-										"This is a '@Id' (primaryKey) ==> can not be change");
+								final Object value = field.get(data);
+								Constructor<?> constructor;
+								ConstraintValidator<?, ?> validator = null;
+								try {
+									constructor = parentAnnotation.validatedBy()[0].getConstructor();
+									validator = (ConstraintValidator<?, ?>) constructor.newInstance(annotation,
+											field.getType());
+									//validator.initialize(annotation);
+									LOGGER.warn("Not implemented ...");
+								} catch (NoSuchMethodException | SecurityException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (final InstantiationException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (final IllegalAccessException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (final IllegalArgumentException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								} catch (final InvocationTargetException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
 							});
 				}
 				if (AnnotationTools.getConstraintsNotNull(field)) {
@@ -843,30 +911,14 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		}
 	}
 
-	public void check(final Object data) throws Exception {
-		check(null, "", data, null, null);
-	}
-
-	public void check(final String baseName, final Object data) throws Exception {
-		check(null, baseName, data, null, null);
-	}
-
-	public void check(final DBAccess ioDb, final String baseName, final Object data) throws Exception {
-		check(ioDb, baseName, data, null, null);
-	}
-
-	public void check(final DBAccess ioDb, final String baseName, final Object data, final List<String> modifiedValue)
-			throws Exception {
-		check(ioDb, baseName, data, modifiedValue, null);
-	}
-
 	@Override
 	public void check(
 			final DBAccess ioDb,
 			final String baseName,
 			final Object data,
 			List<String> modifiedValue,
-			final QueryOptions options) throws Exception {
+			final QueryOptions options,
+			final TypeOfCheck checkMode) throws Exception {
 		if (this.checking == null) {
 			initialize();
 		}
@@ -880,11 +932,16 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		final T dataCasted = (T) data;
 		for (final String filter : modifiedValue) {
 			final List<CheckInterface<T>> actions = this.checking.get(filter);
-			if (actions == null) {
-				continue;
+			if (actions != null) {
+				for (final CheckInterface<T> action : actions) {
+					action.check(ioDb, baseName, dataCasted, modifiedValue, options);
+				}
 			}
-			for (final CheckInterface<T> action : actions) {
-				action.check(ioDb, baseName, dataCasted, modifiedValue, options);
+			final List<CheckInterfaceExtended<T>> actionsExtended = this.checkingExtended.get(filter);
+			if (actionsExtended != null) {
+				for (final CheckInterfaceExtended<T> action : actionsExtended) {
+					action.check(ioDb, baseName, dataCasted, modifiedValue, options, checkMode);
+				}
 			}
 		}
 		checkTyped(dataCasted, modifiedValue, options);

@@ -5,12 +5,19 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.kar.archidata.dataAccess.options.CheckFunctionInterface.TypeOfCheck;
+import org.kar.archidata.tools.ContextGenericTools;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.swagger.v3.oas.models.PathItem.HttpMethod;
 import jakarta.annotation.Priority;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
@@ -23,7 +30,7 @@ import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
 
 @Provider
-@Priority(1000) // Définit la priorité d'exécution du filtre
+@Priority(1000)
 public class ValidationFilter implements ContainerRequestFilter {
 
 	private final Map<Class<?>, CheckJPA<?>> allocatedChecker = new HashMap<>();
@@ -73,14 +80,24 @@ public class ValidationFilter implements ContainerRequestFilter {
 				}
 				final Object value = getParameterValue(parameter, requestContext, paramType);
 				if (value == null) {
-					// TODO: faire un choix ...
-
-					throw new BadRequestException("Le paramètre validé ne peut pas être null.");
+					// this can be a normal case if the API do not have set @NotNull
+					// TODO...
 				}
 				try {
-					// TODO: il faut récupérer ici dans quel condition on est "Update" "Create" ou autre ...
-					// TODO: Il faut surement faire un double element de vérification genre BDD et API ...
-					elem.check(value);
+					if (requestContext.getMethod() == HttpMethod.PATCH.name()) {
+						// need get the changed values
+						final List<String> keys = getKeys(requestContext);
+						elem.check(null, "", value, keys, null, TypeOfCheck.UPDATE_MODE);
+					} else if (requestContext.getMethod() == HttpMethod.PUT.name()) {
+						// need check the Update values
+						elem.check(value, TypeOfCheck.UPDATE_MODE);
+					} else if (requestContext.getMethod() == HttpMethod.POST.name()) {
+						// need check the create values
+						elem.check(value, TypeOfCheck.CREATE_MODE);
+					} else {
+						// check everything:
+						elem.check(value);
+					}
 				} catch (final Exception e) {
 					e.printStackTrace();
 					// TODO Auto-generated catch block
@@ -94,10 +111,27 @@ public class ValidationFilter implements ContainerRequestFilter {
 		}
 	}
 
+	private List<String> getKeys(final ContainerRequestContext requestContext) throws BadRequestException {
+		if (requestContext.hasEntity()) {
+			try {
+				final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
+				// Read the tree to filter injection of data:
+				final JsonNode root = mapper.readTree(requestContext.getEntityStream());
+				final List<String> keys = new ArrayList<>();
+				final var iterator = root.fieldNames();
+				iterator.forEachRemaining(e -> keys.add(e));
+				return keys;
+			} catch (final Exception e) {
+				throw new BadRequestException("Fail to parse the Json...");
+			}
+		}
+		return List.of();
+	}
+
 	private Object getParameterValue(
 			final Parameter parameter,
 			final ContainerRequestContext requestContext,
-			final Class<?> paramType) {
+			final Class<?> paramType) throws BadRequestException {
 		// Vérification des paramètres de requête (QueryParam)
 		final MultivaluedMap<String, String> queryParams = this.uriInfo.getQueryParameters();
 		if (queryParams.containsKey(parameter.getName())) {
