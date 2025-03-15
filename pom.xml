@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>com.twelvemonkeys.imageio</groupId>
 			<artifactId>imageio-webp</artifactId>
-			<version>3.11.0</version>
+			<version>3.12.0</version>
 		</dependency>
 		<!-- Decode JPEG image -->
 		<dependency>
@@ -246,7 +246,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
+				<version>4.0.0-beta-2</version>
 				<configuration>
 					<source>21</source>
 					<target>21</target>
