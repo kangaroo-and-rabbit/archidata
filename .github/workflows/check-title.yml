@@ -9,6 +9,8 @@ on:
       - synchronize
       - ready_for_review
       - reopened
+      - labeled
+      - unlabeled
 
 jobs:
   check-title:
@@ -17,7 +19,7 @@ jobs:
       - name: "Check title"
         uses: Slashgear/action-check-pr-title@v4.3.0
         with:
-          regexp: "\\[(API,)?(API|DEV-OPS|DOC|FEAT|FIX|FIX\\-CI|STYLE)\\]( \\([A-Za-z0-9.\\-]+\\))? [A-Za-z0-9 ,.'\\-!]+$"
+          regexp: "\\[(API,)?(API|DEV-OPS|DOC|FEAT|FIX|FIX\\-CI|STYLE)\\]( \\([A-Za-z0-9.\\-/_]+\\))? [A-Za-z0-9: ,.'\\-!/_]+$"
           helpMessage: |
             Title of the PR MUST respect format: "[{TYPE}] clear description without typos in english" with {TYPE}:
               * [API] Change API that permit to access on the application (un-compatibility only). This one can specifically added with [API,{TYPE}]
