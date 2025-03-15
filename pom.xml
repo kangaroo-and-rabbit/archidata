@@ -226,7 +226,7 @@
 		<dependency>
 			<groupId>org.apache.maven.plugins</groupId>
 			<artifactId>maven-checkstyle-plugin</artifactId>
-			<version>3.5.0</version>
+			<version>3.6.0</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -313,7 +313,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>3.6.0</version>
 				<configuration>
 					<configLocation>CheckStyle.xml</configLocation>
 					<consoleOutput>true</consoleOutput>
