@@ -19,6 +19,7 @@ public class GenericCatcher {
 		rc.register(FailExceptionCatcher.class);
 		// generic Exception catcher
 		rc.register(ExceptionCatcher.class);
+		rc.register(ConstraintViolationExceptionCatcher.class);
 	}
 
 }
