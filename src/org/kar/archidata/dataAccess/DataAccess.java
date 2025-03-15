@@ -9,6 +9,7 @@ import org.kar.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.ws.rs.InternalServerErrorException;
 
@@ -189,6 +190,7 @@ public class DataAccess {
 		}
 	}
 
+	@Nullable
 	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DBAccess db = DBAccess.createInterface()) {
