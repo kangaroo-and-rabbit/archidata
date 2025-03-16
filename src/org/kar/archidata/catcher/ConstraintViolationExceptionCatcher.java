@@ -1,5 +1,11 @@
 package org.kar.archidata.catcher;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +26,22 @@ public class ConstraintViolationExceptionCatcher implements ExceptionMapper<Cons
 	}
 
 	private RestErrorResponse build(final ConstraintViolationException exception) {
-		return new RestErrorResponse(Response.Status.BAD_REQUEST, "Constraint Violation", exception.getMessage());
+		final List<RestInputError> inputError = new ArrayList<>();
+		for (final var cv : exception.getConstraintViolations()) {
+			if (cv == null) {
+				continue;
+			}
+			inputError.add(new RestInputError(cv.getPropertyPath(), cv.getMessage()));
+		}
+		Collections.sort(inputError, Comparator.comparing(RestInputError::getFullPath));
+		String errorType = "Multiple error on input";
+		if (inputError.size() == 0) {
+			errorType = "Constraint Violation";
+		} else if (inputError.size() == 1) {
+			errorType = "Error on input='" + inputError.get(0).path + "'";
+		}
+		return new RestErrorResponse(Response.Status.BAD_REQUEST, Instant.now().toString(), errorType,
+				exception.getMessage(), inputError);
 	}
 
 }

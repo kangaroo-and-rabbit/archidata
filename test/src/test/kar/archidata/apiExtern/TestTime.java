@@ -30,8 +30,6 @@ public class TestTime {
 	static WebLauncherTest webInterface = null;
 	static RESTApi api = null;
 
-	private static Long idTest = 0L;
-
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();

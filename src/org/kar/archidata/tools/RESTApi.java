@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import jakarta.ws.rs.core.HttpHeaders;
@@ -170,14 +171,21 @@ public class RESTApi {
 				final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
 						RESTErrorResponseException.class);
 				throw out;
+			} catch (final InvalidDefinitionException ex) {
+				ex.printStackTrace();
+				LOGGER.error("body: {}", httpResponse.body());
+				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
+						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final MismatchedInputException ex) {
-				throw new IOException(
-						"Fail to get the data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+				ex.printStackTrace();
+				LOGGER.error("body: {}", httpResponse.body());
+				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
+						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final JsonParseException ex) {
 				ex.printStackTrace();
 				LOGGER.error("body: {}", httpResponse.body());
-				throw new IOException(
-						"Fail to get the ERROR data [" + httpResponse.statusCode() + "] " + httpResponse.body());
+				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
+						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
 		if (clazz == Void.class || clazz == void.class) {
