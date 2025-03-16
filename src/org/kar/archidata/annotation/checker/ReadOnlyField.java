@@ -8,12 +8,11 @@ import java.lang.annotation.Target;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
-@Constraint(validatedBy = CollectionItemUniqueValidator.class)
-@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.FIELD })
+@Constraint(validatedBy = ReadOnlyFieldValidator.class)
+@Target({ ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CollectionItemUnique {
-
-	String message() default "Cannot insert multiple times the same elements";
+public @interface ReadOnlyField {
+	String message() default "Field can not be set, it is a read-only field.";
 
 	Class<?>[] groups() default {};
 

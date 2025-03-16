@@ -5,8 +5,18 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ ElementType.TYPE, ElementType.FIELD })
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+
+@Constraint(validatedBy = CheckForeignKeyValidator.class)
+@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CheckForeignKey {
 	Class<?> target();
+
+	String message() default "Foreign-key does not exist in the DB";
+
+	Class<?>[] groups() default {};
+
+	Class<? extends Payload>[] payload() default {};
 }

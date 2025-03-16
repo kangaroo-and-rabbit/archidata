@@ -1,6 +1,7 @@
 package org.kar.archidata.catcher;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
@@ -27,6 +28,18 @@ public class RestErrorResponse {
 	@Column(length = 0)
 	final public String statusMessage;
 
+	final public List<RestInputError> inputError;
+
+	public RestErrorResponse(final Response.Status status, final String time, final String error, final String message,
+			final List<RestInputError> inputError) {
+		this.time = time;
+		this.name = error;
+		this.message = message;
+		this.status = status.getStatusCode();
+		this.statusMessage = status.getReasonPhrase();
+		this.inputError = inputError;
+	}
+
 	public RestErrorResponse(final Response.Status status, final String time, final String error,
 			final String message) {
 		this.time = time;
@@ -34,6 +47,7 @@ public class RestErrorResponse {
 		this.message = message;
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
+		this.inputError = null;
 	}
 
 	public RestErrorResponse(final Response.Status status, final String error, final String message) {
@@ -42,6 +56,7 @@ public class RestErrorResponse {
 		this.message = message;
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
+		this.inputError = null;
 	}
 
 	public RestErrorResponse(final Response.Status status) {
@@ -50,6 +65,7 @@ public class RestErrorResponse {
 		this.time = Instant.now().toString();
 		this.status = status.getStatusCode();
 		this.statusMessage = status.getReasonPhrase();
+		this.inputError = null;
 	}
 
 }

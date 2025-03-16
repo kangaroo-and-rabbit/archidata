@@ -1,6 +1,9 @@
 package org.kar.archidata.exception;
 
+import java.util.List;
+
 import org.bson.types.ObjectId;
+import org.kar.archidata.catcher.RestInputError;
 
 public class RESTErrorResponseException extends Exception {
 	private static final long serialVersionUID = 1L;
@@ -10,6 +13,7 @@ public class RESTErrorResponseException extends Exception {
 	public String message;
 	public int status;
 	public String statusMessage;
+	public List<RestInputError> inputError;
 
 	public RESTErrorResponseException() {
 		this.oid = new ObjectId();
@@ -18,16 +22,18 @@ public class RESTErrorResponseException extends Exception {
 		this.message = null;
 		this.status = 0;
 		this.statusMessage = null;
+		this.inputError = null;
 	}
 
 	public RESTErrorResponseException(final ObjectId oid, final String time, final String name, final String message,
-			final int status, final String statusMessage) {
+			final int status, final String statusMessage, final List<RestInputError> inputError) {
 		this.oid = oid;
 		this.time = time;
 		this.name = name;
 		this.message = message;
 		this.status = status;
 		this.statusMessage = statusMessage;
+		this.inputError = inputError;
 	}
 
 	@Override
