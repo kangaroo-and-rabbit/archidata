@@ -3,10 +3,13 @@ package org.kar.archidata.catcher;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.persistence.Column;
 import jakarta.validation.Path;
 import jakarta.validation.constraints.NotNull;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RestInputError {
 	private static Pattern PATTERN = Pattern.compile("^([^.]+)\\.([^.]+)(\\.(.*))?");
 	@Column(length = 0)

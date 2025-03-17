@@ -6,12 +6,15 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 
 @ApiGenerationMode
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RestErrorResponse {
 	public ObjectId oid = new ObjectId();
 	@NotNull
