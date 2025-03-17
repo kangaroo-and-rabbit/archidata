@@ -6,6 +6,7 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
@@ -28,6 +29,7 @@ public class RestErrorResponse {
 	@Column(length = 0)
 	final public String statusMessage;
 
+	@Nullable
 	final public List<RestInputError> inputError;
 
 	public RestErrorResponse(final Response.Status status, final String time, final String error, final String message,

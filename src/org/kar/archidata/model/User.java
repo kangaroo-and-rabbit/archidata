@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.DataIfNotExists;
 import org.kar.archidata.annotation.DataJson;
+import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -36,6 +37,7 @@ import jakarta.ws.rs.DefaultValue;
 @Table(name = "user")
 @DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@ApiGenerationMode(create = true, update = true)
 public class User extends GenericDataSoftDelete {
 	@NotNull
 	@Column(length = 128)
