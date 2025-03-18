@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>kangaroo-and-rabbit</groupId>
 	<artifactId>archidata</artifactId>
-	<version>0.25.1-SNAPSHOT</version>
+	<version>0.25.2</version>
 	<repositories>
 		<repository>
 			<id>gitea</id>
