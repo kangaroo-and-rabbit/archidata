@@ -16,18 +16,18 @@ import test.kar.archidata.dataAccess.model.SerializeAsJson;
 import test.kar.archidata.dataAccess.model.SerializeListAsJson;
 import test.kar.archidata.dataAccess.model.SimpleTable;
 import test.kar.archidata.dataAccess.model.SimpleTableSoftDelete;
-import test.kar.archidata.dataAccess.model.TypeManyToManyRemote;
-import test.kar.archidata.dataAccess.model.TypeManyToManyRoot;
-import test.kar.archidata.dataAccess.model.TypeManyToManyRootExpand;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRemote;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRoot;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRootExpand;
+import test.kar.archidata.dataAccess.model.TypeManyToManyLongRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToManyLongRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToManyLongRootExpand;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRootExpand;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRemote;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRoot;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
-import test.kar.archidata.dataAccess.model.TypeOneToManyRemote;
-import test.kar.archidata.dataAccess.model.TypeOneToManyRoot;
-import test.kar.archidata.dataAccess.model.TypeOneToManyRootExpand;
+import test.kar.archidata.dataAccess.model.TypeOneToManyLongRemote;
+import test.kar.archidata.dataAccess.model.TypeOneToManyLongRoot;
+import test.kar.archidata.dataAccess.model.TypeOneToManyLongRootExpand;
 import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRemote;
 import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRoot;
 import test.kar.archidata.dataAccess.model.TypeOneToManyUUIDRootExpand;
@@ -56,18 +56,18 @@ public class ConfigureDb {
 				SerializeListAsJson.class, //
 				SimpleTable.class, //
 				SimpleTableSoftDelete.class, //
-				TypeManyToManyRemote.class, //
-				TypeManyToManyRoot.class, //
-				TypeManyToManyRootExpand.class, //
-				TypeManyToOneRemote.class, //
-				TypeManyToOneRoot.class, //
-				TypeManyToOneRootExpand.class, //
+				TypeManyToManyLongRemote.class, //
+				TypeManyToManyLongRoot.class, //
+				TypeManyToManyLongRootExpand.class, //
+				TypeManyToOneLongRemote.class, //
+				TypeManyToOneLongRoot.class, //
+				TypeManyToOneLongRootExpand.class, //
 				TypeManyToOneUUIDRemote.class, //
 				TypeManyToOneUUIDRoot.class, //
 				TypeManyToOneUUIDRootExpand.class, //
-				TypeOneToManyRemote.class, //
-				TypeOneToManyRoot.class, //
-				TypeOneToManyRootExpand.class, //
+				TypeOneToManyLongRemote.class, //
+				TypeOneToManyLongRoot.class, //
+				TypeOneToManyLongRootExpand.class, //
 				TypeOneToManyUUIDRemote.class, //
 				TypeOneToManyUUIDRoot.class, //
 				TypeOneToManyUUIDRootExpand.class, //

@@ -5,7 +5,7 @@ import org.kar.archidata.model.GenericData;
 import dev.morphia.annotations.Entity;
 
 @Entity
-public class TypeManyToOneRemote extends GenericData {
+public class TypeManyToOneLongRemote extends GenericData {
 
 	public String data;
 

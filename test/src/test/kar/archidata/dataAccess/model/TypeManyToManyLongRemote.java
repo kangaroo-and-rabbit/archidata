@@ -9,10 +9,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 
 @Entity
-public class TypeManyToManyRoot extends GenericData {
+public class TypeManyToManyLongRemote extends GenericData {
+	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyLongRoot.class, mappedBy = "remote")
+	public List<Long> remoteToParent;
+	public String data;
 
-	public String otherData;
-
-	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyRemote.class)
-	public List<Long> remote;
 }

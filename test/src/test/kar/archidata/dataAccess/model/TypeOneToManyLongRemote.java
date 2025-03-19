@@ -7,9 +7,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 
 @Entity
-public class TypeOneToManyRemote extends GenericData {
+public class TypeOneToManyLongRemote extends GenericData {
 
-	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeOneToManyRoot.class)
+	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeOneToManyLongRoot.class)
 	public Long rootId;
 
 	public String data;

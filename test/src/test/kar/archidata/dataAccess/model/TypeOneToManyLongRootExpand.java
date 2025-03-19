@@ -10,10 +10,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
-@Table(name = "TypeOneToManyRoot")
+@Table(name = "TypeOneToManyLongRoot")
 //for Mongo
-@Entity(value = "TypeOneToManyRoot")
-public class TypeOneToManyRootExpand {
+@Entity(value = "TypeOneToManyLongRoot")
+public class TypeOneToManyLongRootExpand {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +22,7 @@ public class TypeOneToManyRootExpand {
 
 	public String otherData;
 
-	@OneToMany(targetEntity = TypeOneToManyRemote.class, mappedBy = "rootId")
+	@OneToMany(targetEntity = TypeOneToManyLongRemote.class, mappedBy = "rootId")
 	@Column(nullable = false)
-	public List<TypeOneToManyRemote> remotes;
+	public List<TypeOneToManyLongRemote> remotes;
 }

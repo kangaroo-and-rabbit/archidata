@@ -8,10 +8,10 @@ import dev.morphia.annotations.Entity;
 import jakarta.persistence.OneToMany;
 
 @Entity
-public class TypeOneToManyRoot extends GenericData {
+public class TypeOneToManyLongRoot extends GenericData {
 
 	public String otherData;
 
-	@OneToMany(targetEntity = TypeOneToManyRemote.class, mappedBy = "rootId")
+	@OneToMany(targetEntity = TypeOneToManyLongRemote.class, mappedBy = "rootId")
 	public List<Long> remoteIds;
 }

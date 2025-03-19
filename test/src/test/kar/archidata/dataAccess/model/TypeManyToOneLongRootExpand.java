@@ -8,16 +8,16 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-@Table(name = "TypeManyToOneRoot")
+@Table(name = "TypeManyToOneLongRoot")
 //for Mongo
-@Entity(value = "TypeManyToOneRoot")
-public class TypeManyToOneRootExpand extends GenericData {
+@Entity(value = "TypeManyToOneLongRoot")
+public class TypeManyToOneLongRootExpand extends GenericData {
 
 	public String otherData;
 
-	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeManyToOneRemote.class)
+	@ManyToOne(fetch = FetchType.LAZY, targetEntity = TypeManyToOneLongRemote.class)
 	@Column(name = "remoteId", nullable = false)
-	public TypeManyToOneRemote remote;
+	public TypeManyToOneLongRemote remote;
 
 	@Override
 	public String toString() {

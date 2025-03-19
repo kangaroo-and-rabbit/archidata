@@ -18,17 +18,17 @@ import org.slf4j.LoggerFactory;
 
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRemote;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRoot;
-import test.kar.archidata.dataAccess.model.TypeManyToOneRootExpand;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRemote;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRoot;
+import test.kar.archidata.dataAccess.model.TypeManyToOneLongRootExpand;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRemote;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRoot;
 import test.kar.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestManyToOne {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOne.class);
+public class TestManyToOneLong {
+	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneLong.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -43,8 +43,8 @@ public class TestManyToOne {
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(TypeManyToOneRemote.class);
-		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneRoot.class));
+		final List<String> sqlCommand = DataFactory.createTable(TypeManyToOneLongRemote.class);
+		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneLongRoot.class));
 		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneUUIDRoot.class));
 		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneUUIDRemote.class));
 		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
@@ -58,34 +58,34 @@ public class TestManyToOne {
 	@Order(2)
 	@Test
 	public void testRemoteLong() throws Exception {
-		TypeManyToOneRemote remote = new TypeManyToOneRemote();
+		TypeManyToOneLongRemote remote = new TypeManyToOneLongRemote();
 		remote.data = "remote1";
-		final TypeManyToOneRemote insertedRemote1 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneLongRemote insertedRemote1 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote1.data, remote.data);
 
-		remote = new TypeManyToOneRemote();
+		remote = new TypeManyToOneLongRemote();
 		remote.data = "remote2";
-		final TypeManyToOneRemote insertedRemote2 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneLongRemote insertedRemote2 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote2.data, remote.data);
 
-		final TypeManyToOneRoot test = new TypeManyToOneRoot();
+		final TypeManyToOneLongRoot test = new TypeManyToOneLongRoot();
 		test.otherData = "kjhlkjlkj";
 		test.remoteId = insertedRemote2.id;
-		final TypeManyToOneRoot insertedData = ConfigureDb.da.insert(test);
+		final TypeManyToOneLongRoot insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.id);
 		Assertions.assertTrue(insertedData.id >= 0);
 		Assertions.assertEquals(test.otherData, insertedData.otherData);
 		Assertions.assertEquals(insertedRemote2.id, insertedData.remoteId);
 
-		TypeManyToOneRoot retrieve = ConfigureDb.da.get(TypeManyToOneRoot.class, insertedData.id);
+		TypeManyToOneLongRoot retrieve = ConfigureDb.da.get(TypeManyToOneLongRoot.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
 
-		TypeManyToOneRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneRootExpand.class, insertedData.id);
+		TypeManyToOneLongRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneLongRootExpand.class, insertedData.id);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
 		Assertions.assertEquals(insertedData.id, retrieve2.id);
@@ -96,21 +96,21 @@ public class TestManyToOne {
 
 		// remove values:
 		try {
-			final long count = ConfigureDb.da.delete(TypeManyToOneRemote.class, insertedRemote2.id);
+			final long count = ConfigureDb.da.delete(TypeManyToOneLongRemote.class, insertedRemote2.id);
 			Assertions.assertEquals(1L, count);
 		} catch (final Exception ex) {
 			ex.printStackTrace();
 		}
 		// check fail:
 
-		retrieve = ConfigureDb.da.get(TypeManyToOneRoot.class, insertedData.id);
+		retrieve = ConfigureDb.da.get(TypeManyToOneLongRoot.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
 
-		retrieve2 = ConfigureDb.da.get(TypeManyToOneRootExpand.class, insertedData.id);
+		retrieve2 = ConfigureDb.da.get(TypeManyToOneLongRootExpand.class, insertedData.id);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
 		Assertions.assertEquals(insertedData.id, retrieve2.id);

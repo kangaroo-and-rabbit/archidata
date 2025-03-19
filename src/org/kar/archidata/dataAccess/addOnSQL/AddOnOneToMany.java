@@ -266,7 +266,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 				Long parentIdTmp = null;
 				UUID parendUuidTmp = null;
 				ObjectId parendOidTmp = null;
-				if (destinationClass == String.class) {
+				if (destinationClass == Long.class) {
 					final String modelData = rs.getString(count.value);
 					parentIdTmp = Long.valueOf(modelData);
 					count.inc();

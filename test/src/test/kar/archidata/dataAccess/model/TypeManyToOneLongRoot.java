@@ -7,11 +7,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.ManyToOne;
 
 @Entity
-public class TypeManyToOneRoot extends GenericData {
+public class TypeManyToOneLongRoot extends GenericData {
 
 	public String otherData;
 
-	@ManyToOne(targetEntity = TypeManyToOneRemote.class)
+	@ManyToOne(targetEntity = TypeManyToOneLongRemote.class)
 	@Column(nullable = false)
 	public Long remoteId;
 
