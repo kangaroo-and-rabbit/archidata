@@ -231,109 +231,115 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			final CountInOut count,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
-		if (field.getType() != List.class) {
-			LOGGER.error("Can not OneToMany with other than List Model: {}", field.getType().getCanonicalName());
-			return;
-		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
-		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
-		if (decorators == null) {
-			return;
-		}
-		if (objectClass == Long.class) {
-			final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
-			field.set(data, idList);
-			count.inc();
-			return;
-		} else if (objectClass == UUID.class) {
-			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
-			field.set(data, idList);
-			count.inc();
-			return;
-		} else if (objectClass == ObjectId.class) {
-			final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
-			field.set(data, idList);
-			count.inc();
-			return;
-		}
-		if (objectClass == decorators.targetEntity()) {
-			Long parentIdTmp = null;
-			UUID parendUuidTmp = null;
-			ObjectId parendOidTmp = null;
-			try {
-				final String modelData = rs.getString(count.value);
-				parentIdTmp = Long.valueOf(modelData);
+		try {
+			if (field.getType() != List.class) {
+				LOGGER.error("Can not OneToMany with other than List Model: {}", field.getType().getCanonicalName());
+				return;
+			}
+			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[0];
+			final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
+			if (decorators == null) {
+				return;
+			}
+			if (objectClass == Long.class) {
+				final List<Long> idList = ioDb.getListOfIds(rs, count.value, SEPARATOR_LONG);
+				field.set(data, idList);
 				count.inc();
-			} catch (final NumberFormatException ex) {
-				try {
+				return;
+			} else if (objectClass == UUID.class) {
+				final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
+				field.set(data, idList);
+				count.inc();
+				return;
+			} else if (objectClass == ObjectId.class) {
+				final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
+				field.set(data, idList);
+				count.inc();
+				return;
+			}
+			if (objectClass == decorators.targetEntity()) {
+				final String destinationField = decorators.mappedBy();
+				final Field typeDestination = AnnotationTools.getFieldNamed(objectClass, destinationField);
+				final Class<?> destinationClass = typeDestination.getType();
+
+				Long parentIdTmp = null;
+				UUID parendUuidTmp = null;
+				ObjectId parendOidTmp = null;
+				if (destinationClass == String.class) {
+					final String modelData = rs.getString(count.value);
+					parentIdTmp = Long.valueOf(modelData);
+					count.inc();
+				} else if (destinationClass == UUID.class) {
 					final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 					parendUuidTmp = idList.get(0);
 					count.inc();
-				} catch (final NumberFormatException ex2) {
-					// TODO : How to manage ObjectId ==> I am not sure it works well...
+				} else if (destinationClass == ObjectId.class) {
 					final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
 					parendOidTmp = idList.get(0);
 					count.inc();
 				}
-			}
-			final Long parentId = parentIdTmp;
-			final UUID parendUuid = parendUuidTmp;
-			final ObjectId parendOid = parendOidTmp;
-			final String mappingKey = decorators.mappedBy();
-			// We get the parent ID ... ==> need to request the list of elements
-			if (objectClass == Long.class) {
-				LOGGER.error("Need to retreive all primary key of all elements");
-				//field.set(data, idList);
-				return;
-			} else if (objectClass == UUID.class) {
-				LOGGER.error("Need to retreive all primary key of all elements");
-				//field.set(data, idList);
-				return;
-			} else if (objectClass == ObjectId.class) {
-				LOGGER.error("Need to retreive all primary key of all elements");
-				//field.set(data, idList);
-				return;
-			}
-			if (objectClass == decorators.targetEntity()) {
-				if (decorators.fetch() == FetchType.EAGER) {
-					throw new DataAccessException("EAGER is not supported for list of element...");
-				} else if (parentId != null) {
-					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
-						@SuppressWarnings("unchecked")
-						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-								new Condition(new QueryCondition(mappingKey, "=", parentId)));
-						if (foreignData == null) {
-							return;
-						}
-						field.set(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				} else if (parendUuid != null) {
-					final LazyGetter lambda = () -> {
-						@SuppressWarnings("unchecked")
-						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-								new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
-						if (foreignData == null) {
-							return;
-						}
-						field.set(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				} else if (parendOid != null) {
-					final LazyGetter lambda = () -> {
-						@SuppressWarnings("unchecked")
-						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-								new Condition(new QueryCondition(mappingKey, "=", parendOid)));
-						if (foreignData == null) {
-							return;
-						}
-						field.set(data, foreignData);
-					};
-					lazyCall.add(lambda);
+				final Long parentId = parentIdTmp;
+				final UUID parendUuid = parendUuidTmp;
+				final ObjectId parendOid = parendOidTmp;
+				final String mappingKey = decorators.mappedBy();
+				// We get the parent ID ... ==> need to request the list of elements
+				if (objectClass == Long.class) {
+					LOGGER.error("Need to retreive all primary key of all elements.");
+					//field.set(data, idList);
+					return;
+				} else if (objectClass == UUID.class) {
+					LOGGER.error("Need to retreive all primary key of all elements");
+					//field.set(data, idList);
+					return;
+				} else if (objectClass == ObjectId.class) {
+					LOGGER.error("Need to retreive all primary key of all elements");
+					//field.set(data, idList);
+					return;
+				}
+				if (objectClass == decorators.targetEntity()) {
+					if (decorators.fetch() == FetchType.EAGER) {
+						throw new DataAccessException("EAGER is not supported for list of element...");
+					} else if (parentId != null) {
+						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+						final LazyGetter lambda = () -> {
+							@SuppressWarnings("unchecked")
+							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+									new Condition(new QueryCondition(mappingKey, "=", parentId)));
+							if (foreignData == null) {
+								return;
+							}
+							field.set(data, foreignData);
+						};
+						lazyCall.add(lambda);
+					} else if (parendUuid != null) {
+						final LazyGetter lambda = () -> {
+							@SuppressWarnings("unchecked")
+							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+									new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
+							if (foreignData == null) {
+								return;
+							}
+							field.set(data, foreignData);
+						};
+						lazyCall.add(lambda);
+					} else if (parendOid != null) {
+						final LazyGetter lambda = () -> {
+							@SuppressWarnings("unchecked")
+							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+									new Condition(new QueryCondition(mappingKey, "=", parendOid)));
+							if (foreignData == null) {
+								return;
+							}
+							field.set(data, foreignData);
+						};
+						lazyCall.add(lambda);
+					}
 				}
 			}
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			LOGGER.error("Fail to parse remote {}", ex.getMessage());
 		}
 	}
 

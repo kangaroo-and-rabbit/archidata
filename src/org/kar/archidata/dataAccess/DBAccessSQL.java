@@ -223,16 +223,35 @@ public class DBAccessSQL extends DBAccess {
 		return out;
 	}
 
+	public byte[][] splitIntoGroupsOf12Bytes(final byte[] input) {
+		final int inputLength = input.length;
+		final int numOfGroups = (inputLength + 11) / 12; // Calculate the number of groups needed
+		final byte[][] groups = new byte[numOfGroups][12];
+
+		for (int i = 0; i < numOfGroups; i++) {
+			final int startIndex = i * 12;
+			final int endIndex = Math.min(startIndex + 12, inputLength);
+			groups[i] = Arrays.copyOfRange(input, startIndex, endIndex);
+		}
+
+		return groups;
+	}
+
 	public List<ObjectId> getListOfRawOIDs(final ResultSet rs, final int iii) throws SQLException, DataAccessException {
 		final byte[] trackString = rs.getBytes(iii);
 		if (rs.wasNull()) {
 			return null;
 		}
-		final byte[][] elements = splitIntoGroupsOf16Bytes(trackString);
+		final byte[][] elements = splitIntoGroupsOf12Bytes(trackString);
 		final List<ObjectId> out = new ArrayList<>();
 		for (final byte[] elem : elements) {
-			final ObjectId tmp = new ObjectId(elem);
-			out.add(tmp);
+			try {
+				final ObjectId tmp = new ObjectId(elem);
+				out.add(tmp);
+			} catch (final IllegalArgumentException ex) {
+				ex.printStackTrace();
+				LOGGER.error("Fail to parse the OID element: {}", elem);
+			}
 		}
 		return out;
 	}
@@ -1276,7 +1295,7 @@ public class DBAccessSQL extends DBAccess {
 	) throws Exception {
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		final String tableName = AnnotationTools.getTableName(clazz, options);
-		final String primaryKey = AnnotationTools.getPrimaryKeyField(clazz).getName();
+		final String primaryKey = AnnotationTools.getFieldNameRaw(AnnotationTools.getPrimaryKeyField(clazz));
 		boolean firstField = true;
 
 		for (final Field elem : clazz.getFields()) {

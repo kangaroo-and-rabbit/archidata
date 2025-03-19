@@ -449,7 +449,7 @@ public class AnnotationTools {
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
-			if (AnnotationTools.getFieldNameRaw(field).equals(name)) {
+			if (field.getName().equals(name)) {
 				return true;
 			}
 		}
