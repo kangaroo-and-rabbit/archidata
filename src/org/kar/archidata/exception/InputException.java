@@ -16,6 +16,6 @@ public class InputException extends Exception {
 	public InputException(final String variable, final String message) {
 		super(message);
 		this.missingVariable = variable;
-		this.status = Response.Status.NOT_ACCEPTABLE;
+		this.status = Response.Status.BAD_REQUEST;
 	}
 }
