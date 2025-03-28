@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -17,13 +18,17 @@ import java.util.List;
 import org.apache.tika.Tika;
 import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.dataAccess.DBAccess;
 import org.kar.archidata.dataAccess.QueryAnd;
 import org.kar.archidata.dataAccess.QueryCondition;
+import org.kar.archidata.dataAccess.QueryOptions;
 import org.kar.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.ReadAllColumn;
+import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.exception.FailException;
 import org.kar.archidata.exception.InputException;
 import org.kar.archidata.model.Data;
@@ -391,6 +396,13 @@ public class DataTools {
 		}
 		// Fist step: retrieve all the Id of each parents:...
 		LOGGER.info("Find typeNode");
-		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.oid);
+
+		final Field idField = AnnotationTools.getIdField(clazz);
+		if (idField == null) {
+			throw new DataAccessException(
+					"The class have no annotation @Id ==> can not determine the default type searching");
+		}
+		final FieldName fieldName = AnnotationTools.getFieldName(idField, new QueryOptions());
+		AddOnDataJson.addLink(ioDb, clazz, fieldName.inTable(), id, null, data.oid);
 	}
 }
