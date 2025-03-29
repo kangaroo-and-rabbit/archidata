@@ -122,7 +122,9 @@ public class ConfigureDb {
 			LOGGER.error("Fail to clean the DB");
 			return;
 		}
-		config.setDbName(null);
+		if (!"MONGO".equalsIgnoreCase(modeTest)) {
+			config.setDbName(null);
+		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
 		try (final DBAccess daRoot = DBAccess.createInterface(config)) {
 			if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {

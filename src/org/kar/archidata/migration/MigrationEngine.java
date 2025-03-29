@@ -133,7 +133,9 @@ public class MigrationEngine {
 	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
 		if (ConfigBaseVariable.getDBAbleToCreate()) {
 			final DbConfig config = configInput.clone();
-			config.setDbName(null);
+			if (!"MONGO".equalsIgnoreCase(config.getType())) {
+				config.setDbName(null);
+			}
 			final String dbName = configInput.getDbName();
 			LOGGER.info("Verify existance of '{}'", dbName);
 			try (final DBAccess da = DBAccess.createInterface(config)) {
