@@ -9,7 +9,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Table(name = "TypeManyToOneLongRoot")
-//for Mongo
+//for Morphia
 @Entity(value = "TypeManyToOneLongRoot")
 public class TypeManyToOneLongRootExpand extends GenericData {
 

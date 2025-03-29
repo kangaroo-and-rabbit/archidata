@@ -18,6 +18,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.kar.archidata.annotation.AnnotationTools;
+import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.annotation.CreationTimestamp;
 import org.kar.archidata.annotation.UpdateTimestamp;
 import org.kar.archidata.dataAccess.addOnMongo.AddOnManyToOne;
@@ -27,6 +28,7 @@ import org.kar.archidata.dataAccess.options.CheckFunction;
 import org.kar.archidata.dataAccess.options.Condition;
 import org.kar.archidata.dataAccess.options.FilterValue;
 import org.kar.archidata.dataAccess.options.Limit;
+import org.kar.archidata.dataAccess.options.OptionSpecifyType;
 import org.kar.archidata.dataAccess.options.OrderBy;
 import org.kar.archidata.dataAccess.options.QueryOption;
 import org.kar.archidata.db.DbIoMorphia;
@@ -128,7 +130,7 @@ public class DBAccessMorphia extends DBAccess {
 		return groups;
 	}
 
-	protected <T> void setValuedb(
+	protected <T> void setValueToDb(
 			final Class<?> type,
 			final T data,
 			final Field field,
@@ -136,7 +138,9 @@ public class DBAccessMorphia extends DBAccess {
 			final Document docSet,
 			final Document docUnSet) throws Exception {
 		if (field.get(data) == null) {
-			docUnSet.append(fieldName, "");
+			if (docUnSet != null) {
+				docUnSet.append(fieldName, "");
+			}
 			return;
 		}
 		if (type == long.class) {
@@ -151,7 +155,7 @@ public class DBAccessMorphia extends DBAccess {
 			docSet.append(fieldName, field.getFloat(data));
 			return;
 		}
-		if (type == Double.class) {
+		if (type == double.class) {
 			docSet.append(fieldName, field.getDouble(data));
 			return;
 		}
@@ -196,56 +200,40 @@ public class DBAccessMorphia extends DBAccess {
 			docSet.append(fieldName, tmp);
 			return;
 		}
+		if (type == ObjectId.class) {
+			docSet.append(fieldName, tmp);
+			return;
+		}
 		if (type == UUID.class) {
 			docSet.append(fieldName, tmp);
 			return;
 		}
 		if (type == Date.class) {
-			// TODO ...
 			/*
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
 				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
 				ps.setTimestamp(iii.value, sqlDate);
-			}*/
+			*/
 		}
 		if (type == Instant.class) {
 			/*
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
 				final String sqlDate = ((Instant) tmp).toString();
 				ps.setString(iii.value, sqlDate);
-			}
 			*/
 		}
 		if (type == LocalDate.class) {
 			/*
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
 				final java.sql.Date sqlDate = java.sql.Date.valueOf((LocalDate) tmp);
 				ps.setDate(iii.value, sqlDate);
-			}
 			*/
 		}
 		if (type == LocalTime.class) {
 			/*
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
 				final java.sql.Time sqlDate = java.sql.Time.valueOf((LocalTime) tmp);
 				ps.setTime(iii.value, sqlDate);
-			}
 			*/
 		}
-		throw new DataAccessException("Unknown Field Type");
-
+		docSet.append(fieldName, tmp);
+		//throw new DataAccessException("Unknown Field Type");
 	}
 
 	public <T> void setValueFromDoc(
@@ -262,6 +250,11 @@ public class DBAccessMorphia extends DBAccess {
 		}
 		if (type == UUID.class) {
 			final UUID value = doc.get(fieldName, UUID.class);
+			field.set(data, value);
+			return;
+		}
+		if (type == ObjectId.class) {
+			final ObjectId value = doc.get(fieldName, ObjectId.class);
 			field.set(data, value);
 			return;
 		}
@@ -349,8 +342,8 @@ public class DBAccessMorphia extends DBAccess {
 			final Object value = doc.get(fieldName, field.getType());
 			field.set(data, value);
 		} else {
-			final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(), null,
-					lazyCall);
+			final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
+					new QueryOptions(), lazyCall);
 			field.set(data, value);
 		}
 
@@ -459,32 +452,45 @@ public class DBAccessMorphia extends DBAccess {
 		Object uniqueId = null;
 		// real add in the BDD:
 		ObjectId insertedId = null;
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		try {
 			final MongoCollection<Document> collection = this.db.getDatastore().getDatabase()
 					.getCollection(collectionName);
-			final Document doc = new Document();
+			final Document docSet = new Document();
+			final Document docUnSet = new Document();
 			for (final Field field : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String tableFieldName = AnnotationTools.getFieldName(field, options).inTable();
+				final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					primaryKeyField = field;
 					if (primaryKeyField.getType() == UUID.class) {
 						final UUID uuid = UuidUtils.nextUUID();
 						uniqueId = uuid;
-						doc.append(tableFieldName, uuid);
+						docSet.append(tableFieldName.inTable(), uuid);
 						continue;
 					} else if (primaryKeyField.getType() == Long.class || primaryKeyField.getType() == long.class) {
 						// By default the MongoDB does not manage the
-						final long id = getNextSequenceLongValue(collectionName, tableFieldName);
+						final long id = getNextSequenceLongValue(collectionName, tableFieldName.inTable());
 						uniqueId = id;
-						doc.append(tableFieldName, id);
+						docSet.append(tableFieldName.inTable(), id);
 						continue;
 					}
-					LOGGER.error("TODO: Manage the ID primary key for type: ");
+					LOGGER.error("TODO: Manage the ID primary key for type: {}=>{}", clazz.getCanonicalName(),
+							primaryKeyField.getType());
+					continue;
+				}
+				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+				if (createTime) {
+					docSet.append(tableFieldName.inTable(), Date.from(Instant.now()));
+					continue;
+				}
+				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+				if (updateTime) {
+					docSet.append(tableFieldName.inTable(), Date.from(Instant.now()));
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
@@ -495,19 +501,8 @@ public class DBAccessMorphia extends DBAccess {
 					}
 					continue;
 				}
-				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
-				if (createTime) {
-					doc.append(tableFieldName, Date.from(Instant.now()));
-					continue;
-				}
-				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-				if (updateTime) {
-					doc.append(tableFieldName, Date.from(Instant.now()));
-					continue;
-				}
 				if (currentInsertValue == null && !field.getClass().isPrimitive()) {
 					final DefaultValue[] defaultValue = field.getDeclaredAnnotationsByType(DefaultValue.class);
-					LOGGER.error("TODO: convert default value in the correct value for the DB...");
 					if (defaultValue.length == 0) {
 						continue;
 					} else {
@@ -518,9 +513,24 @@ public class DBAccessMorphia extends DBAccess {
 						currentInsertValue = convertDefaultField(value, field);
 					}
 				}
-				doc.append(tableFieldName, currentInsertValue);
+				// conversion table ...
+				//doc.append(tableFieldName, currentInsertValue);
+				if (addOn != null) {
+					addOn.insertData(this, field, data, options, docSet, docUnSet);
+				} else {
+					final Class<?> type = field.getType();
+					if (!type.isPrimitive()) {
+						if (field.get(data) == null) {
+							if (currentInsertValue != null) {
+								docSet.append(tableFieldName.inTable(), currentInsertValue);
+							}
+							continue;
+						}
+					}
+					setValueToDb(type, data, field, tableFieldName.inTable(), docSet, null);
+				}
 			}
-			final InsertOneResult result = collection.insertOne(doc);
+			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
 			LOGGER.info("Document inserted with ID: " + insertedId);
@@ -587,14 +597,14 @@ public class DBAccessMorphia extends DBAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
+				final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 				// update field is not conditioned by filter:
 				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
 				if (updateTime) {
-					docSet.append(fieldName, Date.from(Instant.now()));
+					docSet.append(fieldName.inTable(), Date.from(Instant.now()));
 					continue;
 				}
-				if (!filterKey.getValues().contains(fieldName)) {
+				if (!filterKey.getValues().contains(fieldName.inStruct())) {
 					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
@@ -624,12 +634,10 @@ public class DBAccessMorphia extends DBAccess {
 							continue;
 						}
 					}
-					setValuedb(type, data, field, fieldName, docSet, docUnSet);
+					setValueToDb(type, data, field, fieldName.inTable(), docSet, docUnSet);
 				}
-
 			}
 			// Do the query ...
-
 			final MongoCollection<Document> collection = this.db.getDatastore().getDatabase()
 					.getCollection(collectionName);
 			final Document actions = new Document();
@@ -652,7 +660,6 @@ public class DBAccessMorphia extends DBAccess {
 	}
 
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
-		// TODO: list of user select fields.
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		final List<String> fieldsName = new ArrayList<>();
 
@@ -776,6 +783,8 @@ public class DBAccessMorphia extends DBAccess {
 			final Class<?> clazz,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
+		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
+		LOGGER.info("createObjectFromDocument: {}", clazz.getCanonicalName());
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		// TODO: manage class that is defined inside a class ==> Not manage for now...
 		Object data = null;
@@ -790,23 +799,37 @@ public class DBAccessMorphia extends DBAccess {
 					"Can not find the default constructor for the class: " + clazz.getCanonicalName());
 		}
 		for (final Field elem : clazz.getFields()) {
+			LOGGER.info("    Inspect field: name='{}' type='{}'", elem.getName(), elem.getType().getCanonicalName());
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
+				LOGGER.info("        ==> static");
 				continue;
 			}
 			final DataAccessAddOn addOn = findAddOnforField(elem);
 			if (addOn != null && !addOn.canRetrieve(elem)) {
+				LOGGER.info("        ==> Can not retreive this field");
 				continue;
 			}
 			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
+				LOGGER.info("        ==> Not read this element");
 				continue;
 			}
 			if (addOn != null) {
-				LOGGER.error("TODO: Add on not managed .6. ");
 				addOn.fillFromDoc(this, doc, elem, data, options, lazyCall);
 			} else {
-				setValueFromDoc(elem.getType(), data, elem, doc, lazyCall, options);
+				Class<?> type = elem.getType();
+				if (type == Object.class) {
+					for (final OptionSpecifyType specify : specificTypes) {
+						if (specify.name.equals(elem.getName())) {
+							type = specify.clazz;
+							LOGGER.info("Detect overwrite of typing var={} ... '{}' => '{}'", elem.getName(),
+									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
+							break;
+						}
+					}
+				}
+				setValueFromDoc(type, data, elem, doc, lazyCall, options);
 			}
 		}
 		return data;

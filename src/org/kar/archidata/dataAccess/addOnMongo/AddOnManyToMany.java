@@ -174,34 +174,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void generateQuery(
-			@NotNull final String tableName,
-			@NotNull final String primaryKey,
-			@NotNull final Field field,
-			@NotNull final StringBuilder querySelect,
-			@NotNull final StringBuilder query,
-			@NotNull final String name,
-			@NotNull final CountInOut count,
-			final QueryOptions options) throws Exception {
-		if (field.getType() != List.class) {
-			return;
-		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
-		if (objectClass == Long.class || objectClass == UUID.class) {
-			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
-		}
-		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
-		if (decorators == null) {
-			return;
-		}
-		if (objectClass == decorators.targetEntity()) {
-			generateConcatQuery(tableName, primaryKey, field, querySelect, query, name, count, options);
-
-		}
-	}
-
-	@Override
 	public void fillFromDoc(
 			final DBAccessMorphia ioDb,
 			final Document doc,

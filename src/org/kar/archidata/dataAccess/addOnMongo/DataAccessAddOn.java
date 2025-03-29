@@ -5,12 +5,9 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.bson.Document;
-import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.LazyGetter;
 import org.kar.archidata.dataAccess.QueryOptions;
-
-import jakarta.validation.constraints.NotNull;
 
 public interface DataAccessAddOn {
 	/** Get the Class of the declaration annotation
@@ -56,16 +53,6 @@ public interface DataAccessAddOn {
 	default boolean canRetrieve(final Field field) {
 		return false;
 	}
-
-	void generateQuery(
-			@NotNull String tableName,
-			@NotNull final String primaryKey,
-			@NotNull Field field,
-			@NotNull final StringBuilder querySelect,
-			@NotNull final StringBuilder query,
-			@NotNull String name,
-			@NotNull CountInOut count,
-			QueryOptions options) throws Exception;
 
 	// Return the number of colomn read
 	void fillFromDoc(

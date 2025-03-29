@@ -6,7 +6,6 @@ import java.util.List;
 import org.bson.Document;
 import org.kar.archidata.annotation.AnnotationTools;
 import org.kar.archidata.annotation.DataJson;
-import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
@@ -16,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-
-import jakarta.validation.constraints.NotNull;
 
 public class AddOnDataJson implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnDataJson.class);
@@ -72,24 +69,6 @@ public class AddOnDataJson implements DataAccessAddOn {
 	@Override
 	public boolean canRetrieve(final Field field) {
 		return true;
-	}
-
-	@Override
-	public void generateQuery(
-			@NotNull final String tableName,
-			@NotNull final String primaryKey,
-			@NotNull final Field field,
-			@NotNull final StringBuilder querySelect,
-			@NotNull final StringBuilder query,
-			@NotNull final String name,
-			@NotNull final CountInOut count,
-			final QueryOptions options) throws Exception {
-		querySelect.append(" ");
-		querySelect.append(tableName);
-		querySelect.append(".");
-		querySelect.append(name);
-		count.inc();
-		return;
 	}
 
 	@Override

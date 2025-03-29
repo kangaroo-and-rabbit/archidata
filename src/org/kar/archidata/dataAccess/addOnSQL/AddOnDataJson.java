@@ -16,7 +16,6 @@ import org.kar.archidata.annotation.AnnotationTools.FieldName;
 import org.kar.archidata.annotation.DataJson;
 import org.kar.archidata.dataAccess.CountInOut;
 import org.kar.archidata.dataAccess.DBAccess;
-import org.kar.archidata.dataAccess.DBAccessMorphia;
 import org.kar.archidata.dataAccess.DBAccessSQL;
 import org.kar.archidata.dataAccess.DataFactory;
 import org.kar.archidata.dataAccess.LazyGetter;
@@ -254,34 +253,28 @@ public class AddOnDataJson implements DataAccessAddOn {
 			final Object id,
 			final String columnList,
 			final Object remoteKey) throws Exception {
-		if (ioDb instanceof final DBAccessSQL daSQL) {
-			final String tableName = AnnotationTools.getTableName(clazz);
-			final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-					new OptionSpecifyType("id", id.getClass()),
-					new OptionSpecifyType("covers", remoteKey.getClass(), true));
-			if (columnId != null && !columnId.equals("id")) {
-				options.add(new OptionRenameColumn("id", columnId));
-			}
-			if (columnList != null && !columnList.equals("covers")) {
-				options.add(new OptionRenameColumn("covers", columnList));
-			}
-			final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, id, options.getAllArray());
-			if (data.covers == null) {
-				return;
-			}
-			final List<Object> newList = new ArrayList<>();
-			for (final Object elem : data.covers) {
-				if (elem.equals(remoteKey)) {
-					continue;
-				}
-				newList.add(elem);
-			}
-			data.covers = newList;
-			ioDb.update(data, data.id, List.of("covers"), options.getAllArray());
-		} else if (ioDb instanceof final DBAccessMorphia dam) {
-
-		} else {
-			throw new DataAccessException("DataAccess Not managed");
+		final String tableName = AnnotationTools.getTableName(clazz);
+		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
+				new OptionSpecifyType("id", id.getClass()),
+				new OptionSpecifyType("covers", remoteKey.getClass(), true));
+		if (columnId != null && !columnId.equals("id")) {
+			options.add(new OptionRenameColumn("id", columnId));
 		}
+		if (columnList != null && !columnList.equals("covers")) {
+			options.add(new OptionRenameColumn("covers", columnList));
+		}
+		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, id, options.getAllArray());
+		if (data.covers == null) {
+			return;
+		}
+		final List<Object> newList = new ArrayList<>();
+		for (final Object elem : data.covers) {
+			if (elem.equals(remoteKey)) {
+				continue;
+			}
+			newList.add(elem);
+		}
+		data.covers = newList;
+		ioDb.update(data, data.id, List.of("covers"), options.getAllArray());
 	}
 }
