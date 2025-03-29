@@ -278,8 +278,81 @@ public class DBAccessSQL extends DBAccess {
 			final CountInOut iii,
 			final Field field,
 			final PreparedStatement ps) throws Exception {
-		if (type == ObjectId.class) {
-			final Object tmp = field.get(data);
+		if (type == long.class) {
+			ps.setLong(iii.value, field.getLong(data));
+			iii.inc();
+			return;
+		}
+		if (type == int.class) {
+			ps.setInt(iii.value, field.getInt(data));
+			iii.inc();
+			return;
+		}
+		if (type == float.class) {
+			ps.setFloat(iii.value, field.getFloat(data));
+			iii.inc();
+			return;
+		}
+		if (type == double.class) {
+			ps.setDouble(iii.value, field.getDouble(data));
+			iii.inc();
+			return;
+		}
+		if (type == boolean.class) {
+			ps.setBoolean(iii.value, field.getBoolean(data));
+			iii.inc();
+			return;
+		}
+		final Object tmp = field.get(data);
+		if (type.isEnum()) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.VARCHAR);
+			} else {
+				ps.setString(iii.value, tmp.toString());
+			}
+		} else if (type == Long.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.BIGINT);
+			} else {
+				ps.setLong(iii.value, (Long) tmp);
+			}
+		} else if (type == Integer.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setInt(iii.value, (Integer) tmp);
+			}
+		} else if (type == Float.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.FLOAT);
+			} else {
+				ps.setFloat(iii.value, (Float) tmp);
+			}
+		} else if (type == Double.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.DOUBLE);
+			} else {
+				ps.setDouble(iii.value, (Double) tmp);
+			}
+		} else if (type == Boolean.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setBoolean(iii.value, (Boolean) tmp);
+			}
+		} else if (type == String.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.VARCHAR);
+			} else {
+				ps.setString(iii.value, (String) tmp);
+			}
+		} else if (type == Timestamp.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				ps.setTimestamp(iii.value, (Timestamp) tmp);
+			}
+		} else if (type == ObjectId.class) {
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BINARY);
 			} else {
@@ -287,67 +360,13 @@ public class DBAccessSQL extends DBAccess {
 				ps.setBytes(iii.value, dataByte);
 			}
 		} else if (type == UUID.class) {
-			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.BINARY);
 			} else {
 				final byte[] dataByte = UuidUtils.asBytes((UUID) tmp);
 				ps.setBytes(iii.value, dataByte);
 			}
-		} else if (type == Long.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.BIGINT);
-			} else {
-				ps.setLong(iii.value, (Long) tmp);
-			}
-		} else if (type == long.class) {
-			ps.setLong(iii.value, field.getLong(data));
-		} else if (type == Integer.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
-				ps.setInt(iii.value, (Integer) tmp);
-			}
-		} else if (type == int.class) {
-			ps.setInt(iii.value, field.getInt(data));
-		} else if (type == Float.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.FLOAT);
-			} else {
-				ps.setFloat(iii.value, (Float) tmp);
-			}
-		} else if (type == float.class) {
-			ps.setFloat(iii.value, field.getFloat(data));
-		} else if (type == Double.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.DOUBLE);
-			} else {
-				ps.setDouble(iii.value, (Double) tmp);
-			}
-		} else if (type == Double.class) {
-			ps.setDouble(iii.value, field.getDouble(data));
-		} else if (type == Boolean.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
-				ps.setBoolean(iii.value, (Boolean) tmp);
-			}
-		} else if (type == boolean.class) {
-			ps.setBoolean(iii.value, field.getBoolean(data));
-		} else if (type == Timestamp.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.INTEGER);
-			} else {
-				ps.setTimestamp(iii.value, (Timestamp) tmp);
-			}
 		} else if (type == Date.class) {
-			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.INTEGER);
 			} else {
@@ -355,7 +374,6 @@ public class DBAccessSQL extends DBAccess {
 				ps.setTimestamp(iii.value, sqlDate);
 			}
 		} else if (type == Instant.class) {
-			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.INTEGER);
 			} else {
@@ -363,7 +381,6 @@ public class DBAccessSQL extends DBAccess {
 				ps.setString(iii.value, sqlDate);
 			}
 		} else if (type == LocalDate.class) {
-			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.INTEGER);
 			} else {
@@ -371,26 +388,11 @@ public class DBAccessSQL extends DBAccess {
 				ps.setDate(iii.value, sqlDate);
 			}
 		} else if (type == LocalTime.class) {
-			final Object tmp = field.get(data);
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.INTEGER);
 			} else {
 				final java.sql.Time sqlDate = java.sql.Time.valueOf((LocalTime) tmp);
 				ps.setTime(iii.value, sqlDate);
-			}
-		} else if (type == String.class) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.VARCHAR);
-			} else {
-				ps.setString(iii.value, (String) tmp);
-			}
-		} else if (type.isEnum()) {
-			final Object tmp = field.get(data);
-			if (tmp == null) {
-				ps.setNull(iii.value, Types.VARCHAR);
-			} else {
-				ps.setString(iii.value, tmp.toString());
 			}
 		} else {
 			throw new DataAccessException("Unknown Field Type: " + type.getCanonicalName());
