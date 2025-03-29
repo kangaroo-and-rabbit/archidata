@@ -192,7 +192,9 @@
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongodb-driver-sync</artifactId>
-			<version>5.4.0-alpha0</version>
+			<!--<version>5.3.1</version>-->
+			<!--Morphia 2.4.x does not support version upper than 4.x-->
+			<version>4.11.5</version>
 		</dependency>
 		<!-- Bean Validation (JSR 303 / 380) -->
 		<dependency>
