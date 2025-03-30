@@ -202,6 +202,7 @@ public class RESTApi {
 				partHeader.append("Content-Type: application/octet-stream\r\n\r\n");
 				bodyParts.add(partHeader.toString().getBytes());
 				bodyParts.add(Files.readAllBytes(file.toPath()));
+				bodyParts.add("\r\n".getBytes());
 			} else {
 				partHeader.append("Content-Disposition: form-data; name=\"").append(entry.getKey())
 						.append("\"\r\n\r\n");
