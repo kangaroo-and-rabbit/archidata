@@ -206,7 +206,11 @@ public class RESTApi {
 			} else {
 				partHeader.append("Content-Disposition: form-data; name=\"").append(entry.getKey())
 						.append("\"\r\n\r\n");
-				partHeader.append(entry.getValue().toString()).append("\r\n");
+				if (entry.getValue() == null) {
+					partHeader.append("null\r\n");
+				} else {
+					partHeader.append(entry.getValue().toString()).append("\r\n");
+				}
 				bodyParts.add(partHeader.toString().getBytes());
 			}
 		}
