@@ -1,5 +1,6 @@
 package org.kar.archidata.tools;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -8,9 +9,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.types.ObjectId;
 import org.kar.archidata.exception.RESTErrorResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +70,21 @@ public class RESTApi {
 		return modelSendJson("GET", clazz, urlOffset, null);
 	}
 
+	public HttpResponse<byte[]> getRaw(final String urlOffset) throws IOException, InterruptedException {
+		final Builder requestBuilding = createRequestBuilder(urlOffset);
+		final HttpRequest request = requestBuilding.method("GET", BodyPublishers.ofString("")).build();
+		final HttpClient client = HttpClient.newHttpClient();
+		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
+		return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+	}
+
+	public <TYPE_RESPONSET, TYPE_BODY> TYPE_RESPONSET postMultipart(
+			final Class<TYPE_RESPONSET> clazz,
+			final String urlOffset,
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
+		return modelSendMultipart("POST", clazz, urlOffset, data);
+	}
+
 	public <TYPE_RESPONSET, TYPE_BODY> TYPE_RESPONSET post(
 			final Class<TYPE_RESPONSET> clazz,
 			final String urlOffset,
@@ -108,6 +127,13 @@ public class RESTApi {
 		return modelSendMap("PUT", clazz, urlOffset, data);
 	}
 
+	public <TYPE_RESPONSE> TYPE_RESPONSE putMultipart(
+			final Class<TYPE_RESPONSE> clazz,
+			final String urlOffset,
+			final Map<String, Object> data) throws RESTErrorResponseException, IOException, InterruptedException {
+		return modelSendMultipart("PUT", clazz, urlOffset, data);
+	}
+
 	public <TYPE_RESPONSE, TYPE_BODY> TYPE_RESPONSE patch(
 			final Class<TYPE_RESPONSE> clazz,
 			final String urlOffset,
@@ -142,21 +168,69 @@ public class RESTApi {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public <TYPE_RESPONSE> TYPE_RESPONSE modelSendJson(
-			final String model,
-			final Class<TYPE_RESPONSE> clazz,
-			final String urlOffset,
-			String body) throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpClient client = HttpClient.newHttpClient();
-		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
+	public Builder createRequestBuilder(final String urlOffset) {
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
-		LOGGER.trace("call {}: {}", model, URI.create(this.baseUrl + urlOffset));
-		LOGGER.trace("DATA: {}", body);
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
 		}
+		return requestBuilding;
+	}
+
+	public <TYPE_RESPONSE> TYPE_RESPONSE modelSendMultipart(
+			final String model,
+			final Class<TYPE_RESPONSE> clazzReturn,
+			final String urlOffset,
+			final Map<String, Object> params) throws RESTErrorResponseException, IOException, InterruptedException {
+
+		LOGGER.trace("call (MULTIPART) {}: {}", model, URI.create(this.baseUrl + urlOffset));
+		Builder requestBuilding = createRequestBuilder(urlOffset);
+
+		// Create multipart key element
+		final String boundary = (new ObjectId()).toString();
+		requestBuilding = requestBuilding.header("Content-Type", "multipart/form-data; boundary=" + boundary);
+		// create the body;
+		final List<byte[]> bodyParts = new ArrayList<>();
+
+		for (final Map.Entry<String, Object> entry : params.entrySet()) {
+			final StringBuilder partHeader = new StringBuilder();
+			partHeader.append("--").append(boundary).append("\r\n");
+			if (entry.getValue() instanceof File) {
+				final File file = (File) entry.getValue();
+				partHeader.append("Content-Disposition: form-data; name=\"").append(entry.getKey())
+						.append("\"; filename=\"").append(file.getName()).append("\"\r\n");
+				partHeader.append("Content-Type: application/octet-stream\r\n\r\n");
+				bodyParts.add(partHeader.toString().getBytes());
+				bodyParts.add(Files.readAllBytes(file.toPath()));
+			} else {
+				partHeader.append("Content-Disposition: form-data; name=\"").append(entry.getKey())
+						.append("\"\r\n\r\n");
+				partHeader.append(entry.getValue().toString()).append("\r\n");
+				bodyParts.add(partHeader.toString().getBytes());
+			}
+		}
+		bodyParts.add(("--" + boundary + "--\r\n").getBytes());
+
+		final int totalSize = bodyParts.stream().mapToInt(b -> b.length).sum();
+		final byte[] finalBody = new byte[totalSize];
+		int position = 0;
+		for (final byte[] part : bodyParts) {
+			System.arraycopy(part, 0, finalBody, position, part.length);
+			position += part.length;
+		}
+
+		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofByteArray(finalBody)).build();
+		return callAndParseRequest(clazzReturn, request);
+	}
+
+	public <TYPE_RESPONSE> TYPE_RESPONSE modelSendJson(
+			final String model,
+			final Class<TYPE_RESPONSE> clazzReturn,
+			final String urlOffset,
+			String body) throws RESTErrorResponseException, IOException, InterruptedException {
+		LOGGER.trace("DATA: {}", body);
+		Builder requestBuilding = createRequestBuilder(urlOffset);
+
 		if (body == null) {
 			body = "";
 		} else {
@@ -164,7 +238,19 @@ public class RESTApi {
 		}
 		LOGGER.trace("publish body: {}", body);
 		final HttpRequest request = requestBuilding.method(model, BodyPublishers.ofString(body)).build();
+		return callAndParseRequest(clazzReturn, request);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(
+			final Class<TYPE_RESPONSE> clazzReturn,
+			final HttpRequest request) throws RESTErrorResponseException, IOException, InterruptedException {
+		final HttpClient client = HttpClient.newHttpClient();
+		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+		if (clazzReturn == HttpResponse.class) {
+			return (TYPE_RESPONSE) httpResponse;
+		}
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			LOGGER.trace("Receive Error: {}", httpResponse.body());
 			try {
@@ -188,14 +274,14 @@ public class RESTApi {
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			}
 		}
-		if (clazz == Void.class || clazz == void.class) {
+		if (clazzReturn == Void.class || clazzReturn == void.class) {
 			return null;
 		}
-		if (clazz.equals(String.class)) {
+		if (clazzReturn.equals(String.class)) {
 			return (TYPE_RESPONSE) httpResponse.body();
 		}
-		LOGGER.trace("Receive model: {} with data: '{}'", clazz.getCanonicalName(), httpResponse.body());
-		return this.mapper.readValue(httpResponse.body(), clazz);
+		LOGGER.trace("Receive model: {} with data: '{}'", clazzReturn.getCanonicalName(), httpResponse.body());
+		return this.mapper.readValue(httpResponse.body(), clazzReturn);
 	}
 
 	@SuppressWarnings("unchecked")
