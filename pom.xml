@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.atria-soft</groupId>
 	<artifactId>archidata</artifactId>
-	<version>0.26.2</version>
+	<version>0.26.3-SNAPSHOT</version>
 	<licenses>
 		<license>
 			<name>Mozilla Public License 2.0</name>
