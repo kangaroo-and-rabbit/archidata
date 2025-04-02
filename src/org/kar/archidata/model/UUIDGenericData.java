@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.kar.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.kar.archidata.annotation.apiGenerator.ApiGenerationMode;
+import org.kar.archidata.annotation.apiGenerator.ApiNotNull;
 import org.kar.archidata.annotation.checker.ReadOnlyField;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,7 @@ public class UUIDGenericData extends GenericTiming {
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique UUID of the object", example = "e6b33c1c-d24d-11ee-b616-02420a030102")
 	@ReadOnlyField
+	@ApiNotNull
 	@ApiAccessLimitation(creatable = false, updatable = false)
 	public UUID uuid = null;
 }

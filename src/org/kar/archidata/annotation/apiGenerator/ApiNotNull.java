@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
  * to ensure precise validation and documentation of method parameters.
  *
  * <p>Usage:
- * - Target: This annotation can be applied to parameters.
+ * - Target: This annotation can be applied to field.
  * - Retention: The annotation is retained at runtime, allowing it to be
  *   processed by frameworks or libraries that handle code generation logic.
  *
@@ -33,7 +33,7 @@ import java.lang.annotation.Target;
  *
  * In this example, the `username` field in the `User` class is explicitly marked as non-null in the generated API.
  */
-@Target({ ElementType.PARAMETER })
+@Target({ ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiNotNull {
 	/**

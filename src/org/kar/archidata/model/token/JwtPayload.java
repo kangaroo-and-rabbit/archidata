@@ -16,7 +16,7 @@ public class JwtPayload {
 	public String iss;
 	// Access Right Map<application, Map< section, right>>
 	@NotNull
-	public Map<String, Map<String, Long>> right;
+	public Map<@NotNull String, Map<@NotNull String, @NotNull Long>> right;
 	// user name
 	@NotNull
 	public String login;
