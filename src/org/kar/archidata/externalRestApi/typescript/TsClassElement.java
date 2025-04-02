@@ -237,6 +237,9 @@ public class TsClassElement {
 	}
 
 	public boolean isOptionalTypeZod(final FieldProperty field) {
+		if (field.apiNotNull() != null) {
+			return field.apiNotNull().value();
+		}
 		// Common checking element (apply to List, Map, ...)
 		if (field.nullable()) {
 			return true;
@@ -287,13 +290,13 @@ public class TsClassElement {
 					builder.append(")");
 				}
 			}
-			/*Must be tested before
+			/* Must be tested before
 			if (field.pattern() != null) {
 				builder.append(".regex((");
 				builder.append(field.pattern().regexp());
 				builder.append(")");
 			}*/
-			/*Must be tested before
+			/* Must be tested before
 			if (field.email() != null) {
 				builder.append(".regex((");
 				builder.append(field.email().regexp());
