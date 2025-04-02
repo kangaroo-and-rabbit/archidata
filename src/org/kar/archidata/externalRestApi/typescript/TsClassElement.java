@@ -396,6 +396,10 @@ public class TsClassElement {
 			out.append("zod.object({\n");
 		}
 		for (final FieldProperty field : model.getFields()) {
+			// remove all readOnly field
+			if (!field.accessLimitation().readable()) {
+				continue;
+			}
 			final ClassModel fieldModel = field.model();
 			if (field.comment() != null) {
 				out.append("\t/**\n");

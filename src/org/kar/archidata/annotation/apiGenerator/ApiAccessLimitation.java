@@ -10,6 +10,11 @@ import java.lang.annotation.Target;
 @Target(FIELD)
 public @interface ApiAccessLimitation {
 	/**
+	 * (Optional) The field is accessible in read (GET)
+	 */
+	boolean readable() default true;
+
+	/**
 	 * (Optional) The field is accessible in creation (POST)
 	 */
 	boolean creatable() default true;
