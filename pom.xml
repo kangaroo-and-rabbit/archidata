@@ -1,24 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>kangaroo-and-rabbit</groupId>
+	<groupId>org.atria-soft</groupId>
 	<artifactId>archidata</artifactId>
 	<version>0.26.1-SNAPSHOT</version>
-	<repositories>
-		<repository>
-			<id>gitea</id>
-			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
-		</repository>
-	</repositories>
+	<licenses>
+		<license>
+			<name>Mozilla Public License 2.0</name>
+			<url>https://opensource.org/licenses/MPL-2.0</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<developers>
+		<developer>
+			<id>dev1</id>
+			<name>Edouard DUPIN</name>
+			<email>yui.heero@gmail.com</email>
+			<roles>
+				<role>Lead Developer</role>
+			</roles>
+		</developer>
+	</developers>
+	<scm>
+		<url>https://github.com/kangaroo-and-rabbit/archidata</url>
+		<connection>scm:git:git://github.com/kangaroo-and-rabbit/archidata.git</connection>
+		<developerConnection>scm:git:ssh:github.com/kangaroo-and-rabbit/archidata.git</developerConnection>
+	</scm>
 	<distributionManagement>
 		<repository>
-			<id>gitea</id>
-			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+			<id>ossrh</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
 		</repository>
-		<snapshotRepository>
-			<id>gitea</id>
-			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
-		</snapshotRepository>
 	</distributionManagement>
 	<dependencyManagement>
 		<dependencies>
@@ -345,6 +357,18 @@
 					</plugins>
 					-->
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-gpg-plugin</artifactId>
+				<version>1.6</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>sign</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
