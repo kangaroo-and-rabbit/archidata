@@ -238,7 +238,7 @@ public class TsClassElement {
 
 	public boolean isOptionalTypeZod(final FieldProperty field) {
 		if (field.apiNotNull() != null) {
-			return field.apiNotNull().value();
+			return !field.apiNotNull().value();
 		}
 		// Common checking element (apply to List, Map, ...)
 		if (field.nullable()) {
