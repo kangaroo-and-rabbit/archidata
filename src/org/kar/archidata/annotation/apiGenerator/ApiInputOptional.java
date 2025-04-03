@@ -22,7 +22,8 @@ import java.lang.annotation.Target;
  *   more flexible API designs where certain inputs can be omitted.
  *
  * <p>Example:
- * <pre>{@code
+ *
+ * {@code
  * public class AlbumService {
  *
  *     @POST
@@ -39,7 +40,8 @@ import java.lang.annotation.Target;
  *         // some code
  *     }
  * }
- * }</pre>
+ * }
+ *
  *
  * Note: @FormDataParam must be allway at the last position.
  *
@@ -47,7 +49,8 @@ import java.lang.annotation.Target;
  * marked as optional, allowing the client to omit them when calling the API.
  *
  * <p>Generated TypeScript code example:
- * <pre>{@code
+ *
+ * {@code
  * //Add a cover on a specific album
  * export function uploadCover({
  *     restConfig,
@@ -64,10 +67,11 @@ import java.lang.annotation.Target;
  *         uri?: string, // element is optional
  *     },
  *     callbacks?: RESTCallbacks,
- * }): Promise<Album> { ...
- * }</pre>
+ * }): Promise<Album> { ... }
+ * }
  *
- * The generated TypeScript function reflects the optional nature of the form data parameters.
+ *
+ * The generated TypeScript function reflects the optional nature of the form data parameters
  */
 @Target({ ElementType.PARAMETER })
 @Retention(RetentionPolicy.RUNTIME)

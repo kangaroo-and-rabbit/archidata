@@ -172,7 +172,7 @@ public class MigrationEngine {
 
 	/** Process the automatic migration of the system
 	 * @param config SQL connection for the migration
-	 * @throws IOException Error if access on the DB */
+	 * @throws MigrationException Error if access on the DB */
 	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
 			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
 	public void migrateErrorThrow(final DbConfig config) throws MigrationException {

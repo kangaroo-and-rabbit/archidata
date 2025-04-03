@@ -111,12 +111,6 @@ public class DataAccess {
 		}
 	}
 
-	/** @param <T>
-	 * @param data
-	 * @param id
-	 * @param filterValue
-	 * @return the affected rows.
-	 * @throws Exception */
 	public static <T, ID_TYPE> long update(
 			final T data,
 			final ID_TYPE id,
@@ -225,7 +219,6 @@ public class DataAccess {
 
 	/** Delete items with the specific condition and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
 	 * @param clazz Data model that might remove element.
-	 * @param condition Condition to remove elements.
 	 * @param options (Optional) Options of the request.
 	 * @return Number of element that is removed. */
 	public static long deleteWhere(final Class<?> clazz, final QueryOption... options) throws Exception {

@@ -31,10 +31,9 @@ public interface DataAccessAddOn {
 	boolean isCompatibleField(Field elem);
 
 	/** Insert data in the specific field (the field must be in the current db, otherwiise it does not work at all.
-	 * @param ps DB statement interface.
+	 * @param ioDb DB statement interface.
 	 * @param data The date to inject.
 	 * @param iii The index of injection
-	 * @return the new index of injection in case of multiple value management
 	 * @throws SQLException */
 	void insertData(final DBAccessSQL ioDb, PreparedStatement ps, final Field field, Object data, CountInOut iii)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
@@ -76,9 +75,11 @@ public interface DataAccessAddOn {
 
 	/** Create associated table of the specific element.
 	 * @param tableName
-	 * @param elem
+	 * @param primaryField
+	 * @param field
 	 * @param mainTableBuilder
-	 * @param ListOtherTables
+	 * @param preActionList
+	 * @param postActionList
 	 * @param createIfNotExist
 	 * @param createDrop
 	 * @param fieldId

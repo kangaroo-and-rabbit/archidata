@@ -185,7 +185,8 @@ public abstract class DBAccess implements Closeable {
 	/** @param <T>
 	 * @param data
 	 * @param id
-	 * @param filterValue
+	 * @param updateColomn
+	 * @param option
 	 * @return the affected rows.
 	 * @throws Exception */
 	public <T, ID_TYPE> long update(
@@ -300,8 +301,7 @@ public abstract class DBAccess implements Closeable {
 
 	/** Delete items with the specific condition and some options. If the Entity is manage as a softDeleted model, then it is flag as removed (if not already done before).
 	 * @param clazz Data model that might remove element.
-	 * @param condition Condition to remove elements.
-	 * @param options (Optional) Options of the request.
+	 * @param option (Optional) Options of the request.
 	 * @return Number of element that is removed. */
 	public long deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);

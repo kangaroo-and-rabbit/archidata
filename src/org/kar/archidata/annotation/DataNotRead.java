@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
  * - When a field is annotated with @DataNotRead, it will not be included in the
  *   default data retrieval process from the database.
  * - To override this behavior and read all columns, including those marked with
- *   @DataNotRead, the query must include the option ReadAllColumn.
+ *   `@DataNotRead`, the query must include the option ReadAllColumn.
  *
  * <p>Example:
  * <pre>{@code

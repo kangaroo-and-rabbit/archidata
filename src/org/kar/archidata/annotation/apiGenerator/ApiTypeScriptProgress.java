@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  *   the older XMLHttpRequest interface is utilized.
  *
  * <p>Example:
- * <pre>{@code
+ * {@code
  * public class SeasonService {
  *
  *     @POST
@@ -41,13 +41,13 @@ import java.lang.annotation.Target;
  *         // Upload logic
  *     }
  * }
- * }</pre>
+ * }
  *
  * In this example, the uploadCover method will generate a client-side API
  * with progress tracking capabilities using XMLHttpRequest.
  *
  * <p>Generated TypeScript code example:
- * <pre>{@code
+ * {@code
  * export function uploadCover({
  *        restConfig,
  *        params,
@@ -62,8 +62,9 @@ import java.lang.annotation.Target;
  *        file: File,
  *    },
  *    callbacks?: RESTCallbacks,
- * }): Promise<Season> {...
- * }</pre>
+ * }): Promise<Season> {...}
+ * }
+ *
  *
  */
 @Target({ ElementType.PARAMETER, ElementType.METHOD })

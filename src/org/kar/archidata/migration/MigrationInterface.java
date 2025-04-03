@@ -13,7 +13,7 @@ public interface MigrationInterface {
 	 * @param log Stored data in the BDD for the migration progression.
 	 * @param migration Migration post data on each step...
 	 * @return true if migration is finished. */
-	boolean applyMigration(DBAccess entry, StringBuilder log, Migration model) throws Exception;
+	boolean applyMigration(DBAccess entry, StringBuilder log, Migration migration) throws Exception;
 
 	/** Remove a migration the system to the previous version.
 	 * @param entry DB interface for the migration.

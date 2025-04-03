@@ -26,12 +26,6 @@ public interface DataAccessAddOn {
 	 * @return True of the field is manage by the current Add-on. */
 	boolean isCompatibleField(Field elem);
 
-	/** Insert data in the specific field (the field must be in the current db, otherwiise it does not work at all.
-	 * @param ps DB statement interface.
-	 * @param data The date to inject.
-	 * @param iii The index of injection
-	 * @return the new index of injection in case of multiple value management
-	 * @throws SQLException */
 	void insertData(
 			final DBAccessMorphia ioDb,
 			final Field field,
@@ -65,14 +59,7 @@ public interface DataAccessAddOn {
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
 	/** Create associated table of the specific element.
-	 * @param tableName
-	 * @param elem
-	 * @param mainTableBuilder
-	 * @param ListOtherTables
-	 * @param createIfNotExist
-	 * @param createDrop
-	 * @param fieldId
-	 * @throws Exception */
+	 */
 	void createTables(
 			String tableName,
 			final Field primaryField,
