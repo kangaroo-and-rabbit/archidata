@@ -12,11 +12,11 @@ public class ContextGenericTools {
 
 	public static ObjectMapper createObjectMapper() {
 		final ObjectMapper objectMapper = new ObjectMapper();
-		// Configure Jackson for dates and times
-		objectMapper.registerModule(new JavaTimeModule()); // Module for Java 8+ Date and Time API
 		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		// configure the local serialization modules
 		objectMapper.registerModule(JacksonModules.getAllModules());
+		// Add java time module at the end to prevent use it in first but in backup
+		objectMapper.registerModule(new JavaTimeModule()); // Module for Java 8+ Date and Time API
 		return objectMapper;
 	}
 
