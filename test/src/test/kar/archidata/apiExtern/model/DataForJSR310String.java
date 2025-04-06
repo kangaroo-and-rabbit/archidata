@@ -1,20 +1,14 @@
 package test.kar.archidata.apiExtern.model;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DataForJSR310 {
-	public LocalTime localTime;
-	public LocalDate localDate;
-	public Date date;
-	public LocalDateTime localDateTime;
-	public ZonedDateTime zoneDateTime;
+public class DataForJSR310String {
+	public String localTime;
+	public String localDate;
+	public String date;
+	public String localDateTime;
+	public String zoneDateTime;
 
 	@Override
 	public String toString() {

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import test.kar.archidata.ConfigureDb;
 import test.kar.archidata.StepwiseExtension;
 import test.kar.archidata.apiExtern.model.DataForJSR310;
+import test.kar.archidata.apiExtern.model.DataForJSR310String;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -57,17 +58,113 @@ public class TestTime {
 	public void insertValue() throws Exception {
 
 		final DataForJSR310 data = new DataForJSR310();
-		data.time = LocalTime.now();
-		data.date = LocalDate.now();
-		data.dateTime = LocalDateTime.now();
+		data.localTime = LocalTime.now();
+		data.localDate = LocalDate.now();
+		data.localDateTime = LocalDateTime.now();
 
 		final DataForJSR310 inserted = api.post(DataForJSR310.class, TestTime.ENDPOINT_NAME, data);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.time);
-		Assertions.assertNotNull(inserted.date);
-		Assertions.assertNotNull(inserted.dateTime);
-		Assertions.assertEquals(inserted.time, data.time);
-		Assertions.assertEquals(inserted.date, data.date);
-		Assertions.assertEquals(inserted.dateTime, data.dateTime);
+		Assertions.assertNotNull(inserted.localTime);
+		Assertions.assertNotNull(inserted.localDate);
+		Assertions.assertNotNull(inserted.localDateTime);
+		Assertions.assertEquals(inserted.localTime, data.localTime);
+		Assertions.assertEquals(inserted.localDate, data.localDate);
+		Assertions.assertEquals(inserted.localDateTime, data.localDateTime);
+	}
+
+	@Order(2)
+	@Test
+	public void serializeValue() throws Exception {
+		String data = """
+				{
+					"date": "2025-04-04T15:15:07.123"
+				}
+				""";
+		String received = api.postJson(String.class, TestTime.ENDPOINT_NAME + "/serialize", data);
+		LOGGER.info("received: '{}'", received);
+		Assertions.assertEquals("Fri Apr 04 15:15:07 UTC 2025", received);
+		data = """
+				{
+					"date": "2025-04-04T15:15:07.123Z"
+				}
+				""";
+		received = api.postJson(String.class, TestTime.ENDPOINT_NAME + "/serialize", data);
+		LOGGER.info("received: '{}'", received);
+		Assertions.assertEquals("Fri Apr 04 15:15:07 UTC 2025", received);
+		data = """
+				{
+					"date": "2025-04-04T15:15:07.123+05:00"
+				}
+				""";
+		received = api.postJson(String.class, TestTime.ENDPOINT_NAME + "/serialize", data);
+		LOGGER.info("received: '{}'", received);
+		Assertions.assertEquals("Fri Apr 04 10:15:07 UTC 2025", received);
+
+		Assertions.assertNotNull(received);
+	}
+
+	@Order(3)
+	@Test
+	public void unserializeValue() throws Exception {
+		String data = "2025-04-04T15:15:07.123Z";
+		DataForJSR310String received = api.postJson(DataForJSR310String.class, TestTime.ENDPOINT_NAME + "/unserialize",
+				data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received.date);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123";
+		received = api.postJson(DataForJSR310String.class, TestTime.ENDPOINT_NAME + "/unserialize", data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received.date);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123+05:00";
+		received = api.postJson(DataForJSR310String.class, TestTime.ENDPOINT_NAME + "/unserialize", data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received.date);
+		LOGGER.info("----------------------------------------------------");
+		//Assertions.assertEquals("Fri Apr 04 15:15:07 UTC 2025", received);
+	}
+
+	@Order(50)
+	@Test
+	public void jakartaInputDate() throws Exception {
+		String data = "2025-04-04T15:15:07.123Z";
+		String received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputDate");
+		//String received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputDate?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123";
+		received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputDate?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123+05:00";
+		received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputDate?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		//Assertions.assertEquals("Fri Apr 04 15:15:07 UTC 2025", received);
+	}
+
+	@Order(51)
+	@Test
+	public void jakartaInputOffsetDateTime() throws Exception {
+		String data = "2025-04-04T15:15:07.123Z";
+		String received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputOffsetDateTime?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123";
+		received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputOffsetDateTime?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		data = "2025-04-04T15:15:07.123+05:00";
+		received = api.get(String.class, TestTime.ENDPOINT_NAME + "/inputOffsetDateTime?date=" + data);
+		LOGGER.info("send    : '{}'", data);
+		LOGGER.info("received: '{}'", received);
+		LOGGER.info("----------------------------------------------------");
+		//Assertions.assertEquals("Fri Apr 04 15:15:07 UTC 2025", received);
 	}
 }

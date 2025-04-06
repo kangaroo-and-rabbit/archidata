@@ -2,6 +2,7 @@ package test.kar.archidata.apiExtern;
 
 import java.net.URI;
 import java.util.Iterator;
+import java.util.TimeZone;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -16,6 +17,8 @@ import org.kar.archidata.UpdateJwtPublicKey;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.api.ProxyResource;
 import org.kar.archidata.catcher.GenericCatcher;
+import org.kar.archidata.converter.Jakarta.DateParamConverter;
+import org.kar.archidata.converter.Jakarta.OffsetDateTimeParamConverter;
 import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.filter.CORSFilter;
@@ -35,7 +38,10 @@ public class WebLauncher {
 	protected UpdateJwtPublicKey keyUpdater = null;
 	protected HttpServer server = null;
 
-	public WebLauncher() {}
+	public WebLauncher() {
+		// Set default timezone to UTC
+		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+	}
 
 	private static URI getBaseURI() {
 		return UriBuilder.fromUri(ConfigBaseVariable.getlocalAddress()).build();
@@ -98,6 +104,10 @@ public class WebLauncher {
 		// Configure resources
 		// ===================================================================
 		final ResourceConfig rc = new ResourceConfig();
+
+		// Add permissive date converter for jakarta
+		rc.register(DateParamConverter.class);
+		rc.register(OffsetDateTimeParamConverter.class);
 
 		// add multipart models ..
 		rc.register(MultiPartFeature.class);
