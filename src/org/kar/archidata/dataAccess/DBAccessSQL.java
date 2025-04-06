@@ -14,6 +14,9 @@ import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -370,7 +373,18 @@ public class DBAccessSQL extends DBAccess {
 			if (tmp == null) {
 				ps.setNull(iii.value, Types.INTEGER);
 			} else {
-				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
+				final OffsetDateTime offsetDateTime = ((Date) tmp).toInstant().atZone(ZoneId.systemDefault())
+						.toOffsetDateTime();
+				final Timestamp sqlDate = java.sql.Timestamp
+						.from(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toInstant());
+				ps.setTimestamp(iii.value, sqlDate);
+			}
+		} else if (type == OffsetDateTime.class) {
+			if (tmp == null) {
+				ps.setNull(iii.value, Types.INTEGER);
+			} else {
+				final Timestamp sqlDate = java.sql.Timestamp
+						.from(((OffsetDateTime) tmp).withOffsetSameInstant(ZoneOffset.UTC).toInstant());
 				ps.setTimestamp(iii.value, sqlDate);
 			}
 		} else if (type == Instant.class) {
@@ -522,7 +536,9 @@ public class DBAccessSQL extends DBAccess {
 				if (rs.wasNull()) {
 					field.set(data, null);
 				} else {
-					field.set(data, Date.from(tmp.toInstant()));
+					final OffsetDateTime odt = tmp.toInstant().atOffset(ZoneOffset.UTC);
+					odt.atZoneSameInstant(ZoneId.systemDefault());
+					field.set(data, Date.from(odt.toInstant()));
 					countNotNull.inc();
 				}
 			} catch (final SQLException ex) {
@@ -532,6 +548,28 @@ public class DBAccessSQL extends DBAccess {
 					field.set(data, null);
 				} else {
 					final Date date = DateTools.parseDate(tmp);
+					LOGGER.error("Fail to parse the SQL time !!! {}", date);
+					field.set(data, date);
+					countNotNull.inc();
+				}
+			}
+		} else if (type == OffsetDateTime.class) {
+			try {
+				final Timestamp tmp = rs.getTimestamp(count.value);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					final OffsetDateTime odt = tmp.toInstant().atOffset(ZoneOffset.UTC);
+					field.set(data, odt);
+					countNotNull.inc();
+				}
+			} catch (final SQLException ex) {
+				final String tmp = rs.getString(count.value);
+				LOGGER.error("Fail to parse the SQL time !!! {}", tmp);
+				if (rs.wasNull()) {
+					field.set(data, null);
+				} else {
+					final OffsetDateTime date = DateTools.parseOffsetDateTime(tmp);
 					LOGGER.error("Fail to parse the SQL time !!! {}", date);
 					field.set(data, date);
 					countNotNull.inc();
