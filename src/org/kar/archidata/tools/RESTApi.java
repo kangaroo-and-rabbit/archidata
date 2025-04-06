@@ -41,6 +41,10 @@ public class RESTApi {
 		this.token = token;
 	}
 
+	public RESTApiRequest request(final String urlOffset) {
+		return new RESTApiRequest(this.baseUrl + urlOffset, this.token);
+	}
+
 	public <TYPE_RESPONSE> List<TYPE_RESPONSE> gets(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
