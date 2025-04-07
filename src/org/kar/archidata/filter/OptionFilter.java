@@ -1,6 +1,8 @@
 package org.kar.archidata.filter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,12 @@ public class OptionFilter implements ContainerRequestFilter {
 
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
-		LOGGER.warn("Receive message from: [{}] {}", requestContext.getMethod(), requestContext.getUriInfo().getPath());
+		LOGGER.warn("Receive message from: [{}] '{}'", requestContext.getMethod(),
+				requestContext.getUriInfo().getPath());
+		final Map<String, List<String>> queryParams = requestContext.getUriInfo().getQueryParameters();
+		for (final Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
+			LOGGER.warn("queryParam: '{}' => '{}'", entry.getKey(), entry.getValue());
+		}
 		if (requestContext.getMethod().contentEquals("OPTIONS")) {
 			requestContext.abortWith(Response.status(Response.Status.NO_CONTENT).build());
 		}

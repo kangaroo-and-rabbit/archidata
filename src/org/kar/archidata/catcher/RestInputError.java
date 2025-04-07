@@ -27,6 +27,17 @@ public class RestInputError {
 
 	public RestInputError() {}
 
+	public RestInputError(final String argument, final String path, final String message) {
+		this.path = argument;
+		this.path = path;
+		this.message = message;
+	}
+
+	public RestInputError(final String path, final String message) {
+		this.path = path;
+		this.message = message;
+	}
+
 	public RestInputError(final Path path, final String message) {
 		final Matcher matcher = PATTERN.matcher(path.toString());
 		if (matcher.find()) {
@@ -36,11 +47,6 @@ public class RestInputError {
 		} else {
 			this.path = path.toString();
 		}
-		this.message = message;
-	}
-
-	public RestInputError(final String path, final String message) {
-		this.path = path;
 		this.message = message;
 	}
 

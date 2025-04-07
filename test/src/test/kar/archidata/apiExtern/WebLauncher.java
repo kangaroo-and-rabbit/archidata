@@ -17,8 +17,8 @@ import org.kar.archidata.UpdateJwtPublicKey;
 import org.kar.archidata.api.DataResource;
 import org.kar.archidata.api.ProxyResource;
 import org.kar.archidata.catcher.GenericCatcher;
-import org.kar.archidata.converter.Jakarta.DateParamConverter;
-import org.kar.archidata.converter.Jakarta.OffsetDateTimeParamConverter;
+import org.kar.archidata.converter.Jakarta.DateParamConverterProvider;
+import org.kar.archidata.converter.Jakarta.OffsetDateTimeParamConverterProvider;
 import org.kar.archidata.db.DbConfig;
 import org.kar.archidata.exception.DataAccessException;
 import org.kar.archidata.filter.CORSFilter;
@@ -106,8 +106,8 @@ public class WebLauncher {
 		final ResourceConfig rc = new ResourceConfig();
 
 		// Add permissive date converter for jakarta
-		rc.register(DateParamConverter.class);
-		rc.register(OffsetDateTimeParamConverter.class);
+		rc.register(DateParamConverterProvider.class);
+		rc.register(OffsetDateTimeParamConverterProvider.class);
 
 		// add multipart models ..
 		rc.register(MultiPartFeature.class);

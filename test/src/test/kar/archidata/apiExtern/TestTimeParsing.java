@@ -1,23 +1,17 @@
 package test.kar.archidata.apiExtern;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.kar.archidata.tools.DateTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import test.kar.archidata.StepwiseExtension;
-
-@ExtendWith(StepwiseExtension.class)
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTimeParsing {
 	private final static Logger LOGGER = LoggerFactory.getLogger(TestTime.class);
 
@@ -124,23 +118,9 @@ public class TestTimeParsing {
 		parsed = DateTools.parseDate(data);
 		Assertions.assertEquals("1999-01-30T18:16:17.123+09:00", DateTools.serializeMilliWithOriginalTimeZone(parsed));
 		Assertions.assertEquals("1999-01-30T09:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "1999-01-30";
-		parsed = DateTools.parseDate(data);
-		Assertions.assertEquals("1999-01-30T09:00:00.000+09:00", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("1999-01-30T00:00:00.000Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "18:16:17.123";
-		parsed = DateTools.parseDate(data);
-		Assertions.assertEquals("0001-01-02T03:35:16.123+09:18", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("0001-01-01T18:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
 
-		//		data = "1999-01-30T18:16:17.123 UTC+09:00";
-		//		parsed = DateTools.parseDate2(data);
-		//		LOGGER.info(">> send      : '{}'", data);
-		//		LOGGER.info(">> format OTZ: '{}'", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		//		LOGGER.info(">> format UTC: '{}'", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		//		LOGGER.info("----------------------------------------------------");
-		//		Assertions.assertEquals("", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		//		Assertions.assertEquals("", DateTools.serializeMilliWithUTCTimeZone(parsed));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("1999-01-30"));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("18:16:17.123"));
 	}
 
 	@Test
@@ -160,18 +140,6 @@ public class TestTimeParsing {
 		parsed = DateTools.parseOffsetDateTime(data);
 		Assertions.assertEquals("1999-01-30T18:16:17.123+05:00", DateTools.serializeMilliWithOriginalTimeZone(parsed));
 		Assertions.assertEquals("1999-01-30T13:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "1999-01-30T18:16:17.123456789";
-		parsed = DateTools.parseOffsetDateTime(data);
-		Assertions.assertEquals("1999-01-30T18:16:17.123Z", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("1999-01-30T18:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "1999-01-30 18:16:17";
-		parsed = DateTools.parseOffsetDateTime(data);
-		Assertions.assertEquals("1999-01-30T18:16:17.000Z", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("1999-01-30T18:16:17.000Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "1999-01-30T18:16:17";
-		parsed = DateTools.parseOffsetDateTime(data);
-		Assertions.assertEquals("1999-01-30T18:16:17.000Z", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("1999-01-30T18:16:17.000Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
 		data = "1999-01-30T18:16:17.123+09:00";
 		parsed = DateTools.parseOffsetDateTime(data);
 		Assertions.assertEquals("1999-01-30T18:16:17.123+09:00", DateTools.serializeMilliWithOriginalTimeZone(parsed));
@@ -180,14 +148,13 @@ public class TestTimeParsing {
 		parsed = DateTools.parseOffsetDateTime(data);
 		Assertions.assertEquals("1999-01-30T18:16:17.123+09:00", DateTools.serializeMilliWithOriginalTimeZone(parsed));
 		Assertions.assertEquals("1999-01-30T09:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "1999-01-30";
-		parsed = DateTools.parseOffsetDateTime(data);
-		Assertions.assertEquals("1999-01-30T00:00:00.000Z", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("1999-01-30T00:00:00.000Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
-		data = "18:16:17.123";
-		parsed = DateTools.parseOffsetDateTime(data);
-		Assertions.assertEquals("0001-01-01T18:16:17.123Z", DateTools.serializeMilliWithOriginalTimeZone(parsed));
-		Assertions.assertEquals("0001-01-01T18:16:17.123Z", DateTools.serializeMilliWithUTCTimeZone(parsed));
+
+		Assertions.assertThrows(IOException.class,
+				() -> DateTools.parseOffsetDateTime("1999-01-30T18:16:17.123456789"));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("1999-01-30 18:16:17"));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("1999-01-30T18:16:17"));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("1999-01-30"));
+		Assertions.assertThrows(IOException.class, () -> DateTools.parseOffsetDateTime("18:16:17.123"));
 
 		//		data = "1999-01-30T18:16:17.123 UTC+09:00";
 		//		parsed = DateTools.parseDate2(data);

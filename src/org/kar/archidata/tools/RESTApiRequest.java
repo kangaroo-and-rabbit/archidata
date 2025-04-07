@@ -81,6 +81,20 @@ public class RESTApiRequest {
 	}
 
 	/**
+	 * Sets the request body as a raw String.
+	 *
+	 * @param body        The raw string body (consider as "text/plain").
+	 * @param contentType The content type of the request body.
+	 * @return The updated RESTApiRequest instance.
+	 */
+	public <TYPE_BODY> RESTApiRequest bodyString(final String body) {
+		this.serializedBodyByte = null;
+		this.serializedBodyString = body;
+		this.contentType = "text/plain";
+		return this;
+	}
+
+	/**
 	 * Serializes a Map to a JSON string and sets it as the body.
 	 *
 	 * @param data A map representing the body content.
@@ -117,6 +131,19 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_BODY> RESTApiRequest bodyJson(final TYPE_BODY body) throws JsonProcessingException {
 		this.serializedBodyString = this.mapper.writeValueAsString(body);
+		this.contentType = "application/json";
+		return this;
+	}
+
+	/**
+	 * Sed data as a json body.
+	 *
+	 * @param body a serialized Json object.
+	 * @return The updated RESTApiRequest instance.
+	 * @throws JsonProcessingException If serialization fails.
+	 */
+	public <TYPE_BODY> RESTApiRequest bodyAsJson(final String body) {
+		this.serializedBodyString = body;
 		this.contentType = "application/json";
 		return this;
 	}
@@ -185,22 +212,6 @@ public class RESTApiRequest {
 	}
 
 	/**
-	* Sends a GET request and parses the response as a List of objects.
-	*
-	* @param clazz The class of the expected response elements.
-	* @return A list of parsed objects.
-	* @throws RESTErrorResponseException If an error response is received.
-	* @throws IOException                If the request fails.
-	* @throws InterruptedException       If the request is interrupted.
-	*/
-	public <TYPE_RESPONSE> List<TYPE_RESPONSE> gets(final Class<TYPE_RESPONSE> clazz)
-			throws RESTErrorResponseException, IOException, InterruptedException {
-		verb("GET");
-		final HttpRequest request = request();
-		return callAndParseRequestList(clazz, request);
-	}
-
-	/**
 	 * Sets the HTTP verb to GET.
 	 *
 	 * @return The updated RESTApiRequest instance.
@@ -217,6 +228,16 @@ public class RESTApiRequest {
 	 */
 	public RESTApiRequest put() {
 		verb("PUT");
+		return this;
+	}
+
+	/**
+	 * Sets the HTTP verb to POST.
+	 *
+	 * @return The updated RESTApiRequest instance.
+	 */
+	public RESTApiRequest post() {
+		verb("POST");
 		return this;
 	}
 
@@ -269,9 +290,9 @@ public class RESTApiRequest {
 	 * @throws IOException                If the request fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	public <TYPE_RESPONSE> List<TYPE_RESPONSE> requestList(final Class<TYPE_RESPONSE> clazz)
+	public <TYPE_RESPONSE> List<TYPE_RESPONSE> fetchList(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = request();
+		final HttpRequest request = fetch();
 		return callAndParseRequestList(clazz, request);
 	}
 
@@ -284,12 +305,23 @@ public class RESTApiRequest {
 	 * @throws IOException                If the request fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	public <TYPE_RESPONSE> TYPE_RESPONSE request(final Class<TYPE_RESPONSE> clazz)
+	public <TYPE_RESPONSE> TYPE_RESPONSE fetch(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = request();
+		final HttpRequest request = fetch();
 		return callAndParseRequest(clazz, request);
 	}
 
+	/**
+	 * Builds a query parameter string from a map of key-value pairs.
+	 *
+	 * <p>This method encodes each key and value using UTF-8 encoding to ensure that
+	 * the resulting query string is safe for use in a URL. The encoded key-value pairs
+	 * are then joined together with '&' separators.</p>
+	 *
+	 * @param params A map containing query parameter names and their corresponding values.
+	 *               Both keys and values will be URL-encoded.
+	 * @return A URL-encoded query string (e.g., "name=John+Doe&age=30")
+	 */
 	public static String buildQueryParams(final Map<String, String> params) {
 		return params.entrySet().stream().map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="
 				+ URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)).collect(Collectors.joining("&"));
@@ -303,13 +335,13 @@ public class RESTApiRequest {
 	 * @throws IOException                If body serialization fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	public HttpRequest request() throws RESTErrorResponseException, IOException, InterruptedException {
+	public HttpRequest fetch() throws RESTErrorResponseException, IOException, InterruptedException {
 		Builder requestBuilding = null;
 		final String queryParams = buildQueryParams(this.queryParam);
-		if (queryParams != null && !queryParams.isEmpty()) {
-			requestBuilding = createRequestBuilder(this.url);
+		if (queryParams == null || queryParams.isEmpty()) {
+			requestBuilding = createRequestBuilder("");
 		} else {
-			requestBuilding = createRequestBuilder(this.url + "?" + queryParams);
+			requestBuilding = createRequestBuilder("?" + queryParams);
 		}
 		if (this.contentType != null) {
 			requestBuilding.header("Content-Type", this.contentType);
@@ -336,7 +368,7 @@ public class RESTApiRequest {
 	 * @throws IOException          If the request fails.
 	 * @throws InterruptedException If the request is interrupted.
 	 */
-	public HttpResponse<byte[]> getRaw(final String urlOffset) throws IOException, InterruptedException {
+	protected HttpResponse<byte[]> getRaw(final String urlOffset) throws IOException, InterruptedException {
 		final Builder requestBuilding = createRequestBuilder(urlOffset);
 		final HttpRequest request = requestBuilding.method("GET", BodyPublishers.ofString("")).build();
 		final HttpClient client = HttpClient.newHttpClient();
@@ -350,7 +382,7 @@ public class RESTApiRequest {
 	 * @param urlOffset The URL path relative to the base URL.
 	 * @return Initialized HttpRequest.Builder.
 	 */
-	public Builder createRequestBuilder(final String urlOffset) {
+	private Builder createRequestBuilder(final String urlOffset) {
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.url + urlOffset));
 		if (this.token != null) {
@@ -370,7 +402,7 @@ public class RESTApiRequest {
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
 	@SuppressWarnings("unchecked")
-	public <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(
+	private <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(
 			final Class<TYPE_RESPONSE> clazzReturn,
 			final HttpRequest request) throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpClient client = HttpClient.newHttpClient();
@@ -423,7 +455,7 @@ public class RESTApiRequest {
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
 	@SuppressWarnings("unchecked")
-	public <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(
+	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(
 			final Class<TYPE_RESPONSE> clazzReturn,
 			final HttpRequest request) throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpClient client = HttpClient.newHttpClient();

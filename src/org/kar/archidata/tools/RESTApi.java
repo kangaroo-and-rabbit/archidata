@@ -41,6 +41,10 @@ public class RESTApi {
 		this.token = token;
 	}
 
+	public RESTApiRequest request() {
+		return request("");
+	}
+
 	public RESTApiRequest request(final String urlOffset) {
 		return new RESTApiRequest(this.baseUrl + urlOffset, this.token);
 	}
