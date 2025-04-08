@@ -69,7 +69,7 @@ public class RESTApiRequest {
 	/**
 	 * Sets the request body as a raw String.
 	 *
-	 * @param body        The raw string body.
+	 * @param body The raw string body.
 	 * @param contentType The content type of the request body.
 	 * @return The updated RESTApiRequest instance.
 	 */
@@ -83,8 +83,7 @@ public class RESTApiRequest {
 	/**
 	 * Sets the request body as a raw String.
 	 *
-	 * @param body        The raw string body (consider as "text/plain").
-	 * @param contentType The content type of the request body.
+	 * @param body The raw string body (consider as "text/plain").
 	 * @return The updated RESTApiRequest instance.
 	 */
 	public <TYPE_BODY> RESTApiRequest bodyString(final String body) {
@@ -136,11 +135,10 @@ public class RESTApiRequest {
 	}
 
 	/**
-	 * Sed data as a json body.
+	 * Set data as a json body.
 	 *
 	 * @param body a serialized Json object.
 	 * @return The updated RESTApiRequest instance.
-	 * @throws JsonProcessingException If serialization fails.
 	 */
 	public <TYPE_BODY> RESTApiRequest bodyAsJson(final String body) {
 		this.serializedBodyString = body;
@@ -316,11 +314,11 @@ public class RESTApiRequest {
 	 *
 	 * <p>This method encodes each key and value using UTF-8 encoding to ensure that
 	 * the resulting query string is safe for use in a URL. The encoded key-value pairs
-	 * are then joined together with '&' separators.</p>
+	 * are then joined together with `&amp;` separators.</p>
 	 *
 	 * @param params A map containing query parameter names and their corresponding values.
 	 *               Both keys and values will be URL-encoded.
-	 * @return A URL-encoded query string (e.g., "name=John+Doe&age=30")
+	 * @return A URL-encoded query string.
 	 */
 	public static String buildQueryParams(final Map<String, String> params) {
 		return params.entrySet().stream().map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="

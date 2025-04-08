@@ -1,7 +1,6 @@
 package org.kar.archidata.tools;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -39,6 +38,15 @@ public class DateTools {
 		return parseOffsetDateTime(dateString, false);
 	}
 
+	/**
+	 * Attempts to parse a date string into an OffsetDateTime using a flexible list of patterns.
+	 * Supports ISO 8601 formats, optional zone, and fallback to LocalDate or LocalTime if needed.
+	 *
+	 * @param dateString the date string to parse
+	 * @param missingAsUTC Parse date when missing the time zone consider it as a UTC Date-time
+	 * @return OffsetDateTime representation of the parsed input
+	 * @throws IOException if no supported format matches the input
+	 */
 	public static OffsetDateTime parseOffsetDateTime(final String dateString, final boolean missingAsUTC)
 			throws IOException {
 		if (dateString == null) {
@@ -66,11 +74,11 @@ public class DateTools {
 
 	/**
 	 * Parses a flexible date string and returns a java.util.Date,
-	 * using system default timezone for conversion.
+	 * using system default time-zone for conversion.
 	 *
 	 * @param dateString the input string to parse
-	 * @return java.util.Date object
-	 * @throws ParseException if parsing fails entirely
+	 * @return The parsed Date
+	 * @throws IOException if parsing fails.
 	 */
 	public static Date parseDate(final String dateString) throws IOException {
 		final OffsetDateTime dateTime = parseOffsetDateTime(dateString, true);
