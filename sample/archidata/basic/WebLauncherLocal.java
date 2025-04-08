@@ -3,9 +3,9 @@ package sample.archidata.basic;
 
 import java.util.List;
 
-import org.kar.archidata.api.DataResource;
-import org.kar.archidata.dataAccess.DataFactoryTsApi;
-import org.kar.archidata.tools.ConfigBaseVariable;
+import org.atriasoft.archidata.api.DataResource;
+import org.atriasoft.archidata.dataAccess.DataFactoryTsApi;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

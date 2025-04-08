@@ -2,7 +2,7 @@ package sample.archidata.basic.migration;
 
 import java.util.List;
 
-import org.kar.archidata.migration.MigrationSqlStep;
+import org.atriasoft.archidata.migration.MigrationSqlStep;
 import sample.archidata.basic.model.MyModel;
 
 public class Initialization extends MigrationSqlStep {
