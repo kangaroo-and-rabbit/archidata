@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.kar.archidata.externalRestApi.model.ClassEnumModel;
 import org.kar.archidata.externalRestApi.model.ClassListModel;
@@ -176,11 +178,18 @@ public class TsClassElement {
 				this.zodName + appendString);
 	}
 
-	public String generateImports(final List<ClassModel> depModels, final TsClassElementGroup tsGroup)
+	public String generateImports(final Set<ClassModel> depModels, final TsClassElementGroup tsGroup)
 			throws IOException {
+		final Set<TsClassElement> typeScriptModelAlreadyImported = new HashSet<>();
+
 		final StringBuilder out = new StringBuilder();
 		for (final ClassModel depModel : depModels) {
 			final TsClassElement tsModel = tsGroup.find(depModel);
+			if (typeScriptModelAlreadyImported.contains(tsModel)) {
+				LOGGER.trace("Model alredy imported for typescript");
+				continue;
+			}
+			typeScriptModelAlreadyImported.add(tsModel);
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
 				out.append("import {");
 				if (tsModel.nativeType != DefinedPosition.NORMAL

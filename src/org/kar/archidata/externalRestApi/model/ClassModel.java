@@ -3,7 +3,7 @@ package org.kar.archidata.externalRestApi.model;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +18,7 @@ public abstract class ClassModel {
 	protected boolean analyzeDone = false;
 	protected Class<?> originClasses = null;
 	protected ApiGenerationMode apiGenerationMode = AnnotationCreator.createAnnotation(ApiGenerationMode.class);
-	protected List<ClassModel> dependencyModels = new ArrayList<>();
+	protected Set<ClassModel> dependencyModels = new HashSet<>();
 
 	public Class<?> getOriginClasses() {
 		return this.originClasses;
@@ -32,7 +32,7 @@ public abstract class ClassModel {
 		return this.originClasses == clazz;
 	}
 
-	public List<ClassModel> getDependencyModels() {
+	public Set<ClassModel> getDependencyModels() {
 		return this.dependencyModels;
 	}
 
