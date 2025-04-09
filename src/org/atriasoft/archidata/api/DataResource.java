@@ -157,13 +157,8 @@ public class DataResource {
 		return null;
 	}
 
-	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
-			throws IOException {
-		// determine mime type:
-		Data injectedData = new Data();
-		String mimeType = "";
-		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
-		mimeType = switch (extension.toLowerCase()) {
+	protected String getMimeType(final String extension) throws IOException {
+		return switch (extension.toLowerCase()) {
 			case "jpg", "jpeg" -> "image/jpeg";
 			case "png" -> "image/png";
 			case "webp" -> "image/webp";
@@ -172,6 +167,15 @@ public class DataResource {
 			case "webm" -> "video/webm";
 			default -> throw new IOException("Can not find the mime type of data input: '" + extension + "'");
 		};
+	}
+
+	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
+			throws IOException {
+		// determine mime type:
+		Data injectedData = new Data();
+		String mimeType = "";
+		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
+		mimeType = getMimeType(extension);
 		injectedData.mimeType = mimeType;
 		injectedData.sha512 = sha512;
 		final String tmpPath = getTmpFileInData(tmpUID);
@@ -369,10 +373,9 @@ public class DataResource {
 			}
 			LOGGER.info("input size image: {}x{} type={}", inputImage.getWidth(), inputImage.getHeight(),
 					inputImage.getType());
-			final int scaledWidth = 250;
+			final int scaledWidth = ConfigBaseVariable.getThumbnailWidth();
 			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth()
 					* scaledWidth);
-
 			// creates output image
 			final BufferedImage outputImage = new BufferedImage(scaledWidth, scaledHeight, inputImage.getType());
 
@@ -381,16 +384,10 @@ public class DataResource {
 			LOGGER.info("output size image: {}x{}", scaledWidth, scaledHeight);
 			g2d.drawImage(inputImage, 0, 0, scaledWidth, scaledHeight, null);
 			g2d.dispose();
-			for (final String data : ImageIO.getWriterFormatNames()) {
-				LOGGER.info("availlable format: {}", data);
-			}
 			// create the output stream:
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			try {
-				// TODO: check how to remove buffer file !!! here, it is not needed at all...
-				//ImageIO.write(outputImage, "JPEG", baos);
-				//ImageIO.write(outputImage, "png", baos);
-				ImageIO.write(outputImage, "WebP", baos);
+				ImageIO.write(outputImage, ConfigBaseVariable.getThumbnailFormat(), baos);
 			} catch (final IOException e) {
 				e.printStackTrace();
 				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain")
@@ -398,12 +395,20 @@ public class DataResource {
 			}
 			final byte[] imageData = baos.toByteArray();
 			LOGGER.info("output length {}", imageData.length);
-			// Response.ok(new ByteArrayInputStream(imageData)).build();
+			if (imageData.length == 0) {
+				LOGGER.error("Fail to convert image... Availlable format:");
+				for (final String data : ImageIO.getWriterFormatNames()) {
+					LOGGER.error("    - {}", data);
+				}
+			}
 			final Response.ResponseBuilder out = Response.ok(imageData).header(HttpHeaders.CONTENT_LENGTH,
 					imageData.length);
-			//out.type("image/jpeg");
-			out.type("image/webp");
-			//out.type("image/png");
+			try {
+				out.type(getMimeType(ConfigBaseVariable.getThumbnailFormat()));
+			} catch (final IOException ex) {
+				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
+						"Fail to convert mime type of " + ConfigBaseVariable.getThumbnailFormat(), ex);
+			}
 			// TODO: move this in a decorator !!!
 			final CacheControl cc = new CacheControl();
 			cc.setMaxAge(3600);

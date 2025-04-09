@@ -18,6 +18,8 @@ public class ConfigBaseVariable {
 	static public String eMailFrom;
 	static public String eMailLogin;
 	static public String eMailPassword;
+	static public String thumbnailFormat;
+	static public String thumbnailWidth;
 	static public Class<?>[] dbInterfacesClasses;
 
 	// For test only
@@ -39,6 +41,8 @@ public class ConfigBaseVariable {
 		eMailFrom = System.getenv("EMAIL_FROM");
 		eMailLogin = System.getenv("EMAIL_LOGIN");
 		eMailPassword = System.getenv("EMAIL_PASSWORD");
+		thumbnailFormat = System.getenv("THUMBNAIL_FORMAT");
+		thumbnailWidth = System.getenv("THUMBNAIL_WIDTH");
 		dbInterfacesClasses = new Class<?>[0];
 	}
 
@@ -159,5 +163,19 @@ public class ConfigBaseVariable {
 
 	public static void setBbInterfacesClasses(final Class<?>[] data) {
 		dbInterfacesClasses = data;
+	}
+
+	public static String getThumbnailFormat() {
+		if (thumbnailFormat == null || thumbnailFormat.isEmpty()) {
+			return "png";
+		}
+		return thumbnailFormat;
+	}
+
+	public static int getThumbnailWidth() {
+		if (thumbnailWidth == null || thumbnailWidth.isEmpty()) {
+			return 256;
+		}
+		return Integer.parseInt(thumbnailWidth);
 	}
 }
