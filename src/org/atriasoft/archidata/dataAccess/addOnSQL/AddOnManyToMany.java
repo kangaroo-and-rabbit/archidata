@@ -2,6 +2,8 @@ package org.atriasoft.archidata.dataAccess.addOnSQL;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,6 +28,7 @@ import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
@@ -86,20 +89,99 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		return false;
 	}
 
-	public static String generateLinkTableNameField(
+	public static String hashTo64Chars(final String input) {
+		try {
+			final MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			final byte[] hash = digest.digest(input.getBytes());
+			final StringBuilder hexString = new StringBuilder();
+			for (final byte b : hash) {
+				final String hex = Integer.toHexString(0xff & b);
+				if (hex.length() == 1) {
+					hexString.append('0');
+				}
+				hexString.append(hex);
+			}
+			return hexString.toString().substring(0, 64);
+		} catch (final NoSuchAlgorithmException e) {
+			throw new RuntimeException("Erreur lors du hachage de la chaîne", e);
+		}
+	}
+
+	public static String hashIfNeeded(final String input) {
+		if (input.length() > 64) {
+			// Keep only the 50 first chars
+			final String truncated = input.substring(0, Math.min(input.length(), 50));
+			final String fullHash = hashTo64Chars(input);
+			final String hashPart = fullHash.substring(0, 14);
+			return truncated + hashPart;
+		}
+		return input;
+	}
+
+	public record LinkTableWithMode(
+			String tableName,
+			boolean first) {}
+
+	public static LinkTableWithMode generateLinkTableNameField(
 			final String tableName,
 			final Field field,
 			final QueryOptions options) throws Exception {
-		final FieldName name = AnnotationTools.getFieldName(field, options);
-		return generateLinkTableName(tableName, name.inTable());
+		return generateLinkTableName(tableName, field);
 	}
 
-	public static String generateLinkTableName(final String tableName, final String name) {
-		String localName = name;
-		if (name.endsWith("s")) {
-			localName = name.substring(0, name.length() - 1);
+	public static LinkTableWithMode generateLinkTableName(
+			final String tableAName,
+			final String tableAFieldName,
+			final String tableBName,
+			final String tableBFieldName) {
+		if (tableAName.compareTo(tableBName) < 0) {
+			return new LinkTableWithMode(
+					hashIfNeeded(tableAName + "_" + tableAFieldName + "_link_" + tableBName + "_" + tableBFieldName),
+					true);
 		}
-		return tableName + "_link_" + localName;
+		return new LinkTableWithMode(
+				hashIfNeeded(tableBName + "_" + tableBFieldName + "_link_" + tableAName + "_" + tableAFieldName),
+				false);
+	}
+
+	public static LinkTableWithMode generateLinkTableName(
+			final String tableAName,
+			final String tableAFieldName,
+			final ManyToMany manyToMany) throws SystemException {
+		if (manyToMany == null) {
+			throw new SystemException("@ManyMany is a null pointer " + tableAName);
+		}
+		if (manyToMany.targetEntity() == null) {
+			throw new SystemException("@ManyMany target entity is a null pointer: " + tableAName);
+		}
+		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().isEmpty()) {
+			throw new SystemException("@ManyMany mapped by is not defined: " + tableAName);
+		}
+		final String tableNameRemote = AnnotationTools.getTableName(manyToMany.targetEntity());
+		return generateLinkTableName(tableAName, tableAFieldName, tableNameRemote, manyToMany.mappedBy());
+	}
+
+	public static LinkTableWithMode generateLinkTableName(final String tableAName, final Field field)
+			throws SystemException {
+		if (field == null) {
+			// TODO: throw !!!!
+		}
+		final FieldName columnName = AnnotationTools.getFieldName(field, null);
+		final ManyToMany manyToMany = AnnotationTools.get(field, ManyToMany.class);
+		return generateLinkTableName(tableAName, columnName.inTable(), manyToMany);
+	}
+
+	public static LinkTableWithMode generateLinkTableName(final Class<?> clazz, final String fieldName)
+			throws SystemException {
+		if (clazz == null) {
+			throw new SystemException("@ManyMany class reference is a null pointer ");
+		}
+		if (fieldName == null || fieldName.isEmpty() || fieldName.isBlank()) {
+			throw new SystemException("@ManyMany field of class reference is not defined");
+		}
+		final String tableName = AnnotationTools.getTableName(clazz);
+		final Field requestedField = AnnotationTools.getFieldNamed(clazz, fieldName);
+		return generateLinkTableName(tableName, requestedField);
 	}
 
 	public void generateConcatQuery(
@@ -112,18 +194,13 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			@NotNull final CountInOut count,
 			final QueryOptions options) throws Exception {
 		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
-		String linkTableName = generateLinkTableName(tableName, name);
-		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
-			// TODO:  get the remote table name .....
-			final String remoteTableName = AnnotationTools.getTableName(manyToMany.targetEntity());
-			linkTableName = generateLinkTableName(remoteTableName, manyToMany.mappedBy());
-		}
+		final LinkTableWithMode linkTable = generateLinkTableName(tableName, name, manyToMany);
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final String tmpVariable = "tmp_" + Integer.toString(count.value);
 		querySelect.append(" (SELECT GROUP_CONCAT(");
 		querySelect.append(tmpVariable);
-		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+		if (linkTable.first()) {
 			querySelect.append(".object2Id ");
 		} else {
 			querySelect.append(".object1Id ");
@@ -147,7 +224,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			}
 		}
 		querySelect.append("') FROM ");
-		querySelect.append(linkTableName);
+		querySelect.append(linkTable.tableName());
 		querySelect.append(" ");
 		querySelect.append(tmpVariable);
 		querySelect.append(" WHERE ");
@@ -160,7 +237,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		querySelect.append(" = ");
 		querySelect.append(tmpVariable);
 		querySelect.append(".");
-		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+		if (linkTable.first()) {
 			querySelect.append("object1Id ");
 		} else {
 			querySelect.append("object2Id ");
@@ -168,7 +245,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		if (!"sqlite".equals(ConfigBaseVariable.getDBType())) {
 			querySelect.append(" GROUP BY ");
 			querySelect.append(tmpVariable);
-			if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+			if (linkTable.first()) {
 				querySelect.append(".object1Id");
 			} else {
 				querySelect.append(".object2Id");
@@ -345,14 +422,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					"Can not ManyToMany with other than List<Long> or List<UUID> or List<ObjectId> Model: List<"
 							+ objectClass.getCanonicalName() + ">");
 		}
-		final FieldName columnName = AnnotationTools.getFieldName(field, options);
-		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
+		final LinkTableWithMode linkTable = generateLinkTableName(tableName, field);
+		final String obj1 = linkTable.first ? "object1Id" : "object2Id";
+		final String obj2 = linkTable.first ? "object2Id" : "object1Id";
 
 		actions.add(() -> {
-			ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-					new Condition(new QueryCondition("object1Id", "=", localKey)),
-					new OptionSpecifyType("object1Id", localKey.getClass()),
-					new OptionSpecifyType("object2Id", objectClass));
+			ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTable.tableName()),
+					new Condition(new QueryCondition(obj1, "=", localKey)),
+					new OptionSpecifyType(obj1, localKey.getClass()), new OptionSpecifyType(obj2, objectClass));
 		});
 		asyncInsert(ioDb, tableName, localKey, field, data, actions, options);
 	}
@@ -385,13 +462,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					"Can not ManyToMany with other than List<Long> or List<UUID> or List<ObjectId> Model: List<"
 							+ objectClass.getCanonicalName() + ">");
 		}
-		final FieldName columnName = AnnotationTools.getFieldName(field, options);
-		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
+		final LinkTableWithMode linkTable = generateLinkTableName(tableName, field);
 		@SuppressWarnings("unchecked")
 		final List<Object> dataCasted = (List<Object>) data;
 		if (dataCasted.size() == 0) {
 			return;
 		}
+		final String obj1 = linkTable.first ? "object1Id" : "object2Id";
+		final String obj2 = linkTable.first ? "object2Id" : "object1Id";
 		final List<LinkTableGeneric> insertElements = new ArrayList<>();
 		for (final Object remoteKey : dataCasted) {
 			if (remoteKey == null) {
@@ -404,26 +482,23 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			return;
 		}
 		actions.add(() -> {
-			ioDb.insertMultiple(insertElements, new OverrideTableName(linkTableName),
-					new OptionSpecifyType("object1Id", localKey.getClass()),
-					new OptionSpecifyType("object2Id", objectClass));
+			ioDb.insertMultiple(insertElements, new OverrideTableName(linkTable.tableName()),
+					new OptionSpecifyType(obj1, localKey.getClass()), new OptionSpecifyType(obj2, objectClass));
 		});
 	}
 
 	@Override
 	public void drop(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
 			throws Exception {
-		final FieldName columnName = AnnotationTools.getFieldName(field, options);
-		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
-		ioDb.drop(LinkTableGeneric.class, new OverrideTableName(linkTableName));
+		final LinkTableWithMode linkTable = generateLinkTableName(tableName, field);
+		ioDb.drop(LinkTableGeneric.class, new OverrideTableName(linkTable.tableName()));
 	}
 
 	@Override
 	public void cleanAll(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)
 			throws Exception {
-		final FieldName columnName = AnnotationTools.getFieldName(field, options);
-		final String linkTableName = generateLinkTableName(tableName, columnName.inTable());
-		ioDb.cleanAll(LinkTableGeneric.class, new OverrideTableName(linkTableName));
+		final LinkTableWithMode linkTable = generateLinkTableName(tableName, field);
+		ioDb.cleanAll(LinkTableGeneric.class, new OverrideTableName(linkTable.tableName()));
 	}
 
 	public static void addLink(
@@ -433,12 +508,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final String column,
 			final Object remoteKey) throws Exception {
 		if (ioDb instanceof final DBAccessSQL daSQL) {
-			final String tableName = AnnotationTools.getTableName(clazz);
-			final String linkTableName = generateLinkTableName(tableName, column);
-			final LinkTableGeneric insertElement = new LinkTableGeneric(localKey, remoteKey);
-			daSQL.insert(insertElement, new OverrideTableName(linkTableName),
-					new OptionSpecifyType("object1Id", localKey.getClass()),
-					new OptionSpecifyType("object2Id", remoteKey.getClass()));
+			final LinkTableWithMode linkTable = generateLinkTableName(clazz, column);
+			final LinkTableGeneric insertElement = linkTable.first ? new LinkTableGeneric(localKey, remoteKey)
+					: new LinkTableGeneric(remoteKey, localKey);
+			final String obj1 = linkTable.first ? "object1Id" : "object2Id";
+			final String obj2 = linkTable.first ? "object2Id" : "object1Id";
+			daSQL.insert(insertElement, new OverrideTableName(linkTable.tableName()),
+					new OptionSpecifyType(obj1, localKey.getClass()),
+					new OptionSpecifyType(obj2, remoteKey.getClass()));
 		} else if (ioDb instanceof final DBAccessMorphia dam) {
 
 		} else {
@@ -454,13 +531,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final String column,
 			final Object remoteKey) throws Exception {
 		if (ioDb instanceof final DBAccessSQL daSQL) {
-			final String tableName = AnnotationTools.getTableName(clazz);
-			final String linkTableName = generateLinkTableName(tableName, column);
-			return daSQL.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
-					new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
-							new QueryCondition("object2Id", "=", remoteKey))),
-					new OptionSpecifyType("object1Id", localKey.getClass()),
-					new OptionSpecifyType("object2Id", remoteKey.getClass()));
+			final LinkTableWithMode linkTable = generateLinkTableName(clazz, column);
+			final String obj1 = linkTable.first ? "object1Id" : "object2Id";
+			final String obj2 = linkTable.first ? "object2Id" : "object1Id";
+			return daSQL.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTable.tableName()),
+					new Condition(new QueryAnd(new QueryCondition(obj1, "=", localKey),
+							new QueryCondition(obj2, "=", remoteKey))),
+					new OptionSpecifyType(obj1, localKey.getClass()),
+					new OptionSpecifyType(obj2, remoteKey.getClass()));
 		} else if (ioDb instanceof final DBAccessMorphia dam) {
 			return 0L;
 		} else {
@@ -481,18 +559,21 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final int fieldId,
 			final QueryOptions options) throws Exception {
 		final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
-		if (manyToMany.mappedBy() != null && manyToMany.mappedBy().length() != 0) {
-			// not the reference model to create base:
-			return;
+		if (manyToMany.mappedBy() == null || manyToMany.mappedBy().length() == 0) {
+			throw new SystemException("MappedBy must be set in ManyMany: " + tableName + " " + field.getName());
 		}
-		final String linkTableName = generateLinkTableNameField(tableName, field, options);
-		final QueryOptions options2 = new QueryOptions(new OverrideTableName(linkTableName));
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
-		final Class<?> primaryType = primaryField.getType();
-		options2.add(new OptionSpecifyType("object1Id", primaryType));
-		options2.add(new OptionSpecifyType("object2Id", objectClass));
-		final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options2);
-		postActionList.addAll(sqlCommand);
+		final LinkTableWithMode linkTable = generateLinkTableNameField(tableName, field, options);
+		if (linkTable.first()) {
+			final QueryOptions options2 = new QueryOptions(new OverrideTableName(linkTable.tableName()));
+			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[0];
+			final Class<?> primaryType = primaryField.getType();
+			final String obj1 = linkTable.first ? "object1Id" : "object2Id";
+			final String obj2 = linkTable.first ? "object2Id" : "object1Id";
+			options2.add(new OptionSpecifyType(obj1, primaryType));
+			options2.add(new OptionSpecifyType(obj2, objectClass));
+			final List<String> sqlCommand = DataFactory.createTable(LinkTableGeneric.class, options2);
+			postActionList.addAll(sqlCommand);
+		}
 	}
 }

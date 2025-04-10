@@ -16,6 +16,6 @@ public class TypeManyToManyLongRootExpand extends GenericData {
 
 	public String otherData;
 
-	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyLongRemote.class)
+	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyLongRemote.class, mappedBy = "remoteToParent")
 	public List<TypeManyToManyLongRemote> remote;
 }

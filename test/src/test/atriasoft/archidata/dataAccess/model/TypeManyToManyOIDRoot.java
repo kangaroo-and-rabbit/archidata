@@ -14,6 +14,6 @@ public class TypeManyToManyOIDRoot extends OIDGenericData {
 
 	public String otherData;
 
-	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyOIDRemote.class)
+	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyOIDRemote.class, mappedBy = "remoteToParent")
 	public List<ObjectId> remote;
 }
