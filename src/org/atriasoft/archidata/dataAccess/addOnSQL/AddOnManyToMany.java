@@ -475,7 +475,11 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			if (remoteKey == null) {
 				throw new DataAccessException("Try to insert remote key with null value");
 			}
-			insertElements.add(new LinkTableGeneric(localKey, remoteKey));
+			if (linkTable.first) {
+				insertElements.add(new LinkTableGeneric(localKey, remoteKey));
+			} else {
+				insertElements.add(new LinkTableGeneric(remoteKey, localKey));
+			}
 		}
 		if (insertElements.size() == 0) {
 			LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);

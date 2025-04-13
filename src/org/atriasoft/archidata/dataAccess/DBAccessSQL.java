@@ -1172,7 +1172,7 @@ public class DBAccessSQL extends DBAccess {
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
 				if (addOn != null && !addOn.canInsert(field)) {
-					if (addOn.isInsertAsync(field)) {
+					if (addOn.isUpdateAsync(field)) {
 						final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
 						if (transmitKey.size() != 1) {
 							throw new DataAccessException(
@@ -1242,6 +1242,9 @@ public class DBAccessSQL extends DBAccess {
 							addOn.insertData(this, ps, field, data, iii);
 						}
 					}
+					for (final LazyGetter action : asyncActions) {
+						action.doRequest();
+					}
 					condition.injectQuery(this, ps, iii);
 					final int out = ps.executeUpdate();
 					return out;
@@ -1249,9 +1252,6 @@ public class DBAccessSQL extends DBAccess {
 			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();
-		}
-		for (final LazyGetter action : asyncActions) {
-			action.doRequest();
 		}
 		return 0L;
 	}
