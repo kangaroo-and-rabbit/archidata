@@ -8,8 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
@@ -181,9 +183,10 @@ public class TsClassElement {
 	public String generateImports(final Set<ClassModel> depModels, final TsClassElementGroup tsGroup)
 			throws IOException {
 		final Set<TsClassElement> typeScriptModelAlreadyImported = new HashSet<>();
+		final Map<String, String> mapOutput = new TreeMap<>();
 
-		final StringBuilder out = new StringBuilder();
 		for (final ClassModel depModel : depModels) {
+			final StringBuilder inputStream = new StringBuilder();
 			final TsClassElement tsModel = tsGroup.find(depModel);
 			if (typeScriptModelAlreadyImported.contains(tsModel)) {
 				LOGGER.trace("Model alredy imported for typescript");
@@ -191,29 +194,34 @@ public class TsClassElement {
 			}
 			typeScriptModelAlreadyImported.add(tsModel);
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
-				out.append("import {");
+				inputStream.append("import {");
 				if (tsModel.nativeType != DefinedPosition.NORMAL
 						|| tsModel.models.get(0).getApiGenerationMode().read()) {
-					out.append(tsModel.zodName);
+					inputStream.append(tsModel.zodName);
 				}
 				if (tsModel.nativeType == DefinedPosition.NORMAL
 						&& tsModel.models.get(0).getApiGenerationMode().update()) {
-					out.append(", ");
-					out.append(tsModel.zodName);
-					out.append(MODEL_TYPE_UPDATE);
-					out.append(" ");
+					inputStream.append(", ");
+					inputStream.append(tsModel.zodName);
+					inputStream.append(MODEL_TYPE_UPDATE);
+					inputStream.append(" ");
 				}
 				if (tsModel.nativeType == DefinedPosition.NORMAL
 						&& tsModel.models.get(0).getApiGenerationMode().create()) {
-					out.append(", ");
-					out.append(tsModel.zodName);
-					out.append(MODEL_TYPE_CREATE);
-					out.append(" ");
+					inputStream.append(", ");
+					inputStream.append(tsModel.zodName);
+					inputStream.append(MODEL_TYPE_CREATE);
+					inputStream.append(" ");
 				}
-				out.append("} from \"./");
-				out.append(tsModel.fileName);
-				out.append("\";\n");
+				inputStream.append("} from \"./");
+				inputStream.append(tsModel.fileName);
+				inputStream.append("\";\n");
+				mapOutput.put(tsModel.fileName.toString().toLowerCase(), inputStream.toString());
 			}
+		}
+		final StringBuilder out = new StringBuilder();
+		for (final Entry<String, String> elem : mapOutput.entrySet()) {
+			out.append(elem.getValue());
 		}
 		return out.toString();
 
