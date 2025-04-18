@@ -120,7 +120,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	public record LinkTableWithMode(
 			String tableName,
-			boolean first) {}
+			boolean first,
+			boolean equals) {}
 
 	public static LinkTableWithMode generateLinkTableNameField(
 			final String tableName,
@@ -134,14 +135,16 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final String tableAFieldName,
 			final String tableBName,
 			final String tableBFieldName) {
-		if (tableAName.compareTo(tableBName) < 0) {
-			return new LinkTableWithMode(
-					hashIfNeeded(tableAName + "_" + tableAFieldName + "_link_" + tableBName + "_" + tableBFieldName),
-					true);
+		final String concatElementA = tableAName + "_" + tableAFieldName;
+		final String concatElementB = tableBName + "_" + tableBFieldName;
+		final int compareResult = concatElementA.compareTo(concatElementB);
+		if (compareResult == 0) {
+			return new LinkTableWithMode(hashIfNeeded(concatElementA + "_autolink"), true, true);
 		}
-		return new LinkTableWithMode(
-				hashIfNeeded(tableBName + "_" + tableBFieldName + "_link_" + tableAName + "_" + tableAFieldName),
-				false);
+		if (compareResult < 0) {
+			return new LinkTableWithMode(hashIfNeeded(concatElementA + "_link_" + concatElementB), true, false);
+		}
+		return new LinkTableWithMode(hashIfNeeded(concatElementB + "_link_" + concatElementA), false, false);
 	}
 
 	public static LinkTableWithMode generateLinkTableName(
@@ -525,7 +528,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
 		}
-
 	}
 
 	public static long removeLink(
@@ -550,6 +552,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 	}
 
+	private static List<String> tableAlreadyCreated = new ArrayList<>();
+
 	@Override
 	public void createTables(
 			final String tableName,
@@ -567,7 +571,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throw new SystemException("MappedBy must be set in ManyMany: " + tableName + " " + field.getName());
 		}
 		final LinkTableWithMode linkTable = generateLinkTableNameField(tableName, field, options);
-		if (linkTable.first()) {
+		if (linkTable.first() || linkTable.equals()) {
 			final QueryOptions options2 = new QueryOptions(new OverrideTableName(linkTable.tableName()));
 			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 					.getActualTypeArguments()[0];
