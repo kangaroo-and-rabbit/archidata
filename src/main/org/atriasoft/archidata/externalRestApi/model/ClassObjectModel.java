@@ -58,7 +58,7 @@ public class ClassObjectModel extends ClassModel {
 		for (final Field field : superClass.getFields()) {
 			String name;
 			try {
-				name = AnnotationTools.getFieldNameRaw(field);
+				name = field.getName();
 				if (filedName.equals(name)) {
 					return true;
 				}
