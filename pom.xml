@@ -218,16 +218,16 @@
 		</dependency>
 	</dependencies>
 	<build>
-		<sourceDirectory>src</sourceDirectory>
+		<sourceDirectory>src/main</sourceDirectory>
 		<resources>
 			<resource>
 				<directory>${basedir}/src/resources</directory>
 			</resource>
 		</resources>
-		<testSourceDirectory>test/src</testSourceDirectory>
+		<testSourceDirectory>src/test</testSourceDirectory>
 		<testResources>
 			<testResource>
-				<directory>${basedir}/test/resources</directory>
+				<directory>${basedir}/src/testResources</directory>
 			</testResource>
 		</testResources>
 		<plugins>
