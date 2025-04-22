@@ -29,6 +29,7 @@ import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToMany;
+import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToManyLocal;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToOne;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnSQL.DataAccessAddOn;
@@ -70,7 +71,9 @@ public class DBAccessSQL extends DBAccess {
 			new AddOnManyToMany(), //
 			new AddOnManyToOne(), //
 			new AddOnOneToMany(), //
-			new AddOnDataJson());
+			new AddOnDataJson(), //
+			new AddOnManyToManyLocal());
+
 	private final DbIoSql db;
 
 	public DBAccessSQL(final DbIoSql db) throws IOException {
@@ -1239,7 +1242,6 @@ public class DBAccessSQL extends DBAccess {
 			query.append(" ");
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			condition.whereAppendQuery(query, tableName, null, deletedFieldName);
-
 			// If the first field is not set, then nothing to update n the main base:
 			if (!firstField) {
 				LOGGER.debug("generate update query: '{}'", query.toString());
