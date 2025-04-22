@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.atria-soft</groupId>
+	<groupId>kangaroo-and-rabbit</groupId>
 	<artifactId>archidata</artifactId>
-	<version>0.28.5-SNAPSHOT</version>
-	<description>Wrapper to manage a simple interface for REST project to bind MySQL, SQLite or mongoDB.</description>
-	<url>https://github.com/kangaroo-and-rabbit/archidata</url>
-	<licenses>
-		<license>
-			<name>Mozilla Public License 2.0</name>
-			<url>https://opensource.org/licenses/MPL-2.0</url>
-			<distribution>repo</distribution>
-		</license>
-	</licenses>
-	<developers>
-		<developer>
-			<id>dev1</id>
-			<name>Edouard DUPIN</name>
-			<email>edouard.dupin@proton.me</email>
-			<roles>
-				<role>Lead Developer</role>
-			</roles>
-		</developer>
-	</developers>
-	<scm>
-		<url>https://github.com/kangaroo-and-rabbit/archidata</url>
-		<connection>scm:git:git://github.com/kangaroo-and-rabbit/archidata.git</connection>
-		<developerConnection>scm:git:ssh:github.com/kangaroo-and-rabbit/archidata.git</developerConnection>
-	</scm>
+	<version>0.6.1</version>
+	<properties>
+		<maven.compiler.version>3.1</maven.compiler.version>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
+		<maven.dependency.version>3.1.1</maven.dependency.version>
+		<jersey.version>3.1.5</jersey.version>
+		<jaxb.version>2.3.1</jaxb.version>
+		<istack.version>4.1.1</istack.version>
+	</properties>
+	<repositories>
+		<repository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</repository>
+		<snapshotRepository>
+			<id>gitea</id>
+			<url>https://gitea.atria-soft.org/api/packages/kangaroo-and-rabbit/maven</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
 				<groupId>org.glassfish.jersey</groupId>
 				<artifactId>jersey-bom</artifactId>
-				<version>4.0.0-M2</version>
+				<version>${jersey.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -44,37 +45,13 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>2.1.0-alpha1</version>
+			<version>2.0.9</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
-			<version>2.1.0-alpha1</version>
+			<version>2.0.9</version>
 			<scope>test</scope>
-		</dependency>
-		<!-- Decode webP images -->
-		<dependency>
-			<groupId>com.twelvemonkeys.imageio</groupId>
-			<artifactId>imageio-webp</artifactId>
-			<version>3.12.0</version>
-		</dependency>
-		<!-- Decode JPEG image -->
-		<dependency>
-			<groupId>com.twelvemonkeys.imageio</groupId>
-			<artifactId>imageio-jpeg</artifactId>
-			<version>3.12.0</version>
-		</dependency>
-		<!-- Encode file in webp -->
-		<dependency>
-			<groupId>com.github.gotson</groupId>
-			<artifactId>webp-imageio</artifactId>
-			<version>0.2.2</version>
-		</dependency>
-		<!-- Detect type of a file with mime type -->
-		<dependency>
-			<groupId>org.apache.tika</groupId>
-			<artifactId>tika-core</artifactId>
-			<version>3.1.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-multipart -->
 		<dependency>
@@ -94,20 +71,35 @@
 			<artifactId>jersey-container-grizzly2-http</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.glassfish.jersey.ext</groupId>
-			<artifactId>jersey-bean-validation</artifactId>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>${jaxb.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jaxb</groupId>
 			<artifactId>jaxb-runtime</artifactId>
-			<version>4.0.5</version>
+			<version>4.0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.ws.rs</groupId>
 			<artifactId>jakarta.ws.rs-api</artifactId>
-			<version>4.0.0</version>
+			<version>3.1.0</version>
 		</dependency>
-		<!-- Serialize and un-serialize request in JSON-->
+		<dependency>
+			<groupId>com.sun.xml.bind</groupId>
+			<artifactId>jaxb-impl</artifactId>
+			<version>${jaxb.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.istack</groupId>
+			<artifactId>istack-commons-runtime</artifactId>
+			<version>${istack.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.test-framework.providers</groupId>
+			<artifactId>jersey-test-framework-provider-grizzly2</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.glassfish.jersey.media</groupId>
 			<artifactId>jersey-media-json-jackson</artifactId>
@@ -115,79 +107,46 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.18.3</version>
+			<version>2.16.1</version>
 		</dependency>
-		<!-- encode output in CSV -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-csv</artifactId>
-			<version>2.18.3</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.18.3</version>
+			<version>2.16.1</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
-			<version>6.1.0</version>
+			<version>6.1.0-M1</version>
 			<scope>provided</scope>
 		</dependency>
 		<!-- Interface for My-sql & sqlite DB -->
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
-			<version>9.2.0</version>
+			<version>8.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
-			<version>3.49.1.0</version>
+			<version>3.40.0.0</version>
 		</dependency>
 		<!-- Interface for JWT token -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>10.2</version>
+			<version>9.37.1</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
 			<artifactId>jakarta.persistence-api</artifactId>
-			<version>3.2.0</version>
+			<version>3.2.0-M1</version>
 		</dependency>
 		<!-- Swagger dependencies -->
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
 			<artifactId>swagger-jaxrs2-jakarta</artifactId>
-			<version>2.2.29</version>
-		</dependency>
-		<!-- spotbug tooling -->
-		<dependency>
-			<groupId>com.github.spotbugs</groupId>
-			<artifactId>spotbugs-annotations</artifactId>
-			<version>4.9.3</version>
-			<scope>compile</scope>
-		</dependency>
-		<!-- Morphia -->
-		<dependency>
-			<groupId>dev.morphia.morphia</groupId>
-			<artifactId>morphia-core</artifactId>
-			<version>2.4.16</version>
-		</dependency>
-		<!-- MongoDB Java Driver -->
-		<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongodb-driver-sync</artifactId>
-			<!--<version>5.3.1</version>-->
-			<!--Morphia 2.4.x does not support version upper than 4.x-->
-			<version>4.11.5</version>
-		</dependency>
-		<!-- Bean Validation (JSR 303 / 380) -->
-		<dependency>
-			<groupId>org.hibernate.validator</groupId>
-			<artifactId>hibernate-validator</artifactId>
-			<version>9.0.0.CR1</version>
+			<version>2.1.10</version>
 		</dependency>
 		<!--
 		************************************************************ 
@@ -197,59 +156,56 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-api</artifactId>
-			<version>5.12.1</version>
+			<version>5.10.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
-			<version>5.12.1</version>
-			<scope>test</scope>
+			<version>5.10.1</version>
+	        <scope>test</scope>
+	    </dependency>
+	    <dependency>
+		    <groupId>net.revelc.code.formatter</groupId>
+		    <artifactId>formatter-maven-plugin</artifactId>
+		    <version>2.23.0</version>
 		</dependency>
 		<dependency>
-			<groupId>net.revelc.code.formatter</groupId>
-			<artifactId>formatter-maven-plugin</artifactId>
-			<version>2.26.0</version>
+		    <groupId>org.apache.maven.plugins</groupId>
+		    <artifactId>maven-checkstyle-plugin</artifactId>
+		    <version>3.3.1</version>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-checkstyle-plugin</artifactId>
-			<version>3.6.0</version>
-		</dependency>
-	</dependencies>
+    </dependencies>
+
 	<build>
-		<sourceDirectory>src/main</sourceDirectory>
-		<resources>
-			<resource>
-				<directory>${basedir}/src/resources</directory>
-			</resource>
-		</resources>
-		<testSourceDirectory>src/test</testSourceDirectory>
+		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>test/src</testSourceDirectory>
 		<testResources>
 			<testResource>
-				<directory>${basedir}/src/testResources</directory>
+				<directory>${basedir}/test/resources</directory>
 			</testResource>
 		</testResources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.14.0</version>
+				<version>${maven.compiler.version}</version>
 				<configuration>
-					<source>21</source>
-					<target>21</target>
+					<source>${maven.compiler.source}</source>
+					<target>${maven.compiler.target}</target>
+					<!--<encoding>${project.build.sourceEncoding}</encoding>-->
 				</configuration>
 			</plugin>
 			<!-- Create the source bundle -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
-				<version>3.3.1</version>
+				<version>3.3.0</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
 						<goals>
-							<goal>jar-no-fork</goal>
+							<goal>jar</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -272,7 +228,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.5.3</version>
+				<version>3.0.0-M5</version>
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
@@ -291,21 +247,17 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.3.0</version>
-				<executions>
-					<execution>
-						<id>attach-javadocs</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
+				<version>3.2.0</version>
+				<configuration>
+					<show>private</show>
+					<nohelp>true</nohelp>
+				</configuration>
 			</plugin>
 			<!-- Check the style of the code -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>3.6.0</version>
+		    	<version>3.3.1</version>
 				<configuration>
 					<configLocation>CheckStyle.xml</configLocation>
 					<consoleOutput>true</consoleOutput>
@@ -317,7 +269,7 @@
 			<plugin>
 				<groupId>net.revelc.code.formatter</groupId>
 				<artifactId>formatter-maven-plugin</artifactId>
-				<version>2.26.0</version>
+		    	<version>2.23.0</version>
 				<configuration>
 					<encoding>UTF-8</encoding>
 					<lineEnding>LF</lineEnding>
@@ -341,46 +293,19 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>com.github.spotbugs</groupId>
-				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>4.8.5.0</version>
-				<configuration>
-					<includeFilterFile>spotbugs-security-include.xml</includeFilterFile>
-					<excludeFilterFile>spotbugs-security-exclude.xml</excludeFilterFile>
-					<!--<plugins>
-						<plugin>
-							<groupId>com.h3xstream.findsecbugs</groupId>
-							<artifactId>findsecbugs-plugin</artifactId>
-							<version>1.12.0</version>
-						</plugin>
-					</plugins>
-					-->
-				</configuration>
-			</plugin>
+		</plugins>
+	</build>
+	<!-- Generate Java-docs As Part Of Project Reports -->
+	<reporting>
+		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>3.2.7</version>
-				<executions>
-					<execution>
-						<id>sign-artifacts</id>
-						<phase>verify</phase>
-						<goals>
-							<goal>sign</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.sonatype.central</groupId>
-				<artifactId>central-publishing-maven-plugin</artifactId>
-				<version>0.7.0</version>
-				<extensions>true</extensions>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.2.0</version>
 				<configuration>
-					<publishingServerId>central</publishingServerId>
+					<show>public</show>
 				</configuration>
 			</plugin>
 		</plugins>
-	</build>
+	</reporting>
 </project>
