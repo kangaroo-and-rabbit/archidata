@@ -34,7 +34,12 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 	}
 
 	@Override
-	public boolean isCompatibleField(final Field field) {
+	public boolean isCompatibleField(final Field elem) {
+		final ManyToManyLocal decorators = elem.getDeclaredAnnotation(ManyToManyLocal.class);
+		return decorators != null;
+	}
+
+	public boolean canRetreiveAnWrite(final Field field) {
 		if (field.getType() != List.class) {
 			return false;
 		}
@@ -153,12 +158,12 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		return isCompatibleField(field);
+		return canRetreiveAnWrite(field);
 	}
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		return isCompatibleField(field);
+		return canRetreiveAnWrite(field);
 	}
 
 	@SuppressWarnings("unchecked")

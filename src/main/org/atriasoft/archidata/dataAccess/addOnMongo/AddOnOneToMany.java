@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
@@ -91,13 +90,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			return;
 		}
 
-		final FieldName fieldName = AnnotationTools.getFieldName(field, options);
-		// in step 1 the fields are not stored in the local element
-		//		if (!doc.containsKey(fieldName.inTable())) {
-		//			field.set(data, null);
-		//			return;
-		//		}
-
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		final OneToMany decorators = field.getDeclaredAnnotation(OneToMany.class);
@@ -105,30 +97,24 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			return;
 		}
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
-			if (true) {
-				// DEVELOPMENT step 1 we search all the element in the list:
-				// get the curentObject primary key
-				final Field primaryField = AnnotationTools.getPrimaryKeyField(data.getClass());
-				final String primaryKeyName = AnnotationTools.getFieldNameRaw(primaryField);
-				final Object primaryKey = doc.get(primaryKeyName, primaryField.getType());
-				// get the remotes objects
-				final List<?> returnValue = ioDb.getsWhere(decorators.targetEntity(),
-						new Condition(new QueryCondition(decorators.mappedBy(), "=", primaryKey)));
-				// extract the primary key of the remote objects
-				final Field remotePrimaryField = AnnotationTools.getPrimaryKeyField(decorators.targetEntity());
-				final String remotePrimaryKeyName = AnnotationTools.getFieldNameRaw(remotePrimaryField);
-				final List<Object> listOfRemoteKeys = new ArrayList<>();
-				for (final var item : returnValue) {
-					listOfRemoteKeys.add(remotePrimaryField.get(item));
-				}
-				// inject in the current data field
-				if (listOfRemoteKeys.size() != 0) {
-					field.set(data, listOfRemoteKeys);
-				}
-			} else {
-				// DEVELOPMENT In step 2 this will work well:
-				final Object value = doc.get(fieldName.inTable(), field.getType());
-				field.set(data, value);
+			// DEVELOPMENT step 1 we search all the element in the list:
+			// get the curentObject primary key
+			final Field primaryField = AnnotationTools.getPrimaryKeyField(data.getClass());
+			final String primaryKeyName = AnnotationTools.getFieldNameRaw(primaryField);
+			final Object primaryKey = doc.get(primaryKeyName, primaryField.getType());
+			// get the remotes objects
+			final List<?> returnValue = ioDb.getsWhere(decorators.targetEntity(),
+					new Condition(new QueryCondition(decorators.mappedBy(), "=", primaryKey)));
+			// extract the primary key of the remote objects
+			final Field remotePrimaryField = AnnotationTools.getPrimaryKeyField(decorators.targetEntity());
+			final String remotePrimaryKeyName = AnnotationTools.getFieldNameRaw(remotePrimaryField);
+			final List<Object> listOfRemoteKeys = new ArrayList<>();
+			for (final var item : returnValue) {
+				listOfRemoteKeys.add(remotePrimaryField.get(item));
+			}
+			// inject in the current data field
+			if (listOfRemoteKeys.size() != 0) {
+				field.set(data, listOfRemoteKeys);
 			}
 			return;
 		}

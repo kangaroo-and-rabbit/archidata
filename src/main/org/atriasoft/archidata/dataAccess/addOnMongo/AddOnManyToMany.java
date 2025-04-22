@@ -21,6 +21,7 @@ import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +67,8 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
-		if (objectClass == Long.class || objectClass == UUID.class) {
-			return true;
+		if (objectClass != Long.class && objectClass != UUID.class && objectClass != ObjectId.class) {
+			return false;
 		}
 		final ManyToMany decorators = field.getDeclaredAnnotation(ManyToMany.class);
 		if (decorators == null) {
