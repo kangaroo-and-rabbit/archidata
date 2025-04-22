@@ -2,6 +2,7 @@ package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -257,9 +258,10 @@ public class TestTypes {
 		LOGGER.debug("Retreive Timestamp = {}", retrieve.timeStampData);
 		Assertions.assertNotNull(retrieve.timeStampData);
 		// Can not compare the exact timestamp due to aproximation and model of storing data :
-		// Assertions.assertEquals(insertedData.timeStampData, retrieve.timeStampData);
-		Assertions.assertEquals(insertedData.timeStampData.toInstant().toEpochMilli(),
-				retrieve.timeStampData.toInstant().toEpochMilli());
+		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		final String insertedFormatted = sdf.format(insertedData.timeStampData);
+		final String retrieveFormatted = sdf.format(retrieve.timeStampData);
+		Assertions.assertEquals(insertedFormatted, retrieveFormatted);
 
 		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
 	}
