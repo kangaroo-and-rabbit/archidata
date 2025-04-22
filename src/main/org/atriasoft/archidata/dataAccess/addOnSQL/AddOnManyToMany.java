@@ -304,8 +304,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		if (field.getType() != List.class) {
-			LOGGER.error("Can not ManyToMany with other than List Model: {}", field.getType().getCanonicalName());
-			return;
+			throw new SystemException("@ManyToMany must contain a List");
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
@@ -314,12 +313,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			field.set(data, idList);
 			count.inc();
 			return;
-		} else if (objectClass == UUID.class) {
+		}
+		if (objectClass == UUID.class) {
 			final List<UUID> idList = ioDb.getListOfRawUUIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
 			return;
-		} else if (objectClass == ObjectId.class) {
+		}
+		if (objectClass == ObjectId.class) {
 			final List<ObjectId> idList = ioDb.getListOfRawOIDs(rs, count.value);
 			field.set(data, idList);
 			count.inc();
