@@ -18,13 +18,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      db:
+      db_service:
         image: mysql:latest
         ports:
           - 3906:3306
         env:
           MYSQL_DATABASE: test_neofarm_db
           MYSQL_ROOT_PASSWORD: base_db_password
+      mongo_service:
+        image: mongo:latest
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: base_db_password
+        ports:
+          - 27017:27017
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
@@ -45,9 +52,10 @@ jobs:
         run: mvn test
       - name: Test my-SQL
         run: DB_HOST="127.0.0.1" TEST_E2E_MODE="MY-SQL" mvn test
+      - name: Test MONGO
+        run: EXCLUDE_MY_SQL_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MONGO" mvn test
       - name: find the element
         run: find . -name "dependency-graph.json"
-
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@aeab9f885293af501bae8bdfe88c589528ea5e25
