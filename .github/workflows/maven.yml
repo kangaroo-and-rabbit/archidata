@@ -42,7 +42,7 @@ jobs:
       - name: Test SQLite
         run: mvn test
       - name: Test my-SQL
-        run: DB_HOST=db -e TEST_E2E_MODE=true mvn test
+        run: DB_HOST=db TEST_E2E_MODE="MY-SQL" mvn test
       - name: find the element
         run: find . -name "dependency-graph.json"
 
