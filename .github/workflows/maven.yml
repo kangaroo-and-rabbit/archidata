@@ -20,6 +20,8 @@ jobs:
     services:
       db:
         image: mysql:latest
+        ports:
+          - 3906:3306
         env:
           MYSQL_DATABASE: test_neofarm_db
           MYSQL_ROOT_PASSWORD: base_db_password
