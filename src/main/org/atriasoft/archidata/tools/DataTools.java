@@ -403,6 +403,6 @@ public class DataTools {
 					"The class have no annotation @Id ==> can not determine the default type searching");
 		}
 		final FieldName fieldName = AnnotationTools.getFieldName(idField, new QueryOptions());
-		AddOnDataJson.addLink(ioDb, clazz, fieldName.inTable(), id, null, data.oid);
+		AddOnDataJson.addLink(ioDb, clazz, fieldName.inTable(), id, "covers", data.oid);
 	}
 }
