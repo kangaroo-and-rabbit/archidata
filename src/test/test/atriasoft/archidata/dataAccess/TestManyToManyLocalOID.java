@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
-import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToManyLocal;
+import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyLocalTools;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -174,11 +174,11 @@ public class TestManyToManyLocalOID {
 		@Test
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
-			AddOnManyToManyLocal.addLink(ConfigureDb.da, //
+			ManyToManyLocalTools.addLink(ConfigureDb.da, //
 					TypeManyToManyLocalOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
-			AddOnManyToManyLocal.addLink(ConfigureDb.da, //
+			ManyToManyLocalTools.addLink(ConfigureDb.da, //
 					TypeManyToManyLocalOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote2.oid);
@@ -233,7 +233,7 @@ public class TestManyToManyLocalOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove an element
-			AddOnManyToManyLocal.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRoot.class, //
+			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
 
@@ -250,7 +250,7 @@ public class TestManyToManyLocalOID {
 			Assertions.assertEquals(retrieve.remote.get(0), this.insertedRemote2.oid);
 
 			// Remove the second element
-			AddOnManyToManyLocal.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRoot.class, //
+			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRoot.class, //
 					retrieve.oid, //
 					"remote", this.insertedRemote2.oid);
 
@@ -334,10 +334,10 @@ public class TestManyToManyLocalOID {
 		@Test
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
-			AddOnManyToManyLocal.addLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
+			ManyToManyLocalTools.addLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
-			AddOnManyToManyLocal.addLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
+			ManyToManyLocalTools.addLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
@@ -384,7 +384,7 @@ public class TestManyToManyLocalOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove root elements
-			AddOnManyToManyLocal.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
+			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
@@ -430,7 +430,7 @@ public class TestManyToManyLocalOID {
 		@Test
 		public void removeSecondLinksRemotes() throws Exception {
 			// Remove root elements
-			AddOnManyToManyLocal.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
+			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyLocalOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
 

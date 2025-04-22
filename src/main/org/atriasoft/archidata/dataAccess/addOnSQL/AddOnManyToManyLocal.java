@@ -15,17 +15,13 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToManyLocal;
 import org.atriasoft.archidata.dataAccess.CountInOut;
-import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
+import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyLocalTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
-import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
-import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
-import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.tools.ContextGenericTools;
 import org.bson.types.ObjectId;
@@ -118,7 +114,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 				continue;
 			}
 			actions.add(() -> {
-				addLinkRemote(ioDb, field, primaryKeyValue, value);
+				ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
 		// remove old values:
@@ -127,7 +123,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 				continue;
 			}
 			actions.add(() -> {
-				removeLinkRemote(ioDb, field, primaryKeyValue, value);
+				ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
 
@@ -163,7 +159,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
 				actions.add(() -> {
-					addLinkRemote(ioDb, field, primaryKeyValue, value);
+					ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 				});
 			}
 		}
@@ -231,9 +227,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			field.set(data, dataParsed);
 			return;
 		}
-		if (objectClass == UUID.class)
-
-		{
+		if (objectClass == UUID.class) {
 			final List<UUID> dataParsed = objectMapper.readValue(jsonData, new TypeReference<List<UUID>>() {});
 			field.set(data, dataParsed);
 			return;
@@ -321,144 +315,6 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		// store data as json to response like a no-sql
 		DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
 				postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class, options);
-	}
-
-	private static void addLinkLocal(
-			final DBAccess ioDb,
-			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToAdd) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", valueToAdd.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		if (data.filedNameOfTheObject == null) {
-			data.filedNameOfTheObject = new ArrayList<>();
-		}
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(valueToAdd)) {
-				return;
-			}
-		}
-		data.filedNameOfTheObject.add(valueToAdd);
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
-	}
-
-	public static void addLink(
-			final DBAccess ioDb,
-			final Class<?> clazz,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToAdd) throws Exception {
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldNameToUpdate);
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			addLinkLocal(ioDb, clazz, primaryKeyColomnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
-					valueToAdd);
-		}
-		addLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToAdd);
-	}
-
-	private static void addLinkRemote(
-			final DBAccess ioDb,
-			final Field localField,
-			final Object localPrimaryKeyValue,
-			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyLocal manyLocal = AnnotationTools.get(localField, ManyToManyLocal.class);
-		// Update the remote elements:
-		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
-				|| manyLocal.remoteField().isEmpty()) {
-			return;
-		}
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
-			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			addLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColomnName.inTable(), remotePrimaryKeyValue,
-					localFieldName.inTable(), localPrimaryKeyValue);
-		}
-	}
-
-	private static void removeLinkLocal(
-			final DBAccess ioDb,
-			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToRemove) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		if (data.filedNameOfTheObject == null) {
-			return;
-		}
-		final List<Object> newList = new ArrayList<>();
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(valueToRemove)) {
-				continue;
-			}
-			newList.add(elem);
-		}
-		data.filedNameOfTheObject = newList;
-		if (data.filedNameOfTheObject.isEmpty()) {
-			data.filedNameOfTheObject = null;
-		}
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
-	}
-
-	public static void removeLink(
-			final DBAccess ioDb,
-			final Class<?> clazz,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToRemove) throws Exception {
-
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldNameToUpdate);
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			removeLinkLocal(ioDb, clazz, primaryKeyColomnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
-					valueToRemove);
-		}
-		removeLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToRemove);
-	}
-
-	private static void removeLinkRemote(
-			final DBAccess ioDb,
-			final Field localField,
-			final Object localPrimaryKeyValue,
-			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyLocal manyLocal = AnnotationTools.get(localField, ManyToManyLocal.class);
-		// Update the remote elements:
-		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
-				|| manyLocal.remoteField().isEmpty()) {
-			return;
-		}
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
-			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			removeLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColomnName.inTable(), remotePrimaryKeyValue,
-					localFieldName.inTable(), localPrimaryKeyValue);
-		}
 	}
 
 }

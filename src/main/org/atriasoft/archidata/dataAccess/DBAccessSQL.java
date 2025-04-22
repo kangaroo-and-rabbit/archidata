@@ -1176,7 +1176,8 @@ public class DBAccessSQL extends DBAccess {
 				final FieldName name = AnnotationTools.getFieldName(field, options);
 				if (!filter.getValues().contains(name.inStruct())) {
 					continue;
-				} else if (AnnotationTools.isGenericField(field)) {
+				}
+				if (AnnotationTools.isGenericField(field)) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);

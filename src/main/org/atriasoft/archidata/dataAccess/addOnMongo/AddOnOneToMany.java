@@ -147,20 +147,4 @@ public class AddOnOneToMany implements DataAccessAddOn {
 			}
 		}
 	}
-
-	// TODO : refacto this table to manage a generic table with dynamic name to be serialize with the default system
-	@Override
-	public void createTables(
-			final String tableName,
-			final Field primaryField,
-			final Field field,
-			final StringBuilder mainTableBuilder,
-			final List<String> preActionList,
-			final List<String> postActionList,
-			final boolean createIfNotExist,
-			final boolean createDrop,
-			final int fieldId,
-			final QueryOptions options) throws Exception {
-		// This is a remote field ==> nothing to generate (it is stored in the remote object
-	}
 }

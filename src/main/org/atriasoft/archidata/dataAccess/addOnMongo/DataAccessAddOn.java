@@ -58,20 +58,6 @@ public interface DataAccessAddOn {
 			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
 
-	/** Create associated table of the specific element.
-	 */
-	void createTables(
-			String tableName,
-			final Field primaryField,
-			Field field,
-			StringBuilder mainTableBuilder,
-			List<String> preActionList,
-			List<String> postActionList,
-			boolean createIfNotExist,
-			boolean createDrop,
-			int fieldId,
-			final QueryOptions options) throws Exception;
-
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
 	 * @return */
@@ -80,14 +66,12 @@ public interface DataAccessAddOn {
 	}
 
 	/** When insert is mark async, this function permit to create or update the data
-	 * @param tableName Name of the Table.
 	 * @param localId Local ID of the current table
 	 * @param field Field that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
 			final DBAccessMorphia ioDb,
-			final String tableName,
 			final Object localId,
 			final Field field,
 			final Object data,
@@ -111,13 +95,20 @@ public interface DataAccessAddOn {
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
 			final DBAccessMorphia ioDb,
-			final String tableName,
+			final Object previousData,
 			final Object localId,
 			final Field field,
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
 
+	}
+
+	/** Some annotation need to collect data before updating the current values
+	 * @param field
+	 * @return */
+	default boolean isPreviousDataNeeded(final Field field) {
+		return false;
 	}
 
 	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)

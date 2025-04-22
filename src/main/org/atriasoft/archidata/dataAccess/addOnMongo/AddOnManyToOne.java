@@ -191,29 +191,4 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			}
 		}
 	}
-
-	// TODO : refacto this table to manage a generic table with dynamic name to be serialisable with the default system
-	@Override
-	public void createTables(
-			final String tableName,
-			final Field primaryField,
-			final Field field,
-			final StringBuilder mainTableBuilder,
-			final List<String> preActionList,
-			final List<String> postActionList,
-			final boolean createIfNotExist,
-			final boolean createDrop,
-			final int fieldId,
-			final QueryOptions options) throws Exception {
-		final Class<?> classType = field.getType();
-		if (classType == Long.class || classType == Integer.class || classType == Short.class
-				|| classType == String.class || classType == UUID.class || classType == ObjectId.class) {
-			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, classType, options);
-		} else {
-			LOGGER.error("Support only the Long remote field of ecternal primary keys...");
-			DataFactory.createTablesSpecificType(tableName, primaryField, field, mainTableBuilder, preActionList,
-					postActionList, createIfNotExist, createDrop, fieldId, Long.class, options);
-		}
-	}
 }

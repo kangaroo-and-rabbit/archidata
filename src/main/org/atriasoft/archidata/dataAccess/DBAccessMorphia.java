@@ -18,9 +18,11 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyLocal;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOne;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.CheckFunction;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -28,6 +30,8 @@ import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
+import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbIoMorphia;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.UuidUtils;
@@ -51,10 +55,6 @@ import com.mongodb.client.result.UpdateResult;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.InternalServerErrorException;
 
-/* TODO list:
-   - Manage to group of SQL action to permit to commit only at the end.
- */
-
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
 public class DBAccessMorphia extends DBAccess {
@@ -64,6 +64,7 @@ public class DBAccessMorphia extends DBAccess {
 
 	static {
 		//addOn.add(new AddOnManyToMany());
+		addOn.add(new AddOnManyToManyLocal());
 		addOn.add(new AddOnManyToOne());
 		addOn.add(new AddOnOneToMany());
 		// no need, native support in mango .... addOn.add(new AddOnDataJson());
@@ -130,7 +131,7 @@ public class DBAccessMorphia extends DBAccess {
 		return groups;
 	}
 
-	protected <T> void setValueToDb(
+	public <T> void setValueToDb(
 			final Class<?> type,
 			final T data,
 			final Field field,
@@ -467,7 +468,11 @@ public class DBAccessMorphia extends DBAccess {
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					primaryKeyField = field;
-					if (primaryKeyField.getType() == UUID.class) {
+					if (primaryKeyField.getType() == ObjectId.class) {
+						uniqueId = new ObjectId();
+						docSet.append(tableFieldName.inTable(), uniqueId);
+						continue;
+					} else if (primaryKeyField.getType() == UUID.class) {
 						final UUID uuid = UuidUtils.nextUUID();
 						uniqueId = uuid;
 						docSet.append(tableFieldName.inTable(), uuid);
@@ -494,12 +499,13 @@ public class DBAccessMorphia extends DBAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
+				if (addOn != null) {
 					if (addOn.isInsertAsync(field)) {
-						LOGGER.error("TODO: add async objects ...");
-						//asyncFieldUpdate.add(field);
+						asyncFieldUpdate.add(field);
 					}
-					continue;
+					if (!addOn.canInsert(field)) {
+						continue;
+					}
 				}
 				if (currentInsertValue == null && !field.getClass().isPrimitive()) {
 					final DefaultValue[] defaultValue = field.getDeclaredAnnotationsByType(DefaultValue.class);
@@ -534,10 +540,8 @@ public class DBAccessMorphia extends DBAccess {
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
 			LOGGER.info("Document inserted with ID: " + insertedId);
-
 			// Rechercher et récupérer le document inséré à partir de son ObjectId
 			final Document insertedDocument = collection.find(new Document("_id", insertedId)).first();
-
 			// Afficher le document récupéré
 			LOGGER.trace("Inserted document: " + insertedDocument);
 
@@ -550,11 +554,11 @@ public class DBAccessMorphia extends DBAccess {
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (uniqueId instanceof final Long id) {
-				LOGGER.error("TODO: Add on not managed .1. ");
-				//addOn.asyncInsert(tableName, id, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, id, field, field.get(data), asyncActions, options);
 			} else if (uniqueId instanceof final UUID uuid) {
-				LOGGER.error("TODO: Add on not managed .2. ");
-				//addOn.asyncInsert(tableName, uuid, field, field.get(data), asyncActions);
+				addOn.asyncInsert(this, uuid, field, field.get(data), asyncActions, options);
+			} else if (uniqueId instanceof final ObjectId oid) {
+				addOn.asyncInsert(this, oid, field, field.get(data), asyncActions, options);
 			}
 		}
 		for (final LazyGetter action : asyncActions) {
@@ -584,6 +588,33 @@ public class DBAccessMorphia extends DBAccess {
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
+		//Some mode need to get the previous data to perform a correct update...
+		boolean needPreviousValues = false;
+		for (final Field field : clazz.getFields()) {
+			//  field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			final FieldName name = AnnotationTools.getFieldName(field, options);
+			//			if (!filter.getValues().contains(name.inStruct())) {
+			//				continue;
+			//			}
+			if (AnnotationTools.isGenericField(field)) {
+				continue;
+			}
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null && addOn.isPreviousDataNeeded(field)) {
+				needPreviousValues = true;
+				break;
+			}
+		}
+		Object previousData = null;
+		if (needPreviousValues) {
+			final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
+			previousData = this.get(data.getClass(), transmitKey.get(0).getKey(), new AccessDeletedItems(),
+					new ReadAllColumn());
+		}
+
 		// real add in the BDD:
 		try {
 			final String collectionName = AnnotationTools.getCollectionName(clazz, options);
@@ -610,19 +641,19 @@ public class DBAccessMorphia extends DBAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
-					if (addOn.isInsertAsync(field)) {
-						LOGGER.error("TODO: Add on not managed .3. ");
-						/*
+				if (addOn != null) {
+					if (addOn.isUpdateAsync(field)) {
 						final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
 						if (transmitKey.size() != 1) {
 							throw new DataAccessException(
 									"Fail to transmit Key to update the async update... (must have only 1)");
 						}
-						addOn.asyncUpdate(tableName, transmitKey.get(0).getKey(), field, field.get(data), asyncActions);
-						*/
+						addOn.asyncUpdate(this, previousData, transmitKey.get(0).getKey(), field, field.get(data),
+								asyncActions, options);
 					}
-					continue;
+					if (!addOn.canInsert(field)) {
+						continue;
+					}
 				}
 				if (addOn != null) {
 					addOn.insertData(this, field, data, options, docSet, docUnSet);
@@ -649,12 +680,12 @@ public class DBAccessMorphia extends DBAccess {
 			}
 			LOGGER.info("updateWhere with value: {}", actions.toJson());
 			final UpdateResult ret = collection.updateMany(filters, actions);
+			for (final LazyGetter action : asyncActions) {
+				action.doRequest();
+			}
 			return ret.getModifiedCount();
 		} catch (final Exception ex) {
 			ex.printStackTrace();
-		}
-		for (final LazyGetter action : asyncActions) {
-			action.doRequest();
 		}
 		return 0;
 	}
