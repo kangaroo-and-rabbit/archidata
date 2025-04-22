@@ -143,7 +143,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 
 	/** When insert is mark async, this function permit to create or update the data
 	 * @param tableName Name of the Table.
-	 * @param localId Local ID of the current table
+	 * @param primaryKeyValue Local ID of the current table
 	 * @param field Field that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
