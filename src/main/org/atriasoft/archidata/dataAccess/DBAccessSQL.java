@@ -32,6 +32,7 @@ import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToMany;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToOne;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnSQL.DataAccessAddOn;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.CheckFunction;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DBInterfaceRoot;
@@ -41,6 +42,7 @@ import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbIoSql;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -64,9 +66,11 @@ import jakarta.ws.rs.InternalServerErrorException;
 public class DBAccessSQL extends DBAccess {
 	final static Logger LOGGER = LoggerFactory.getLogger(DBAccessSQL.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
-	final static List<DataAccessAddOn> addOn = List.of(new AddOnManyToMany(), new AddOnManyToOne(),
-			new AddOnOneToMany(), new AddOnDataJson());
-
+	final static List<DataAccessAddOn> addOn = List.of(//
+			new AddOnManyToMany(), //
+			new AddOnManyToOne(), //
+			new AddOnOneToMany(), //
+			new AddOnDataJson());
 	private final DbIoSql db;
 
 	public DBAccessSQL(final DbIoSql db) throws IOException {
@@ -941,11 +945,13 @@ public class DBAccessSQL extends DBAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
+				if (addOn != null) {
 					if (addOn.isInsertAsync(field)) {
 						asyncFieldUpdate.add(field);
 					}
-					continue;
+					if (!addOn.canInsert(field)) {
+						continue;
+					}
 				}
 				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
 				if (createTime) {
@@ -1157,6 +1163,31 @@ public class DBAccessSQL extends DBAccess {
 			query.append("UPDATE `");
 			query.append(tableName);
 			query.append("` SET ");
+			//Some mode need to get the previous data to perform a correct update...
+			boolean needPreviousValues = false;
+			for (final Field field : clazz.getFields()) {
+				//  field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				final FieldName name = AnnotationTools.getFieldName(field, options);
+				if (!filter.getValues().contains(name.inStruct())) {
+					continue;
+				} else if (AnnotationTools.isGenericField(field)) {
+					continue;
+				}
+				final DataAccessAddOn addOn = findAddOnforField(field);
+				if (addOn != null && addOn.isPreviousDataNeeded(field)) {
+					needPreviousValues = true;
+					break;
+				}
+			}
+			Object previousData = null;
+			if (needPreviousValues) {
+				final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
+				previousData = this.get(data.getClass(), transmitKey.get(0).getKey(), new AccessDeletedItems(),
+						new ReadAllColumn());
+			}
 
 			boolean firstField = true;
 			for (final Field field : clazz.getFields()) {
@@ -1171,17 +1202,19 @@ public class DBAccessSQL extends DBAccess {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
-				if (addOn != null && !addOn.canInsert(field)) {
+				if (addOn != null) {
 					if (addOn.isUpdateAsync(field)) {
 						final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
 						if (transmitKey.size() != 1) {
 							throw new DataAccessException(
 									"Fail to transmit Key to update the async update... (must have only 1)");
 						}
-						addOn.asyncUpdate(this, tableName, transmitKey.get(0).getKey(), field, field.get(data),
-								asyncActions, options);
+						addOn.asyncUpdate(this, previousData, tableName, transmitKey.get(0).getKey(), field,
+								field.get(data), asyncActions, options);
 					}
-					continue;
+					if (!addOn.canInsert(field)) {
+						continue;
+					}
 				}
 				if (!field.getClass().isPrimitive()) {
 					final Object tmp = field.get(data);
@@ -1423,7 +1456,7 @@ public class DBAccessSQL extends DBAccess {
 					final T out = (T) data;
 					outs.add(out);
 				}
-				LOGGER.info("Async calls: {}", lazyCall.size());
+				LOGGER.trace("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {
 					elem.doRequest();
 				}

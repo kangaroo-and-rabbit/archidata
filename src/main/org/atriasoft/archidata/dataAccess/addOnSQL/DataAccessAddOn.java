@@ -137,6 +137,7 @@ public interface DataAccessAddOn {
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
 			final DBAccessSQL ioDb,
+			final Object previousData,
 			final String tableName,
 			final Object localId,
 			final Field field,
@@ -144,6 +145,13 @@ public interface DataAccessAddOn {
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
 
+	}
+
+	/** Some annotation need to collect data before updating the current values
+	 * @param field
+	 * @return */
+	default boolean isPreviousDataNeeded(final Field field) {
+		return false;
 	}
 
 	default void drop(final DBAccessSQL ioDb, final String tableName, final Field field, final QueryOptions options)

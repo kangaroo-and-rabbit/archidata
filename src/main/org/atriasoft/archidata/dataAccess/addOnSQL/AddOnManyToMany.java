@@ -408,6 +408,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	@Override
 	public void asyncUpdate(
 			final DBAccessSQL ioDb,
+			final Object previousData,
 			final String tableName,
 			final Object localKey,
 			final Field field,
