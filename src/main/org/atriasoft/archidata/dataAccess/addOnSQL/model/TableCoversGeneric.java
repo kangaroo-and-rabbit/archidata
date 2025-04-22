@@ -11,15 +11,15 @@ public class TableCoversGeneric {
 		// nothing to do...
 	}
 
-	public TableCoversGeneric(final Object id, final List<Object> covers) {
-		this.id = id;
-		this.covers = covers;
+	public TableCoversGeneric(final Object idOfTheObject, final List<Object> filedNameOfTheObject) {
+		this.idOfTheObject = idOfTheObject;
+		this.filedNameOfTheObject = filedNameOfTheObject;
 	}
 
 	@Id
-	public Object id;
+	public Object idOfTheObject;
 
 	@DataJson()
-	public List<Object> covers;
+	public List<Object> filedNameOfTheObject;
 
 }

@@ -219,62 +219,63 @@ public class AddOnDataJson implements DataAccessAddOn {
 	public static void addLink(
 			final DBAccess ioDb,
 			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
+			String clazzPrimaryKeyName,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToAdd) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("id", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("covers", valueToAdd.getClass(), true));
-		if (clazzPrimaryKeyName != null && !clazzPrimaryKeyName.equals("id")) {
-			options.add(new OptionRenameColumn("id", clazzPrimaryKeyName));
+				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
+				new OptionSpecifyType("filedNameOfTheObject", valueToAdd.getClass(), true));
+		if (clazzPrimaryKeyName == null) {
+			clazzPrimaryKeyName = "id";
 		}
-		if (fieldNameToUpdate != null && !fieldNameToUpdate.equals("covers")) {
-			options.add(new OptionRenameColumn("covers", fieldNameToUpdate));
-		}
+		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
+		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
 		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		if (data.covers == null) {
-			data.covers = new ArrayList<>();
+		if (data.filedNameOfTheObject == null) {
+			data.filedNameOfTheObject = new ArrayList<>();
 		}
-		for (final Object elem : data.covers) {
+		for (final Object elem : data.filedNameOfTheObject) {
 			if (elem.equals(valueToAdd)) {
 				return;
 			}
 		}
-		data.covers.add(valueToAdd);
-		ioDb.update(data, data.id, List.of("covers"), options.getAllArray());
+		data.filedNameOfTheObject.add(valueToAdd);
+		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
 	}
 
 	public static void removeLink(
 			final DBAccess ioDb,
 			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
+			String clazzPrimaryKeyName,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToRemove) throws Exception {
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("id", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("covers", valueToRemove.getClass(), true));
-		if (clazzPrimaryKeyName != null && !clazzPrimaryKeyName.equals("id")) {
-			options.add(new OptionRenameColumn("id", clazzPrimaryKeyName));
+				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
+				new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
+		if (clazzPrimaryKeyName == null) {
+			clazzPrimaryKeyName = "id";
 		}
-		if (fieldNameToUpdate != null && !fieldNameToUpdate.equals("covers")) {
-			options.add(new OptionRenameColumn("covers", fieldNameToUpdate));
-		}
+		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
+		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
 		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		if (data.covers == null) {
+		if (data.filedNameOfTheObject == null) {
 			return;
 		}
 		final List<Object> newList = new ArrayList<>();
-		for (final Object elem : data.covers) {
+		for (final Object elem : data.filedNameOfTheObject) {
 			if (elem.equals(valueToRemove)) {
 				continue;
 			}
 			newList.add(elem);
 		}
-		data.covers = newList;
-		ioDb.update(data, data.id, List.of("covers"), options.getAllArray());
+		data.filedNameOfTheObject = newList;
+		if (data.filedNameOfTheObject.isEmpty()) {
+			data.filedNameOfTheObject = null;
+		}
+		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
 	}
 }
