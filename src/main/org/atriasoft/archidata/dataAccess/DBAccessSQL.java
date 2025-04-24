@@ -1406,13 +1406,12 @@ public class DBAccessSQL extends DBAccess {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+	public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final List<T> outs = new ArrayList<>();
+		final List<Object> outs = new ArrayList<>();
 		try {
 			final CountInOut count = new CountInOut();
 			final StringBuilder querySelect = new StringBuilder();
@@ -1456,8 +1455,7 @@ public class DBAccessSQL extends DBAccess {
 					count.value = 1;
 					final CountInOut countNotNull = new CountInOut(0);
 					final Object data = createObjectFromSQLRequest(rs, clazz, count, countNotNull, options, lazyCall);
-					final T out = (T) data;
-					outs.add(out);
+					outs.add(data);
 				}
 				LOGGER.trace("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {

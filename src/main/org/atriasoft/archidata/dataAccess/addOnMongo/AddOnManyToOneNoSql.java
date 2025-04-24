@@ -10,12 +10,13 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.ManyToManyLocal;
+import org.atriasoft.archidata.annotation.ManyToOneNoSQL;
+import org.atriasoft.archidata.annotation.OneToManyNoSQL;
 import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyLocalTools;
+import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
@@ -23,32 +24,32 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AddOnManyToManyLocal implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyLocal.class);
-	static final String SEPARATOR_LONG = "-";
-	static final String SEPARATOR_UUID = "_";
+//Coté de l'élément qui référence le parent ....
+//
+
+public class AddOnManyToOneNoSql implements DataAccessAddOn {
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToOneNoSql.class);
 
 	@Override
 	public Class<?> getAnnotationClass() {
-		return ManyToManyLocal.class;
+		return ManyToOneNoSQL.class;
 	}
 
 	@Override
 	public boolean isCompatibleField(final Field elem) {
-		final ManyToManyLocal decorators = elem.getDeclaredAnnotation(ManyToManyLocal.class);
+		final ManyToOneNoSQL decorators = elem.getDeclaredAnnotation(ManyToOneNoSQL.class);
 		return decorators != null;
 	}
 
 	public boolean canRetreiveAnWrite(final Field field) {
-		if (field.getType() != List.class) {
+		if (Collection.class.isAssignableFrom(field.getType())) {
 			return false;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
+		final Class<?> objectClass = field.getType();
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
 		}
-		final ManyToManyLocal decorators = field.getDeclaredAnnotation(ManyToManyLocal.class);
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
 		if (decorators == null) {
 			return false;
 		}
@@ -100,19 +101,24 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
+		}
 			actions.add(() -> {
-				ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+				//ListInDbTools.addLink(ioDb, field, primaryKeyValue, value);
+				La je doit setter la valeur du repote ??? je suis pas sure.
 			});
 		}
-		// remove old values:
-		for (final Object value : previousDataCollection) {
-			if (insertedDataCollection.contains(value)) {
-				continue;
-			}
-			actions.add(() -> {
-				ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
-			});
+	// remove old values:
+	for(
+
+	final Object value:previousDataCollection)
+	{
+		if (insertedDataCollection.contains(value)) {
+			continue;
 		}
+		//actions.add(() -> {
+		//	ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
+		//});
+	}
 
 	}
 
@@ -143,9 +149,12 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
-				actions.add(() -> {
-					ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
-				});
+				//actions.add(() -> {
+				//	ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+				//});
+				// TODO: set the value to the new value
+				// TODO: check if it change
+				// TODO: if true: update the parent in consequence...
 			}
 		}
 	}
@@ -177,93 +186,46 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
 
 		if (field.getType() != List.class) {
-			throw new SystemException("@ManyToManyLocal must contain a List");
+			throw new SystemException("@ManyToOneLocal must contain a List");
 		}
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
 			return;
 		}
+		final OneToManyNoSQL decorators = field.getDeclaredAnnotation(OneToManyNoSQL.class);
+		if (decorators == null) {
+			// not a use-case !!! ==> must fail before...
+			return;
+		}
+		final ParameterizedType listType = (ParameterizedType) field.getGenericType();
+		final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
 		final Object dataRetrieve = doc.get(fieldName, field.getType());
+		if (dataRetrieve == null) {
+			return;
+		}
 		if (dataRetrieve instanceof final Collection<?> dataCollection) {
-			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-			final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
-			if (objectClass == Long.class) {
-				final List<Long> dataParsed = (List<Long>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			if (objectClass == UUID.class) {
-				final List<UUID> dataParsed = (List<UUID>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			if (objectClass == ObjectId.class) {
-				final List<ObjectId> dataParsed = (List<ObjectId>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			final ManyToManyLocal decorators = field.getDeclaredAnnotation(ManyToManyLocal.class);
-			if (decorators == null) {
-				return;
-			}
 			if (objectClass == decorators.targetEntity()) {
-				final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
-				if (foreignKeyType == Long.class) {
-					final List<Long> idList = (List<Long>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), idList)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == UUID.class) {
-					final List<UUID> idList = (List<UUID>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							final List<UUID> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == ObjectId.class) {
-					final List<ObjectId> idList = (List<ObjectId>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							final List<ObjectId> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
+				final List<Object> idList = (List<Object>) dataCollection;
+				if (idList != null && idList.size() > 0) {
+					final FieldName idField = AnnotationTools
+							.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						final Object foreignData = ioDb.getsWhereRaw(decorators.targetEntity(),
+								new Condition(new QueryInList<>(idField.inTable(), idList)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
 				}
+				return;
 			}
+			field.set(data, dataCollection);
+		} else {
+			throw new SystemException("@OneToManyLocal does not retreive a Collection");
 		}
 	}
 }

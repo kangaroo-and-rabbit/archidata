@@ -18,9 +18,11 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyLocal;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyNoSql;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOne;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOneNoSql;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToMany;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToManyNoSql;
 import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.CheckFunction;
@@ -63,11 +65,16 @@ public class DBAccessMorphia extends DBAccess {
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
 	static {
+		addOn.add(new AddOnManyToManyNoSql());
+		addOn.add(new AddOnOneToManyNoSql());
+		addOn.add(new AddOnManyToOneNoSql());
+
+		// Not implementable without performance fail...
 		//addOn.add(new AddOnManyToMany());
-		addOn.add(new AddOnManyToManyLocal());
+		// Deprecated
 		addOn.add(new AddOnManyToOne());
+		// Deprecated
 		addOn.add(new AddOnOneToMany());
-		// no need, native support in mango .... addOn.add(new AddOnDataJson());
 	}
 
 	/** Add a new add-on on the current management.
@@ -741,15 +748,13 @@ public class DBAccessMorphia extends DBAccess {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
-	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+	public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
-
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final List<T> outs = new ArrayList<>();
+		final List<Object> outs = new ArrayList<>();
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		try {
 			// Generate the filtering of the data:
@@ -794,8 +799,7 @@ public class DBAccessMorphia extends DBAccess {
 					final Document doc = cursor.next();
 					LOGGER.info("    - getWhere value: {}", doc.toJson());
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
-					final T out = (T) data;
-					outs.add(out);
+					outs.add(data);
 				}
 				LOGGER.info("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {

@@ -217,14 +217,33 @@ public abstract class DBAccess implements Closeable {
 		return values.get(0);
 	}
 
+	public Object getWhereRaw(final Class<?> clazz, final QueryOptions options) throws Exception {
+		options.add(new Limit(1));
+		final List<Object> values = getsWhereRaw(clazz, options);
+		if (values.size() == 0) {
+			return null;
+		}
+		return values.get(0);
+	}
+
 	public <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return getWhere(clazz, options);
 	}
 
+	public Object getWhereRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		return getWhereRaw(clazz, options);
+	}
+
 	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		return getsWhere(clazz, options);
+	}
+
+	public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		return getsWhereRaw(clazz, options);
 	}
 
 	public Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
@@ -253,7 +272,14 @@ public abstract class DBAccess implements Closeable {
 		return condition;
 	}
 
-	abstract public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+	@SuppressWarnings("unchecked")
+	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
+			throws DataAccessException, IOException {
+		final List<Object> out = getsWhereRaw(clazz, options);
+		return (List<T>) out;
+	}
+
+	abstract public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOptions options)
 			throws DataAccessException, IOException;
 
 	public <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
