@@ -16,11 +16,11 @@ CREATE TABLE `user` (
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.DataIfNotExists;
 import org.atriasoft.archidata.annotation.DataJson;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
+import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -59,7 +59,7 @@ public class User extends GenericDataSoftDelete {
 	@Schema(description = "List of Id of the specific covers")
 	@DataJson(targetEntity = Data.class)
 	@Nullable
-	public List<UUID> covers;
+	public List<ObjectId> covers;
 
 	@Override
 	public String toString() {
