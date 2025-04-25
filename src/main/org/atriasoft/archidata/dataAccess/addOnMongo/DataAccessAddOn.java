@@ -110,6 +110,18 @@ public interface DataAccessAddOn {
 		return false;
 	}
 
+	default boolean asDeleteAction(final Field field) {
+		return false;
+	}
+
+	default void onDelete(
+			final DBAccessMorphia ioDb,
+			final Class<?> clazz,
+			final Field field,
+			final List<Object> previousData) throws Exception {
+
+	}
+
 	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)
 			throws Exception {
 

@@ -17,6 +17,6 @@ public class TypeOneToManyNoSqlOIDRootExpand extends OIDGenericData {
 	public String otherData;
 
 	@OneToManyNoSQL(targetEntity = TypeOneToManyNoSqlOIDRemote.class, remoteField = "rootOid")
-	@Column(nullable = false)
+	@Column(nullable = false, name = "remoteIds")
 	public List<TypeOneToManyNoSqlOIDRemote> remotes;
 }

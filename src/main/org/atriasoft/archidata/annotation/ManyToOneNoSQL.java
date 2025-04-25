@@ -42,9 +42,15 @@ public @interface ManyToOneNoSQL {
 	/**
 	 * The field that owns the revert value. empty if the relationship is unidirectional.
 	 */
-	String remoteField() default "";
+	String remoteField();
 
-	boolean removeLinkWhenDeleted() default true;
+	/**
+	 * When delete the object, the system remove the link from the parent
+	 */
+	boolean removeLinkWhenDelete() default true;
 
-	boolean addLinkWhenDeleted() default true;
+	/**
+	 * When create the object, the system add the link on the parent
+	 */
+	boolean addLinkWhenCreate() default true;
 }

@@ -66,8 +66,8 @@ public class DBAccessMorphia extends DBAccess {
 
 	static {
 		addOn.add(new AddOnManyToManyNoSql());
-		addOn.add(new AddOnOneToManyNoSql());
 		addOn.add(new AddOnManyToOneNoSql());
+		addOn.add(new AddOnOneToManyNoSql());
 
 		// Not implementable without performance fail...
 		//addOn.add(new AddOnManyToMany());
@@ -460,7 +460,6 @@ public class DBAccessMorphia extends DBAccess {
 		Object uniqueId = null;
 		// real add in the BDD:
 		ObjectId insertedId = null;
-		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		try {
 			final MongoCollection<Document> collection = this.db.getDatastore().getDatabase()
 					.getCollection(collectionName);
@@ -917,6 +916,42 @@ public class DBAccessMorphia extends DBAccess {
 		return deleteHardWhere(clazz, options.getAllArray());
 	}
 
+	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
+
+		//Some mode need to get the previous data to perform a correct update...
+		boolean needPreviousValues = false;
+		final List<Field> hasDeletedActionFields = new ArrayList<>();
+		for (final Field field : clazz.getFields()) {
+			//  field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			if (AnnotationTools.isGenericField(field)) {
+				continue;
+			}
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null && addOn.asDeleteAction(field)) {
+				hasDeletedActionFields.add(field);
+				if (addOn.isPreviousDataNeeded(field)) {
+					needPreviousValues = true;
+				}
+			}
+		}
+		List<Object> previousData = null;
+		if (needPreviousValues) {
+			final QueryOptions options = new QueryOptions(option);
+			options.add(new AccessDeletedItems());
+			options.add(new ReadAllColumn());
+			previousData = this.getsWhereRaw(clazz, options);
+		}
+		for (final Field field : hasDeletedActionFields) {
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null) {
+				addOn.onDelete(this, clazz, field, previousData);
+			}
+		}
+	}
+
 	@Override
 	public long deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
@@ -925,6 +960,9 @@ public class DBAccessMorphia extends DBAccess {
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+
+		actionOnDelete(clazz, option);
+
 		DeleteResult retFind;
 		if (filters != null) {
 			retFind = collection.deleteMany(filters);
@@ -952,6 +990,9 @@ public class DBAccessMorphia extends DBAccess {
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
 		LOGGER.info("update some values: {}", actions.toJson());
+
+		actionOnDelete(clazz, option);
+
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}

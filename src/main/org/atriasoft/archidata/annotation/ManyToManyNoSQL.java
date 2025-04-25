@@ -23,5 +23,5 @@ public @interface ManyToManyNoSQL {
 	/**
 	 * The field that owns the revert value. empty if the relationship is unidirectional.
 	 */
-	String remoteField() default "";
+	String remoteField();
 }

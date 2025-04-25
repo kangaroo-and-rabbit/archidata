@@ -1,32 +1,27 @@
 package org.atriasoft.archidata.dataAccess.addOnMongo;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToOneNoSQL;
-import org.atriasoft.archidata.annotation.OneToManyNoSQL;
 import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
-import org.atriasoft.archidata.dataAccess.QueryInList;
+import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
-import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-//Coté de l'élément qui référence le parent ....
-//
-
+// Coté de la liste des éléméments ....
 public class AddOnManyToOneNoSql implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToOneNoSql.class);
 
@@ -36,22 +31,17 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 	}
 
 	@Override
-	public boolean isCompatibleField(final Field elem) {
-		final ManyToOneNoSQL decorators = elem.getDeclaredAnnotation(ManyToOneNoSQL.class);
-		return decorators != null;
-	}
-
-	public boolean canRetreiveAnWrite(final Field field) {
+	public boolean isCompatibleField(final Field field) {
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		if (decorators == null) {
+			return false;
+		}
 		if (Collection.class.isAssignableFrom(field.getType())) {
 			return false;
 		}
 		final Class<?> objectClass = field.getType();
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
-		}
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
-		if (decorators == null) {
-			return false;
 		}
 		if (decorators.targetEntity() == objectClass) {
 			return true;
@@ -87,39 +77,23 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
 		final Object previousDataValue = field.get(previousData);
-		Collection<?> previousDataCollection = new ArrayList<>();
-		if (previousDataValue instanceof final Collection<?> tmpCollection) {
-			previousDataCollection = tmpCollection;
-		}
 		final Object insertedDataValue = insertedData;
-		Collection<?> insertedDataCollection = new ArrayList<>();
-		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
-			insertedDataCollection = tmpCollection;
+		if (Objects.equals(previousDataValue, insertedDataValue)) {
+			return;
 		}
-		// add new Values
-		for (final Object value : insertedDataCollection) {
-			if (previousDataCollection.contains(value)) {
-				continue;
-			}
-		}
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		if (previousDataValue != null) {
 			actions.add(() -> {
-				//ListInDbTools.addLink(ioDb, field, primaryKeyValue, value);
-				La je doit setter la valeur du repote ??? je suis pas sure.
+				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), previousDataValue, decorators.remoteField(),
+						primaryKeyValue);
 			});
 		}
-	// remove old values:
-	for(
-
-	final Object value:previousDataCollection)
-	{
-		if (insertedDataCollection.contains(value)) {
-			continue;
+		if (insertedDataValue == null) {
+			actions.add(() -> {
+				ListInDbTools.addLink(ioDb, decorators.targetEntity(), previousDataValue, decorators.remoteField(),
+						primaryKeyValue);
+			});
 		}
-		//actions.add(() -> {
-		//	ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
-		//});
-	}
-
 	}
 
 	/** Some action must be done asynchronously for update or remove element
@@ -147,15 +121,12 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 		if (insertedData == null) {
 			return;
 		}
-		if (insertedData instanceof final Collection<?> insertedDataCollection) {
-			for (final Object value : insertedDataCollection) {
-				//actions.add(() -> {
-				//	ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
-				//});
-				// TODO: set the value to the new value
-				// TODO: check if it change
-				// TODO: if true: update the parent in consequence...
-			}
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		if (decorators.addLinkWhenCreate()) {
+			actions.add(() -> {
+				ListInDbTools.addLink(ioDb, decorators.targetEntity(), insertedData, decorators.remoteField(),
+						primaryKeyValue);
+			});
 		}
 	}
 
@@ -166,15 +137,14 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		return canRetreiveAnWrite(field);
+		return true;
 	}
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		return canRetreiveAnWrite(field);
+		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void fillFromDoc(
 			final DBAccessMorphia ioDb,
@@ -184,48 +154,59 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
-
-		if (field.getType() != List.class) {
-			throw new SystemException("@ManyToOneLocal must contain a List");
-		}
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
 			return;
 		}
-		final OneToManyNoSQL decorators = field.getDeclaredAnnotation(OneToManyNoSQL.class);
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
 		if (decorators == null) {
 			// not a use-case !!! ==> must fail before...
 			return;
 		}
-		final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-		final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
-		final Object dataRetrieve = doc.get(fieldName, field.getType());
-		if (dataRetrieve == null) {
+
+		if (field.getType() == decorators.targetEntity()) {
+			final Field primaryRemoteField = AnnotationTools.getPrimaryKeyField(decorators.targetEntity());
+			final Object dataRetrieve = doc.get(fieldName, primaryRemoteField.getType());
+			final FieldName idField = AnnotationTools
+					.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
+			// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+			final LazyGetter lambda = () -> {
+				final Object foreignData = ioDb.getWhereRaw(decorators.targetEntity(),
+						new Condition(new QueryCondition(idField.inTable(), "=", dataRetrieve)));
+				if (foreignData == null) {
+					return;
+				}
+				field.set(data, foreignData);
+			};
+			lazyCall.add(lambda);
 			return;
 		}
-		if (dataRetrieve instanceof final Collection<?> dataCollection) {
-			if (objectClass == decorators.targetEntity()) {
-				final List<Object> idList = (List<Object>) dataCollection;
-				if (idList != null && idList.size() > 0) {
-					final FieldName idField = AnnotationTools
-							.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
-					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
-						final Object foreignData = ioDb.getsWhereRaw(decorators.targetEntity(),
-								new Condition(new QueryInList<>(idField.inTable(), idList)));
-						if (foreignData == null) {
-							return;
-						}
-						field.set(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				}
-				return;
+		final Object dataRetrieve = doc.get(fieldName, field.getType());
+		field.set(data, dataRetrieve);
+	}
+
+	@Override
+	public boolean asDeleteAction(final Field field) {
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		return decorators.removeLinkWhenDelete();
+	}
+
+	@Override
+	public void onDelete(
+			final DBAccessMorphia ioDb,
+			final Class<?> clazz,
+			final Field field,
+			final List<Object> previousData) throws Exception {
+		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final Field primaryKey = AnnotationTools.getPrimaryKeyField(clazz);
+		for (final Object obj : previousData) {
+			final Object primaryKeyValue = primaryKey.get(obj);
+			final Object parentKey = primaryKey.get(obj);
+			if (parentKey != null) {
+				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), parentKey, decorators.remoteField(),
+						primaryKeyValue);
 			}
-			field.set(data, dataCollection);
-		} else {
-			throw new SystemException("@OneToManyLocal does not retreive a Collection");
 		}
 	}
 }

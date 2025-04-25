@@ -34,7 +34,9 @@ import java.lang.annotation.Target;
 @Target({ FIELD, METHOD })
 public @interface OneToManyNoSQL {
 	public enum CascadeMode {
-		DELETE_ON_REMOVE, SET_NULL_ON_REMOVE, IGNORE_ON_REMOVE
+		DELETE_ON_REMOVE, // The remote object is deleted
+		SET_NULL_ON_REMOVE, // The remote object parent field is set to `null`
+		IGNORE_ON_REMOVE // The remote object is unchanged
 	}
 
 	/**
@@ -46,7 +48,15 @@ public @interface OneToManyNoSQL {
 	/**
 	 * The field that owns the revert value. empty if the relationship is unidirectional.
 	 */
-	String remoteField() default "";
+	String remoteField();
 
-	CascadeMode cascade() default CascadeMode.DELETE_ON_REMOVE;
+	/**
+	 * When list change, apply some update on child.
+	 */
+	CascadeMode cascade() default CascadeMode.IGNORE_ON_REMOVE;
+
+	/**
+	 * When add an element ignore the remote update ==> this is the responsibility of the child to register here...
+	 */
+	boolean ignoreRemoteUpdateWhenOnAddItem() default true;
 }
