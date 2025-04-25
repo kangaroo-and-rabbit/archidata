@@ -409,7 +409,7 @@ public class AnnotationTools {
 	}
 
 	// Note: update field can not be renamed with OptionRenameColumn
-	public static String getUpdatedFieldName(final Class<?> clazz) {
+	public static FieldName getUpdatedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
@@ -417,7 +417,7 @@ public class AnnotationTools {
 					continue;
 				}
 				if (AnnotationTools.isUpdateAtField(elem)) {
-					return AnnotationTools.getFieldNameRaw(elem);
+					return AnnotationTools.getFieldName(elem, null);
 				}
 			}
 		} catch (final Exception ex) {

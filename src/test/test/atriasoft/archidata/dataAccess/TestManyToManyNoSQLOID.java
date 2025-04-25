@@ -1,12 +1,15 @@
 package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
-import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyLocalTools;
+import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyTools;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -174,17 +177,18 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
-			ManyToManyLocalTools.addLink(ConfigureDb.da, //
+			ManyToManyTools.addLink(ConfigureDb.da, //
 					TypeManyToManyNoSqlOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
-			ManyToManyLocalTools.addLink(ConfigureDb.da, //
+			Thread.sleep(150);
+			ManyToManyTools.addLink(ConfigureDb.da, //
 					TypeManyToManyNoSqlOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote2.oid);
 
 			final TypeManyToManyNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
-					this.insertedData.oid);
+					this.insertedData.oid, new AccessDeletedItems(), new ReadAllColumn());
 
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertNotNull(retrieve.oid);
@@ -195,6 +199,13 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(2, retrieve.remote.size());
 			Assertions.assertEquals(retrieve.remote.get(0), this.insertedRemote1.oid);
 			Assertions.assertEquals(retrieve.remote.get(1), this.insertedRemote2.oid);
+			Assertions.assertNotNull(retrieve.createdAt);
+			Assertions.assertNotNull(retrieve.updatedAt);
+			final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+			final String formattedCreatedAt = sdf.format(retrieve.createdAt);
+			final String formattedUpdatedAt = sdf.format(retrieve.updatedAt);
+			LOGGER.info("check: {} =?= {}", formattedCreatedAt, formattedUpdatedAt);
+			Assertions.assertTrue(formattedUpdatedAt.compareTo(formattedCreatedAt) > 0);
 
 			// -- Verify remote is linked:
 			final TypeManyToManyNoSqlOIDRemote retrieveRemote = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRemote.class,
@@ -233,7 +244,7 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove an element
-			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
 
@@ -250,7 +261,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(retrieve.remote.get(0), this.insertedRemote2.oid);
 
 			// Remove the second element
-			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
 					retrieve.oid, //
 					"remote", this.insertedRemote2.oid);
 
@@ -334,10 +345,10 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
-			ManyToManyLocalTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
-			ManyToManyLocalTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
@@ -384,7 +395,7 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove root elements
-			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
@@ -430,7 +441,7 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeSecondLinksRemotes() throws Exception {
 			// Remove root elements
-			ManyToManyLocalTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
 

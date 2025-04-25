@@ -20,7 +20,7 @@ import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyLocalTools;
+import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.tools.ContextGenericTools;
@@ -114,7 +114,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 				continue;
 			}
 			actions.add(() -> {
-				ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+				ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
 		// remove old values:
@@ -123,7 +123,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 				continue;
 			}
 			actions.add(() -> {
-				ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
+				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
 
@@ -159,7 +159,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
 				actions.add(() -> {
-					ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+					ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 				});
 			}
 		}

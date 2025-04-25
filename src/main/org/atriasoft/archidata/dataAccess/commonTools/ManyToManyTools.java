@@ -10,11 +10,13 @@ import org.atriasoft.archidata.annotation.ManyToManyNoSQL;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGenericUpdateAt;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 
-public class ManyToManyLocalTools {
+public class ManyToManyTools {
 
 	private static void addLinkLocal(
 			final DBAccess ioDb,
@@ -23,13 +25,21 @@ public class ManyToManyLocalTools {
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToAdd) throws Exception {
+		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
 				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
 				new OptionSpecifyType("filedNameOfTheObject", valueToAdd.getClass(), true));
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		options.add(new AccessDeletedItems());
+		TableCoversGeneric data = null;
+		if (updateFieldName != null) {
+			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
+			data = ioDb.get(TableCoversGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+		} else {
+			data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
 		}
@@ -89,13 +99,21 @@ public class ManyToManyLocalTools {
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToRemove) throws Exception {
+		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
 				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
 				new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		options.add(new AccessDeletedItems());
+		TableCoversGeneric data = null;
+		if (updateFieldName != null) {
+			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
+			data = ioDb.get(TableCoversGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+		} else {
+			data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		}
 		if (data.filedNameOfTheObject == null) {
 			return;
 		}
