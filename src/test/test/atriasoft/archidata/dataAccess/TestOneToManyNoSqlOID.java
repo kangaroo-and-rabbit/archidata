@@ -12,7 +12,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ import test.atriasoft.archidata.dataAccess.model.TypeOneToManyNoSqlOIDRootExpand
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@DisabledIfEnvironmentVariable(named = "EXCLUDE_MONGO_SPECIFIC", matches = "true")
+@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 public class TestOneToManyNoSqlOID {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestOneToManyNoSqlOID.class);
 

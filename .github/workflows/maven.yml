@@ -49,11 +49,11 @@ jobs:
       - name: spot-bug
         run: mvn spotbugs:check
       - name: Test SQLite
-        run: mvn test
+        run: INCLUDE_MY_SQL_SPECIFIC=true mvn test
       - name: Test my-SQL
-        run: DB_HOST="127.0.0.1" TEST_E2E_MODE="MY-SQL" mvn test
+        run: INCLUDE_MY_SQL_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MY-SQL" mvn test
       - name: Test MONGO
-        run: EXCLUDE_MY_SQL_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MONGO" mvn test
+        run: INCLUDE_MONGO_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MONGO" mvn test
       - name: find the element
         run: find . -name "dependency-graph.json"
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
