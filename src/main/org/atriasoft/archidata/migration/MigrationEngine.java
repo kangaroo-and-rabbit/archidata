@@ -133,7 +133,7 @@ public class MigrationEngine {
 	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
 		if (ConfigBaseVariable.getDBAbleToCreate()) {
 			final DbConfig config = configInput.clone();
-			if (!"MONGO".equalsIgnoreCase(config.getType())) {
+			if (!"MONGO".equalsIgnoreCase(config.getType()) && !"MONGO_TEST".equalsIgnoreCase(config.getType())) {
 				config.setDbName(null);
 			}
 			final String dbName = configInput.getDbName();

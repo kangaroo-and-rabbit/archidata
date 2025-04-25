@@ -216,6 +216,13 @@
 			<artifactId>maven-checkstyle-plugin</artifactId>
 			<version>3.6.0</version>
 		</dependency>
+		<!-- MongoDB embedded -->
+		<dependency>
+			<groupId>de.flapdoodle.embed</groupId>
+			<artifactId>de.flapdoodle.embed.mongo</artifactId>
+			<version>4.20.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<sourceDirectory>src/main</sourceDirectory>

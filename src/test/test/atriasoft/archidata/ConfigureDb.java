@@ -11,6 +11,10 @@ import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.flapdoodle.embed.mongo.distribution.Version;
+import de.flapdoodle.embed.mongo.transitions.Mongod;
+import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess;
+import de.flapdoodle.reverse.TransitionWalker.ReachedState;
 import jakarta.ws.rs.InternalServerErrorException;
 import test.atriasoft.archidata.dataAccess.model.SerializeAsJson;
 import test.atriasoft.archidata.dataAccess.model.SerializeListAsJson;
@@ -39,6 +43,24 @@ public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
 	final static private String modeTestForced = null;// "MONGO";
 	public static DBAccess da = null;
+
+	private static ReachedState<RunningMongodProcess> mongod;
+
+	public static void startMongoInLocalMemory() {
+		stoptMongoInLocalMemory();
+		mongod = Mongod.instance()//
+				//.withConfig()//MongodConfig.builder().version(Version.Main.V5_0).build())//
+				.start(Version.Main.V5_0);
+		final int port = mongod.current().getServerAddress().getPort();
+		ConfigBaseVariable.dbPort = Integer.toString(port);
+		LOGGER.info("open with port: {}", port);
+	}
+
+	public static void stoptMongoInLocalMemory() {
+		if (mongod != null) {
+			mongod.close();
+		}
+	}
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
 		String modeTest = System.getenv("TEST_E2E_MODE");
@@ -92,6 +114,10 @@ public class ConfigureDb {
 		} else if ("MONGO".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "mongo";
 			ConfigBaseVariable.bdDatabase = "test_db";
+		} else if ("MONGO_TEST".equalsIgnoreCase(modeTest)) {
+			ConfigBaseVariable.dbType = "mongo";
+			ConfigBaseVariable.bdDatabase = "test_db";
+			startMongoInLocalMemory();
 		} else {
 			// User local modification ...
 			ConfigBaseVariable.bdDatabase = "test_db";
@@ -122,7 +148,7 @@ public class ConfigureDb {
 			LOGGER.error("Fail to clean the DB");
 			return;
 		}
-		if (!"MONGO".equalsIgnoreCase(modeTest)) {
+		if (!"MONGO".equalsIgnoreCase(modeTest) && !"MONGO_TEST".equalsIgnoreCase(modeTest)) {
 			config.setDbName(null);
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
@@ -134,6 +160,8 @@ public class ConfigureDb {
 			} else if ("MY-SQL".equalsIgnoreCase(modeTest)) {
 				daRoot.deleteDB(ConfigBaseVariable.bdDatabase);
 			} else if ("MONGO".equalsIgnoreCase(modeTest)) {
+				daRoot.deleteDB(ConfigBaseVariable.bdDatabase);
+			} else if ("MONGO_TEST".equalsIgnoreCase(modeTest)) {
 				daRoot.deleteDB(ConfigBaseVariable.bdDatabase);
 			}
 			daRoot.createDB(ConfigBaseVariable.bdDatabase);
