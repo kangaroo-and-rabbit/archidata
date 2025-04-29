@@ -380,18 +380,16 @@ public class RESTApiRequest {
 	}
 
 	/**
-	 * Performs a raw GET request and returns the raw HttpResponse as bytes.
+	 * Performs a fetch request and returns the raw HttpResponse as bytes.
 	 *
-	 * @param urlOffset The URL path relative to the base URL.
 	 * @return Raw HTTP response in byte array.
 	 * @throws IOException          If the request fails.
 	 * @throws InterruptedException If the request is interrupted.
+	 * @throws RESTErrorResponseException If an error occur in the server
 	 */
-	protected HttpResponse<byte[]> getRaw(final String urlOffset) throws IOException, InterruptedException {
-		final Builder requestBuilding = createRequestBuilder(urlOffset);
-		final HttpRequest request = requestBuilding.method("GET", BodyPublishers.ofString("")).build();
+	public HttpResponse<byte[]> fetchByte() throws IOException, InterruptedException, RESTErrorResponseException {
+		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
-		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
 		return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
 	}
 
