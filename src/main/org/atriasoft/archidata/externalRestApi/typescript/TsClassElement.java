@@ -646,6 +646,9 @@ public class TsClassElement {
 		} else if (model.valueModel instanceof final ClassObjectModel fieldObjectModel) {
 			final String tmp = generateTsObject(fieldObjectModel, tsGroup);
 			out.append(tmp);
+		} else if (model.valueModel instanceof final ClassEnumModel fieldEnumModel) {
+			final String tmp = generateTsEnum(fieldEnumModel, tsGroup);
+			out.append(tmp);
 		}
 		out.append(")");
 		return out.toString();
