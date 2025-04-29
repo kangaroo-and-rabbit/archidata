@@ -45,8 +45,14 @@ public class RESTApi {
 		return request("");
 	}
 
-	public RESTApiRequest request(final String urlOffset) {
-		return new RESTApiRequest(this.baseUrl + urlOffset, this.token);
+	public RESTApiRequest request(final String... urlOffset) {
+		final StringBuilder url = new StringBuilder();
+		url.append(this.baseUrl.replaceAll("/*$", ""));
+		for (final String elem : urlOffset) {
+			url.append("/");
+			url.append(elem.replaceAll("/*$", ""));
+		}
+		return new RESTApiRequest(url.toString(), this.token);
 	}
 
 	public <TYPE_RESPONSE> List<TYPE_RESPONSE> gets(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
