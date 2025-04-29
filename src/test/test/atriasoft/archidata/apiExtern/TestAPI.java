@@ -66,7 +66,7 @@ public class TestAPI {
 
 		TestAPI.idTest = inserted.id;
 		final SimpleArchiveTable retrieve = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest)).get()
-				.bodyJson(data).fetch(SimpleArchiveTable.class);
+				.fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertEquals(TestAPI.idTest, retrieve.id);
 		Assertions.assertNotNull(retrieve.name);

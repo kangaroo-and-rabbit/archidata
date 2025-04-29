@@ -71,7 +71,7 @@ public class TestValidator {
 		data.subElement.data = "k";
 		final RESTErrorResponseException exception = Assertions.assertThrows(RESTErrorResponseException.class,
 				() -> api.request(TestValidator.ENDPOINT_NAME).post().queryParam("queryParametersName", "2")
-						.bodyJson(data).generateRequest());
+						.bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
 		Assertions.assertNull(exception.getMessage());
