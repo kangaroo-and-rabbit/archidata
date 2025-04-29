@@ -280,6 +280,16 @@ public class RESTApiRequest {
 	}
 
 	/**
+	 * Sets the HTTP verb to VALL.
+	 *
+	 * @return The updated RESTApiRequest instance.
+	 */
+	public RESTApiRequest call() {
+		verb("CALL");
+		return this;
+	}
+
+	/**
 	 * Sends the request and parses the response into a List of objects.
 	 *
 	 * @param clazz The class of each element in the expected response.
@@ -290,7 +300,7 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_RESPONSE> List<TYPE_RESPONSE> fetchList(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = fetch();
+		final HttpRequest request = generateRequest();
 		return callAndParseRequestList(clazz, request);
 	}
 
@@ -305,8 +315,19 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_RESPONSE> TYPE_RESPONSE fetch(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = fetch();
+		final HttpRequest request = generateRequest();
 		return callAndParseRequest(clazz, request);
+	}
+
+	/**
+	 * Sends the request and check errors.
+	 *
+	 * @throws RESTErrorResponseException If an error response is received.
+	 * @throws IOException                If the request fails.
+	 * @throws InterruptedException       If the request is interrupted.
+	 */
+	public void fetch() throws RESTErrorResponseException, IOException, InterruptedException {
+		fetch(void.class);
 	}
 
 	/**
@@ -333,7 +354,7 @@ public class RESTApiRequest {
 	 * @throws IOException                If body serialization fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	public HttpRequest fetch() throws RESTErrorResponseException, IOException, InterruptedException {
+	public HttpRequest generateRequest() throws RESTErrorResponseException, IOException, InterruptedException {
 		Builder requestBuilding = null;
 		final String queryParams = buildQueryParams(this.queryParam);
 		if (queryParams == null || queryParams.isEmpty()) {
