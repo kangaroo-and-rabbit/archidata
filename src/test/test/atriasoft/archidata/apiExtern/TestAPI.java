@@ -57,15 +57,16 @@ public class TestAPI {
 		final SimpleArchiveTable data = new SimpleArchiveTable();
 		data.name = "Test name";
 
-		final SimpleArchiveTable inserted = api.post(SimpleArchiveTable.class, TestAPI.ENDPOINT_NAME, data);
+		final SimpleArchiveTable inserted = api.request(TestAPI.ENDPOINT_NAME).post().bodyJson(data)
+				.fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(inserted);
 		Assertions.assertNotNull(inserted.id);
 		Assertions.assertNotNull(inserted.name);
 		Assertions.assertEquals(data.name, inserted.name);
 
 		TestAPI.idTest = inserted.id;
-		final SimpleArchiveTable retrieve = api.get(SimpleArchiveTable.class,
-				TestAPI.ENDPOINT_NAME + "/" + TestAPI.idTest);
+		final SimpleArchiveTable retrieve = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest)).get()
+				.bodyJson(data).fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertEquals(TestAPI.idTest, retrieve.id);
 		Assertions.assertNotNull(retrieve.name);
@@ -75,8 +76,8 @@ public class TestAPI {
 	@Order(2)
 	@Test
 	public void archiveValue() throws Exception {
-		final SimpleArchiveTable archivedData = api.archive(SimpleArchiveTable.class,
-				TestAPI.ENDPOINT_NAME + "/" + TestAPI.idTest);
+		final SimpleArchiveTable archivedData = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest))
+				.archive().fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(archivedData);
 		Assertions.assertEquals(TestAPI.idTest, archivedData.id);
 		Assertions.assertNotNull(archivedData.name);
@@ -86,8 +87,8 @@ public class TestAPI {
 	@Order(2)
 	@Test
 	public void restoreValue() throws Exception {
-		final SimpleArchiveTable archivedData = api.restore(SimpleArchiveTable.class,
-				TestAPI.ENDPOINT_NAME + "/" + TestAPI.idTest);
+		final SimpleArchiveTable archivedData = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest))
+				.restore().fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(archivedData);
 		Assertions.assertEquals(TestAPI.idTest, archivedData.id);
 		Assertions.assertNotNull(archivedData.name);
