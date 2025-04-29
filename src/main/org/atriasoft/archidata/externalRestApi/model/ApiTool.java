@@ -10,6 +10,7 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
 import org.atriasoft.archidata.annotation.method.ARCHIVE;
+import org.atriasoft.archidata.annotation.method.CALL;
 import org.atriasoft.archidata.annotation.method.RESTORE;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 
@@ -139,6 +140,9 @@ public class ApiTool {
 		}
 		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
 			return RestTypeRequest.ARCHIVE;
+		}
+		if (element.getDeclaredAnnotationsByType(CALL.class).length == 1) {
+			return RestTypeRequest.CALL;
 		}
 		return null;
 	}
