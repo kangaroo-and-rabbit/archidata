@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.tools;
 
+import org.atriasoft.archidata.checker.ValidGroupInterceptor;
 import org.atriasoft.archidata.converter.jackson.JacksonModules;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -31,6 +32,6 @@ public class ContextGenericTools {
 		provider.setMapper(objectMapper);
 		// Record it on the Resource configuration
 		rc.register(provider);
-
+		rc.register(ValidGroupInterceptor.class);
 	}
 }
