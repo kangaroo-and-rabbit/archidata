@@ -67,7 +67,6 @@ public class DotClassElement {
 								<td>
 									<table border="0" cellborder="0" cellspacing="0" >
 				""".formatted(this.dotTypeName, this.dotTypeName));
-		final boolean first = true;
 		for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
 			out.append("\t\t\t\t\t\t<tr><td  align=\"left\"><b> + ");
 			out.append(elem.getKey());
@@ -435,7 +434,7 @@ public class DotClassElement {
 			out.append("Union&lt;");
 			for (final ClassModel model : models) {
 				out.append("\t");
-				out.append(generateLocalModelBase(models.get(0), dotGroup));
+				out.append(generateLocalModelBase(model, dotGroup));
 				out.append(",\n");
 			}
 			out.append("&gt;");

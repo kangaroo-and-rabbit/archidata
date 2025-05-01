@@ -49,59 +49,18 @@ public class DotGenerateApi {
 						]
 						edge [fontname="FreeMono,Sans-Mono,Helvetica,Arial,sans-serif"]
 					""");
-			/*
-			myWriter.write("""
-						subgraph REST_API {
-						style=filled;
-						color=lightgrey;
-						label="REST API";
-					    rankdir=LR;
-					""");
-			*/
 			for (final ApiGroupModel element : api.apiModels) {
 				final String tmp = DotApiGeneration.generateApiFile(element, dotGroup);
 				myWriter.write(tmp);
 				myWriter.write("\n");
 			}
 			// create an invisible link to force all element to be link together:
-			if (false) {
-				String previous = null;
-				for (final ApiGroupModel element : api.apiModels) {
-					if (previous == null) {
-						previous = element.name;
-						continue;
-					}
-					myWriter.write("\t{ ");
-					myWriter.write(previous);
-					myWriter.write(":s -> ");
-					previous = element.name;
-					myWriter.write(previous);
-					myWriter.write(":n [style=invis]}\n");
-				}
-			}
-			/*
-			myWriter.write("""
-						}
-					""");
-			myWriter.write("""
-						subgraph Models {
-						style=filled;
-						color=lightgrey;
-						label="Models";
-					    rankdir=NS;
-					""");
-			*/
 			// Generates all MODEL files
 			for (final DotClassElement element : localModel) {
 				final String tmp = element.generateFile(dotGroup);
 				myWriter.write(tmp);
 				myWriter.write("\n");
 			}
-			/*
-			myWriter.write("""
-						}
-					""");
-			*/
 			myWriter.write("""
 					}
 					""");

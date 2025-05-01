@@ -345,7 +345,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final LazyGetter lambda = () -> {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
-						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), childs)));
 						if (foreignData == null) {
@@ -366,7 +365,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final LazyGetter lambda = () -> {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
-						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), childs)));
 						if (foreignData == null) {
@@ -387,7 +385,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final LazyGetter lambda = () -> {
 						final List<ObjectId> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
-						@SuppressWarnings("unchecked")
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), childs)));
 						if (foreignData == null) {
@@ -525,7 +522,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			daSQL.insert(insertElement, new OverrideTableName(linkTable.tableName()),
 					new OptionSpecifyType(obj1, localKey.getClass()),
 					new OptionSpecifyType(obj2, remoteKey.getClass()));
-		} else if (ioDb instanceof final DBAccessMorphia dam) {
+		} else if (ioDb instanceof DBAccessMorphia) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -547,7 +544,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 							new QueryCondition(obj2, "=", remoteKey))),
 					new OptionSpecifyType(obj1, localKey.getClass()),
 					new OptionSpecifyType(obj2, remoteKey.getClass()));
-		} else if (ioDb instanceof final DBAccessMorphia dam) {
+		} else if (ioDb instanceof DBAccessMorphia) {
 			return 0L;
 		} else {
 			throw new DataAccessException("DataAccess Not managed");

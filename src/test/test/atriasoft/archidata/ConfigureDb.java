@@ -1,7 +1,6 @@
 package test.atriasoft.archidata;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.db.DbConfig;
@@ -12,28 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.InternalServerErrorException;
-import test.atriasoft.archidata.dataAccess.model.SerializeAsJson;
-import test.atriasoft.archidata.dataAccess.model.SerializeListAsJson;
-import test.atriasoft.archidata.dataAccess.model.SimpleTable;
-import test.atriasoft.archidata.dataAccess.model.SimpleTableSoftDelete;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyLongRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyLongRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyLongRootExpand;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRootExpand;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRootExpand;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRootExpand;
-import test.atriasoft.archidata.dataAccess.model.TypesEnum1;
-import test.atriasoft.archidata.dataAccess.model.TypesEnum2;
-import test.atriasoft.archidata.dataAccess.model.TypesTable;
 
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
@@ -51,29 +28,6 @@ public class ConfigureDb {
 		if (modeTestForced != null) {
 			modeTest = modeTestForced;
 		}
-		final List<Class<?>> listObject = List.of( //
-				SerializeAsJson.class, //
-				SerializeListAsJson.class, //
-				SimpleTable.class, //
-				SimpleTableSoftDelete.class, //
-				TypeManyToManyLongRemote.class, //
-				TypeManyToManyLongRoot.class, //
-				TypeManyToManyLongRootExpand.class, //
-				TypeManyToOneLongRemote.class, //
-				TypeManyToOneLongRoot.class, //
-				TypeManyToOneLongRootExpand.class, //
-				TypeManyToOneUUIDRemote.class, //
-				TypeManyToOneUUIDRoot.class, //
-				TypeManyToOneUUIDRootExpand.class, //
-				TypeOneToManyLongRemote.class, //
-				TypeOneToManyLongRoot.class, //
-				TypeOneToManyLongRootExpand.class, //
-				TypeOneToManyUUIDRemote.class, //
-				TypeOneToManyUUIDRoot.class, //
-				TypeOneToManyUUIDRootExpand.class, //
-				TypesEnum1.class, //
-				TypesEnum2.class, //
-				TypesTable.class);
 		if ("SQLITE-MEMORY".equalsIgnoreCase(modeTest)) {
 			ConfigBaseVariable.dbType = "sqlite";
 			ConfigBaseVariable.bdDatabase = null;

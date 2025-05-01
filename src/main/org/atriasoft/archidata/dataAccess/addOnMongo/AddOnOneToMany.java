@@ -107,7 +107,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 					new Condition(new QueryCondition(decorators.mappedBy(), "=", primaryKey)));
 			// extract the primary key of the remote objects
 			final Field remotePrimaryField = AnnotationTools.getPrimaryKeyField(decorators.targetEntity());
-			final String remotePrimaryKeyName = AnnotationTools.getFieldNameRaw(remotePrimaryField);
 			final List<Object> listOfRemoteKeys = new ArrayList<>();
 			for (final var item : returnValue) {
 				listOfRemoteKeys.add(remotePrimaryField.get(item));

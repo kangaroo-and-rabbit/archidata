@@ -411,6 +411,7 @@ public class RESTApi {
 	 * @param urlOffset Offset to call the API
 	 * @return The parsed object received.
 	 */
+	@SuppressWarnings("unchecked")
 	public <TYPE_RESPONSE> TYPE_RESPONSE simpleRequest(
 			final String model,
 			final Class<TYPE_RESPONSE> clazz,

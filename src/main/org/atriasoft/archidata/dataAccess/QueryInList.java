@@ -22,7 +22,7 @@ public class QueryInList<T> implements QueryItem {
 		this(key, "IN", value);
 	}
 
-	public QueryInList(final String key, final T... value) {
+	public QueryInList(final String key, @SuppressWarnings("unchecked") final T... value) {
 		this(key, "IN", List.of(value));
 	}
 

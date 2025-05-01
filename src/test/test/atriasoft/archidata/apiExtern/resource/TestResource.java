@@ -84,14 +84,14 @@ public class TestResource {
 	@POST
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
-	public SimpleArchiveTable post(final SimpleArchiveTable data) throws Exception {
+	public SimpleArchiveTable post(final SimpleArchiveTable dataInput) throws Exception {
 		LOGGER.info("post(...)");
-		data.id = TestResource.uniqueId;
+		dataInput.id = TestResource.uniqueId;
 		TestResource.uniqueId += 5;
-		data.updatedAt = new Date();
-		data.createdAt = new Date();
-		this.data.add(data);
-		return data;
+		dataInput.updatedAt = new Date();
+		dataInput.createdAt = new Date();
+		data.add(dataInput);
+		return dataInput;
 	}
 
 	@PATCH

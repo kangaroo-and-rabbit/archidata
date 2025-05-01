@@ -92,7 +92,6 @@ public class DBAccessSQL extends DBAccess {
 
 	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		final QueryOptions options = new QueryOptions(option);
 		if ("sqlite".equals(ConfigBaseVariable.getDBType())) {
 			// no base manage in sqLite ...
 			// TODO: check if the file exist or not ...
@@ -150,7 +149,6 @@ public class DBAccessSQL extends DBAccess {
 
 	@Override
 	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		final QueryOptions options = new QueryOptions(option);
 		try {
 			String request = "";
 			if ("sqlite".equals(ConfigBaseVariable.getDBType())) {

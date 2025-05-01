@@ -348,8 +348,6 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field, options).inTable();
 		final String linkTableName = generateLinkTableName(tableName, columnName);
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
 		ioDb.drop(LinkTableGeneric.class, new OverrideTableName(linkTableName),
 				new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
 	}
@@ -386,7 +384,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final LinkTableGeneric insertElement = new LinkTableGeneric(localKey, remoteKey);
 			daSQL.insert(insertElement, new OverrideTableName(linkTableName),
 					new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
-		} else if (ioDb instanceof final DBAccessMorphia dam) {
+		} else if (ioDb instanceof DBAccessMorphia) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -407,7 +405,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
 							new QueryCondition("object2Id", "=", remoteKey))),
 					new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
-		} else if (ioDb instanceof final DBAccessMorphia dam) {
+		} else if (ioDb instanceof DBAccessMorphia) {
 			return 0L;
 		} else {
 			throw new DataAccessException("DataAccess Not managed");

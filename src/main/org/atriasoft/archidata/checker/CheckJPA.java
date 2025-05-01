@@ -89,7 +89,6 @@ public class CheckJPA<T> implements CheckFunctionInterface {
 		try {
 			this.checking = new HashMap<>();
 			// create Table:
-			final List<String> primaryKeys = new ArrayList<>();
 			for (final Field field : this.clazz.getFields()) {
 				final String fieldName = field.getName(); // AnnotationTools.getFieldName(field);
 				if (AnnotationTools.isPrimaryKey(field)) {

@@ -1,7 +1,7 @@
 package org.atriasoft.archidata.tools;
 
-import org.atriasoft.archidata.checker.ValidGroupInterceptor;
 import org.atriasoft.archidata.converter.jackson.JacksonModules;
+import org.atriasoft.archidata.interceptor.ValidGroupInterceptor;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
 

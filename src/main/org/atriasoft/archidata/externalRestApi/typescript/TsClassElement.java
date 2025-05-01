@@ -717,7 +717,7 @@ public class TsClassElement {
 			out.append("z.union([\n");
 			for (final ClassModel model : models) {
 				out.append("\t");
-				out.append(generateLocalModelBase(models.get(0), tsGroup));
+				out.append(generateLocalModelBase(model, tsGroup));
 				out.append(",\n");
 			}
 			out.append("]);");

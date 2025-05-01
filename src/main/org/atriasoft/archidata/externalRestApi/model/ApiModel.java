@@ -58,7 +58,7 @@ public class ApiModel {
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
 		final Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
-		LOGGER.info("Get return Type async = {}", returnTypeModel);
+		//LOGGER.info("Get return Type async = {}", returnTypeModel);
 		if (returnTypeModel != null) {
 			if (returnTypeModel.length == 0) {
 				throw new IOException("Create a @AsyncType with empty elements ...");

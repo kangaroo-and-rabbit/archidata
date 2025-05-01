@@ -53,6 +53,9 @@ Checkstyle configuration that checks the sun coding conventions.
     <module name="LambdaParameterName"/>
     <module name="Regexp"/>
     <module name="RegexpSinglelineJava"/>
+    <module name="UnusedPrivateField">
+        <property name="ignorePattern" value="LOGGER"/>
+    </module>
   </module>
   <module name="BeforeExecutionExclusionFileFilter">
     <property name="fileNamePattern" value="module\-info\.java$"/>

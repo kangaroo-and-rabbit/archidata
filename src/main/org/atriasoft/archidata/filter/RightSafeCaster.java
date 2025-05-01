@@ -4,7 +4,6 @@ import java.util.Map;
 
 public class RightSafeCaster {
 
-	@SuppressWarnings("unchecked")
 	public static Map<String, Map<String, PartRight>> safeCastAndTransform(final Object obj) {
 		if (!(obj instanceof Map)) {
 			throw new IllegalArgumentException("L'objet n'est pas un Map");

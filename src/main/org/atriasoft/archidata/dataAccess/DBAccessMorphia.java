@@ -601,10 +601,6 @@ public class DBAccessMorphia extends DBAccess {
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
-			final FieldName name = AnnotationTools.getFieldName(field, options);
-			//			if (!filter.getValues().contains(name.inStruct())) {
-			//				continue;
-			//			}
 			if (AnnotationTools.isGenericField(field)) {
 				continue;
 			}

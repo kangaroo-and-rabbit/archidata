@@ -471,7 +471,6 @@ public class RESTApiRequest {
 	 * @throws IOException                If the response cannot be parsed or network fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	@SuppressWarnings("unchecked")
 	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(
 			final Class<TYPE_RESPONSE> clazzReturn,
 			final HttpRequest request) throws IOException, InterruptedException, RESTErrorResponseException {

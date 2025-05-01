@@ -189,12 +189,10 @@ public class DataTools {
 	public static String saveFile(final InputStream uploadedInputStream, final String serverLocation) {
 		String out = "";
 		try {
-			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			int read = 0;
 			final byte[] bytes = new byte[CHUNK_SIZE_IN];
 			final MessageDigest md = MessageDigest.getInstance("SHA-512");
-
-			outpuStream = new FileOutputStream(new File(serverLocation));
+			final OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			while ((read = uploadedInputStream.read(bytes)) != -1) {
 				// logger.debug("write {}", read);
 				md.update(bytes, 0, read);

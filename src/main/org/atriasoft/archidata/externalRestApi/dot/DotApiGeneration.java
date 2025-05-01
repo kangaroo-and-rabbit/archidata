@@ -121,7 +121,6 @@ public class DotApiGeneration {
 			return null;
 		}
 		final List<String> out = new ArrayList<>();
-		final boolean isFirst = true;
 		for (final ClassModel model : models) {
 			final String data = DotClassElement.generateClassModelTypescriptLink(model, dotGroup);
 			if (data != null) {
@@ -153,15 +152,15 @@ public class DotApiGeneration {
 							<td>
 								<table border="0" cellborder="0" cellspacing="0" >
 				""".formatted(element.name, element.name));
-		final Set<ClassModel> imports = new HashSet<>();
-		final Set<ClassModel> zodImports = new HashSet<>();
-		final Set<ClassModel> isImports = new HashSet<>();
+		//final Set<ClassModel> imports = new HashSet<>();
+		//final Set<ClassModel> zodImports = new HashSet<>();
+		//final Set<ClassModel> isImports = new HashSet<>();
 		final Set<ClassModel> writeImports = new HashSet<>();
-		final Set<String> toolImports = new HashSet<>();
+		//final Set<String> toolImports = new HashSet<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
-			final List<String> consumes = interfaceElement.consumes;
-			final List<String> produces = interfaceElement.produces;
-			final boolean needGenerateProgress = interfaceElement.needGenerateProgress;
+			//final List<String> consumes = interfaceElement.consumes;
+			//final List<String> produces = interfaceElement.produces;
+			//final boolean needGenerateProgress = interfaceElement.needGenerateProgress;
 			/*
 			if (returnComplexModel != null) {
 				data.append(returnComplexModel.replaceAll("(?m)^", "\t"));

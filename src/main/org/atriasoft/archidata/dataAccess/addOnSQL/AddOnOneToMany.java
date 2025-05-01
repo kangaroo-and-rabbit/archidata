@@ -303,7 +303,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 					} else if (parentId != null) {
 						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 						final LazyGetter lambda = () -> {
-							@SuppressWarnings("unchecked")
 							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 									new Condition(new QueryCondition(mappingKey, "=", parentId)));
 							if (foreignData == null) {
@@ -314,7 +313,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 						lazyCall.add(lambda);
 					} else if (parendUuid != null) {
 						final LazyGetter lambda = () -> {
-							@SuppressWarnings("unchecked")
 							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 									new Condition(new QueryCondition(mappingKey, "=", parendUuid)));
 							if (foreignData == null) {
@@ -325,7 +323,6 @@ public class AddOnOneToMany implements DataAccessAddOn {
 						lazyCall.add(lambda);
 					} else if (parendOid != null) {
 						final LazyGetter lambda = () -> {
-							@SuppressWarnings("unchecked")
 							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 									new Condition(new QueryCondition(mappingKey, "=", parendOid)));
 							if (foreignData == null) {
