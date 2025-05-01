@@ -39,12 +39,21 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
+/** Generic Template clas that permet to manage a check of the data
+ *
+ * Note: Deprecated
+ *
+ * @param <T> Type of the object
+ */
 public class CheckJPA<T> implements CheckFunctionInterface {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CheckJPA.class);
 	private final Class<?> clazz;
 
-	/** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
+	/**
+	 * By default some element are not read like createAt and UpdatedAt. This option permit to read it.
+	 * @param <K> Type of the object
+	 */
 	public interface CheckInterface<K> {
 		/** This function implementation is design to check if the updated class is valid of not for insertion
 		 * @param ioDb Access on the Data-Base
