@@ -1,6 +1,4 @@
 package org.atriasoft.archidata.dataAccess.options;
 
 /** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
-public class ReadAllColumn extends QueryOption {
-	public ReadAllColumn() {}
-}
+public class ReadAllColumn extends QueryOption {}

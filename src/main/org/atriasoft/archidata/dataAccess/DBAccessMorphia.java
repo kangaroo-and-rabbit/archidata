@@ -27,6 +27,7 @@ import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.CheckFunction;
 import org.atriasoft.archidata.dataAccess.options.Condition;
+import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
@@ -447,6 +448,7 @@ public class DBAccessMorphia extends DBAccess {
 	public <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
+		final boolean directdata = options.exist(DirectData.class);
 
 		// External checker of data:
 		final List<CheckFunction> checks = options.get(CheckFunction.class);
@@ -473,34 +475,43 @@ public class DBAccessMorphia extends DBAccess {
 				final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
-					primaryKeyField = field;
-					if (primaryKeyField.getType() == ObjectId.class) {
-						uniqueId = new ObjectId();
-						docSet.append(tableFieldName.inTable(), uniqueId);
+					if (!directdata) {
+						primaryKeyField = field;
+						if (primaryKeyField.getType() == ObjectId.class) {
+							uniqueId = new ObjectId();
+							docSet.append(tableFieldName.inTable(), uniqueId);
+							continue;
+						} else if (primaryKeyField.getType() == UUID.class) {
+							final UUID uuid = UuidUtils.nextUUID();
+							uniqueId = uuid;
+							docSet.append(tableFieldName.inTable(), uuid);
+							continue;
+						} else if (primaryKeyField.getType() == Long.class || primaryKeyField.getType() == long.class) {
+							// By default the MongoDB does not manage the
+							final long id = getNextSequenceLongValue(collectionName, tableFieldName.inTable());
+							uniqueId = id;
+							docSet.append(tableFieldName.inTable(), id);
+							continue;
+						}
+						LOGGER.error("TODO: Manage the ID primary key for type: {}=>{}", clazz.getCanonicalName(),
+								primaryKeyField.getType());
 						continue;
-					} else if (primaryKeyField.getType() == UUID.class) {
-						final UUID uuid = UuidUtils.nextUUID();
-						uniqueId = uuid;
-						docSet.append(tableFieldName.inTable(), uuid);
-						continue;
-					} else if (primaryKeyField.getType() == Long.class || primaryKeyField.getType() == long.class) {
-						// By default the MongoDB does not manage the
-						final long id = getNextSequenceLongValue(collectionName, tableFieldName.inTable());
-						uniqueId = id;
-						docSet.append(tableFieldName.inTable(), id);
-						continue;
+					} else {
+						// Do nothing...
+						final Object primaryKeyValue = field.get(data);
+						if (primaryKeyValue == null) {
+							throw new DataAccessException(
+									"Fail to Insert data in DB.. when use 'DirectData.class' you need to provide an ID...");
+						}
 					}
-					LOGGER.error("TODO: Manage the ID primary key for type: {}=>{}", clazz.getCanonicalName(),
-							primaryKeyField.getType());
-					continue;
 				}
 				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
-				if (createTime) {
+				if (!directdata && createTime) {
 					docSet.append(tableFieldName.inTable(), Date.from(Instant.now()));
 					continue;
 				}
 				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-				if (updateTime) {
+				if (!directdata && updateTime) {
 					docSet.append(tableFieldName.inTable(), Date.from(Instant.now()));
 					continue;
 				}
@@ -545,14 +556,14 @@ public class DBAccessMorphia extends DBAccess {
 			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
-			LOGGER.info("Document inserted with ID: " + insertedId);
+			LOGGER.debug("Document inserted with ID: " + insertedId);
 			// Rechercher et récupérer le document inséré à partir de son ObjectId
 			final Document insertedDocument = collection.find(new Document("_id", insertedId)).first();
 			// Afficher le document récupéré
 			LOGGER.trace("Inserted document: " + insertedDocument);
 
 		} catch (final Exception ex) {
-			LOGGER.error("Fail SQL request: {}", ex.getMessage());
+			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
 			ex.printStackTrace();
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
 		}
@@ -579,6 +590,7 @@ public class DBAccessMorphia extends DBAccess {
 		if (options == null) {
 			options = new QueryOptions();
 		}
+		final boolean directdata = options.exist(DirectData.class);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final List<FilterValue> filterKeys = options != null ? options.get(FilterValue.class) : new ArrayList<>();
 		if (filterKeys.size() != 1) {
@@ -633,8 +645,12 @@ public class DBAccessMorphia extends DBAccess {
 				final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 				// update field is not conditioned by filter:
 				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-				if (updateTime) {
+				if (!directdata && updateTime) {
 					docSet.append(fieldName.inTable(), Date.from(Instant.now()));
+					continue;
+				}
+				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+				if (!directdata && createTime) {
 					continue;
 				}
 				if (!filterKey.getValues().contains(fieldName.inStruct())) {
@@ -680,7 +696,7 @@ public class DBAccessMorphia extends DBAccess {
 			if (!docUnSet.isEmpty()) {
 				actions.append("$unset", docUnSet);
 			}
-			LOGGER.info("updateWhere with value: {}", actions.toJson());
+			LOGGER.debug("updateWhere with value: {}", actions.toJson());
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			for (final LazyGetter action : asyncActions) {
 				action.doRequest();
@@ -756,7 +772,7 @@ public class DBAccessMorphia extends DBAccess {
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			FindIterable<Document> retFind = null;
 			if (filters != null) {
-				//LOGGER.info("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
+				//LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
 				retFind = collection.find(filters);
 			} else {
 				retFind = collection.find();
@@ -787,16 +803,16 @@ public class DBAccessMorphia extends DBAccess {
 			listFields.add("_id");
 			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
-			LOGGER.info("GetsWhere ...");
+			LOGGER.trace("GetsWhere ...");
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					LOGGER.info("    - getWhere value: {}", doc.toJson());
+					LOGGER.trace("    - getWhere value: {}", doc.toJson());
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
 				}
-				LOGGER.info("Async calls: {}", lazyCall.size());
+				LOGGER.trace("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {
 					elem.doRequest();
 				}
@@ -814,7 +830,7 @@ public class DBAccessMorphia extends DBAccess {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
-		LOGGER.info("createObjectFromDocument: {}", clazz.getCanonicalName());
+		LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
 		final boolean readAllfields = QueryOptions.readAllColomn(options);
 		// TODO: manage class that is defined inside a class ==> Not manage for now...
 		Object data = null;
@@ -829,20 +845,20 @@ public class DBAccessMorphia extends DBAccess {
 					"Can not find the default constructor for the class: " + clazz.getCanonicalName());
 		}
 		for (final Field elem : clazz.getFields()) {
-			LOGGER.info("    Inspect field: name='{}' type='{}'", elem.getName(), elem.getType().getCanonicalName());
+			LOGGER.trace("    Inspect field: name='{}' type='{}'", elem.getName(), elem.getType().getCanonicalName());
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-				LOGGER.info("        ==> static");
+				LOGGER.trace("        ==> static");
 				continue;
 			}
 			final DataAccessAddOn addOn = findAddOnforField(elem);
 			if (addOn != null && !addOn.canRetrieve(elem)) {
-				LOGGER.info("        ==> Can not retreive this field");
+				LOGGER.trace("        ==> Can not retreive this field");
 				continue;
 			}
 			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
 			if (!readAllfields && notRead) {
-				LOGGER.info("        ==> Not read this element");
+				LOGGER.trace("        ==> Not read this element");
 				continue;
 			}
 			if (addOn != null) {
@@ -853,7 +869,7 @@ public class DBAccessMorphia extends DBAccess {
 					for (final OptionSpecifyType specify : specificTypes) {
 						if (specify.name.equals(elem.getName())) {
 							type = specify.clazz;
-							LOGGER.info("Detect overwrite of typing var={} ... '{}' => '{}'", elem.getName(),
+							LOGGER.debug("Detect overwrite of typing var={} ... '{}' => '{}'", elem.getName(),
 									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
 							break;
 						}
@@ -985,7 +1001,7 @@ public class DBAccessMorphia extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
-		LOGGER.info("update some values: {}", actions.toJson());
+		LOGGER.debug("update some values: {}", actions.toJson());
 
 		actionOnDelete(clazz, option);
 
@@ -1018,7 +1034,7 @@ public class DBAccessMorphia extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
-		LOGGER.info("update some values: {}", actions.toJson());
+		LOGGER.debug("update some values: {}", actions.toJson());
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
