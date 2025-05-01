@@ -264,6 +264,10 @@ public class TsClassElement {
 		if (field.notNull()) {
 			return false;
 		}
+		// model is a Map or a List:
+		if (field.model() instanceof ClassMapModel || field.model() instanceof ClassListModel) {
+			return true;
+		}
 		// Other object:
 		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
 			return false;
