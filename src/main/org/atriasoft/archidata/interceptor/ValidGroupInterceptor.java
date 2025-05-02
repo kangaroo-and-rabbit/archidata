@@ -48,6 +48,9 @@ public class ValidGroupInterceptor implements ReaderInterceptor {
 	@Override
 	public Object aroundReadFrom(final ReaderInterceptorContext context) throws IOException, WebApplicationException {
 		final Object entity = context.proceed();
+		if (entity == null) {
+			return entity;
+		}
 		final ValidGroup validGroup = extractValidationGroups(context);
 		if (validGroup == null) {
 			return entity;
