@@ -110,7 +110,20 @@ public class DbConfig {
 			return "jdbc:sqlite:" + this.hostname + ".db";
 		}
 		if ("mongo".equals(this.type)) {
-			return "mongodb://" + getLogin() + ":" + getPassword() + "@" + this.hostname + ":" + this.port;
+			final String tmpPassword = getPassword().replace("@", "%40");
+			final StringBuilder tmp = new StringBuilder("mongodb://");
+			tmp.append(getLogin());
+			tmp.append(":");
+			tmp.append(tmpPassword);
+			tmp.append("@");
+			tmp.append(this.hostname);
+			tmp.append(":");
+			tmp.append(this.port);
+			if (!"root".equals(getLogin())) {
+				tmp.append("/");
+				tmp.append(this.dbName);
+			}
+			return tmp.toString();
 		}
 		if ("mysql".equals(this.type)) {
 			if (this.dbName == null || this.dbName.isEmpty()) {
