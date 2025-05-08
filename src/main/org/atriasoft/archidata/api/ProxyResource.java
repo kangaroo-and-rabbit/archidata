@@ -15,7 +15,6 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
 @Path("/proxy")
-//@Produces(MediaType.APPLICATION_JSON)
 public class ProxyResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyResource.class);
 

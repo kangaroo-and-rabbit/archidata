@@ -1,15 +1,12 @@
 package org.atriasoft.archidata.externalRestApi.typescript;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
@@ -47,7 +44,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		imports.add(model);
 		final TsClassElement tsModel = tsGroup.find(model);
 		return tsModel.tsTypeName;
@@ -59,7 +56,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		final TsClassElement tsModel = tsGroup.find(model);
 		if (tsModel.nativeType != DefinedPosition.NATIVE) {
 			if (importCreate != null && tsModel.models.get(0).getApiGenerationMode().create()) {
@@ -90,7 +87,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		final StringBuilder out = new StringBuilder();
 		out.append("{[key: ");
 		out.append(generateClassModelTypescript(model.keyModel, tsGroup, imports, importUpdate, importCreate,
@@ -108,7 +105,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		final StringBuilder out = new StringBuilder();
 		out.append(generateClassModelTypescript(model.valueModel, tsGroup, imports, importUpdate, importCreate,
 				partialObject));
@@ -122,7 +119,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		if (model instanceof final ClassObjectModel objectModel) {
 			return generateClassObjectModelTypescript(objectModel, tsGroup, imports, importUpdate, importCreate,
 					partialObject);
@@ -139,7 +136,7 @@ public class TsApiGeneration {
 			return generateClassEnumModelTypescript(enumModel, tsGroup, imports, importUpdate, importCreate,
 					partialObject);
 		}
-		throw new IOException("Impossible model:" + model);
+		throw new RuntimeException("Impossible model:" + model);
 	}
 
 	public static String generateClassModelsTypescript(
@@ -148,7 +145,7 @@ public class TsApiGeneration {
 			final Set<ClassModel> imports,
 			final Set<ClassModel> importUpdate,
 			final Set<ClassModel> importCreate,
-			final boolean partialObject) throws IOException {
+			final boolean partialObject) {
 		if (models.size() == 0) {
 			return "void";
 		}
@@ -176,8 +173,8 @@ public class TsApiGeneration {
 
 	public static void generateApiFile(
 			final ApiGroupModel element,
-			final String pathPackage,
-			final TsClassElementGroup tsGroup) throws IOException {
+			final TsClassElementGroup tsGroup,
+			final Map<Path, String> generation) {
 		final StringBuilder data = new StringBuilder();
 
 		data.append("export namespace ");
@@ -450,10 +447,8 @@ public class TsApiGeneration {
 			data.append("\n\t};");
 		}
 		data.append("\n}\n");
-
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
-
 		final List<String> toolImportsList = new ArrayList<>(toolImports);
 		Collections.sort(toolImportsList);
 		if (toolImportsList.size() != 0) {
@@ -465,13 +460,10 @@ public class TsApiGeneration {
 			}
 			out.append("\n} from \"../rest-tools\";\n\n");
 		}
-
 		if (zodImports.size() != 0) {
 			out.append("import { z as zod } from \"zod\"\n");
 		}
-
 		final Set<String> finalImportSet = new TreeSet<>();
-
 		for (final ClassModel model : imports) {
 			final TsClassElement tsModel = tsGroup.find(model);
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
@@ -518,7 +510,6 @@ public class TsApiGeneration {
 			}
 			finalImportSet.add(tsModel.tsTypeName + TsClassElement.MODEL_TYPE_CREATE);
 		}
-
 		if (finalImportSet.size() != 0) {
 			out.append("import {");
 			for (final String elem : finalImportSet) {
@@ -528,18 +519,9 @@ public class TsApiGeneration {
 			}
 			out.append("\n} from \"../model\";\n\n");
 		}
-
 		out.append(data.toString());
-
-		final Path path = Paths.get(pathPackage + File.separator + "api");
-		if (Files.notExists(path)) {
-			Files.createDirectories(path);
-		}
 		final String fileName = TsClassElement.determineFileName(element.name);
-		final FileWriter myWriter = new FileWriter(
-				pathPackage + File.separator + "api" + File.separator + fileName + ".ts");
-		myWriter.write(out.toString());
-		myWriter.close();
+		generation.put(Paths.get("api").resolve(fileName), out.toString());
 	}
 
 }

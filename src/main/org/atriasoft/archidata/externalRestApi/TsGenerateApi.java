@@ -6,6 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -13,6 +16,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,27 +39,46 @@ public class TsGenerateApi {
 	 * The generation depend of Zod and can be strict compile.
 	 * @param api Data model to generate the api
 	 * @param pathPackage Path to store the api.
+	 * @throws Exception
 	 */
-	public static void generateApi(final AnalyzeApi api, final String pathPackage) throws Exception {
+	public static void generateApi(final AnalyzeApi api, final Path pathPackage) throws Exception {
+		final Map<Path, String> generation = new HashMap<>();
+		generateApi(api, generation);
+		if (Files.notExists(pathPackage)) {
+			Files.createDirectories(pathPackage);
+		}
+		for (final Map.Entry<Path, String> entry : generation.entrySet()) {
+			final Path path = pathPackage.resolve(entry.getKey());
+			final Path pathParent = path.getParent();
+			if (Files.notExists(pathParent)) {
+				Files.createDirectories(pathParent);
+			}
+			final FileWriter myWriter = new FileWriter(pathPackage + File.separator + entry.getKey());
+			myWriter.write(entry.getValue());
+			myWriter.close();
+		}
+	}
+
+	public static void generateApi(final AnalyzeApi api, final Map<Path, String> generation) throws Exception {
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
 		// Generates all MODEL files
 		for (final TsClassElement element : localModel) {
-			element.generateFile(pathPackage, tsGroup);
+			element.generateFile(tsGroup, generation);
 		}
 		// Generate index of model files
-		createModelIndex(pathPackage, tsGroup);
+		createModelIndex(tsGroup, generation);
 
 		for (final ApiGroupModel element : api.apiModels) {
-			TsApiGeneration.generateApiFile(element, pathPackage, tsGroup);
+			TsApiGeneration.generateApiFile(element, tsGroup, generation);
 		}
 		// Generate index of model files
-		createResourceIndex(pathPackage, api.apiModels);
-		createIndex(pathPackage);
-		copyResourceFile("rest-tools.ts", pathPackage + File.separator + "rest-tools.ts");
+		createResourceIndex(api.apiModels, generation);
+		createIndex(generation);
+		copyResourceFile("rest-tools.ts", Paths.get("rest-tools.ts"), generation);
 	}
 
-	private static void createIndex(final String pathPackage) throws IOException {
+	private static void createIndex(final Map<Path, String> generation) {
 		final String out = """
 				/**
 				 * Interface of the server (auto-generated code)
@@ -65,13 +88,10 @@ public class TsGenerateApi {
 				export * from \"./rest-tools\";
 
 				""";
-		final FileWriter myWriter = new FileWriter(pathPackage + File.separator + "index.ts");
-		myWriter.write(out);
-		myWriter.close();
+		generation.put(Paths.get("index.ts"), out.toString());
 	}
 
-	private static void createResourceIndex(final String pathPackage, final List<ApiGroupModel> apiModels)
-			throws IOException {
+	private static void createResourceIndex(final List<ApiGroupModel> apiModels, final Map<Path, String> generation) {
 		final StringBuilder out = new StringBuilder("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -87,13 +107,10 @@ public class TsGenerateApi {
 			out.append(elem);
 			out.append("\"\n");
 		}
-		final FileWriter myWriter = new FileWriter(pathPackage + File.separator + "api" + File.separator + "index.ts");
-		myWriter.write(out.toString());
-		myWriter.close();
+		generation.put(Paths.get("api").resolve("index.ts"), out.toString());
 	}
 
-	private static void createModelIndex(final String pathPackage, final TsClassElementGroup tsGroup)
-			throws IOException {
+	private static void createModelIndex(final TsClassElementGroup tsGroup, final Map<Path, String> generation) {
 		final StringBuilder out = new StringBuilder("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -112,10 +129,7 @@ public class TsGenerateApi {
 			out.append(elem);
 			out.append("\"\n");
 		}
-		final FileWriter myWriter = new FileWriter(
-				pathPackage + File.separator + "model" + File.separator + "index.ts");
-		myWriter.write(out.toString());
-		myWriter.close();
+		generation.put(Paths.get("model").resolve("index.ts"), out.toString());
 	}
 
 	private static List<TsClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
@@ -231,19 +245,22 @@ public class TsGenerateApi {
 
 	}
 
-	public static void copyResourceFile(final String name, final String destinationPath) throws IOException {
+	public static void copyResourceFile(
+			final String name,
+			final Path destinationPath,
+			final Map<Path, String> generation) throws IOException {
 		final InputStream ioStream = TsGenerateApi.class.getClassLoader().getResourceAsStream(name);
 		if (ioStream == null) {
 			throw new IllegalArgumentException("rest-tools.ts is not found");
 		}
 		final BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream));
-		final FileWriter myWriter = new FileWriter(destinationPath);
+		final StringBuilder data = new StringBuilder();
 		String line;
 		while ((line = buffer.readLine()) != null) {
-			myWriter.write(line);
-			myWriter.write("\n");
+			data.append(line);
+			data.append("\n");
 		}
 		ioStream.close();
-		myWriter.close();
+		generation.put(destinationPath, data.toString());
 	}
 }

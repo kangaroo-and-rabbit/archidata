@@ -1,9 +1,5 @@
 package org.atriasoft.archidata.externalRestApi.typescript;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -81,7 +77,7 @@ public class TsClassElement {
 				""";
 	}
 
-	public String generateEnum(final ClassEnumModel model, final TsClassElementGroup tsGroup) throws IOException {
+	public String generateEnum(final ClassEnumModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
 		out.append("\n");
@@ -180,8 +176,7 @@ public class TsClassElement {
 				this.zodName + appendString);
 	}
 
-	public String generateImports(final Set<ClassModel> depModels, final TsClassElementGroup tsGroup)
-			throws IOException {
+	public String generateImports(final Set<ClassModel> depModels, final TsClassElementGroup tsGroup) {
 		final Set<TsClassElement> typeScriptModelAlreadyImported = new HashSet<>();
 		final Map<String, String> mapOutput = new TreeMap<>();
 
@@ -380,7 +375,7 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public String generateObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) throws IOException {
+	public String generateObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 
 		out.append(getBaseHeader());
@@ -399,8 +394,7 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public String generateObjectRead(final ClassObjectModel model, final TsClassElementGroup tsGroup)
-			throws IOException {
+	public String generateObjectRead(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 		out.append(generateComment(model));
 		out.append("export const ");
@@ -459,8 +453,7 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup)
-			throws IOException {
+	public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 		final String modeleType = MODEL_TYPE_UPDATE;
 		out.append("export const ");
@@ -522,8 +515,7 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup)
-			throws IOException {
+	public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 		final String modeleType = MODEL_TYPE_CREATE;
 		out.append("export const ");
@@ -658,7 +650,7 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	public void generateFile(final String pathPackage, final TsClassElementGroup tsGroup) throws IOException {
+	public void generateFile(final TsClassElementGroup tsGroup, final Map<Path, String> generation) {
 		if (this.nativeType == DefinedPosition.NATIVE) {
 			return;
 		}
@@ -671,18 +663,10 @@ public class TsClassElement {
 		} else if (model instanceof final ClassObjectModel modelObject) {
 			data = generateObject(modelObject, tsGroup);
 		}
-		final Path path = Paths.get(pathPackage + File.separator + "model");
-		if (Files.notExists(path)) {
-			Files.createDirectories(path);
-		}
-		final FileWriter myWriter = new FileWriter(
-				pathPackage + File.separator + "model" + File.separator + this.fileName + ".ts");
-		myWriter.write(data);
-		myWriter.close();
+		generation.put(Paths.get("model").resolve(this.fileName + ".ts"), data);
 	}
 
-	private static String generateLocalModelBase(final ClassModel model, final TsClassElementGroup tsGroup)
-			throws IOException {
+	private static String generateLocalModelBase(final ClassModel model, final TsClassElementGroup tsGroup) {
 		if (model instanceof final ClassObjectModel objectModel) {
 			return generateTsObject(objectModel, tsGroup);
 		}
@@ -701,7 +685,7 @@ public class TsClassElement {
 	public static String generateLocalModel(
 			final String ModelName,
 			final List<ClassModel> models,
-			final TsClassElementGroup tsGroup) throws IOException {
+			final TsClassElementGroup tsGroup) {
 		if (models.size() == 1) {
 			if (models.get(0) instanceof ClassObjectModel) {
 				return null;
