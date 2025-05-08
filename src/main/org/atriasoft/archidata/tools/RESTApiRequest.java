@@ -13,10 +13,11 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Map.Entry;
 
 import org.atriasoft.archidata.exception.RESTErrorResponseException;
 import org.bson.types.ObjectId;
@@ -40,8 +41,10 @@ public class RESTApiRequest {
 	private byte[] serializedBodyByte = null;
 	private String contentType = null;
 	private final Map<String, String> headers = new HashMap<>();
-	private final Map<String, String> queryParam = new HashMap<>();
+	private final Map<String, List<String>> queryParam = new HashMap<>();
 	private String verb = "GET";
+	private boolean showIOStrean = false;
+	private boolean formatBody = false;
 
 	/**
 	 * Constructor to initialize the RESTApiRequest with base URL and authorization token.
@@ -102,7 +105,11 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_BODY> RESTApiRequest bodyMap(final Map<String, Object> data) throws JsonProcessingException {
 		this.serializedBodyByte = null;
-		this.serializedBodyString = this.mapper.writeValueAsString(data);
+		if (this.formatBody) {
+			this.serializedBodyString = this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data);
+		} else {
+			this.serializedBodyString = this.mapper.writeValueAsString(data);
+		}
 		this.contentType = "application/json";
 		return this;
 	}
@@ -129,7 +136,11 @@ public class RESTApiRequest {
 	 * @throws JsonProcessingException If serialization fails.
 	 */
 	public <TYPE_BODY> RESTApiRequest bodyJson(final TYPE_BODY body) throws JsonProcessingException {
-		this.serializedBodyString = this.mapper.writeValueAsString(body);
+		if (this.formatBody) {
+			this.serializedBodyString = this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(body);
+		} else {
+			this.serializedBodyString = this.mapper.writeValueAsString(body);
+		}
 		this.contentType = "application/json";
 		return this;
 	}
@@ -198,14 +209,30 @@ public class RESTApiRequest {
 	}
 
 	/**
-	 * Adds a query parameter to the request URL.
+	 * Adds a query parameter to the request URL (add an element in the key if the key already exist).
 	 *
 	 * @param paramKey The parameter name.
-	 * @param body     The parameter value.
+	 * @param paramValue The parameter value.
 	 * @return The updated RESTApiRequest instance.
 	 */
-	public <TYPE_PARAM> RESTApiRequest queryParam(final String paramKey, final TYPE_PARAM body) {
-		this.queryParam.put(paramKey, body.toString());
+	public <TYPE_PARAM> RESTApiRequest queryParam(final String paramKey, final TYPE_PARAM paramValue) {
+		final List<String> data = this.queryParam.getOrDefault(paramKey, new ArrayList<>());
+		data.add(paramValue.toString());
+		this.queryParam.put(paramKey, data);
+		return this;
+	}
+
+	/**
+	 * Adds a query parameter to the request URL (add an element in the key if the key already exist).
+	 *
+	 * @param paramKey The parameter name.
+	 * @param paramValues The parameter values to add (multiple).
+	 * @return The updated RESTApiRequest instance.
+	 */
+	public RESTApiRequest queryParam(final String paramKey, final String... paramValues) {
+		final List<String> data = this.queryParam.getOrDefault(paramKey, new ArrayList<>());
+		Collections.addAll(data, paramValues);
+		this.queryParam.put(paramKey, data);
 		return this;
 	}
 
@@ -300,8 +327,7 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_RESPONSE> List<TYPE_RESPONSE> fetchList(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = generateRequest();
-		return callAndParseRequestList(clazz, request);
+		return callAndParseRequestList(clazz);
 	}
 
 	/**
@@ -315,8 +341,7 @@ public class RESTApiRequest {
 	 */
 	public <TYPE_RESPONSE> TYPE_RESPONSE fetch(final Class<TYPE_RESPONSE> clazz)
 			throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpRequest request = generateRequest();
-		return callAndParseRequest(clazz, request);
+		return callAndParseRequest(clazz);
 	}
 
 	/**
@@ -341,9 +366,24 @@ public class RESTApiRequest {
 	 *               Both keys and values will be URL-encoded.
 	 * @return A URL-encoded query string.
 	 */
-	public static String buildQueryParams(final Map<String, String> params) {
-		return params.entrySet().stream().map(entry -> URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8) + "="
-				+ URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)).collect(Collectors.joining("&"));
+	public static String buildQueryParams(final Map<String, List<String>> params) {
+		final StringBuilder out = new StringBuilder();
+		boolean first = true;
+		for (final Entry<String, List<String>> param : params.entrySet()) {
+			final String key = URLEncoder.encode(param.getKey(), StandardCharsets.UTF_8);
+			for (final String value : param.getValue()) {
+				if (!first) {
+					out.append("&");
+				}
+				first = false;
+				out.append(key);
+				if (value != null) {
+					out.append("=");
+					out.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+				}
+			}
+		}
+		return out.toString();
 	}
 
 	/**
@@ -368,15 +408,25 @@ public class RESTApiRequest {
 		for (final Map.Entry<String, String> entry : this.headers.entrySet()) {
 			requestBuilding.header(entry.getKey(), entry.getValue());
 		}
+		HttpRequest out = null;
 		if (this.serializedBodyString != null) {
-			LOGGER.trace("publish body: {}", this.serializedBodyString);
-			return requestBuilding.method(this.verb, BodyPublishers.ofString(this.serializedBodyString)).build();
-		}
-		if (this.serializedBodyByte != null) {
-			LOGGER.trace("publish body: {}", this.serializedBodyString);
+			out = requestBuilding.method(this.verb, BodyPublishers.ofString(this.serializedBodyString)).build();
+		} else if (this.serializedBodyByte != null) {
 			return requestBuilding.method(this.verb, BodyPublishers.ofByteArray(this.serializedBodyByte)).build();
+		} else {
+			out = requestBuilding.method(this.verb, BodyPublishers.ofString("")).build();
 		}
-		return requestBuilding.method(this.verb, BodyPublishers.ofString("")).build();
+		displayResquest(out);
+		if (this.showIOStrean) {
+			if (this.serializedBodyString != null) {
+				LOGGER.info("    content size: {}", this.serializedBodyString.length());
+				LOGGER.info("    body(String): \"\"\"{}\"\"\"", this.serializedBodyString);
+			} else if (this.serializedBodyByte != null) {
+				LOGGER.info("    content size: {}", this.serializedBodyByte.length);
+				LOGGER.info("    body(byte[]): \"\"\"{}\"\"\"", this.serializedBodyByte);
+			}
+		}
+		return out;
 	}
 
 	/**
@@ -390,7 +440,27 @@ public class RESTApiRequest {
 	public HttpResponse<byte[]> fetchByte() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
-		return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+		final HttpResponse<byte[]> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+		displayResponse(httpResponse);
+		return httpResponse;
+	}
+
+	/**
+	 * Performs a fetch request and returns the raw HttpResponse as string.
+	 *
+	 * @return Raw HTTP response in string.
+	 * @throws IOException          If the request fails.
+	 * @throws InterruptedException If the request is interrupted.
+	 * @throws RESTErrorResponseException If an error occur in the server
+	 */
+	public HttpResponse<String> fetchString() throws IOException, InterruptedException, RESTErrorResponseException {
+		final HttpRequest request = generateRequest();
+		final HttpClient client = HttpClient.newHttpClient();
+		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+		displayResponse(httpResponse);
+
+		return httpResponse;
 	}
 
 	/**
@@ -419,15 +489,9 @@ public class RESTApiRequest {
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
 	@SuppressWarnings("unchecked")
-	private <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(
-			final Class<TYPE_RESPONSE> clazzReturn,
-			final HttpRequest request) throws RESTErrorResponseException, IOException, InterruptedException {
-		final HttpClient client = HttpClient.newHttpClient();
-		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
-		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (clazzReturn == HttpResponse.class) {
-			return (TYPE_RESPONSE) httpResponse;
-		}
+	private <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(final Class<TYPE_RESPONSE> clazzReturn)
+			throws RESTErrorResponseException, IOException, InterruptedException {
+		final HttpResponse<String> httpResponse = fetchString();
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			LOGGER.trace("Receive Error: {}", httpResponse.body());
 			try {
@@ -462,6 +526,43 @@ public class RESTApiRequest {
 	}
 
 	/**
+	 * Display element of the response
+	 * @param httpResponse response to display
+	 */
+	private void displayResponse(final HttpResponse<?> httpResponse) {
+		if (!this.showIOStrean) {
+			return;
+		}
+		LOGGER.info("Response:");
+		LOGGER.info("    statusCode: {}", httpResponse.statusCode());
+		LOGGER.info("    headers:");
+		for (final Map.Entry<String, List<String>> header : httpResponse.headers().map().entrySet()) {
+			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(), String.join(", ", header.getValue()));
+		}
+		LOGGER.info("    body: \"\"\"{}\"\"\"", httpResponse.body());
+	}
+
+	/**
+	 * Display element of the response
+	 * @param httpResponse response to display
+	 */
+	private void displayResquest(final HttpRequest httpRequest) {
+		if (!this.showIOStrean) {
+			return;
+		}
+		LOGGER.info("Request:");
+		LOGGER.info("    verb: {}", httpRequest.method());
+		if (httpRequest.version().isPresent()) {
+			LOGGER.info("    version: {}", httpRequest.version().get());
+		}
+		LOGGER.info("    url: {}", httpRequest.uri());
+		LOGGER.info("    headers:");
+		for (final Map.Entry<String, List<String>> header : httpRequest.headers().map().entrySet()) {
+			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(), String.join(", ", header.getValue()));
+		}
+	}
+
+	/**
 	 * Sends the request and parses the response as a list of objects.
 	 *
 	 * @param clazzReturn The class of the expected response elements.
@@ -471,12 +572,9 @@ public class RESTApiRequest {
 	 * @throws IOException                If the response cannot be parsed or network fails.
 	 * @throws InterruptedException       If the request is interrupted.
 	 */
-	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(
-			final Class<TYPE_RESPONSE> clazzReturn,
-			final HttpRequest request) throws IOException, InterruptedException, RESTErrorResponseException {
-		final HttpClient client = HttpClient.newHttpClient();
-		// client.property(HttpUrlConnectorProvider.SET_METHOD_WORKAROUND, true);
-		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
+	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(final Class<TYPE_RESPONSE> clazzReturn)
+			throws IOException, InterruptedException, RESTErrorResponseException {
+		final HttpResponse<String> httpResponse = fetchString();
 		if (httpResponse.statusCode() < 200 || httpResponse.statusCode() >= 300) {
 			LOGGER.trace("Receive Error: {}", httpResponse.body());
 			try {
@@ -503,6 +601,16 @@ public class RESTApiRequest {
 		LOGGER.trace("Receive model: List<{}> with data: '{}'", clazzReturn.getCanonicalName(), httpResponse.body());
 		return this.mapper.readValue(httpResponse.body(),
 				this.mapper.getTypeFactory().constructCollectionType(List.class, clazzReturn));
+	}
+
+	public RESTApiRequest showIOStrean() {
+		this.showIOStrean = true;
+		return this;
+	}
+
+	public RESTApiRequest formatBody() {
+		this.formatBody = true;
+		return this;
 	}
 
 }
