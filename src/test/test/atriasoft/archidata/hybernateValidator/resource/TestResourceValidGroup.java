@@ -33,7 +33,7 @@ public class TestResourceValidGroup {
 	@POST
 	@Path("/create")
 	@PermitAll
-	public void postValidGroupCreate(final @ValidGroup(groups = { GroupCreate.class }) ValidatorModelGroup data)
+	public void postValidGroupCreate(final @ValidGroup(value = { GroupCreate.class }) ValidatorModelGroup data)
 			throws Exception {
 		return;
 	}
@@ -41,7 +41,7 @@ public class TestResourceValidGroup {
 	@POST
 	@Path("/update")
 	@PermitAll
-	public void postValidGroupUpdate(final @ValidGroup(groups = { GroupUpdate.class }) ValidatorModelGroup data)
+	public void postValidGroupUpdate(final @ValidGroup(value = { GroupUpdate.class }) ValidatorModelGroup data)
 			throws Exception {
 		return;
 	}
@@ -50,7 +50,7 @@ public class TestResourceValidGroup {
 	@Path("/update-create")
 	@PermitAll
 	public void postValidGroupUpdateCreate(
-			final @ValidGroup(groups = { GroupUpdate.class, GroupCreate.class }) ValidatorModelGroup data)
+			final @ValidGroup(value = { GroupUpdate.class, GroupCreate.class }) ValidatorModelGroup data)
 			throws Exception {
 		return;
 	}
@@ -59,7 +59,7 @@ public class TestResourceValidGroup {
 	@Path("/full")
 	@PermitAll
 	public void postValidGroupFull(
-			final @Valid @ValidGroup(groups = { GroupUpdate.class, GroupCreate.class }) ValidatorModelGroup data)
+			final @Valid @ValidGroup(value = { GroupUpdate.class, GroupCreate.class }) ValidatorModelGroup data)
 			throws Exception {
 		return;
 	}

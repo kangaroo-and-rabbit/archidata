@@ -8,5 +8,5 @@ import java.lang.annotation.Target;
 @Target({ ElementType.PARAMETER, ElementType.TYPE_USE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidGroup {
-	Class<?>[] groups();
+	Class<?>[] value();
 }

@@ -55,7 +55,7 @@ public class ValidGroupInterceptor implements ReaderInterceptor {
 		if (validGroup == null) {
 			return entity;
 		}
-		final Set<ConstraintViolation<Object>> violations = this.validator.validate(entity, validGroup.groups());
+		final Set<ConstraintViolation<Object>> violations = this.validator.validate(entity, validGroup.value());
 		if (!violations.isEmpty()) {
 			throw new ConstraintViolationException("Validation error", violations);
 		}
