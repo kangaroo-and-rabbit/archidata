@@ -10,18 +10,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
+import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.validation.Valid;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.Context;
 
 public class ApiModel {
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
-
-	public record OptionalClassModel(
-			List<ClassModel> model,
-			boolean optional) {}
 
 	Class<?> originClass;
 	Method orignMethod;
@@ -40,15 +38,15 @@ public class ApiModel {
 	// Name of the API (function name)
 	public String name;
 	// list of all parameters (/{key}/...
-	public final Map<String, List<ClassModel>> parameters = new HashMap<>();
+	public final Map<String, ParameterClassModelList> parameters = new HashMap<>();
 	// list of all headers of the request (/{key}/...
-	public final Map<String, OptionalClassModel> headers = new HashMap<>();
+	public final Map<String, ParameterClassModelList> headers = new HashMap<>();
 	// list of all query (?key...)
-	public final Map<String, List<ClassModel>> queries = new HashMap<>();
+	public final Map<String, ParameterClassModelList> queries = new HashMap<>();
 	// when request multi-part, need to separate it.
-	public final Map<String, OptionalClassModel> multiPartParameters = new HashMap<>();
+	public final Map<String, ParameterClassModelList> multiPartParameters = new HashMap<>();
 	// model of data available
-	public final List<ClassModel> unnamedElement = new ArrayList<>();
+	public final List<ParameterClassModelList> unnamedElement = new ArrayList<>();
 
 	// Possible input type of the REST API
 	public List<String> consumes = new ArrayList<>();
@@ -161,31 +159,37 @@ public class ApiModel {
 			}
 			final Context contextAnnotation = AnnotationTools.get(parameter, Context.class);
 			final HeaderParam headerParam = AnnotationTools.get(parameter, HeaderParam.class);
+			final Valid validParam = AnnotationTools.get(parameter, Valid.class);
+			final ValidGroup validGroupParam = AnnotationTools.get(parameter, ValidGroup.class);
 			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
 			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
 			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
 			final boolean apiInputOptional = ApiTool.apiAnnotationGetApiInputOptional(parameter);
 			if (queryParam != null) {
 				if (!this.queries.containsKey(queryParam)) {
-					this.queries.put(queryParam, parameterModel);
+					this.queries.put(queryParam,
+							new ParameterClassModelList(validParam, validGroupParam, parameterModel, apiInputOptional));
 				}
 			} else if (pathParam != null) {
 				if (!this.parameters.containsKey(pathParam)) {
-					this.parameters.put(pathParam, parameterModel);
+					this.parameters.put(pathParam,
+							new ParameterClassModelList(validParam, validGroupParam, parameterModel, apiInputOptional));
 				}
 			} else if (formDataParam != null) {
 				if (!this.multiPartParameters.containsKey(formDataParam)) {
 					this.multiPartParameters.put(formDataParam,
-							new OptionalClassModel(parameterModel, apiInputOptional));
+							new ParameterClassModelList(validParam, validGroupParam, parameterModel, apiInputOptional));
 				}
 			} else if (contextAnnotation != null) {
 				// out of scope parameters
 			} else if (headerParam != null) {
 				if (!this.headers.containsKey(headerParam.value())) {
-					this.headers.put(headerParam.value(), new OptionalClassModel(parameterModel, apiInputOptional));
+					this.headers.put(headerParam.value(),
+							new ParameterClassModelList(validParam, validGroupParam, parameterModel, apiInputOptional));
 				}
 			} else {
-				this.unnamedElement.addAll(parameterModel);
+				this.unnamedElement.add(
+						new ParameterClassModelList(validParam, validGroupParam, parameterModel, apiInputOptional));
 			}
 		}
 		if (this.unnamedElement.size() > 1) {

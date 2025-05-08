@@ -42,8 +42,7 @@ public class TsGenerateApi {
 	 * @throws Exception
 	 */
 	public static void generateApi(final AnalyzeApi api, final Path pathPackage) throws Exception {
-		final Map<Path, String> generation = new HashMap<>();
-		generateApi(api, generation);
+		final Map<Path, String> generation = generateApi(api);
 		if (Files.notExists(pathPackage)) {
 			Files.createDirectories(pathPackage);
 		}
@@ -59,7 +58,8 @@ public class TsGenerateApi {
 		}
 	}
 
-	public static void generateApi(final AnalyzeApi api, final Map<Path, String> generation) throws Exception {
+	public static final Map<Path, String> generateApi(final AnalyzeApi api) throws Exception {
+		final Map<Path, String> generation = new HashMap<>();
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
 		// Generates all MODEL files
@@ -76,6 +76,7 @@ public class TsGenerateApi {
 		createResourceIndex(api.apiModels, generation);
 		createIndex(generation);
 		copyResourceFile("rest-tools.ts", Paths.get("rest-tools.ts"), generation);
+		return generation;
 	}
 
 	private static void createIndex(final Map<Path, String> generation) {
