@@ -116,6 +116,9 @@ public class ApiTool {
 		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
 			return "ARCHIVE";
 		}
+		if (element.getDeclaredAnnotationsByType(CALL.class).length == 1) {
+			return "CALL";
+		}
 		return null;
 	}
 
