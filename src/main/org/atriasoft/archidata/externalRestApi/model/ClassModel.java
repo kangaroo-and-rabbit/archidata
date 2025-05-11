@@ -24,9 +24,9 @@ public abstract class ClassModel {
 		return this.originClasses;
 	}
 
-	public ApiGenerationMode getApiGenerationMode() {
-		return this.apiGenerationMode;
-	}
+	//	public ApiGenerationMode getApiGenerationMode() {
+	//		return this.apiGenerationMode;
+	//	}
 
 	protected boolean isCompatible(final Class<?> clazz) {
 		return this.originClasses == clazz;

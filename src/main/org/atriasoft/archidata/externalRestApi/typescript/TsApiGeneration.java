@@ -47,9 +47,10 @@ public class TsApiGeneration {
 			final TsClassElementGroup tsGroup,
 			final Set<ParameterClassModel> imports,
 			final boolean partialObject) {
+		final ParameterClassModel param = tsGroup.find(false, null, model);
 		imports.add(new ParameterClassModel(false, null, model));
 		final TsClassElement tsModel = tsGroup.find(model);
-		return tsModel.tsTypeName;
+		return tsModel.getTypeName();
 	}
 
 	public static String generateClassObjectModelTypescript(
@@ -60,6 +61,9 @@ public class TsApiGeneration {
 			final Set<ParameterClassModel> imports,
 			final boolean partialObject) {
 		final TsClassElement tsModel = tsGroup.find(model);
+		final ParameterClassModel modelImports = new ParameterClassModel(valid, groups, tsModel.models.get(0));
+		final String typeDefine = modelImports.getType();
+		/*
 		if (tsModel.nativeType != DefinedPosition.NATIVE) {
 			if (importCreate != null && tsModel.models.get(0).getApiGenerationMode().create()) {
 				importCreate.add(model);
@@ -68,14 +72,11 @@ public class TsApiGeneration {
 			} else {
 				imports.add(model);
 			}
-		}
-		String out = tsModel.tsTypeName;
-		if (tsModel.nativeType != DefinedPosition.NORMAL) {
-			out = tsModel.tsTypeName;
-		} else if (importCreate != null && tsModel.models.get(0).getApiGenerationMode().create()) {
-			out = tsModel.tsTypeName + TsClassElement.MODEL_TYPE_CREATE;
-		} else if (importUpdate != null && tsModel.models.get(0).getApiGenerationMode().update()) {
-			out = tsModel.tsTypeName + TsClassElement.MODEL_TYPE_UPDATE;
+		}*/
+		imports.add(modelImports);
+		String out = tsModel.getTypeName(modelImports);
+		if (tsModel.nativeType == DefinedPosition.NORMAL) {
+			out = modelImports.getType();
 		}
 		if (partialObject) {
 			return "Partial<" + out + ">";
@@ -166,7 +167,9 @@ public class TsApiGeneration {
 
 	public static void generateApiFile(
 			final ApiGroupModel element,
+			// je me demande si les deux suivant ne font pas doublon...
 			final TsClassElementGroup tsGroup,
+			//final Set<ParameterClassModel> dependency,
 			final Map<Path, String> generation) {
 		final StringBuilder data = new StringBuilder();
 
@@ -174,8 +177,8 @@ public class TsApiGeneration {
 		data.append(element.name);
 		data.append(" {\n");
 		final Set<ParameterClassModel> imports = new HashSet<>();
-		final Set<ClassModel> zodImports = new HashSet<>();
-		final Set<ClassModel> isImports = new HashSet<>();
+		final Set<ParameterClassModel> zodImports = new HashSet<>();
+		final Set<ParameterClassModel> isImports = new HashSet<>();
 		final Set<String> toolImports = new HashSet<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
 			final List<String> consumes = interfaceElement.consumes;
@@ -188,8 +191,10 @@ public class TsApiGeneration {
 				data.append("\n\n");
 				data.append(returnComplexModel.replaceAll("(?m)^", "\t"));
 				for (final ClassModel elem : interfaceElement.returnTypes) {
-					// TODO maybe need to update this with the type of zod requested (like update, create ...
-					zodImports.addAll(elem.getDependencyGroupModels());
+					// TODO maybe need to update this with the type of zod requested (like update, create ...)
+					for (final ClassModel elem2 : interfaceElement.returnTypes) {
+						isImports.add(new ParameterClassModel(elem2));
+					}
 				}
 			}
 			if (interfaceElement.description != null) {
@@ -331,7 +336,9 @@ public class TsApiGeneration {
 					data.append("\n\t\treturn RESTRequestVoid({");
 					toolImports.add("RESTRequestVoid");
 				} else {
-					isImports.addAll(interfaceElement.returnTypes);
+					for (final ClassModel elem : interfaceElement.returnTypes) {
+						isImports.add(new ParameterClassModel(elem));
+					}
 					data.append("\n\t\treturn RESTRequestJson({");
 					toolImports.add("RESTRequestJson");
 				}
@@ -407,9 +414,9 @@ public class TsApiGeneration {
 				data.append(returnModelNameIfComplex);
 			} else {
 				final TsClassElement retType = tsGroup.find(interfaceElement.returnTypes.get(0));
-				if (retType.tsCheckType != null) {
+				if (retType.getCheckType() != null) {
 					data.append(", ");
-					data.append(retType.tsCheckType);
+					data.append(retType.getCheckType());
 					imports.add(new ParameterClassModel(true, new Class<?>[] { GroupRead.class },
 							interfaceElement.returnTypes.get(0)));
 				}
@@ -440,26 +447,27 @@ public class TsApiGeneration {
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			finalImportSet.add(tsModel.tsTypeName);
+			if (tsModel.nativeType == DefinedPosition.BASIC) {
+				finalImportSet.add(tsModel.getTypeName(model));
+				continue;
+			}
+			finalImportSet.add(tsModel.getTypeName(model));
 		}
-		for (final ClassModel model : isImports) {
-			final TsClassElement tsModel = tsGroup.find(model);
+		for (final ParameterClassModel model : isImports) {
+			final TsClassElement tsModel = tsGroup.find(model.model());
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			if (tsModel.tsCheckType != null) {
-				finalImportSet.add(tsModel.tsCheckType);
+			if (tsModel.getCheckType(model) != null) {
+				finalImportSet.add(tsModel.getCheckType(model));
 			}
 		}
-		for (final ClassModel model : zodImports) {
-			final TsClassElement tsModel = tsGroup.find(model);
+		for (final ParameterClassModel model : zodImports) {
+			final TsClassElement tsModel = tsGroup.find(model.model());
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {
 				continue;
 			}
-			if (!tsModel.models.get(0).getApiGenerationMode().read()) {
-				continue;
-			}
-			finalImportSet.add("Zod" + tsModel.tsTypeName);
+			finalImportSet.add("Zod" + tsModel.getTypeName(model));
 		}
 		if (finalImportSet.size() != 0) {
 			out.append("import {");

@@ -62,19 +62,36 @@ public class TsGenerateApi {
 		final Map<Path, String> generation = new HashMap<>();
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
-		// Generates all MODEL files
+
+		/*
 		for (final TsClassElement element : localModel) {
 			element.generateFile(tsGroup, generation);
 		}
 		// Generate index of model files
 		createModelIndex(tsGroup, generation);
-
+		*/
+		// -----------------------------------------------------------
+		// -- Generate The API
+		// -----------------------------------------------------------
 		for (final ApiGroupModel element : api.apiModels) {
 			TsApiGeneration.generateApiFile(element, tsGroup, generation);
 		}
 		// Generate index of model files
 		createResourceIndex(api.apiModels, generation);
 		createIndex(generation);
+
+		// -----------------------------------------------------------
+		// -- Generates all MODEL files & model requested by API:
+		// -----------------------------------------------------------
+		for (final TsClassElement element : localModel) {
+			element.generateFile(tsGroup, generation);
+		}
+		// Generate index of model files
+		createModelIndex(tsGroup, generation);
+
+		// -----------------------------------------------------------
+		// -- copy back-end engine
+		// -----------------------------------------------------------
 		copyResourceFile("rest-tools.ts", Paths.get("rest-tools.ts"), generation);
 		return generation;
 	}

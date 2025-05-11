@@ -9,14 +9,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldProperty;
+import org.atriasoft.archidata.externalRestApi.model.ParameterClassModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.validation.Valid;
 
 public class TsClassElement {
 	static final Logger LOGGER = LoggerFactory.getLogger(TsClassElement.class);
@@ -27,17 +31,15 @@ public class TsClassElement {
 		NORMAL // Normal Object to interpret.
 	}
 
-	public static final String MODEL_TYPE_UPDATE = "Update";
-	public static final String MODEL_TYPE_CREATE = "Create";
-
 	public List<ClassModel> models;
 	public String zodName;
-	public String tsTypeName;
-	public String tsCheckType;
-	public String declaration;
+	private final String tsTypeName;
+	private final String tsCheckType;
+	private final String declaration;
 	public String fileName = null;
 	public String comment = null;
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
+	public Set<ParameterClassModel> requestedModels = new HashSet<>();
 
 	public static String determineFileName(final String className) {
 		return className.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2").toLowerCase();
@@ -61,6 +63,54 @@ public class TsClassElement {
 		this.tsCheckType = "is" + model.getOriginClasses().getSimpleName();
 		this.declaration = null;
 		this.fileName = determineFileName(this.tsTypeName);
+	}
+
+	public String getZodName() {
+		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
+		if (this.zodName != null) {
+			return this.zodName;
+		}
+		return "Zod" + model.getType();
+	}
+
+	public String getZodName(final ParameterClassModel model) {
+		getParameterClassModel(model.valid(), model.groups(), model.model());
+		if (this.zodName != null) {
+			return this.zodName;
+		}
+		return "Zod" + model.getType();
+	}
+
+	public String getTypeName() {
+		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
+		if (this.tsTypeName != null) {
+			return this.tsTypeName;
+		}
+		return model.getType();
+	}
+
+	public String getTypeName(final ParameterClassModel model) {
+		this.requestedModels.add(model);
+		if (this.tsTypeName != null) {
+			return this.tsTypeName;
+		}
+		return model.getType();
+	}
+
+	public String getCheckType() {
+		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
+		if (this.tsCheckType != null) {
+			return this.tsCheckType;
+		}
+		return "is" + model.getType();
+	}
+
+	public String getCheckType(final ParameterClassModel model) {
+		this.requestedModels.add(model);
+		if (this.tsCheckType != null) {
+			return this.tsCheckType;
+		}
+		return "is" + model.getType();
 	}
 
 	public boolean isCompatible(final ClassModel model) {
@@ -190,24 +240,24 @@ public class TsClassElement {
 			typeScriptModelAlreadyImported.add(tsModel);
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
 				inputStream.append("import {");
-				if (tsModel.nativeType != DefinedPosition.NORMAL
-						|| tsModel.models.get(0).getApiGenerationMode().read()) {
-					inputStream.append(tsModel.zodName);
-				}
-				if (tsModel.nativeType == DefinedPosition.NORMAL
-						&& tsModel.models.get(0).getApiGenerationMode().update()) {
-					inputStream.append(", ");
-					inputStream.append(tsModel.zodName);
-					inputStream.append(MODEL_TYPE_UPDATE);
-					inputStream.append(" ");
-				}
-				if (tsModel.nativeType == DefinedPosition.NORMAL
-						&& tsModel.models.get(0).getApiGenerationMode().create()) {
-					inputStream.append(", ");
-					inputStream.append(tsModel.zodName);
-					inputStream.append(MODEL_TYPE_CREATE);
-					inputStream.append(" ");
-				}
+				//				if (tsModel.nativeType != DefinedPosition.NORMAL
+				//						|| tsModel.models.get(0).getApiGenerationMode().read()) {
+				//					inputStream.append(tsModel.zodName);
+				//				}
+				//				if (tsModel.nativeType == DefinedPosition.NORMAL
+				//						&& tsModel.models.get(0).getApiGenerationMode().update()) {
+				//					inputStream.append(", ");
+				//					inputStream.append(tsModel.zodName);
+				//					inputStream.append(MODEL_TYPE_UPDATE);
+				//					inputStream.append(" ");
+				//				}
+				//				if (tsModel.nativeType == DefinedPosition.NORMAL
+				//						&& tsModel.models.get(0).getApiGenerationMode().create()) {
+				//					inputStream.append(", ");
+				//					inputStream.append(tsModel.zodName);
+				//					inputStream.append(MODEL_TYPE_CREATE);
+				//					inputStream.append(" ");
+				//				}
 				inputStream.append("} from \"./");
 				inputStream.append(tsModel.fileName);
 				inputStream.append("\";\n");
@@ -379,26 +429,32 @@ public class TsClassElement {
 		final StringBuilder out = new StringBuilder();
 
 		out.append(getBaseHeader());
+		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Review this !!!!!!
 		out.append(generateImports(model.getDependencyModels(), tsGroup));
 		out.append("\n");
+		for (final ParameterClassModel elem : this.requestedModels) {
+			out.append(generateObjectRead(model, tsGroup, elem));
+		}
 
-		if (model.getApiGenerationMode().read()) {
-			out.append(generateObjectRead(model, tsGroup));
-		}
-		if (model.getApiGenerationMode().update()) {
-			out.append(generateObjectUpdate(model, tsGroup));
-		}
-		if (model.getApiGenerationMode().create()) {
-			out.append(generateObjectCreate(model, tsGroup));
-		}
 		return out.toString();
 	}
 
-	public String generateObjectRead(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
+	public String generateObjectRead(
+			final ClassObjectModel model,
+			final TsClassElementGroup tsGroup,
+			final ParameterClassModel parameterClassModel) {
 		final StringBuilder out = new StringBuilder();
 		out.append(generateComment(model));
+		out.append("// ... " + parameterClassModel.valid() + " ... [");
+		for (final Class<?> elem : parameterClassModel.groups()) {
+			out.append(elem.getSimpleName() + ", ");
+		}
+		out.append("]\n");
 		out.append("export const ");
-		out.append(this.zodName);
+
+		// I am HERE ...
+
+		out.append(this.getZodName(parameterClassModel));
 		out.append(" = ");
 		// Check if the object is empty:
 		final boolean isEmpty = model.getFields().size() == 0;
@@ -455,7 +511,7 @@ public class TsClassElement {
 
 	public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
-		final String modeleType = MODEL_TYPE_UPDATE;
+		final String modeleType = "";//MODEL_TYPE_UPDATE;
 		out.append("export const ");
 		out.append(this.zodName);
 		out.append(modeleType);
@@ -517,7 +573,7 @@ public class TsClassElement {
 
 	public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
-		final String modeleType = MODEL_TYPE_CREATE;
+		final String modeleType = "";//MODEL_TYPE_CREATE;
 		out.append("export const ");
 		out.append(this.zodName);
 		out.append(modeleType);
@@ -714,6 +770,48 @@ public class TsClassElement {
 		out.append(generateZodInfer(ModelName, "Zod" + ModelName));
 		out.append(generateExportCheckFunction("is" + ModelName, ModelName, "Zod" + ModelName));
 		return out.toString();
+	}
+
+	public ParameterClassModel getParameterClassModel(
+			final boolean valid,
+			final Class<?>[] validGroup,
+			final ClassModel parameterModel) {
+		// TODO: je viens de cree un cycle ...
+		final ParameterClassModel tmp = new ParameterClassModel(valid, validGroup, parameterModel);
+		for (final ParameterClassModel elem : this.requestedModels) {
+			if (elem.equals(tmp)) {
+				return elem;
+			}
+		}
+		this.requestedModels.add(tmp);
+		return tmp;
+	}
+
+	public ParameterClassModel getParameterClassModel(
+			final Valid validParam,
+			final ValidGroup validGroupParam,
+			final ClassModel parameterModel) {
+		// TODO: je viens de cree un cycle ...
+		final ParameterClassModel tmp = new ParameterClassModel(validParam, validGroupParam, parameterModel);
+		for (final ParameterClassModel elem : this.requestedModels) {
+			if (elem.equals(tmp)) {
+				return elem;
+			}
+		}
+		this.requestedModels.add(tmp);
+		return tmp;
+	}
+
+	public ParameterClassModel getParameterClassModel(final ClassModel parameterModel) {
+		// TODO: je viens de cree un cycle ...
+		final ParameterClassModel tmp = new ParameterClassModel(parameterModel);
+		for (final ParameterClassModel elem : this.requestedModels) {
+			if (elem.equals(tmp)) {
+				return elem;
+			}
+		}
+		this.requestedModels.add(tmp);
+		return tmp;
 	}
 
 }
