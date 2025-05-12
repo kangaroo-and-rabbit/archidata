@@ -27,6 +27,8 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -83,9 +85,9 @@ public class ClassObjectModel extends ClassModel {
 			Pattern pattern,
 			Email email,
 			ApiAccessLimitation accessLimitation,
-			Boolean notNull,
 			ApiNotNull apiNotNull,
-			Boolean columnNotNull,
+			NotNull annotationNotNull,
+			Null annotationNull,
 			Boolean nullable) {
 
 		public FieldProperty(//
@@ -101,9 +103,9 @@ public class ClassObjectModel extends ClassModel {
 				final Pattern pattern, //
 				final Email email, //
 				final ApiAccessLimitation accessLimitation, //
-				final Boolean notNull, //
 				final ApiNotNull apiNotNull, //
-				final Boolean columnNotNull, //
+				final NotNull annotationNotNull, //
+				final Null annotationNull, //
 				final Boolean nullable) {
 			this.name = name;
 			this.model = model;
@@ -121,9 +123,9 @@ public class ClassObjectModel extends ClassModel {
 			} else {
 				this.accessLimitation = accessLimitation;
 			}
-			this.notNull = notNull;
+			this.annotationNotNull = annotationNotNull;
 			this.apiNotNull = apiNotNull;
-			this.columnNotNull = columnNotNull;
+			this.annotationNull = annotationNull;
 			this.nullable = nullable;
 
 		}
@@ -174,9 +176,9 @@ public class ClassObjectModel extends ClassModel {
 					AnnotationTools.getConstraintsPattern(field), //
 					AnnotationTools.getConstraintsEmail(field), //
 					AnnotationTools.get(field, ApiAccessLimitation.class), //
-					AnnotationTools.getConstraintsNotNull(field), //
 					AnnotationTools.get(field, ApiNotNull.class), //
-					AnnotationTools.getColumnNotNull(field), //
+					AnnotationTools.get(field, NotNull.class), //
+					AnnotationTools.get(field, Null.class), //
 					AnnotationTools.getNullable(field));
 		}
 

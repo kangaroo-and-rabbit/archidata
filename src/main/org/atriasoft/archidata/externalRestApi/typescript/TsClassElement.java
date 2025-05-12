@@ -32,9 +32,9 @@ public class TsClassElement {
 	}
 
 	public List<ClassModel> models;
-	public String zodName;
-	private final String tsTypeName;
-	private final String tsCheckType;
+	public String aaaaaaaaaaaaaa_zodName;
+	private final String aaaaaaaaaaaaaa_tsTypeName;
+	private final String aaaaaaaaaaaaaa_tsCheckType;
 	private final String declaration;
 	public String fileName = null;
 	public String comment = null;
@@ -47,68 +47,118 @@ public class TsClassElement {
 
 	public TsClassElement(final List<ClassModel> model, final String zodName, final String tsTypeName,
 			final String tsCheckType, final String declaration, final DefinedPosition nativeType) {
+		if (model.get(0).getOriginClasses().getSimpleName().equals("TestObject")) {
+			LOGGER.error("lkjlkj");
+		}
 		this.models = model;
-		this.zodName = zodName;
-		this.tsTypeName = tsTypeName;
-		this.tsCheckType = tsCheckType;
+		this.aaaaaaaaaaaaaa_zodName = zodName;
+		this.aaaaaaaaaaaaaa_tsTypeName = tsTypeName;
+		this.aaaaaaaaaaaaaa_tsCheckType = tsCheckType;
 		this.declaration = declaration;
 		this.nativeType = nativeType;
 		this.fileName = determineFileName(tsTypeName);
 	}
 
-	public TsClassElement(final ClassModel model) {
+	public TsClassElement(final ClassModel model, final boolean forceMode) {
 		this.models = List.of(model);
-		this.zodName = "Zod" + model.getOriginClasses().getSimpleName();
-		this.tsTypeName = model.getOriginClasses().getSimpleName();
-		this.tsCheckType = "is" + model.getOriginClasses().getSimpleName();
+		if (forceMode) {
+			if (model.getOriginClasses().getSimpleName().equals("TestObject")) {
+				LOGGER.error("lkjlkj");
+			}
+			this.aaaaaaaaaaaaaa_zodName = "Zod" + model.getOriginClasses().getSimpleName();
+			this.aaaaaaaaaaaaaa_tsTypeName = model.getOriginClasses().getSimpleName();
+			this.aaaaaaaaaaaaaa_tsCheckType = "is" + model.getOriginClasses().getSimpleName();
+		} else {
+			this.aaaaaaaaaaaaaa_zodName = null;
+			this.aaaaaaaaaaaaaa_tsTypeName = null;
+			this.aaaaaaaaaaaaaa_tsCheckType = null;
+		}
 		this.declaration = null;
-		this.fileName = determineFileName(this.tsTypeName);
+		this.fileName = determineFileName(model.getOriginClasses().getSimpleName());
+	}
+
+	public TsClassElement(final ClassModel model) {
+		if (model.getOriginClasses().getSimpleName().equals("TestObject")) {
+			LOGGER.error("lkjlkj");
+		}
+		this.models = List.of(model);
+		this.aaaaaaaaaaaaaa_zodName = "Zod" + model.getOriginClasses().getSimpleName();
+		this.aaaaaaaaaaaaaa_tsTypeName = model.getOriginClasses().getSimpleName();
+		this.aaaaaaaaaaaaaa_tsCheckType = "is" + model.getOriginClasses().getSimpleName();
+		this.declaration = null;
+		this.fileName = determineFileName(this.aaaaaaaaaaaaaa_tsTypeName);
 	}
 
 	public String getZodName() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
-		if (this.zodName != null) {
-			return this.zodName;
+		if (this.aaaaaaaaaaaaaa_zodName != null) {
+			return this.aaaaaaaaaaaaaa_zodName;
+		}
+		return "Zod" + model.getType();
+	}
+
+	public String getZodName(final boolean isValid, final Class<?>[] groups) {
+		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
+		if (this.aaaaaaaaaaaaaa_zodName != null) {
+			return this.aaaaaaaaaaaaaa_zodName;
 		}
 		return "Zod" + model.getType();
 	}
 
 	public String getZodName(final ParameterClassModel model) {
 		getParameterClassModel(model.valid(), model.groups(), model.model());
-		if (this.zodName != null) {
-			return this.zodName;
+		if (this.aaaaaaaaaaaaaa_zodName != null) {
+			return this.aaaaaaaaaaaaaa_zodName;
 		}
 		return "Zod" + model.getType();
 	}
 
 	public String getTypeName() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
-		if (this.tsTypeName != null) {
-			return this.tsTypeName;
+		if (this.aaaaaaaaaaaaaa_tsTypeName != null) {
+			return this.aaaaaaaaaaaaaa_tsTypeName;
+		}
+		return model.getType();
+	}
+
+	public String getTypeName(final boolean isValid, final Class<?>[] groups) {
+		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
+		if (this.aaaaaaaaaaaaaa_tsTypeName != null) {
+			return this.aaaaaaaaaaaaaa_tsTypeName;
 		}
 		return model.getType();
 	}
 
 	public String getTypeName(final ParameterClassModel model) {
 		this.requestedModels.add(model);
-		if (this.tsTypeName != null) {
-			return this.tsTypeName;
+		if (this.aaaaaaaaaaaaaa_tsTypeName != null) {
+			return this.aaaaaaaaaaaaaa_tsTypeName;
 		}
 		return model.getType();
 	}
 
+	public String getCheckType(final boolean isValid, final Class<?>[] groups) {
+		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
+		if (this.aaaaaaaaaaaaaa_tsCheckType != null) {
+			return this.aaaaaaaaaaaaaa_tsCheckType;
+		}
+		return "is" + model.getType();
+	}
+
 	public String getCheckType() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
-		if (this.tsCheckType != null) {
-			return this.tsCheckType;
+		if (this.aaaaaaaaaaaaaa_tsCheckType != null) {
+			return this.aaaaaaaaaaaaaa_tsCheckType;
 		}
 		return "is" + model.getType();
 	}
 
 	public String getCheckType(final ParameterClassModel model) {
-		this.requestedModels.add(model);
-		if (this.tsCheckType != null) {
-			return this.tsCheckType;
+		if (model != null) {
+			this.requestedModels.add(model);
+		}
+		if (this.aaaaaaaaaaaaaa_tsCheckType != null) {
+			return this.aaaaaaaaaaaaaa_tsCheckType;
 		}
 		return "is" + model.getType();
 	}
@@ -136,7 +186,7 @@ public class TsClassElement {
 		if (System.getenv("ARCHIDATA_GENERATE_ZOD_ENUM") != null) {
 			boolean first = true;
 			out.append("export const ");
-			out.append(this.tsTypeName);
+			out.append(this.aaaaaaaaaaaaaa_tsTypeName);
 			out.append(" = ");
 			out.append("zod.enum([");
 			for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
@@ -156,11 +206,11 @@ public class TsClassElement {
 				out.append("\n\t])");
 			}
 			out.append(";\n");
-			out.append(generateZodInfer(this.tsTypeName, this.zodName));
+			out.append(generateZodInfer(this.aaaaaaaaaaaaaa_tsTypeName, this.aaaaaaaaaaaaaa_zodName));
 		} else {
 			boolean first = true;
 			out.append("export enum ");
-			out.append(this.tsTypeName);
+			out.append(this.aaaaaaaaaaaaaa_tsTypeName);
 			out.append("  {");
 			for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
 				if (!first) {
@@ -186,12 +236,12 @@ public class TsClassElement {
 			}
 			out.append(";\n");
 			out.append("\nexport const ");
-			out.append(this.zodName);
+			out.append(this.aaaaaaaaaaaaaa_zodName);
 			out.append(" = zod.nativeEnum(");
-			out.append(this.tsTypeName);
+			out.append(this.aaaaaaaaaaaaaa_tsTypeName);
 			out.append(");\n");
 		}
-		out.append(generateExportCheckFunctionAppended(""));
+		out.append(generateExportCheckFunctionAppended("", null));
 		return out.toString();
 	}
 
@@ -211,7 +261,7 @@ public class TsClassElement {
 						return true;
 					} catch (e: any) {
 						console.log(`Fail to parse data type='""");
-		out.append(zodName);
+		out.append(tsTypeName);
 		out.append("""
 				' error=${e}`);
 						return false;
@@ -221,9 +271,12 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	private String generateExportCheckFunctionAppended(final String appendString) {
-		return generateExportCheckFunction(this.tsCheckType + appendString, this.tsTypeName + appendString,
-				this.zodName + appendString);
+	private String generateExportCheckFunctionAppended(
+			final String appendString,
+			final ParameterClassModel parameterClassModel) {
+		return generateExportCheckFunction(this.getCheckType(parameterClassModel) + appendString,
+				this.getTypeName(parameterClassModel) + appendString,
+				this.getZodName(parameterClassModel) + appendString);
 	}
 
 	public String generateImports(final Set<ClassModel> depModels, final TsClassElementGroup tsGroup) {
@@ -240,24 +293,24 @@ public class TsClassElement {
 			typeScriptModelAlreadyImported.add(tsModel);
 			if (tsModel.nativeType != DefinedPosition.NATIVE) {
 				inputStream.append("import {");
-				//				if (tsModel.nativeType != DefinedPosition.NORMAL
-				//						|| tsModel.models.get(0).getApiGenerationMode().read()) {
-				//					inputStream.append(tsModel.zodName);
-				//				}
-				//				if (tsModel.nativeType == DefinedPosition.NORMAL
-				//						&& tsModel.models.get(0).getApiGenerationMode().update()) {
-				//					inputStream.append(", ");
-				//					inputStream.append(tsModel.zodName);
-				//					inputStream.append(MODEL_TYPE_UPDATE);
-				//					inputStream.append(" ");
-				//				}
-				//				if (tsModel.nativeType == DefinedPosition.NORMAL
-				//						&& tsModel.models.get(0).getApiGenerationMode().create()) {
-				//					inputStream.append(", ");
-				//					inputStream.append(tsModel.zodName);
-				//					inputStream.append(MODEL_TYPE_CREATE);
-				//					inputStream.append(" ");
-				//				}
+				if (tsModel.nativeType != DefinedPosition.NORMAL
+						|| tsModel.models.get(0).getApiGenerationMode().read()) {
+					inputStream.append(tsModel.zodName);
+				}
+				if (tsModel.nativeType == DefinedPosition.NORMAL
+						&& tsModel.models.get(0).getApiGenerationMode().update()) {
+					inputStream.append(", ");
+					inputStream.append(tsModel.zodName);
+					inputStream.append(MODEL_TYPE_UPDATE);
+					inputStream.append(" ");
+				}
+				if (tsModel.nativeType == DefinedPosition.NORMAL
+						&& tsModel.models.get(0).getApiGenerationMode().create()) {
+					inputStream.append(", ");
+					inputStream.append(tsModel.zodName);
+					inputStream.append(MODEL_TYPE_CREATE);
+					inputStream.append(" ");
+				}
 				inputStream.append("} from \"./");
 				inputStream.append(tsModel.fileName);
 				inputStream.append("\";\n");
@@ -298,6 +351,58 @@ public class TsClassElement {
 		return out.toString();
 	}
 
+	private boolean containGroup(final Class<?>[] groupsA, final Class<?> groupB) {
+		for (final Class<?> elemA : groupsA) {
+			if (elemA == groupB) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean isCompatibleGroup(final Class<?>[] groupsA, final Class<?>[] groupsB) {
+		for (final Class<?> elemA : groupsA) {
+			for (final Class<?> elemB : groupsB) {
+				if (elemA == elemB) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	public boolean isCompatibleField(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
+		int findAnnotation = 0;
+		if (field.annotationNotNull() != null) {
+			findAnnotation++;
+			// if it is not null iun the specific group, this meen the element MUST be transcript
+			if (isCompatibleGroup(field.annotationNotNull().groups(), groups)) {
+				// todo, maybe check if the element does not exist in the other item ...
+				return true;
+			}
+			// check if no element
+			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0)
+					&& isValid) {
+				return true;
+			}
+		}
+		if (field.annotationNull() != null) {
+			findAnnotation++;
+			// if it is not null iun the specific group, this meen the element MUST NOT be transcript (is is NULL)
+			if (isCompatibleGroup(field.annotationNull().groups(), groups)) {
+				// todo, maybe check if the element does not exist in the other item ...
+				return false;
+			}
+			if ((field.annotationNull().groups() == null || field.annotationNull().groups().length == 0) && isValid) {
+				return false;
+			}
+		}
+		if (findAnnotation != 0) {
+			return false;
+		}
+		return isValid;
+	}
+
 	public boolean isOptionalTypeZod(final FieldProperty field) {
 		if (field.apiNotNull() != null) {
 			return !field.apiNotNull().value();
@@ -306,7 +411,10 @@ public class TsClassElement {
 		if (field.nullable()) {
 			return true;
 		}
-		if (field.notNull()) {
+		if (field.annotationNotNull() != null) {
+			return false;
+		}
+		if (field.annotationNull() != null) {
 			return false;
 		}
 		// model is a Map or a List:
@@ -315,9 +423,6 @@ public class TsClassElement {
 		}
 		// Other object:
 		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
-			return false;
-		}
-		if (field.columnNotNull()) {
 			return false;
 		}
 		return true;
@@ -417,11 +522,11 @@ public class TsClassElement {
 		out.append("\n");
 
 		out.append("export const ");
-		out.append(this.zodName);
+		out.append(this.aaaaaaaaaaaaaa_zodName);
 		out.append(" = ");
 		out.append(this.declaration);
 		out.append(";");
-		out.append(generateZodInfer(this.tsTypeName, this.zodName));
+		out.append(generateZodInfer(this.aaaaaaaaaaaaaa_tsTypeName, this.aaaaaaaaaaaaaa_zodName));
 		return out.toString();
 	}
 
@@ -433,13 +538,13 @@ public class TsClassElement {
 		out.append(generateImports(model.getDependencyModels(), tsGroup));
 		out.append("\n");
 		for (final ParameterClassModel elem : this.requestedModels) {
-			out.append(generateObjectRead(model, tsGroup, elem));
+			out.append(generateObjectLimited(model, tsGroup, elem));
 		}
 
 		return out.toString();
 	}
 
-	public String generateObjectRead(
+	public String generateObjectLimited(
 			final ClassObjectModel model,
 			final TsClassElementGroup tsGroup,
 			final ParameterClassModel parameterClassModel) {
@@ -451,9 +556,6 @@ public class TsClassElement {
 		}
 		out.append("]\n");
 		out.append("export const ");
-
-		// I am HERE ...
-
 		out.append(this.getZodName(parameterClassModel));
 		out.append(" = ");
 		// Check if the object is empty:
@@ -462,7 +564,7 @@ public class TsClassElement {
 		if (model.getExtendsClass() != null) {
 			final ClassModel parentClass = model.getExtendsClass();
 			final TsClassElement tsParentModel = tsGroup.find(parentClass);
-			out.append(tsParentModel.zodName);
+			out.append(tsParentModel.getZodName(parameterClassModel.valid(), parameterClassModel.groups()));
 			if (!isEmpty) {
 				out.append(".extend({\n");
 			}
@@ -470,10 +572,13 @@ public class TsClassElement {
 			out.append("zod.object({\n");
 		}
 		for (final FieldProperty field : model.getFields()) {
-			// remove all readOnly field
-			if (!field.accessLimitation().readable()) {
+			if (!isCompatibleField(field, parameterClassModel.valid(), parameterClassModel.groups())) {
 				continue;
 			}
+			// remove all readOnly field
+			//			if (!field.accessLimitation().readable()) {
+			//				continue;
+			//			}
 			final ClassModel fieldModel = field.model();
 			if (field.comment() != null) {
 				out.append("\t/**\n");
@@ -486,7 +591,7 @@ public class TsClassElement {
 			out.append(": ");
 			if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
 				final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
-				out.append(tsFieldModel.zodName);
+				out.append(tsFieldModel.aaaaaaaaaaaaaa_zodName);
 			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
 				final String data = generateTsList(fieldListModel, tsGroup);
 				out.append(data);
@@ -504,133 +609,134 @@ public class TsClassElement {
 		} else {
 			out.append("\n});\n");
 		}
-		out.append(generateZodInfer(this.tsTypeName, this.zodName));
-		out.append(generateExportCheckFunctionAppended(""));
+		out.append(generateZodInfer(this.getTypeName(parameterClassModel), this.getZodName(parameterClassModel)));
+		out.append(generateExportCheckFunctionAppended("", parameterClassModel));
 		return out.toString();
 	}
-
-	public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
-		final StringBuilder out = new StringBuilder();
-		final String modeleType = "";//MODEL_TYPE_UPDATE;
-		out.append("export const ");
-		out.append(this.zodName);
-		out.append(modeleType);
-		out.append(" = ");
-		// Check if at minimum One fiend is updatable to generate the local object
-		final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().updatable())
-				.count() == 0;
-		if (model.getExtendsClass() != null) {
-			final ClassModel parentClass = model.getExtendsClass();
-			final TsClassElement tsParentModel = tsGroup.find(parentClass);
-			out.append(tsParentModel.zodName);
+	/*
+		public String generateObjectUpdate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
+			final StringBuilder out = new StringBuilder();
+			final String modeleType = "";//MODEL_TYPE_UPDATE;
+			out.append("export const ");
+			out.append(this.zodName);
 			out.append(modeleType);
-			if (!isEmpty) {
-				out.append(".extend({\n");
+			out.append(" = ");
+			// Check if at minimum One fiend is updatable to generate the local object
+			final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().updatable())
+					.count() == 0;
+			if (model.getExtendsClass() != null) {
+				final ClassModel parentClass = model.getExtendsClass();
+				final TsClassElement tsParentModel = tsGroup.find(parentClass);
+				out.append(tsParentModel.zodName);
+				out.append(modeleType);
+				if (!isEmpty) {
+					out.append(".extend({\n");
+				}
+			} else {
+				out.append("zod.object({\n");
 			}
-		} else {
-			out.append("zod.object({\n");
+			for (final FieldProperty field : model.getFields()) {
+				// remove all readOnly field
+				if (!field.accessLimitation().updatable()) {
+					continue;
+				}
+				final ClassModel fieldModel = field.model();
+				if (field.comment() != null) {
+					out.append("\t/**\n");
+					out.append("\t * ");
+					out.append(field.comment());
+					out.append("\n\t * /\n");
+				}
+				out.append("\t");
+				out.append(field.name());
+				out.append(": ");
+				if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
+					final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
+					out.append(tsFieldModel.zodName);
+				} else if (fieldModel instanceof final ClassListModel fieldListModel) {
+					final String data = generateTsList(fieldListModel, tsGroup);
+					out.append(data);
+				} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
+					final String data = generateTsMap(fieldMapModel, tsGroup);
+					out.append(data);
+				}
+				out.append(maxSizeZod(field));
+				out.append(optionalWriteTypeZod(field));
+				out.append(optionalTypeZod(field));
+				out.append(",\n");
+			}
+			if (model.getExtendsClass() != null && isEmpty) {
+				out.append(";\n");
+			} else {
+				out.append("\n});\n");
+			}
+			out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
+			// Check only the input value ==> no need of the output
+			out.append(generateExportCheckFunctionAppended(modeleType));
+			return out.toString();
 		}
-		for (final FieldProperty field : model.getFields()) {
-			// remove all readOnly field
-			if (!field.accessLimitation().updatable()) {
-				continue;
-			}
-			final ClassModel fieldModel = field.model();
-			if (field.comment() != null) {
-				out.append("\t/**\n");
-				out.append("\t * ");
-				out.append(field.comment());
-				out.append("\n\t */\n");
-			}
-			out.append("\t");
-			out.append(field.name());
-			out.append(": ");
-			if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
-				final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
-				out.append(tsFieldModel.zodName);
-			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
-				final String data = generateTsList(fieldListModel, tsGroup);
-				out.append(data);
-			} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
-				final String data = generateTsMap(fieldMapModel, tsGroup);
-				out.append(data);
-			}
-			out.append(maxSizeZod(field));
-			out.append(optionalWriteTypeZod(field));
-			out.append(optionalTypeZod(field));
-			out.append(",\n");
-		}
-		if (model.getExtendsClass() != null && isEmpty) {
-			out.append(";\n");
-		} else {
-			out.append("\n});\n");
-		}
-		out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
-		// Check only the input value ==> no need of the output
-		out.append(generateExportCheckFunctionAppended(modeleType));
-		return out.toString();
-	}
 
-	public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
-		final StringBuilder out = new StringBuilder();
-		final String modeleType = "";//MODEL_TYPE_CREATE;
-		out.append("export const ");
-		out.append(this.zodName);
-		out.append(modeleType);
-		out.append(" = ");
-		final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().creatable())
-				.count() == 0;
-		if (model.getExtendsClass() != null) {
-			final ClassModel parentClass = model.getExtendsClass();
-			final TsClassElement tsParentModel = tsGroup.find(parentClass);
-			out.append(tsParentModel.zodName);
+		public String generateObjectCreate(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
+			final StringBuilder out = new StringBuilder();
+			final String modeleType = "";//MODEL_TYPE_CREATE;
+			out.append("export const ");
+			out.append(this.zodName);
 			out.append(modeleType);
-			if (!isEmpty) {
-				out.append(".extend({\n");
+			out.append(" = ");
+			final boolean isEmpty = model.getFields().stream().filter(field -> field.accessLimitation().creatable())
+					.count() == 0;
+			if (model.getExtendsClass() != null) {
+				final ClassModel parentClass = model.getExtendsClass();
+				final TsClassElement tsParentModel = tsGroup.find(parentClass);
+				out.append(tsParentModel.zodName);
+				out.append(modeleType);
+				if (!isEmpty) {
+					out.append(".extend({\n");
+				}
+			} else {
+				out.append("zod.object({\n");
 			}
-		} else {
-			out.append("zod.object({\n");
+			for (final FieldProperty field : model.getFields()) {
+				// remove all readOnly field
+				if (!field.accessLimitation().creatable()) {
+					continue;
+				}
+				final ClassModel fieldModel = field.model();
+				if (field.comment() != null) {
+					out.append("\t/**\n");
+					out.append("\t * ");
+					out.append(field.comment());
+					out.append("\n\t * /\n");
+				}
+				out.append("\t");
+				out.append(field.name());
+				out.append(": ");
+				if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
+					final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
+					out.append(tsFieldModel.zodName);
+				} else if (fieldModel instanceof final ClassListModel fieldListModel) {
+					final String data = generateTsList(fieldListModel, tsGroup);
+					out.append(data);
+				} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
+					final String data = generateTsMap(fieldMapModel, tsGroup);
+					out.append(data);
+				}
+				out.append(maxSizeZod(field));
+				out.append(optionalWriteTypeZod(field));
+				out.append(optionalTypeZod(field));
+				out.append(",\n");
+			}
+			if (model.getExtendsClass() != null && isEmpty) {
+				out.append(";\n");
+			} else {
+				out.append("\n});\n");
+			}
+			out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
+			// Check only the input value ==> no need of the output
+			out.append(generateExportCheckFunctionAppended(modeleType));
+			return out.toString();
 		}
-		for (final FieldProperty field : model.getFields()) {
-			// remove all readOnly field
-			if (!field.accessLimitation().creatable()) {
-				continue;
-			}
-			final ClassModel fieldModel = field.model();
-			if (field.comment() != null) {
-				out.append("\t/**\n");
-				out.append("\t * ");
-				out.append(field.comment());
-				out.append("\n\t */\n");
-			}
-			out.append("\t");
-			out.append(field.name());
-			out.append(": ");
-			if (fieldModel instanceof ClassEnumModel || fieldModel instanceof ClassObjectModel) {
-				final TsClassElement tsFieldModel = tsGroup.find(fieldModel);
-				out.append(tsFieldModel.zodName);
-			} else if (fieldModel instanceof final ClassListModel fieldListModel) {
-				final String data = generateTsList(fieldListModel, tsGroup);
-				out.append(data);
-			} else if (fieldModel instanceof final ClassMapModel fieldMapModel) {
-				final String data = generateTsMap(fieldMapModel, tsGroup);
-				out.append(data);
-			}
-			out.append(maxSizeZod(field));
-			out.append(optionalWriteTypeZod(field));
-			out.append(optionalTypeZod(field));
-			out.append(",\n");
-		}
-		if (model.getExtendsClass() != null && isEmpty) {
-			out.append(";\n");
-		} else {
-			out.append("\n});\n");
-		}
-		out.append(generateZodInfer(this.tsTypeName + modeleType, this.zodName + modeleType));
-		// Check only the input value ==> no need of the output
-		out.append(generateExportCheckFunctionAppended(modeleType));
-		return out.toString();
-	}
+	*/
 
 	private static String generateZodInfer(final String tsName, final String zodName) {
 		final StringBuilder out = new StringBuilder();
@@ -678,12 +784,12 @@ public class TsClassElement {
 
 	private static String generateTsEnum(final ClassEnumModel model, final TsClassElementGroup tsGroup) {
 		final TsClassElement tsParentModel = tsGroup.find(model);
-		return tsParentModel.zodName;
+		return tsParentModel.aaaaaaaaaaaaaa_zodName;
 	}
 
 	private static String generateTsObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 		final TsClassElement tsParentModel = tsGroup.find(model);
-		return tsParentModel.zodName;
+		return tsParentModel.aaaaaaaaaaaaaa_zodName;
 	}
 
 	private static String generateTsList(final ClassListModel model, final TsClassElementGroup tsGroup) {
@@ -739,7 +845,7 @@ public class TsClassElement {
 	}
 
 	public static String generateLocalModel(
-			final String ModelName,
+			final String modelName,
 			final List<ClassModel> models,
 			final TsClassElementGroup tsGroup) {
 		if (models.size() == 1) {
@@ -752,7 +858,7 @@ public class TsClassElement {
 		}
 		final StringBuilder out = new StringBuilder();
 		out.append("export const Zod");
-		out.append(ModelName);
+		out.append(modelName);
 		out.append(" = ");
 		if (models.size() == 1) {
 			out.append(generateLocalModelBase(models.get(0), tsGroup));
@@ -767,8 +873,8 @@ public class TsClassElement {
 			out.append("]);");
 		}
 		//model.getDependencyModels()
-		out.append(generateZodInfer(ModelName, "Zod" + ModelName));
-		out.append(generateExportCheckFunction("is" + ModelName, ModelName, "Zod" + ModelName));
+		out.append(generateZodInfer(modelName, "Zod" + modelName));
+		out.append(generateExportCheckFunction("is" + modelName, modelName, "Zod" + modelName));
 		return out.toString();
 	}
 

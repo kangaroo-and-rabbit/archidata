@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
+import org.atriasoft.archidata.annotation.checker.GroupPersistant;
+import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.annotation.method.CALL;
@@ -18,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
@@ -35,7 +39,27 @@ public class TestTypeScriptApiGeneration {
 	}
 
 	public class TestObject extends OIDGenericDataSoftDelete {
-		public Long value;
+		public Long valueEmpty;
+		@Null()
+		public Long valueNullValid;
+		@Null(groups = GroupRead.class)
+		public Long valueNullGroupRead;
+		@Null(groups = GroupUpdate.class)
+		public Long valueNullGroupUpdate;
+		@Null(groups = GroupCreate.class)
+		public Long valueNullGroupCreate;
+		@Null(groups = GroupPersistant.class)
+		public Long valueNullGroupOther;
+		@NotNull()
+		public Long valueNotNullValid;
+		@NotNull(groups = GroupRead.class)
+		public Long valueNotNullGroupRead;
+		@NotNull(groups = GroupUpdate.class)
+		public Long valueNotNullGroupUpdate;
+		@NotNull(groups = GroupCreate.class)
+		public Long valueNotNullGroupCreate;
+		@NotNull(groups = GroupPersistant.class)
+		public Long valueNotNullGroupOther;
 	}
 
 	@Path("resourcePath")
@@ -221,31 +245,55 @@ public class TestTypeScriptApiGeneration {
 		//					};
 		//				}
 		//				""", generation.get(Paths.get("api/sample-resource-post")));
-		Assertions.assertEquals("""
-				/**
-				 * Interface of the server (auto-generated code)
-				 */
-				import { z as zod } from "zod";
+		Assertions.assertEquals(
+				"""
+						/**
+						 * Interface of the server (auto-generated code)
+						 */
+						import { z as zod } from "zod";
 
-				import {ZodLong} from "./long";
-				import {ZodOIDGenericDataSoftDelete} from "./oid-generic-data-soft-delete";
+						import {ZodLong} from "./long";
+						import {ZodOIDGenericDataSoftDelete, ZodOIDGenericDataSoftDeleteCreate } from "./oid-generic-data-soft-delete";
 
-				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					value: ZodLong.optional(),
+						// ... true ... [GroupRead, ]
+						export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
+							valueEmpty: ZodLong.optional(),
+							valueNotNullValid: ZodLong,
+							valueNotNullGroupRead: ZodLong,
 
-				});
+						});
 
-				export type TestObject = zod.infer<typeof ZodTestObject>;
+						export type TestObject = zod.infer<typeof ZodTestObject>;
 
-				export function isTestObject(data: any): data is TestObject {
-					try {
-						ZodTestObject.parse(data);
-						return true;
-					} catch (e: any) {
-						console.log(`Fail to parse data type='ZodTestObject' error=${e}`);
-						return false;
-					}
-				}
-				""", generation.get(Paths.get("model/test-object.ts")));
+						export function isTestObject(data: any): data is TestObject {
+							try {
+								ZodTestObject.parse(data);
+								return true;
+							} catch (e: any) {
+								console.log(`Fail to parse data type='TestObject' error=${e}`);
+								return false;
+							}
+						}
+						// ... true ... [GroupCreate, ]
+						export const ZodTestObjectCreate = ZodOIDGenericDataSoftDeleteCreate.extend({
+							valueEmpty: ZodLong.optional(),
+							valueNotNullValid: ZodLong,
+							valueNotNullGroupCreate: ZodLong,
+
+						});
+
+						export type TestObjectCreate = zod.infer<typeof ZodTestObjectCreate>;
+
+						export function isTestObjectCreate(data: any): data is TestObjectCreate {
+							try {
+								ZodTestObjectCreate.parse(data);
+								return true;
+							} catch (e: any) {
+								console.log(`Fail to parse data type='TestObjectCreate' error=${e}`);
+								return false;
+							}
+						}
+						""",
+				generation.get(Paths.get("model/test-object.ts")));
 	}
 }

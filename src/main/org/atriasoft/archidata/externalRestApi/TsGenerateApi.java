@@ -257,7 +257,7 @@ public class TsGenerateApi {
 			if (alreadyExist) {
 				continue;
 			}
-			tsModels.add(new TsClassElement(model));
+			tsModels.add(new TsClassElement(model, false));
 		}
 		return tsModels;
 

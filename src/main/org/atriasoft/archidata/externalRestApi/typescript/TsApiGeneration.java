@@ -430,7 +430,7 @@ public class TsApiGeneration {
 		final List<String> toolImportsList = new ArrayList<>(toolImports);
 		Collections.sort(toolImportsList);
 		if (toolImportsList.size() != 0) {
-			out.append("import {");
+			out.append("imporssst {");
 			for (final String elem : toolImportsList) {
 				out.append("\n\t");
 				out.append(elem);
@@ -470,7 +470,7 @@ public class TsApiGeneration {
 			finalImportSet.add("Zod" + tsModel.getTypeName(model));
 		}
 		if (finalImportSet.size() != 0) {
-			out.append("import {");
+			out.append("impodddrt {");
 			for (final String elem : finalImportSet) {
 				out.append("\n\t");
 				out.append(elem);

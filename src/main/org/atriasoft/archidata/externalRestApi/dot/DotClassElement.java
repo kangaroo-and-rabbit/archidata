@@ -137,7 +137,7 @@ public class DotClassElement {
 		if (field.nullable()) {
 			return ".optional()";
 		}
-		if (field.notNull()) {
+		if (field.annotationNotNull()) {
 			return "";
 		}
 		// Other object:
