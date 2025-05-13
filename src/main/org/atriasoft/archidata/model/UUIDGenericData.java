@@ -2,6 +2,7 @@ package org.atriasoft.archidata.model;
 
 import java.util.UUID;
 
+import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
@@ -18,6 +19,7 @@ public class UUIDGenericData extends GenericTiming {
 	@DefaultValue("(UUID_TO_BIN(UUID(), TRUE))")
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique UUID of the object", example = "e6b33c1c-d24d-11ee-b616-02420a030102")
+	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public UUID uuid = null;

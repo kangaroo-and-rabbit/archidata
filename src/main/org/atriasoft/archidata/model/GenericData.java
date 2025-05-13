@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.model;
 
+import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
@@ -17,6 +18,7 @@ public class GenericData extends GenericTiming {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	@Schema(description = "Unique Id of the object", example = "123456")
+	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public Long id = null;

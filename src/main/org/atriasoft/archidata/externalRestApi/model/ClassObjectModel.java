@@ -14,6 +14,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiNotNull;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;
@@ -85,6 +86,7 @@ public class ClassObjectModel extends ClassModel {
 			Pattern pattern,
 			Email email,
 			ApiAccessLimitation accessLimitation,
+			ApiReadOnly apiReadOnly,
 			ApiNotNull apiNotNull,
 			NotNull annotationNotNull,
 			Null annotationNull,
@@ -103,6 +105,7 @@ public class ClassObjectModel extends ClassModel {
 				final Pattern pattern, //
 				final Email email, //
 				final ApiAccessLimitation accessLimitation, //
+				final ApiReadOnly apiReadOnly, //
 				final ApiNotNull apiNotNull, //
 				final NotNull annotationNotNull, //
 				final Null annotationNull, //
@@ -123,6 +126,7 @@ public class ClassObjectModel extends ClassModel {
 			} else {
 				this.accessLimitation = accessLimitation;
 			}
+			this.apiReadOnly = apiReadOnly;
 			this.annotationNotNull = annotationNotNull;
 			this.apiNotNull = apiNotNull;
 			this.annotationNull = annotationNull;
@@ -176,6 +180,7 @@ public class ClassObjectModel extends ClassModel {
 					AnnotationTools.getConstraintsPattern(field), //
 					AnnotationTools.getConstraintsEmail(field), //
 					AnnotationTools.get(field, ApiAccessLimitation.class), //
+					AnnotationTools.get(field, ApiReadOnly.class), //
 					AnnotationTools.get(field, ApiNotNull.class), //
 					AnnotationTools.get(field, NotNull.class), //
 					AnnotationTools.get(field, Null.class), //
