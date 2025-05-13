@@ -3,6 +3,7 @@ package org.atriasoft.archidata.dataAccess;
 import java.io.IOException;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -109,6 +110,11 @@ public class DataAccess {
 		try (DBAccess db = DBAccess.createInterface()) {
 			return db.update(data, id);
 		}
+	}
+
+	public static <T, ID_TYPE> long updateAll(final T data, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
+		return update(data, id, AnnotationTools.getFieldsNames(data.getClass()), option);
 	}
 
 	public static <T, ID_TYPE> long update(

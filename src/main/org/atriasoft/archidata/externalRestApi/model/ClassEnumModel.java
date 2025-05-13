@@ -2,9 +2,9 @@ package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.tools.AnnotationCreator;
@@ -25,7 +25,7 @@ public class ClassEnumModel extends ClassModel {
 		return out.toString();
 	}
 
-	final Map<String, Object> listOfValues = new HashMap<>();
+	final Map<String, Object> listOfValues = new TreeMap<>();
 
 	@Override
 	public void analyze(final ModelGroup group) throws IOException {

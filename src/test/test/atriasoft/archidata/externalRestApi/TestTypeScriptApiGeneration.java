@@ -140,7 +140,6 @@ public class TestTypeScriptApiGeneration {
 					RESTConfig,
 					RESTRequestJson,
 				} from "../rest-tools";
-
 				import {
 					ObjectId,
 					TestObject,
@@ -148,7 +147,6 @@ public class TestTypeScriptApiGeneration {
 				} from "../model";
 
 				export namespace SampleResourceGet {
-
 					export function get({
 							restConfig,
 							params,
@@ -168,18 +166,19 @@ public class TestTypeScriptApiGeneration {
 						}, isTestObject);
 					};
 				}
-				""", generation.get(Paths.get("api/sample-resource-get")));
+				""", generation.get(Paths.get("api/sample-resource-get.ts")));
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
 				 */
 				import { z as zod } from "zod";
-
-				import {ZodLong} from "./long";
-				import {ZodOIDGenericDataSoftDelete} from "./oid-generic-data-soft-delete";
+				import { ZodLong } from "./long";
+				import { OIDGenericDataSoftDelete } from "./oid-generic-data-soft-delete";
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					value: ZodLong.optional(),
+					valueEmpty: ZodLong.optional(),
+					valueNotNullValid: ZodLong,
+					valueNotNullGroupRead: ZodLong,
 
 				});
 
@@ -190,7 +189,7 @@ public class TestTypeScriptApiGeneration {
 						ZodTestObject.parse(data);
 						return true;
 					} catch (e: any) {
-						console.log(`Fail to parse data type='ZodTestObject' error=${e}`);
+						console.log(`Fail to parse data type='TestObject' error=${e}`);
 						return false;
 					}
 				}
@@ -208,92 +207,89 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		//Assertions.assertEquals(15, generation.size());
-		//		Assertions.assertEquals("""
-		//				/**
-		//				 * Interface of the server (auto-generated code)
-		//				 */
-		//				import {
-		//					HTTPRequestModel,
-		//					RESTConfig,
-		//					RESTRequestJson,
-		//				} from "../rest-tools";
-		//
-		//				import {
-		//					TestObject,
-		//					TestObjectCreate,
-		//					isTestObject,
-		//				} from "../model";
-		//
-		//				export namespace SampleResourcePost {
-		//
-		//					export function create({
-		//							restConfig,
-		//							data,
-		//						}: {
-		//						restConfig: RESTConfig,
-		//						data: TestObjectCreate,
-		//					}): Promise<TestObject> {
-		//						return RESTRequestJson({
-		//							restModel: {
-		//								endPoint: "resourcePath/",
-		//								requestType: HTTPRequestModel.POST,
-		//							},
-		//							restConfig,
-		//							data,
-		//						}, isTestObject);
-		//					};
-		//				}
-		//				""", generation.get(Paths.get("api/sample-resource-post")));
-		Assertions.assertEquals(
-				"""
-						/**
-						 * Interface of the server (auto-generated code)
-						 */
-						import { z as zod } from "zod";
+		Assertions.assertEquals(15, generation.size());
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import {
+					HTTPRequestModel,
+					RESTConfig,
+					RESTRequestJson,
+				} from "../rest-tools";
+				import {
+					TestObject,
+					TestObjectCreate,
+					isTestObject,
+				} from "../model";
 
-						import {ZodLong} from "./long";
-						import {ZodOIDGenericDataSoftDelete, ZodOIDGenericDataSoftDeleteCreate } from "./oid-generic-data-soft-delete";
+				export namespace SampleResourcePost {
+					export function create({
+							restConfig,
+							data,
+						}: {
+						restConfig: RESTConfig,
+						data: TestObjectCreate,
+					}): Promise<TestObject> {
+						return RESTRequestJson({
+							restModel: {
+								endPoint: "resourcePath/",
+								requestType: HTTPRequestModel.POST,
+							},
+							restConfig,
+							data,
+						}, isTestObject);
+					};
+				}
+				""", generation.get(Paths.get("api/sample-resource-post.ts")));
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodLong } from "./long";
+				import {
+					OIDGenericDataSoftDelete,
+					OIDGenericDataSoftDeleteCreate,
+				} from "./oid-generic-data-soft-delete";
 
-						// ... true ... [GroupRead, ]
-						export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-							valueEmpty: ZodLong.optional(),
-							valueNotNullValid: ZodLong,
-							valueNotNullGroupRead: ZodLong,
+				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
+					valueEmpty: ZodLong.optional(),
+					valueNotNullValid: ZodLong,
+					valueNotNullGroupRead: ZodLong,
 
-						});
+				});
 
-						export type TestObject = zod.infer<typeof ZodTestObject>;
+				export type TestObject = zod.infer<typeof ZodTestObject>;
 
-						export function isTestObject(data: any): data is TestObject {
-							try {
-								ZodTestObject.parse(data);
-								return true;
-							} catch (e: any) {
-								console.log(`Fail to parse data type='TestObject' error=${e}`);
-								return false;
-							}
-						}
-						// ... true ... [GroupCreate, ]
-						export const ZodTestObjectCreate = ZodOIDGenericDataSoftDeleteCreate.extend({
-							valueEmpty: ZodLong.optional(),
-							valueNotNullValid: ZodLong,
-							valueNotNullGroupCreate: ZodLong,
+				export function isTestObject(data: any): data is TestObject {
+					try {
+						ZodTestObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='TestObject' error=${e}`);
+						return false;
+					}
+				}
 
-						});
+				export const ZodTestObjectCreate = ZodOIDGenericDataSoftDeleteCreate.extend({
+					valueEmpty: ZodLong.optional(),
+					valueNotNullValid: ZodLong,
+					valueNotNullGroupCreate: ZodLong,
 
-						export type TestObjectCreate = zod.infer<typeof ZodTestObjectCreate>;
+				});
 
-						export function isTestObjectCreate(data: any): data is TestObjectCreate {
-							try {
-								ZodTestObjectCreate.parse(data);
-								return true;
-							} catch (e: any) {
-								console.log(`Fail to parse data type='TestObjectCreate' error=${e}`);
-								return false;
-							}
-						}
-						""",
-				generation.get(Paths.get("model/test-object.ts")));
+				export type TestObjectCreate = zod.infer<typeof ZodTestObjectCreate>;
+
+				export function isTestObjectCreate(data: any): data is TestObjectCreate {
+					try {
+						ZodTestObjectCreate.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='TestObjectCreate' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-object.ts")));
 	}
 }

@@ -32,6 +32,7 @@ public abstract class ClassModel {
 		return this.originClasses == clazz;
 	}
 
+	@Deprecated
 	public Set<ClassModel> getDependencyModels() {
 		return this.dependencyModels;
 	}

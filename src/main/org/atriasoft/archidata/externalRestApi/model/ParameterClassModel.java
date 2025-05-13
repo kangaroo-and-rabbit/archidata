@@ -66,15 +66,21 @@ public record ParameterClassModel(
 		final ParameterClassModel that = (ParameterClassModel) o;
 
 		// Compare groups as sets (ignores order)
-		final Set<Class<?>> thisGroups = new HashSet<>(Arrays.asList(this.groups));
-		final Set<Class<?>> thatGroups = new HashSet<>(Arrays.asList(that.groups));
+		final Set<Class<?>> thisGroups = this.groups == null ? null : new HashSet<>(Arrays.asList(this.groups));
+		final Set<Class<?>> thatGroups = that.groups == null ? null : new HashSet<>(Arrays.asList(that.groups));
 
-		return this.valid == that.valid && thisGroups.equals(thatGroups);
+		return this.valid == that.valid && Objects.equals(thatGroups, thisGroups);
 	}
 
 	@Override
 	public int hashCode() {
 		final Set<Class<?>> groupSet = this.groups == null ? null : new HashSet<>(Arrays.asList(this.groups));
 		return Objects.hash(this.valid, groupSet);
+	}
+
+	@Override
+	public String toString() {
+		return "ParameterClassModel [valid=" + this.valid + ", groups=" + Arrays.toString(this.groups) + ", model="
+				+ this.model + "]";
 	}
 }

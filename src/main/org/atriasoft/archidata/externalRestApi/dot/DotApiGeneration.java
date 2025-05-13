@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.atriasoft.archidata.externalRestApi.dot.DotClassElement.DefinedPosition;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
-import org.atriasoft.archidata.externalRestApi.model.ApiModel.OptionalClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
@@ -207,15 +205,16 @@ public class DotApiGeneration {
 				}
 				hasParam = true;
 				data.append("data: ");
-				data.append(
-						generateClassModelTypescript(interfaceElement.unnamedElement.get(0), dotGroup, writeImports));
+				// TODO: set it back: data.append(	generateClassModelTypescript(interfaceElement.unnamedElement.get(0), dotGroup, writeImports));
 			} else if (interfaceElement.multiPartParameters.size() != 0) {
 				if (hasParam) {
 					data.append(", ");
 				}
 				hasParam = true;
-				boolean hasParam2 = false;
+				final boolean hasParam2 = false;
 				data.append("data: {");
+				// TODO: set it back:
+				/*
 				for (final Entry<String, OptionalClassModel> pathEntry : interfaceElement.multiPartParameters
 						.entrySet()) {
 					if (hasParam2) {
@@ -226,6 +225,7 @@ public class DotApiGeneration {
 					data.append(": ");
 					data.append(generateClassModelsTypescript(pathEntry.getValue().model(), dotGroup));
 				}
+				*/
 				data.append("}");
 			}
 			data.append("): ");

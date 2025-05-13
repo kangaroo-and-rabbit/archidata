@@ -137,14 +137,14 @@ public class DotClassElement {
 		if (field.nullable()) {
 			return ".optional()";
 		}
-		if (field.annotationNotNull()) {
+		if (field.annotationNotNull() != null) {
 			return "";
 		}
 		// Other object:
 		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
 			return "";
 		}
-		if (field.columnNotNull()) {
+		if (field.annotationNull() != null) {
 			return "";
 		}
 		return ".optional()";
