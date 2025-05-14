@@ -10,6 +10,8 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
+import org.atriasoft.archidata.annotation.checker.GroupWithContext;
+import org.atriasoft.archidata.annotation.checker.UniqueInBaseId;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -33,6 +35,7 @@ public class User extends GenericDataSoftDelete {
 	@Column(length = 128)
 	@Size(min = 3, max = 128)
 	@Pattern(regexp = "^[a-zA-Z0-9-_ \\.]+$")
+	@UniqueInBaseId(target = User.class, nameOfField = "login", groups = GroupWithContext.class)
 	public String login = null;
 
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
@@ -41,15 +44,11 @@ public class User extends GenericDataSoftDelete {
 
 	@DefaultValue("'0'")
 	@Column(nullable = false)
-	@ApiReadOnly
-	@NotNull(groups = { GroupPersistant.class })
-	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public Boolean blocked = false;
 	@Column(length = 512)
 	@Size(max = 512)
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
-	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public String blockedReason;
 
 	@Schema(description = "List of Id of the specific covers")

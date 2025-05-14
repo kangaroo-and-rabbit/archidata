@@ -1,5 +1,11 @@
 package org.atriasoft.archidata.catcher;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 import org.atriasoft.archidata.exception.InputException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +44,12 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 	 * @return a RestErrorResponse object containing the error details
 	 */
 	private RestErrorResponse build(final InputException exception) {
-		return new RestErrorResponse(exception.status, "Error on input='" + exception.missingVariable + "'",
-				exception.getMessage());
+		final List<RestInputError> inputError = new ArrayList<>();
+		inputError.add(new RestInputError(exception.missingVariable, exception.getMessage()));
+		Collections.sort(inputError, Comparator.comparing(RestInputError::getFullPath));
+		final String errorType = "Constraint Violation";
+		return new RestErrorResponse(Response.Status.BAD_REQUEST, Instant.now().toString(), errorType,
+				exception.getMessage(), inputError);
 	}
 
 }
