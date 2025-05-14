@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
@@ -45,6 +47,17 @@ public class RESTApiRequest {
 	private String verb = "GET";
 	private boolean showIOStrean = false;
 	private boolean formatBody = false;
+
+	String tryPrettyJson(final String data) {
+		final ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			final JsonNode jsonNode = objectMapper.readTree(data);
+			objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+			return objectMapper.writeValueAsString(jsonNode);
+		} catch (final Exception e) {
+			return data;
+		}
+	}
 
 	/**
 	 * Constructor to initialize the RESTApiRequest with base URL and authorization token.
@@ -420,7 +433,7 @@ public class RESTApiRequest {
 		if (this.showIOStrean) {
 			if (this.serializedBodyString != null) {
 				LOGGER.info("    content size: {}", this.serializedBodyString.length());
-				LOGGER.info("    body(String): \"\"\"{}\"\"\"", this.serializedBodyString);
+				LOGGER.info("    body(String): \"\"\"{}\"\"\"", tryPrettyJson(this.serializedBodyString));
 			} else if (this.serializedBodyByte != null) {
 				LOGGER.info("    content size: {}", this.serializedBodyByte.length);
 				LOGGER.info("    body(byte[]): \"\"\"{}\"\"\"", this.serializedBodyByte);
@@ -539,7 +552,11 @@ public class RESTApiRequest {
 		for (final Map.Entry<String, List<String>> header : httpResponse.headers().map().entrySet()) {
 			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(), String.join(", ", header.getValue()));
 		}
-		LOGGER.info("    body: \"\"\"{}\"\"\"", httpResponse.body());
+		if (httpResponse.body() instanceof final String tmpBody) {
+			LOGGER.info("    body: \"\"\"{}\"\"\"", tryPrettyJson(tmpBody));
+		} else {
+			LOGGER.info("    body: \"\"\"{}\"\"\"", httpResponse.body());
+		}
 	}
 
 	/**
