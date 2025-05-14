@@ -31,10 +31,15 @@ public class RESTApi {
 	final String baseUrl;
 	private String token = null;
 	final ObjectMapper mapper;
+	boolean showIOStrean = false;
 
 	public RESTApi(final String baseUrl) {
 		this.baseUrl = baseUrl;
 		this.mapper = ContextGenericTools.createObjectMapper();
+	}
+
+	public void showIOStrean() {
+		this.showIOStrean = true;
 	}
 
 	public void setToken(final String token) {
@@ -45,14 +50,21 @@ public class RESTApi {
 		return request("");
 	}
 
-	public RESTApiRequest request(final String... urlOffset) {
+	public RESTApiRequest request(final Object... urlOffset) {
 		final StringBuilder url = new StringBuilder();
 		url.append(this.baseUrl.replaceAll("/*$", ""));
-		for (final String elem : urlOffset) {
+		for (final Object elem : urlOffset) {
+			if (elem == null) {
+				continue;
+			}
 			url.append("/");
-			url.append(elem.replaceAll("/*$", ""));
+			url.append(elem.toString().replaceAll("/*$", ""));
 		}
-		return new RESTApiRequest(url.toString(), this.token);
+		final RESTApiRequest out = new RESTApiRequest(url.toString(), this.token);
+		if (this.showIOStrean) {
+			out.showIOStrean();
+		}
+		return out;
 	}
 
 	public <TYPE_RESPONSE> List<TYPE_RESPONSE> gets(final Class<TYPE_RESPONSE> clazz, final String urlOffset)
