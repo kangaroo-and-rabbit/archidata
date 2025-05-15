@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target(FIELD)
+@Deprecated(since = "v0.30.0", forRemoval = true)
 public @interface ApiAccessLimitation {
 	/**
 	 * (Optional) The field is accessible in read (GET)
