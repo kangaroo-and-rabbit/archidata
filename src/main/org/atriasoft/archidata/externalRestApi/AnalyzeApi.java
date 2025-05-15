@@ -52,7 +52,7 @@ public class AnalyzeApi {
 				if (dones.contains(model)) {
 					continue;
 				}
-				LOGGER.info("Analyze: {}", model);
+				LOGGER.debug("Analyze: {}", model);
 				model.analyze(this.modelGroup);
 				dones.add(model);
 			}

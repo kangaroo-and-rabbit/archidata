@@ -440,7 +440,7 @@ public class TsApiGeneration {
 		for (final Entry<ClassModel, Set<PairElem>> importElem : imports.data.entrySet()) {
 			final TsClassElement tsModel = tsGroup.find(importElem.getKey());
 			if (tsModel == null) {
-				LOGGER.error("Fail to get ts object ...");
+				LOGGER.trace("Fail to get ts object ...");
 				continue;
 			}
 			if (tsModel.nativeType == DefinedPosition.NATIVE) {

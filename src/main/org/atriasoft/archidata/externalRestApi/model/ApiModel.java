@@ -79,28 +79,28 @@ public class ApiModel {
 		}
 
 		final Class<?> returnTypeModelRaw = method.getReturnType();
-		LOGGER.info("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
+		LOGGER.trace("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
 		if (returnTypeModelRaw == Map.class) {
-			LOGGER.warn("Model Map");
+			LOGGER.trace("Model Map");
 			final Type listType = method.getGenericReturnType();
 			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
 			this.returnTypes.add(modelGenerated);
-			LOGGER.warn("Model Map ==> {}", modelGenerated);
+			LOGGER.trace("Model Map ==> {}", modelGenerated);
 			return;
 		} else if (returnTypeModelRaw == List.class) {
-			LOGGER.warn("Model List");
+			LOGGER.trace("Model List");
 			final Type listType = method.getGenericReturnType();
 			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
 			this.returnTypes.add(modelGenerated);
-			LOGGER.warn("Model List ==> {}", modelGenerated);
+			LOGGER.trace("Model List ==> {}", modelGenerated);
 			return;
 		} else {
-			LOGGER.warn("Model Object");
+			LOGGER.trace("Model Object");
 			this.returnTypes.add(previousModel.add(returnTypeModelRaw));
 		}
-		LOGGER.warn("List of returns elements:");
+		LOGGER.trace("List of returns elements:");
 		for (final ClassModel elem : this.returnTypes) {
-			LOGGER.warn("    - {}", elem);
+			LOGGER.trace("    - {}", elem);
 		}
 		if (this.returnTypes.size() == 0) {
 			this.produces.clear();

@@ -407,10 +407,6 @@ public class TsClassElement {
 	}
 
 	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
-		if (field.model().getOriginClasses() == Boolean.class && field.annotationNotNull() != null
-				&& field.annotationNull() != null) {
-			LOGGER.error("jkhkjhkjhkjhkjhkjhkjh");
-		}
 		if (field.apiNotNull() != null) {
 			return !field.apiNotNull().value();
 		}

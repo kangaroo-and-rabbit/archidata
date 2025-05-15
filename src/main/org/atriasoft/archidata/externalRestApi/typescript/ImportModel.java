@@ -51,45 +51,25 @@ public class ImportModel {
 	final Map<ClassModel, Set<PairElem>> data = new HashMap<>();
 
 	public void add(final boolean valid, final Class<?>[] groups, final ClassModel model) {
-		if (model.getOriginClasses() != null && "BaseEntity".equals(model.getOriginClasses().getSimpleName())) {
-			LOGGER.error("lkjlkjlkj");
-		}
 		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
-		LOGGER.error(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Add import: {}",
-				model.getOriginClasses() == null ? null : model.getOriginClasses().getSimpleName());
 		values.add(new PairElem(ModeImport.TYPE, valid, groups));
 		this.data.put(model, values);
 	}
 
 	public void add(final ClassModel model) {
-		if (model.getOriginClasses() != null && "BaseEntity".equals(model.getOriginClasses().getSimpleName())) {
-			LOGGER.error("lkjlkjlkj");
-		}
 		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
-		LOGGER.error(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Add import: {}",
-				model.getOriginClasses() == null ? null : model.getOriginClasses().getSimpleName());
 		values.add(new PairElem(ModeImport.TYPE, true, new Class<?>[] { GroupRead.class }));
 		this.data.put(model, values);
 	}
 
 	public void addZod(final ClassModel model) {
-		if (model.getOriginClasses() != null && "BaseEntity".equals(model.getOriginClasses().getSimpleName())) {
-			LOGGER.error("lkjlkjlkj");
-		}
 		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
-		LOGGER.error(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Add import ZOD : {}",
-				model.getOriginClasses() == null ? null : model.getOriginClasses().getSimpleName());
 		values.add(new PairElem(ModeImport.ZOD, true, new Class<?>[] { GroupRead.class }));
 		this.data.put(model, values);
 	}
 
 	public void addCheck(final ClassModel model) {
-		if (model.getOriginClasses() != null && "BaseEntity".equals(model.getOriginClasses().getSimpleName())) {
-			LOGGER.error("lkjlkjlkj");
-		}
 		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
-		LOGGER.error(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Add import CHECK: {}",
-				model.getOriginClasses() == null ? null : model.getOriginClasses().getSimpleName());
 		values.add(new PairElem(ModeImport.IS, true, new Class<?>[] { GroupRead.class }));
 		this.data.put(model, values);
 	}
