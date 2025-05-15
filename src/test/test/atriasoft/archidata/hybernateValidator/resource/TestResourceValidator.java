@@ -1,5 +1,7 @@
 package test.atriasoft.archidata.hybernateValidator.resource;
 
+import org.atriasoft.archidata.annotation.checker.GroupCreate;
+import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +26,9 @@ public class TestResourceValidator {
 	@POST
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void post(final @QueryParam("queryParametersName") @Min(5) Long value, final @Valid ValidatorModel data)
-			throws Exception {
+	public void post(
+			final @QueryParam("queryParametersName") @Min(5) Long value,
+			final @Valid @ValidGroup(GroupCreate.class) ValidatorModel data) throws Exception {
 		return;
 	}
 

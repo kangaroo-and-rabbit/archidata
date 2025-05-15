@@ -177,9 +177,14 @@ public class TestTypeScriptApiGeneration {
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
 					valueEmpty: ZodLong.optional(),
+					valueNullGroupUpdate: ZodLong.optional(),
+					valueNullGroupCreate: ZodLong.optional(),
+					valueNullGroupOther: ZodLong.optional(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-
+					valueNotNullGroupUpdate: ZodLong.optional(),
+					valueNotNullGroupCreate: ZodLong.optional(),
+					valueNotNullGroupOther: ZodLong.optional(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -255,9 +260,14 @@ public class TestTypeScriptApiGeneration {
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
 					valueEmpty: ZodLong.optional(),
+					valueNullGroupUpdate: ZodLong.optional(),
+					valueNullGroupCreate: ZodLong.optional(),
+					valueNullGroupOther: ZodLong.optional(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-
+					valueNotNullGroupUpdate: ZodLong.optional(),
+					valueNotNullGroupCreate: ZodLong.optional(),
+					valueNotNullGroupOther: ZodLong.optional(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -274,9 +284,14 @@ public class TestTypeScriptApiGeneration {
 
 				export const ZodTestObjectCreate = ZodOIDGenericDataSoftDeleteCreate.extend({
 					valueEmpty: ZodLong.optional(),
+					valueNullGroupRead: ZodLong.optional(),
+					valueNullGroupUpdate: ZodLong.optional(),
+					valueNullGroupOther: ZodLong.optional(),
 					valueNotNullValid: ZodLong,
+					valueNotNullGroupRead: ZodLong.optional(),
+					valueNotNullGroupUpdate: ZodLong.optional(),
 					valueNotNullGroupCreate: ZodLong,
-
+					valueNotNullGroupOther: ZodLong.optional(),
 				});
 
 				export type TestObjectCreate = zod.infer<typeof ZodTestObjectCreate>;

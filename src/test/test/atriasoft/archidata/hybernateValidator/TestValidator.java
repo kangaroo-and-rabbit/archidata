@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,11 +53,26 @@ public class TestValidator {
 
 	}
 
-	@Order(2)
 	@Test
-	public void DetectGenericError() throws Exception {
+	public void DetectGenericErrorGroup() throws Exception {
 		final ValidatorModel data = new ValidatorModel();
 		data.value = "plop";
+		final RESTErrorResponseException exception = Assertions.assertThrows(RESTErrorResponseException.class,
+				() -> api.request(TestValidator.ENDPOINT_NAME).post().queryParam("queryParametersName", "2")
+						.bodyJson(data).fetch());
+		Assertions.assertNotNull(exception);
+		LOGGER.debug("error on input:{}", exception);
+		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.inputError);
+		Assertions.assertEquals(1, exception.inputError.size());
+		Assertions.assertEquals(null, exception.inputError.get(0).argument);
+		Assertions.assertEquals("value", exception.inputError.get(0).path);
+		Assertions.assertEquals("must be null", exception.inputError.get(0).message);
+	}
+
+	@Test
+	public void DetectGenericErrorValid() throws Exception {
+		final ValidatorModel data = new ValidatorModel();
 		data.data = "klsdfsdfsdfsdfj";
 		data.multipleElement = new ArrayList<>();
 		ValidatorSubModel tmp = new ValidatorSubModel();
@@ -76,7 +90,7 @@ public class TestValidator {
 		LOGGER.debug("error on input:{}", exception);
 		Assertions.assertNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
-		Assertions.assertEquals(5, exception.inputError.size());
+		Assertions.assertEquals(4, exception.inputError.size());
 		Assertions.assertEquals("arg0", exception.inputError.get(0).argument);
 		Assertions.assertEquals(null, exception.inputError.get(0).path);
 		Assertions.assertEquals("must be greater than or equal to 5", exception.inputError.get(0).message);
@@ -89,8 +103,5 @@ public class TestValidator {
 		Assertions.assertEquals("arg1", exception.inputError.get(3).argument);
 		Assertions.assertEquals("subElement.data", exception.inputError.get(3).path);
 		Assertions.assertEquals("size must be between 2 and 2147483647", exception.inputError.get(3).message);
-		Assertions.assertEquals("arg1", exception.inputError.get(4).argument);
-		Assertions.assertEquals("value", exception.inputError.get(4).path);
-		Assertions.assertEquals("Field can not be set, it is a read-only field.", exception.inputError.get(4).message);
 	}
 }
