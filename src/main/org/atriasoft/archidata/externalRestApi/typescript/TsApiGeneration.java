@@ -409,7 +409,7 @@ public class TsApiGeneration {
 				if (retType.getCheckType() != null) {
 					if ("isvoid".equals(retType.getCheckType())) {
 						// nothing to do...
-					} else {
+					} else if (retType.nativeType != DefinedPosition.NATIVE) {
 						data.append(", ");
 						data.append(retType.getCheckType());
 						imports.add(true, new Class<?>[] { GroupRead.class }, interfaceElement.returnTypes.get(0));
