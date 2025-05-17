@@ -7,6 +7,7 @@ import { RestErrorResponse, isRestErrorResponse } from './model';
 
 export enum HTTPRequestModel {
   ARCHIVE = 'ARCHIVE',
+  CALL = 'CALL',
   DELETE = 'DELETE',
   HEAD = 'HEAD',
   GET = 'GET',
