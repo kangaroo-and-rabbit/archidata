@@ -575,7 +575,7 @@ public class TsClassElement {
 		if (model.getExtendsClass() != null) {
 			final ClassModel parentClass = model.getExtendsClass();
 			if (imports != null) {
-				imports.add(parameterClassModel.valid(), parameterClassModel.groups(), parentClass);
+				imports.addZod(parameterClassModel.valid(), parameterClassModel.groups(), parentClass);
 			}
 			final TsClassElement tsParentModel = tsGroup.find(parentClass);
 			final String dataParent = tsParentModel.getZodName(parameterClassModel.valid(),

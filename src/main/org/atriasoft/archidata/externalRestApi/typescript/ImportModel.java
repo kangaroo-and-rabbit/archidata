@@ -62,9 +62,21 @@ public class ImportModel {
 		this.data.put(model, values);
 	}
 
+	public void addZod(final boolean valid, final Class<?>[] groups, final ClassModel model) {
+		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
+		values.add(new PairElem(ModeImport.ZOD, valid, groups));
+		this.data.put(model, values);
+	}
+
 	public void addZod(final ClassModel model) {
 		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
 		values.add(new PairElem(ModeImport.ZOD, true, new Class<?>[] { GroupRead.class }));
+		this.data.put(model, values);
+	}
+
+	public void addCheck(final boolean valid, final Class<?>[] groups, final ClassModel model) {
+		final Set<PairElem> values = this.data.getOrDefault(model, new HashSet<>());
+		values.add(new PairElem(ModeImport.IS, valid, groups));
 		this.data.put(model, values);
 	}
 
