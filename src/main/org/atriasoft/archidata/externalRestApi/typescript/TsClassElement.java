@@ -250,7 +250,7 @@ public class TsClassElement {
 				.parse(data);
 						return true;
 					} catch (e: any) {
-						console.log(`Fail to parse data type='""");
+						console.log(`Fail to parse data type='Zod""");
 		out.append(tsTypeName);
 		out.append("""
 				' error=${e}`);
