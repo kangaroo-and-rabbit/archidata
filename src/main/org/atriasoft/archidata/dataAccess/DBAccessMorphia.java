@@ -445,7 +445,7 @@ public class DBAccessMorphia extends DBAccess {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public <T> T insert(final T data, final QueryOption... option) throws Exception {
+	public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
 		final boolean directdata = options.exist(DirectData.class);
@@ -581,7 +581,7 @@ public class DBAccessMorphia extends DBAccess {
 		for (final LazyGetter action : asyncActions) {
 			action.doRequest();
 		}
-		return (T) getWhere(clazz, new Condition(new QueryCondition("_id", "=", insertedId)));
+		return uniqueId;
 	}
 
 	@Override

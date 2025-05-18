@@ -12,6 +12,7 @@ import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
+import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbConfig;
@@ -130,7 +131,23 @@ public abstract class DBAccess implements Closeable {
 		return out;
 	}
 
-	abstract public <T> T insert(final T data, final QueryOption... option) throws Exception;
+	@SuppressWarnings("unchecked")
+	public <T> T insert(final T data, final QueryOption... option) throws Exception {
+		final Object insertedId = insertPrimaryKey(data, option);
+		final QueryOptions options = new QueryOptions(option);
+		final QueryOptions injectedOptions = new QueryOptions();
+		final List<OverrideTableName> override = options.get(OverrideTableName.class);
+		if (override.size() != 0) {
+			injectedOptions.add(override.get(0));
+		}
+		final List<OptionSpecifyType> typeOptions = options.get(OptionSpecifyType.class);
+		for (final OptionSpecifyType elem : typeOptions) {
+			injectedOptions.add(elem);
+		}
+		return (T) get(data.getClass(), insertedId, injectedOptions.getAllArray());
+	}
+
+	abstract public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception;
 
 	// seems a good idea, but very dangerous if we not filter input data... if set an id it can be complicated...
 	public <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {

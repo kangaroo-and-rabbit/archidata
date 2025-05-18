@@ -878,7 +878,7 @@ public class DBAccessSQL extends DBAccess {
 
 	@Override
 	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
-	public <T> T insert(final T data, final QueryOption... option) throws Exception {
+	public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception {
 		if (data == null) {
 			throw new DataAccessException("Try to check a null data ==> wrong API");
 		}
@@ -1132,7 +1132,16 @@ public class DBAccessSQL extends DBAccess {
 		for (final LazyGetter action : asyncActions) {
 			action.doRequest();
 		}
-		return data;
+		if (uniqueSQLID != null) {
+			return uniqueSQLID;
+		}
+		if (uniqueSQLUUID != null) {
+			return uniqueSQLUUID;
+		}
+		if (uniqueSQLOID != null) {
+			return uniqueSQLOID;
+		}
+		throw new DataAccessException("Fail to retreive primaryKey");
 	}
 
 	@Override
