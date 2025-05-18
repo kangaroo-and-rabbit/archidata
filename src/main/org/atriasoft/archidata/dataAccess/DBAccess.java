@@ -178,8 +178,12 @@ public abstract class DBAccess implements Closeable {
 		return updateWhere(data, options.getAllArray());
 	}
 
-	public <T, ID_TYPE> long update(final T data, final ID_TYPE id) throws Exception {
-		return update(data, id, AnnotationTools.getFieldsNames(data.getClass()));
+	public <T, ID_TYPE> long update(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
+		final QueryOptions options = new QueryOptions(option);
+		if (!options.exist(FilterValue.class)) {
+			options.add(FilterValue.getEditableFieldsNames(data.getClass()));
+		}
+		return updateFull(data, id, options.getAllArray());
 	}
 
 	/** @param <T>
@@ -189,14 +193,10 @@ public abstract class DBAccess implements Closeable {
 	 * @param option
 	 * @return the affected rows.
 	 * @throws Exception */
-	public <T, ID_TYPE> long update(
-			final T data,
-			final ID_TYPE id,
-			final List<String> updateColomn,
-			final QueryOption... option) throws Exception {
+	public <T, ID_TYPE> long updateFull(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(data.getClass(), id, options)));
-		options.add(new FilterValue(updateColomn));
+		//options.add(new FilterValue(updateColomn));
 		options.add(new TransmitKey(id));
 		return updateWhere(data, options);
 	}

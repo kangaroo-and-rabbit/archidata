@@ -456,7 +456,7 @@ public class AnnotationTools {
 		return false;
 	}
 
-	public static List<String> getFieldsNames(final Class<?> clazz) {
+	public static List<String> getEditableFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, false);
 	}
 
@@ -464,7 +464,7 @@ public class AnnotationTools {
 		return getFieldsNamesFilter(clazz, true);
 	}
 
-	private static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) {
+	public static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) {
 		final List<String> out = new ArrayList<>();
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..

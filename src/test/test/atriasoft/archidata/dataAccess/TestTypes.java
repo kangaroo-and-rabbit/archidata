@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -391,7 +392,7 @@ public class TestTypes {
 		retrieve.textData = "test 3";
 		retrieve.booleanData = false;
 		retrieve.varcharData = "test3";
-		final long nbUpdate2 = ConfigureDb.da.update(retrieve, insertedData.id, List.of("textData"));
+		final long nbUpdate2 = ConfigureDb.da.updateFull(retrieve, insertedData.id, new FilterValue("textData"));
 		Assertions.assertEquals(1L, nbUpdate2);
 
 		// Get new data

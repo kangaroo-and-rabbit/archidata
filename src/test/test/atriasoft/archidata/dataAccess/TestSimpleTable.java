@@ -9,6 +9,7 @@ import java.util.List;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -104,7 +105,7 @@ public class TestSimpleTable {
 		// Delete the entry:
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED_2;
-		ConfigureDb.da.update(test, TestSimpleTable.idOfTheObject, List.of("data"));
+		ConfigureDb.da.updateFull(test, TestSimpleTable.idOfTheObject, new FilterValue("data"));
 		final SimpleTable retrieve = ConfigureDb.da.get(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);

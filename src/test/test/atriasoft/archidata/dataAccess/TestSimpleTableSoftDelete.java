@@ -9,6 +9,7 @@ import java.util.List;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -110,7 +111,7 @@ public class TestSimpleTableSoftDelete {
 		// Delete the entry:
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
-		ConfigureDb.da.update(test, TestSimpleTableSoftDelete.idOfTheObject, List.of("data"));
+		ConfigureDb.da.updateFull(test, TestSimpleTableSoftDelete.idOfTheObject, new FilterValue("data"));
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
 				QueryOptions.READ_ALL_COLOMN);

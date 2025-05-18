@@ -12,6 +12,7 @@ import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGenericUpdateAt;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
@@ -49,7 +50,8 @@ public class ManyToManyTools {
 			}
 		}
 		data.filedNameOfTheObject.add(valueToAdd);
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
+		options.add(new FilterValue("filedNameOfTheObject"));
+		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 
 	public static void addLink(
@@ -128,7 +130,8 @@ public class ManyToManyTools {
 		if (data.filedNameOfTheObject.isEmpty()) {
 			data.filedNameOfTheObject = null;
 		}
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
+		options.add(new FilterValue("filedNameOfTheObject"));
+		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 
 	public static void removeLink(

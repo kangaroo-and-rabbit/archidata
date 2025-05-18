@@ -888,7 +888,7 @@ public class DBAccessSQL extends DBAccess {
 		// External checker of data:
 		final List<CheckFunction> checks = options.get(CheckFunction.class);
 		for (final CheckFunction check : checks) {
-			check.getChecker().check(this, "", data, AnnotationTools.getFieldsNames(clazz), options);
+			check.getChecker().check(this, "", data, AnnotationTools.getEditableFieldsNames(clazz), options);
 		}
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		Long uniqueSQLID = null;

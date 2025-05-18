@@ -20,6 +20,7 @@ import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
@@ -242,7 +243,8 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 		}
 		data.filedNameOfTheObject.add(valueToAdd);
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
+		options.add(new FilterValue("filedNameOfTheObject"));
+		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 
 	public static void removeLink(
@@ -276,6 +278,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		if (data.filedNameOfTheObject.isEmpty()) {
 			data.filedNameOfTheObject = null;
 		}
-		ioDb.update(data, data.idOfTheObject, List.of("filedNameOfTheObject"), options.getAllArray());
+		options.add(new FilterValue("filedNameOfTheObject"));
+		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 }

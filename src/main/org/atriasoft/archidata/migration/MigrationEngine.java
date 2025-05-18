@@ -9,6 +9,7 @@ import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -321,7 +322,7 @@ public class MigrationEngine {
 		if (ret) {
 			migrationResult.terminated = true;
 			try {
-				da.update(migrationResult, migrationResult.id, List.of("terminated"));
+				da.updateFull(migrationResult, migrationResult.id, new FilterValue("terminated"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException(
@@ -331,7 +332,7 @@ public class MigrationEngine {
 			try {
 				log.append("Fail in the migration engine...");
 				migrationResult.log = log.toString();
-				da.update(migrationResult, migrationResult.id, List.of("log"));
+				da.updateFull(migrationResult, migrationResult.id, new FilterValue("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException("Fail to update migration Log in the migration table: "
