@@ -203,13 +203,6 @@ public abstract class DBAccess implements Closeable {
 		return updateFull(data, id, options.getAllArray());
 	}
 
-	/** @param <T>
-	 * @param data
-	 * @param id
-	 * @param updateColomn
-	 * @param option
-	 * @return the affected rows.
-	 * @throws Exception */
 	public <T, ID_TYPE> long updateFull(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(data.getClass(), id, options)));
