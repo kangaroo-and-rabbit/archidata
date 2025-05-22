@@ -47,7 +47,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 		final String dbName = this.config.getDbName();
 		// Connect to MongoDB (simple form):
 		// final MongoClient mongoClient = MongoClients.create(dbUrl);
-		LOGGER.info("Connect on the DB: {}", dbUrl);
+		LOGGER.info("Connect on the DB: {} with db name={}", dbUrl, dbName);
 		// Connect to MongoDB (complex form):
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
@@ -73,6 +73,6 @@ public class DbIoMongo extends DbIo implements Closeable {
 		if (dbName == null) {
 			LOGGER.info("Connect on the DB: {}", dbUrl);
 		}
-		this.dataBase = this.mongoClient.getDatabase("test");
+		this.dataBase = this.mongoClient.getDatabase(dbName);
 	}
 }
