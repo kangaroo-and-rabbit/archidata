@@ -612,7 +612,7 @@ public class TestTypeScriptApiGeneration {
 					RESTRequestJson,
 				} from "../rest-tools";
 				import {
-					TestEnumNV,
+					TestEnum,
 				} from "../model";
 
 				export namespace SampleResourceCall {
