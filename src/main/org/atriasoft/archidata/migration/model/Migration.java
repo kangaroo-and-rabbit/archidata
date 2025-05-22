@@ -6,7 +6,6 @@ import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import dev.morphia.annotations.Entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
@@ -17,7 +16,6 @@ import jakarta.ws.rs.DefaultValue;
 
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
 @Table(name = "KAR_migration")
-@Entity("KAR_migration")
 @DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration extends GenericDataSoftDelete {

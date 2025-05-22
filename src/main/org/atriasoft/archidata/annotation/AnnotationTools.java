@@ -17,8 +17,6 @@ import org.atriasoft.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import dev.morphia.annotations.Entity;
-import dev.morphia.mapping.Mapper;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.Column;
@@ -117,31 +115,6 @@ public class AnnotationTools {
 		final String tmp = ((Table) annotation[0]).name();
 		if (tmp == null) {
 			return element.getSimpleName();
-		}
-		return tmp;
-	}
-
-	public static String getCollectionName(final Class<?> clazz, final QueryOptions options) {
-		if (options != null) {
-			// TODO: maybe change OverrideTableName with OverrideCollectionName
-			final List<OverrideTableName> data = options.get(OverrideTableName.class);
-			if (data.size() == 1) {
-				return data.get(0).getName();
-			}
-		}
-		return AnnotationTools.getCollectionName(clazz);
-	}
-
-	// For No-SQL Table/Collection Name
-	public static String getCollectionName(final Class<?> clazz) {
-		final Annotation[] annotation = clazz.getDeclaredAnnotationsByType(Entity.class);
-		if (annotation.length == 0) {
-			// when no annotation is detected, then the table name is the class name
-			return clazz.getSimpleName();
-		}
-		final String tmp = ((Entity) annotation[0]).value();
-		if (tmp == null || tmp.length() == 0 || Mapper.IGNORED_FIELDNAME.equals(tmp)) {
-			return clazz.getSimpleName();
 		}
 		return tmp;
 	}
@@ -344,10 +317,6 @@ public class AnnotationTools {
 		if (annotationSQL.length > 0) {
 			return true;
 		}
-		final Annotation[] annotationMongo = element.getDeclaredAnnotationsByType(dev.morphia.annotations.Id.class);
-		if (annotationMongo.length > 0) {
-			return true;
-		}
 		return false;
 	}
 
@@ -384,10 +353,7 @@ public class AnnotationTools {
 	}
 
 	public static boolean isIdField(final Field element) {
-		if (element.getDeclaredAnnotationsByType(Id.class).length != 0) {
-			return true;
-		}
-		return element.getDeclaredAnnotationsByType(dev.morphia.annotations.Id.class).length != 0;
+		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
 	}
 
 	// Note: delete field can not be renamed with OptionRenameColumn

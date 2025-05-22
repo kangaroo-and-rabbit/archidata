@@ -1,15 +1,23 @@
 package test.atriasoft.archidata.dataAccess.model;
 
+import java.util.List;
+import java.util.Map;
+
+import org.atriasoft.archidata.annotation.DataJson;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
-public class TypesEnum2 {
+public class TypesComplexTable {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(nullable = false, unique = true)
 	public Long id = null;
 
-	public Enum2ForTest data;
+	@DataJson
+	public Map<Integer, Integer> MapIntInt;
+	@DataJson
+	public List<Integer> ListInt;
 }

@@ -4,7 +4,7 @@ import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.bson.Document;
@@ -27,7 +27,7 @@ public interface DataAccessAddOn {
 	boolean isCompatibleField(Field elem);
 
 	void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -50,7 +50,7 @@ public interface DataAccessAddOn {
 
 	// Return the number of colomn read
 	void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			Document doc,
 			Field field,
 			Object data,
@@ -71,7 +71,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object localId,
 			final Field field,
 			final Object data,
@@ -93,7 +93,7 @@ public interface DataAccessAddOn {
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object localId,
 			final Field field,
@@ -115,20 +115,20 @@ public interface DataAccessAddOn {
 	}
 
 	default void onDelete(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Field field,
 			final List<Object> previousData) throws Exception {
 
 	}
 
-	default void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)
+	default void drop(final DBAccessMongo ioDb, final String tableName, final Field field, final QueryOptions options)
 			throws Exception {
 
 	}
 
 	default void cleanAll(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final String tableName,
 			final Field field,
 			final QueryOptions options) throws Exception {

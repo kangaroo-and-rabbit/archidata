@@ -2,15 +2,12 @@ package test.atriasoft.archidata.dataAccess.model;
 
 import org.atriasoft.archidata.model.GenericData;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Table(name = "TypeManyToOneLongRoot")
-//for Morphia
-@Entity(value = "TypeManyToOneLongRoot")
 public class TypeManyToOneLongRootExpand extends GenericData {
 
 	public String otherData;

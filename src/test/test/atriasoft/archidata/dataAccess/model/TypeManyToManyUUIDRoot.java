@@ -5,11 +5,9 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.model.UUIDGenericData;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 
-@Entity
 public class TypeManyToManyUUIDRoot extends UUIDGenericData {
 
 	public String otherData;

@@ -18,7 +18,7 @@ import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
-import org.atriasoft.archidata.db.DbIoMorphia;
+import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.db.DbIoSql;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ContextGenericTools;
@@ -50,9 +50,9 @@ public abstract class DBAccess implements Closeable {
 	}
 
 	public static final DBAccess createInterface(final DbIo io) throws InternalServerErrorException {
-		if (io instanceof final DbIoMorphia ioMorphia) {
+		if (io instanceof final DbIoMongo ioMorphia) {
 			try {
-				return new DBAccessMorphia(ioMorphia);
+				return new DBAccessMongo(ioMorphia);
 			} catch (final IOException e) {
 				e.printStackTrace();
 				throw new InternalServerErrorException("Fail to create DB interface.");

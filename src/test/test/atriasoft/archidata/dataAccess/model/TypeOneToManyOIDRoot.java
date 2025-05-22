@@ -5,11 +5,9 @@ import java.util.List;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.OneToMany;
 
-@Entity
 public class TypeOneToManyOIDRoot extends OIDGenericData {
 
 	public String otherData;

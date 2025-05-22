@@ -5,11 +5,9 @@ import java.util.List;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 
-@Entity
 public class TypeManyToManyOIDRemote extends OIDGenericData {
 	@ManyToMany(fetch = FetchType.LAZY, targetEntity = TypeManyToManyOIDRoot.class, mappedBy = "remote")
 	public List<ObjectId> remoteToParent;

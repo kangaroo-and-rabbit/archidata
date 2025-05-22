@@ -169,19 +169,11 @@
 			<version>4.9.3</version>
 			<scope>compile</scope>
 		</dependency>
-		<!-- Morphia -->
-		<dependency>
-			<groupId>dev.morphia.morphia</groupId>
-			<artifactId>morphia-core</artifactId>
-			<version>2.5.0</version>
-		</dependency>
 		<!-- MongoDB Java Driver -->
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongodb-driver-sync</artifactId>
-			<!--<version>5.3.1</version>-->
-			<!--Morphia 2.4.x does not support version upper than 4.x-->
-			<version>4.11.5</version>
+			<version>5.3.1</version>
 		</dependency>
 		<!-- Bean Validation (JSR 303 / 380) -->
 		<dependency>

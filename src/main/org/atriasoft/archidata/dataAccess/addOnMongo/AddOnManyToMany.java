@@ -9,7 +9,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.dataAccess.CountInOut;
 import org.atriasoft.archidata.dataAccess.DBAccess;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryAnd;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
@@ -46,7 +46,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -174,7 +174,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,
@@ -262,7 +262,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object localKey,
 			final Field field,
@@ -298,7 +298,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void asyncInsert(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object localKey,
 			final Field field,
 			final Object data,
@@ -344,7 +344,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	}
 
 	@Override
-	public void drop(final DBAccessMorphia ioDb, final String tableName, final Field field, final QueryOptions options)
+	public void drop(final DBAccessMongo ioDb, final String tableName, final Field field, final QueryOptions options)
 			throws Exception {
 		final String columnName = AnnotationTools.getFieldName(field, options).inTable();
 		final String linkTableName = generateLinkTableName(tableName, columnName);
@@ -354,7 +354,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 
 	@Override
 	public void cleanAll(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final String tableName,
 			final Field field,
 			final QueryOptions options) throws Exception {
@@ -376,7 +376,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DBAccessMorphia daSQL) {
+		if (ioDb instanceof final DBAccessMongo daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			/* final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0]; if (objectClass != Long.class && objectClass != UUID.class) { throw new
@@ -384,7 +384,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final LinkTableGeneric insertElement = new LinkTableGeneric(localKey, remoteKey);
 			daSQL.insert(insertElement, new OverrideTableName(linkTableName),
 					new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
-		} else if (ioDb instanceof DBAccessMorphia) {
+		} else if (ioDb instanceof DBAccessMongo) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -398,14 +398,14 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			final long localKey,
 			final String column,
 			final long remoteKey) throws Exception {
-		if (ioDb instanceof final DBAccessMorphia daSQL) {
+		if (ioDb instanceof final DBAccessMongo daSQL) {
 			final String tableName = AnnotationTools.getTableName(clazz);
 			final String linkTableName = generateLinkTableName(tableName, column);
 			return daSQL.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTableName),
 					new Condition(new QueryAnd(new QueryCondition("object1Id", "=", localKey),
 							new QueryCondition("object2Id", "=", remoteKey))),
 					new OptionSpecifyType("object1Id", Long.class), new OptionSpecifyType("object2Id", Long.class));
-		} else if (ioDb instanceof DBAccessMorphia) {
+		} else if (ioDb instanceof DBAccessMongo) {
 			return 0L;
 		} else {
 			throw new DataAccessException("DataAccess Not managed");

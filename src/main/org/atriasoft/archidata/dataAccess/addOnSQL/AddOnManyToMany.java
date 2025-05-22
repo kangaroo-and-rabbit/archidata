@@ -15,7 +15,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.dataAccess.CountInOut;
 import org.atriasoft.archidata.dataAccess.DBAccess;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
@@ -522,7 +522,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			daSQL.insert(insertElement, new OverrideTableName(linkTable.tableName()),
 					new OptionSpecifyType(obj1, localKey.getClass()),
 					new OptionSpecifyType(obj2, remoteKey.getClass()));
-		} else if (ioDb instanceof DBAccessMorphia) {
+		} else if (ioDb instanceof DBAccessMongo) {
 
 		} else {
 			throw new DataAccessException("DataAccess Not managed");
@@ -544,7 +544,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 							new QueryCondition(obj2, "=", remoteKey))),
 					new OptionSpecifyType(obj1, localKey.getClass()),
 					new OptionSpecifyType(obj2, remoteKey.getClass()));
-		} else if (ioDb instanceof DBAccessMorphia) {
+		} else if (ioDb instanceof DBAccessMongo) {
 			return 0L;
 		} else {
 			throw new DataAccessException("DataAccess Not managed");

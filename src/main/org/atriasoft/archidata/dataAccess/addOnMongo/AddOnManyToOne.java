@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
@@ -43,7 +43,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -118,7 +118,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 
 	@Override
 	public void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,

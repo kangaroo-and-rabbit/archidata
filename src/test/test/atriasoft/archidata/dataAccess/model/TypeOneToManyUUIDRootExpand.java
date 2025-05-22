@@ -4,14 +4,11 @@ import java.util.List;
 
 import org.atriasoft.archidata.model.UUIDGenericData;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Table(name = "TypeOneToManyUUIDRoot")
-//for Mongo
-@Entity(value = "TypeOneToManyUUIDRoot")
 public class TypeOneToManyUUIDRootExpand extends UUIDGenericData {
 
 	public String otherData;

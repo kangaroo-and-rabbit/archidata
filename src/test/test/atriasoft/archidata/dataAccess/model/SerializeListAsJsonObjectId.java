@@ -6,9 +6,6 @@ import org.atriasoft.archidata.annotation.DataJson;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
-
-@Entity
 public class SerializeListAsJsonObjectId extends OIDGenericData {
 
 	@DataJson

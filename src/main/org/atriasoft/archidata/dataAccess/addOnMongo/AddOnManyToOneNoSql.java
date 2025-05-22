@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToOneNoSQL;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
@@ -51,7 +51,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -69,7 +69,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object primaryKeyValue,
 			final Field field,
@@ -111,7 +111,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 	 * @param actions Asynchronous action to do after main request. */
 	@Override
 	public void asyncInsert(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object primaryKeyValue,
 			final Field field,
 			final Object data,
@@ -147,7 +147,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,
@@ -194,7 +194,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public void onDelete(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Field field,
 			final List<Object> previousData) throws Exception {

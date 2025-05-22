@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
@@ -36,7 +36,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -79,7 +79,7 @@ public class AddOnOneToMany implements DataAccessAddOn {
 	// in first implementation we did not keep the data in the 2 Objects, bun we will do it after to have a faster table interactions.
 	@Override
 	public void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,

@@ -6,9 +6,6 @@ import org.atriasoft.archidata.annotation.ManyToManyNoSQL;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
-
-@Entity
 public class TypeManyToManyNoSqlOIDRemote extends OIDGenericData {
 	@ManyToManyNoSQL(targetEntity = TypeManyToManyNoSqlOIDRoot.class, remoteField = "remote")
 	public List<ObjectId> remoteToParent;

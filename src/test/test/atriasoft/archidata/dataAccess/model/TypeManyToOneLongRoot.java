@@ -2,11 +2,9 @@ package test.atriasoft.archidata.dataAccess.model;
 
 import org.atriasoft.archidata.model.GenericData;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.ManyToOne;
 
-@Entity
 public class TypeManyToOneLongRoot extends GenericData {
 
 	public String otherData;

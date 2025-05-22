@@ -44,7 +44,7 @@ public class DbIoFactory {
 			case "sqlite":
 				return new DbIoSql(config);
 			case "mongo":
-				return new DbIoMorphia(config);
+				return new DbIoMongo(config);
 		}
 		throw new IOException("DB type: '" + config.getType() + "'is not managed");
 

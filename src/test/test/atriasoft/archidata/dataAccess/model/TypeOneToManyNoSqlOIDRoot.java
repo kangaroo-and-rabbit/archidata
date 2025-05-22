@@ -6,10 +6,8 @@ import org.atriasoft.archidata.annotation.OneToManyNoSQL;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
 import jakarta.persistence.Column;
 
-@Entity
 public class TypeOneToManyNoSqlOIDRoot extends OIDGenericData {
 
 	public String otherData;

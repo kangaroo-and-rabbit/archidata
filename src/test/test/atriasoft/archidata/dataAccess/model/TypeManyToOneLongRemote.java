@@ -2,9 +2,6 @@ package test.atriasoft.archidata.dataAccess.model;
 
 import org.atriasoft.archidata.model.GenericData;
 
-import dev.morphia.annotations.Entity;
-
-@Entity
 public class TypeManyToOneLongRemote extends GenericData {
 
 	public String data;

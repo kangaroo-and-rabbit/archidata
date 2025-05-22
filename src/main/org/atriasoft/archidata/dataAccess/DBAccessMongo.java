@@ -35,7 +35,7 @@ import org.atriasoft.archidata.dataAccess.options.OrderBy;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
-import org.atriasoft.archidata.db.DbIoMorphia;
+import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.Document;
@@ -60,8 +60,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 /** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
  * back-end. */
-public class DBAccessMorphia extends DBAccess {
-	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMorphia.class);
+public class DBAccessMongo extends DBAccess {
+	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
@@ -82,12 +82,12 @@ public class DBAccessMorphia extends DBAccess {
 	 * @param addOn instantiate object on the Add-on
 	 */
 	public static void addAddOn(final DataAccessAddOn addOn) {
-		DBAccessMorphia.addOn.add(addOn);
+		DBAccessMongo.addOn.add(addOn);
 	}
 
-	private final DbIoMorphia db;
+	private final DbIoMongo db;
 
-	public DBAccessMorphia(final DbIoMorphia db) throws IOException {
+	public DBAccessMongo(final DbIoMongo db) throws IOException {
 		this.db = db;
 		db.open();
 	}
@@ -97,7 +97,7 @@ public class DBAccessMorphia extends DBAccess {
 		this.db.close();
 	}
 
-	public DbIoMorphia getInterface() {
+	public DbIoMongo getInterface() {
 		return this.db;
 	}
 
@@ -423,8 +423,7 @@ public class DBAccessMorphia extends DBAccess {
 			fieldName = "sequence_id";
 		}
 		// Collection "counters" to store the sequences if Ids
-		final MongoCollection<Document> countersCollection = this.db.getDatastore().getDatabase()
-				.getCollection("counters");
+		final MongoCollection<Document> countersCollection = this.db.getDatabase().getCollection("counters");
 
 		// Filter to find the specific counter for the collections
 		final Document filter = new Document("_id", collectionName);
@@ -457,14 +456,13 @@ public class DBAccessMorphia extends DBAccess {
 		}
 
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		Field primaryKeyField = null;
 		Object uniqueId = null;
 		// real add in the BDD:
 		ObjectId insertedId = null;
 		try {
-			final MongoCollection<Document> collection = this.db.getDatastore().getDatabase()
-					.getCollection(collectionName);
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Document docSet = new Document();
 			final Document docUnSet = new Document();
 			for (final Field field : clazz.getFields()) {
@@ -631,7 +629,7 @@ public class DBAccessMorphia extends DBAccess {
 
 		// real add in the BDD:
 		try {
-			final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+			final String collectionName = AnnotationTools.getTableName(clazz, options);
 
 			final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
@@ -687,8 +685,7 @@ public class DBAccessMorphia extends DBAccess {
 				}
 			}
 			// Do the query ...
-			final MongoCollection<Document> collection = this.db.getDatastore().getDatabase()
-					.getCollection(collectionName);
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Document actions = new Document();
 			if (!docSet.isEmpty()) {
 				actions.append("$set", docSet);
@@ -764,9 +761,9 @@ public class DBAccessMorphia extends DBAccess {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final List<Object> outs = new ArrayList<>();
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
@@ -898,8 +895,8 @@ public class DBAccessMorphia extends DBAccess {
 	public long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
@@ -968,9 +965,9 @@ public class DBAccessMorphia extends DBAccess {
 	public long deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 
 		actionOnDelete(clazz, option);
@@ -996,9 +993,9 @@ public class DBAccessMorphia extends DBAccess {
 	public long deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
 		LOGGER.debug("update some values: {}", actions.toJson());
@@ -1026,12 +1023,12 @@ public class DBAccessMorphia extends DBAccess {
 	public long unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (deletedFieldName == null) {
 			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
 		}
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
 		LOGGER.debug("update some values: {}", actions.toJson());
@@ -1042,16 +1039,16 @@ public class DBAccessMorphia extends DBAccess {
 	@Override
 	public void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		collection.drop();
 	}
 
 	@Override
 	public void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		final String collectionName = AnnotationTools.getCollectionName(clazz, options);
-		final MongoCollection<Document> collection = this.db.getDatastore().getDatabase().getCollection(collectionName);
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		collection.deleteMany(new Document());
 	}
 

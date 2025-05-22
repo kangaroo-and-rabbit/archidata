@@ -15,21 +15,19 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 
-import dev.morphia.Datastore;
-import dev.morphia.Morphia;
-
-public class DbIoMorphia extends DbIo implements Closeable {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DbIoMorphia.class);
+public class DbIoMongo extends DbIo implements Closeable {
+	private final static Logger LOGGER = LoggerFactory.getLogger(DbIoMongo.class);
 	private MongoClient mongoClient = null;
-	private Datastore datastore = null;
+	private MongoDatabase dataBase = null;
 
-	public DbIoMorphia(final DbConfig config) throws IOException {
+	public DbIoMongo(final DbConfig config) throws IOException {
 		super(config);
 	}
 
-	public Datastore getDatastore() {
-		return this.datastore;
+	public MongoDatabase getDatabase() {
+		return this.dataBase;
 	}
 
 	public MongoClient getClient() {
@@ -40,7 +38,7 @@ public class DbIoMorphia extends DbIo implements Closeable {
 	synchronized public void closeImplement() throws IOException {
 		this.mongoClient.close();
 		this.mongoClient = null;
-		this.datastore = null;
+		this.dataBase = null;
 	}
 
 	@Override
@@ -67,17 +65,16 @@ public class DbIoMorphia extends DbIo implements Closeable {
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
 				pojoCodecRegistry, SqlTimestampCodecRegistry);
-		// Configurer MongoClientSettings
+		// Configure MongoClientSettings
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString)//
 				.codecRegistry(codecRegistry) //
 				.uuidRepresentation(UuidRepresentation.STANDARD)//
 				.build();
 		this.mongoClient = MongoClients.create(clientSettings);
-		this.datastore = Morphia.createDatastore(this.mongoClient, dbName);
-		// Map entities
-		this.datastore.getMapper().map(classes);
-		// Ensure indexes
-		this.datastore.ensureIndexes();
+		if (dbName == null) {
+			LOGGER.info("Connect on the DB: {}", dbUrl);
+		}
+		this.dataBase = this.mongoClient.getDatabase("test");
 	}
 }

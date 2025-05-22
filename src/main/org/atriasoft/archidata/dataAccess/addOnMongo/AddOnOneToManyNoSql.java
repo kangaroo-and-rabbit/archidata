@@ -12,7 +12,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.OneToManyNoSQL;
 import org.atriasoft.archidata.annotation.OneToManyNoSQL.CascadeMode;
-import org.atriasoft.archidata.dataAccess.DBAccessMorphia;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
@@ -53,7 +53,7 @@ public class AddOnOneToManyNoSql implements DataAccessAddOn {
 
 	@Override
 	public void insertData(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Field field,
 			final Object rootObject,
 			final QueryOptions options,
@@ -71,7 +71,7 @@ public class AddOnOneToManyNoSql implements DataAccessAddOn {
 
 	@Override
 	public void asyncUpdate(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object primaryKeyValue,
 			final Field field,
@@ -141,7 +141,7 @@ public class AddOnOneToManyNoSql implements DataAccessAddOn {
 	 * @param actions Asynchronous action to do after main request. */
 	@Override
 	public void asyncInsert(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Object primaryKeyValue,
 			final Field field,
 			final Object data,
@@ -181,7 +181,7 @@ public class AddOnOneToManyNoSql implements DataAccessAddOn {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void fillFromDoc(
-			final DBAccessMorphia ioDb,
+			final DBAccessMongo ioDb,
 			final Document doc,
 			final Field field,
 			final Object data,
