@@ -236,10 +236,9 @@ public class DBAccessMongo extends DBAccess {
 			*/
 		}
 		if (type == LocalTime.class) {
-			/*
-				final java.sql.Time sqlDate = java.sql.Time.valueOf((LocalTime) tmp);
-				ps.setTime(iii.value, sqlDate);
-			*/
+			Long timeNano = ((LocalTime) tmp).toNanoOfDay();
+			docSet.append(fieldName, timeNano);
+			return;
 		}
 		docSet.append(fieldName, tmp);
 		//throw new DataAccessException("Unknown Field Type");

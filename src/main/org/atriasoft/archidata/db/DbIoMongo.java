@@ -43,7 +43,6 @@ public class DbIoMongo extends DbIo implements Closeable {
 
 	@Override
 	synchronized public void openImplement() throws IOException {
-		final Class<?>[] classes = this.config.getClasses().toArray(new Class<?>[0]);
 		final String dbUrl = this.config.getUrl();
 		final String dbName = this.config.getDbName();
 		// Connect to MongoDB (simple form):
@@ -52,7 +51,6 @@ public class DbIoMongo extends DbIo implements Closeable {
 		// Connect to MongoDB (complex form):
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
-		//final CodecRegistry uuidCodecRegistry = CodecRegistries.fromCodecs(new UUIDCodec());
 		final CodecRegistry SqlTimestampCodecRegistry = CodecRegistries.fromCodecs(new SqlTimestampCodec());
 		// Créer un CodecRegistry pour POJOs
 		final CodecRegistry pojoCodecRegistry = CodecRegistries
