@@ -36,7 +36,11 @@ public record ParameterClassModel(
 		final StringBuilder out = new StringBuilder();
 		out.append(this.model.getOriginClasses().getSimpleName());
 		if (!this.valid) {
-			out.append("NV");
+			if (this.model instanceof ClassEnumModel) {
+				// nothing to append
+			} else {
+				out.append("NV");
+			}
 		}
 		if (this.groups == null || this.groups.length == 0) {
 			return out.toString();
