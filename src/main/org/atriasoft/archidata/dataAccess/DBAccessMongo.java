@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
@@ -139,6 +141,7 @@ public class DBAccessMongo extends DBAccess {
 		return groups;
 	}
 
+	// TODO: add a mode for update like "variable.subVariable"
 	public <T> void setValueToDb(
 			final Class<?> type,
 			final T data,
@@ -218,30 +221,43 @@ public class DBAccessMongo extends DBAccess {
 			return;
 		}
 		if (type == Date.class) {
-			/*
-				final Timestamp sqlDate = java.sql.Timestamp.from(((Date) tmp).toInstant());
-				ps.setTimestamp(iii.value, sqlDate);
-			*/
+			// TODO: convert in UTC
+			LOGGER.error("Missing UTC convertion");
+			docSet.append(fieldName, tmp);
+			return;
 		}
 		if (type == Instant.class) {
-			/*
-				final String sqlDate = ((Instant) tmp).toString();
-				ps.setString(iii.value, sqlDate);
-			*/
+			LOGGER.error("`Instant` is not implemented");
+			throw new DataAccessException("Unknown Field Type");
 		}
 		if (type == LocalDate.class) {
-			/*
-				final java.sql.Date sqlDate = java.sql.Date.valueOf((LocalDate) tmp);
-				ps.setDate(iii.value, sqlDate);
-			*/
+			LOGGER.error("`Set<>` is not implemented");
+			throw new DataAccessException("Unknown Field Type");
 		}
 		if (type == LocalTime.class) {
 			Long timeNano = ((LocalTime) tmp).toNanoOfDay();
 			docSet.append(fieldName, timeNano);
 			return;
 		}
-		docSet.append(fieldName, tmp);
-		//throw new DataAccessException("Unknown Field Type");
+		// Manage List & Set:
+		if (List.class == type || Set.class == type) {
+			//final Object value = doc.get(fieldName, field.getType());
+			//field.set(data, value);
+			LOGGER.error("`Set<>` is not implemented");
+			throw new DataAccessException("Unknown Field Type");
+			//return;
+		}
+		// Manage Map:
+		if (Map.class == type) {
+			//final Object value = doc.get(fieldName, field.getType());
+			//field.set(data, value);
+			LOGGER.error("`Set<>` is not implemented");
+			throw new DataAccessException("Unknown Field Type");
+			//return;
+		}
+		LOGGER.error("`SubObject` is not implemented");
+		//docSet.append(fieldName, tmp);
+		throw new DataAccessException("Unknown Field Type");
 	}
 
 	public <T> void setValueFromDoc(
@@ -346,17 +362,25 @@ public class DBAccessMongo extends DBAccess {
 			}
 			return;
 		}
-		if (List.class == field.getType()) {
-			final Object value = doc.get(fieldName, field.getType());
-			field.set(data, value);
-		} else {
-			final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
-					new QueryOptions(), lazyCall);
-			field.set(data, value);
+		// Manage List & Set:
+		if (List.class == field.getType() || Set.class == field.getType()) {
+			//final Object value = doc.get(fieldName, field.getType());
+			//field.set(data, value);
+			LOGGER.error("`Set<>` is not implemented");
+			return;
+		}
+		// Manage Map:
+		if (Map.class == field.getType()) {
+			//final Object value = doc.get(fieldName, field.getType());
+			//field.set(data, value);
+			LOGGER.error("`Set<>` is not implemented");
+			return;
 		}
 
-		return;
-		//throw new ArchiveException("wrong type of field [" + fieldName + "]: " + doc.toJson());
+		// manage a sub-object
+		final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
+				new QueryOptions(), lazyCall);
+		field.set(data, value);
 	}
 
 	protected Object convertDefaultField(String data, final Field field) throws Exception {
