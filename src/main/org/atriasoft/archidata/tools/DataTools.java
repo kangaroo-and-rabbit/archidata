@@ -24,6 +24,7 @@ import org.atriasoft.archidata.dataAccess.QueryAnd;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnDataJson;
+import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -346,9 +347,7 @@ public class DataTools {
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
-		// Fist step: retrieve all the Id of each parents:...
-		LOGGER.info("Find typeNode");
-		AddOnDataJson.addLink(ioDb, clazz, null, id, null, data.oid);
+		ListInDbTools.addLink(ioDb, clazz, id, null, data.oid);
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
@@ -392,15 +391,6 @@ public class DataTools {
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
-		// Fist step: retrieve all the Id of each parents:...
-		LOGGER.info("Find typeNode");
-
-		final Field idField = AnnotationTools.getIdField(clazz);
-		if (idField == null) {
-			throw new DataAccessException(
-					"The class have no annotation @Id ==> can not determine the default type searching");
-		}
-		final FieldName fieldName = AnnotationTools.getFieldName(idField, new QueryOptions());
-		AddOnDataJson.addLink(ioDb, clazz, fieldName.inTable(), id, "covers", data.oid);
+		ListInDbTools.addLink(ioDb, clazz, id, "covers", data.oid);
 	}
 }

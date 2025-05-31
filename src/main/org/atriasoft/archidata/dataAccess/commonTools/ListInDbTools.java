@@ -103,6 +103,7 @@ public class ListInDbTools {
 		if (!found) {
 			return;
 		}
+		data.filedNameOfTheObject = newList;
 		options.add(new FilterValue("filedNameOfTheObject"));
 		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}

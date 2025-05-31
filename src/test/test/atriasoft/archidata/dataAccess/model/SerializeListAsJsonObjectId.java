@@ -10,5 +10,4 @@ public class SerializeListAsJsonObjectId extends OIDGenericData {
 
 	@DataJson
 	public List<ObjectId> data;
-
 }

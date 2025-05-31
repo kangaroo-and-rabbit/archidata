@@ -59,7 +59,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			final Document docUnSet) throws Exception {
 		final Class<?> type = field.getType();
 		final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
-		ioDb.setValueToDb(type, rootObject, field, tableFieldName.inTable(), docSet, docUnSet);
+		ioDb.setValueToDb(null, type, rootObject, field, tableFieldName.inTable(), docSet, docUnSet);
 	}
 
 	@Override

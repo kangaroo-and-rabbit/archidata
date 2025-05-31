@@ -12,6 +12,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@EnabledIfEnvironmentVariable(named = "INCLUDE_SQL_SPECIFIC", matches = "true")
 public class TestManyToOneUUID {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneLong.class);
 

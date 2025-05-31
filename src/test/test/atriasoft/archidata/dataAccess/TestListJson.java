@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnDataJson;
+import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -65,8 +67,7 @@ public class TestListJson {
 		final SerializeListAsJson insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.oid);
 		Assertions.assertNotNull(insertedData.data);
 		Assertions.assertEquals(5, insertedData.data.size());
 		Assertions.assertEquals(test.data.get(0), insertedData.data.get(0));
@@ -76,11 +77,10 @@ public class TestListJson {
 		Assertions.assertEquals(test.data.get(4), insertedData.data.get(4));
 
 		// Try to retrieve all the data:
-		final SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
+		final SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.oid);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals(5, retrieve.data.size());
 		Assertions.assertEquals(test.data.get(0), retrieve.data.get(0));
@@ -99,41 +99,36 @@ public class TestListJson {
 		final SerializeListAsJson insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.oid);
 		Assertions.assertNotNull(insertedData.data);
 		Assertions.assertEquals(0, insertedData.data.size());
 
 		final Integer firstDataInserted1 = 111;
 		final Integer firstDataInserted2 = 222;
 		final Integer firstDataInserted3 = 333;
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
-				firstDataInserted1);
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
-				firstDataInserted2);
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
-				firstDataInserted3);
+
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted1);
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted2);
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted3);
 
 		// Try to retrieve all the data:
-		SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
+		SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.oid);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals(3, retrieve.data.size());
 		Assertions.assertEquals(firstDataInserted1, retrieve.data.get(0));
 		Assertions.assertEquals(firstDataInserted2, retrieve.data.get(1));
 		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(2));
 
-		AddOnDataJson.removeLink(ConfigureDb.da, SerializeListAsJson.class, null, insertedData.id, "data",
+		ListInDbTools.removeLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data",
 				firstDataInserted2);
 		// Try to retrieve all the data:
-		retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.id);
+		retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.oid);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals(2, retrieve.data.size());
 		Assertions.assertEquals(firstDataInserted1, retrieve.data.get(0));
@@ -206,11 +201,11 @@ public class TestListJson {
 		final ObjectId firstDataInserted1 = new ObjectId();
 		final ObjectId firstDataInserted2 = new ObjectId();
 		final ObjectId firstDataInserted3 = new ObjectId();
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, "_id", insertedData.oid, "data",
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
 				firstDataInserted1);
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, "_id", insertedData.oid, "data",
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
 				firstDataInserted2);
-		AddOnDataJson.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, "_id", insertedData.oid, "data",
+		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
 				firstDataInserted3);
 
 		// Try to retrieve all the data:
@@ -224,7 +219,7 @@ public class TestListJson {
 		Assertions.assertEquals(firstDataInserted2, retrieve.data.get(1));
 		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(2));
 
-		AddOnDataJson.removeLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, "_id", insertedData.oid, "data",
+		ListInDbTools.removeLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
 				firstDataInserted2);
 		// Try to retrieve all the data:
 		retrieve = ConfigureDb.da.get(SerializeListAsJsonObjectId.class, insertedData.oid);

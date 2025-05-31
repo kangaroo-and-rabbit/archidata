@@ -217,6 +217,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 				postActionList, createIfNotExist, createDrop, fieldId, JsonValue.class, options);
 	}
 
+	@Deprecated(since = "use ListInDbTools.addLink instead")
 	public static void addLink(
 			final DBAccess ioDb,
 			final Class<?> clazz,
@@ -229,11 +230,16 @@ public class AddOnDataJson implements DataAccessAddOn {
 				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
 				new OptionSpecifyType("filedNameOfTheObject", valueToAdd.getClass(), true));
 		if (clazzPrimaryKeyName == null) {
+			final FieldName qsdqd = AnnotationTools.getFieldName(AnnotationTools.getPrimaryKeyField(clazz), null);
+
 			clazzPrimaryKeyName = "id";
 		}
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
 		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		if (data == null) {
+			throw new DataAccessException("Fail to retreive data for links management");
+		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
 		}
@@ -247,6 +253,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 
+	@Deprecated(since = "use ListInDbTools.removeLink instead")
 	public static void removeLink(
 			final DBAccess ioDb,
 			final Class<?> clazz,

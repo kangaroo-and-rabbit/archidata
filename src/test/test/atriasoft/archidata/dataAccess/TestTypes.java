@@ -19,6 +19,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,6 +241,7 @@ public class TestTypes {
 
 	@Order(10)
 	@Test
+	@EnabledIfEnvironmentVariable(named = "INCLUDE_SQL_SPECIFIC", matches = "true")
 	public void testTimeStamp() throws Exception {
 
 		final TypesTable test = new TypesTable();

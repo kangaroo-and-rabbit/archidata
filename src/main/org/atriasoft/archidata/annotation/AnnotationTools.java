@@ -6,7 +6,6 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.annotation.checker.Checker;
 import org.atriasoft.archidata.annotation.checker.CollectionItemNotNull;
 import org.atriasoft.archidata.annotation.checker.CollectionItemUnique;
 import org.atriasoft.archidata.annotation.checker.CollectionNotEmpty;
@@ -177,10 +176,6 @@ public class AnnotationTools {
 
 	public static DataJson getDataJson(final Field element) {
 		return get(element, DataJson.class);
-	}
-
-	public static Checker[] getConstraintsCheckers(final Field element) {
-		return gets(element, Checker.class);
 	}
 
 	public static DecimalMin getConstraintsDecimalMin(final Field element) {

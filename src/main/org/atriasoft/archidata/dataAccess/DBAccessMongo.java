@@ -3,16 +3,18 @@ package org.atriasoft.archidata.dataAccess;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.sql.Timestamp;
+import java.lang.reflect.ParameterizedType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +29,6 @@ import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToManyNoSql;
 import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
-import org.atriasoft.archidata.dataAccess.options.CheckFunction;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -40,8 +41,10 @@ import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.UuidUtils;
+import org.bson.BsonArray;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +63,15 @@ import com.mongodb.client.result.UpdateResult;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.InternalServerErrorException;
 
-/** Data access is an abstraction class that permit to access on the DB with a function wrapping that permit to minimize the SQL writing of SQL code. This interface support the SQL and SQLite
- * back-end. */
+/**
+ * Data access is an abstraction class that permit to access on the DB with a
+ * function wrapping that permit to minimize the SQL writing of SQL code. This
+ * interface support the SQL and SQLite back-end.
+ */
 public class DBAccessMongo extends DBAccess {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
-	// by default we manage some add-on that permit to manage non-native model (like json serialization, List of external key as String list...)
+	// by default we manage some add-on that permit to manage non-native model (like
+	// json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
 	static {
@@ -73,14 +80,16 @@ public class DBAccessMongo extends DBAccess {
 		addOn.add(new AddOnOneToManyNoSql());
 
 		// Not implementable without performance fail...
-		//addOn.add(new AddOnManyToMany());
+		// addOn.add(new AddOnManyToMany());
 		// Deprecated
 		addOn.add(new AddOnManyToOne());
 		// Deprecated
 		addOn.add(new AddOnOneToMany());
 	}
 
-	/** Add a new add-on on the current management.
+	/**
+	 * Add a new add-on on the current management.
+	 *
 	 * @param addOn instantiate object on the Add-on
 	 */
 	public static void addAddOn(final DataAccessAddOn addOn) {
@@ -105,7 +114,8 @@ public class DBAccessMongo extends DBAccess {
 
 	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		// in Mongo DB we do not need to create a DB, then we have no need to check if it exist
+		// in Mongo DB we do not need to create a DB, then we have no need to check if
+		// it exist
 		return true;
 	}
 
@@ -143,121 +153,377 @@ public class DBAccessMongo extends DBAccess {
 
 	// TODO: add a mode for update like "variable.subVariable"
 	public <T> void setValueToDb(
+			String parentFieldName, // Can be null if we update the full sub Object
 			final Class<?> type,
 			final T data,
 			final Field field,
 			final String fieldName,
 			final Document docSet,
-			final Document docUnSet) throws Exception {
+			final Document docUnSet // Can be null if we want to not use the unset (case for sub-object
+	) throws Exception {
+		String fieldComposeName = fieldName;
+		if (parentFieldName != null && parentFieldName.isEmpty()) {
+			fieldComposeName = parentFieldName + "." + fieldName;
+		}
 		if (field.get(data) == null) {
 			if (docUnSet != null) {
-				docUnSet.append(fieldName, "");
+				docUnSet.append(fieldComposeName, "");
 			}
 			return;
 		}
 		if (type == long.class) {
-			docSet.append(fieldName, field.getLong(data));
+			docSet.append(fieldComposeName, field.getLong(data));
 			return;
 		}
 		if (type == int.class) {
-			docSet.append(fieldName, field.getInt(data));
+			docSet.append(fieldComposeName, field.getInt(data));
 			return;
 		}
 		if (type == float.class) {
-			docSet.append(fieldName, field.getFloat(data));
+			docSet.append(fieldComposeName, field.getFloat(data));
 			return;
 		}
 		if (type == double.class) {
-			docSet.append(fieldName, field.getDouble(data));
+			docSet.append(fieldComposeName, field.getDouble(data));
 			return;
 		}
 		if (type == boolean.class) {
-			docSet.append(fieldName, field.getBoolean(data));
+			docSet.append(fieldComposeName, field.getBoolean(data));
 			return;
 		}
 		final Object tmp = field.get(data);
 		if (tmp == null) {
-			docUnSet.append(fieldName, "");
+			docUnSet.append(fieldComposeName, "");
 			return;
 		}
 		if (type.isEnum()) {
-			docSet.append(fieldName, tmp.toString());
+			docSet.append(fieldComposeName, tmp.toString());
 			return;
 		}
 		if (type == Long.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Integer.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Float.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Double.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Boolean.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == String.class) {
-			docSet.append(fieldName, tmp);
-			return;
-		}
-		if (type == Timestamp.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == ObjectId.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == UUID.class) {
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Date.class) {
-			// TODO: convert in UTC
-			LOGGER.error("Missing UTC convertion");
-			docSet.append(fieldName, tmp);
+			docSet.append(fieldComposeName, tmp);
 			return;
 		}
 		if (type == Instant.class) {
-			LOGGER.error("`Instant` is not implemented");
-			throw new DataAccessException("Unknown Field Type");
+			docSet.append(fieldComposeName, Date.from((Instant) tmp));
+			return;
 		}
 		if (type == LocalDate.class) {
-			LOGGER.error("`Set<>` is not implemented");
-			throw new DataAccessException("Unknown Field Type");
+			String dataToInsert = ((LocalDate) tmp).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			docSet.append(fieldComposeName, dataToInsert);
+			return;
 		}
 		if (type == LocalTime.class) {
 			Long timeNano = ((LocalTime) tmp).toNanoOfDay();
-			docSet.append(fieldName, timeNano);
+			docSet.append(fieldComposeName, timeNano);
 			return;
 		}
-		// Manage List & Set:
-		if (List.class == type || Set.class == type) {
-			//final Object value = doc.get(fieldName, field.getType());
-			//field.set(data, value);
-			LOGGER.error("`Set<>` is not implemented");
-			throw new DataAccessException("Unknown Field Type");
-			//return;
+		if (tmp instanceof List tmpList) {
+			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[0];
+			// donc ici il faut pas convertir la valeur si c'est un element de base, sinon
+			// il faut le convertir en document...
+			List<Object> documentData = new ArrayList<>();
+			for (Object elem : tmpList) {
+				documentData.add(convertInDocument(elem));
+			}
+			docSet.append(fieldComposeName, documentData);
+			return;
 		}
-		// Manage Map:
-		if (Map.class == type) {
-			//final Object value = doc.get(fieldName, field.getType());
-			//field.set(data, value);
-			LOGGER.error("`Set<>` is not implemented");
-			throw new DataAccessException("Unknown Field Type");
-			//return;
+		if (tmp instanceof Set tmpList) {
+			// final Object value = doc.get(fieldName, field.getType());
+			BsonArray documentData = new BsonArray();
+			for (Object elem : tmpList) {
+				// documentData.add(convertInDocument(elem));
+			}
+			docSet.append(fieldComposeName, documentData);
+			return;
 		}
-		LOGGER.error("`SubObject` is not implemented");
-		//docSet.append(fieldName, tmp);
-		throw new DataAccessException("Unknown Field Type");
+		if (tmp instanceof Map<?, ?> tmpMap) {
+			// final Object value = doc.get(fieldName, field.getType());
+			Document documentData = new Document();
+			for (Entry<?, ?> elem : tmpMap.entrySet()) {
+				Object key = elem.getKey();
+				if (key instanceof String keyString) {
+					Object tmp1 = convertInDocument(elem.getValue());
+					LOGGER.error("Convert in Mongos : {} ==> {}", elem, tmp1);
+					documentData.append(keyString, tmp1);
+				} else {
+					throw new DataAccessException("Fail Map key is not a string");
+				}
+			}
+			docSet.append(fieldComposeName, documentData);
+			return;
+		}
+		Object documentData = convertInDocument(tmp);
+		docSet.append(fieldName, documentData);
+	}
+
+	public <T> Object convertInDocument(final T data) throws Exception {
+		if (data == null) {
+			return null;
+		}
+		if (data instanceof Long) {
+			return data;
+		}
+		if (data instanceof Integer) {
+			return data;
+		}
+		if (data instanceof Short) {
+			return data;
+		}
+		if (data instanceof Character) {
+			return data;
+		}
+		if (data instanceof Float) {
+			return data;
+		}
+		if (data instanceof Double) {
+			return data;
+		}
+		if (data instanceof Boolean) {
+			return data;
+		}
+		if (data instanceof ObjectId) {
+			return data;
+		}
+		if (data instanceof UUID) {
+			return data;
+		}
+		if (data instanceof Instant tmp) {
+			return Date.from(tmp);
+		}
+		if (data instanceof Date) {
+			return data;
+		}
+		if (data instanceof LocalDate tmp) {
+			return tmp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+		}
+		if (data instanceof LocalTime tmp) {
+			return tmp.toNanoOfDay();
+		}
+		if (data.getClass().isEnum()) {
+			return data.toString();
+		}
+		// =======================================
+		// generic document:
+		// =======================================
+
+		Document out = new Document();
+		Class<?> clazz = data.getClass();
+		for (final Field field : clazz.getFields()) {
+			// static field is only for internal global declaration ==> remove it ..
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
+			final FieldName tableFieldName = AnnotationTools.getFieldName(field, null);
+			Object currentInsertValue = field.get(data);
+			// final boolean createTime =
+			// field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+			// if (createTime && currentInsertValue == null) {
+			// out.append(tableFieldName.inTable(), Date.from(Instant.now()));
+			// continue;
+			// }
+			// final boolean updateTime =
+			// field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+			// if (updateTime && currentInsertValue == null) {
+			// out.append(tableFieldName.inTable(), Date.from(Instant.now()));
+			// continue;
+			// }
+			final DataAccessAddOn addOn = findAddOnforField(field);
+			if (addOn != null) {
+				if (addOn.isInsertAsync(field)) {
+					// asyncFieldUpdate.add(field);
+					LOGGER.error("Not supported async action for the field : {}", tableFieldName);
+				}
+				if (!addOn.canInsert(field)) {
+					continue;
+				}
+			}
+			if (currentInsertValue == null && !field.getClass().isPrimitive()) {
+				final DefaultValue[] defaultValue = field.getDeclaredAnnotationsByType(DefaultValue.class);
+				if (defaultValue.length == 0) {
+					continue;
+				} else {
+					final String value = defaultValue[0].value();
+					if (value == null) {
+						continue;
+					}
+					currentInsertValue = convertDefaultField(value, field);
+				}
+			}
+			if (addOn != null) {
+				addOn.insertData(this, field, data, null, out, null);
+			} else {
+				final Class<?> type = field.getType();
+				if (!type.isPrimitive()) {
+					if (field.get(data) == null) {
+						if (currentInsertValue != null) {
+							out.append(tableFieldName.inTable(), currentInsertValue);
+						}
+						continue;
+					}
+				}
+				// if set name @Null this mean we want to update the full subObject
+				setValueToDb(null, type, data, field, tableFieldName.inTable(), out, null);
+			}
+		}
+		return out;
+	}
+
+	public Object setValueFromDoc(final Class<?> type, final Object data) throws Exception {
+
+		//		if (type == ObjectId.class) {
+		//			final ObjectId value = doc.get(fieldName, ObjectId.class);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Long.class || type == long.class) {
+		//			final Long value = doc.getLong(fieldName);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Integer.class || type == int.class) {
+		//			final Integer value = doc.getInteger(fieldName);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Float.class || type == float.class) {
+		//			final Double value = doc.getDouble(fieldName);
+		//			field.set(data, (float) ((double) value));
+		//			return;
+		//		}
+		//		if (type == Double.class || type == double.class) {
+		//			final Double value = doc.getDouble(fieldName);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Boolean.class || type == boolean.class) {
+		//			final Boolean value = doc.getBoolean(fieldName);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Date.class) {
+		//			final Date value = doc.get(fieldName, Date.class);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == Instant.class) {
+		//			final Date value = doc.get(fieldName, Date.class);
+		//			final Instant newData = value.toInstant();
+		//			field.set(data, newData);
+		//			return;
+		//		}
+		//		if (type == LocalDate.class) {
+		//			final Date value = doc.get(fieldName, Date.class);
+		//			final LocalDate newData = value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+		//			field.set(data, newData);
+		//			return;
+		//		}
+		//		if (type == LocalTime.class) {
+		//			final Long value = doc.getLong(fieldName);
+		//			final LocalTime newData = LocalTime.ofNanoOfDay(value);
+		//			field.set(data, newData);
+		//			return;
+		//		}
+		//		if (type == String.class) {
+		//			final String value = doc.getString(fieldName);
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type == UUID.class) {
+		//			final Object value = doc.get(fieldName, field.getType());
+		//			field.set(data, value);
+		//			return;
+		//		}
+		//		if (type.isEnum()) {
+		//			final String value = doc.getString(fieldName);
+		//			boolean find = false;
+		//			final Object[] arr = type.getEnumConstants();
+		//			for (final Object elem : arr) {
+		//				if (elem.toString().equals(value)) {
+		//					field.set(data, elem);
+		//					find = true;
+		//					break;
+		//				}
+		//			}
+		//			if (!find) {
+		//				throw new DataAccessException("Enum value does not exist in the Model: '" + value + "'");
+		//			}
+		//			return;
+		//		}
+		//		// Manage List & Set:
+		//		if (List.class == field.getType()) {
+		//			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+		//					.getActualTypeArguments()[0];
+		//			List<Object> out = new ArrayList<>();
+		//			Object value = doc.get(fieldName);
+		//			if (value instanceof List<?> valueList) {
+		//				for (Object item : valueList) {
+		//					if (item == null) {
+		//						out.add(null);
+		//					}
+		//					if (objectClass.isAssignableFrom(item.getClass())) {
+		//						out.add(item);
+		//					}
+		//					LOGGER.info("type of object {}", item.getClass());
+		//				}
+		//			} else {
+		//				LOGGER.error("`List<>` is not implemented");
+		//			}
+		//			return;
+		//		}
+		//		if (Set.class == field.getType()) {
+		//			//final Object value = doc.get(fieldName, field.getType());
+		//			//field.set(data, value);
+		//			LOGGER.error("`List<>` or `Set<>` is not implemented");
+		//			return;
+		//		}
+		//		// Manage Map:
+		//		if (Map.class == field.getType()) {
+		//			//final Object value = doc.get(fieldName, field.getType());
+		//			//field.set(data, value);
+		//			LOGGER.error("`Map<>` is not implemented");
+		//			return;
+		//		}
+		//
+		//		// manage a sub-object
+		//		final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
+		//				new QueryOptions(), lazyCall);
+		//		field.set(data, value);
+		return null;
 	}
 
 	public <T> void setValueFromDoc(
@@ -307,12 +573,6 @@ public class DBAccessMongo extends DBAccess {
 			field.set(data, value);
 			return;
 		}
-		if (type == Timestamp.class) {
-			final Date value = doc.get(fieldName, Date.class);
-			final Timestamp newData = new Timestamp(value.getTime());
-			field.set(data, newData);
-			return;
-		}
 		if (type == Date.class) {
 			final Date value = doc.get(fieldName, Date.class);
 			field.set(data, value);
@@ -325,8 +585,8 @@ public class DBAccessMongo extends DBAccess {
 			return;
 		}
 		if (type == LocalDate.class) {
-			final Date value = doc.get(fieldName, Date.class);
-			final LocalDate newData = value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+			final String value = doc.get(fieldName, String.class);
+			final LocalDate newData = LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			field.set(data, newData);
 			return;
 		}
@@ -348,39 +608,97 @@ public class DBAccessMongo extends DBAccess {
 		}
 		if (type.isEnum()) {
 			final String value = doc.getString(fieldName);
-			boolean find = false;
-			final Object[] arr = type.getEnumConstants();
-			for (final Object elem : arr) {
-				if (elem.toString().equals(value)) {
-					field.set(data, elem);
-					find = true;
-					break;
-				}
-			}
-			if (!find) {
-				throw new DataAccessException("Enum value does not exist in the Model: '" + value + "'");
-			}
+			field.set(data, retreiveValueEnum(type, value));
 			return;
 		}
 		// Manage List & Set:
-		if (List.class == field.getType() || Set.class == field.getType()) {
-			//final Object value = doc.get(fieldName, field.getType());
-			//field.set(data, value);
-			LOGGER.error("`Set<>` is not implemented");
+		if (List.class == field.getType()) {
+			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[0];
+			List<Object> out = new ArrayList<>();
+			Object value = doc.get(fieldName);
+			if (value instanceof List<?> valueList) {
+				for (Object item : valueList) {
+					if (item == null) {
+						out.add(null);
+					} else if (objectClass.isAssignableFrom(item.getClass())) {
+						out.add(item);
+					} else if (item instanceof Document temporaryDocumentObject) {
+						final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
+								new QueryOptions(), lazyCall);
+						out.add(valueObject);
+					} else if (item instanceof String temporaryString && objectClass.isEnum()) {
+						Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
+						out.add(valueEnum);
+					} else {
+						LOGGER.error("type of object {} to {}", item.getClass(), objectClass);
+					}
+				}
+				field.set(data, out);
+			} else {
+				LOGGER.error("`List<>` is not implemented");
+			}
+			return;
+		}
+		if (Set.class == field.getType()) {
+			// final Object value = doc.get(fieldName, field.getType());
+			// field.set(data, value);
+			LOGGER.error("`List<>` or `Set<>` is not implemented");
 			return;
 		}
 		// Manage Map:
 		if (Map.class == field.getType()) {
-			//final Object value = doc.get(fieldName, field.getType());
-			//field.set(data, value);
-			LOGGER.error("`Set<>` is not implemented");
-			return;
-		}
+			// final Object value = doc.get(fieldName, field.getType());
+			// field.set(data, value);
+			final Class<?> keyClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[0];
+			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
+					.getActualTypeArguments()[1];
+			if (keyClass != String.class) {
+				throw new DataAccessException("Fail Map key is not a string");
+			}
+			Map<String, Object> out = new HashMap<>();
 
+			Object fieldValue = doc.get(fieldName);
+			if (fieldValue instanceof Document subDoc) {
+				for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
+					String key = entry.getKey();
+					Object value = entry.getValue();
+					if (value == null) {
+						out.put(key, null);
+					} else if (objectClass.isAssignableFrom(value.getClass())) {
+						out.put(key, value);
+					} else if (value instanceof Document temporaryDocumentObject) {
+						final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
+								new QueryOptions(), lazyCall);
+						out.put(key, valueObject);
+					} else if (value instanceof String temporaryString && objectClass.isEnum()) {
+						Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
+						out.put(key, valueEnum);
+					} else {
+						LOGGER.error("type of object {}=>{} , requested {}", key, value.getClass(), objectClass);
+					}
+				}
+				field.set(data, out);
+				return;
+			}
+		}
 		// manage a sub-object
 		final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
 				new QueryOptions(), lazyCall);
 		field.set(data, value);
+	}
+
+	private Object retreiveValueEnum(Class<?> objectClass, String temporaryString) throws DataAccessException {
+		final Object[] arr = objectClass.getEnumConstants();
+		for (final Object elem : arr) {
+			if (elem.toString().equals(temporaryString)) {
+				return elem;
+			}
+		}
+		throw new DataAccessException("Enum value does not exist in the Model val='" + temporaryString + "' model="
+				+ objectClass.getCanonicalName());
+
 	}
 
 	protected Object convertDefaultField(String data, final Field field) throws Exception {
@@ -388,9 +706,6 @@ public class DBAccessMongo extends DBAccess {
 			data = data.substring(1, data.length() - 1);
 		}
 		final Class<?> type = field.getType();
-		if (type == UUID.class) {
-
-		}
 		if (type == Long.class || type == long.class) {
 			return Long.parseLong(data);
 		}
@@ -406,23 +721,15 @@ public class DBAccessMongo extends DBAccess {
 		if (type == Boolean.class || type == boolean.class) {
 			return Boolean.parseBoolean(data);
 		}
-		if (type == Timestamp.class) {}
 		if (type == Date.class) {}
 		if (type == Instant.class) {}
 		if (type == LocalDate.class) {}
 		if (type == LocalTime.class) {}
-		if (type == String.class) {}
+		if (type == String.class) {
+			return data;
+		}
 		if (type.isEnum()) {
-			final boolean find = false;
-			final Object[] arr = type.getEnumConstants();
-			for (final Object elem : arr) {
-				if (elem.toString().equals(data)) {
-					return elem;
-				}
-			}
-			if (!find) {
-				throw new DataAccessException("Enum value does not exist in the Model: '" + data + "'");
-			}
+			return retreiveValueEnum(type, data);
 		}
 		LOGGER.warn("Request default of unknow native type {} => {}", type.getCanonicalName(), data);
 		return null;
@@ -465,18 +772,67 @@ public class DBAccessMongo extends DBAccess {
 		return updatedCounter.getLong(fieldName);
 	}
 
+	@SuppressWarnings("unchecked")
+	public <T extends Object> Object insertPrimaryKey_test(final T data, final QueryOption... option) throws Exception {
+		final Class<?> clazz = data.getClass();
+		final QueryOptions options = new QueryOptions(option);
+		final boolean directdata = options.exist(DirectData.class);
+
+		final List<Field> asyncFieldUpdate = new ArrayList<>();
+		final String collectionName = AnnotationTools.getTableName(clazz, options);
+		Long primaryKey = null;
+		try {
+			for (final Field field : clazz.getFields()) {
+				// static field is only for internal global declaration ==> remove it ..
+				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (AnnotationTools.isPrimaryKey(field)) {
+					if (!directdata) {
+						if (field.getType() == Long.class || field.getType() == long.class) {
+							// By default the MongoDB does not manage the
+							primaryKey = getNextSequenceLongValue(collectionName, field.getName());
+							field.setLong(data, primaryKey);
+							continue;
+						}
+						continue;
+					}
+				}
+				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
+				if (!directdata && createTime) {
+					field.set(data, Date.from(Instant.now()));
+					continue;
+				}
+				final boolean updateTime = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
+				if (!directdata && updateTime) {
+					field.set(data, Date.from(Instant.now()));
+					continue;
+				}
+				// TODO:
+				// - Manage the add-on of manyToOne and ...
+			}
+
+			@SuppressWarnings("unchecked")
+			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
+			InsertOneResult res = collection.insertOne(data);
+			if (primaryKey != null) {
+				return primaryKey;
+			}
+			ObjectId insertedId = res.getInsertedId().asObjectId().getValue();
+			return insertedId;
+		} catch (final Exception ex) {
+			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
+			ex.printStackTrace();
+			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
+		}
+	}
+
 	@Override
 	@SuppressWarnings("unchecked")
 	public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
 		final boolean directdata = options.exist(DirectData.class);
-
-		// External checker of data:
-		final List<CheckFunction> checks = options.get(CheckFunction.class);
-		for (final CheckFunction check : checks) {
-			check.getChecker().check(this, "", data, AnnotationTools.getEditableFieldsNames(clazz), options);
-		}
 
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -558,7 +914,7 @@ public class DBAccessMongo extends DBAccess {
 					}
 				}
 				// conversion table ...
-				//doc.append(tableFieldName, currentInsertValue);
+				// doc.append(tableFieldName, currentInsertValue);
 				if (addOn != null) {
 					addOn.insertData(this, field, data, options, docSet, docUnSet);
 				} else {
@@ -571,9 +927,12 @@ public class DBAccessMongo extends DBAccess {
 							continue;
 						}
 					}
-					setValueToDb(type, data, field, tableFieldName.inTable(), docSet, null);
+					// if set name @Null this mean we want to update the full subObject
+					setValueToDb(null, type, data, field, tableFieldName.inTable(), docSet, null);
 				}
 			}
+			LOGGER.debug("insertPrimaryKey: docSet={}",
+					docSet.toJson(JsonWriterSettings.builder().indent(true).build()));
 			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
@@ -618,19 +977,13 @@ public class DBAccessMongo extends DBAccess {
 			throw new DataAccessException("request a gets without/or with more 1 filter of values");
 		}
 		final FilterValue filterKey = filterKeys.get(0);
-		// External checker of data:
-		if (options != null) {
-			final List<CheckFunction> checks = options.get(CheckFunction.class);
-			for (final CheckFunction check : checks) {
-				check.getChecker().check(this, "", data, filterKey.getValues(), options);
-			}
-		}
+
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
-		//Some mode need to get the previous data to perform a correct update...
+		// Some mode need to get the previous data to perform a correct update...
 		boolean needPreviousValues = false;
 		for (final Field field : clazz.getFields()) {
-			//  field is only for internal global declaration ==> remove it ..
+			// field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
@@ -704,7 +1057,8 @@ public class DBAccessMongo extends DBAccess {
 							continue;
 						}
 					}
-					setValueToDb(type, data, field, fieldName.inTable(), docSet, docUnSet);
+					// if set name @Null this mean we want to update the full subObject
+					setValueToDb(null, type, data, field, fieldName.inTable(), docSet, docUnSet);
 				}
 			}
 			// Do the query ...
@@ -716,7 +1070,9 @@ public class DBAccessMongo extends DBAccess {
 			if (!docUnSet.isEmpty()) {
 				actions.append("$unset", docUnSet);
 			}
-			LOGGER.debug("updateWhere with value: {}", actions.toJson());
+			LOGGER.debug("updateWhere filter: {}",
+					filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			LOGGER.debug("updateWhere Actions: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			for (final LazyGetter action : asyncActions) {
 				action.doRequest();
@@ -790,19 +1146,19 @@ public class DBAccessMongo extends DBAccess {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+			LOGGER.debug(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
 			FindIterable<Document> retFind = null;
 			if (filters != null) {
-				//LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
+				// LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
 				retFind = collection.find(filters);
 			} else {
 				retFind = collection.find();
 			}
-			/* Not manage right now ...
-			final List<GroupBy> groups = options.get(GroupBy.class);
-			for (final GroupBy group : groups) {
-				group.generateQuery(query, tableName);
-			}
-			*/
+			/*
+			 * Not manage right now ... final List<GroupBy> groups =
+			 * options.get(GroupBy.class); for (final GroupBy group : groups) {
+			 * group.generateQuery(query, tableName); }
+			 */
 			final List<OrderBy> orders = options.get(OrderBy.class);
 			if (orders.size() != 0) {
 				final Document sorts = new Document();
@@ -828,7 +1184,8 @@ public class DBAccessMongo extends DBAccess {
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					LOGGER.trace("    - getWhere value: {}", doc.toJson());
+					LOGGER.debug("    - receive data from DB: {}",
+							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
 				}
@@ -950,11 +1307,11 @@ public class DBAccessMongo extends DBAccess {
 
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
 
-		//Some mode need to get the previous data to perform a correct update...
+		// Some mode need to get the previous data to perform a correct update...
 		boolean needPreviousValues = false;
 		final List<Field> hasDeletedActionFields = new ArrayList<>();
 		for (final Field field : clazz.getFields()) {
-			//  field is only for internal global declaration ==> remove it ..
+			// field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
@@ -1021,7 +1378,7 @@ public class DBAccessMongo extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
-		LOGGER.debug("update some values: {}", actions.toJson());
+		LOGGER.debug("update some values: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
 
 		actionOnDelete(clazz, option);
 
@@ -1054,7 +1411,7 @@ public class DBAccessMongo extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
-		LOGGER.debug("update some values: {}", actions.toJson());
+		LOGGER.debug("update some values: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}

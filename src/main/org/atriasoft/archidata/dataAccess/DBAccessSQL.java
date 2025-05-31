@@ -34,7 +34,6 @@ import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnManyToOne;
 import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnSQL.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
-import org.atriasoft.archidata.dataAccess.options.CheckFunction;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DBInterfaceRoot;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -885,11 +884,6 @@ public class DBAccessSQL extends DBAccess {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
 
-		// External checker of data:
-		final List<CheckFunction> checks = options.get(CheckFunction.class);
-		for (final CheckFunction check : checks) {
-			check.getChecker().check(this, "", data, AnnotationTools.getEditableFieldsNames(clazz), options);
-		}
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		Long uniqueSQLID = null;
 		UUID uniqueSQLUUID = null;
@@ -1157,13 +1151,6 @@ public class DBAccessSQL extends DBAccess {
 			throw new DataAccessException("request a gets without/or with more 1 filter of values");
 		}
 		final FilterValue filter = filters.get(0);
-		// External checker of data:
-		if (options != null) {
-			final List<CheckFunction> checks = options.get(CheckFunction.class);
-			for (final CheckFunction check : checks) {
-				check.getChecker().check(this, "", data, filter.getValues(), options);
-			}
-		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 		// real add in the BDD:
 		try {

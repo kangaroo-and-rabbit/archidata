@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import org.atriasoft.archidata.converter.morphia.SqlTimestampCodec;
 import org.bson.UuidRepresentation;
+import org.atriasoft.archidata.converter.morphia.OffsetDateTimeCodec;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
@@ -52,6 +53,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
 		final CodecRegistry SqlTimestampCodecRegistry = CodecRegistries.fromCodecs(new SqlTimestampCodec());
+		final CodecRegistry OffsetDateTimeCodecRegistry = CodecRegistries.fromCodecs(new OffsetDateTimeCodec());
 		// Créer un CodecRegistry pour POJOs
 		final CodecRegistry pojoCodecRegistry = CodecRegistries
 				.fromProviders(PojoCodecProvider.builder().automatic(true).build());
@@ -62,7 +64,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 		final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
-				pojoCodecRegistry, SqlTimestampCodecRegistry);
+				pojoCodecRegistry, SqlTimestampCodecRegistry, OffsetDateTimeCodecRegistry);
 		// Configure MongoClientSettings
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString)//
@@ -74,5 +76,29 @@ public class DbIoMongo extends DbIo implements Closeable {
 			LOGGER.info("Connect on the DB: {}", dbUrl);
 		}
 		this.dataBase = this.mongoClient.getDatabase(dbName);
+
+		/*
+
+		CodecRegistry customCodecs = fromRegistries(
+		MongoClientSettings.getDefaultCodecRegistry(),
+		fromProviders(
+		// codecs POJO automatiques
+		org.bson.codecs.pojo.PojoCodecProvider.builder()
+		    .automatic(true)
+		    .build()
+
+		// tu peux aussi ajouter ici tes codecs personnalisés
+		// fromCodecs(new MyCustomCodec())
+		)
+		);
+
+		MongoClientSettings settings = MongoClientSettings.builder()
+		.codecRegistry(customCodecs)
+		.build();
+
+		MongoClient client = MongoClients.create(settings);
+
+		 */
+
 	}
 }
