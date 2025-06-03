@@ -134,7 +134,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 		if (field.getType() == Long.class || field.getType() == Integer.class || field.getType() == Short.class
 				|| field.getType() == String.class || field.getType() == UUID.class
 				|| field.getType() == ObjectId.class) {
-			ioDb.setValueFromDoc(field.getType(), data, field, doc, lazyCall, options);
+			ioDb.setValueFromDoc(field.getGenericType(), data, field, doc, lazyCall, options);
 			return;
 		}
 		final Class<?> objectClass = field.getType();
@@ -147,7 +147,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 			final Field remotePrimaryKeyField = AnnotationTools.getFieldOfId(objectClass);
 			final Class<?> remotePrimaryKeyType = remotePrimaryKeyField.getType();
 			if (remotePrimaryKeyType == Long.class) {
-				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
+				// here we have the field, the data and the the remote value ==> can create
+				// callback that generate the update of the value ...
 				final Long foreignKey = doc.getLong(fieldName.inTable());
 				if (foreignKey != null) {
 					final LazyGetter lambda = () -> {
@@ -161,7 +162,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 					lazyCall.add(lambda);
 				}
 			} else if (remotePrimaryKeyType == UUID.class) {
-				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
+				// here we have the field, the data and the the remote value ==> can create
+				// callback that generate the update of the value ...
 				final UUID foreignKey = doc.get(fieldName.inTable(), UUID.class);
 				if (foreignKey != null) {
 					final LazyGetter lambda = () -> {
@@ -175,7 +177,8 @@ public class AddOnManyToOne implements DataAccessAddOn {
 					lazyCall.add(lambda);
 				}
 			} else if (remotePrimaryKeyType == ObjectId.class) {
-				// here we have the field, the data and the the remote value ==> can create callback that generate the update of the value ...
+				// here we have the field, the data and the the remote value ==> can create
+				// callback that generate the update of the value ...
 				final ObjectId foreignKey = doc.get(fieldName.inTable(), ObjectId.class);
 				if (foreignKey != null) {
 					final LazyGetter lambda = () -> {

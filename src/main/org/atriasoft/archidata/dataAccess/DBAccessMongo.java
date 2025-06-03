@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,8 +42,8 @@ import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
-import org.bson.BsonArray;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonWriterSettings;
@@ -152,13 +154,8 @@ public class DBAccessMongo extends DBAccess {
 	}
 
 	// TODO: add a mode for update like "variable.subVariable"
-	public <T> void setValueToDb(
-			String parentFieldName, // Can be null if we update the full sub Object
-			final Class<?> type,
-			final T data,
-			final Field field,
-			final String fieldName,
-			final Document docSet,
+	public <T> void setValueToDb(String parentFieldName, // Can be null if we update the full sub Object
+			final Class<?> type, final T data, final Field field, final String fieldName, final Document docSet,
 			final Document docUnSet // Can be null if we want to not use the unset (case for sub-object
 	) throws Exception {
 		String fieldComposeName = fieldName;
@@ -251,10 +248,6 @@ public class DBAccessMongo extends DBAccess {
 			return;
 		}
 		if (tmp instanceof List tmpList) {
-			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-					.getActualTypeArguments()[0];
-			// donc ici il faut pas convertir la valeur si c'est un element de base, sinon
-			// il faut le convertir en document...
 			List<Object> documentData = new ArrayList<>();
 			for (Object elem : tmpList) {
 				documentData.add(convertInDocument(elem));
@@ -263,10 +256,9 @@ public class DBAccessMongo extends DBAccess {
 			return;
 		}
 		if (tmp instanceof Set tmpList) {
-			// final Object value = doc.get(fieldName, field.getType());
-			BsonArray documentData = new BsonArray();
+			List<Object> documentData = new ArrayList<>();
 			for (Object elem : tmpList) {
-				// documentData.add(convertInDocument(elem));
+				documentData.add(convertInDocument(elem));
 			}
 			docSet.append(fieldComposeName, documentData);
 			return;
@@ -276,13 +268,24 @@ public class DBAccessMongo extends DBAccess {
 			Document documentData = new Document();
 			for (Entry<?, ?> elem : tmpMap.entrySet()) {
 				Object key = elem.getKey();
-				if (key instanceof String keyString) {
-					Object tmp1 = convertInDocument(elem.getValue());
-					LOGGER.error("Convert in Mongos : {} ==> {}", elem, tmp1);
-					documentData.append(keyString, tmp1);
+				String keyString;
+				if (key instanceof String keyTyped) {
+					keyString = keyTyped;
+				} else if (key instanceof Integer keyTyped) {
+					keyString = Integer.toString(keyTyped);
+				} else if (key instanceof Long keyTyped) {
+					keyString = Long.toString(keyTyped);
+				} else if (key instanceof Short keyTyped) {
+					keyString = Short.toString(keyTyped);
+				} else if (key instanceof ObjectId keyTyped) {
+					keyString = keyTyped.toString();
+				} else if (key.getClass().isEnum()) {
+					keyString = key.toString();
 				} else {
 					throw new DataAccessException("Fail Map key is not a string");
 				}
+				Object tmp1 = convertInDocument(elem.getValue());
+				documentData.append(keyString, tmp1);
 			}
 			docSet.append(fieldComposeName, documentData);
 			return;
@@ -337,6 +340,35 @@ public class DBAccessMongo extends DBAccess {
 		if (data.getClass().isEnum()) {
 			return data.toString();
 		}
+		if (data instanceof List tmpList) {
+			List<Object> documentData = new ArrayList<>();
+			for (Object elem : tmpList) {
+				documentData.add(convertInDocument(elem));
+			}
+			return documentData;
+		}
+		if (data instanceof Set tmpList) {
+			List<Object> documentData = new ArrayList<>();
+			for (Object elem : tmpList) {
+				documentData.add(convertInDocument(elem));
+			}
+			return documentData;
+		}
+		if (data instanceof Map<?, ?> tmpMap) {
+			// final Object value = doc.get(fieldName, field.getType());
+			Document documentData = new Document();
+			for (Entry<?, ?> elem : tmpMap.entrySet()) {
+				Object key = elem.getKey();
+				if (key instanceof String keyString) {
+					Object tmp1 = convertInDocument(elem.getValue());
+					LOGGER.error("Convert in Mongos : {} ==> {}", elem, tmp1);
+					documentData.append(keyString, tmp1);
+				} else {
+					throw new DataAccessException("Fail Map key is not a string");
+				}
+			}
+			return documentData;
+		}
 		// =======================================
 		// generic document:
 		// =======================================
@@ -350,18 +382,6 @@ public class DBAccessMongo extends DBAccess {
 			}
 			final FieldName tableFieldName = AnnotationTools.getFieldName(field, null);
 			Object currentInsertValue = field.get(data);
-			// final boolean createTime =
-			// field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
-			// if (createTime && currentInsertValue == null) {
-			// out.append(tableFieldName.inTable(), Date.from(Instant.now()));
-			// continue;
-			// }
-			// final boolean updateTime =
-			// field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-			// if (updateTime && currentInsertValue == null) {
-			// out.append(tableFieldName.inTable(), Date.from(Instant.now()));
-			// continue;
-			// }
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (addOn != null) {
 				if (addOn.isInsertAsync(field)) {
@@ -403,290 +423,173 @@ public class DBAccessMongo extends DBAccess {
 		return out;
 	}
 
-	public Object setValueFromDoc(final Class<?> type, final Object data) throws Exception {
+	private void inspectType(Type type, int depth) {
+		if (type instanceof ParameterizedType) {
+			ParameterizedType pType = (ParameterizedType) type;
+			System.out.println(" ".repeat(depth * 2) + "Raw type: " + pType.getRawType());
 
-		//		if (type == ObjectId.class) {
-		//			final ObjectId value = doc.get(fieldName, ObjectId.class);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Long.class || type == long.class) {
-		//			final Long value = doc.getLong(fieldName);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Integer.class || type == int.class) {
-		//			final Integer value = doc.getInteger(fieldName);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Float.class || type == float.class) {
-		//			final Double value = doc.getDouble(fieldName);
-		//			field.set(data, (float) ((double) value));
-		//			return;
-		//		}
-		//		if (type == Double.class || type == double.class) {
-		//			final Double value = doc.getDouble(fieldName);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Boolean.class || type == boolean.class) {
-		//			final Boolean value = doc.getBoolean(fieldName);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Date.class) {
-		//			final Date value = doc.get(fieldName, Date.class);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == Instant.class) {
-		//			final Date value = doc.get(fieldName, Date.class);
-		//			final Instant newData = value.toInstant();
-		//			field.set(data, newData);
-		//			return;
-		//		}
-		//		if (type == LocalDate.class) {
-		//			final Date value = doc.get(fieldName, Date.class);
-		//			final LocalDate newData = value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		//			field.set(data, newData);
-		//			return;
-		//		}
-		//		if (type == LocalTime.class) {
-		//			final Long value = doc.getLong(fieldName);
-		//			final LocalTime newData = LocalTime.ofNanoOfDay(value);
-		//			field.set(data, newData);
-		//			return;
-		//		}
-		//		if (type == String.class) {
-		//			final String value = doc.getString(fieldName);
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type == UUID.class) {
-		//			final Object value = doc.get(fieldName, field.getType());
-		//			field.set(data, value);
-		//			return;
-		//		}
-		//		if (type.isEnum()) {
-		//			final String value = doc.getString(fieldName);
-		//			boolean find = false;
-		//			final Object[] arr = type.getEnumConstants();
-		//			for (final Object elem : arr) {
-		//				if (elem.toString().equals(value)) {
-		//					field.set(data, elem);
-		//					find = true;
-		//					break;
-		//				}
-		//			}
-		//			if (!find) {
-		//				throw new DataAccessException("Enum value does not exist in the Model: '" + value + "'");
-		//			}
-		//			return;
-		//		}
-		//		// Manage List & Set:
-		//		if (List.class == field.getType()) {
-		//			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-		//					.getActualTypeArguments()[0];
-		//			List<Object> out = new ArrayList<>();
-		//			Object value = doc.get(fieldName);
-		//			if (value instanceof List<?> valueList) {
-		//				for (Object item : valueList) {
-		//					if (item == null) {
-		//						out.add(null);
-		//					}
-		//					if (objectClass.isAssignableFrom(item.getClass())) {
-		//						out.add(item);
-		//					}
-		//					LOGGER.info("type of object {}", item.getClass());
-		//				}
-		//			} else {
-		//				LOGGER.error("`List<>` is not implemented");
-		//			}
-		//			return;
-		//		}
-		//		if (Set.class == field.getType()) {
-		//			//final Object value = doc.get(fieldName, field.getType());
-		//			//field.set(data, value);
-		//			LOGGER.error("`List<>` or `Set<>` is not implemented");
-		//			return;
-		//		}
-		//		// Manage Map:
-		//		if (Map.class == field.getType()) {
-		//			//final Object value = doc.get(fieldName, field.getType());
-		//			//field.set(data, value);
-		//			LOGGER.error("`Map<>` is not implemented");
-		//			return;
-		//		}
-		//
-		//		// manage a sub-object
-		//		final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
-		//				new QueryOptions(), lazyCall);
-		//		field.set(data, value);
-		return null;
+			for (Type arg : pType.getActualTypeArguments()) {
+				inspectType(arg, depth + 1);
+			}
+		} else if (type instanceof Class) {
+			System.out.println(" ".repeat(depth * 2) + "Class: " + ((Class<?>) type).getName());
+		} else {
+			System.out.println(" ".repeat(depth * 2) + "Unknown type: " + type);
+		}
 	}
 
-	public <T> void setValueFromDoc(
-			final Class<?> type,
-			final Object data,
-			final Field field,
-			final Document doc,
-			final List<LazyGetter> lazyCall,
-			final QueryOptions options) throws Exception {
+	public <T> void setValueFromDoc(final Type type, final Object data, final Field field, final Document doc,
+			final List<LazyGetter> lazyCall, final QueryOptions options) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
-		if (!doc.containsKey(fieldName)) {
-			field.set(data, null);
-			return;
-		}
-		if (type == UUID.class) {
-			final UUID value = doc.get(fieldName, UUID.class);
-			field.set(data, value);
-			return;
-		}
-		if (type == ObjectId.class) {
-			final ObjectId value = doc.get(fieldName, ObjectId.class);
-			field.set(data, value);
-			return;
-		}
-		if (type == Long.class || type == long.class) {
-			final Long value = doc.getLong(fieldName);
-			field.set(data, value);
-			return;
-		}
-		if (type == Integer.class || type == int.class) {
-			final Integer value = doc.getInteger(fieldName);
-			field.set(data, value);
-			return;
-		}
-		if (type == Float.class || type == float.class) {
-			final Double value = doc.getDouble(fieldName);
-			field.set(data, (float) ((double) value));
-			return;
-		}
-		if (type == Double.class || type == double.class) {
-			final Double value = doc.getDouble(fieldName);
-			field.set(data, value);
-			return;
-		}
-		if (type == Boolean.class || type == boolean.class) {
-			final Boolean value = doc.getBoolean(fieldName);
-			field.set(data, value);
-			return;
-		}
-		if (type == Date.class) {
-			final Date value = doc.get(fieldName, Date.class);
-			field.set(data, value);
-			return;
-		}
-		if (type == Instant.class) {
-			final Date value = doc.get(fieldName, Date.class);
-			final Instant newData = value.toInstant();
-			field.set(data, newData);
-			return;
-		}
-		if (type == LocalDate.class) {
-			final String value = doc.get(fieldName, String.class);
-			final LocalDate newData = LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-			field.set(data, newData);
-			return;
-		}
-		if (type == LocalTime.class) {
-			final Long value = doc.getLong(fieldName);
-			final LocalTime newData = LocalTime.ofNanoOfDay(value);
-			field.set(data, newData);
-			return;
-		}
-		if (type == String.class) {
-			final String value = doc.getString(fieldName);
-			field.set(data, value);
-			return;
-		}
-		if (type == UUID.class) {
-			final Object value = doc.get(fieldName, field.getType());
-			field.set(data, value);
-			return;
-		}
-		if (type.isEnum()) {
-			final String value = doc.getString(fieldName);
-			field.set(data, retreiveValueEnum(type, value));
-			return;
-		}
-		// Manage List & Set:
-		if (List.class == field.getType()) {
-			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-					.getActualTypeArguments()[0];
-			List<Object> out = new ArrayList<>();
-			Object value = doc.get(fieldName);
-			if (value instanceof List<?> valueList) {
-				for (Object item : valueList) {
-					if (item == null) {
-						out.add(null);
-					} else if (objectClass.isAssignableFrom(item.getClass())) {
-						out.add(item);
-					} else if (item instanceof Document temporaryDocumentObject) {
-						final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
-								new QueryOptions(), lazyCall);
-						out.add(valueObject);
-					} else if (item instanceof String temporaryString && objectClass.isEnum()) {
-						Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
-						out.add(valueEnum);
-					} else {
-						LOGGER.error("type of object {} to {}", item.getClass(), objectClass);
-					}
+		if (type instanceof ParameterizedType parameterizedType) {
+			// Manage List & Set:
+			if (type instanceof List) {
+				Object value = doc.get(fieldName);
+				if (value == null) {
+					return;
 				}
-				field.set(data, out);
-			} else {
-				LOGGER.error("`List<>` is not implemented");
-			}
-			return;
-		}
-		if (Set.class == field.getType()) {
-			// final Object value = doc.get(fieldName, field.getType());
-			// field.set(data, value);
-			LOGGER.error("`List<>` or `Set<>` is not implemented");
-			return;
-		}
-		// Manage Map:
-		if (Map.class == field.getType()) {
-			// final Object value = doc.get(fieldName, field.getType());
-			// field.set(data, value);
-			final Class<?> keyClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-					.getActualTypeArguments()[0];
-			final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-					.getActualTypeArguments()[1];
-			if (keyClass != String.class) {
-				throw new DataAccessException("Fail Map key is not a string");
-			}
-			Map<String, Object> out = new HashMap<>();
-
-			Object fieldValue = doc.get(fieldName);
-			if (fieldValue instanceof Document subDoc) {
-				for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
-					String key = entry.getKey();
-					Object value = entry.getValue();
-					if (value == null) {
-						out.put(key, null);
-					} else if (objectClass.isAssignableFrom(value.getClass())) {
-						out.put(key, value);
-					} else if (value instanceof Document temporaryDocumentObject) {
-						final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
-								new QueryOptions(), lazyCall);
-						out.put(key, valueObject);
-					} else if (value instanceof String temporaryString && objectClass.isEnum()) {
-						Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
-						out.put(key, valueEnum);
-					} else {
-						LOGGER.error("type of object {}=>{} , requested {}", key, value.getClass(), objectClass);
-					}
+				if (!(value instanceof List<?>)) {
+					throw new DataAccessException("mapping a list on somethin not a list ... bad request");
+				}
+				// get type of the object:
+				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				// generate the output
+				List<Object> out = new ArrayList<>();
+				List<?> valueList = (List<?>) value;
+				for (Object item : valueList) {
+					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
 				}
 				field.set(data, out);
 				return;
 			}
+			if (Set.class == field.getType()) {
+				// final Object value = doc.get(fieldName, field.getType());
+				// field.set(data, value);
+				LOGGER.error("`List<>` or `Set<>` is not implemented");
+				return;
+			}
+			// Manage Map:
+			if (Map.class == field.getType()) {
+				inspectType(field.getGenericType(), 0);
+				// field.set(data, value);
+				final ParameterizedType typeTemplate = (ParameterizedType) field.getGenericType();
+				final Class<?> keyClass = (Class<?>) typeTemplate.getActualTypeArguments()[0];
+
+				final Class<?> objectClass = (Class<?>) (typeTemplate).getActualTypeArguments()[1];
+				if (keyClass != String.class) {
+					throw new DataAccessException("Fail Map key is not a string");
+				}
+				Map<String, Object> out = new HashMap<>();
+
+				Object fieldValue = doc.get(fieldName);
+				if (fieldValue instanceof Document subDoc) {
+					for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
+						String key = entry.getKey();
+						Object value = entry.getValue();
+						if (value == null) {
+							out.put(key, null);
+						} else if (objectClass.isAssignableFrom(value.getClass())) {
+							out.put(key, value);
+						} else if (value instanceof Document temporaryDocumentObject) {
+							final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
+									new QueryOptions(), lazyCall);
+							out.put(key, valueObject);
+						} else if (value instanceof String temporaryString && objectClass.isEnum()) {
+							Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
+							out.put(key, valueEnum);
+						} else {
+							LOGGER.error("type of object {}=>{} , requested {}", key, value.getClass(), objectClass);
+						}
+					}
+					field.set(data, out);
+					return;
+				}
+			}
+		} else if (type instanceof Class clazz) {
+			if (!doc.containsKey(fieldName)) {
+				field.set(data, null);
+				return;
+			}
+			if (clazz == UUID.class) {
+				final UUID value = doc.get(fieldName, UUID.class);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == ObjectId.class) {
+				final ObjectId value = doc.get(fieldName, ObjectId.class);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Long.class || clazz == long.class) {
+				final Long value = doc.getLong(fieldName);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Integer.class || clazz == int.class) {
+				final Integer value = doc.getInteger(fieldName);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Float.class || clazz == float.class) {
+				final Double value = doc.getDouble(fieldName);
+				field.set(data, (float) ((double) value));
+				return;
+			}
+			if (clazz == Double.class || clazz == double.class) {
+				final Double value = doc.getDouble(fieldName);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Boolean.class || clazz == boolean.class) {
+				final Boolean value = doc.getBoolean(fieldName);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Date.class) {
+				final Date value = doc.get(fieldName, Date.class);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == Instant.class) {
+				final Date value = doc.get(fieldName, Date.class);
+				final Instant newData = value.toInstant();
+				field.set(data, newData);
+				return;
+			}
+			if (clazz == LocalDate.class) {
+				final String value = doc.get(fieldName, String.class);
+				final LocalDate newData = LocalDate.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+				field.set(data, newData);
+				return;
+			}
+			if (clazz == LocalTime.class) {
+				final Long value = doc.getLong(fieldName);
+				final LocalTime newData = LocalTime.ofNanoOfDay(value);
+				field.set(data, newData);
+				return;
+			}
+			if (clazz == String.class) {
+				final String value = doc.getString(fieldName);
+				field.set(data, value);
+				return;
+			}
+			if (clazz == UUID.class) {
+				final Object value = doc.get(fieldName, field.getType());
+				field.set(data, value);
+				return;
+			}
+			if (clazz.isEnum()) {
+				final String value = doc.getString(fieldName);
+				field.set(data, retreiveValueEnum(clazz, value));
+				return;
+			}
+			// manage a sub-object
+			final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
+					new QueryOptions(), lazyCall);
+			field.set(data, value);
+		} else {
+			throw new DataAccessException("Fail to analyze type: " + type.toString());
 		}
-		// manage a sub-object
-		final Object value = createObjectFromDocument(doc.get(fieldName, Document.class), field.getType(),
-				new QueryOptions(), lazyCall);
-		field.set(data, value);
 	}
 
 	private Object retreiveValueEnum(Class<?> objectClass, String temporaryString) throws DataAccessException {
@@ -721,10 +624,14 @@ public class DBAccessMongo extends DBAccess {
 		if (type == Boolean.class || type == boolean.class) {
 			return Boolean.parseBoolean(data);
 		}
-		if (type == Date.class) {}
-		if (type == Instant.class) {}
-		if (type == LocalDate.class) {}
-		if (type == LocalTime.class) {}
+		if (type == Date.class) {
+		}
+		if (type == Instant.class) {
+		}
+		if (type == LocalDate.class) {
+		}
+		if (type == LocalTime.class) {
+		}
 		if (type == String.class) {
 			return data;
 		}
@@ -1201,61 +1108,223 @@ public class DBAccessMongo extends DBAccess {
 		return outs;
 	}
 
-	public Object createObjectFromDocument(
-			final Document doc,
-			final Class<?> clazz,
-			final QueryOptions options,
+	public boolean isType(Type type, Class<?> destType) {
+		if (type instanceof ParameterizedType) {
+			ParameterizedType pType = (ParameterizedType) type;
+			Type rawType = pType.getRawType();
+			if (rawType instanceof Class<?>) {
+				return destType.isAssignableFrom((Class<?>) rawType);
+			}
+		} else if (type instanceof Class<?>) {
+			// Si c'est une Map brute sans génériques (rare, mais possible)
+			return destType.isAssignableFrom((Class<?>) type);
+		}
+		return false;
+	}
+
+	public Object createObjectFromDocument(final Object doc, final Type type, final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
-		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
-		LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
-		final boolean readAllfields = QueryOptions.readAllColomn(options);
-		// TODO: manage class that is defined inside a class ==> Not manage for now...
-		Object data = null;
-		for (final Constructor<?> contructor : clazz.getConstructors()) {
-			if (contructor.getParameterCount() == 0) {
-				data = contructor.newInstance();
-				break;
-			}
+		inspectType(type, 0);
+		if (doc == null) {
+			return null;
 		}
-		if (data == null) {
-			throw new DataAccessException(
-					"Can not find the default constructor for the class: " + clazz.getCanonicalName());
-		}
-		for (final Field elem : clazz.getFields()) {
-			LOGGER.trace("    Inspect field: name='{}' type='{}'", elem.getName(), elem.getType().getCanonicalName());
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-				LOGGER.trace("        ==> static");
-				continue;
+		if (type instanceof ParameterizedType parameterizedType) {
+			// Manage List & Set:
+			if (isType(type, List.class)) {
+				Object value = doc;
+				if (!(value instanceof List<?>)) {
+					throw new DataAccessException("mapping a 'List' on somethin not a 'List' ... bad request");
+				}
+				// get type of the object:
+				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				// generate the output
+				List<Object> out = new ArrayList<>();
+				List<?> valueList = (List<?>) value;
+				for (Object item : valueList) {
+					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
+				}
+				return out;
 			}
-			final DataAccessAddOn addOn = findAddOnforField(elem);
-			if (addOn != null && !addOn.canRetrieve(elem)) {
-				LOGGER.trace("        ==> Can not retreive this field");
-				continue;
+			if (isType(type, Set.class)) {
+				Object value = doc;
+				if (!(value instanceof List<?>)) {
+					throw new DataAccessException("mapping a 'Set' on somethin not a 'List' ... bad request");
+				}
+				// get type of the object:
+				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				// generate the output
+				Set<Object> out = new HashSet<>();
+				List<?> valueList = (List<?>) value;
+				for (Object item : valueList) {
+					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
+				}
+				return out;
 			}
-			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
-			if (!readAllfields && notRead) {
-				LOGGER.trace("        ==> Not read this element");
-				continue;
-			}
-			if (addOn != null) {
-				addOn.fillFromDoc(this, doc, elem, data, options, lazyCall);
-			} else {
-				Class<?> type = elem.getType();
-				if (type == Object.class) {
-					for (final OptionSpecifyType specify : specificTypes) {
-						if (specify.name.equals(elem.getName())) {
-							type = specify.clazz;
-							LOGGER.debug("Detect overwrite of typing var={} ... '{}' => '{}'", elem.getName(),
-									elem.getType().getCanonicalName(), specify.clazz.getCanonicalName());
-							break;
+			// Manage Map:
+			if (isType(type, Map.class)) {
+				Object value = doc;
+				final Class<?> keyClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+				if (keyClass == String.class || keyClass == Integer.class || keyClass == Long.class
+						|| keyClass == Short.class || keyClass == ObjectId.class || keyClass.isEnum()) {
+					// all is good
+				} else {
+					throw new DataAccessException("Fail Map key is not a string, int long short enum or ObjectId");
+				}
+
+				final Type objectType = parameterizedType.getActualTypeArguments()[1];
+				Map<Object, Object> out = new HashMap<>();
+
+				if (value instanceof Document subDoc) {
+					for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
+						String keyString = entry.getKey();
+						Object key = null;
+						if (keyClass == String.class) {
+							key = keyString;
+						} else if (keyClass == Integer.class) {
+							key = Integer.parseInt(keyString);
+						} else if (keyClass == Long.class) {
+							key = Long.parseLong(keyString);
+						} else if (keyClass == Short.class) {
+							key = Short.parseShort(keyString);
+						} else if (keyClass == ObjectId.class) {
+							key = new ObjectId(keyString);
+						} else if (keyClass.isEnum()) {
+							key = retreiveValueEnum(keyClass, keyString);
 						}
+						out.put(key,
+								createObjectFromDocument(entry.getValue(), objectType, new QueryOptions(), lazyCall));
+					}
+					return out;
+				}
+			}
+			throw new DataAccessException("Fail to read data for type: '" + type.getTypeName() + "' (NOT IMPLEMENTED)");
+		} else if (type instanceof Class clazz) {
+			if (clazz == UUID.class) {
+				// final UUID value = doc.get(fieldName, UUID.class);
+				// field.set(data, value);
+				return null;
+			}
+			if (clazz == ObjectId.class && doc instanceof ObjectId temporary) {
+				return temporary;
+			}
+			if ((clazz == Long.class || clazz == long.class) && doc instanceof Long temporary) {
+				return temporary;
+			}
+			if ((clazz == Integer.class || clazz == int.class) && doc instanceof Integer temporary) {
+				return temporary;
+			}
+			if (clazz == Float.class || clazz == float.class) {
+				if (doc instanceof Float temporary) {
+					return temporary;
+				} else if (doc instanceof Double temporary) {
+					return temporary.floatValue();
+				}
+			}
+			if ((clazz == Double.class || clazz == double.class) && doc instanceof Double temporary) {
+				return temporary;
+			}
+			if ((clazz == Boolean.class || clazz == boolean.class) && doc instanceof Boolean temporary) {
+				return temporary;
+			}
+			if (clazz == Date.class && doc instanceof Date temporary) {
+				return temporary;
+			}
+			if (clazz == Instant.class && doc instanceof Date temporary) {
+				return temporary.toInstant();
+			}
+			if (clazz == LocalDate.class && doc instanceof String temporary) {
+				return LocalDate.parse(temporary, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			}
+			if (clazz == LocalTime.class && doc instanceof Long temporary) {
+				return LocalTime.ofNanoOfDay(temporary);
+			}
+			if (clazz == String.class && doc instanceof String temporary) {
+				return temporary;
+			}
+			if (clazz == UUID.class) {
+				// final Object value = doc.get(fieldName, field.getType());
+				// field.set(data, value);
+				return null;
+			}
+			if (doc instanceof String temporary && clazz.isEnum()) {
+				return retreiveValueEnum(clazz, temporary);
+			}
+
+			if (doc instanceof Document documentModel) {
+				final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
+				LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
+				final boolean readAllfields = QueryOptions.readAllColomn(options);
+				// TODO: manage class that is defined inside a class ==> Not manage for now...
+				Object data = null;
+				for (final Constructor<?> contructor : clazz.getConstructors()) {
+					if (contructor.getParameterCount() == 0) {
+						data = contructor.newInstance();
+						break;
 					}
 				}
-				setValueFromDoc(type, data, elem, doc, lazyCall, options);
+				if (data == null) {
+					throw new DataAccessException(
+							"Can not find the default constructor for the class: " + clazz.getCanonicalName());
+				}
+				for (final Field field : clazz.getFields()) {
+					LOGGER.trace("    Inspect field: name='{}' type='{}'", field.getName(),
+							field.getType().getCanonicalName());
+					// static field is only for internal global declaration ==> remove it ..
+					if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+						LOGGER.trace("        ==> static");
+						continue;
+					}
+					final DataAccessAddOn addOn = findAddOnforField(field);
+					if (addOn != null && !addOn.canRetrieve(field)) {
+						LOGGER.trace("        ==> Can not retreive this field");
+						continue;
+					}
+					final boolean notRead = AnnotationTools.isDefaultNotRead(field);
+					if (!readAllfields && notRead) {
+						LOGGER.trace("        ==> Not read this element");
+						continue;
+					}
+					if (addOn != null) {
+						addOn.fillFromDoc(this, documentModel, field, data, options, lazyCall);
+					} else {
+						Type typeModified = field.getGenericType();
+						for (final OptionSpecifyType specify : specificTypes) {
+							LOGGER.info("chack if element is override : '{}'=='{}'", specify.name, field.getName());
+							if (specify.name.equals(field.getName())) {
+								LOGGER.info("        ==> detected");
+								if (specify.isList) {
+									LOGGER.info("            ==> Is List");
+									if (isType(typeModified, List.class)) {
+										typeModified = TypeUtils.listOf(specify.clazz);
+										break;
+									}
+								} else {
+									LOGGER.info("            ==> normal");
+									if (type instanceof Class) {
+										if (typeModified == Object.class) {
+											typeModified = specify.clazz;
+											LOGGER.debug("Detect overwrite of typing var={} ... '{}' => '{}'",
+													field.getName(), field.getType().getCanonicalName(),
+													specify.clazz.getCanonicalName());
+											break;
+										}
+									}
+								}
+							}
+						}
+						final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
+						Object dataField = createObjectFromDocument(documentModel.get(fieldName), typeModified, options,
+								lazyCall);
+						field.set(data, dataField);
+					}
+				}
+				return data;
+			} else {
+				throw new DataAccessException(
+						"Fail to read data for type: '" + type.getTypeName() + "' detect data that is not a Document");
 			}
 		}
-		return data;
+		throw new DataAccessException("Fail to read data for type: '" + type.getTypeName() + "' (NOT IMPLEMENTED)");
 	}
 
 	@Override

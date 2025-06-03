@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
-import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;

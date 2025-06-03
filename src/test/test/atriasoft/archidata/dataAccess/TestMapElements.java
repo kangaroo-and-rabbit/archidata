@@ -3,9 +3,11 @@ package test.atriasoft.archidata.dataAccess;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -198,4 +200,108 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapEnumData.get("4"), retrieve.mapEnumData.get("4"));
 	}
 
+	@Order(2)
+	@Test
+	public void testMapMapEnumData() throws Exception {
+		final DataWithSubJsonMap test = new DataWithSubJsonMap();
+		test.mapMapEnumData = new HashMap<>();
+		Map<String, Enum2ForTest> subMap = new HashMap<>();
+		subMap.put("0", Enum2ForTest.ENUM_VALUE_1);
+		subMap.put("1", Enum2ForTest.ENUM_VALUE_4);
+		test.mapMapEnumData.put("A", subMap);
+		subMap = new HashMap<>();
+		subMap.put("2", Enum2ForTest.ENUM_VALUE_5);
+		subMap.put("3", Enum2ForTest.ENUM_VALUE_2);
+		subMap.put("4", Enum2ForTest.ENUM_VALUE_3);
+		test.mapMapEnumData.put("B", subMap);
+
+		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
+
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.mapMapEnumData);
+		Assertions.assertEquals(2, insertedData.mapMapEnumData.size());
+		Assertions.assertNotNull(insertedData.mapMapEnumData.get("A"));
+		Assertions.assertEquals(2, insertedData.mapMapEnumData.get("A").size());
+		Assertions.assertEquals(test.mapMapEnumData.get("A").get("0"), insertedData.mapMapEnumData.get("A").get("0"));
+		Assertions.assertEquals(test.mapMapEnumData.get("A").get("1"), insertedData.mapMapEnumData.get("A").get("1"));
+		Assertions.assertNotNull(insertedData.mapMapEnumData.get("B"));
+		Assertions.assertEquals(3, insertedData.mapMapEnumData.get("B").size());
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("2"), insertedData.mapMapEnumData.get("B").get("2"));
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("3"), insertedData.mapMapEnumData.get("B").get("3"));
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("4"), insertedData.mapMapEnumData.get("B").get("4"));
+
+		// Try to retrieve all the data:
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.get(DataWithSubJsonMap.class, insertedData.oid);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.mapMapEnumData);
+		Assertions.assertEquals(2, retrieve.mapMapEnumData.size());
+		Assertions.assertNotNull(retrieve.mapMapEnumData.get("A"));
+		Assertions.assertEquals(2, retrieve.mapMapEnumData.get("A").size());
+		Assertions.assertEquals(test.mapMapEnumData.get("A").get("0"), retrieve.mapMapEnumData.get("A").get("0"));
+		Assertions.assertEquals(test.mapMapEnumData.get("A").get("1"), retrieve.mapMapEnumData.get("A").get("1"));
+		Assertions.assertNotNull(retrieve.mapMapEnumData.get("B"));
+		Assertions.assertEquals(3, retrieve.mapMapEnumData.get("B").size());
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("2"), retrieve.mapMapEnumData.get("B").get("2"));
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("3"), retrieve.mapMapEnumData.get("B").get("3"));
+		Assertions.assertEquals(test.mapMapEnumData.get("B").get("4"), retrieve.mapMapEnumData.get("B").get("4"));
+	}
+
+	@Order(2)
+	@Test
+	public void testMapKeyModifiedObjectData() throws Exception {
+		final DataWithSubJsonMap test = new DataWithSubJsonMap();
+		test.mapMapKeyModifiedObjectData = new HashMap<>();
+		ObjectId firstKey = new ObjectId();
+		test.mapMapKeyModifiedObjectData.put(firstKey, -1L);
+		ObjectId secondKey = new ObjectId();
+		test.mapMapKeyModifiedObjectData.put(secondKey, 256L);
+
+		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
+
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.mapMapKeyModifiedObjectData);
+		Assertions.assertEquals(2, insertedData.mapMapKeyModifiedObjectData.size());
+		Assertions.assertEquals(-1L, insertedData.mapMapKeyModifiedObjectData.get(firstKey));
+		Assertions.assertEquals(256L, insertedData.mapMapKeyModifiedObjectData.get(secondKey));
+		// Try to retrieve all the data:
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.get(DataWithSubJsonMap.class, insertedData.oid);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.mapMapKeyModifiedObjectData);
+		Assertions.assertEquals(2, retrieve.mapMapKeyModifiedObjectData.size());
+		Assertions.assertEquals(-1L, retrieve.mapMapKeyModifiedObjectData.get(firstKey));
+		Assertions.assertEquals(256L, retrieve.mapMapKeyModifiedObjectData.get(secondKey));
+	}
+
+	@Order(2)
+	@Test
+	public void testMapKeyModifiedIntegerData() throws Exception {
+		final DataWithSubJsonMap test = new DataWithSubJsonMap();
+		test.mapMapKeyModifiedIntegerData = new HashMap<>();
+		test.mapMapKeyModifiedIntegerData.put(56, -1L);
+		test.mapMapKeyModifiedIntegerData.put(66, 256L);
+
+		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
+
+		Assertions.assertNotNull(insertedData);
+		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.mapMapKeyModifiedIntegerData);
+		Assertions.assertEquals(2, insertedData.mapMapKeyModifiedIntegerData.size());
+		Assertions.assertEquals(-1L, insertedData.mapMapKeyModifiedIntegerData.get(56));
+		Assertions.assertEquals(256L, insertedData.mapMapKeyModifiedIntegerData.get(66));
+		// Try to retrieve all the data:
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.get(DataWithSubJsonMap.class, insertedData.oid);
+
+		Assertions.assertNotNull(retrieve);
+		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.mapMapKeyModifiedIntegerData);
+		Assertions.assertEquals(2, retrieve.mapMapKeyModifiedIntegerData.size());
+		Assertions.assertEquals(-1L, retrieve.mapMapKeyModifiedIntegerData.get(56));
+		Assertions.assertEquals(256L, retrieve.mapMapKeyModifiedIntegerData.get(66));
+	}
 }
