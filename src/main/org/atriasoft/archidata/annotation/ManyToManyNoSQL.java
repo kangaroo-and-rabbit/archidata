@@ -8,20 +8,43 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * In NoSql entity the relation is stored in the 2 part of the entity,
- * then it is needed to define the field that store the relation data value in the remote elements.
+ * In NoSql entity the relation is stored in the 2 part of the entity, then it
+ * is needed to define the field that store the relation data value in the
+ * remote elements.
+ *
+ * Technical note: The use of this annotation when unidirectional if not needed,
+ * just use @Ref CheckForeignKey
+ *
+ * <p>
+ * Example:
+ * {@snippet :
+ *
+ * public class ClassA {
+ * 	&#64;Id
+ * 	ObjectId _id;
+ * 	&#64;ManyToManyNoSQL(targetEntity = ClassB.class, remoteField = "remoteFieldClassB")
+ * 	List<@CheckForeignKey(ClassB.class) ObjectId> remoteFieldClassA;
+ * }
+ *
+ * public class ClassB {
+ * 	&#64;Id
+ * 	ObjectId _id;
+ * 	&#64;OneToManyNoSQL(targetEntity = ClassA.class, remoteField = "remoteFieldClassA")
+ * 	List<@CheckForeignKey(ClassA.class) ObjectId> remoteFieldClassB;
+ * }
+ * }
  */
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })
 public @interface ManyToManyNoSQL {
 	/**
-	 * The entity class that is the target of the
-	 * association.
+	 * The entity class that is the target of the association.
 	 */
 	Class<?> targetEntity();
 
 	/**
-	 * The field that owns the revert value. empty if the relationship is unidirectional.
+	 * The field remote name that owns the revert value. empty if the relationship
+	 * is unidirectional.
 	 */
 	String remoteField();
 }
