@@ -138,18 +138,39 @@ public class DBAccessMongo extends DBAccess {
 		return true;
 	}
 
-	public byte[][] splitIntoGroupsOf16Bytes(final byte[] input) {
-		final int inputLength = input.length;
-		final int numOfGroups = (inputLength + 15) / 16; // Calculate the number of groups needed
-		final byte[][] groups = new byte[numOfGroups][16];
+	/**
+	 * Disables schema validation for an existing MongoDB collection.
+	 *
+	 * This method removes any JSON Schema validator associated with the specified
+	 * collection and turns off server-side validation entirely. Documents can be
+	 * inserted or updated without being checked against any schema.
+	 *
+	 * @param collection the name of the MongoDB collection to disable schema
+	 *                   validation on.
+	 */
+	public void disableSchema(final String collection) {
+		Document command = new Document("collMod", collection)//
+				.append("validator", new Document())//
+				.append("validationLevel", "off");
+		this.db.getDatabase().runCommand(command);
+	}
 
-		for (int i = 0; i < numOfGroups; i++) {
-			final int startIndex = i * 16;
-			final int endIndex = Math.min(startIndex + 16, inputLength);
-			groups[i] = Arrays.copyOfRange(input, startIndex, endIndex);
-		}
-
-		return groups;
+	/**
+	 * Sets or updates a JSON Schema validator for an existing MongoDB collection.
+	 *
+	 * The provided schema will be strictly enforced on all insert and update
+	 * operations for the specified collection. This ensures that documents conform
+	 * to the defined structure.
+	 *
+	 * @param collection the name of the MongoDB collection to apply the schema to.
+	 * @param schema     a BSON Document representing the JSON Schema to enforce
+	 *                   (must follow MongoDB's schema validation format).
+	 */
+	public void enableSchema(final String collection, Document schema) {
+		Document command = new Document("collMod", collection)//
+				.append("validator", schema)//
+				.append("validationLevel", "strict");
+		this.db.getDatabase().runCommand(command);
 	}
 
 	// TODO: add a mode for update like "variable.subVariable"
