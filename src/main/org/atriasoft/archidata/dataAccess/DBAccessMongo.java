@@ -10,7 +10,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -121,7 +120,8 @@ public class DBAccessMongo extends DBAccess {
 
 	@Override
 	public boolean createDB(final String name) {
-		// in Mongo DB we do not need to create a DB
+		// in Mongo DB we do not need to create a DB it is dynamically created when
+		// insert the first element.
 		return true;
 	}
 
@@ -134,6 +134,7 @@ public class DBAccessMongo extends DBAccess {
 
 	@Override
 	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
+		// With mongo the dB exist only when the data is inserted
 		return true;
 	}
 
@@ -271,22 +272,7 @@ public class DBAccessMongo extends DBAccess {
 			Document documentData = new Document();
 			for (Entry<?, ?> elem : tmpMap.entrySet()) {
 				Object key = elem.getKey();
-				String keyString;
-				if (key instanceof String keyTyped) {
-					keyString = keyTyped;
-				} else if (key instanceof Integer keyTyped) {
-					keyString = Integer.toString(keyTyped);
-				} else if (key instanceof Long keyTyped) {
-					keyString = Long.toString(keyTyped);
-				} else if (key instanceof Short keyTyped) {
-					keyString = Short.toString(keyTyped);
-				} else if (key instanceof ObjectId keyTyped) {
-					keyString = keyTyped.toString();
-				} else if (key.getClass().isEnum()) {
-					keyString = key.toString();
-				} else {
-					throw new DataAccessException("Fail Map key is not a string");
-				}
+				String keyString = convertMapKeyInString(key);
 				Object tmp1 = convertInDocument(elem.getValue());
 				documentData.append(keyString, tmp1);
 			}
@@ -295,6 +281,88 @@ public class DBAccessMongo extends DBAccess {
 		}
 		Object documentData = convertInDocument(tmp);
 		docSet.append(fieldName, documentData);
+	}
+
+	/**
+	 * Checks if the provided key class is supported for converting a map's string
+	 * key into an object key.
+	 *
+	 * Supported key types are String, Integer, Long, Short, ObjectId, or any Enum.
+	 *
+	 * @param keyClass the Class object representing the key type to check
+	 * @throws DataAccessException if the key class is not one of the supported
+	 *                             types
+	 */
+	private void checkIfConvertMapStringKeyToObjectIsPossible(Class<?> keyClass) throws DataAccessException {
+		if (keyClass == String.class || keyClass == Integer.class || keyClass == Long.class || keyClass == Short.class
+				|| keyClass == ObjectId.class || keyClass.isEnum()) {
+			return;
+		}
+		throw new DataAccessException("Fail Map key is not a string, int, long, short, enum or ObjectId");
+	}
+
+	/**
+	 * Converts a string key to an object of the specified key class without
+	 * throwing an exception.
+	 *
+	 * Supports conversion to String, Integer, Long, Short, ObjectId, and Enum
+	 * types.
+	 *
+	 * @param keyString the string representation of the key
+	 * @param keyClass  the Class object of the desired key type
+	 * @return the key converted to the target type, or null if the type is
+	 *         unsupported
+	 * @throws DataAccessException if the key cannot be converted properly (e.g.,
+	 *                             enum conversion fails)
+	 */
+	private Object convertMapStringKeyToObjectNoThrow(String keyString, Class<?> keyClass) throws DataAccessException {
+		if (keyClass == String.class) {
+			return keyString;
+		} else if (keyClass == Integer.class) {
+			return Integer.parseInt(keyString);
+		} else if (keyClass == Long.class) {
+			return Long.parseLong(keyString);
+		} else if (keyClass == Short.class) {
+			return Short.parseShort(keyString);
+		} else if (keyClass == ObjectId.class) {
+			return new ObjectId(keyString);
+		} else if (keyClass.isEnum()) {
+			return retreiveValueEnum(keyClass, keyString);
+		}
+		return null;
+	}
+
+	/**
+	 * Converts a map key object to its string representation.
+	 *
+	 * Supports keys of type String, Integer, Long, Short, ObjectId, and Enum.
+	 * Throws an exception if the key type is unsupported.
+	 *
+	 * @param key the key object to convert to a string
+	 * @return the string representation of the key
+	 * @throws DataAccessException if the key type is not supported for conversion
+	 *                             to string
+	 */
+	private String convertMapKeyInString(Object key) throws DataAccessException {
+		if (key instanceof String keyTyped) {
+			return keyTyped;
+		}
+		if (key instanceof Integer keyTyped) {
+			return Integer.toString(keyTyped);
+		}
+		if (key instanceof Long keyTyped) {
+			return Long.toString(keyTyped);
+		}
+		if (key instanceof Short keyTyped) {
+			return Short.toString(keyTyped);
+		}
+		if (key instanceof ObjectId keyTyped) {
+			return keyTyped.toString();
+		}
+		if (key.getClass().isEnum()) {
+			return key.toString();
+		}
+		throw new DataAccessException("Fail Map key is not a string");
 	}
 
 	public <T> Object convertInDocument(final T data) throws Exception {
@@ -362,13 +430,9 @@ public class DBAccessMongo extends DBAccess {
 			Document documentData = new Document();
 			for (Entry<?, ?> elem : tmpMap.entrySet()) {
 				Object key = elem.getKey();
-				if (key instanceof String keyString) {
-					Object tmp1 = convertInDocument(elem.getValue());
-					LOGGER.error("Convert in Mongos : {} ==> {}", elem, tmp1);
-					documentData.append(keyString, tmp1);
-				} else {
-					throw new DataAccessException("Fail Map key is not a string");
-				}
+				String keyString = convertMapKeyInString(key);
+				Object tmp1 = convertInDocument(elem.getValue());
+				documentData.append(keyString, tmp1);
 			}
 			return documentData;
 		}
@@ -1171,12 +1235,7 @@ public class DBAccessMongo extends DBAccess {
 			if (isType(type, Map.class)) {
 				Object value = doc;
 				final Class<?> keyClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
-				if (keyClass == String.class || keyClass == Integer.class || keyClass == Long.class
-						|| keyClass == Short.class || keyClass == ObjectId.class || keyClass.isEnum()) {
-					// all is good
-				} else {
-					throw new DataAccessException("Fail Map key is not a string, int long short enum or ObjectId");
-				}
+				checkIfConvertMapStringKeyToObjectIsPossible(keyClass);
 
 				final Type objectType = parameterizedType.getActualTypeArguments()[1];
 				Map<Object, Object> out = new HashMap<>();
@@ -1184,20 +1243,7 @@ public class DBAccessMongo extends DBAccess {
 				if (value instanceof Document subDoc) {
 					for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
 						String keyString = entry.getKey();
-						Object key = null;
-						if (keyClass == String.class) {
-							key = keyString;
-						} else if (keyClass == Integer.class) {
-							key = Integer.parseInt(keyString);
-						} else if (keyClass == Long.class) {
-							key = Long.parseLong(keyString);
-						} else if (keyClass == Short.class) {
-							key = Short.parseShort(keyString);
-						} else if (keyClass == ObjectId.class) {
-							key = new ObjectId(keyString);
-						} else if (keyClass.isEnum()) {
-							key = retreiveValueEnum(keyClass, keyString);
-						}
+						Object key = convertMapStringKeyToObjectNoThrow(keyString, keyClass);
 						out.put(key,
 								createObjectFromDocument(entry.getValue(), objectType, new QueryOptions(), lazyCall));
 					}
@@ -1294,31 +1340,7 @@ public class DBAccessMongo extends DBAccess {
 					if (addOn != null) {
 						addOn.fillFromDoc(this, documentModel, field, data, options, lazyCall);
 					} else {
-						Type typeModified = field.getGenericType();
-						for (final OptionSpecifyType specify : specificTypes) {
-							LOGGER.info("chack if element is override : '{}'=='{}'", specify.name, field.getName());
-							if (specify.name.equals(field.getName())) {
-								LOGGER.info("        ==> detected");
-								if (specify.isList) {
-									LOGGER.info("            ==> Is List");
-									if (isType(typeModified, List.class)) {
-										typeModified = TypeUtils.listOf(specify.clazz);
-										break;
-									}
-								} else {
-									LOGGER.info("            ==> normal");
-									if (type instanceof Class) {
-										if (typeModified == Object.class) {
-											typeModified = specify.clazz;
-											LOGGER.debug("Detect overwrite of typing var={} ... '{}' => '{}'",
-													field.getName(), field.getType().getCanonicalName(),
-													specify.clazz.getCanonicalName());
-											break;
-										}
-									}
-								}
-							}
-						}
+						Type typeModified = getFieldModifiedType(field, specificTypes, clazz);
 						final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 						Object dataField = createObjectFromDocument(documentModel.get(fieldName), typeModified, options,
 								lazyCall);
@@ -1332,6 +1354,47 @@ public class DBAccessMongo extends DBAccess {
 			}
 		}
 		throw new DataAccessException("Fail to read data for type: '" + type.getTypeName() + "' (NOT IMPLEMENTED)");
+	}
+
+	/**
+	 * Determines the modified generic type of a given field based on a list of type
+	 * specifications.
+	 *
+	 * This method checks if the field's name matches any entry in the provided list
+	 * of {@code OptionSpecifyType}. If a match is found and the specification
+	 * indicates a list type, it replaces the generic type with a list of the
+	 * specified class type. Otherwise, if the field's type is {@code Object}, it
+	 * overrides it with the specified class.
+	 *
+	 * @param field         the {@code Field} whose type is to be potentially
+	 *                      modified
+	 * @param specificTypes a list of {@code OptionSpecifyType} defining specific
+	 *                      type overrides for fields
+	 * @param clazz         the class context in which this type modification is
+	 *                      applied (unused in the current method)
+	 * @return the potentially modified {@code Type} of the field after applying the
+	 *         specifications
+	 */
+	private Type getFieldModifiedType(Field field, List<OptionSpecifyType> specificTypes, Class<?> clazz) {
+		Type typeModified = field.getGenericType();
+		for (final OptionSpecifyType specify : specificTypes) {
+			if (specify.name.equals(field.getName())) {
+				if (specify.isList) {
+					if (isType(typeModified, List.class)) {
+						typeModified = TypeUtils.listOf(specify.clazz);
+						break;
+					}
+				} else {
+					if (typeModified == Object.class) {
+						typeModified = specify.clazz;
+						LOGGER.trace("Detect overwrite of typing var={} ... '{}' => '{}'", field.getName(),
+								field.getType().getCanonicalName(), specify.clazz.getCanonicalName());
+						break;
+					}
+				}
+			}
+		}
+		return typeModified;
 	}
 
 	@Override
