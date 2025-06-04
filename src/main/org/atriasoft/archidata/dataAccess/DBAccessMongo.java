@@ -154,8 +154,13 @@ public class DBAccessMongo extends DBAccess {
 	}
 
 	// TODO: add a mode for update like "variable.subVariable"
-	public <T> void setValueToDb(String parentFieldName, // Can be null if we update the full sub Object
-			final Class<?> type, final T data, final Field field, final String fieldName, final Document docSet,
+	public <T> void setValueToDb(
+			String parentFieldName, // Can be null if we update the full sub Object
+			final Class<?> type,
+			final T data,
+			final Field field,
+			final String fieldName,
+			final Document docSet,
 			final Document docUnSet // Can be null if we want to not use the unset (case for sub-object
 	) throws Exception {
 		String fieldComposeName = fieldName;
@@ -438,8 +443,13 @@ public class DBAccessMongo extends DBAccess {
 		}
 	}
 
-	public <T> void setValueFromDoc(final Type type, final Object data, final Field field, final Document doc,
-			final List<LazyGetter> lazyCall, final QueryOptions options) throws Exception {
+	public <T> void setValueFromDoc(
+			final Type type,
+			final Object data,
+			final Field field,
+			final Document doc,
+			final List<LazyGetter> lazyCall,
+			final QueryOptions options) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (type instanceof ParameterizedType parameterizedType) {
 			// Manage List & Set:
@@ -624,14 +634,10 @@ public class DBAccessMongo extends DBAccess {
 		if (type == Boolean.class || type == boolean.class) {
 			return Boolean.parseBoolean(data);
 		}
-		if (type == Date.class) {
-		}
-		if (type == Instant.class) {
-		}
-		if (type == LocalDate.class) {
-		}
-		if (type == LocalTime.class) {
-		}
+		if (type == Date.class) {}
+		if (type == Instant.class) {}
+		if (type == LocalDate.class) {}
+		if (type == LocalTime.class) {}
 		if (type == String.class) {
 			return data;
 		}
@@ -1122,7 +1128,10 @@ public class DBAccessMongo extends DBAccess {
 		return false;
 	}
 
-	public Object createObjectFromDocument(final Object doc, final Type type, final QueryOptions options,
+	public Object createObjectFromDocument(
+			final Object doc,
+			final Type type,
+			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
 		inspectType(type, 0);
 		if (doc == null) {
