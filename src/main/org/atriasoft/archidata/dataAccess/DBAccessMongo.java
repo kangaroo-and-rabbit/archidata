@@ -25,9 +25,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyNoSql;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOne;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOneNoSql;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToMany;
 import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToManyNoSql;
 import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
@@ -84,9 +82,9 @@ public class DBAccessMongo extends DBAccess {
 		// Not implementable without performance fail...
 		// addOn.add(new AddOnManyToMany());
 		// Deprecated
-		addOn.add(new AddOnManyToOne());
+		// addOn.add(new AddOnManyToOne());
 		// Deprecated
-		addOn.add(new AddOnOneToMany());
+		// addOn.add(new AddOnOneToMany());
 	}
 
 	/**
