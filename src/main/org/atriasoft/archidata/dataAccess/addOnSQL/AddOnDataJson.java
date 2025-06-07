@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.DataJson;
+import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.CountInOut;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
@@ -255,37 +256,40 @@ public class AddOnDataJson implements DataAccessAddOn {
 
 	@Deprecated(since = "use ListInDbTools.removeLink instead")
 	public static void removeLink(
-			final DBAccess ioDb,
 			final Class<?> clazz,
 			String clazzPrimaryKeyName,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToRemove) throws Exception {
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
-		if (clazzPrimaryKeyName == null) {
-			clazzPrimaryKeyName = "id";
-		}
-		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		if (data.filedNameOfTheObject == null) {
-			return;
-		}
-		final List<Object> newList = new ArrayList<>();
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(valueToRemove)) {
-				continue;
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccess ioDb = ctx.get();
+			final String tableName = AnnotationTools.getTableName(clazz);
+			final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
+					new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
+					new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
+			if (clazzPrimaryKeyName == null) {
+				clazzPrimaryKeyName = "id";
 			}
-			newList.add(elem);
+			options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
+			options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
+			final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue,
+					options.getAllArray());
+			if (data.filedNameOfTheObject == null) {
+				return;
+			}
+			final List<Object> newList = new ArrayList<>();
+			for (final Object elem : data.filedNameOfTheObject) {
+				if (elem.equals(valueToRemove)) {
+					continue;
+				}
+				newList.add(elem);
+			}
+			data.filedNameOfTheObject = newList;
+			if (data.filedNameOfTheObject.isEmpty()) {
+				data.filedNameOfTheObject = null;
+			}
+			options.add(new FilterValue("filedNameOfTheObject"));
+			ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 		}
-		data.filedNameOfTheObject = newList;
-		if (data.filedNameOfTheObject.isEmpty()) {
-			data.filedNameOfTheObject = null;
-		}
-		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 }

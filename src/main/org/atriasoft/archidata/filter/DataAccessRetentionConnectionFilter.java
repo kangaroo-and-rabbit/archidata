@@ -19,8 +19,7 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 
 	private static final ThreadLocal<DataAccessConnectionContext> contextHolder = new ThreadLocal<>();
 
-	@Override
-	public void filter(ContainerRequestContext requestContext) throws IOException {
+	public void lock() throws IOException {
 		try {
 			contextHolder.set(new DataAccessConnectionContext());
 		} catch (InternalServerErrorException | IOException | DataAccessException ex) {
@@ -28,12 +27,11 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 			ex.printStackTrace();
 			throw new IOException("Fail to Accs to the DB: " + ex.getMessage());
 		}
+
 	}
 
-	@Override
-	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
-			throws IOException {
-		DataAccessConnectionContext ctx = contextHolder.get();
+	public void unlock() throws IOException {
+		final DataAccessConnectionContext ctx = contextHolder.get();
 		if (ctx != null) {
 			try {
 				ctx.close();
@@ -41,5 +39,16 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 				contextHolder.remove();
 			}
 		}
+	}
+
+	@Override
+	public void filter(final ContainerRequestContext requestContext) throws IOException {
+		lock();
+	}
+
+	@Override
+	public void filter(final ContainerRequestContext requestContext, final ContainerResponseContext responseContext)
+			throws IOException {
+		unlock();
 	}
 }

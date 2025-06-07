@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -16,18 +15,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.tika.Tika;
-import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.api.DataResource;
+import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.QueryAnd;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
-import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOnSQL.AddOnDataJson;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
-import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.exception.InputException;
 import org.atriasoft.archidata.model.Data;
@@ -351,46 +346,48 @@ public class DataTools {
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
-			final DBAccess ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) throws Exception {
-		// public NodeSmall uploadFile(final FormDataMultiPart form) {
-		LOGGER.info("Upload media file: {}", fileMetaData);
-		LOGGER.info("    - id: {}", id);
-		LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
-		LOGGER.info("    - fileInputStream: {}", fileInputStream);
-		LOGGER.info("    - fileMetaData: {}", fileMetaData);
-		final CLASS_TYPE media = ioDb.get(clazz, id);
-		if (media == null) {
-			throw new InputException(clazz.getCanonicalName(),
-					"[" + id.toString() + "] Id does not exist or removed...");
-		}
-
-		final long tmpUID = getTmpDataId();
-		final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
-		Data data = getWithSha512(ioDb, sha512);
-		if (data == null) {
-			LOGGER.info("Need to add the data in the BDD ... ");
-			try {
-				data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
-			} catch (final IOException ex) {
-				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_MODIFIED,
-						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
-			} catch (final SQLException ex) {
-				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_MODIFIED,
-						clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccess ioDb = ctx.get();
+			// public NodeSmall uploadFile(final FormDataMultiPart form) {
+			LOGGER.info("Upload media file: {}", fileMetaData);
+			LOGGER.info("    - id: {}", id);
+			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
+			LOGGER.info("    - fileInputStream: {}", fileInputStream);
+			LOGGER.info("    - fileMetaData: {}", fileMetaData);
+			final CLASS_TYPE media = ioDb.get(clazz, id);
+			if (media == null) {
+				throw new InputException(clazz.getCanonicalName(),
+						"[" + id.toString() + "] Id does not exist or removed...");
 			}
-		} else if (data.deleted) {
-			LOGGER.error("Data already exist but deleted");
-			undelete(ioDb, data.oid);
-			data.deleted = false;
-		} else {
-			LOGGER.error("Data already exist ... all good");
+
+			final long tmpUID = getTmpDataId();
+			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+			Data data = getWithSha512(ioDb, sha512);
+			if (data == null) {
+				LOGGER.info("Need to add the data in the BDD ... ");
+				try {
+					data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
+				} catch (final IOException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED,
+							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+				} catch (final SQLException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED,
+							clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
+				}
+			} else if (data.deleted) {
+				LOGGER.error("Data already exist but deleted");
+				undelete(ioDb, data.oid);
+				data.deleted = false;
+			} else {
+				LOGGER.error("Data already exist ... all good");
+			}
+			ListInDbTools.addLink(ioDb, clazz, id, "covers", data.oid);
 		}
-		ListInDbTools.addLink(ioDb, clazz, id, "covers", data.oid);
 	}
 }
