@@ -43,7 +43,6 @@ import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -576,7 +575,7 @@ public class DBAccessMongo extends DBAccess {
 			}
 			// Manage Map:
 			if (Map.class == field.getType()) {
-				inspectType(field.getGenericType(), 0);
+				// inspectType(field.getGenericType(), 0);
 				// field.set(data, value);
 				final ParameterizedType typeTemplate = (ParameterizedType) field.getGenericType();
 				final Class<?> keyClass = (Class<?>) typeTemplate.getActualTypeArguments()[0];
@@ -604,7 +603,9 @@ public class DBAccessMongo extends DBAccess {
 							Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
 							out.put(key, valueEnum);
 						} else {
-							LOGGER.error("type of object {}=>{} , requested {}", key, value.getClass(), objectClass);
+							throw new DataAccessException(
+									"type of object " + key.toString() + "=>" + value.getClass().getCanonicalName()
+											+ " requested=" + objectClass.getCanonicalName());
 						}
 					}
 					field.set(data, out);
@@ -740,8 +741,8 @@ public class DBAccessMongo extends DBAccess {
 		if (type.isEnum()) {
 			return retreiveValueEnum(type, data);
 		}
-		LOGGER.warn("Request default of unknow native type {} => {}", type.getCanonicalName(), data);
-		return null;
+		throw new DataAccessException(
+				"Request default of unknow native type " + type.getCanonicalName() + " => " + data);
 	}
 
 	public boolean isAddOnField(final Field field) {
@@ -879,9 +880,8 @@ public class DBAccessMongo extends DBAccess {
 							docSet.append(tableFieldName.inTable(), id);
 							continue;
 						}
-						LOGGER.error("TODO: Manage the ID primary key for type: {}=>{}", clazz.getCanonicalName(),
-								primaryKeyField.getType());
-						continue;
+						throw new DataAccessException("TODO: Manage the ID primary key for type: "
+								+ clazz.getCanonicalName() + " => " + primaryKeyField.getType());
 					} else {
 						// Do nothing...
 						final Object primaryKeyValue = field.get(data);
@@ -940,17 +940,16 @@ public class DBAccessMongo extends DBAccess {
 					setValueToDb(null, type, data, field, tableFieldName.inTable(), docSet, null);
 				}
 			}
-			LOGGER.debug("insertPrimaryKey: docSet={}",
-					docSet.toJson(JsonWriterSettings.builder().indent(true).build()));
+			// LOGGER.trace("insertPrimaryKey: docSet={}",
+			// docSet.toJson(JsonWriterSettings.builder().indent(true).build()));
 			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
-			LOGGER.debug("Document inserted with ID: " + insertedId);
+			// LOGGER.trace("Document inserted with ID: " + insertedId);
 			// Rechercher et récupérer le document inséré à partir de son ObjectId
 			final Document insertedDocument = collection.find(new Document("_id", insertedId)).first();
 			// Afficher le document récupéré
-			LOGGER.trace("Inserted document: " + insertedDocument);
-
+			// LOGGER.trace("Inserted document: " + insertedDocument);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
 			ex.printStackTrace();
@@ -1079,9 +1078,12 @@ public class DBAccessMongo extends DBAccess {
 			if (!docUnSet.isEmpty()) {
 				actions.append("$unset", docUnSet);
 			}
-			LOGGER.debug("updateWhere filter: {}",
-					filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
-			LOGGER.debug("updateWhere Actions: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
+
+			// LOGGER.debug("updateWhere filter: {}",
+			// filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			// LOGGER.debug("updateWhere Actions: {}",
+			// actions.toJson(JsonWriterSettings.builder().indent(true).build()));
+
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			for (final LazyGetter action : asyncActions) {
 				action.doRequest();
@@ -1155,7 +1157,7 @@ public class DBAccessMongo extends DBAccess {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
-			LOGGER.debug(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			// LOGGER.debug(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
 			FindIterable<Document> retFind = null;
 			if (filters != null) {
 				// LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
@@ -1188,17 +1190,17 @@ public class DBAccessMongo extends DBAccess {
 			listFields.add("_id");
 			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
-			LOGGER.trace("GetsWhere ...");
+			// LOGGER.trace("GetsWhere ...");
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					LOGGER.debug("    - receive data from DB: {}",
-							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
+					//					LOGGER.debug("    - receive data from DB: {}",
+					//							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
 				}
-				LOGGER.trace("Async calls: {}", lazyCall.size());
+				//				LOGGER.trace("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {
 					elem.doRequest();
 				}
@@ -1229,7 +1231,7 @@ public class DBAccessMongo extends DBAccess {
 			final Type type,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception {
-		inspectType(type, 0);
+		// inspectType(type, 0);
 		if (doc == null) {
 			return null;
 		}
@@ -1339,7 +1341,7 @@ public class DBAccessMongo extends DBAccess {
 
 			if (doc instanceof Document documentModel) {
 				final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
-				LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
+				// LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
 				final boolean readAllfields = QueryOptions.readAllColomn(options);
 				// TODO: manage class that is defined inside a class ==> Not manage for now...
 				Object data = null;
@@ -1354,21 +1356,16 @@ public class DBAccessMongo extends DBAccess {
 							"Can not find the default constructor for the class: " + clazz.getCanonicalName());
 				}
 				for (final Field field : clazz.getFields()) {
-					LOGGER.trace("    Inspect field: name='{}' type='{}'", field.getName(),
-							field.getType().getCanonicalName());
 					// static field is only for internal global declaration ==> remove it ..
 					if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-						LOGGER.trace("        ==> static");
 						continue;
 					}
 					final DataAccessAddOn addOn = findAddOnforField(field);
 					if (addOn != null && !addOn.canRetrieve(field)) {
-						LOGGER.trace("        ==> Can not retreive this field");
 						continue;
 					}
 					final boolean notRead = AnnotationTools.isDefaultNotRead(field);
 					if (!readAllfields && notRead) {
-						LOGGER.trace("        ==> Not read this element");
 						continue;
 					}
 					if (addOn != null) {
@@ -1421,8 +1418,6 @@ public class DBAccessMongo extends DBAccess {
 				} else {
 					if (typeModified == Object.class) {
 						typeModified = specify.clazz;
-						LOGGER.trace("Detect overwrite of typing var={} ... '{}' => '{}'", field.getName(),
-								field.getType().getCanonicalName(), specify.clazz.getCanonicalName());
 						break;
 					}
 				}
@@ -1551,10 +1546,7 @@ public class DBAccessMongo extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
-		LOGGER.debug("update some values: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
-
 		actionOnDelete(clazz, option);
-
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
@@ -1584,7 +1576,6 @@ public class DBAccessMongo extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
-		LOGGER.debug("update some values: {}", actions.toJson(JsonWriterSettings.builder().indent(true).build()));
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}

@@ -229,7 +229,10 @@ public class DataFactory {
 						}
 					} else {
 						// TODO: add trigger:
-						/* CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table BEGIN update your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id; END; */
+						/*
+						 * CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table BEGIN update
+						 * your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id; END;
+						 */
 						final StringBuilder triggerBuilder = new StringBuilder();
 						triggerBuilder.append("CREATE TRIGGER ");
 						triggerBuilder.append(tableName);
@@ -365,7 +368,6 @@ public class DataFactory {
 		out.append(tableName);
 		out.append("` (");
 		int fieldId = 0;
-		LOGGER.debug("===> TABLE `{}`", tableName);
 		final List<String> primaryKeys = new ArrayList<>();
 
 		final Field primaryField = AnnotationTools.getPrimaryKeyField(clazz);
@@ -375,7 +377,8 @@ public class DataFactory {
 				primaryKeys.add(AnnotationTools.getFieldName(elem, options).inTable());
 			}
 		}
-		// Here we insert the data in the reverse mode ==> the parent class add there parameter at the start (we reorder the field with the parenting).
+		// Here we insert the data in the reverse mode ==> the parent class add there
+		// parameter at the start (we reorder the field with the parenting).
 		StringBuilder tmpOut = new StringBuilder();
 		StringBuilder reverseOut = new StringBuilder();
 		final List<String> alreadyAdded = new ArrayList<>();
@@ -383,7 +386,6 @@ public class DataFactory {
 		final Field tablePrimaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
 		while (currentClazz != null) {
 			fieldId = 0;
-			LOGGER.trace("parse class: '{}'", currentClazz.getCanonicalName());
 			for (final Field elem : clazz.getFields()) {
 				// static field is only for internal global declaration ==> remove it ..
 				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
@@ -415,11 +417,8 @@ public class DataFactory {
 						}
 					}
 				}
-				LOGGER.trace("        + '{}'", elem.getName());
 				if (DBAccessSQL.isAddOnField(elem)) {
 					final DataAccessAddOn addOn = DBAccessSQL.findAddOnforField(elem);
-					LOGGER.trace("Create type for: {} ==> {} (ADD-ON)",
-							AnnotationTools.getFieldName(elem, options).inTable(), basicType);
 					if (addOn != null) {
 						addOn.createTables(tableName, primaryField, elem, tmpOut, preActionList, postActionList,
 								createIfNotExist, createDrop, fieldId, options);
@@ -429,8 +428,6 @@ public class DataFactory {
 								+ " type=" + basicType);
 					}
 				} else {
-					LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldName(elem, options).inTable(),
-							basicType);
 					DataFactory.createTablesSpecificType(tableName, tablePrimaryKeyField, elem, tmpOut, preActionList,
 							postActionList, createIfNotExist, createDrop, fieldId, basicType, options);
 				}
