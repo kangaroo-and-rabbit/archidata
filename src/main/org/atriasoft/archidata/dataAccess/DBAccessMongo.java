@@ -556,9 +556,22 @@ public class DBAccessMongo extends DBAccess {
 				return;
 			}
 			if (Set.class == field.getType()) {
-				// final Object value = doc.get(fieldName, field.getType());
-				// field.set(data, value);
-				LOGGER.error("`List<>` or `Set<>` is not implemented");
+				Object value = doc.get(fieldName);
+				if (value == null) {
+					return;
+				}
+				if (!(value instanceof Set<?>)) {
+					throw new DataAccessException("mapping a Set on somethin not a list ... bad request");
+				}
+				// get type of the object:
+				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				// generate the output
+				List<Object> out = new ArrayList<>();
+				Set<?> valueList = (Set<?>) value;
+				for (Object item : valueList) {
+					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
+				}
+				field.set(data, out);
 				return;
 			}
 			// Manage Map:
