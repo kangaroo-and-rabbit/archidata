@@ -15,6 +15,7 @@ import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
+import org.atriasoft.archidata.exception.FailException;
 
 public class ListInDbTools {
 
@@ -85,8 +86,15 @@ public class ListInDbTools {
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
 			data = ioDb.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
+			if (data == null) {
+				throw new FailException("Try to remove remote link from an object that does not exist");
+			}
 		} else {
 			data = ioDb.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
+			if (data == null) {
+				// Data is already removed
+				return;
+			}
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();

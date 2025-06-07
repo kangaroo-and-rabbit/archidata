@@ -197,15 +197,15 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Field field,
-			final List<Object> previousData) throws Exception {
+			final List<Object> previousDataThatIsDeleted) throws Exception {
 		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
-		final Field primaryKey = AnnotationTools.getPrimaryKeyField(clazz);
-		for (final Object obj : previousData) {
-			final Object primaryKeyValue = primaryKey.get(obj);
-			final Object parentKey = primaryKey.get(obj);
+		final Field primaryKeyDeletedObjects = AnnotationTools.getPrimaryKeyField(clazz);
+		for (final Object obj : previousDataThatIsDeleted) {
+			final Object primaryKeyRemovedObject = primaryKeyDeletedObjects.get(obj);
+			final Object parentKey = field.get(obj);
 			if (parentKey != null) {
 				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), parentKey, decorators.remoteField(),
-						primaryKeyValue);
+						primaryKeyRemovedObject);
 			}
 		}
 	}
