@@ -11,6 +11,7 @@ Archi-data is a group of tools that manage some parts:
   - [Data Model](data_model.md)
   - [TypeScript Api generation](typescript_api_generation.md)
   - [Migration tool](migration.md)
+  - [Reduce connection on DB](connectionManagement.md)
 
 Some initialization tutorials:
   - [Basic tutorial](TUTORIAL_01_first_install.md)

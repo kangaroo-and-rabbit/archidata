@@ -17,6 +17,7 @@ import org.atriasoft.archidata.converter.Jakarta.OffsetDateTimeParamConverterPro
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.filter.CORSFilter;
+import org.atriasoft.archidata.filter.DataAccessRetentionConnectionFilter;
 import org.atriasoft.archidata.filter.OptionFilter;
 import org.atriasoft.archidata.migration.MigrationEngine;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.UriBuilder;
+import test.atriasoft.archidata.apiExtern.resource.DataAccessTestResource;
 import test.atriasoft.archidata.apiExtern.resource.TestResource;
 import test.atriasoft.archidata.apiExtern.resource.TimeResource;
 
@@ -51,9 +53,9 @@ public class WebLauncher {
 		WebLauncher.LOGGER.info("Create migration engine");
 		final MigrationEngine migrationEngine = new MigrationEngine();
 		WebLauncher.LOGGER.info("Add initialization");
-		//migrationEngine.setInit(new Initialization());
+		// migrationEngine.setInit(new Initialization());
 		WebLauncher.LOGGER.info("Add migration since last version");
-		//migrationEngine.add(new Migration20231126());
+		// migrationEngine.add(new Migration20231126());
 		WebLauncher.LOGGER.info("Migrate the DB [START]");
 		migrationEngine.migrateWaitAdmin(new DbConfig());
 		WebLauncher.LOGGER.info("Migrate the DB [STOP]");
@@ -117,6 +119,8 @@ public class WebLauncher {
 		rc.register(CORSFilter.class);
 		// global authentication system
 		rc.register(TestAuthenticationFilter.class);
+		// this is needed to manage the @DataAccessSingleConnection
+		rc.register(DataAccessRetentionConnectionFilter.class);
 		// register exception catcher
 		GenericCatcher.addAll(rc);
 		// add default resource:
@@ -124,19 +128,22 @@ public class WebLauncher {
 		rc.register(TimeResource.class);
 		rc.register(DataResource.class);
 		rc.register(ProxyResource.class);
+		rc.register(DataAccessTestResource.class);
 
 		ContextGenericTools.addJsr310(rc);
 
 		// add jackson to be discover when we are ins standalone server
 		rc.register(JacksonFeature.class);
 		// enable this to show low level request
-		// rc.property(LoggingFeature.LOGGING_FEATURE_LOGGER_LEVEL_SERVER, Level.WARNING.getName());
+		// rc.property(LoggingFeature.LOGGING_FEATURE_LOGGER_LEVEL_SERVER,
+		// Level.WARNING.getName());
 
 		// System.out.println("Connect on the BDD:");
 		// System.out.println(" getDBHost: '" + ConfigVariable.getDBHost() + "'");
 		// System.out.println(" getDBPort: '" + ConfigVariable.getDBPort() + "'");
 		// System.out.println(" getDBLogin: '" + ConfigVariable.getDBLogin() + "'");
-		// System.out.println(" getDBPassword: '" + ConfigVariable.getDBPassword() + "'");
+		// System.out.println(" getDBPassword: '" + ConfigVariable.getDBPassword() +
+		// "'");
 		// System.out.println(" getDBName: '" + ConfigVariable.getDBName() + "'");
 		LOGGER.info(" ==> {}", new DbConfig());
 		LOGGER.info("OAuth service {}", getBaseURI());

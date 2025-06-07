@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Assertions;
 
 public class Common {
 	public static final String USER_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_user_login", "KarAuth",
-			"farm.neo.back", //
-			Map.of("farm.neo.back", Map.of("USER", Boolean.TRUE)));
+			"test.atriasoft", //
+			Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE)));
 	public static final String ADMIN_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_admin_login", "KarAuth",
-			"farm.neo.back", Map.of("farm.neo.back", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)));
+			"test.atriasoft", Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)));
 
 	public static String RandGeneratedStr(final int length) {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";

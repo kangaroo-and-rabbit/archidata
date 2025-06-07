@@ -6,8 +6,6 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
-import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
-import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,8 +22,6 @@ import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.dataAccess.model.DataInJson;
 import test.atriasoft.archidata.dataAccess.model.DataWithSubJsonList;
 import test.atriasoft.archidata.dataAccess.model.Enum2ForTest;
-import test.atriasoft.archidata.dataAccess.model.SerializeListAsJson;
-import test.atriasoft.archidata.dataAccess.model.SerializeListAsJsonObjectId;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
