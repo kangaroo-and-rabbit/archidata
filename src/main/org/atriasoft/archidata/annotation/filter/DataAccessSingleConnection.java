@@ -21,7 +21,7 @@ import jakarta.ws.rs.NameBinding;
  * (e.g., {@code DataAccessRetentionConnectionFilter}) must be registered in your application and annotated with
  * {@code @DataAccessSingleConnection} to bind the filter to this annotation.</p>
  *
- * <h3>Example usage:</h3>
+ * Example usage:
  * <pre>
  * &#64;Path("/users")
  * public class UserResource {
