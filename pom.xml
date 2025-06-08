@@ -176,6 +176,12 @@
 			<artifactId>hibernate-validator</artifactId>
 			<version>9.0.1.Final</version>
 		</dependency>
+		<!-- Support of compression in tar.gz for base archive -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<version>1.27.1</version>
+		</dependency>
 		<!--
 		************************************************************ 
 		** TEST dependency                                        **
