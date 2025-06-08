@@ -3,6 +3,7 @@ package test.atriasoft.archidata;
 import java.io.IOException;
 
 import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIoFactory;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -109,5 +110,6 @@ public class ConfigureDb {
 		da.close();
 		DbIoFactory.closeAllForceMode();
 		ConfigBaseVariable.clearAllValue();
+		DBAccessMongo.statistic.display();
 	}
 }

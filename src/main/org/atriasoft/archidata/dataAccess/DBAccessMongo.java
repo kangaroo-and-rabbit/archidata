@@ -68,6 +68,43 @@ import jakarta.ws.rs.InternalServerErrorException;
  */
 public class DBAccessMongo extends DBAccess {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
+
+	// Some element for statistic:
+	public static class MongoDbStatistic {
+		public long countCountDocuments = 0L;
+		public long countDeleteMany = 0L;
+		public long countDrop = 0L;
+		public long countFind = 0L;
+		public long countFindOneAndUpdate = 0L;
+		public long countInsertOne = 0L;
+		public long countUpdateMany = 0L;
+		public long countRunCommand = 0L;
+
+		public void display() {
+			LOGGER.info("""
+					statistic on access on DB:
+					    - insertOne        = {}
+					    - updateMany       = {}
+					    - find             = {}
+					    - findOneAndUpdate = {}
+					    - countDocuments   = {}
+					    - deleteMany       = {}
+					    - drop             = {}
+					    - runCommand       = {}
+					""", //
+					String.format("%10d", countInsertOne), //
+					String.format("%10d", countUpdateMany), //
+					String.format("%10d", countFind), //
+					String.format("%10d", countFindOneAndUpdate), //
+					String.format("%10d", countCountDocuments), //
+					String.format("%10d", countDeleteMany), //
+					String.format("%10d", countDrop), //
+					String.format("%10d", countRunCommand)); //
+		}
+	};
+
+	public static MongoDbStatistic statistic = new MongoDbStatistic();
+
 	// by default we manage some add-on that permit to manage non-native model (like
 	// json serialization, List of external key as String list...)
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
@@ -76,13 +113,6 @@ public class DBAccessMongo extends DBAccess {
 		addOn.add(new AddOnManyToManyNoSql());
 		addOn.add(new AddOnManyToOneNoSql());
 		addOn.add(new AddOnOneToManyNoSql());
-
-		// Not implementable without performance fail...
-		// addOn.add(new AddOnManyToMany());
-		// Deprecated
-		// addOn.add(new AddOnManyToOne());
-		// Deprecated
-		// addOn.add(new AddOnOneToMany());
 	}
 
 	/**
@@ -151,6 +181,7 @@ public class DBAccessMongo extends DBAccess {
 		Document command = new Document("collMod", collection)//
 				.append("validator", new Document())//
 				.append("validationLevel", "off");
+		statistic.countRunCommand++;
 		this.db.getDatabase().runCommand(command);
 	}
 
@@ -169,6 +200,7 @@ public class DBAccessMongo extends DBAccess {
 		Document command = new Document("collMod", collection)//
 				.append("validator", schema)//
 				.append("validationLevel", "strict");
+		statistic.countRunCommand++;
 		this.db.getDatabase().runCommand(command);
 	}
 
@@ -776,6 +808,7 @@ public class DBAccessMongo extends DBAccess {
 				.upsert(true); // create field if not exist
 
 		// Real creation of the unique counter.
+		statistic.countFindOneAndUpdate++;
 		final Document updatedCounter = countersCollection.findOneAndUpdate(filter, update, options);
 
 		// Return the new sequence value...
@@ -788,7 +821,6 @@ public class DBAccessMongo extends DBAccess {
 		final QueryOptions options = new QueryOptions(option);
 		final boolean directdata = options.exist(DirectData.class);
 
-		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		Long primaryKey = null;
 		try {
@@ -824,6 +856,7 @@ public class DBAccessMongo extends DBAccess {
 
 			@SuppressWarnings("unchecked")
 			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
+			statistic.countInsertOne++;
 			InsertOneResult res = collection.insertOne(data);
 			if (primaryKey != null) {
 				return primaryKey;
@@ -942,6 +975,7 @@ public class DBAccessMongo extends DBAccess {
 			}
 			// LOGGER.trace("insertPrimaryKey: docSet={}",
 			// docSet.toJson(JsonWriterSettings.builder().indent(true).build()));
+			statistic.countInsertOne++;
 			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
@@ -1083,7 +1117,7 @@ public class DBAccessMongo extends DBAccess {
 			// filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
 			// LOGGER.debug("updateWhere Actions: {}",
 			// actions.toJson(JsonWriterSettings.builder().indent(true).build()));
-
+			statistic.countUpdateMany++;
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			for (final LazyGetter action : asyncActions) {
 				action.doRequest();
@@ -1159,6 +1193,7 @@ public class DBAccessMongo extends DBAccess {
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			// LOGGER.debug(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
 			FindIterable<Document> retFind = null;
+			statistic.countFind++;
 			if (filters != null) {
 				// LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
 				retFind = collection.find(filters);
@@ -1195,12 +1230,12 @@ public class DBAccessMongo extends DBAccess {
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					//					LOGGER.debug("    - receive data from DB: {}",
-					//							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
+					// LOGGER.debug(" - receive data from DB: {}",
+					// doc.toJson(JsonWriterSettings.builder().indent(true).build()));
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
 				}
-				//				LOGGER.trace("Async calls: {}", lazyCall.size());
+				// LOGGER.trace("Async calls: {}", lazyCall.size());
 				for (final LazyGetter elem : lazyCall) {
 					elem.doRequest();
 				}
@@ -1448,6 +1483,7 @@ public class DBAccessMongo extends DBAccess {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+			statistic.countCountDocuments++;
 			if (filters != null) {
 				return collection.countDocuments(filters);
 			}
@@ -1522,6 +1558,7 @@ public class DBAccessMongo extends DBAccess {
 
 		DeleteResult retFind;
 		if (filters != null) {
+			statistic.countDeleteMany++;
 			retFind = collection.deleteMany(filters);
 		} else {
 			throw new DataAccessException("Too dangerout to delete element with no filter values !!!");
@@ -1547,6 +1584,7 @@ public class DBAccessMongo extends DBAccess {
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, true));
 		actionOnDelete(clazz, option);
+		statistic.countUpdateMany++;
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
@@ -1576,6 +1614,7 @@ public class DBAccessMongo extends DBAccess {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
+		statistic.countUpdateMany++;
 		final UpdateResult ret = collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
@@ -1585,6 +1624,7 @@ public class DBAccessMongo extends DBAccess {
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+		statistic.countDrop++;
 		collection.drop();
 	}
 
@@ -1593,6 +1633,7 @@ public class DBAccessMongo extends DBAccess {
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+		statistic.countDeleteMany++;
 		collection.deleteMany(new Document());
 	}
 
