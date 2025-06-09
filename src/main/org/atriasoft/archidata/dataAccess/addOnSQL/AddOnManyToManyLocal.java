@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.ManyToManyNoSQL;
+import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.dataAccess.CountInOut;
 import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
@@ -42,7 +42,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 
 	@Override
 	public Class<?> getAnnotationClass() {
-		return ManyToManyNoSQL.class;
+		return ManyToManyDoc.class;
 	}
 
 	@Override
@@ -55,7 +55,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
 		}
-		final ManyToManyNoSQL decorators = field.getDeclaredAnnotation(ManyToManyNoSQL.class);
+		final ManyToManyDoc decorators = field.getDeclaredAnnotation(ManyToManyDoc.class);
 		if (decorators == null) {
 			return false;
 		}
@@ -237,7 +237,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			field.set(data, dataParsed);
 			return;
 		}
-		final ManyToManyNoSQL decorators = field.getDeclaredAnnotation(ManyToManyNoSQL.class);
+		final ManyToManyDoc decorators = field.getDeclaredAnnotation(ManyToManyDoc.class);
 		if (decorators == null) {
 			return;
 		}

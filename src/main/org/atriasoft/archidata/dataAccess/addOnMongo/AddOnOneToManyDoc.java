@@ -10,12 +10,12 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.ManyToManyNoSQL;
+import org.atriasoft.archidata.annotation.OneToManyDoc;
+import org.atriasoft.archidata.annotation.OneToManyDoc.CascadeMode;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
@@ -23,32 +23,27 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AddOnManyToManyNoSql implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyNoSql.class);
+public class AddOnOneToManyDoc implements DataAccessAddOn {
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnOneToManyDoc.class);
 
 	@Override
 	public Class<?> getAnnotationClass() {
-		return ManyToManyNoSQL.class;
+		return OneToManyDoc.class;
 	}
 
 	@Override
-	public boolean isCompatibleField(final Field elem) {
-		final ManyToManyNoSQL decorators = elem.getDeclaredAnnotation(ManyToManyNoSQL.class);
-		return decorators != null;
-	}
-
-	public boolean canRetreiveAnWrite(final Field field) {
-		if (field.getType() != List.class) {
+	public boolean isCompatibleField(final Field field) {
+		final OneToManyDoc decorators = field.getDeclaredAnnotation(OneToManyDoc.class);
+		if (decorators == null) {
+			return false;
+		}
+		if (!Collection.class.isAssignableFrom(field.getType())) {
 			return false;
 		}
 		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
 				.getActualTypeArguments()[0];
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
-		}
-		final ManyToManyNoSQL decorators = field.getDeclaredAnnotation(ManyToManyNoSQL.class);
-		if (decorators == null) {
-			return false;
 		}
 		if (decorators.targetEntity() == objectClass) {
 			return true;
@@ -93,23 +88,40 @@ public class AddOnManyToManyNoSql implements DataAccessAddOn {
 		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
 			insertedDataCollection = tmpCollection;
 		}
+		final OneToManyDoc oneToManyDoc = field.getAnnotation(OneToManyDoc.class);
 		// add new Values
 		for (final Object value : insertedDataCollection) {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add(() -> {
-				ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
-			});
+			if (!oneToManyDoc.ignoreRemoteUpdateWhenOnAddItem()) {
+				// actions.add(() -> {
+				// 	// TODO: set the key at a special value...
+				// });
+				throw new SystemException("@ManyToOneLocal ignoreRemoteUpdateWhenOnAddItem=false is not implemented");
+			}
 		}
 		// remove old values:
 		for (final Object value : previousDataCollection) {
 			if (insertedDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add(() -> {
-				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
-			});
+			switch (oneToManyDoc.cascade()) {
+				case CascadeMode.DELETE_ON_REMOVE:
+					actions.add(() -> {
+						ioDb.delete(oneToManyDoc.targetEntity(), value);
+					});
+					//break;
+				case CascadeMode.SET_NULL_ON_REMOVE:
+					// actions.add(() -> {
+					// 	//	ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
+					// });
+					throw new SystemException(
+							"@ManyToOneLocal cascade=CascadeMode.SET_NULL_ON_REMOVE is not implemented");
+				//break;
+				case CascadeMode.IGNORE_ON_REMOVE:
+					break;
+			}
 		}
 
 	}
@@ -141,9 +153,12 @@ public class AddOnManyToManyNoSql implements DataAccessAddOn {
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
-				actions.add(() -> {
-					ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
-				});
+				//actions.add(() -> {
+				//	ManyToManyLocalTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+				//});
+				// TODO: set the value to the new value
+				// TODO: check if it change
+				// TODO: if true: update the parent in consequence...
 			}
 		}
 	}
@@ -155,12 +170,12 @@ public class AddOnManyToManyNoSql implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final Field field) {
-		return canRetreiveAnWrite(field);
+		return true;
 	}
 
 	@Override
 	public boolean canRetrieve(final Field field) {
-		return canRetreiveAnWrite(field);
+		return true;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -173,95 +188,40 @@ public class AddOnManyToManyNoSql implements DataAccessAddOn {
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
-
-		if (field.getType() != List.class) {
-			throw new SystemException("@ManyToManyLocal must contain a List");
-		}
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
 			return;
 		}
+		final OneToManyDoc decorators = field.getDeclaredAnnotation(OneToManyDoc.class);
+		final ParameterizedType listType = (ParameterizedType) field.getGenericType();
+		final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
 		final Object dataRetrieve = doc.get(fieldName, field.getType());
+		if (dataRetrieve == null) {
+			return;
+		}
 		if (dataRetrieve instanceof final Collection<?> dataCollection) {
-			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-			final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
-			if (objectClass == Long.class) {
-				final List<Long> dataParsed = (List<Long>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			if (objectClass == UUID.class) {
-				final List<UUID> dataParsed = (List<UUID>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			if (objectClass == ObjectId.class) {
-				final List<ObjectId> dataParsed = (List<ObjectId>) dataCollection;
-				field.set(data, dataParsed);
-				return;
-			}
-			final ManyToManyNoSQL decorators = field.getDeclaredAnnotation(ManyToManyNoSQL.class);
-			if (decorators == null) {
-				return;
-			}
 			if (objectClass == decorators.targetEntity()) {
-				final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
-				if (foreignKeyType == Long.class) {
-					final List<Long> idList = (List<Long>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), idList)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == UUID.class) {
-					final List<UUID> idList = (List<UUID>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							final List<UUID> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == ObjectId.class) {
-					final List<ObjectId> idList = (List<ObjectId>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = () -> {
-							final List<ObjectId> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs)));
-							if (foreignData == null) {
-								return;
-							}
-							field.set(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
+				final List<Object> idList = (List<Object>) dataCollection;
+				if (idList != null && idList.size() > 0) {
+					final FieldName idField = AnnotationTools
+							.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
+					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					final LazyGetter lambda = () -> {
+						final Object foreignData = ioDb.getsWhereRaw(decorators.targetEntity(),
+								new Condition(new QueryInList<>(idField.inTable(), idList)));
+						if (foreignData == null) {
+							return;
+						}
+						field.set(data, foreignData);
+					};
+					lazyCall.add(lambda);
 				}
+				return;
 			}
+			field.set(data, dataCollection);
+		} else {
+			throw new SystemException("@OneToManyLocal does not retreive a Collection");
 		}
 	}
 }

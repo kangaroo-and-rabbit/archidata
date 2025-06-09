@@ -22,15 +22,15 @@ import org.slf4j.LoggerFactory;
 
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneNoSqlOIDRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneNoSqlOIDRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneNoSqlOIDRootExpand;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDRemote;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDRoot;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
-public class TestManyToOneNoSqlOID {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneNoSqlOID.class);
+public class TestManyToOneDocOID {
+	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneDocOID.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -45,8 +45,8 @@ public class TestManyToOneNoSqlOID {
 	@Order(1)
 	@Test
 	public void testCreateTable() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(TypeManyToOneNoSqlOIDRemote.class);
-		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneNoSqlOIDRoot.class));
+		final List<String> sqlCommand = DataFactory.createTable(TypeManyToOneDocOIDRemote.class);
+		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneDocOIDRoot.class));
 		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
@@ -58,33 +58,33 @@ public class TestManyToOneNoSqlOID {
 	@Order(3)
 	@Test
 	public void testRemoteOID() throws Exception {
-		TypeManyToOneNoSqlOIDRemote remote = new TypeManyToOneNoSqlOIDRemote();
+		TypeManyToOneDocOIDRemote remote = new TypeManyToOneDocOIDRemote();
 		remote.data = "remote1";
-		final TypeManyToOneNoSqlOIDRemote insertedRemote1 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneDocOIDRemote insertedRemote1 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote1.data, remote.data);
 
-		remote = new TypeManyToOneNoSqlOIDRemote();
+		remote = new TypeManyToOneDocOIDRemote();
 		remote.data = "remote2";
-		final TypeManyToOneNoSqlOIDRemote insertedRemote2 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneDocOIDRemote insertedRemote2 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote2.data, remote.data);
 		Thread.sleep(500);
-		final TypeManyToOneNoSqlOIDRoot test = new TypeManyToOneNoSqlOIDRoot();
+		final TypeManyToOneDocOIDRoot test = new TypeManyToOneDocOIDRoot();
 		test.otherData = "kjhlkjlkj";
 		test.remoteOid = insertedRemote2.oid;
-		final TypeManyToOneNoSqlOIDRoot insertedData = ConfigureDb.da.insert(test);
+		final TypeManyToOneDocOIDRoot insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.oid);
 		Assertions.assertEquals(test.otherData, insertedData.otherData);
 		Assertions.assertEquals(insertedRemote2.oid, insertedData.remoteOid);
 
-		TypeManyToOneNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToOneNoSqlOIDRoot.class, insertedData.oid);
+		TypeManyToOneDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToOneDocOIDRoot.class, insertedData.oid);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);
 		Assertions.assertEquals(insertedData.oid, retrieve.oid);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.oid, retrieve.remoteOid);
 
-		TypeManyToOneNoSqlOIDRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneNoSqlOIDRootExpand.class,
+		TypeManyToOneDocOIDRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneDocOIDRootExpand.class,
 				insertedData.oid);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.oid);
@@ -94,7 +94,7 @@ public class TestManyToOneNoSqlOID {
 		Assertions.assertEquals(insertedRemote2.oid, retrieve2.remote.oid);
 		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
 
-		final TypeManyToOneNoSqlOIDRemote remoteCheck = ConfigureDb.da.get(TypeManyToOneNoSqlOIDRemote.class,
+		final TypeManyToOneDocOIDRemote remoteCheck = ConfigureDb.da.get(TypeManyToOneDocOIDRemote.class,
 				insertedRemote2.oid, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(remoteCheck);
 		Assertions.assertNotNull(remoteCheck.oid);
@@ -111,19 +111,19 @@ public class TestManyToOneNoSqlOID {
 		Assertions.assertTrue(formattedUpdatedAt.compareTo(formattedCreatedAt) > 0);
 
 		// remove values:
-		final long count = ConfigureDb.da.delete(TypeManyToOneNoSqlOIDRemote.class, insertedRemote2.oid);
+		final long count = ConfigureDb.da.delete(TypeManyToOneDocOIDRemote.class, insertedRemote2.oid);
 		Assertions.assertEquals(1, count);
 
 		// check fail:
 
-		retrieve = ConfigureDb.da.get(TypeManyToOneNoSqlOIDRoot.class, insertedData.oid);
+		retrieve = ConfigureDb.da.get(TypeManyToOneDocOIDRoot.class, insertedData.oid);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);
 		Assertions.assertEquals(insertedData.oid, retrieve.oid);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 		Assertions.assertEquals(insertedRemote2.oid, retrieve.remoteOid);
 
-		retrieve2 = ConfigureDb.da.get(TypeManyToOneNoSqlOIDRootExpand.class, insertedData.oid);
+		retrieve2 = ConfigureDb.da.get(TypeManyToOneDocOIDRootExpand.class, insertedData.oid);
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.oid);
 		Assertions.assertEquals(insertedData.oid, retrieve2.oid);

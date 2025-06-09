@@ -23,9 +23,9 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyNoSql;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOneNoSql;
-import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToManyNoSql;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToManyDoc;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnManyToOneDoc;
+import org.atriasoft.archidata.dataAccess.addOnMongo.AddOnOneToManyDoc;
 import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
@@ -43,6 +43,7 @@ import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,14 +93,14 @@ public class DBAccessMongo extends DBAccess {
 					    - drop             = {}
 					    - runCommand       = {}
 					""", //
-					String.format("%10d", countInsertOne), //
-					String.format("%10d", countUpdateMany), //
-					String.format("%10d", countFind), //
-					String.format("%10d", countFindOneAndUpdate), //
-					String.format("%10d", countCountDocuments), //
-					String.format("%10d", countDeleteMany), //
-					String.format("%10d", countDrop), //
-					String.format("%10d", countRunCommand)); //
+					String.format("%10d", this.countInsertOne), //
+					String.format("%10d", this.countUpdateMany), //
+					String.format("%10d", this.countFind), //
+					String.format("%10d", this.countFindOneAndUpdate), //
+					String.format("%10d", this.countCountDocuments), //
+					String.format("%10d", this.countDeleteMany), //
+					String.format("%10d", this.countDrop), //
+					String.format("%10d", this.countRunCommand)); //
 		}
 	};
 
@@ -110,9 +111,9 @@ public class DBAccessMongo extends DBAccess {
 	static final List<DataAccessAddOn> addOn = new ArrayList<>();
 
 	static {
-		addOn.add(new AddOnManyToManyNoSql());
-		addOn.add(new AddOnManyToOneNoSql());
-		addOn.add(new AddOnOneToManyNoSql());
+		addOn.add(new AddOnManyToManyDoc());
+		addOn.add(new AddOnManyToOneDoc());
+		addOn.add(new AddOnOneToManyDoc());
 	}
 
 	/**
@@ -178,7 +179,7 @@ public class DBAccessMongo extends DBAccess {
 	 *                   validation on.
 	 */
 	public void disableSchema(final String collection) {
-		Document command = new Document("collMod", collection)//
+		final Document command = new Document("collMod", collection)//
 				.append("validator", new Document())//
 				.append("validationLevel", "off");
 		statistic.countRunCommand++;
@@ -196,8 +197,8 @@ public class DBAccessMongo extends DBAccess {
 	 * @param schema     a BSON Document representing the JSON Schema to enforce
 	 *                   (must follow MongoDB's schema validation format).
 	 */
-	public void enableSchema(final String collection, Document schema) {
-		Document command = new Document("collMod", collection)//
+	public void enableSchema(final String collection, final Document schema) {
+		final Document command = new Document("collMod", collection)//
 				.append("validator", schema)//
 				.append("validationLevel", "strict");
 		statistic.countRunCommand++;
@@ -206,7 +207,7 @@ public class DBAccessMongo extends DBAccess {
 
 	// TODO: add a mode for update like "variable.subVariable"
 	public <T> void setValueToDb(
-			String parentFieldName, // Can be null if we update the full sub Object
+			final String parentFieldName, // Can be null if we update the full sub Object
 			final Class<?> type,
 			final T data,
 			final Field field,
@@ -294,44 +295,44 @@ public class DBAccessMongo extends DBAccess {
 			return;
 		}
 		if (type == LocalDate.class) {
-			String dataToInsert = ((LocalDate) tmp).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+			final String dataToInsert = ((LocalDate) tmp).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			docSet.append(fieldComposeName, dataToInsert);
 			return;
 		}
 		if (type == LocalTime.class) {
-			Long timeNano = ((LocalTime) tmp).toNanoOfDay();
+			final Long timeNano = ((LocalTime) tmp).toNanoOfDay();
 			docSet.append(fieldComposeName, timeNano);
 			return;
 		}
-		if (tmp instanceof List tmpList) {
-			List<Object> documentData = new ArrayList<>();
-			for (Object elem : tmpList) {
+		if (tmp instanceof final List tmpList) {
+			final List<Object> documentData = new ArrayList<>();
+			for (final Object elem : tmpList) {
 				documentData.add(convertInDocument(elem));
 			}
 			docSet.append(fieldComposeName, documentData);
 			return;
 		}
-		if (tmp instanceof Set tmpList) {
-			List<Object> documentData = new ArrayList<>();
-			for (Object elem : tmpList) {
+		if (tmp instanceof final Set tmpList) {
+			final List<Object> documentData = new ArrayList<>();
+			for (final Object elem : tmpList) {
 				documentData.add(convertInDocument(elem));
 			}
 			docSet.append(fieldComposeName, documentData);
 			return;
 		}
-		if (tmp instanceof Map<?, ?> tmpMap) {
+		if (tmp instanceof final Map<?, ?> tmpMap) {
 			// final Object value = doc.get(fieldName, field.getType());
-			Document documentData = new Document();
-			for (Entry<?, ?> elem : tmpMap.entrySet()) {
-				Object key = elem.getKey();
-				String keyString = convertMapKeyInString(key);
-				Object tmp1 = convertInDocument(elem.getValue());
+			final Document documentData = new Document();
+			for (final Entry<?, ?> elem : tmpMap.entrySet()) {
+				final Object key = elem.getKey();
+				final String keyString = convertMapKeyInString(key);
+				final Object tmp1 = convertInDocument(elem.getValue());
 				documentData.append(keyString, tmp1);
 			}
 			docSet.append(fieldComposeName, documentData);
 			return;
 		}
-		Object documentData = convertInDocument(tmp);
+		final Object documentData = convertInDocument(tmp);
 		docSet.append(fieldName, documentData);
 	}
 
@@ -345,7 +346,7 @@ public class DBAccessMongo extends DBAccess {
 	 * @throws DataAccessException if the key class is not one of the supported
 	 *                             types
 	 */
-	private void checkIfConvertMapStringKeyToObjectIsPossible(Class<?> keyClass) throws DataAccessException {
+	private void checkIfConvertMapStringKeyToObjectIsPossible(final Class<?> keyClass) throws DataAccessException {
 		if (keyClass == String.class || keyClass == Integer.class || keyClass == Long.class || keyClass == Short.class
 				|| keyClass == ObjectId.class || keyClass.isEnum()) {
 			return;
@@ -367,7 +368,8 @@ public class DBAccessMongo extends DBAccess {
 	 * @throws DataAccessException if the key cannot be converted properly (e.g.,
 	 *                             enum conversion fails)
 	 */
-	private Object convertMapStringKeyToObjectNoThrow(String keyString, Class<?> keyClass) throws DataAccessException {
+	private Object convertMapStringKeyToObjectNoThrow(final String keyString, final Class<?> keyClass)
+			throws DataAccessException {
 		if (keyClass == String.class) {
 			return keyString;
 		} else if (keyClass == Integer.class) {
@@ -395,20 +397,20 @@ public class DBAccessMongo extends DBAccess {
 	 * @throws DataAccessException if the key type is not supported for conversion
 	 *                             to string
 	 */
-	private String convertMapKeyInString(Object key) throws DataAccessException {
-		if (key instanceof String keyTyped) {
+	private String convertMapKeyInString(final Object key) throws DataAccessException {
+		if (key instanceof final String keyTyped) {
 			return keyTyped;
 		}
-		if (key instanceof Integer keyTyped) {
+		if (key instanceof final Integer keyTyped) {
 			return Integer.toString(keyTyped);
 		}
-		if (key instanceof Long keyTyped) {
+		if (key instanceof final Long keyTyped) {
 			return Long.toString(keyTyped);
 		}
-		if (key instanceof Short keyTyped) {
+		if (key instanceof final Short keyTyped) {
 			return Short.toString(keyTyped);
 		}
-		if (key instanceof ObjectId keyTyped) {
+		if (key instanceof final ObjectId keyTyped) {
 			return keyTyped.toString();
 		}
 		if (key.getClass().isEnum()) {
@@ -448,42 +450,42 @@ public class DBAccessMongo extends DBAccess {
 		if (data instanceof UUID) {
 			return data;
 		}
-		if (data instanceof Instant tmp) {
+		if (data instanceof final Instant tmp) {
 			return Date.from(tmp);
 		}
 		if (data instanceof Date) {
 			return data;
 		}
-		if (data instanceof LocalDate tmp) {
+		if (data instanceof final LocalDate tmp) {
 			return tmp.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 		}
-		if (data instanceof LocalTime tmp) {
+		if (data instanceof final LocalTime tmp) {
 			return tmp.toNanoOfDay();
 		}
 		if (data.getClass().isEnum()) {
 			return data.toString();
 		}
-		if (data instanceof List tmpList) {
-			List<Object> documentData = new ArrayList<>();
-			for (Object elem : tmpList) {
+		if (data instanceof final List tmpList) {
+			final List<Object> documentData = new ArrayList<>();
+			for (final Object elem : tmpList) {
 				documentData.add(convertInDocument(elem));
 			}
 			return documentData;
 		}
-		if (data instanceof Set tmpList) {
-			List<Object> documentData = new ArrayList<>();
-			for (Object elem : tmpList) {
+		if (data instanceof final Set tmpList) {
+			final List<Object> documentData = new ArrayList<>();
+			for (final Object elem : tmpList) {
 				documentData.add(convertInDocument(elem));
 			}
 			return documentData;
 		}
-		if (data instanceof Map<?, ?> tmpMap) {
+		if (data instanceof final Map<?, ?> tmpMap) {
 			// final Object value = doc.get(fieldName, field.getType());
-			Document documentData = new Document();
-			for (Entry<?, ?> elem : tmpMap.entrySet()) {
-				Object key = elem.getKey();
-				String keyString = convertMapKeyInString(key);
-				Object tmp1 = convertInDocument(elem.getValue());
+			final Document documentData = new Document();
+			for (final Entry<?, ?> elem : tmpMap.entrySet()) {
+				final Object key = elem.getKey();
+				final String keyString = convertMapKeyInString(key);
+				final Object tmp1 = convertInDocument(elem.getValue());
 				documentData.append(keyString, tmp1);
 			}
 			return documentData;
@@ -492,8 +494,8 @@ public class DBAccessMongo extends DBAccess {
 		// generic document:
 		// =======================================
 
-		Document out = new Document();
-		Class<?> clazz = data.getClass();
+		final Document out = new Document();
+		final Class<?> clazz = data.getClass();
 		for (final Field field : clazz.getFields()) {
 			// static field is only for internal global declaration ==> remove it ..
 			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
@@ -542,12 +544,11 @@ public class DBAccessMongo extends DBAccess {
 		return out;
 	}
 
-	private void inspectType(Type type, int depth) {
-		if (type instanceof ParameterizedType) {
-			ParameterizedType pType = (ParameterizedType) type;
+	private void inspectType(final Type type, final int depth) {
+		if (type instanceof final ParameterizedType pType) {
 			System.out.println(" ".repeat(depth * 2) + "Raw type: " + pType.getRawType());
 
-			for (Type arg : pType.getActualTypeArguments()) {
+			for (final Type arg : pType.getActualTypeArguments()) {
 				inspectType(arg, depth + 1);
 			}
 		} else if (type instanceof Class) {
@@ -565,10 +566,10 @@ public class DBAccessMongo extends DBAccess {
 			final List<LazyGetter> lazyCall,
 			final QueryOptions options) throws Exception {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
-		if (type instanceof ParameterizedType parameterizedType) {
+		if (type instanceof final ParameterizedType parameterizedType) {
 			// Manage List & Set:
 			if (type instanceof List) {
-				Object value = doc.get(fieldName);
+				final Object value = doc.get(fieldName);
 				if (value == null) {
 					return;
 				}
@@ -576,18 +577,18 @@ public class DBAccessMongo extends DBAccess {
 					throw new DataAccessException("mapping a list on somethin not a list ... bad request");
 				}
 				// get type of the object:
-				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				final Type dataType = parameterizedType.getActualTypeArguments()[0];
 				// generate the output
-				List<Object> out = new ArrayList<>();
-				List<?> valueList = (List<?>) value;
-				for (Object item : valueList) {
+				final List<Object> out = new ArrayList<>();
+				final List<?> valueList = (List<?>) value;
+				for (final Object item : valueList) {
 					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
 				}
 				field.set(data, out);
 				return;
 			}
 			if (Set.class == field.getType()) {
-				Object value = doc.get(fieldName);
+				final Object value = doc.get(fieldName);
 				if (value == null) {
 					return;
 				}
@@ -595,11 +596,11 @@ public class DBAccessMongo extends DBAccess {
 					throw new DataAccessException("mapping a Set on somethin not a list ... bad request");
 				}
 				// get type of the object:
-				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				final Type dataType = parameterizedType.getActualTypeArguments()[0];
 				// generate the output
-				List<Object> out = new ArrayList<>();
-				Set<?> valueList = (Set<?>) value;
-				for (Object item : valueList) {
+				final List<Object> out = new ArrayList<>();
+				final Set<?> valueList = (Set<?>) value;
+				for (final Object item : valueList) {
 					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
 				}
 				field.set(data, out);
@@ -616,23 +617,23 @@ public class DBAccessMongo extends DBAccess {
 				if (keyClass != String.class) {
 					throw new DataAccessException("Fail Map key is not a string");
 				}
-				Map<String, Object> out = new HashMap<>();
+				final Map<String, Object> out = new HashMap<>();
 
-				Object fieldValue = doc.get(fieldName);
-				if (fieldValue instanceof Document subDoc) {
-					for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
-						String key = entry.getKey();
-						Object value = entry.getValue();
+				final Object fieldValue = doc.get(fieldName);
+				if (fieldValue instanceof final Document subDoc) {
+					for (final Map.Entry<String, Object> entry : subDoc.entrySet()) {
+						final String key = entry.getKey();
+						final Object value = entry.getValue();
 						if (value == null) {
 							out.put(key, null);
 						} else if (objectClass.isAssignableFrom(value.getClass())) {
 							out.put(key, value);
-						} else if (value instanceof Document temporaryDocumentObject) {
+						} else if (value instanceof final Document temporaryDocumentObject) {
 							final Object valueObject = createObjectFromDocument(temporaryDocumentObject, objectClass,
 									new QueryOptions(), lazyCall);
 							out.put(key, valueObject);
-						} else if (value instanceof String temporaryString && objectClass.isEnum()) {
-							Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
+						} else if (value instanceof final String temporaryString && objectClass.isEnum()) {
+							final Object valueEnum = retreiveValueEnum(objectClass, temporaryString);
 							out.put(key, valueEnum);
 						} else {
 							throw new DataAccessException(
@@ -644,7 +645,7 @@ public class DBAccessMongo extends DBAccess {
 					return;
 				}
 			}
-		} else if (type instanceof Class clazz) {
+		} else if (type instanceof final Class clazz) {
 			if (!doc.containsKey(fieldName)) {
 				field.set(data, null);
 				return;
@@ -731,7 +732,8 @@ public class DBAccessMongo extends DBAccess {
 		}
 	}
 
-	private Object retreiveValueEnum(Class<?> objectClass, String temporaryString) throws DataAccessException {
+	private Object retreiveValueEnum(final Class<?> objectClass, final String temporaryString)
+			throws DataAccessException {
 		final Object[] arr = objectClass.getEnumConstants();
 		for (final Object elem : arr) {
 			if (elem.toString().equals(temporaryString)) {
@@ -857,11 +859,11 @@ public class DBAccessMongo extends DBAccess {
 			@SuppressWarnings("unchecked")
 			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
 			statistic.countInsertOne++;
-			InsertOneResult res = collection.insertOne(data);
+			final InsertOneResult res = collection.insertOne(data);
 			if (primaryKey != null) {
 				return primaryKey;
 			}
-			ObjectId insertedId = res.getInsertedId().asObjectId().getValue();
+			final ObjectId insertedId = res.getInsertedId().asObjectId().getValue();
 			return insertedId;
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
@@ -1191,7 +1193,7 @@ public class DBAccessMongo extends DBAccess {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
-			// LOGGER.debug(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			LOGGER.error(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
 			FindIterable<Document> retFind = null;
 			statistic.countFind++;
 			if (filters != null) {
@@ -1225,13 +1227,13 @@ public class DBAccessMongo extends DBAccess {
 			listFields.add("_id");
 			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
-			// LOGGER.trace("GetsWhere ...");
+			LOGGER.info("GetsWhere ...");
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					// LOGGER.debug(" - receive data from DB: {}",
-					// doc.toJson(JsonWriterSettings.builder().indent(true).build()));
+					LOGGER.info(" - receive data from DB: {}",
+							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
 				}
@@ -1247,10 +1249,9 @@ public class DBAccessMongo extends DBAccess {
 		return outs;
 	}
 
-	public boolean isType(Type type, Class<?> destType) {
-		if (type instanceof ParameterizedType) {
-			ParameterizedType pType = (ParameterizedType) type;
-			Type rawType = pType.getRawType();
+	public boolean isType(final Type type, final Class<?> destType) {
+		if (type instanceof final ParameterizedType pType) {
+			final Type rawType = pType.getRawType();
 			if (rawType instanceof Class<?>) {
 				return destType.isAssignableFrom((Class<?>) rawType);
 			}
@@ -1270,51 +1271,51 @@ public class DBAccessMongo extends DBAccess {
 		if (doc == null) {
 			return null;
 		}
-		if (type instanceof ParameterizedType parameterizedType) {
+		if (type instanceof final ParameterizedType parameterizedType) {
 			// Manage List & Set:
 			if (isType(type, List.class)) {
-				Object value = doc;
+				final Object value = doc;
 				if (!(value instanceof List<?>)) {
 					throw new DataAccessException("mapping a 'List' on somethin not a 'List' ... bad request");
 				}
 				// get type of the object:
-				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				final Type dataType = parameterizedType.getActualTypeArguments()[0];
 				// generate the output
-				List<Object> out = new ArrayList<>();
-				List<?> valueList = (List<?>) value;
-				for (Object item : valueList) {
+				final List<Object> out = new ArrayList<>();
+				final List<?> valueList = (List<?>) value;
+				for (final Object item : valueList) {
 					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
 				}
 				return out;
 			}
 			if (isType(type, Set.class)) {
-				Object value = doc;
+				final Object value = doc;
 				if (!(value instanceof List<?>)) {
 					throw new DataAccessException("mapping a 'Set' on somethin not a 'List' ... bad request");
 				}
 				// get type of the object:
-				Type dataType = parameterizedType.getActualTypeArguments()[0];
+				final Type dataType = parameterizedType.getActualTypeArguments()[0];
 				// generate the output
-				Set<Object> out = new HashSet<>();
-				List<?> valueList = (List<?>) value;
-				for (Object item : valueList) {
+				final Set<Object> out = new HashSet<>();
+				final List<?> valueList = (List<?>) value;
+				for (final Object item : valueList) {
 					out.add(createObjectFromDocument(item, dataType, new QueryOptions(), lazyCall));
 				}
 				return out;
 			}
 			// Manage Map:
 			if (isType(type, Map.class)) {
-				Object value = doc;
+				final Object value = doc;
 				final Class<?> keyClass = (Class<?>) parameterizedType.getActualTypeArguments()[0];
 				checkIfConvertMapStringKeyToObjectIsPossible(keyClass);
 
 				final Type objectType = parameterizedType.getActualTypeArguments()[1];
-				Map<Object, Object> out = new HashMap<>();
+				final Map<Object, Object> out = new HashMap<>();
 
-				if (value instanceof Document subDoc) {
-					for (Map.Entry<String, Object> entry : subDoc.entrySet()) {
-						String keyString = entry.getKey();
-						Object key = convertMapStringKeyToObjectNoThrow(keyString, keyClass);
+				if (value instanceof final Document subDoc) {
+					for (final Map.Entry<String, Object> entry : subDoc.entrySet()) {
+						final String keyString = entry.getKey();
+						final Object key = convertMapStringKeyToObjectNoThrow(keyString, keyClass);
 						out.put(key,
 								createObjectFromDocument(entry.getValue(), objectType, new QueryOptions(), lazyCall));
 					}
@@ -1322,47 +1323,47 @@ public class DBAccessMongo extends DBAccess {
 				}
 			}
 			throw new DataAccessException("Fail to read data for type: '" + type.getTypeName() + "' (NOT IMPLEMENTED)");
-		} else if (type instanceof Class clazz) {
+		} else if (type instanceof final Class clazz) {
 			if (clazz == UUID.class) {
 				// final UUID value = doc.get(fieldName, UUID.class);
 				// field.set(data, value);
 				return null;
 			}
-			if (clazz == ObjectId.class && doc instanceof ObjectId temporary) {
+			if (clazz == ObjectId.class && doc instanceof final ObjectId temporary) {
 				return temporary;
 			}
-			if ((clazz == Long.class || clazz == long.class) && doc instanceof Long temporary) {
+			if ((clazz == Long.class || clazz == long.class) && doc instanceof final Long temporary) {
 				return temporary;
 			}
-			if ((clazz == Integer.class || clazz == int.class) && doc instanceof Integer temporary) {
+			if ((clazz == Integer.class || clazz == int.class) && doc instanceof final Integer temporary) {
 				return temporary;
 			}
 			if (clazz == Float.class || clazz == float.class) {
-				if (doc instanceof Float temporary) {
+				if (doc instanceof final Float temporary) {
 					return temporary;
-				} else if (doc instanceof Double temporary) {
+				} else if (doc instanceof final Double temporary) {
 					return temporary.floatValue();
 				}
 			}
-			if ((clazz == Double.class || clazz == double.class) && doc instanceof Double temporary) {
+			if ((clazz == Double.class || clazz == double.class) && doc instanceof final Double temporary) {
 				return temporary;
 			}
-			if ((clazz == Boolean.class || clazz == boolean.class) && doc instanceof Boolean temporary) {
+			if ((clazz == Boolean.class || clazz == boolean.class) && doc instanceof final Boolean temporary) {
 				return temporary;
 			}
-			if (clazz == Date.class && doc instanceof Date temporary) {
+			if (clazz == Date.class && doc instanceof final Date temporary) {
 				return temporary;
 			}
-			if (clazz == Instant.class && doc instanceof Date temporary) {
+			if (clazz == Instant.class && doc instanceof final Date temporary) {
 				return temporary.toInstant();
 			}
-			if (clazz == LocalDate.class && doc instanceof String temporary) {
+			if (clazz == LocalDate.class && doc instanceof final String temporary) {
 				return LocalDate.parse(temporary, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 			}
-			if (clazz == LocalTime.class && doc instanceof Long temporary) {
+			if (clazz == LocalTime.class && doc instanceof final Long temporary) {
 				return LocalTime.ofNanoOfDay(temporary);
 			}
-			if (clazz == String.class && doc instanceof String temporary) {
+			if (clazz == String.class && doc instanceof final String temporary) {
 				return temporary;
 			}
 			if (clazz == UUID.class) {
@@ -1370,11 +1371,11 @@ public class DBAccessMongo extends DBAccess {
 				// field.set(data, value);
 				return null;
 			}
-			if (doc instanceof String temporary && clazz.isEnum()) {
+			if (doc instanceof final String temporary && clazz.isEnum()) {
 				return retreiveValueEnum(clazz, temporary);
 			}
 
-			if (doc instanceof Document documentModel) {
+			if (doc instanceof final Document documentModel) {
 				final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 				// LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
 				final boolean readAllfields = QueryOptions.readAllColomn(options);
@@ -1406,10 +1407,10 @@ public class DBAccessMongo extends DBAccess {
 					if (addOn != null) {
 						addOn.fillFromDoc(this, documentModel, field, data, options, lazyCall);
 					} else {
-						Type typeModified = getFieldModifiedType(field, specificTypes, clazz);
+						final Type typeModified = getFieldModifiedType(field, specificTypes, clazz);
 						final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
-						Object dataField = createObjectFromDocument(documentModel.get(fieldName), typeModified, options,
-								lazyCall);
+						final Object dataField = createObjectFromDocument(documentModel.get(fieldName), typeModified,
+								options, lazyCall);
 						field.set(data, dataField);
 					}
 				}
@@ -1441,7 +1442,10 @@ public class DBAccessMongo extends DBAccess {
 	 * @return the potentially modified {@code Type} of the field after applying the
 	 *         specifications
 	 */
-	private Type getFieldModifiedType(Field field, List<OptionSpecifyType> specificTypes, Class<?> clazz) {
+	private Type getFieldModifiedType(
+			final Field field,
+			final List<OptionSpecifyType> specificTypes,
+			final Class<?> clazz) {
 		Type typeModified = field.getGenericType();
 		for (final OptionSpecifyType specify : specificTypes) {
 			if (specify.name.equals(field.getName())) {
@@ -1450,11 +1454,9 @@ public class DBAccessMongo extends DBAccess {
 						typeModified = TypeUtils.listOf(specify.clazz);
 						break;
 					}
-				} else {
-					if (typeModified == Object.class) {
-						typeModified = specify.clazz;
-						break;
-					}
+				} else if (typeModified == Object.class) {
+					typeModified = specify.clazz;
+					break;
 				}
 			}
 		}

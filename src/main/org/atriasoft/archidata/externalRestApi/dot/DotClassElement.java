@@ -132,24 +132,6 @@ public class DotClassElement {
 		return out.toString();
 	}
 
-	public String optionalTypeZod(final FieldProperty field) {
-		// Common checking element (apply to List, Map, ...)
-		if (field.nullable()) {
-			return ".optional()";
-		}
-		if (field.annotationNotNull() != null) {
-			return "";
-		}
-		// Other object:
-		if (field.model().getOriginClasses() == null || field.model().getOriginClasses().isPrimitive()) {
-			return "";
-		}
-		if (field.annotationNull() != null) {
-			return "";
-		}
-		return ".optional()";
-	}
-
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
 		return out.toString();

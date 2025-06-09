@@ -26,15 +26,15 @@ import org.slf4j.LoggerFactory;
 
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyNoSqlOIDRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyNoSqlOIDRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToManyNoSqlOIDRootExpand;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToManyDocOIDRemote;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToManyDocOIDRoot;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToManyDocOIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
-public class TestManyToManyNoSQLOID {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToManyNoSQLOID.class);
+public class TestManyToManyDocOID {
+	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToManyDocOID.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
@@ -53,8 +53,8 @@ public class TestManyToManyNoSQLOID {
 
 		@BeforeAll
 		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyNoSqlOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyNoSqlOIDRemote.class);
+			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
+			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
 			sqlCommand.addAll(sqlCommand2);
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 				for (final String elem : sqlCommand) {
@@ -67,23 +67,23 @@ public class TestManyToManyNoSQLOID {
 		@AfterAll
 		public void dropTables() throws Exception {
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyNoSqlOIDRoot.class);
-				daSQL.drop(TypeManyToManyNoSqlOIDRemote.class);
+				daSQL.drop(TypeManyToManyDocOIDRoot.class);
+				daSQL.drop(TypeManyToManyDocOIDRemote.class);
 			}
 		}
 
 		@Order(2)
 		@Test
 		public void testSimpleInsertAndRetieve() throws Exception {
-			final TypeManyToManyNoSqlOIDRoot test = new TypeManyToManyNoSqlOIDRoot();
+			final TypeManyToManyDocOIDRoot test = new TypeManyToManyDocOIDRoot();
 			test.otherData = "root insert";
-			final TypeManyToManyNoSqlOIDRoot insertedData = ConfigureDb.da.insert(test);
+			final TypeManyToManyDocOIDRoot insertedData = ConfigureDb.da.insert(test);
 			Assertions.assertNotNull(insertedData);
 			Assertions.assertNotNull(insertedData.oid);
 			Assertions.assertNull(insertedData.remote);
 
 			// Try to retrieve all the data:
-			final TypeManyToManyNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -93,7 +93,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 			Assertions.assertNull(retrieve.remote);
 
-			ConfigureDb.da.delete(TypeManyToManyNoSqlOIDRoot.class, insertedData.oid);
+			ConfigureDb.da.delete(TypeManyToManyDocOIDRoot.class, insertedData.oid);
 		}
 	}
 
@@ -103,14 +103,14 @@ public class TestManyToManyNoSQLOID {
 	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 	class AddLinkInsertInRoot {
-		TypeManyToManyNoSqlOIDRemote insertedRemote1;
-		TypeManyToManyNoSqlOIDRemote insertedRemote2;
-		TypeManyToManyNoSqlOIDRoot insertedData;
+		TypeManyToManyDocOIDRemote insertedRemote1;
+		TypeManyToManyDocOIDRemote insertedRemote2;
+		TypeManyToManyDocOIDRoot insertedData;
 
 		@BeforeAll
 		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyNoSqlOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyNoSqlOIDRemote.class);
+			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
+			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
 			sqlCommand.addAll(sqlCommand2);
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 				for (final String elem : sqlCommand) {
@@ -123,8 +123,8 @@ public class TestManyToManyNoSQLOID {
 		@AfterAll
 		public void dropTables() throws Exception {
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyNoSqlOIDRoot.class);
-				daSQL.drop(TypeManyToManyNoSqlOIDRemote.class);
+				daSQL.drop(TypeManyToManyDocOIDRoot.class);
+				daSQL.drop(TypeManyToManyDocOIDRemote.class);
 			}
 		}
 
@@ -135,18 +135,18 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void addRemotes() throws Exception {
 
-			TypeManyToManyNoSqlOIDRemote remote = new TypeManyToManyNoSqlOIDRemote();
+			TypeManyToManyDocOIDRemote remote = new TypeManyToManyDocOIDRemote();
 			for (int iii = 0; iii < 100; iii++) {
 				remote.data = "tmp" + iii;
 				this.insertedRemote1 = ConfigureDb.da.insert(remote);
-				ConfigureDb.da.delete(TypeManyToManyNoSqlOIDRemote.class, this.insertedRemote1.oid);
+				ConfigureDb.da.delete(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
 			}
-			remote = new TypeManyToManyNoSqlOIDRemote();
+			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote1";
 			this.insertedRemote1 = ConfigureDb.da.insert(remote);
 			Assertions.assertEquals(this.insertedRemote1.data, remote.data);
 
-			remote = new TypeManyToManyNoSqlOIDRemote();
+			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote2";
 			this.insertedRemote2 = ConfigureDb.da.insert(remote);
 			Assertions.assertEquals(this.insertedRemote2.data, remote.data);
@@ -156,7 +156,7 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void insertDataWithoutRemote() throws Exception {
 
-			final TypeManyToManyNoSqlOIDRoot test = new TypeManyToManyNoSqlOIDRoot();
+			final TypeManyToManyDocOIDRoot test = new TypeManyToManyDocOIDRoot();
 			test.otherData = "root insert 55";
 			this.insertedData = ConfigureDb.da.insert(test);
 			Assertions.assertNotNull(this.insertedData);
@@ -164,7 +164,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertNull(this.insertedData.remote);
 
 			// Try to retrieve all the data:
-			final TypeManyToManyNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -180,16 +180,16 @@ public class TestManyToManyNoSQLOID {
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
 			ManyToManyTools.addLink(ConfigureDb.da, //
-					TypeManyToManyNoSqlOIDRoot.class, //
+					TypeManyToManyDocOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
 			Thread.sleep(150);
 			ManyToManyTools.addLink(ConfigureDb.da, //
-					TypeManyToManyNoSqlOIDRoot.class, //
+					TypeManyToManyDocOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote2.oid);
 
-			final TypeManyToManyNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid, new AccessDeletedItems(), new ReadAllColumn());
 
 			Assertions.assertNotNull(retrieve);
@@ -210,7 +210,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertTrue(formattedUpdatedAt.compareTo(formattedCreatedAt) > 0);
 
 			// -- Verify remote is linked:
-			final TypeManyToManyNoSqlOIDRemote retrieveRemote = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote1.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -226,8 +226,8 @@ public class TestManyToManyNoSQLOID {
 		@Order(3)
 		@Test
 		public void testExpand() throws Exception {
-			final TypeManyToManyNoSqlOIDRootExpand retrieveExpand = ConfigureDb.da
-					.get(TypeManyToManyNoSqlOIDRootExpand.class, this.insertedData.oid);
+			final TypeManyToManyDocOIDRootExpand retrieveExpand = ConfigureDb.da
+					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
 			Assertions.assertNotNull(retrieveExpand.oid);
@@ -246,11 +246,11 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove an element
-			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocOIDRoot.class, //
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
 
-			TypeManyToManyNoSqlOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -263,11 +263,11 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(retrieve.remote.get(0), this.insertedRemote2.oid);
 
 			// Remove the second element
-			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRoot.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocOIDRoot.class, //
 					retrieve.oid, //
 					"remote", this.insertedRemote2.oid);
 
-			retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class, this.insertedData.oid);
+			retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertNotNull(retrieve.oid);
@@ -276,7 +276,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedData.otherData, retrieve.otherData);
 			Assertions.assertNull(retrieve.remote);
 
-			ConfigureDb.da.delete(TypeManyToManyNoSqlOIDRoot.class, this.insertedData.oid);
+			ConfigureDb.da.delete(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
 		}
 	}
 
@@ -285,15 +285,15 @@ public class TestManyToManyNoSQLOID {
 	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 	class directInsertAndRemoveInRoot {
-		TypeManyToManyNoSqlOIDRemote insertedRemote1;
-		TypeManyToManyNoSqlOIDRemote insertedRemote2;
-		TypeManyToManyNoSqlOIDRoot insertedRoot1;
-		TypeManyToManyNoSqlOIDRoot insertedRoot2;
+		TypeManyToManyDocOIDRemote insertedRemote1;
+		TypeManyToManyDocOIDRemote insertedRemote2;
+		TypeManyToManyDocOIDRoot insertedRoot1;
+		TypeManyToManyDocOIDRoot insertedRoot2;
 
 		@BeforeAll
 		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyNoSqlOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyNoSqlOIDRemote.class);
+			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
+			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
 			sqlCommand.addAll(sqlCommand2);
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 				for (final String elem : sqlCommand) {
@@ -306,8 +306,8 @@ public class TestManyToManyNoSQLOID {
 		@AfterAll
 		public void dropTables() throws Exception {
 			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyNoSqlOIDRoot.class);
-				daSQL.drop(TypeManyToManyNoSqlOIDRemote.class);
+				daSQL.drop(TypeManyToManyDocOIDRoot.class);
+				daSQL.drop(TypeManyToManyDocOIDRemote.class);
 			}
 		}
 
@@ -318,27 +318,27 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void addRemotes() throws Exception {
 
-			TypeManyToManyNoSqlOIDRemote remote = new TypeManyToManyNoSqlOIDRemote();
+			TypeManyToManyDocOIDRemote remote = new TypeManyToManyDocOIDRemote();
 			for (int iii = 0; iii < 100; iii++) {
 				remote.data = "tmp" + iii;
 				this.insertedRemote1 = ConfigureDb.da.insert(remote);
-				ConfigureDb.da.delete(TypeManyToManyNoSqlOIDRemote.class, this.insertedRemote1.oid);
+				ConfigureDb.da.delete(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
 			}
-			remote = new TypeManyToManyNoSqlOIDRemote();
+			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote 1";
 			this.insertedRemote1 = ConfigureDb.da.insert(remote);
 			Assertions.assertEquals(this.insertedRemote1.data, remote.data);
 
-			remote = new TypeManyToManyNoSqlOIDRemote();
+			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote 2";
 			this.insertedRemote2 = ConfigureDb.da.insert(remote);
 			Assertions.assertEquals(this.insertedRemote2.data, remote.data);
 
-			TypeManyToManyNoSqlOIDRoot root = new TypeManyToManyNoSqlOIDRoot();
+			TypeManyToManyDocOIDRoot root = new TypeManyToManyDocOIDRoot();
 			root.otherData = "root 1";
 			this.insertedRoot1 = ConfigureDb.da.insert(root);
 
-			root = new TypeManyToManyNoSqlOIDRoot();
+			root = new TypeManyToManyDocOIDRoot();
 			root.otherData = "root 2";
 			this.insertedRoot2 = ConfigureDb.da.insert(root);
 		}
@@ -347,14 +347,14 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void addLinksRemotes() throws Exception {
 			// Add remote elements
-			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
-			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
-			final TypeManyToManyNoSqlOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -367,7 +367,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRoot1.oid, retrieve.remoteToParent.get(0));
 			Assertions.assertEquals(this.insertedRoot2.oid, retrieve.remoteToParent.get(1));
 
-			final TypeManyToManyNoSqlOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
@@ -380,7 +380,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRemote2.oid, retrieveExpand.remote.get(0));
 
 			// -- Verify remote is linked:
-			final TypeManyToManyNoSqlOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -397,11 +397,11 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove root elements
-			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
-			final TypeManyToManyNoSqlOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -414,7 +414,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRoot1.oid, retrieve.remoteToParent.get(0));
 
 			// -- Verify remote is linked:
-			final TypeManyToManyNoSqlOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
@@ -427,7 +427,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRemote2.oid, retrieveExpand.remote.get(0));
 
 			// -- Verify remote is un-linked:
-			final TypeManyToManyNoSqlOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -443,11 +443,11 @@ public class TestManyToManyNoSQLOID {
 		@Test
 		public void removeSecondLinksRemotes() throws Exception {
 			// Remove root elements
-			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyNoSqlOIDRemote.class, //
+			ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocOIDRemote.class, //
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
 
-			final TypeManyToManyNoSqlOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -458,8 +458,8 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertNull(retrieve.remoteToParent);
 
 			// -- Verify remote is linked:
-			final TypeManyToManyNoSqlOIDRootExpand retrieveExpand = ConfigureDb.da
-					.get(TypeManyToManyNoSqlOIDRootExpand.class, this.insertedRoot1.oid);
+			final TypeManyToManyDocOIDRootExpand retrieveExpand = ConfigureDb.da
+					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
 			Assertions.assertNotNull(retrieveExpand.oid);
@@ -469,8 +469,8 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertNull(retrieveExpand.remote);
 
 			// -- Verify remote is un-linked:
-			final TypeManyToManyNoSqlOIDRootExpand retrieveRemote = ConfigureDb.da
-					.get(TypeManyToManyNoSqlOIDRootExpand.class, this.insertedRoot2.oid);
+			final TypeManyToManyDocOIDRootExpand retrieveRemote = ConfigureDb.da
+					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
 			Assertions.assertNotNull(retrieveRemote.oid);
@@ -481,7 +481,7 @@ public class TestManyToManyNoSQLOID {
 
 		}
 
-		TypeManyToManyNoSqlOIDRemote insertedParameters;
+		TypeManyToManyDocOIDRemote insertedParameters;
 
 		// ---------------------------------------------------------------
 		// -- Add parent with manyToMany in parameters:
@@ -489,7 +489,7 @@ public class TestManyToManyNoSQLOID {
 		@Order(6)
 		@Test
 		public void AddParentWithManyToManyInParameters() throws Exception {
-			final TypeManyToManyNoSqlOIDRemote test = new TypeManyToManyNoSqlOIDRemote();
+			final TypeManyToManyDocOIDRemote test = new TypeManyToManyDocOIDRemote();
 			test.data = "insert with remote";
 			test.remoteToParent = new ArrayList<>();
 			test.remoteToParent.add(this.insertedRoot1.oid);
@@ -503,7 +503,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRoot2.oid, this.insertedParameters.remoteToParent.get(1));
 
 			// -- Verify remote is linked:
-			TypeManyToManyNoSqlOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
@@ -515,7 +515,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(1, retrieveRoot.remote.size());
 			Assertions.assertEquals(this.insertedParameters.oid, retrieveRoot.remote.get(0));
 
-			retrieveRoot = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class, this.insertedRoot2.oid);
+			retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
 			Assertions.assertNotNull(retrieveRoot.oid);
@@ -534,14 +534,14 @@ public class TestManyToManyNoSQLOID {
 		@Order(7)
 		@Test
 		public void updateRequest() throws Exception {
-			final TypeManyToManyNoSqlOIDRemote testUpdate = new TypeManyToManyNoSqlOIDRemote();
+			final TypeManyToManyDocOIDRemote testUpdate = new TypeManyToManyDocOIDRemote();
 			testUpdate.remoteToParent = new ArrayList<>();
 			testUpdate.remoteToParent.add(this.insertedRoot2.oid);
 			final long numberUpdate = ConfigureDb.da.update(testUpdate, this.insertedParameters.oid);
 			Assertions.assertEquals(1, numberUpdate);
 
-			final TypeManyToManyNoSqlOIDRemote insertedDataUpdate = ConfigureDb.da
-					.get(TypeManyToManyNoSqlOIDRemote.class, this.insertedParameters.oid);
+			final TypeManyToManyDocOIDRemote insertedDataUpdate = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
+					this.insertedParameters.oid);
 			Assertions.assertNotNull(insertedDataUpdate);
 			Assertions.assertNotNull(insertedDataUpdate.oid);
 			Assertions.assertNotNull(insertedDataUpdate.remoteToParent);
@@ -549,7 +549,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertEquals(this.insertedRoot2.oid, insertedDataUpdate.remoteToParent.get(0));
 
 			// -- Verify remote is linked (removed):
-			TypeManyToManyNoSqlOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
@@ -560,7 +560,7 @@ public class TestManyToManyNoSQLOID {
 			Assertions.assertNull(retrieveRoot.remote);
 
 			// -- Verify remote is linked (keep):
-			retrieveRoot = ConfigureDb.da.get(TypeManyToManyNoSqlOIDRoot.class, this.insertedRoot2.oid);
+			retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
 			Assertions.assertNotNull(retrieveRoot.oid);

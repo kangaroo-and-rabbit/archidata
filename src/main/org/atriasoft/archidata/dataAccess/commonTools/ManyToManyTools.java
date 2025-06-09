@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.ManyToManyNoSQL;
+import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
@@ -77,7 +77,7 @@ public class ManyToManyTools {
 			final Field localField,
 			final Object localPrimaryKeyValue,
 			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyNoSQL manyLocal = AnnotationTools.get(localField, ManyToManyNoSQL.class);
+		final ManyToManyDoc manyLocal = AnnotationTools.get(localField, ManyToManyDoc.class);
 		// Update the remote elements:
 		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
 				|| manyLocal.remoteField().isEmpty()) {
@@ -158,7 +158,7 @@ public class ManyToManyTools {
 			final Field localField,
 			final Object localPrimaryKeyValue,
 			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyNoSQL manyLocal = AnnotationTools.get(localField, ManyToManyNoSQL.class);
+		final ManyToManyDoc manyLocal = AnnotationTools.get(localField, ManyToManyDoc.class);
 		// Update the remote elements:
 		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
 				|| manyLocal.remoteField().isEmpty()) {

@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.ManyToOneNoSQL;
+import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
@@ -22,17 +22,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // Coté de la liste des éléméments ....
-public class AddOnManyToOneNoSql implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToOneNoSql.class);
+public class AddOnManyToOneDoc implements DataAccessAddOn {
+	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToOneDoc.class);
 
 	@Override
 	public Class<?> getAnnotationClass() {
-		return ManyToOneNoSQL.class;
+		return ManyToOneDoc.class;
 	}
 
 	@Override
 	public boolean isCompatibleField(final Field field) {
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators == null) {
 			return false;
 		}
@@ -81,7 +81,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 		if (Objects.equals(previousDataValue, insertedDataValue)) {
 			return;
 		}
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (previousDataValue != null) {
 			actions.add(() -> {
 				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), previousDataValue, decorators.remoteField(),
@@ -121,7 +121,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 		if (insertedData == null) {
 			return;
 		}
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators.addLinkWhenCreate()) {
 			actions.add(() -> {
 				ListInDbTools.addLink(ioDb, decorators.targetEntity(), insertedData, decorators.remoteField(),
@@ -159,7 +159,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			field.set(data, null);
 			return;
 		}
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators == null) {
 			// not a use-case !!! ==> must fail before...
 			return;
@@ -188,7 +188,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 
 	@Override
 	public boolean asDeleteAction(final Field field) {
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		return decorators.removeLinkWhenDelete();
 	}
 
@@ -198,7 +198,7 @@ public class AddOnManyToOneNoSql implements DataAccessAddOn {
 			final Class<?> clazz,
 			final Field field,
 			final List<Object> previousDataThatIsDeleted) throws Exception {
-		final ManyToOneNoSQL decorators = field.getDeclaredAnnotation(ManyToOneNoSQL.class);
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		final Field primaryKeyDeletedObjects = AnnotationTools.getPrimaryKeyField(clazz);
 		for (final Object obj : previousDataThatIsDeleted) {
 			final Object primaryKeyRemovedObject = primaryKeyDeletedObjects.get(obj);

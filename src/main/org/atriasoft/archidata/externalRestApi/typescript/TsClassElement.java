@@ -423,9 +423,6 @@ public class TsClassElement {
 				return false;
 			}
 		}
-		//		if (field.annotationNull() != null) {
-		//			return false;
-		//		}
 		// model is a Map or a List:
 		if (field.model() instanceof ClassMapModel || field.model() instanceof ClassListModel) {
 			return true;

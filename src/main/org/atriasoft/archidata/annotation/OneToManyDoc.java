@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 import org.glassfish.jersey.Beta;
 
 /**
- * In NoSql entity the relation is stored in the 2 part of the entity, then it
+ * In Document entity the relation is stored in the 2 part of the entity, then it
  * is needed to define the field that store the relation data value in the
  * remote elements.
  *
@@ -24,21 +24,21 @@ import org.glassfish.jersey.Beta;
  * 	&#64;Id
  * 	ObjectId _id;
  * 	&#64;CheckForeignKey(ClassWithChilds.class)
- * 	&#64;ManyToOneNoSQL(targetEntity = ClassWithChilds.class, remoteField = "roots")
+ * 	&#64;ManyToOneDoc(targetEntity = ClassWithChilds.class, remoteField = "roots")
  * 	ObjectId parent;
  * }
  *
  * public class ClassWithChilds {
  * 	&#64;Id
  * 	ObjectId _id;
- * 	&#64;OneToManyNoSQL(targetEntity = ClassWithParent.class, remoteField = "parent")
+ * 	&#64;OneToManyDoc(targetEntity = ClassWithParent.class, remoteField = "parent")
  * 	List<@CheckForeignKey(ClassWithParent.class) ObjectId> roots;
  * }
  * }
  */
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })
-public @interface OneToManyNoSQL {
+public @interface OneToManyDoc {
 	public enum CascadeMode {
 		DELETE_ON_REMOVE, // The remote object is deleted
 		SET_NULL_ON_REMOVE, // The remote object parent field is set to `null`

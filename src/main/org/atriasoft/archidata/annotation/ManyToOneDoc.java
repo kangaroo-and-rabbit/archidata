@@ -7,8 +7,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import org.glassfish.jersey.Beta;
+
 /**
- * In NoSql entity the relation is stored in the 2 part of the entity, then it
+ * In Document entity the relation is stored in the 2 part of the entity, then it
  * is needed to define the field that store the relation data value in the
  * remote elements.
  *
@@ -18,25 +20,25 @@ import java.lang.annotation.Target;
  * <p>
  * Example:
  * {@snippet :
- *
- * public class ClassA {
+ * public class ClassWithParent {
  * 	&#64;Id
  * 	ObjectId _id;
- * 	&#64;ManyToManyNoSQL(targetEntity = ClassB.class, remoteField = "remoteFieldClassB")
- * 	List<@CheckForeignKey(ClassB.class) ObjectId> remoteFieldClassA;
+ * 	&#64;CheckForeignKey(ClassWithChilds.class)
+ * 	&#64;ManyToOneDoc(targetEntity = ClassWithChilds.class, remoteField = "roots")
+ * 	ObjectId parent;
  * }
  *
- * public class ClassB {
+ * public class ClassWithChilds {
  * 	&#64;Id
  * 	ObjectId _id;
- * 	&#64;OneToManyNoSQL(targetEntity = ClassA.class, remoteField = "remoteFieldClassA")
- * 	List<@CheckForeignKey(ClassA.class) ObjectId> remoteFieldClassB;
+ * 	&#64;OneToManyDoc(targetEntity = ClassWithParent.class, remoteField = "parent")
+ * 	List<@CheckForeignKey(ClassWithParent.class) ObjectId> roots;
  * }
  * }
  */
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })
-public @interface ManyToManyNoSQL {
+public @interface ManyToOneDoc {
 	/**
 	 * The entity class that is the target of the association.
 	 */
@@ -47,4 +49,16 @@ public @interface ManyToManyNoSQL {
 	 * is unidirectional.
 	 */
 	String remoteField();
+
+	/**
+	 * When delete the object, the system remove the link from the parent
+	 */
+	@Beta
+	boolean removeLinkWhenDelete() default true;
+
+	/**
+	 * When create the object, the system add the link on the parent
+	 */
+	@Beta
+	boolean addLinkWhenCreate() default true;
 }

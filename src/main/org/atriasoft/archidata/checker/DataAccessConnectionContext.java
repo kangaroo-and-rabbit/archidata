@@ -9,7 +9,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 // Note: never sent the DBAccess through an other thread.
 public class DataAccessConnectionContext implements AutoCloseable {
-
+	private static long createdReal = 0L;
+	private static long created = 0L;
 	private static final ThreadLocal<DBAccess> threadLocalConnection = new ThreadLocal<>();
 	private final boolean isOwner;
 
@@ -24,19 +25,21 @@ public class DataAccessConnectionContext implements AutoCloseable {
 	 */
 	public DataAccessConnectionContext() throws InternalServerErrorException, IOException, DataAccessException {
 		if (threadLocalConnection.get() == null) {
-			DBAccess db = DBAccess.createInterface();
+			final DBAccess db = DBAccess.createInterface();
 			threadLocalConnection.set(db);
-			isOwner = true;
+			this.isOwner = true;
+			createdReal++;
 		} else {
-			isOwner = false;
+			this.isOwner = false;
 		}
+		created++;
 	}
 
 	/**
 	 * Returns the DBAccess connection for the current thread.
 	 */
 	public DBAccess get() {
-		DBAccess db = threadLocalConnection.get();
+		final DBAccess db = threadLocalConnection.get();
 		if (db == null) {
 			throw new IllegalStateException(
 					"No DBAccess available in current thread. Ensure you're within a DataAccessConnectionContext.");
@@ -48,7 +51,7 @@ public class DataAccessConnectionContext implements AutoCloseable {
 	 * Returns the DBAccess connection for the current thread.
 	 */
 	public static DBAccess getConnection() {
-		DBAccess db = threadLocalConnection.get();
+		final DBAccess db = threadLocalConnection.get();
 		if (db == null) {
 			throw new IllegalStateException(
 					"No DBAccess available in current thread. Ensure you're within a DataAccessConnectionContext.");
@@ -63,11 +66,12 @@ public class DataAccessConnectionContext implements AutoCloseable {
 	 */
 	@Override
 	public void close() throws IOException {
-		if (isOwner) {
-			DBAccess db = threadLocalConnection.get();
+		if (this.isOwner) {
+			final DBAccess db = threadLocalConnection.get();
 			if (db != null) {
 				try {
 					db.close();
+					System.out.println("connection the DB: real=" + createdReal + " requested=" + created);
 				} finally {
 					threadLocalConnection.remove();
 				}
