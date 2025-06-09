@@ -53,6 +53,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.result.DeleteResult;
@@ -166,6 +167,14 @@ public class DBAccessMongo extends DBAccess {
 	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		// With mongo the dB exist only when the data is inserted
 		return true;
+	}
+
+	/**
+	 * This is a test
+	 */
+	public void ascendingIndex(final String collectionName, String fieldName) {
+		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+		collection.createIndex(Indexes.ascending(fieldName));
 	}
 
 	/**
