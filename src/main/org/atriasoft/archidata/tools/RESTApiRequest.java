@@ -12,8 +12,10 @@ import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -225,26 +227,24 @@ public class RESTApiRequest {
 	 * Adds a query parameter to the request URL (add an element in the key if the key already exist).
 	 *
 	 * @param paramKey The parameter name.
-	 * @param paramValue The parameter value.
-	 * @return The updated RESTApiRequest instance.
-	 */
-	public <TYPE_PARAM> RESTApiRequest queryParam(final String paramKey, final TYPE_PARAM paramValue) {
-		final List<String> data = this.queryParam.getOrDefault(paramKey, new ArrayList<>());
-		data.add(paramValue.toString());
-		this.queryParam.put(paramKey, data);
-		return this;
-	}
-
-	/**
-	 * Adds a query parameter to the request URL (add an element in the key if the key already exist).
-	 *
-	 * @param paramKey The parameter name.
 	 * @param paramValues The parameter values to add (multiple).
 	 * @return The updated RESTApiRequest instance.
 	 */
-	public RESTApiRequest queryParam(final String paramKey, final String... paramValues) {
+	public RESTApiRequest queryParam(
+			final String paramKey,
+			@SuppressWarnings("unchecked") final Object... paramValues) {
 		final List<String> data = this.queryParam.getOrDefault(paramKey, new ArrayList<>());
-		Collections.addAll(data, paramValues);
+		for (final Object paramValue : paramValues) {
+			if (paramValue == null) {
+				data.add("null");
+			} else if (paramValue instanceof final ZonedDateTime paramValueFormatted) {
+				data.add(paramValueFormatted.format(DateTimeFormatter.ISO_DATE_TIME));
+			} else if (paramValue instanceof final Date paramValueFormatted) {
+				data.add(DateTimeFormatter.ISO_INSTANT.format(paramValueFormatted.toInstant()));
+			} else {
+				data.add(paramValue.toString());
+			}
+		}
 		this.queryParam.put(paramKey, data);
 		return this;
 	}
