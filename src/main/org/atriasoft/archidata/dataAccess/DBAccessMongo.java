@@ -1202,7 +1202,12 @@ public class DBAccessMongo extends DBAccess {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
-			LOGGER.error(filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			if (filters != null) {
+				LOGGER.trace("filter = {}",
+						filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+			} else {
+				LOGGER.trace("filter = None");
+			}
 			FindIterable<Document> retFind = null;
 			statistic.countFind++;
 			if (filters != null) {
@@ -1236,12 +1241,12 @@ public class DBAccessMongo extends DBAccess {
 			listFields.add("_id");
 			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
-			LOGGER.info("GetsWhere ...");
+			LOGGER.trace("GetsWhere ...");
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					LOGGER.info(" - receive data from DB: {}",
+					LOGGER.trace(" - receive data from DB: {}",
 							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
 					outs.add(data);
@@ -1341,21 +1346,72 @@ public class DBAccessMongo extends DBAccess {
 			if (clazz == ObjectId.class && doc instanceof final ObjectId temporary) {
 				return temporary;
 			}
-			if ((clazz == Long.class || clazz == long.class) && doc instanceof final Long temporary) {
-				return temporary;
+			if (clazz == Long.class || clazz == long.class) {
+				if (doc instanceof final Long temporary) {
+					return temporary;
+				}
+				if (doc instanceof final Integer temporary) {
+					return temporary.longValue();
+				}
+				if (doc instanceof final Short temporary) {
+					return temporary.longValue();
+				}
 			}
-			if ((clazz == Integer.class || clazz == int.class) && doc instanceof final Integer temporary) {
-				return temporary;
+			if (clazz == Integer.class || clazz == int.class) {
+				if (doc instanceof final Integer temporary) {
+					return temporary;
+				}
+				if (doc instanceof final Long temporary) {
+					return temporary.intValue();
+				}
+				if (doc instanceof final Short temporary) {
+					return temporary.intValue();
+				}
+			}
+			if (clazz == Short.class || clazz == short.class) {
+				if (doc instanceof final Integer temporary) {
+					return temporary.shortValue();
+				}
+				if (doc instanceof final Long temporary) {
+					return temporary.shortValue();
+				}
+				if (doc instanceof final Short temporary) {
+					return temporary;
+				}
 			}
 			if (clazz == Float.class || clazz == float.class) {
 				if (doc instanceof final Float temporary) {
 					return temporary;
-				} else if (doc instanceof final Double temporary) {
+				}
+				if (doc instanceof final Double temporary) {
+					return temporary.floatValue();
+				}
+				if (doc instanceof final Integer temporary) {
+					return temporary.floatValue();
+				}
+				if (doc instanceof final Long temporary) {
+					return temporary.floatValue();
+				}
+				if (doc instanceof final Short temporary) {
 					return temporary.floatValue();
 				}
 			}
-			if ((clazz == Double.class || clazz == double.class) && doc instanceof final Double temporary) {
-				return temporary;
+			if (clazz == Double.class || clazz == double.class) {
+				if (doc instanceof final Float temporary) {
+					return temporary.doubleValue();
+				}
+				if (doc instanceof final Double temporary) {
+					return temporary;
+				}
+				if (doc instanceof final Integer temporary) {
+					return temporary.doubleValue();
+				}
+				if (doc instanceof final Long temporary) {
+					return temporary.doubleValue();
+				}
+				if (doc instanceof final Short temporary) {
+					return temporary.doubleValue();
+				}
 			}
 			if ((clazz == Boolean.class || clazz == boolean.class) && doc instanceof final Boolean temporary) {
 				return temporary;
@@ -1425,11 +1481,12 @@ public class DBAccessMongo extends DBAccess {
 				}
 				return data;
 			} else {
-				throw new DataAccessException(
-						"Fail to read data for type: '" + type.getTypeName() + "' detect data that is not a Document");
+				throw new DataAccessException("Fail to read data for type: '" + type.getTypeName()
+						+ "' detect data that is not a Document doc=" + doc + "  " + doc.getClass());
 			}
 		}
 		throw new DataAccessException("Fail to read data for type: '" + type.getTypeName() + "' (NOT IMPLEMENTED)");
+
 	}
 
 	/**
