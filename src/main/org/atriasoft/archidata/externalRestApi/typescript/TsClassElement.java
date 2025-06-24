@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
@@ -406,7 +407,10 @@ public class TsClassElement {
 		return isValid;
 	}
 
-	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
+	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, Class<?>[] groups) {
+		if (groups == null) {
+			groups = new Class<?>[] { GroupRead.class };
+		}
 		if (field.apiNotNull() != null) {
 			return !field.apiNotNull().value();
 		}
