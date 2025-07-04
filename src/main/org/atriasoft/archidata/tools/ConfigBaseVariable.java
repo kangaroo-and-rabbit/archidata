@@ -52,14 +52,14 @@ public class ConfigBaseVariable {
 
 	public static String getTmpDataFolder() {
 		if (tmpDataFolder == null) {
-			return "/application/data/tmp";
+			return "./data/tmp";
 		}
 		return tmpDataFolder;
 	}
 
 	public static String getMediaDataFolder() {
 		if (dataFolder == null) {
-			return "/application/data/media";
+			return "./data/media";
 		}
 		return dataFolder;
 	}
