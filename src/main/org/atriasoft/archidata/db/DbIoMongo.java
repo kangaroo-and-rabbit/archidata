@@ -3,9 +3,9 @@ package org.atriasoft.archidata.db;
 import java.io.Closeable;
 import java.io.IOException;
 
+import org.atriasoft.archidata.converter.morphia.OffsetDateTimeCodec;
 import org.atriasoft.archidata.converter.morphia.SqlTimestampCodec;
 import org.bson.UuidRepresentation;
-import org.atriasoft.archidata.converter.morphia.OffsetDateTimeCodec;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.PojoCodecProvider;
@@ -46,9 +46,6 @@ public class DbIoMongo extends DbIo implements Closeable {
 	synchronized public void openImplement() throws IOException {
 		final String dbUrl = this.config.getUrl();
 		final String dbName = this.config.getDbName();
-		// Connect to MongoDB (simple form):
-		// final MongoClient mongoClient = MongoClients.create(dbUrl);
-		LOGGER.info("Connect on the DB: {} with db name={}", dbUrl, dbName);
 		// Connect to MongoDB (complex form):
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
 		// Créer un CodecRegistry pour UUID
@@ -73,32 +70,9 @@ public class DbIoMongo extends DbIo implements Closeable {
 				.build();
 		this.mongoClient = MongoClients.create(clientSettings);
 		if (dbName == null) {
-			LOGGER.info("Connect on the DB: {}", dbUrl);
+			LOGGER.error("Connect on the DB: host:{} port:{} type:{}", this.config.getHostname(), this.config.getPort(),
+					this.config.getType());
 		}
 		this.dataBase = this.mongoClient.getDatabase(dbName);
-
-		/*
-
-		CodecRegistry customCodecs = fromRegistries(
-		MongoClientSettings.getDefaultCodecRegistry(),
-		fromProviders(
-		// codecs POJO automatiques
-		org.bson.codecs.pojo.PojoCodecProvider.builder()
-		    .automatic(true)
-		    .build()
-
-		// tu peux aussi ajouter ici tes codecs personnalisés
-		// fromCodecs(new MyCustomCodec())
-		)
-		);
-
-		MongoClientSettings settings = MongoClientSettings.builder()
-		.codecRegistry(customCodecs)
-		.build();
-
-		MongoClient client = MongoClients.create(settings);
-
-		 */
-
 	}
 }
