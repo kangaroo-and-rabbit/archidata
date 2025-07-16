@@ -909,6 +909,10 @@ public class DBAccessMongo extends DBAccess {
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
 					if (!directdata && !directPrimaryKey) {
+						if (field.get(data) != null) {
+							throw new DataAccessException(
+									"Unexpected comportment, try to add an object with a primary key. use option 'DirectPrimaryKey.class' to do that");
+						}
 						primaryKeyField = field;
 						if (primaryKeyField.getType() == ObjectId.class) {
 							uniqueId = new ObjectId();
