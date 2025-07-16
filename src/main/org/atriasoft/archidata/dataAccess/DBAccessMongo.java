@@ -991,10 +991,6 @@ public class DBAccessMongo extends DBAccess {
 			// Get the Object of inserted object:
 			insertedId = result.getInsertedId().asObjectId().getValue();
 			// LOGGER.trace("Document inserted with ID: " + insertedId);
-			// Rechercher et récupérer le document inséré à partir de son ObjectId
-			final Document insertedDocument = collection.find(new Document("_id", insertedId)).first();
-			// Afficher le document récupéré
-			// LOGGER.trace("Inserted document: " + insertedDocument);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
 			ex.printStackTrace();
