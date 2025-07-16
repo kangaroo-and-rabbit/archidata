@@ -30,6 +30,7 @@ import org.atriasoft.archidata.dataAccess.addOnMongo.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DirectData;
+import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
@@ -172,7 +173,7 @@ public class DBAccessMongo extends DBAccess {
 	/**
 	 * This is a test
 	 */
-	public void ascendingIndex(final String collectionName, String fieldName) {
+	public void ascendingIndex(final String collectionName, final String fieldName) {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		collection.createIndex(Indexes.ascending(fieldName));
 	}
@@ -887,6 +888,7 @@ public class DBAccessMongo extends DBAccess {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
 		final boolean directdata = options.exist(DirectData.class);
+		final boolean directPrimaryKey = options.exist(DirectPrimaryKey.class);
 
 		final List<Field> asyncFieldUpdate = new ArrayList<>();
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -906,7 +908,7 @@ public class DBAccessMongo extends DBAccess {
 				final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
 				Object currentInsertValue = field.get(data);
 				if (AnnotationTools.isPrimaryKey(field)) {
-					if (!directdata) {
+					if (!directdata && !directPrimaryKey) {
 						primaryKeyField = field;
 						if (primaryKeyField.getType() == ObjectId.class) {
 							uniqueId = new ObjectId();
@@ -931,8 +933,9 @@ public class DBAccessMongo extends DBAccess {
 						final Object primaryKeyValue = field.get(data);
 						if (primaryKeyValue == null) {
 							throw new DataAccessException(
-									"Fail to Insert data in DB.. when use 'DirectData.class' you need to provide an ID...");
+									"Fail to Insert data in DB.. when use 'DirectData.class' or 'DirectPrimaryKey.class' you need to provide a primary key...");
 						}
+						uniqueId = primaryKeyValue;
 					}
 				}
 				final boolean createTime = field.getDeclaredAnnotationsByType(CreationTimestamp.class).length != 0;
