@@ -173,8 +173,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// Is user valid?
 		if (!haveRight) {
 			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
-			requestContext
-					.abortWith(Response.status(Response.Status.FORBIDDEN).entity("Not enought RIGHT !!!").build());
+			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enought RIGHT !!!"))
+					.build());
 			return;
 		}
 		requestContext.setSecurityContext(userContext);
