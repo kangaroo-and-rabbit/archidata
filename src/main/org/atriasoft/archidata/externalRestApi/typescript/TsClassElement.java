@@ -407,10 +407,7 @@ public class TsClassElement {
 		return isValid;
 	}
 
-	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, Class<?>[] groups) {
-		if (groups == null) {
-			groups = new Class<?>[] { GroupRead.class };
-		}
+	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (field.apiNotNull() != null) {
 			return !field.apiNotNull().value();
 		}
@@ -440,6 +437,9 @@ public class TsClassElement {
 
 	public String optionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (isOptionalTypeZod(field, isValid, groups)) {
+			if (field.name().equals("oid")) {
+				LOGGER.error("lkjlkjlkj");
+			}
 			return ".optional()";
 		}
 		return "";

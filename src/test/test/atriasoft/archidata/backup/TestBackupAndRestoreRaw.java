@@ -23,7 +23,10 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.atriasoft.archidata.backup.BackupEngine;
+import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.dataAccess.DataAccess;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,16 +34,14 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import test.atriasoft.archidata.ConfigureDb;
-import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.backup.model.DataStoreWithUpdate;
 import test.atriasoft.archidata.backup.model.DataStoreWithoutUpdate;
 
-@ExtendWith(StepwiseExtension.class)
+//@ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 public class TestBackupAndRestoreRaw {
@@ -54,8 +55,8 @@ public class TestBackupAndRestoreRaw {
 	 * @return Map of filename to file content as String
 	 * @throws IOException if reading the archive fails
 	 */
-	public Map<String, String> extractTarGzToMap(Path inputPath) throws IOException {
-		Map<String, String> result = new HashMap<>();
+	public Map<String, String> extractTarGzToMap(final Path inputPath) throws IOException {
+		final Map<String, String> result = new HashMap<>();
 
 		try (InputStream fileIn = Files.newInputStream(inputPath);
 				BufferedInputStream bufferedIn = new BufferedInputStream(fileIn);
@@ -67,13 +68,12 @@ public class TestBackupAndRestoreRaw {
 				if (entry.isDirectory()) {
 					continue;
 				}
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
+				final ByteArrayOutputStream out = new ByteArrayOutputStream();
 				tarIn.transferTo(out);
-				String content = out.toString(StandardCharsets.UTF_8); // ou autre charset si nécessaire
+				final String content = out.toString(StandardCharsets.UTF_8);
 				result.put(entry.getName(), content);
 			}
 		}
-
 		return result;
 	}
 
@@ -85,7 +85,7 @@ public class TestBackupAndRestoreRaw {
 	 * @param output Path to the .tar.gz file to create
 	 * @throws IOException if writing fails
 	 */
-	public void writeMapToTarGz(Map<String, String> data, Path output) throws IOException {
+	public void writeMapToTarGz(final Map<String, String> data, final Path output) throws IOException {
 		try (OutputStream fileOut = Files.newOutputStream(output);
 				BufferedOutputStream bufferedOut = new BufferedOutputStream(fileOut);
 				GzipCompressorOutputStream gzipOut = new GzipCompressorOutputStream(bufferedOut);
@@ -93,9 +93,9 @@ public class TestBackupAndRestoreRaw {
 
 			tarOut.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
 
-			for (Map.Entry<String, String> entry : data.entrySet()) {
-				byte[] content = entry.getValue().getBytes(StandardCharsets.UTF_8);
-				TarArchiveEntry tarEntry = new TarArchiveEntry(entry.getKey());
+			for (final Map.Entry<String, String> entry : data.entrySet()) {
+				final byte[] content = entry.getValue().getBytes(StandardCharsets.UTF_8);
+				final TarArchiveEntry tarEntry = new TarArchiveEntry(entry.getKey());
 				tarEntry.setSize(content.length);
 				tarOut.putArchiveEntry(tarEntry);
 				tarOut.write(content);
@@ -104,13 +104,14 @@ public class TestBackupAndRestoreRaw {
 		}
 	}
 
-	String revoveDateAndObjectId(String data, boolean ignoreDate) {
+	String revoveDateAndObjectId(final String data, final boolean ignoreDate) {
 		String tmp = data //
-				.replaceAll("\"_id\"\\s*:\\s*\"[a-f0-9]{24}\"", "\"_id\":\"IGNORE\""); // objectID
+				.replaceAll(":\\s*\"[a-f0-9]{24}\"", ":\"IGNORE\""); // objectID
 		if (ignoreDate) {
 			return tmp;
 		}
-		return tmp.replaceAll("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z", "IGNORE"); // timestamp ISO 8601
+		tmp = tmp.replaceAll(":\\s*\"[0-9]{13}\"", ":\"IGNORE\"");
+		return tmp.replaceAll("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{1,6}Z", "IGNORE"); // timestamp ISO 8601
 	}
 
 	@BeforeAll
@@ -123,33 +124,39 @@ public class TestBackupAndRestoreRaw {
 		ConfigureDb.clear();
 	}
 
-	@Test
-	public void testBackupCollectionRawData() throws Exception {
+	private void insertData() throws Exception {
 		// Clean the collection:
 		DataAccess.drop(DataStoreWithoutUpdate.class);
 		DataAccess.drop(DataStoreWithUpdate.class);
 		// Insert the data in the collection:
-		DataStoreWithUpdate dataInsert = new DataStoreWithUpdate();
+		final DataStoreWithUpdate dataInsert = new DataStoreWithUpdate();
 		dataInsert.dataLong = 9953L;
 		dataInsert.dataDoubles = List.of(1.25, -1.66);
-		DataStoreWithUpdate data11 = DataAccess.insert(dataInsert);
+		final DataStoreWithUpdate data11 = DataAccess.insert(dataInsert);
 		dataInsert.dataLong = null;
 		dataInsert.dataDoubles = List.of(152.8, 5213546345.0);
-		DataStoreWithUpdate data12 = DataAccess.insert(dataInsert);
-		DataStoreWithoutUpdate dataInsert2 = new DataStoreWithoutUpdate();
+		final DataStoreWithUpdate data12 = DataAccess.insert(dataInsert);
+		final DataStoreWithoutUpdate dataInsert2 = new DataStoreWithoutUpdate();
 		dataInsert2.dataString = "my test String";
 		dataInsert2.dataTime = Date
 				.from(LocalDateTime.of(2523, 12, 22, 15, 32, 0, 254_000_000).atZone(ZoneOffset.UTC).toInstant());
-		DataStoreWithoutUpdate data21 = DataAccess.insert(dataInsert2);
+		final DataStoreWithoutUpdate data21 = DataAccess.insert(dataInsert2);
 		dataInsert2.dataString = "my second test string";
 		dataInsert2.dataTime = Date
 				.from(LocalDateTime.of(2523, 05, 1, 05, 59, 24, 241_000_000).atZone(ZoneOffset.UTC).toInstant());
-		DataStoreWithoutUpdate data22 = DataAccess.insert(dataInsert2);
-		BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base");
+		final DataStoreWithoutUpdate data22 = DataAccess.insert(dataInsert2);
+	}
+
+	@Test
+	public void testBackupCollectionRawData_JSON_EXTERNAL() throws Exception {
+		insertData();
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
+				EngineBackupType.JSON_EXTERNAL);
 		engine.addClass(DataStoreWithUpdate.class);
 		engine.addClass(DataStoreWithoutUpdate.class);
 		engine.store(null);
-		Map<String, String> dataExtract = extractTarGzToMap(Paths.get("./").resolve("test_store_data_base.tar.gz"));
+		final Map<String, String> dataExtract = extractTarGzToMap(
+				Paths.get("./").resolve("test_store_data_base.tar.gz"));
 		Assertions.assertNotNull(dataExtract);
 		Assertions.assertEquals(2, dataExtract.size());
 		Assertions.assertEquals("""
@@ -160,40 +167,173 @@ public class TestBackupAndRestoreRaw {
 				{"_id":"IGNORE","dataString":"my test String","dataTime":"2523-12-22T15:32:00.254Z"}
 				{"_id":"IGNORE","dataString":"my second test string","dataTime":"2523-05-01T05:59:24.241Z"}
 				""", revoveDateAndObjectId(dataExtract.get("DataStoreWithoutUpdate.json"), true));
-
 	}
 
 	@Test
-	public void testRestoreCollectionRawData() throws Exception {
+	public void testBackupCollectionRawData_JSON_STANDARD() throws Exception {
+		insertData();
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
+				EngineBackupType.JSON_STANDARD);
+		engine.addClass(DataStoreWithUpdate.class);
+		engine.addClass(DataStoreWithoutUpdate.class);
+		engine.store(null);
+		final Map<String, String> dataExtract = extractTarGzToMap(
+				Paths.get("./").resolve("test_store_data_base.tar.gz"));
+		Assertions.assertNotNull(dataExtract);
+		Assertions.assertEquals(2, dataExtract.size());
+		Assertions.assertEquals(
+				"""
+						{"_id": {"$oid":"IGNORE"}, "dataLong": 9953, "dataDoubles": [1.25, -1.66], "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}}
+						{"_id": {"$oid":"IGNORE"}, "dataDoubles": [152.8, 5.213546345E9], "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}}
+						""",
+				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
+		Assertions.assertEquals(
+				"""
+						{"_id": {"$oid":"IGNORE"}, "dataString": "my test String", "dataTime": {"$date": "2523-12-22T15:32:00.254Z"}}
+						{"_id": {"$oid":"IGNORE"}, "dataString": "my second test string", "dataTime": {"$date": "2523-05-01T05:59:24.241Z"}}
+						""",
+				revoveDateAndObjectId(dataExtract.get("DataStoreWithoutUpdate.json"), true));
+	}
+
+	@Test
+	public void testBackupCollectionRawData_JSON_EXTENDED() throws Exception {
+		insertData();
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
+				EngineBackupType.JSON_EXTENDED);
+		engine.addClass(DataStoreWithUpdate.class);
+		engine.addClass(DataStoreWithoutUpdate.class);
+		engine.store(null);
+		final Map<String, String> dataExtract = extractTarGzToMap(
+				Paths.get("./").resolve("test_store_data_base.tar.gz"));
+		Assertions.assertNotNull(dataExtract);
+		Assertions.assertEquals(2, dataExtract.size());
+		Assertions.assertEquals(
+				"""
+						{"_id": {"$oid":"IGNORE"}, "dataLong": {"$numberLong": "9953"}, "dataDoubles": [{"$numberDouble": "1.25"}, {"$numberDouble": "-1.66"}], "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}}
+						{"_id": {"$oid":"IGNORE"}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E9"}], "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}}
+						""",
+				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
+		Assertions.assertEquals(
+				"""
+						{"_id": {"$oid":"IGNORE"}, "dataString": "my test String", "dataTime": {"$date": {"$numberLong": "17481713520254"}}}
+						{"_id": {"$oid":"IGNORE"}, "dataString": "my second test string", "dataTime": {"$date": {"$numberLong": "17461375164241"}}}
+						""",
+				revoveDateAndObjectId(dataExtract.get("DataStoreWithoutUpdate.json"), true));
+	}
+
+	@Test
+	public void testRestoreCollectionRawData_JSON_STANDARD() throws Exception {
 		// Clean the collection
 		DataAccess.drop(DataStoreWithoutUpdate.class);
 		DataAccess.drop(DataStoreWithUpdate.class);
 		// Generate the Tag.gz file for test:
-		Map<String, String> data = Map.of( //
+		final Map<String, String> data = Map.of( //
 				"DataStoreWithUpdate.json",
 				"""
-						{"_id":"68548c414d3d545cebdf4289","dataLong":9953,"dataDoubles":[55.0,-65.84],"createdAt":"2025-06-19T22:16:33.420Z","updatedAt":"2025-06-19T22:16:33.420Z"}
-						{"_id":"68548c414d3d545cebdf428b","dataDoubles":[-9235,5.25],"createdAt":"2025-06-19T22:16:33.494Z","updatedAt":"2025-06-19T22:16:33.494Z"}
+						{"_id": {"$oid": "6855248a4345497e60f63c05"}, "dataLong": 9953, "dataDoubles": [1.25, -1.66], "createdAt": {"$date": "2025-06-20T12:08:18.788Z"}, "updatedAt": {"$date": "2025-06-10T09:09:18.212Z"}}
+						{"_id": {"$oid": "6855248a4345497e60f63c07"}, "dataDoubles": [152.8, 5.213546345E9], "createdAt": {"$date": "2025-06-20T09:01:22.864Z"}, "updatedAt": {"$date": "2025-06-25T09:06:18.542Z"}}
 						""", //
 				"DataStoreWithoutUpdate.json",
 				"""
-						{"_id":"68548c414d3d545cebdf428d","dataString":"a string data test","dataTime":"2523-12-22T15:32:00.254Z"}
-						{"_id":"68548c414d3d545cebdf428f","dataString":"other string data test","dataTime":"2523-05-01T05:59:24.241Z"}
+						{"_id": {"$oid": "6855248a4345497e60f63c09"}, "dataString": "my test String", "dataTime": {"$date": "2523-12-22T01:32:00.254Z"}}
+						{"_id": {"$oid": "6855248a4345497e60f63c0b"}, "dataString": "my second test string", "dataTime": {"$date": "2523-05-07T07:59:24.241Z"}}
 						""");
-		Path fileTestPath = Paths.get("./").resolve("test_store_data_base.tar.gz");
+		final Path fileTestPath = Paths.get("./").resolve("test_store_data_base.tar.gz");
 		writeMapToTarGz(data, fileTestPath);
 
-		BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base");
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
+				EngineBackupType.JSON_STANDARD);
 		engine.restore(null);
 		{
-			List<DataStoreWithUpdate> testData = DataAccess.gets(DataStoreWithUpdate.class);
+			final List<DataStoreWithUpdate> testData = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
+			Assertions.assertEquals("6855248a4345497e60f63c05", testData.get(0).oid.toString());
+			Assertions.assertEquals("Fri Jun 20 14:08:18 CEST 2025", testData.get(0).createdAt.toString());
+			Assertions.assertEquals("Tue Jun 10 11:09:18 CEST 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals(9953, testData.get(0).dataLong);
+			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
+			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
+			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
+
+			Assertions.assertEquals("6855248a4345497e60f63c07", testData.get(1).oid.toString());
+			Assertions.assertEquals("Fri Jun 20 11:01:22 CEST 2025", testData.get(1).createdAt.toString());
+			Assertions.assertEquals("Wed Jun 25 11:06:18 CEST 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertNull(testData.get(1).dataLong);
+			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
+			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);
+			Assertions.assertEquals(5213546345.0, testData.get(1).dataDoubles.get(1), 0.0001);
 		}
 		{
-			List<DataStoreWithoutUpdate> testData = DataAccess.gets(DataStoreWithoutUpdate.class);
+			final List<DataStoreWithoutUpdate> testData = DataAccess.gets(DataStoreWithoutUpdate.class);
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
+			Assertions.assertEquals("6855248a4345497e60f63c09", testData.get(0).oid.toString());
+			Assertions.assertEquals("my test String", testData.get(0).dataString);
+			Assertions.assertEquals("Wed Dec 22 02:32:00 CET 2523", testData.get(0).dataTime.toString());
+
+			Assertions.assertEquals("6855248a4345497e60f63c0b", testData.get(1).oid.toString());
+			Assertions.assertEquals("my second test string", testData.get(1).dataString);
+			Assertions.assertEquals("Fri May 07 09:59:24 CEST 2523", testData.get(1).dataTime.toString());
+		}
+	}
+
+	@Test
+	public void testRestoreCollectionRawData_JSON_EXTENDED() throws Exception {
+		// Clean the collection
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		DataAccess.drop(DataStoreWithUpdate.class);
+		// Generate the Tag.gz file for test:
+		final Map<String, String> data = Map.of( //
+				"DataStoreWithUpdate.json",
+				"""
+						{"_id": {"$oid": "685524d44345497e60f63c15"}, "dataLong": {"$numberLong": "9953"}, "dataDoubles": [{"$numberDouble": "1.25"}, {"$numberDouble": "-1.66"}], "createdAt": {"$date": {"$numberLong": "1750410458756"}}, "updatedAt": {"$date": {"$numberLong": "1750410685442"}}}
+						{"_id": {"$oid": "685524d44345497e60f63c17"}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E9"}], "createdAt": {"$date": {"$numberLong": "1750410455264"}}, "updatedAt": {"$date": {"$numberLong": "1750410548562"}}}
+						""", //
+				"DataStoreWithoutUpdate.json",
+				"""
+						{"_id": {"$oid": "685524d44345497e60f63c19"}, "dataString": "my test String", "dataTime": {"$date": {"$numberLong": "17481713520254"}}}
+						{"_id": {"$oid": "685524d44345497e60f63c1b"}, "dataString": "my second test string", "dataTime": {"$date": {"$numberLong": "17461375164241"}}}
+						""");
+		final Path fileTestPath = Paths.get("./").resolve("test_store_data_base.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
+				EngineBackupType.JSON_EXTENDED);
+		engine.restore(null);
+		{
+			final List<DataStoreWithUpdate> testData = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertNotNull(testData);
+			Assertions.assertEquals(2, testData.size());
+			Assertions.assertEquals("685524d44345497e60f63c15", testData.get(0).oid.toString());
+			Assertions.assertEquals("Fri Jun 20 11:07:38 CEST 2025", testData.get(0).createdAt.toString());
+			Assertions.assertEquals("Fri Jun 20 11:11:25 CEST 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals(9953, testData.get(0).dataLong);
+			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
+			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
+			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
+
+			Assertions.assertEquals("685524d44345497e60f63c17", testData.get(1).oid.toString());
+			Assertions.assertEquals("Fri Jun 20 11:07:35 CEST 2025", testData.get(1).createdAt.toString());
+			Assertions.assertEquals("Fri Jun 20 11:09:08 CEST 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertNull(testData.get(1).dataLong);
+			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
+			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);
+			Assertions.assertEquals(5213546345.0, testData.get(1).dataDoubles.get(1), 0.0001);
+		}
+		{
+			final List<DataStoreWithoutUpdate> testData = DataAccess.gets(DataStoreWithoutUpdate.class);
+			Assertions.assertNotNull(testData);
+			Assertions.assertEquals(2, testData.size());
+			Assertions.assertEquals("685524d44345497e60f63c19", testData.get(0).oid.toString());
+			Assertions.assertEquals("my test String", testData.get(0).dataString);
+			Assertions.assertEquals("Wed Dec 22 16:32:00 CET 2523", testData.get(0).dataTime.toString());
+
+			Assertions.assertEquals("685524d44345497e60f63c1b", testData.get(1).oid.toString());
+			Assertions.assertEquals("my second test string", testData.get(1).dataString);
+			Assertions.assertEquals("Sat May 01 07:59:24 CEST 2523", testData.get(1).dataTime.toString());
 		}
 	}
 }
