@@ -895,7 +895,6 @@ public class DBAccessMongo extends DBAccess {
 		Field primaryKeyField = null;
 		Object uniqueId = null;
 		// real add in the BDD:
-		ObjectId insertedId = null;
 		try {
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Document docSet = new Document();
@@ -996,7 +995,7 @@ public class DBAccessMongo extends DBAccess {
 			statistic.countInsertOne++;
 			final InsertOneResult result = collection.insertOne(docSet);
 			// Get the Object of inserted object:
-			insertedId = result.getInsertedId().asObjectId().getValue();
+			// TODO: to keep the inserted id value: ObjectId insertedId = result.getInsertedId().asObjectId().getValue(); // only work with objectId ...
 			// LOGGER.trace("Document inserted with ID: " + insertedId);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
