@@ -7,14 +7,15 @@ import java.util.Set;
 import org.atriasoft.archidata.filter.PartRight;
 
 public class UserByToken {
+	// Set here by number to permit to extend it by the user.
 	public static final int TYPE_USER = -1;
 	public static final int TYPE_APPLICATION = -2;
 	// application internal management type: an application generic Id
 	public Integer type = null;
 
-	public Long id = null;
+	public Object id = null;
 	// For application, this is the id of the application, and of user token, this is the USERID
-	public Long parentId = null;
+	public Object parentId = null;
 	public String name = null;
 	// Right map
 	public Map<String, Map<String, PartRight>> right = new HashMap<>();

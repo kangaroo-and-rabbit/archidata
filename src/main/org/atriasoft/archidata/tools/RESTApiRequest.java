@@ -40,6 +40,7 @@ public class RESTApiRequest {
 	final static Logger LOGGER = LoggerFactory.getLogger(RESTApiRequest.class);
 	private final String url;
 	private final String token;
+	private final String tokenKey;
 	private final ObjectMapper mapper;
 	private String serializedBodyString = null;
 	private byte[] serializedBodyByte = null;
@@ -67,9 +68,10 @@ public class RESTApiRequest {
 	 * @param url   The base URL of the API.
 	 * @param token The Bearer token for authentication.
 	 */
-	public RESTApiRequest(final String url, final String token) {
+	public RESTApiRequest(final String url, final String tokenKey, final String token) {
 		this.url = url;
 		this.token = token;
+		this.tokenKey = tokenKey != null ? tokenKey : "Bearer";
 		this.mapper = ContextGenericTools.createObjectMapper();
 	}
 
@@ -486,7 +488,7 @@ public class RESTApiRequest {
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.url + urlOffset));
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, this.tokenKey + " " + this.token);
 		}
 		return requestBuilding;
 	}

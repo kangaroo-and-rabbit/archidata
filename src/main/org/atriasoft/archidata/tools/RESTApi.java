@@ -29,6 +29,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 public class RESTApi {
 	final static Logger LOGGER = LoggerFactory.getLogger(RESTApi.class);
 	final String baseUrl;
+	private String tokenKey = null;
 	private String token = null;
 	final ObjectMapper mapper;
 	boolean showIOStrean = false;
@@ -44,6 +45,12 @@ public class RESTApi {
 
 	public void setToken(final String token) {
 		this.token = token;
+		this.tokenKey = "Bearer";
+	}
+
+	public void setToken(final String token, final String tokenKey) {
+		this.token = token;
+		this.tokenKey = tokenKey;
 	}
 
 	public RESTApiRequest request() {
@@ -60,7 +67,7 @@ public class RESTApi {
 			url.append("/");
 			url.append(elem.toString().replaceAll("/*$", ""));
 		}
-		final RESTApiRequest out = new RESTApiRequest(url.toString(), this.token);
+		final RESTApiRequest out = new RESTApiRequest(url.toString(), this.tokenKey, this.token);
 		if (this.showIOStrean) {
 			out.showIOStrean();
 		}
@@ -73,7 +80,7 @@ public class RESTApi {
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
 				.uri(URI.create(this.baseUrl + urlOffset));
 		if (this.token != null) {
-			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, "Bearer " + this.token);
+			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, this.tokenKey + " " + this.token);
 		}
 		final HttpRequest request = requestBuilding.GET().build();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());

@@ -20,7 +20,7 @@ public class GenericContext implements Principal {
 		return this.userByToken.name;
 	}
 
-	public Long getUserID() {
+	public Object getUserID() {
 		if (this.userByToken != null) {
 			return this.userByToken.id;
 		}

@@ -49,8 +49,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	public static final String APIKEY = "ApiKey";
 
 	public AuthenticationFilter(final String applicationName) {
-		this.applicationName = applicationName;
-		this.issuer = "KarAuth";
+		this(applicationName, "KarAuth");
 	}
 
 	public AuthenticationFilter(final String applicationName, final String issuer) {
@@ -114,10 +113,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				}
 			}
 		}
-		// logger.debug("authorizationHeader: {}", authorizationHeader);
+		//LOGGER.error("authorizationHeader: {}", authorizationHeader);
+		//LOGGER.error("apikeyHeader: {}", apikeyHeader);
 		final boolean isApplicationToken = apikeyHeader != null;
-		final boolean isJwtToken = isTokenBasedAuthentication(authorizationHeader);
-		if (!isApplicationToken && !isJwtToken) {
+		final boolean isJwtToken = isTokenBasedAuthenticationBearer(authorizationHeader);
+		final boolean isApiToken = isTokenBasedAuthenticationApiKey(authorizationHeader);
+		if (!isApplicationToken && !isJwtToken && !isApiToken) {
 			LOGGER.warn("REJECTED unauthorized: /{}", requestContext.getUriInfo().getPath());
 			abortWithUnauthorized(requestContext, "REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
 			return;
@@ -140,7 +141,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				return;
 			}
 		} else {
-			final String token = apikeyHeader.trim();
+			String token = null;
+			if (isApiToken) {
+				token = authorizationHeader.substring(APIKEY.length()).trim();
+			} else {
+				token = apikeyHeader.trim();
+			}
 			try {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
@@ -194,12 +200,19 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		return false;
 	}
 
-	private boolean isTokenBasedAuthentication(final String authorizationHeader) {
+	private boolean isTokenBasedAuthenticationBearer(final String authorizationHeader) {
 		// Check if the Authorization header is valid
 		// It must not be null and must be prefixed with "Bearer" plus a whitespace
 		// The authentication scheme comparison must be case-insensitive
 		return authorizationHeader != null
 				&& authorizationHeader.toLowerCase().startsWith(AUTHENTICATION_SCHEME.toLowerCase() + " ");
+	}
+
+	private boolean isTokenBasedAuthenticationApiKey(final String authorizationHeader) {
+		// Check if the Authorization header is valid
+		// It must not be null and must be prefixed with "ApiKey" plus a whitespace
+		// The authentication scheme comparison must be case-insensitive
+		return authorizationHeader != null && authorizationHeader.toLowerCase().startsWith(APIKEY.toLowerCase() + " ");
 	}
 
 	private void abortWithUnauthorized(final ContainerRequestContext requestContext, final String message) {
