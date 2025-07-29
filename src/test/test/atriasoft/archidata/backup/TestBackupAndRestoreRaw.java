@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -33,7 +34,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +43,15 @@ import test.atriasoft.archidata.backup.model.DataStoreWithoutUpdate;
 
 //@ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 public class TestBackupAndRestoreRaw {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestBackupAndRestoreRaw.class);
+
+	@BeforeAll
+	public static void setUp() {
+		// Set default timezone to UTC
+		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+	}
 
 	/**
 	 * Extracts all files from a .tar.gz archive into a Map where keys are file
@@ -250,16 +256,16 @@ public class TestBackupAndRestoreRaw {
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
 			Assertions.assertEquals("6855248a4345497e60f63c05", testData.get(0).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 14:08:18 CEST 2025", testData.get(0).createdAt.toString());
-			Assertions.assertEquals("Tue Jun 10 11:09:18 CEST 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals("Fri Jun 20 12:08:18 UTC 2025", testData.get(0).createdAt.toString());
+			Assertions.assertEquals("Tue Jun 10 09:09:18 UTC 2025", testData.get(0).updatedAt.toString());
 			Assertions.assertEquals(9953, testData.get(0).dataLong);
 			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
 			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
 			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
 
 			Assertions.assertEquals("6855248a4345497e60f63c07", testData.get(1).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 11:01:22 CEST 2025", testData.get(1).createdAt.toString());
-			Assertions.assertEquals("Wed Jun 25 11:06:18 CEST 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertEquals("Fri Jun 20 09:01:22 UTC 2025", testData.get(1).createdAt.toString());
+			Assertions.assertEquals("Wed Jun 25 09:06:18 UTC 2025", testData.get(1).updatedAt.toString());
 			Assertions.assertNull(testData.get(1).dataLong);
 			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
 			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);
@@ -271,11 +277,11 @@ public class TestBackupAndRestoreRaw {
 			Assertions.assertEquals(2, testData.size());
 			Assertions.assertEquals("6855248a4345497e60f63c09", testData.get(0).oid.toString());
 			Assertions.assertEquals("my test String", testData.get(0).dataString);
-			Assertions.assertEquals("Wed Dec 22 02:32:00 CET 2523", testData.get(0).dataTime.toString());
+			Assertions.assertEquals("Wed Dec 22 01:32:00 UTC 2523", testData.get(0).dataTime.toString());
 
 			Assertions.assertEquals("6855248a4345497e60f63c0b", testData.get(1).oid.toString());
 			Assertions.assertEquals("my second test string", testData.get(1).dataString);
-			Assertions.assertEquals("Fri May 07 09:59:24 CEST 2523", testData.get(1).dataTime.toString());
+			Assertions.assertEquals("Fri May 07 07:59:24 UTC 2523", testData.get(1).dataTime.toString());
 		}
 	}
 
@@ -308,16 +314,16 @@ public class TestBackupAndRestoreRaw {
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
 			Assertions.assertEquals("685524d44345497e60f63c15", testData.get(0).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 11:07:38 CEST 2025", testData.get(0).createdAt.toString());
-			Assertions.assertEquals("Fri Jun 20 11:11:25 CEST 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals("Fri Jun 20 09:07:38 UTC 2025", testData.get(0).createdAt.toString());
+			Assertions.assertEquals("Fri Jun 20 09:11:25 UTC 2025", testData.get(0).updatedAt.toString());
 			Assertions.assertEquals(9953, testData.get(0).dataLong);
 			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
 			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
 			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
 
 			Assertions.assertEquals("685524d44345497e60f63c17", testData.get(1).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 11:07:35 CEST 2025", testData.get(1).createdAt.toString());
-			Assertions.assertEquals("Fri Jun 20 11:09:08 CEST 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertEquals("Fri Jun 20 09:07:35 UTC 2025", testData.get(1).createdAt.toString());
+			Assertions.assertEquals("Fri Jun 20 09:09:08 UTC 2025", testData.get(1).updatedAt.toString());
 			Assertions.assertNull(testData.get(1).dataLong);
 			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
 			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);
@@ -329,11 +335,11 @@ public class TestBackupAndRestoreRaw {
 			Assertions.assertEquals(2, testData.size());
 			Assertions.assertEquals("685524d44345497e60f63c19", testData.get(0).oid.toString());
 			Assertions.assertEquals("my test String", testData.get(0).dataString);
-			Assertions.assertEquals("Wed Dec 22 16:32:00 CET 2523", testData.get(0).dataTime.toString());
+			Assertions.assertEquals("Wed Dec 22 15:32:00 UTC 2523", testData.get(0).dataTime.toString());
 
 			Assertions.assertEquals("685524d44345497e60f63c1b", testData.get(1).oid.toString());
 			Assertions.assertEquals("my second test string", testData.get(1).dataString);
-			Assertions.assertEquals("Sat May 01 07:59:24 CEST 2523", testData.get(1).dataTime.toString());
+			Assertions.assertEquals("Sat May 01 05:59:24 UTC 2523", testData.get(1).dataTime.toString());
 		}
 	}
 }
