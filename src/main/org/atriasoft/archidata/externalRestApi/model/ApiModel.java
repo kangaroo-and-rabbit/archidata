@@ -127,6 +127,9 @@ public class ApiModel {
 			}
 			return segment;
 		}).collect(Collectors.joining("/"));
+		if (cleaned.isEmpty()) {
+			return "/";
+		}
 		return endsWithSlash && !cleaned.endsWith("/") ? cleaned + "/" : cleaned;
 	}
 

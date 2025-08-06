@@ -22,6 +22,12 @@ public class TestAnalyzeApiPath {
 		}
 
 		@GET
+		@Path("/")
+		public void pathWithStartSlash() {
+
+		}
+
+		@GET
 		@Path("plop")
 		public void withPath() {
 
@@ -30,6 +36,24 @@ public class TestAnalyzeApiPath {
 		@GET
 		@Path("/plop")
 		public void withPath2() {
+
+		}
+
+		@GET
+		@Path("/plop/")
+		public void startAndEndWithSlash() {
+
+		}
+
+		@GET
+		@Path("plop/{variable}")
+		public void withVariable() {
+
+		}
+
+		@GET
+		@Path("plop/{variable: [a-zA-Z]{5-88}")
+		public void withVariableRegEx() {
 
 		}
 	}
@@ -41,9 +65,14 @@ public class TestAnalyzeApiPath {
 
 		Assertions.assertEquals(1, api.getAllApi().size());
 		Assertions.assertEquals("", api.getAllApi().get(0).restEndPoint);
-		Assertions.assertEquals(3, api.getAllApi().get(0).interfaces.size());
+		Assertions.assertEquals(7, api.getAllApi().get(0).interfaces.size());
 		{
 			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("noPath");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals("/", model.restEndPoint);
+		}
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("pathWithStartSlash");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("/", model.restEndPoint);
 		}
@@ -56,6 +85,21 @@ public class TestAnalyzeApiPath {
 			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withPath2");
 			Assertions.assertNotNull(model);
 			Assertions.assertEquals("//plop", model.restEndPoint);
+		}
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("startAndEndWithSlash");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals("//plop/", model.restEndPoint);
+		}
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withVariable");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals("/plop/{variable}", model.restEndPoint);
+		}
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("withVariableRegEx");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals("/plop/{variable}", model.restEndPoint);
 		}
 	}
 
