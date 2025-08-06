@@ -8,4 +8,8 @@ public class UnAuthorizedException extends FailException {
 	public UnAuthorizedException(final String message) {
 		super(Response.Status.UNAUTHORIZED, message);
 	}
+
+	public UnAuthorizedException() {
+		super(Response.Status.UNAUTHORIZED, "Not enought Right");
+	}
 }
