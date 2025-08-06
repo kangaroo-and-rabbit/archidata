@@ -342,7 +342,7 @@ public class DataTools {
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
-		ListInDbTools.addLink(ioDb, clazz, id, null, data.oid);
+		ListInDbTools.addLink(clazz, id, null, data.oid);
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
@@ -387,7 +387,7 @@ public class DataTools {
 			} else {
 				LOGGER.error("Data already exist ... all good");
 			}
-			ListInDbTools.addLink(ioDb, clazz, id, "covers", data.oid);
+			ListInDbTools.addLink(clazz, id, "covers", data.oid);
 		}
 	}
 }

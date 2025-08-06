@@ -84,13 +84,13 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (previousDataValue != null) {
 			actions.add(() -> {
-				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), previousDataValue, decorators.remoteField(),
+				ListInDbTools.removeLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
 		if (insertedDataValue == null) {
 			actions.add(() -> {
-				ListInDbTools.addLink(ioDb, decorators.targetEntity(), previousDataValue, decorators.remoteField(),
+				ListInDbTools.addLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
@@ -124,7 +124,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators.addLinkWhenCreate()) {
 			actions.add(() -> {
-				ListInDbTools.addLink(ioDb, decorators.targetEntity(), insertedData, decorators.remoteField(),
+				ListInDbTools.addLink(decorators.targetEntity(), insertedData, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
@@ -204,7 +204,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object primaryKeyRemovedObject = primaryKeyDeletedObjects.get(obj);
 			final Object parentKey = field.get(obj);
 			if (parentKey != null) {
-				ListInDbTools.removeLink(ioDb, decorators.targetEntity(), parentKey, decorators.remoteField(),
+				ListInDbTools.removeLink(decorators.targetEntity(), parentKey, decorators.remoteField(),
 						primaryKeyRemovedObject);
 			}
 		}

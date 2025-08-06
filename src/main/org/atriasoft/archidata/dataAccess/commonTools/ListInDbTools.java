@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
 import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGenericUpdateAt;
@@ -20,7 +20,6 @@ import org.atriasoft.archidata.exception.FailException;
 public class ListInDbTools {
 
 	public static void addLink(
-			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Object primaryKey,
 			final String fieldName,
@@ -43,9 +42,9 @@ public class ListInDbTools {
 		TableCoversGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
 		} else {
-			data = ioDb.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
@@ -57,12 +56,11 @@ public class ListInDbTools {
 		}
 		data.filedNameOfTheObject.add(foreignKey);
 		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
+		DataAccess.updateFull(data, data.idOfTheObject, options.getAllArray());
 
 	}
 
 	public static void removeLink(
-			final DBAccess ioDb,
 			final Class<?> clazz,
 			final Object primaryKey,
 			final String fieldName,
@@ -85,12 +83,12 @@ public class ListInDbTools {
 		TableCoversGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				throw new FailException("Try to remove remote link from an object that does not exist");
 			}
 		} else {
-			data = ioDb.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				// Data is already removed
 				return;
@@ -113,6 +111,6 @@ public class ListInDbTools {
 		}
 		data.filedNameOfTheObject = newList;
 		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
+		DataAccess.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}
 }

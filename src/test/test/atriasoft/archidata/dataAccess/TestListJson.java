@@ -105,9 +105,9 @@ public class TestListJson {
 		final Integer firstDataInserted2 = 222;
 		final Integer firstDataInserted3 = 333;
 
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted1);
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted2);
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted3);
+		ListInDbTools.addLink(SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted1);
+		ListInDbTools.addLink(SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted2);
+		ListInDbTools.addLink(SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted3);
 
 		// Try to retrieve all the data:
 		SerializeListAsJson retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.oid);
@@ -120,8 +120,7 @@ public class TestListJson {
 		Assertions.assertEquals(firstDataInserted2, retrieve.data.get(1));
 		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(2));
 
-		ListInDbTools.removeLink(ConfigureDb.da, SerializeListAsJson.class, insertedData.oid, "data",
-				firstDataInserted2);
+		ListInDbTools.removeLink(SerializeListAsJson.class, insertedData.oid, "data", firstDataInserted2);
 		// Try to retrieve all the data:
 		retrieve = ConfigureDb.da.get(SerializeListAsJson.class, insertedData.oid);
 
@@ -199,12 +198,9 @@ public class TestListJson {
 		final ObjectId firstDataInserted1 = new ObjectId();
 		final ObjectId firstDataInserted2 = new ObjectId();
 		final ObjectId firstDataInserted3 = new ObjectId();
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
-				firstDataInserted1);
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
-				firstDataInserted2);
-		ListInDbTools.addLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
-				firstDataInserted3);
+		ListInDbTools.addLink(SerializeListAsJsonObjectId.class, insertedData.oid, "data", firstDataInserted1);
+		ListInDbTools.addLink(SerializeListAsJsonObjectId.class, insertedData.oid, "data", firstDataInserted2);
+		ListInDbTools.addLink(SerializeListAsJsonObjectId.class, insertedData.oid, "data", firstDataInserted3);
 
 		// Try to retrieve all the data:
 		SerializeListAsJsonObjectId retrieve = ConfigureDb.da.get(SerializeListAsJsonObjectId.class, insertedData.oid);
@@ -217,8 +213,7 @@ public class TestListJson {
 		Assertions.assertEquals(firstDataInserted2, retrieve.data.get(1));
 		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(2));
 
-		ListInDbTools.removeLink(ConfigureDb.da, SerializeListAsJsonObjectId.class, insertedData.oid, "data",
-				firstDataInserted2);
+		ListInDbTools.removeLink(SerializeListAsJsonObjectId.class, insertedData.oid, "data", firstDataInserted2);
 		// Try to retrieve all the data:
 		retrieve = ConfigureDb.da.get(SerializeListAsJsonObjectId.class, insertedData.oid);
 
