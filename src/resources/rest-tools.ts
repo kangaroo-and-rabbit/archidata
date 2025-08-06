@@ -34,6 +34,8 @@ export interface RESTConfig {
   server: string;
   // Token to access of the data.
   token?: string;
+  // api Token to access of the data.
+  tokenApi?: string;
 }
 
 export interface RESTModel {
@@ -124,7 +126,7 @@ export function RESTUrl({
   }
   if (
     queries === undefined &&
-    (restConfig.token === undefined || restModel.tokenInUrl !== true)
+    ((restConfig.token === undefined && restConfig.tokenApi === undefined) || restModel.tokenInUrl !== true)
   ) {
     return generateUrl;
   }
@@ -143,6 +145,9 @@ export function RESTUrl({
   }
   if (restConfig.token !== undefined && restModel.tokenInUrl === true) {
     searchParams.append('Authorization', `Bearer ${restConfig.token}`);
+  }
+  if (restConfig.tokenApi !== undefined && restModel.tokenInUrl === true) {
+    searchParams.append('Authorization', `ApiKey ${restConfig.tokenApi}`);
   }
   return generateUrl + '?' + searchParams.toString();
 }
@@ -257,6 +262,9 @@ export function RESTRequest({
   let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
   if (restConfig.token !== undefined && restModel.tokenInUrl !== true) {
     headers['Authorization'] = `Bearer ${restConfig.token}`;
+  }
+  if (restConfig.tokenApi !== undefined && restModel.tokenInUrl !== true) {
+    headers['Authorization'] = `ApiKey ${restConfig.tokenApi}`;
   }
   if (restModel.accept !== undefined) {
     headers['Accept'] = restModel.accept;
