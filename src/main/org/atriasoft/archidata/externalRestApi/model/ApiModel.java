@@ -5,9 +5,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
@@ -107,6 +109,27 @@ public class ApiModel {
 		}
 	}
 
+	/**
+	 * Removes constraint patterns in `{param: constraint}` path segments.
+	 * Keeps only `{param}`.
+	 *
+	 * @param path the original REST path
+	 * @return cleaned path with param constraints removed
+	 */
+	public static String stripPathParamConstraints(final String path) {
+		final boolean endsWithSlash = path.endsWith("/") && !path.equals("/");
+		final String cleaned = Arrays.stream(path.split("/")).map(segment -> {
+			if (segment.startsWith("{") && segment.endsWith("}")) {
+				final int colonIndex = segment.indexOf(':');
+				if (colonIndex != -1) {
+					return "{" + segment.substring(1, colonIndex) + "}";
+				}
+			}
+			return segment;
+		}).collect(Collectors.joining("/"));
+		return endsWithSlash && !cleaned.endsWith("/") ? cleaned + "/" : cleaned;
+	}
+
 	public ApiModel(final Class<?> clazz, final Method method, final String baseRestEndPoint,
 			final List<String> consume, final List<String> produce, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
@@ -116,7 +139,7 @@ public class ApiModel {
 		if (tmpPath == null) {
 			tmpPath = "";
 		}
-		this.restEndPoint = baseRestEndPoint + "/" + tmpPath;
+		this.restEndPoint = stripPathParamConstraints(baseRestEndPoint + "/" + tmpPath);
 		this.restTypeRequest = ApiTool.apiAnnotationGetTypeRequest2(method);
 		this.name = method.getName();
 
