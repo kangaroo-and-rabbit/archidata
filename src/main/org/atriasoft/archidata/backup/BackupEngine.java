@@ -28,6 +28,7 @@ import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
+import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ContextGenericTools;
 import org.bson.Document;
@@ -149,8 +150,10 @@ public class BackupEngine {
 		}
 	}
 
-	private void restoreStreamToCollections(final DBAccessMongo dbMongo, final TarArchiveInputStream tarIn)
-			throws IOException {
+	private void restoreStreamToCollections(
+			final DBAccessMongo dbMongo,
+			final TarArchiveInputStream tarIn,
+			final String collectionName) throws IOException {
 		final MongoDatabase db = dbMongo.getInterface().getDatabase();
 		if (this.type == EngineBackupType.JSON_EXTERNAL) {
 			LOGGER.error("Try to retreive data with generic JSON engine, you will lost real DB inforamtion");
@@ -162,12 +165,22 @@ public class BackupEngine {
 			}
 
 			final String colName = entry.getName().replace(".json", "");
+			if (collectionName != null && !collectionName.equals(colName)) {
+				LOGGER.info("Skip collection: {} (filtered)", colName);
+				continue;
+			}
+			LOGGER.info("Restore collection: [START] {}", colName);
 			final MongoCollection<Document> collection = db.getCollection(colName);
+			if (collection.find().limit(1).iterator().hasNext()) {
+				throw new IOException("Collection : '" + colName + "'is not empty ==> can not insert object inside");
+			}
 			final List<Document> buffer = new ArrayList<>();
 
 			final BufferedReader reader = new BufferedReader(new InputStreamReader(tarIn));
 			String line;
+			int count = 0;
 			while ((line = reader.readLine()) != null) {
+				count++;
 				buffer.add(Document.parse(line));
 				if (buffer.size() >= 1000) {
 					collection.insertMany(buffer);
@@ -177,6 +190,9 @@ public class BackupEngine {
 			if (!buffer.isEmpty()) {
 				collection.insertMany(buffer);
 			}
+			final String colNameFormatted = String.format("%-25s", colName);
+			final String countFormatted = String.format("%5d", count);
+			LOGGER.info("Restore collection: [ END ] {} {} document(s)", colNameFormatted, countFormatted);
 		}
 
 	}
@@ -193,11 +209,12 @@ public class BackupEngine {
 		}
 	}
 
-	private void restoreStreamToCollections(final TarArchiveInputStream tarIn) throws IOException, DataAccessException {
+	private void restoreStreamToCollections(final TarArchiveInputStream tarIn, final String collectionName)
+			throws IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccess db = ctx.get();
 			if (db instanceof final DBAccessMongo dbMongo) {
-				restoreStreamToCollections(dbMongo, tarIn);
+				restoreStreamToCollections(dbMongo, tarIn, collectionName);
 				return;
 			}
 			throw new DataAccessException("Fait to restore DB: only implemented on mongoDb");
@@ -226,10 +243,9 @@ public class BackupEngine {
 	private void executeRestore(final String sequence, final Date since) throws IOException, DataAccessException {
 		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "")
 				+ (since != null ? "_partial" : "") + ".tar.gz";
-		final Path outputFileTmp = this.pathStore.resolve(fileName);
-		try (TarArchiveInputStream tarIn = openTarGzInputStream(outputFileTmp)) {
-			restoreStreamToCollections(tarIn);
-		}
+
+		final Path retoreFileName = this.pathStore.resolve(fileName);
+		restoreFile(retoreFileName, null);
 	}
 
 	// sequence number correspond a un element a ajouter a baseName, cela permet de
@@ -241,6 +257,22 @@ public class BackupEngine {
 
 	public Date storePartial(final String sequence, final Date since) throws IOException, DataAccessException {
 		return executeStore(sequence, since);
+	}
+
+	public boolean restoreFile(final Path retoreFileName, final String collectionName)
+			throws IOException, DataAccessException {
+		LOGGER.info("Restore DB: [START] BD: '{}' from file: '{}'", this.baseName, retoreFileName);
+		// check only the existence if not try to restore only a part of the BD
+		if (collectionName == null && DataAccess.listCollections(this.baseName).size() != 0) {
+			LOGGER.info("Restore DB: [ END ]");
+			LOGGER.error("Can not restore, the DB {} already exist", this.baseName);
+			return false;
+		}
+		try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
+			restoreStreamToCollections(tarIn, collectionName);
+		}
+		LOGGER.info("Restore DB: [ END ]");
+		return true;
 	}
 
 	public void restore(final String sequence) throws IOException, DataAccessException {

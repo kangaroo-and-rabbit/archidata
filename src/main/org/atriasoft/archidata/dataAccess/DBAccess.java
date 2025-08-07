@@ -68,6 +68,11 @@ public abstract class DBAccess implements Closeable {
 		throw new InternalServerErrorException("unknow DB interface ... ");
 	}
 
+	public List<String> listCollections(final String name, final QueryOption... option)
+			throws InternalServerErrorException {
+		throw new InternalServerErrorException("Can Not manage the DB-access");
+	}
+
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		throw new InternalServerErrorException("Can Not manage the DB-access");
 	}

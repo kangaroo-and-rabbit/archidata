@@ -144,6 +144,12 @@ public class DBAccessMongo extends DBAccess {
 	}
 
 	@Override
+	public List<String> listCollections(final String name, final QueryOption... option)
+			throws InternalServerErrorException {
+		return this.db.getDatabase().listCollectionNames().into(new ArrayList<>());
+	}
+
+	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		// in Mongo DB we do not need to create a DB, then we have no need to check if
 		// it exist
