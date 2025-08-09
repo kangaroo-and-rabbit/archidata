@@ -1,4 +1,4 @@
-package test.atriasoft.archidata.dataAccess;
+package test.atriasoft.archidata.dataAccess.SQL;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,14 +20,13 @@ import org.slf4j.LoggerFactory;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeOneToManyUUIDRootExpand;
+import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRoot;
+import test.atriasoft.archidata.dataAccess.model.TypeOneToManyLongRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnabledIfEnvironmentVariable(named = "INCLUDE_SQL_SPECIFIC", matches = "true")
-public class TestOneToManyUUID {
+@EnabledIfEnvironmentVariable(named = "INCLUDE_MY_SQL_SPECIFIC", matches = "true")
+public class TestOneToManyLong {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestOneToManyLong.class);
 
 	@BeforeAll
@@ -44,8 +43,7 @@ public class TestOneToManyUUID {
 	@Test
 	public void testCreateTable() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(TypeOneToManyLongRemote.class);
-		sqlCommand.addAll(DataFactory.createTable(TypeOneToManyUUIDRoot.class));
-		sqlCommand.addAll(DataFactory.createTable(TypeOneToManyUUIDRemote.class));
+		sqlCommand.addAll(DataFactory.createTable(TypeOneToManyLongRoot.class));
 		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
 			for (final String elem : sqlCommand) {
 				LOGGER.debug("request: '{}'", elem);
@@ -56,80 +54,79 @@ public class TestOneToManyUUID {
 
 	@Order(2)
 	@Test
-	public void testParentUUID() throws Exception {
+	public void testParentLong() throws Exception {
 		// create parent:
 
-		final TypeOneToManyUUIDRoot root = new TypeOneToManyUUIDRoot();
+		final TypeOneToManyLongRoot root = new TypeOneToManyLongRoot();
 		root.otherData = "plouf";
-		final TypeOneToManyUUIDRoot insertedRoot = ConfigureDb.da.insert(root);
+		final TypeOneToManyLongRoot insertedRoot = ConfigureDb.da.insert(root);
 		Assertions.assertEquals(insertedRoot.otherData, root.otherData);
 		Assertions.assertNull(insertedRoot.remoteIds);
 
-		final TypeOneToManyUUIDRoot root2 = new TypeOneToManyUUIDRoot();
+		final TypeOneToManyLongRoot root2 = new TypeOneToManyLongRoot();
 		root2.otherData = "plouf 2";
-		final TypeOneToManyUUIDRoot insertedRoot2 = ConfigureDb.da.insert(root2);
+		final TypeOneToManyLongRoot insertedRoot2 = ConfigureDb.da.insert(root2);
 		Assertions.assertEquals(insertedRoot2.otherData, root2.otherData);
 		Assertions.assertNull(insertedRoot2.remoteIds);
 
 		// Create Some Remotes
 
-		final TypeOneToManyUUIDRemote remote10 = new TypeOneToManyUUIDRemote();
+		final TypeOneToManyLongRemote remote10 = new TypeOneToManyLongRemote();
 		remote10.data = "remote10";
-		remote10.rootUuid = insertedRoot.uuid;
-		final TypeOneToManyUUIDRemote insertedRemote10 = ConfigureDb.da.insert(remote10);
+		remote10.rootId = insertedRoot.id;
+		final TypeOneToManyLongRemote insertedRemote10 = ConfigureDb.da.insert(remote10);
 		Assertions.assertEquals(insertedRemote10.data, remote10.data);
-		Assertions.assertEquals(insertedRemote10.rootUuid, remote10.rootUuid);
+		Assertions.assertEquals(insertedRemote10.rootId, remote10.rootId);
 
-		final TypeOneToManyUUIDRemote remote11 = new TypeOneToManyUUIDRemote();
+		final TypeOneToManyLongRemote remote11 = new TypeOneToManyLongRemote();
 		remote11.data = "remote11";
-		remote11.rootUuid = insertedRoot.uuid;
-		final TypeOneToManyUUIDRemote insertedRemote11 = ConfigureDb.da.insert(remote11);
+		remote11.rootId = insertedRoot.id;
+		final TypeOneToManyLongRemote insertedRemote11 = ConfigureDb.da.insert(remote11);
 		Assertions.assertEquals(insertedRemote11.data, remote11.data);
-		Assertions.assertEquals(insertedRemote11.rootUuid, remote11.rootUuid);
+		Assertions.assertEquals(insertedRemote11.rootId, remote11.rootId);
 
-		final TypeOneToManyUUIDRemote remote20 = new TypeOneToManyUUIDRemote();
+		final TypeOneToManyLongRemote remote20 = new TypeOneToManyLongRemote();
 		remote20.data = "remote20";
-		remote20.rootUuid = insertedRoot2.uuid;
-		final TypeOneToManyUUIDRemote insertedRemote20 = ConfigureDb.da.insert(remote20);
+		remote20.rootId = insertedRoot2.id;
+		final TypeOneToManyLongRemote insertedRemote20 = ConfigureDb.da.insert(remote20);
 		Assertions.assertEquals(insertedRemote20.data, remote20.data);
-		Assertions.assertEquals(insertedRemote20.rootUuid, remote20.rootUuid);
+		Assertions.assertEquals(insertedRemote20.rootId, remote20.rootId);
 
 		// Check remote are inserted
 
-		final TypeOneToManyUUIDRoot retreiveRoot1 = ConfigureDb.da.get(TypeOneToManyUUIDRoot.class, insertedRoot.uuid);
+		final TypeOneToManyLongRoot retreiveRoot1 = ConfigureDb.da.get(TypeOneToManyLongRoot.class, insertedRoot.id);
 		Assertions.assertEquals(retreiveRoot1.otherData, insertedRoot.otherData);
 		Assertions.assertNotNull(retreiveRoot1.remoteIds);
 		Assertions.assertEquals(2, retreiveRoot1.remoteIds.size());
-		Assertions.assertEquals(insertedRemote10.uuid, retreiveRoot1.remoteIds.get(0));
-		Assertions.assertEquals(insertedRemote11.uuid, retreiveRoot1.remoteIds.get(1));
+		Assertions.assertEquals(insertedRemote10.id, retreiveRoot1.remoteIds.get(0));
+		Assertions.assertEquals(insertedRemote11.id, retreiveRoot1.remoteIds.get(1));
 
-		final TypeOneToManyUUIDRoot retreiveRoot2 = ConfigureDb.da.get(TypeOneToManyUUIDRoot.class, insertedRoot2.uuid);
+		final TypeOneToManyLongRoot retreiveRoot2 = ConfigureDb.da.get(TypeOneToManyLongRoot.class, insertedRoot2.id);
 		Assertions.assertEquals(retreiveRoot2.otherData, insertedRoot2.otherData);
 		Assertions.assertNotNull(retreiveRoot2.remoteIds);
 		Assertions.assertEquals(1, retreiveRoot2.remoteIds.size());
-		Assertions.assertEquals(insertedRemote20.uuid, retreiveRoot2.remoteIds.get(0));
+		Assertions.assertEquals(insertedRemote20.id, retreiveRoot2.remoteIds.get(0));
 
 		// Check remote are inserted and expandable
-
-		final TypeOneToManyUUIDRootExpand retreiveRootExpand1 = ConfigureDb.da.get(TypeOneToManyUUIDRootExpand.class,
-				insertedRoot.uuid);
+		final TypeOneToManyLongRootExpand retreiveRootExpand1 = ConfigureDb.da.get(TypeOneToManyLongRootExpand.class,
+				insertedRoot.id);
 		Assertions.assertEquals(retreiveRootExpand1.otherData, insertedRoot.otherData);
 		Assertions.assertNotNull(retreiveRootExpand1.remotes);
 		Assertions.assertEquals(2, retreiveRootExpand1.remotes.size());
-		Assertions.assertEquals(insertedRemote10.uuid, retreiveRootExpand1.remotes.get(0).uuid);
-		Assertions.assertEquals(insertedRemote10.rootUuid, retreiveRootExpand1.remotes.get(0).rootUuid);
+		Assertions.assertEquals(insertedRemote10.id, retreiveRootExpand1.remotes.get(0).id);
+		Assertions.assertEquals(insertedRemote10.rootId, retreiveRootExpand1.remotes.get(0).rootId);
 		Assertions.assertEquals(insertedRemote10.data, retreiveRootExpand1.remotes.get(0).data);
-		Assertions.assertEquals(insertedRemote11.uuid, retreiveRootExpand1.remotes.get(1).uuid);
-		Assertions.assertEquals(insertedRemote11.rootUuid, retreiveRootExpand1.remotes.get(1).rootUuid);
+		Assertions.assertEquals(insertedRemote11.id, retreiveRootExpand1.remotes.get(1).id);
+		Assertions.assertEquals(insertedRemote11.rootId, retreiveRootExpand1.remotes.get(1).rootId);
 		Assertions.assertEquals(insertedRemote11.data, retreiveRootExpand1.remotes.get(1).data);
 
-		final TypeOneToManyUUIDRootExpand retreiveRootExpand2 = ConfigureDb.da.get(TypeOneToManyUUIDRootExpand.class,
-				insertedRoot2.uuid);
+		final TypeOneToManyLongRootExpand retreiveRootExpand2 = ConfigureDb.da.get(TypeOneToManyLongRootExpand.class,
+				insertedRoot2.id);
 		Assertions.assertEquals(retreiveRootExpand2.otherData, insertedRoot2.otherData);
 		Assertions.assertNotNull(retreiveRootExpand2.remotes);
 		Assertions.assertEquals(1, retreiveRootExpand2.remotes.size());
-		Assertions.assertEquals(insertedRemote20.uuid, retreiveRootExpand2.remotes.get(0).uuid);
-		Assertions.assertEquals(insertedRemote20.rootUuid, retreiveRootExpand2.remotes.get(0).rootUuid);
+		Assertions.assertEquals(insertedRemote20.id, retreiveRootExpand2.remotes.get(0).id);
+		Assertions.assertEquals(insertedRemote20.rootId, retreiveRootExpand2.remotes.get(0).rootId);
 		Assertions.assertEquals(insertedRemote20.data, retreiveRootExpand2.remotes.get(0).data);
 
 	}

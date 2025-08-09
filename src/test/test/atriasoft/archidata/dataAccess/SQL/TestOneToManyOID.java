@@ -1,4 +1,4 @@
-package test.atriasoft.archidata.dataAccess;
+package test.atriasoft.archidata.dataAccess.SQL;
 
 import java.io.IOException;
 import java.util.List;

@@ -1,4 +1,4 @@
-package test.atriasoft.archidata.dataAccess;
+package test.atriasoft.archidata.dataAccess.Mongo;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;

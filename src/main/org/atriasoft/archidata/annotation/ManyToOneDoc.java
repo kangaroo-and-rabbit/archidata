@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
 import org.glassfish.jersey.Beta;
 
 /**
- * In Document entity the relation is stored in the 2 part of the entity, then it
- * is needed to define the field that store the relation data value in the
+ * In Document entity the relation is stored in the 2 part of the entity, then
+ * it is needed to define the field that store the relation data value in the
  * remote elements.
  *
  * Technical note: The use of this annotation when unidirectional if not needed,
@@ -55,6 +55,12 @@ public @interface ManyToOneDoc {
 	 */
 	@Beta
 	boolean removeLinkWhenDelete() default true;
+
+	/**
+	 * When delete the object, the system remove the link from the parent
+	 */
+	@Beta
+	boolean updateLinkWhenUpdate() default true;
 
 	/**
 	 * When create the object, the system add the link on the parent

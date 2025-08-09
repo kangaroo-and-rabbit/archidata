@@ -10,8 +10,8 @@ import java.lang.annotation.Target;
 import org.glassfish.jersey.Beta;
 
 /**
- * In Document entity the relation is stored in the 2 part of the entity, then it
- * is needed to define the field that store the relation data value in the
+ * In Document entity the relation is stored in the 2 part of the entity, then
+ * it is needed to define the field that store the relation data value in the
  * remote elements.
  *
  * Technical note: The use of this annotation when unidirectional if not needed,
@@ -40,9 +40,9 @@ import org.glassfish.jersey.Beta;
 @Target({ FIELD, METHOD })
 public @interface OneToManyDoc {
 	public enum CascadeMode {
-		DELETE_ON_REMOVE, // The remote object is deleted
-		SET_NULL_ON_REMOVE, // The remote object parent field is set to `null`
-		IGNORE_ON_REMOVE // The remote object is unchanged
+		DELETE, // The remote object is deleted
+		SET_NULL, // The remote object parent field is set to `null`
+		IGNORE // The remote object is unchanged
 	}
 
 	/**
@@ -60,12 +60,6 @@ public @interface OneToManyDoc {
 	 * When list change, apply some update on child.
 	 */
 	@Beta
-	CascadeMode cascade() default CascadeMode.IGNORE_ON_REMOVE;
+	CascadeMode cascade() default CascadeMode.IGNORE;
 
-	/**
-	 * When add an element ignore the remote update ==> this is the responsibility
-	 * of the child to register here...
-	 */
-	@Beta
-	boolean ignoreRemoteUpdateWhenOnAddItem() default true;
 }

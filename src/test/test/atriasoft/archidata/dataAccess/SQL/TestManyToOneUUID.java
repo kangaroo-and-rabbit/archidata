@@ -1,4 +1,4 @@
-package test.atriasoft.archidata.dataAccess;
+package test.atriasoft.archidata.dataAccess.SQL;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,15 +20,14 @@ import org.slf4j.LoggerFactory;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRemote;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRoot;
-import test.atriasoft.archidata.dataAccess.model.TypeManyToOneLongRootExpand;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRemote;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRoot;
+import test.atriasoft.archidata.dataAccess.model.TypeManyToOneUUIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnabledIfEnvironmentVariable(named = "INCLUDE_MY_SQL_SPECIFIC", matches = "true")
-public class TestManyToOneLong {
+@EnabledIfEnvironmentVariable(named = "INCLUDE_SQL_SPECIFIC", matches = "true")
+public class TestManyToOneUUID {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneLong.class);
 
 	@BeforeAll
@@ -45,7 +44,6 @@ public class TestManyToOneLong {
 	@Test
 	public void testCreateTable() throws Exception {
 		final List<String> sqlCommand = DataFactory.createTable(TypeManyToOneLongRemote.class);
-		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneLongRoot.class));
 		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneUUIDRoot.class));
 		sqlCommand.addAll(DataFactory.createTable(TypeManyToOneUUIDRemote.class));
 		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
@@ -56,67 +54,63 @@ public class TestManyToOneLong {
 		}
 	}
 
-	@Order(2)
+	@Order(3)
 	@Test
-	public void testRemoteLong() throws Exception {
-		TypeManyToOneLongRemote remote = new TypeManyToOneLongRemote();
+	public void testRemoteUUID() throws Exception {
+		TypeManyToOneUUIDRemote remote = new TypeManyToOneUUIDRemote();
 		remote.data = "remote1";
-		final TypeManyToOneLongRemote insertedRemote1 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneUUIDRemote insertedRemote1 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote1.data, remote.data);
 
-		remote = new TypeManyToOneLongRemote();
+		remote = new TypeManyToOneUUIDRemote();
 		remote.data = "remote2";
-		final TypeManyToOneLongRemote insertedRemote2 = ConfigureDb.da.insert(remote);
+		final TypeManyToOneUUIDRemote insertedRemote2 = ConfigureDb.da.insert(remote);
 		Assertions.assertEquals(insertedRemote2.data, remote.data);
 
-		final TypeManyToOneLongRoot test = new TypeManyToOneLongRoot();
+		final TypeManyToOneUUIDRoot test = new TypeManyToOneUUIDRoot();
 		test.otherData = "kjhlkjlkj";
-		test.remoteId = insertedRemote2.id;
-		final TypeManyToOneLongRoot insertedData = ConfigureDb.da.insert(test);
+		test.remoteUuid = insertedRemote2.uuid;
+		final TypeManyToOneUUIDRoot insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.uuid);
 		Assertions.assertEquals(test.otherData, insertedData.otherData);
-		Assertions.assertEquals(insertedRemote2.id, insertedData.remoteId);
+		Assertions.assertEquals(insertedRemote2.uuid, insertedData.remoteUuid);
 
-		TypeManyToOneLongRoot retrieve = ConfigureDb.da.get(TypeManyToOneLongRoot.class, insertedData.id);
+		TypeManyToOneUUIDRoot retrieve = ConfigureDb.da.get(TypeManyToOneUUIDRoot.class, insertedData.uuid);
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.uuid);
+		Assertions.assertEquals(insertedData.uuid, retrieve.uuid);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
-		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
+		Assertions.assertEquals(insertedRemote2.uuid, retrieve.remoteUuid);
 
-		TypeManyToOneLongRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneLongRootExpand.class, insertedData.id);
+		TypeManyToOneUUIDRootExpand retrieve2 = ConfigureDb.da.get(TypeManyToOneUUIDRootExpand.class,
+				insertedData.uuid);
 		Assertions.assertNotNull(retrieve2);
-		Assertions.assertNotNull(retrieve2.id);
-		Assertions.assertEquals(insertedData.id, retrieve2.id);
+		Assertions.assertNotNull(retrieve2.uuid);
+		Assertions.assertEquals(insertedData.uuid, retrieve2.uuid);
 		Assertions.assertEquals(insertedData.otherData, retrieve2.otherData);
 		Assertions.assertNotNull(retrieve2.remote);
-		Assertions.assertEquals(insertedRemote2.id, retrieve2.remote.id);
+		Assertions.assertEquals(insertedRemote2.uuid, retrieve2.remote.uuid);
 		Assertions.assertEquals(insertedRemote2.data, retrieve2.remote.data);
 
 		// remove values:
-		try {
-			final long count = ConfigureDb.da.delete(TypeManyToOneLongRemote.class, insertedRemote2.id);
-			Assertions.assertEquals(1L, count);
-		} catch (final Exception ex) {
-			ex.printStackTrace();
-		}
+		final long count = ConfigureDb.da.delete(TypeManyToOneUUIDRemote.class, insertedRemote2.uuid);
+		Assertions.assertEquals(1, count);
+
 		// check fail:
 
-		retrieve = ConfigureDb.da.get(TypeManyToOneLongRoot.class, insertedData.id);
+		retrieve = ConfigureDb.da.get(TypeManyToOneUUIDRoot.class, insertedData.uuid);
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.uuid);
+		Assertions.assertEquals(insertedData.uuid, retrieve.uuid);
 		Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
-		Assertions.assertEquals(insertedRemote2.id, retrieve.remoteId);
+		Assertions.assertEquals(insertedRemote2.uuid, retrieve.remoteUuid);
 
-		retrieve2 = ConfigureDb.da.get(TypeManyToOneLongRootExpand.class, insertedData.id);
+		retrieve2 = ConfigureDb.da.get(TypeManyToOneUUIDRootExpand.class, insertedData.uuid);
 		Assertions.assertNotNull(retrieve2);
-		Assertions.assertNotNull(retrieve2.id);
-		Assertions.assertEquals(insertedData.id, retrieve2.id);
+		Assertions.assertNotNull(retrieve2.uuid);
+		Assertions.assertEquals(insertedData.uuid, retrieve2.uuid);
 		Assertions.assertEquals(insertedData.otherData, retrieve2.otherData);
 		Assertions.assertNull(retrieve2.remote);
 	}
-
 }
