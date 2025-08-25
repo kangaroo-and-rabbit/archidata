@@ -94,12 +94,19 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
-			if (!oneToManyDoc.ignoreRemoteUpdateWhenOnAddItem()) {
-				// actions.add(() -> {
-				// 	// TODO: set the key at a special value...
-				// });
-				throw new SystemException("@ManyToOneLocal ignoreRemoteUpdateWhenOnAddItem=false is not implemented");
-			}
+			/* TODO:
+			 *   - get the remote object
+			 *   - remove the previous link
+			 *   - set the new value
+			 */
+			final ici un truc final a faire.
+//			if (!oneToManyDoc.ignoreRemoteUpdateWhenOnAddItem()) {
+//
+//				// actions.add(() -> {
+//				//
+//				// });
+//				throw new SystemException("@ManyToOneLocal ignoreRemoteUpdateWhenOnAddItem=false is not implemented");
+//			}
 		}
 		// remove old values:
 		for (final Object value : previousDataCollection) {
@@ -107,19 +114,20 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			switch (oneToManyDoc.cascade()) {
-				case CascadeMode.DELETE_ON_REMOVE:
+				case CascadeMode.DELETE:
 					actions.add(() -> {
 						ioDb.delete(oneToManyDoc.targetEntity(), value);
 					});
 					//break;
-				case CascadeMode.SET_NULL_ON_REMOVE:
-					// actions.add(() -> {
-					// 	//	ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
-					// });
+				case CascadeMode.SET_NULL:
+					actions.add(() -> {
+						// TODO: create a tool that set a field at null witout control like the link ???
+						ManyToManyLocalTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
+					});
 					throw new SystemException(
 							"@ManyToOneLocal cascade=CascadeMode.SET_NULL_ON_REMOVE is not implemented");
 				//break;
-				case CascadeMode.IGNORE_ON_REMOVE:
+				case CascadeMode.IGNORE:
 					break;
 			}
 		}
