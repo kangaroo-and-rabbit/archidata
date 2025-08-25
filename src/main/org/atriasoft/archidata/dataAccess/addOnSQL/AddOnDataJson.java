@@ -20,7 +20,7 @@ import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableListObjectGeneric;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
@@ -237,7 +237,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 		}
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		final TableListObjectGeneric data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		if (data == null) {
 			throw new DataAccessException("Fail to retreive data for links management");
 		}
@@ -272,7 +272,7 @@ public class AddOnDataJson implements DataAccessAddOn {
 			}
 			options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 			options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-			final TableCoversGeneric data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue,
+			final TableListObjectGeneric data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue,
 					options.getAllArray());
 			if (data.filedNameOfTheObject == null) {
 				return;

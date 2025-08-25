@@ -9,8 +9,8 @@ import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGenericUpdateAt;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableListObjectGeneric;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableListObjectGenericUpdateAt;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
@@ -34,12 +34,12 @@ public class ManyToManyTools {
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
 		options.add(new AccessDeletedItems());
-		TableCoversGeneric data = null;
+		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableCoversGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.get(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
 		} else {
-			data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
@@ -109,12 +109,12 @@ public class ManyToManyTools {
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
 		options.add(new AccessDeletedItems());
-		TableCoversGeneric data = null;
+		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableCoversGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.get(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
 		} else {
-			data = ioDb.get(TableCoversGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			return;

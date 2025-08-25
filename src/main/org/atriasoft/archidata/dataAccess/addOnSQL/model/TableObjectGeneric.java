@@ -2,12 +2,12 @@ package org.atriasoft.archidata.dataAccess.addOnSQL.model;
 
 import jakarta.persistence.Id;
 
-public class TableFieldUpdate {
-	public TableFieldUpdate() {
+public class TableObjectGeneric {
+	public TableObjectGeneric() {
 		// nothing to do...
 	}
 	
-	public TableFieldUpdate(final Object primaryKey, final Object fieldToUpdate) {
+	public TableObjectGeneric(final Object primaryKey, final Object fieldToUpdate) {
 		this.primaryKey = primaryKey;
 		this.fieldToUpdate = fieldToUpdate;
 	}

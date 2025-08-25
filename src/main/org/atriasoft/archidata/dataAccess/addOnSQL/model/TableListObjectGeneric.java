@@ -6,12 +6,12 @@ import org.atriasoft.archidata.annotation.DataJson;
 
 import jakarta.persistence.Id;
 
-public class TableCoversGeneric {
-	public TableCoversGeneric() {
+public class TableListObjectGeneric {
+	public TableListObjectGeneric() {
 		// nothing to do...
 	}
 
-	public TableCoversGeneric(final Object idOfTheObject, final List<Object> filedNameOfTheObject) {
+	public TableListObjectGeneric(final Object idOfTheObject, final List<Object> filedNameOfTheObject) {
 		this.idOfTheObject = idOfTheObject;
 		this.filedNameOfTheObject = filedNameOfTheObject;
 	}

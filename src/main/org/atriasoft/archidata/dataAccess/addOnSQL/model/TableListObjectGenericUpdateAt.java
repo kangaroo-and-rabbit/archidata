@@ -4,7 +4,7 @@ import java.util.Date;
 
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 
-public class TableCoversGenericUpdateAt extends TableCoversGeneric {
+public class TableListObjectGenericUpdateAt extends TableListObjectGeneric {
 
 	@UpdateTimestamp
 	public Date updatedAt = null;

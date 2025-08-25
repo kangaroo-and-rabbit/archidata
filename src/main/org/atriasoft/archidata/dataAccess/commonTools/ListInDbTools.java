@@ -8,8 +8,8 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGeneric;
-import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableCoversGenericUpdateAt;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableListObjectGeneric;
+import org.atriasoft.archidata.dataAccess.addOnSQL.model.TableListObjectGenericUpdateAt;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
@@ -39,12 +39,12 @@ public class ListInDbTools {
 		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColomnName.inTable()));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColomnName.inTable()));
 		options.add(new AccessDeletedItems());
-		TableCoversGeneric data = null;
+		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
 		} else {
-			data = DataAccess.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableListObjectGeneric.class, primaryKey, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
@@ -80,15 +80,15 @@ public class ListInDbTools {
 		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColomnName.inTable()));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColomnName.inTable()));
 		options.add(new AccessDeletedItems());
-		TableCoversGeneric data = null;
+		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableCoversGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				throw new FailException("Try to remove remote link from an object that does not exist");
 			}
 		} else {
-			data = DataAccess.get(TableCoversGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.get(TableListObjectGeneric.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				// Data is already removed
 				return;
