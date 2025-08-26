@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 // https://stackoverflow.com/questions/26777083/best-practice-for-rest-token-based-authentication-with-jax-rs-and-jersey/45814178#45814178
 // https://stackoverflow.com/questions/32817210/how-to-access-jersey-resource-secured-by-rolesallowed
 
+import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.SystemException;
@@ -64,7 +65,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				? resourceClass.getAnnotation(Path.class).value()
 				: "";
 		final String methodPath = resourceMethod.isAnnotationPresent(Path.class)
-				? resourceMethod.getAnnotation(Path.class).value()
+				? AnnotationTools.getAnnotationIncludingInterfaces(resourceMethod, Path.class).value()
 				: "";
 		final String fullPath = (classPath.startsWith("/") ? "" : "/") + classPath
 				+ (methodPath.startsWith("/") ? "" : "/") + methodPath;
@@ -78,20 +79,20 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
-		if (method.isAnnotationPresent(DenyAll.class)) {
+		if (AnnotationTools.methodHasAnnotation(method, DenyAll.class)) {
 			LOGGER.debug("   ==> deny all {}", requestContext.getUriInfo().getPath());
 			abortWithForbidden(requestContext, "Access blocked !!!");
 			return;
 		}
 
 		// Access allowed for all
-		if (method.isAnnotationPresent(PermitAll.class)) {
+		if (AnnotationTools.methodHasAnnotation(method, PermitAll.class)) {
 			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
 			// no control ...
 			return;
 		}
 		// this is a security guard, all the API must define their access level:
-		if (!method.isAnnotationPresent(RolesAllowed.class)) {
+		if (!AnnotationTools.methodHasAnnotation(method, RolesAllowed.class)) {
 			LOGGER.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
@@ -165,7 +166,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
 		final MySecurityContext userContext = new MySecurityContext(userByToken, scheme);
 		// retrieve the allowed right:
-		final RolesAllowed rolesAnnotation = method.getAnnotation(RolesAllowed.class);
+		final RolesAllowed rolesAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
+				RolesAllowed.class);
 		final List<String> roles = Arrays.asList(rolesAnnotation.value());
 		// check if the user have the right:
 		boolean haveRight = false;

@@ -2,6 +2,7 @@ package org.atriasoft.archidata.annotation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,56 @@ import jakarta.ws.rs.DefaultValue;
 
 public class AnnotationTools {
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
+
+	public static boolean methodHasAnnotation(final Method method, final Class<? extends Annotation> annotationClass) {
+		if (method.isAnnotationPresent(annotationClass)) {
+			return true;
+		}
+		final Class<?> declaringClass = method.getDeclaringClass();
+		for (final Class<?> iface : declaringClass.getInterfaces()) {
+			try {
+				final Method interfaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
+				if (interfaceMethod.isAnnotationPresent(annotationClass)) {
+					return true;
+				}
+			} catch (final NoSuchMethodException ignored) {}
+		}
+		return false;
+	}
+
+	public static boolean hasAnnotation(final Class<?> clazz, final Class<? extends Annotation> annotationClass) {
+		if (clazz.isAnnotationPresent(annotationClass)) {
+			return true;
+		}
+		for (final Class<?> iface : clazz.getInterfaces()) {
+			if (iface.isAnnotationPresent(annotationClass)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static <TYPE extends Annotation> TYPE getAnnotationIncludingInterfaces(
+			final Method method,
+			final Class<TYPE> annotationClass) {
+		TYPE annotation = method.getAnnotation(annotationClass);
+		if (annotation != null) {
+			return annotation;
+		}
+		final Class<?> declaringClass = method.getDeclaringClass();
+		for (final Class<?> iface : declaringClass.getInterfaces()) {
+			try {
+				final Method ifaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
+				annotation = ifaceMethod.getAnnotation(annotationClass);
+				if (annotation != null) {
+					return annotation;
+				}
+			} catch (final NoSuchMethodException e) {
+				// ignore...
+			}
+		}
+		return null;
+	}
 
 	public static <TYPE extends Annotation> TYPE get(final Parameter param, final Class<TYPE> clazz) {
 		final TYPE[] annotations = param.getDeclaredAnnotationsByType(clazz);
