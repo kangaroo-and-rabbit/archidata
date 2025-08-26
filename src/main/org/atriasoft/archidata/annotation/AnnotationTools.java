@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.atriasoft.archidata.annotation.checker.CollectionItemNotNull;
@@ -88,6 +89,27 @@ public class AnnotationTools {
 			}
 		}
 		return null;
+	}
+
+	public static <TYPE extends Annotation> List<TYPE> getAnnotationsIncludingInterfaces(
+			final Method method,
+			final Class<TYPE> annotationClass) {
+		final List<TYPE> result = new ArrayList<>();
+
+		final TYPE[] declared = method.getDeclaredAnnotationsByType(annotationClass);
+		Collections.addAll(result, declared);
+
+		final Class<?> declaringClass = method.getDeclaringClass();
+		for (final Class<?> iface : declaringClass.getInterfaces()) {
+			try {
+				final Method ifaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
+				final TYPE[] ifaceAnnotations = ifaceMethod.getDeclaredAnnotationsByType(annotationClass);
+				Collections.addAll(result, ifaceAnnotations);
+			} catch (final NoSuchMethodException e) {
+				// Ignored
+			}
+		}
+		return result;
 	}
 
 	public static <TYPE extends Annotation> TYPE get(final Parameter param, final Class<TYPE> clazz) {

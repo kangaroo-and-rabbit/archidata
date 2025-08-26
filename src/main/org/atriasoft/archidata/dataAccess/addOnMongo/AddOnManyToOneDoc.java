@@ -88,7 +88,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 						primaryKeyValue);
 			});
 		}
-		if (insertedDataValue == null) {
+		if (insertedDataValue != null) {
 			actions.add(() -> {
 				ListInDbTools.addLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
 						primaryKeyValue);

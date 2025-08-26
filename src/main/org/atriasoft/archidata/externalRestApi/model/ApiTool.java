@@ -6,6 +6,7 @@ import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
@@ -30,7 +31,7 @@ import jakarta.ws.rs.core.Context;
 public class ApiTool {
 
 	public static String apiAnnotationGetPath(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Path.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -38,7 +39,7 @@ public class ApiTool {
 	}
 
 	public static List<String> apiAnnotationProduces(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Produces.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -46,7 +47,7 @@ public class ApiTool {
 	}
 
 	public static List<String> apiAnnotationProduces(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Produces.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Produces.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -54,7 +55,8 @@ public class ApiTool {
 	}
 
 	public static boolean apiAnnotationTypeScriptProgress(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiTypeScriptProgress.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element,
+				ApiTypeScriptProgress.class);
 		if (annotation.length == 0) {
 			return false;
 		}
@@ -79,79 +81,79 @@ public class ApiTool {
 	}
 
 	public static String apiAnnotationGetOperationDescription(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Operation.class);
-		if (annotation.length == 0) {
+		final List<Operation> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Operation.class);
+		if (annotation.size() == 0) {
 			return null;
 		}
-		return ((Operation) annotation[0]).description();
+		return annotation.get(0).description();
 	}
 
 	public static String apiAnnotationGetPath(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Path.class);
-		if (annotation.length == 0) {
+		final List<Path> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Path.class);
+		if (annotation.size() == 0) {
 			return null;
 		}
-		return ((Path) annotation[0]).value();
+		return annotation.get(0).value();
 	}
 
 	public static String apiAnnotationGetTypeRequest(final Method element) throws Exception {
-		if (element.getDeclaredAnnotationsByType(GET.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, GET.class).length == 1) {
 			return "GET";
 		}
-		if (element.getDeclaredAnnotationsByType(POST.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, POST.class).length == 1) {
 			return "POST";
 		}
-		if (element.getDeclaredAnnotationsByType(PUT.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, PUT.class).length == 1) {
 			return "PUT";
 		}
-		if (element.getDeclaredAnnotationsByType(PATCH.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, PATCH.class).length == 1) {
 			return "PATCH";
 		}
-		if (element.getDeclaredAnnotationsByType(DELETE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, DELETE.class).length == 1) {
 			return "DELETE";
 		}
-		if (element.getDeclaredAnnotationsByType(RESTORE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, RESTORE.class).length == 1) {
 			return "RESTORE";
 		}
-		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, ARCHIVE.class).length == 1) {
 			return "ARCHIVE";
 		}
-		if (element.getDeclaredAnnotationsByType(CALL.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, CALL.class).length == 1) {
 			return "CALL";
 		}
 		return null;
 	}
 
 	public static RestTypeRequest apiAnnotationGetTypeRequest2(final Method element) throws Exception {
-		if (element.getDeclaredAnnotationsByType(GET.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, GET.class).length == 1) {
 			return RestTypeRequest.GET;
 		}
-		if (element.getDeclaredAnnotationsByType(POST.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, POST.class).length == 1) {
 			return RestTypeRequest.POST;
 		}
-		if (element.getDeclaredAnnotationsByType(PUT.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, PUT.class).length == 1) {
 			return RestTypeRequest.PUT;
 		}
-		if (element.getDeclaredAnnotationsByType(PATCH.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, PATCH.class).length == 1) {
 			return RestTypeRequest.PATCH;
 		}
-		if (element.getDeclaredAnnotationsByType(DELETE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, DELETE.class).length == 1) {
 			return RestTypeRequest.DELETE;
 		}
-		if (element.getDeclaredAnnotationsByType(RESTORE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, RESTORE.class).length == 1) {
 			return RestTypeRequest.RESTORE;
 		}
-		if (element.getDeclaredAnnotationsByType(ARCHIVE.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, ARCHIVE.class).length == 1) {
 			return RestTypeRequest.ARCHIVE;
 		}
-		if (element.getDeclaredAnnotationsByType(CALL.class).length == 1) {
+		if (AnnotationTools.getAnnotationsIncludingInterfaces(element, CALL.class).length == 1) {
 			return RestTypeRequest.CALL;
 		}
 		return null;
 	}
 
 	public static String apiAnnotationGetPathParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(PathParam.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, PathParam.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -159,7 +161,7 @@ public class ApiTool {
 	}
 
 	public static String apiAnnotationGetQueryParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(QueryParam.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, QueryParam.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -167,7 +169,8 @@ public class ApiTool {
 	}
 
 	public static boolean apiAnnotationGetApiInputOptional(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiInputOptional.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element,
+				ApiInputOptional.class);
 		if (annotation.length == 0) {
 			return false;
 		}
@@ -175,7 +178,7 @@ public class ApiTool {
 	}
 
 	public static String apiAnnotationGetFormDataParam(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(FormDataParam.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, FormDataParam.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -183,7 +186,7 @@ public class ApiTool {
 	}
 
 	public static Class<?>[] apiAnnotationGetAsyncType(final Parameter element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiAsyncType.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, ApiAsyncType.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -191,7 +194,7 @@ public class ApiTool {
 	}
 
 	public static Class<?>[] apiAnnotationGetAsyncType(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(ApiAsyncType.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, ApiAsyncType.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -199,7 +202,7 @@ public class ApiTool {
 	}
 
 	public static List<String> apiAnnotationGetConsumes(final Method element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Consumes.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -207,7 +210,7 @@ public class ApiTool {
 	}
 
 	public static List<String> apiAnnotationGetConsumes(final Class<?> element) throws Exception {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Consumes.class);
+		final Annotation[] annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Consumes.class);
 		if (annotation.length == 0) {
 			return null;
 		}
@@ -232,7 +235,7 @@ public class ApiTool {
 	}
 
 	public static boolean apiAnnotationIsContext(final Parameter element) throws Exception {
-		return element.getDeclaredAnnotationsByType(Context.class).length != 0;
+		return AnnotationTools.getAnnotationsIncludingInterfaces(element, Context.class).length != 0;
 	}
 
 }
