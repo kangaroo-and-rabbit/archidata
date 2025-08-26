@@ -237,7 +237,8 @@ public class AddOnDataJson implements DataAccessAddOn {
 		}
 		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
 		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		final TableListObjectGeneric data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+		final TableListObjectGeneric data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue,
+				options.getAllArray());
 		if (data == null) {
 			throw new DataAccessException("Fail to retreive data for links management");
 		}

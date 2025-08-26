@@ -18,8 +18,11 @@ import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 
 public class OneToManyTools {
 
-	private static void setRemoteFieldToNull(final Class<?> clazz, String primaryKeyTableName,
-			final Object clazzPrimaryKeyValue, final String fieldTableName) throws Exception {
+	private static void setRemoteFieldToNull(
+			final Class<?> clazz,
+			String primaryKeyTableName,
+			final Object clazzPrimaryKeyValue,
+			final String fieldTableName) throws Exception {
 		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
@@ -65,8 +68,12 @@ public class OneToManyTools {
 		}
 	}
 
-	private static Object setRemoteFieldToValue(final Class<?> clazz, String primaryKeyTableName,
-			final Object clazzPrimaryKeyValue, final String fieldTableName, final Object valueToSet) throws Exception {
+	private static Object setRemoteFieldToValue(
+			final Class<?> clazz,
+			String primaryKeyTableName,
+			final Object clazzPrimaryKeyValue,
+			final String fieldTableName,
+			final Object valueToSet) throws Exception {
 		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
@@ -95,7 +102,9 @@ public class OneToManyTools {
 	}
 
 	// return the previous value...
-	public static Object setRemoteValue(final Field localField, final Object remotePrimaryKeyValue,
+	public static Object setRemoteValue(
+			final Field localField,
+			final Object remotePrimaryKeyValue,
 			final Object valueToSet) throws Exception {
 		final OneToManyDoc manyLocal = AnnotationTools.get(localField, OneToManyDoc.class);
 		// Check if the element are correctly set:

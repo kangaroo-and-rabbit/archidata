@@ -54,8 +54,13 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 	}
 
 	@Override
-	public void insertData(final DBAccessMongo ioDb, final Field field, final Object rootObject,
-			final QueryOptions options, final Document docSet, final Document docUnSet) throws Exception {
+	public void insertData(
+			final DBAccessMongo ioDb,
+			final Field field,
+			final Object rootObject,
+			final QueryOptions options,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
 		final Class<?> type = field.getType();
 		final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
 		ioDb.setValueToDb(null, type, rootObject, field, tableFieldName.inTable(), docSet, docUnSet);
@@ -67,9 +72,14 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 	}
 
 	@Override
-	public void asyncUpdate(final DBAccessMongo ioDb, final Object previousData, final Object primaryKeyValue,
-			final Field field, final Object insertedData, final List<LazyGetter> actions, final QueryOptions options)
-			throws Exception {
+	public void asyncUpdate(
+			final DBAccessMongo ioDb,
+			final Object previousData,
+			final Object primaryKeyValue,
+			final Field field,
+			final Object insertedData,
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		final Object previousDataValue = field.get(previousData);
 		Collection<?> previousDataCollection = new ArrayList<>();
 		if (previousDataValue instanceof final Collection<?> tmpCollection) {
@@ -109,18 +119,18 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			switch (oneToManyDoc.cascade()) {
-			case CascadeMode.DELETE:
-				actions.add(() -> {
-					ioDb.delete(oneToManyDoc.targetEntity(), value);
-				});
-				break;
-			case CascadeMode.SET_NULL:
-				actions.add(() -> {
-					OneToManyTools.setRemoteNullRemote(field, value);
-				});
-				break;
-			case CascadeMode.IGNORE:
-				break;
+				case CascadeMode.DELETE:
+					actions.add(() -> {
+						ioDb.delete(oneToManyDoc.targetEntity(), value);
+					});
+					break;
+				case CascadeMode.SET_NULL:
+					actions.add(() -> {
+						OneToManyTools.setRemoteNullRemote(field, value);
+					});
+					break;
+				case CascadeMode.IGNORE:
+					break;
 			}
 		}
 
@@ -128,7 +138,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 
 	/**
 	 * Some action must be done asynchronously for update or remove element
-	 * 
+	 *
 	 * @param field
 	 * @return
 	 */
@@ -139,15 +149,20 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 
 	/**
 	 * When insert is mark async, this function permit to create or update the data.
-	 * 
+	 *
 	 * @param primaryKeyValue Local ID of the current table
 	 * @param field           Field that is updated.
 	 * @param data            Data that might be inserted.
 	 * @param actions         Asynchronous action to do after main request.
 	 */
 	@Override
-	public void asyncInsert(final DBAccessMongo ioDb, final Object primaryKeyValue, final Field field,
-			final Object data, final List<LazyGetter> actions, final QueryOptions options) throws Exception {
+	public void asyncInsert(
+			final DBAccessMongo ioDb,
+			final Object primaryKeyValue,
+			final Field field,
+			final Object data,
+			final List<LazyGetter> actions,
+			final QueryOptions options) throws Exception {
 		final Object insertedData = data;
 		if (insertedData == null) {
 			return;
@@ -181,8 +196,13 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void fillFromDoc(final DBAccessMongo ioDb, final Document doc, final Field field, final Object data,
-			final QueryOptions options, final List<LazyGetter> lazyCall)
+	public void fillFromDoc(
+			final DBAccessMongo ioDb,
+			final Document doc,
+			final Field field,
+			final Object data,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall)
 			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
