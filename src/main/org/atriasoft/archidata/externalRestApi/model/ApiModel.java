@@ -58,7 +58,7 @@ public class ApiModel {
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
 		final Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
-		//LOGGER.info("Get return Type async = {}", returnTypeModel);
+		// LOGGER.info("Get return Type async = {}", returnTypeModel);
 		if (returnTypeModel != null) {
 			if (returnTypeModel.length == 0) {
 				throw new IOException("Create a @AsyncType with empty elements ...");
@@ -110,8 +110,8 @@ public class ApiModel {
 	}
 
 	/**
-	 * Removes constraint patterns in `{param: constraint}` path segments.
-	 * Keeps only `{param}`.
+	 * Removes constraint patterns in `{param: constraint}` path segments. Keeps
+	 * only `{param}`.
 	 *
 	 * @param path the original REST path
 	 * @return cleaned path with param constraints removed
@@ -159,14 +159,16 @@ public class ApiModel {
 		}
 
 		// LOGGER.info(" Parameters:");
-		for (final Parameter parameter : method.getParameters()) {
+		Parameter[] parameters = method.getParameters();
+		for (int iii = 0; iii < parameters.length; iii++) {
+			Parameter parameter = parameters[iii];
 			// Security context are internal parameter (not available from API)
-			if (ApiTool.apiAnnotationIsContext(parameter)) {
+			if (ApiTool.apiAnnotationIsContext(method, iii)) {
 				continue;
 			}
 			final Class<?> parameterType = parameter.getType();
 			final List<ClassModel> parameterModel = new ArrayList<>();
-			final Class<?>[] asyncType = ApiTool.apiAnnotationGetAsyncType(parameter);
+			final Class<?>[] asyncType = ApiTool.apiAnnotationGetAsyncType(method, iii);
 			if (asyncType != null) {
 				for (final Class<?> elem : asyncType) {
 					final ClassModel modelGenerated = ClassModel.getModel(elem, previousModel);
@@ -187,10 +189,10 @@ public class ApiModel {
 			final HeaderParam headerParam = AnnotationTools.get(parameter, HeaderParam.class);
 			final Valid validParam = AnnotationTools.get(parameter, Valid.class);
 			final ValidGroup validGroupParam = AnnotationTools.get(parameter, ValidGroup.class);
-			final String pathParam = ApiTool.apiAnnotationGetPathParam(parameter);
-			final String queryParam = ApiTool.apiAnnotationGetQueryParam(parameter);
-			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(parameter);
-			final boolean apiInputOptional = ApiTool.apiAnnotationGetApiInputOptional(parameter);
+			final String pathParam = ApiTool.apiAnnotationGetPathParam(method, iii);
+			final String queryParam = ApiTool.apiAnnotationGetQueryParam(method, iii);
+			final String formDataParam = ApiTool.apiAnnotationGetFormDataParam(method, iii);
+			final boolean apiInputOptional = ApiTool.apiAnnotationGetApiInputOptional(method, iii);
 			if (queryParam != null) {
 				if (!this.queries.containsKey(queryParam)) {
 					this.queries.put(queryParam,

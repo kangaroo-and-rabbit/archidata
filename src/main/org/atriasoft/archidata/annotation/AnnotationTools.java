@@ -52,7 +52,8 @@ public class AnnotationTools {
 				if (interfaceMethod.isAnnotationPresent(annotationClass)) {
 					return true;
 				}
-			} catch (final NoSuchMethodException ignored) {}
+			} catch (final NoSuchMethodException ignored) {
+			}
 		}
 		return false;
 	}
@@ -69,8 +70,20 @@ public class AnnotationTools {
 		return false;
 	}
 
-	public static <TYPE extends Annotation> TYPE getAnnotationIncludingInterfaces(
-			final Method method,
+	public static <TYPE extends Annotation> List<TYPE> getAnnotationsIncludingInterfaces(final Class<?> clazz,
+			final Class<TYPE> annotationClass) {
+		final List<TYPE> result = new ArrayList<>();
+		TYPE[] declared = clazz.getDeclaredAnnotationsByType(annotationClass);
+		Collections.addAll(result, declared);
+		for (Class<?> iface : clazz.getInterfaces()) {
+			TYPE[] ifaceAnnotations = iface.getDeclaredAnnotationsByType(annotationClass);
+			Collections.addAll(result, ifaceAnnotations);
+		}
+
+		return result;
+	}
+
+	public static <TYPE extends Annotation> TYPE getAnnotationIncludingInterfaces(final Method method,
 			final Class<TYPE> annotationClass) {
 		TYPE annotation = method.getAnnotation(annotationClass);
 		if (annotation != null) {
@@ -85,14 +98,13 @@ public class AnnotationTools {
 					return annotation;
 				}
 			} catch (final NoSuchMethodException e) {
-				// ignore...
+				// Ignored
 			}
 		}
 		return null;
 	}
 
-	public static <TYPE extends Annotation> List<TYPE> getAnnotationsIncludingInterfaces(
-			final Method method,
+	public static <TYPE extends Annotation> List<TYPE> getAnnotationsIncludingInterfaces(final Method method,
 			final Class<TYPE> annotationClass) {
 		final List<TYPE> result = new ArrayList<>();
 
@@ -106,6 +118,28 @@ public class AnnotationTools {
 				final TYPE[] ifaceAnnotations = ifaceMethod.getDeclaredAnnotationsByType(annotationClass);
 				Collections.addAll(result, ifaceAnnotations);
 			} catch (final NoSuchMethodException e) {
+				// Ignored
+			}
+		}
+		return result;
+	}
+
+	public static <TYPE extends Annotation> List<TYPE> getAnnotationsIncludingInterfaces(final Method method,
+			final int parameterIndex, final Class<TYPE> annotationClass) {
+
+		final List<TYPE> result = new ArrayList<>();
+		final Parameter parameter = method.getParameters()[parameterIndex];
+		TYPE[] declared = parameter.getDeclaredAnnotationsByType(annotationClass);
+		Collections.addAll(result, declared);
+		final Class<?> declaringClass = method.getDeclaringClass();
+		for (final Class<?> iface : declaringClass.getInterfaces()) {
+			try {
+				Method ifaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
+				Parameter ifaceParam = ifaceMethod.getParameters()[parameterIndex];
+
+				TYPE[] ifaceAnnotations = ifaceParam.getDeclaredAnnotationsByType(annotationClass);
+				Collections.addAll(result, ifaceAnnotations);
+			} catch (NoSuchMethodException e) {
 				// Ignored
 			}
 		}
@@ -323,9 +357,8 @@ public class AnnotationTools {
 		return name;
 	}
 
-	public record FieldName(
-			String inStruct,
-			String inTable) {};
+	public record FieldName(String inStruct, String inTable) {
+	};
 
 	public static FieldName getFieldName(final Field element, final QueryOptions options) {
 		final String inStructName = getFieldNameRaw(element);
