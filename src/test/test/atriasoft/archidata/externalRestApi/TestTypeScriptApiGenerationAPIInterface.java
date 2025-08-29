@@ -15,17 +15,22 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 
-public class TestTypeScriptApiGenerationAPI {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeScriptApiGenerationAPI.class);
+public class TestTypeScriptApiGenerationAPIInterface {
+	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeScriptApiGenerationAPIInterface.class);
 
 	public enum TestEnum {
 		PLOP, PLIP
 	}
 
-	@Path("resourcePath")
-	public class SampleResourceGet {
+	public interface SampleResourceGetInterface {
 		@GET
-		public Long gets(@QueryParam("values") final List<TestEnum> values) {
+		Long gets(@QueryParam("values") final List<TestEnum> values);
+	}
+
+	@Path("resourcePath")
+	public class SampleResourceGet implements SampleResourceGetInterface {
+		@Override
+		public Long gets(final List<TestEnum> values) {
 			return 0L;
 		}
 	}
