@@ -11,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
@@ -22,6 +21,7 @@ import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldPrope
 import org.atriasoft.archidata.externalRestApi.model.ParameterClassModel;
 import org.atriasoft.archidata.externalRestApi.typescript.ImportModel.ModeImport;
 import org.atriasoft.archidata.externalRestApi.typescript.ImportModel.PairElem;
+import org.atriasoft.archidata.tools.TypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,7 @@ public class TsClassElement {
 	static final Logger LOGGER = LoggerFactory.getLogger(TsClassElement.class);
 
 	public enum DefinedPosition {
-		NATIVE, // Native element of  TS language.
+		NATIVE, // Native element of TS language.
 		BASIC, // basic wrapping for JAVA type.
 		NORMAL // Normal Object to interpret.
 	}
@@ -179,7 +179,7 @@ public class TsClassElement {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
 		out.append("\n");
-		//out.append(generateComment(model));
+		// out.append(generateComment(model));
 		if (System.getenv("ARCHIDATA_GENERATE_ZOD_ENUM") != null) {
 			boolean first = true;
 			out.append("export const ");
@@ -360,7 +360,7 @@ public class TsClassElement {
 
 	private boolean containGroup(final Class<?>[] groupsA, final Class<?> groupB) {
 		for (final Class<?> elemA : groupsA) {
-			if (elemA == groupB) {
+			if (TypeUtils.isSameClass(elemA, groupB)) {
 				return true;
 			}
 		}
@@ -373,7 +373,7 @@ public class TsClassElement {
 		}
 		for (final Class<?> elemA : groupsA) {
 			for (final Class<?> elemB : groupsB) {
-				if (elemA == elemB) {
+				if (TypeUtils.isSameClass(elemA, elemB)) {
 					return true;
 				}
 			}
@@ -383,7 +383,8 @@ public class TsClassElement {
 
 	public boolean isCompatibleField(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (field.annotationNotNull() != null) {
-			// if it is not null in the specific group, this mean the element MUST be transcript
+			// if it is not null in the specific group, this mean the element MUST be
+			// transcript
 			if (isCompatibleGroup(field.annotationNotNull().groups(), groups)) {
 				// TODO: maybe check if the element does not exist in the other item ...
 				return true;
@@ -395,7 +396,8 @@ public class TsClassElement {
 			}
 		}
 		if (field.annotationNull() != null) {
-			// if it is not null in the specific group, this mean the element MUST NOT be transcript (is is NULL)
+			// if it is not null in the specific group, this mean the element MUST NOT be
+			// transcript (is is NULL)
 			if (isCompatibleGroup(field.annotationNull().groups(), groups)) {
 				// TODO: maybe check if the element does not exist in the other item ...
 				return false;
@@ -462,18 +464,16 @@ public class TsClassElement {
 					builder.append(")");
 				}
 			}
-			/* Must be tested before
-			if (field.pattern() != null) {
-				builder.append(".regex((");
-				builder.append(field.pattern().regexp());
-				builder.append(")");
-			}*/
-			/* Must be tested before
-			if (field.email() != null) {
-				builder.append(".regex((");
-				builder.append(field.email().regexp());
-				builder.append(")");
-			}*/
+			/*
+			 * Must be tested before if (field.pattern() != null) {
+			 * builder.append(".regex(("); builder.append(field.pattern().regexp());
+			 * builder.append(")"); }
+			 */
+			/*
+			 * Must be tested before if (field.email() != null) {
+			 * builder.append(".regex(("); builder.append(field.email().regexp());
+			 * builder.append(")"); }
+			 */
 		}
 		if (clazz == short.class || clazz == Short.class || clazz == int.class || clazz == Integer.class
 				|| clazz == long.class || clazz == Long.class || clazz == float.class || clazz == Float.class
@@ -786,9 +786,9 @@ public class TsClassElement {
 		final StringBuilder out = new StringBuilder();
 		out.append("export const Zod");
 		out.append(modelName);
-		//		out.append("export const /* check if it is the good type !!! */ ");
-		//		out.append(tsModel.getZodName());
-		//imports.addZod(models.get(0));
+		// out.append("export const /* check if it is the good type !!! */ ");
+		// out.append(tsModel.getZodName());
+		// imports.addZod(models.get(0));
 		out.append(" = ");
 		if (models.size() == 1) {
 			out.append(generateLocalModelBase(models.get(0), tsGroup, imports));
@@ -802,7 +802,7 @@ public class TsClassElement {
 			}
 			out.append("]);");
 		}
-		//model.getDependencyModels()
+		// model.getDependencyModels()
 		out.append(generateZodInfer(modelName, "Zod" + modelName));
 		out.append(generateExportCheckFunction("is" + modelName, modelName, "Zod" + modelName));
 		return out.toString();

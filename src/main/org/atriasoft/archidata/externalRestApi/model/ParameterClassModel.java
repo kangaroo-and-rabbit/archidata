@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
+import org.atriasoft.archidata.tools.TypeUtils;
 
 import jakarta.validation.Valid;
 
@@ -47,7 +48,7 @@ public record ParameterClassModel(
 		}
 		final List<String> groupList = new ArrayList<>();
 		for (final Class<?> group : this.groups) {
-			if (group == GroupRead.class) {
+			if (TypeUtils.isSameClass(group, GroupRead.class)) {
 				continue;
 			}
 			groupList.add(group.getSimpleName().replaceAll("^Group", ""));

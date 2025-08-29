@@ -29,4 +29,10 @@ public class TypeUtils {
 			}
 		};
 	}
+
+	// this function is needed when '==' can fail between 2 Class due to distinct
+	// classloader ==> in case of jakarta, hibernate...
+	public static boolean isSameClass(Class<?> a, Class<?> b) {
+		return a.getName().equals(b.getName());
+	}
 }
