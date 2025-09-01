@@ -109,7 +109,11 @@ public class ListInDbTools {
 		if (!found) {
 			return;
 		}
-		data.filedNameOfTheObject = newList;
+		if (newList.size() == 0) {
+			data.filedNameOfTheObject = null;
+		} else {
+			data.filedNameOfTheObject = newList;
+		}
 		options.add(new FilterValue("filedNameOfTheObject"));
 		DataAccess.updateFull(data, data.idOfTheObject, options.getAllArray());
 	}

@@ -299,6 +299,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 	@Override
 	public void asyncInsert(
 			final DBAccessMongo ioDb,
+			final Class<?> clazz,
 			final Object localKey,
 			final Field field,
 			final Object data,

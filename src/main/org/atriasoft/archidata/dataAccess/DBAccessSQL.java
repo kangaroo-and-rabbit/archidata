@@ -1123,8 +1123,13 @@ public class DBAccessSQL extends DBAccess {
 				addOn.asyncInsert(this, tableName, uniqueSQLOID, field, field.get(data), asyncActions, options);
 			}
 		}
-		for (final LazyGetter action : asyncActions) {
-			action.doRequest();
+		List<LazyGetter> actionsAsync = asyncActions;
+		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+			List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			for (final LazyGetter action : actionsAsync) {
+				action.doRequest(actionsAsyncNew);
+			}
+			actionsAsync = actionsAsyncNew;
 		}
 		if (uniqueSQLID != null) {
 			return uniqueSQLID;
@@ -1272,8 +1277,13 @@ public class DBAccessSQL extends DBAccess {
 							addOn.insertData(this, ps, field, data, iii);
 						}
 					}
-					for (final LazyGetter action : asyncActions) {
-						action.doRequest();
+					List<LazyGetter> actionsAsync = asyncActions;
+					for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+						List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+						for (final LazyGetter action : actionsAsync) {
+							action.doRequest(actionsAsyncNew);
+						}
+						actionsAsync = actionsAsyncNew;
 					}
 					condition.injectQuery(this, ps, iii);
 					final int out = ps.executeUpdate();
@@ -1452,8 +1462,13 @@ public class DBAccessSQL extends DBAccess {
 					outs.add(data);
 				}
 				LOGGER.trace("Async calls: {}", lazyCall.size());
-				for (final LazyGetter elem : lazyCall) {
-					elem.doRequest();
+				List<LazyGetter> actionsAsync = lazyCall;
+				for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+					List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+					for (final LazyGetter action : actionsAsync) {
+						action.doRequest(actionsAsyncNew);
+					}
+					actionsAsync = actionsAsyncNew;
 				}
 			}
 		} catch (final SQLException ex) {
@@ -1789,8 +1804,13 @@ public class DBAccessSQL extends DBAccess {
 				outs.add(out);
 			}
 			LOGGER.info("Async calls: {}", lazyCall.size());
-			for (final LazyGetter elem : lazyCall) {
-				elem.doRequest();
+			List<LazyGetter> actionsAsync = lazyCall;
+			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+				List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+				for (final LazyGetter action : actionsAsync) {
+					action.doRequest(actionsAsyncNew);
+				}
+				actionsAsync = actionsAsyncNew;
 			}
 		} catch (final SQLException ex) {
 			ex.printStackTrace();

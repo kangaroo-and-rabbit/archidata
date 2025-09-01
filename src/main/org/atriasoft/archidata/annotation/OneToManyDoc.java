@@ -57,9 +57,21 @@ public @interface OneToManyDoc {
 	String remoteField();
 
 	/**
-	 * When list change, apply some update on child.
+	 * When create the object, the system add the link on the children
 	 */
 	@Beta
-	CascadeMode cascade() default CascadeMode.IGNORE;
+	boolean addLinkWhenCreate() default true;
+
+	/**
+	 * When object is update, apply some update on child.
+	 */
+	@Beta
+	CascadeMode cascadeUpdate() default CascadeMode.IGNORE;
+
+	/**
+	 * When object is removed, apply some update on child.
+	 */
+	@Beta
+	CascadeMode cascadeDelete() default CascadeMode.IGNORE;
 
 }

@@ -113,7 +113,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add(() -> {
+			actions.add((List<LazyGetter> actionsAsync) -> {
 				ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
@@ -122,7 +122,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 			if (insertedDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add(() -> {
+			actions.add((List<LazyGetter> actionsAsync) -> {
 				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
@@ -158,7 +158,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
-				actions.add(() -> {
+				actions.add((List<LazyGetter> actionsAsync) -> {
 					ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 				});
 			}
@@ -249,7 +249,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), idList)));
@@ -266,7 +266,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
@@ -284,7 +284,7 @@ public class AddOnManyToManyLocal implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						final List<ObjectId> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),

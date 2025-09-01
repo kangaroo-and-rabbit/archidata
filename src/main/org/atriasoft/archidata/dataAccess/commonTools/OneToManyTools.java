@@ -26,21 +26,14 @@ public class OneToManyTools {
 		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()));
+				new OptionSpecifyType("primaryKey", clazzPrimaryKeyValue.getClass()));
 
 		options.add(new OptionRenameColumn("primaryKey", primaryKeyTableName));
 		options.add(new OptionRenameColumn("fieldToUpdate", fieldTableName));
 		options.add(new AccessDeletedItems());
-		TableObjectGeneric data = null;
+		TableObjectGeneric data = new TableObjectGeneric();
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
-		} else {
-			data = DataAccess.get(TableObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		}
-		if (data.fieldToUpdate == null) {
-			// The object has already the good value ==> Nothing to do ...
-			return;
 		}
 		data.fieldToUpdate = null;
 		options.add(new FilterValue("fieldToUpdate"));
@@ -77,7 +70,7 @@ public class OneToManyTools {
 		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
+				new OptionSpecifyType("primaryKey", clazzPrimaryKeyValue.getClass()),
 				new OptionSpecifyType("fieldToUpdate", valueToSet.getClass()));
 
 		options.add(new OptionRenameColumn("primaryKey", primaryKeyTableName));

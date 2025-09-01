@@ -1012,15 +1012,20 @@ public class DBAccessMongo extends DBAccess {
 		for (final Field field : asyncFieldUpdate) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (uniqueId instanceof final Long id) {
-				addOn.asyncInsert(this, id, field, field.get(data), asyncActions, options);
+				addOn.asyncInsert(this, data.getClass(), id, field, field.get(data), asyncActions, options);
 			} else if (uniqueId instanceof final UUID uuid) {
-				addOn.asyncInsert(this, uuid, field, field.get(data), asyncActions, options);
+				addOn.asyncInsert(this, data.getClass(), uuid, field, field.get(data), asyncActions, options);
 			} else if (uniqueId instanceof final ObjectId oid) {
-				addOn.asyncInsert(this, oid, field, field.get(data), asyncActions, options);
+				addOn.asyncInsert(this, data.getClass(), oid, field, field.get(data), asyncActions, options);
 			}
 		}
-		for (final LazyGetter action : asyncActions) {
-			action.doRequest();
+		List<LazyGetter> actionsAsync = asyncActions;
+		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+			List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			for (final LazyGetter action : actionsAsync) {
+				action.doRequest(actionsAsyncNew);
+			}
+			actionsAsync = actionsAsyncNew;
 		}
 		return uniqueId;
 	}
@@ -1138,8 +1143,13 @@ public class DBAccessMongo extends DBAccess {
 			// actions.toJson(JsonWriterSettings.builder().indent(true).build()));
 			statistic.countUpdateMany++;
 			final UpdateResult ret = collection.updateMany(filters, actions);
-			for (final LazyGetter action : asyncActions) {
-				action.doRequest();
+			List<LazyGetter> actionsAsync = asyncActions;
+			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+				List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+				for (final LazyGetter action : actionsAsync) {
+					action.doRequest(actionsAsyncNew);
+				}
+				actionsAsync = actionsAsyncNew;
 			}
 			return ret.getModifiedCount();
 		} catch (final Exception ex) {
@@ -1260,8 +1270,13 @@ public class DBAccessMongo extends DBAccess {
 					outs.add(data);
 				}
 				// LOGGER.trace("Async calls: {}", lazyCall.size());
-				for (final LazyGetter elem : lazyCall) {
-					elem.doRequest();
+				List<LazyGetter> actionsAsync = lazyCall;
+				for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+					List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+					for (final LazyGetter action : actionsAsync) {
+						action.doRequest(actionsAsyncNew);
+					}
+					actionsAsync = actionsAsyncNew;
 				}
 			}
 		} catch (final Exception ex) {
@@ -1586,7 +1601,7 @@ public class DBAccessMongo extends DBAccess {
 	}
 
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
-
+		List<LazyGetter> lazyCall = new ArrayList<>();
 		// Some mode need to get the previous data to perform a correct update...
 		boolean needPreviousValues = false;
 		final List<Field> hasDeletedActionFields = new ArrayList<>();
@@ -1616,8 +1631,16 @@ public class DBAccessMongo extends DBAccess {
 		for (final Field field : hasDeletedActionFields) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
 			if (addOn != null) {
-				addOn.onDelete(this, clazz, field, previousData);
+				addOn.onDelete(this, clazz, field, previousData, lazyCall);
 			}
+		}
+		List<LazyGetter> actionsAsync = lazyCall;
+		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+			List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			for (final LazyGetter action : actionsAsync) {
+				action.doRequest(actionsAsyncNew);
+			}
+			actionsAsync = actionsAsyncNew;
 		}
 	}
 

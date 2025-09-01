@@ -272,7 +272,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				count.inc();
 				if (!rs.wasNull()) {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
@@ -288,7 +288,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				count.inc();
 				if (foreignKey != null) {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
@@ -304,7 +304,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				count.inc();
 				if (foreignKey != null) {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actions) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {

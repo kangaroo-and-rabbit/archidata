@@ -51,6 +51,12 @@ public @interface ManyToOneDoc {
 	String remoteField();
 
 	/**
+	 * When create the object, the system add the link on the parent
+	 */
+	@Beta
+	boolean addLinkWhenCreate() default true;
+
+	/**
 	 * When delete the object, the system remove the link from the parent
 	 */
 	@Beta
@@ -62,9 +68,4 @@ public @interface ManyToOneDoc {
 	@Beta
 	boolean updateLinkWhenUpdate() default true;
 
-	/**
-	 * When create the object, the system add the link on the parent
-	 */
-	@Beta
-	boolean addLinkWhenCreate() default true;
 }

@@ -76,42 +76,53 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object insertedData,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
+
+		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
+		if (!decorators.updateLinkWhenUpdate()) {
+			return;
+		}
 		final Object previousDataValue = field.get(previousData);
 		final Object insertedDataValue = insertedData;
 		if (Objects.equals(previousDataValue, insertedDataValue)) {
 			return;
 		}
-		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (previousDataValue != null) {
-			actions.add(() -> {
+			actions.add((List<LazyGetter> actionsAsync) -> {
 				ListInDbTools.removeLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
 		if (insertedDataValue != null) {
-			actions.add(() -> {
-				ListInDbTools.addLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
+			actions.add((List<LazyGetter> actionsAsync) -> {
+				ListInDbTools.addLink(decorators.targetEntity(), insertedDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
 	}
 
-	/** Some action must be done asynchronously for update or remove element
+	/**
+	 * Some action must be done asynchronously for update or remove element
+	 *
 	 * @param field
-	 * @return */
+	 * @return
+	 */
 	@Override
 	public boolean isInsertAsync(final Field field) throws Exception {
 		return true;
 	}
 
-	/** When insert is mark async, this function permit to create or update the data.
+	/**
+	 * When insert is mark async, this function permit to create or update the data.
+	 *
 	 * @param primaryKeyValue Local ID of the current table
-	 * @param field Field that is updated.
-	 * @param data Data that might be inserted.
-	 * @param actions Asynchronous action to do after main request. */
+	 * @param field           Field that is updated.
+	 * @param data            Data that might be inserted.
+	 * @param actions         Asynchronous action to do after main request.
+	 */
 	@Override
 	public void asyncInsert(
 			final DBAccessMongo ioDb,
+			final Class<?> clazz,
 			final Object primaryKeyValue,
 			final Field field,
 			final Object data,
@@ -123,7 +134,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		}
 		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators.addLinkWhenCreate()) {
-			actions.add(() -> {
+			actions.add((List<LazyGetter> actionsAsync) -> {
 				ListInDbTools.addLink(decorators.targetEntity(), insertedData, decorators.remoteField(),
 						primaryKeyValue);
 			});
@@ -170,8 +181,9 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object dataRetrieve = doc.get(fieldName, primaryRemoteField.getType());
 			final FieldName idField = AnnotationTools
 					.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
-			// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-			final LazyGetter lambda = () -> {
+			// In the lazy mode, the request is done in asynchronous mode, they will be done
+			// after...
+			final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 				final Object foreignData = ioDb.getWhereRaw(decorators.targetEntity(),
 						new Condition(new QueryCondition(idField.inTable(), "=", dataRetrieve)));
 				if (foreignData == null) {
@@ -197,15 +209,18 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Field field,
-			final List<Object> previousDataThatIsDeleted) throws Exception {
+			final List<Object> previousDataThatIsDeleted,
+			final List<LazyGetter> actions) throws Exception {
 		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		final Field primaryKeyDeletedObjects = AnnotationTools.getPrimaryKeyField(clazz);
 		for (final Object obj : previousDataThatIsDeleted) {
 			final Object primaryKeyRemovedObject = primaryKeyDeletedObjects.get(obj);
 			final Object parentKey = field.get(obj);
 			if (parentKey != null) {
-				ListInDbTools.removeLink(decorators.targetEntity(), parentKey, decorators.remoteField(),
-						primaryKeyRemovedObject);
+				actions.add((List<LazyGetter> actionsAsync) -> {
+					ListInDbTools.removeLink(decorators.targetEntity(), parentKey, decorators.remoteField(),
+							primaryKeyRemovedObject);
+				});
 			}
 		}
 	}

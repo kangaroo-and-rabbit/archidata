@@ -342,7 +342,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						final List<Long> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
@@ -362,7 +362,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						final List<UUID> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
@@ -382,7 +382,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 					final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 							options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						final List<ObjectId> childs = new ArrayList<>(idList);
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
@@ -428,7 +428,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 		final String obj1 = linkTable.first ? "object1Id" : "object2Id";
 		final String obj2 = linkTable.first ? "object2Id" : "object1Id";
 
-		actions.add(() -> {
+		actions.add((List<LazyGetter> actionsAsync) -> {
 			ioDb.deleteWhere(LinkTableGeneric.class, new OverrideTableName(linkTable.tableName()),
 					new Condition(new QueryCondition(obj1, "=", localKey)),
 					new OptionSpecifyType(obj1, localKey.getClass()), new OptionSpecifyType(obj2, objectClass));
@@ -487,7 +487,7 @@ public class AddOnManyToMany implements DataAccessAddOn {
 			LOGGER.warn("Insert multiple link without any value (may have null in the list): {}", dataCasted);
 			return;
 		}
-		actions.add(() -> {
+		actions.add((List<LazyGetter> actionsAsync) -> {
 			ioDb.insertMultiple(insertElements, new OverrideTableName(linkTable.tableName()),
 					new OptionSpecifyType(obj1, localKey.getClass()), new OptionSpecifyType(obj2, objectClass));
 		});

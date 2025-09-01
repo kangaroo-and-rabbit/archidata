@@ -151,7 +151,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				// callback that generate the update of the value ...
 				final Long foreignKey = doc.getLong(fieldName.inTable());
 				if (foreignKey != null) {
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
@@ -166,7 +166,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				// callback that generate the update of the value ...
 				final UUID foreignKey = doc.get(fieldName.inTable(), UUID.class);
 				if (foreignKey != null) {
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {
@@ -181,7 +181,7 @@ public class AddOnManyToOne implements DataAccessAddOn {
 				// callback that generate the update of the value ...
 				final ObjectId foreignKey = doc.get(fieldName.inTable(), ObjectId.class);
 				if (foreignKey != null) {
-					final LazyGetter lambda = () -> {
+					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 						// TODO: update to have get with abstract types ....
 						final Object foreignData = ioDb.get(decorators.targetEntity(), foreignKey);
 						if (foreignData == null) {

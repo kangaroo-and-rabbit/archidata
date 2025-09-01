@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.atriasoft.archidata.annotation.checker.GroupRead;
-import org.atriasoft.archidata.dataAccess.DataExport;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
@@ -287,10 +286,6 @@ public class TsApiGeneration {
 					}
 					if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
 						lastElement = "HTTPMimeType.MULTIPART";
-						toolImports.add("HTTPMimeType");
-					}
-					if (DataExport.CSV_TYPE.equals(elem)) {
-						lastElement = "HTTPMimeType.CSV";
 						toolImports.add("HTTPMimeType");
 					}
 					if (lastElement != null) {

@@ -72,6 +72,7 @@ public interface DataAccessAddOn {
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
 			final DBAccessMongo ioDb,
+			final Class<?> clazz,
 			final Object localId,
 			final Field field,
 			final Object data,
@@ -118,7 +119,8 @@ public interface DataAccessAddOn {
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Field field,
-			final List<Object> previousData) throws Exception {
+			final List<Object> previousData,
+			final List<LazyGetter> actions) throws Exception {
 
 	}
 
