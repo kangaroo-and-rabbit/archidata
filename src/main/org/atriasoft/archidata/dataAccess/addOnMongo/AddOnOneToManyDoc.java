@@ -97,17 +97,17 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				// Replace the remote value with the current element and get the previous value
 				// of the data.
-				Object previousValue = OneToManyTools.setRemoteValue(field, value, primaryKeyValue);
+				final Object previousValue = OneToManyTools.setRemoteValue(field, value, primaryKeyValue);
 				// The previous value is not us (otherwise the function return null and we are
 				// in a really bad case...)
 				// we need to remove the value from the list of OneToMany. It not manage by the
 				// plug-in due to the fact we update the only one filed manually
 				if (previousValue != null) {
-					actionsAsync.add((List<LazyGetter> actionsAsync2) -> {
-						String fieldName = AnnotationTools.getFieldName(field, null).inTable();
+					actionsAsync.add((final List<LazyGetter> actionsAsync2) -> {
+						final String fieldName = AnnotationTools.getFieldName(field, null).inTable();
 						ListInDbTools.removeLink(previousData.getClass(), previousValue, fieldName, value);
 					});
 				}
@@ -121,12 +121,12 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			switch (oneToManyDoc.cascadeUpdate()) {
 				case CascadeMode.DELETE:
-					actions.add((List<LazyGetter> actionsAsync) -> {
+					actions.add((final List<LazyGetter> actionsAsync) -> {
 						ioDb.delete(oneToManyDoc.targetEntity(), value);
 					});
 					break;
 				case CascadeMode.SET_NULL:
-					actions.add((List<LazyGetter> actionsAsync) -> {
+					actions.add((final List<LazyGetter> actionsAsync) -> {
 						OneToManyTools.setRemoteNullRemote(field, value);
 					});
 					break;
@@ -173,17 +173,17 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 
 				final OneToManyDoc decorators = field.getDeclaredAnnotation(OneToManyDoc.class);
 				if (decorators.addLinkWhenCreate()) {
-					actions.add((List<LazyGetter> actionsAsync) -> {
+					actions.add((final List<LazyGetter> actionsAsync) -> {
 						// Replace the remote value with the current element and get the previous value
 						// of the data.
-						Object previousValue = OneToManyTools.setRemoteValue(field, value, primaryKeyValue);
+						final Object previousValue = OneToManyTools.setRemoteValue(field, value, primaryKeyValue);
 						// The previous value is not us (otherwise the function return null and we are
 						// in a really bad case...)
 						// we need to remove the value from the list of OneToMany. It not manage by the
 						// plug-in due to the fact we update the only one filed manually
 						if (previousValue != null) {
-							actionsAsync.add((List<LazyGetter> actionsAsync2) -> {
-								String fieldName = AnnotationTools.getFieldName(field, null).inTable();
+							actionsAsync.add((final List<LazyGetter> actionsAsync2) -> {
+								final String fieldName = AnnotationTools.getFieldName(field, null).inTable();
 								ListInDbTools.removeLink(clazz, previousValue, fieldName, value);
 							});
 						}
@@ -238,7 +238,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 							.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
 					// In the lazy mode, the request is done in asynchronous mode, they will be done
 					// after...
-					final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
+					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 						final Object foreignData = ioDb.getsWhereRaw(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), idList)));
 						if (foreignData == null) {
@@ -270,18 +270,21 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final List<Object> previousDataThatIsDeleted,
 			final List<LazyGetter> actions) throws Exception {
 		final OneToManyDoc decorators = field.getDeclaredAnnotation(OneToManyDoc.class);
-		for (Object obj : previousDataThatIsDeleted) {
+		for (final Object obj : previousDataThatIsDeleted) {
 			final Object childKeys = field.get(obj);
-			if (childKeys instanceof Collection childCollection) {
-				for (Object childKey : childCollection) {
+			if (childKeys == null) {
+				continue;
+			}
+			if (childKeys instanceof final Collection childCollection) {
+				for (final Object childKey : childCollection) {
 					switch (decorators.cascadeUpdate()) {
 						case CascadeMode.DELETE:
-							actions.add((List<LazyGetter> actionsAsync) -> {
+							actions.add((final List<LazyGetter> actionsAsync) -> {
 								ioDb.delete(decorators.targetEntity(), childKey);
 							});
 							break;
 						case CascadeMode.SET_NULL:
-							actions.add((List<LazyGetter> actionsAsync) -> {
+							actions.add((final List<LazyGetter> actionsAsync) -> {
 								OneToManyTools.setRemoteNullRemote(field, childKey);
 							});
 							break;
@@ -290,7 +293,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 					}
 				}
 			} else {
-				throw new FailException("can not remove not key value in collection");
+				throw new FailException("can not remove a remote kes stored in other than a Collection<T>");
 			}
 		}
 	}
