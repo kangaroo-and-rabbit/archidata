@@ -3,12 +3,16 @@ package org.atriasoft.archidata.backup;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -30,7 +34,9 @@ import org.atriasoft.archidata.dataAccess.DBAccess;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.ContextGenericTools;
+import org.atriasoft.archidata.tools.DateTools;
 import org.bson.Document;
 import org.bson.json.JsonMode;
 import org.bson.json.JsonWriterSettings;
@@ -221,6 +227,223 @@ public class BackupEngine {
 		}
 	}
 
+	private void backupDataToStream(final TarArchiveOutputStream tarOut) throws IOException, DataAccessException {
+		final String mediaFolder = ConfigBaseVariable.getMediaDataFolder();
+		// Create a File to the specific data of medias:
+		final File mediaDirFile = new File(mediaFolder);
+
+		if (mediaDirFile.exists() && mediaDirFile.isDirectory() && mediaDirFile.canRead()) {
+			// recursive add files in the tar:
+			addDirectoryToTar(tarOut, mediaDirFile, "data/");
+		}
+	}
+
+	private void addDirectoryToTar(final TarArchiveOutputStream tarOut, final File sourceDir, final String basePath)
+			throws IOException {
+		if (!sourceDir.canRead()) {
+			LOGGER.warn("The folder is not readable ==> ignored: {}", sourceDir.getAbsolutePath());
+			return;
+		}
+		final File[] files = sourceDir.listFiles();
+		if (files != null) {
+			for (final File file : files) {
+				if (!file.canRead()) {
+					LOGGER.warn("The file is not readable ==> ignored: {}", file.getAbsolutePath());
+					continue;
+				}
+				// Ignore the folder history_restore_* at the first data level
+				if (file.isDirectory() && basePath.equals("data/") && file.getName().startsWith("history_restore")) {
+					LOGGER.info("Folder history_restore_* ignored: {}", file.getName());
+					continue;
+				}
+				final String entryName = basePath + file.getName();
+				try {
+					if (file.isDirectory()) {
+						final TarArchiveEntry dirEntry = new TarArchiveEntry(entryName + "/");
+						tarOut.putArchiveEntry(dirEntry);
+						tarOut.closeArchiveEntry();
+
+						addDirectoryToTar(tarOut, file, entryName + "/");
+					} else {
+						if (!file.exists() || file.length() < 0) {
+							LOGGER.warn("Fichier invalide, ignoré : {}", file.getAbsolutePath());
+							continue;
+						}
+
+						final TarArchiveEntry fileEntry = new TarArchiveEntry(file, entryName);
+						tarOut.putArchiveEntry(fileEntry);
+
+						try (FileInputStream fis = new FileInputStream(file)) {
+							final byte[] buffer = new byte[8192];
+							int bytesRead;
+							while ((bytesRead = fis.read(buffer)) != -1) {
+								tarOut.write(buffer, 0, bytesRead);
+							}
+							tarOut.closeArchiveEntry();
+						} catch (final IOException e) {
+							LOGGER.error("Fal to read the file, ignored: {} - {}", file.getAbsolutePath(),
+									e.getMessage());
+							tarOut.closeArchiveEntry();
+						}
+					}
+				} catch (final IOException e) {
+					LOGGER.error("Fait to add data in the archive, element ignored: {} - {}", file.getAbsolutePath(),
+							e.getMessage());
+				}
+			}
+		} else {
+			LOGGER.warn("Fail to list the folder: {}", sourceDir.getAbsolutePath());
+		}
+	}
+
+	private void restoreStreamToData(
+			final TarArchiveInputStream tarIn,
+			final boolean eraseOldData,
+			final boolean moveOldData) throws IOException, DataAccessException {
+		final String mediaFolder = ConfigBaseVariable.getMediaDataFolder();
+		final File mediaDirFile = new File(mediaFolder);
+
+		// First step: erase or move previous data...
+		if (moveOldData && mediaDirFile.exists() && mediaDirFile.isDirectory()) {
+			moveExistingDataToHistoryRestore(mediaDirFile);
+			deleteEmptyFolder(mediaDirFile, false);
+		} else if (eraseOldData && mediaDirFile.exists()) {
+			// Remove the old data
+			deleteDirectory(mediaDirFile, false);
+		}
+		// extract data from tar
+		extractTarToMediaFolder(tarIn, mediaDirFile);
+	}
+
+	private void deleteDirectory(final File directory, final boolean deletecurrentFolder) throws IOException {
+		// disable, I an not sure it is a good ideas...
+		return;
+		/*
+		final File[] files = directory.listFiles();
+		if (files != null) {
+			for (final File file : files) {
+				if (file.isDirectory()) {
+					deleteDirectory(file, true);
+				} else if (!file.delete()) {
+					LOGGER.warn("Fail to remove the file : {}", file.getAbsolutePath());
+				}
+			}
+		}
+		if (deletecurrentFolder && !directory.delete()) {
+			LOGGER.warn("Fail to remove the folder: {}", directory.getAbsolutePath());
+		}
+		*/
+	}
+
+	private boolean deleteEmptyFolder(final File directory, final boolean deletecurrentFolder) throws IOException {
+		final File[] files = directory.listFiles();
+		boolean detectFile = false;
+		if (files != null) {
+			for (final File file : files) {
+				if (file.isDirectory()) {
+					if (deleteEmptyFolder(file, true)) {
+						detectFile = true;
+					}
+				} else {
+					detectFile = true;
+				}
+			}
+		}
+		if (detectFile) {
+			return true;
+		}
+		if (deletecurrentFolder && !directory.delete()) {
+			LOGGER.warn("Fail to remove the folder: {}", directory.getAbsolutePath());
+		}
+		return false;
+	}
+
+	private void moveExistingDataToHistoryRestore(final File mediaDirFile) throws IOException {
+		// create timestamp ISO8601 compatible
+		final String timestamp = DateTools.serializeMilliWithOriginalTimeZone(new Date());
+
+		final Path mediaPath = mediaDirFile.toPath();
+		final Path historyRestorePath = mediaPath.resolve("history_restore").resolve(timestamp);
+
+		Files.createDirectories(historyRestorePath);
+		LOGGER.info("Move previous data to: {}", historyRestorePath);
+
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(mediaPath)) {
+			for (final Path entry : stream) {
+				final String fileName = entry.getFileName().toString();
+
+				// Ignore the folder history_restore
+				if (Files.isDirectory(entry) && fileName.equals("history_restore")) {
+					LOGGER.info("skip folder history_restore: {}", fileName);
+					continue;
+				}
+
+				final Path destination = historyRestorePath.resolve(fileName);
+				try {
+					Files.move(entry, destination, StandardCopyOption.REPLACE_EXISTING);
+					LOGGER.debug("Déplacé : {} vers {}", fileName, destination);
+				} catch (final IOException e) {
+					LOGGER.error("Erreur lors du déplacement de {} : {}", entry, e.getMessage());
+					throw e;
+				}
+			}
+		}
+	}
+
+	private void extractTarToMediaFolder(final TarArchiveInputStream tarIn, final File mediaDirFile)
+			throws IOException {
+		LOGGER.info("Extract data to: {}", mediaDirFile.getAbsolutePath());
+		TarArchiveEntry entry;
+		while ((entry = tarIn.getNextEntry()) != null) {
+			// Remove base folder in the backup "data/":
+			String entryName = entry.getName();
+			if (entryName.startsWith("data/")) {
+				entryName = entryName.substring(5);
+			} else {
+				// skip files not in this folder.
+				continue;
+			}
+			// Ignore empty
+			if (entryName.isEmpty()) {
+				continue;
+			}
+			final File outputFile = new File(mediaDirFile, entryName);
+			// check security to prevent path traversal attacks
+			if (!outputFile.getCanonicalPath().startsWith(mediaDirFile.getCanonicalPath())) {
+				LOGGER.warn("Input TAR too dangerous ignored: {}", entry.getName());
+				continue;
+			}
+			if (entry.isDirectory()) {
+				if (!outputFile.mkdirs() && !outputFile.exists()) {
+					LOGGER.warn("Fail to create the folder: {}", outputFile.getAbsolutePath());
+				}
+			} else {
+				// Create parent directories:
+				final File parentDir = outputFile.getParentFile();
+				if (parentDir != null && !parentDir.exists()) {
+					if (!parentDir.mkdirs()) {
+						LOGGER.warn("Fail to create parent folder: {}", parentDir.getAbsolutePath());
+						continue;
+					}
+				}
+				// Extract the file:
+				try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+					final byte[] buffer = new byte[8192];
+					int bytesRead = 0;
+					int totalBytesRead = 0;
+					while ((bytesRead = tarIn.read(buffer)) != -1) {
+						fos.write(buffer, 0, bytesRead);
+						totalBytesRead += bytesRead;
+					}
+					LOGGER.debug("File extracted: {} size: {}", entryName, totalBytesRead);
+				} catch (final IOException e) {
+					LOGGER.error("Fail to extract the file {} : {}", entryName, e.getMessage());
+					// continue with next file...
+				}
+			}
+		}
+	}
+
 	private Date executeStore(final String sequence, final Date since) throws IOException, DataAccessException {
 		final Date now = Date.from(Instant.now());
 		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "")
@@ -230,6 +453,7 @@ public class BackupEngine {
 		LOGGER.warn("Sttore in path: {} [BEGIN]", outputFileTmp);
 		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp)) {
 			backupCollectionsToStream(tarOut);
+			backupDataToStream(tarOut);
 		}
 		try {
 			Files.move(outputFileTmp, this.pathStore.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
@@ -270,6 +494,10 @@ public class BackupEngine {
 		}
 		try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
 			restoreStreamToCollections(tarIn, collectionName);
+		}
+		// Need to open the stream 2 time due to the fact it is not possible to reset marker position.
+		try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
+			restoreStreamToData(tarIn, false, true);
 		}
 		LOGGER.info("Restore DB: [ END ]");
 		return true;
