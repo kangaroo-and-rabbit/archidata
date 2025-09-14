@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.dataAccess.commonTools;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Objects;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
@@ -15,12 +16,13 @@ import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
+import org.atriasoft.archidata.exception.DataAccessException;
 
 public class OneToManyTools {
 
 	private static void setRemoteFieldToNull(
 			final Class<?> clazz,
-			String primaryKeyTableName,
+			final String primaryKeyTableName,
 			final Object clazzPrimaryKeyValue,
 			final String fieldTableName) throws Exception {
 		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
@@ -31,7 +33,7 @@ public class OneToManyTools {
 		options.add(new OptionRenameColumn("primaryKey", primaryKeyTableName));
 		options.add(new OptionRenameColumn("fieldToUpdate", fieldTableName));
 		options.add(new AccessDeletedItems());
-		TableObjectGeneric data = new TableObjectGeneric();
+		final TableObjectGeneric data = new TableObjectGeneric();
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
 		}
@@ -63,7 +65,7 @@ public class OneToManyTools {
 
 	private static Object setRemoteFieldToValue(
 			final Class<?> clazz,
-			String primaryKeyTableName,
+			final String primaryKeyTableName,
 			final Object clazzPrimaryKeyValue,
 			final String fieldTableName,
 			final Object valueToSet) throws Exception {
@@ -87,7 +89,7 @@ public class OneToManyTools {
 			// The object has already the good value ==> Nothing to do ...
 			return null;
 		}
-		Object previousValue = data.fieldToUpdate;
+		final Object previousValue = data.fieldToUpdate;
 		data.fieldToUpdate = valueToSet;
 		options.add(new FilterValue("fieldToUpdate"));
 		DataAccess.updateFull(data, clazzPrimaryKeyValue, options.getAllArray());
@@ -117,4 +119,43 @@ public class OneToManyTools {
 		}
 	}
 
+	/**
+	 * This function update the remote field with the correct value, it permit to update a remote filed after adding the decorator or correct a fail in the BDD.
+	 * @param clazz Class that the correct data is present
+	 * @param fieldName Name if the field to update
+	 * @param resetRemote Clear the remote data before updating
+	 */
+	public static <T> void updateRemoteLinks(final Class<T> clazz, final String fieldName, final boolean resetRemote)
+			throws Exception {
+		final Field field = clazz.getField(fieldName);
+		if (field == null) {
+			throw new DataAccessException(
+					"Fail to find the field name:'" + fieldName + "' in class: " + clazz.getCanonicalName());
+		}
+		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
+		if (primaryKeyField == null) {
+			throw new DataAccessException(
+					"Fail to find the primary field not found in class: " + clazz.getCanonicalName());
+		}
+		final OneToManyDoc annotation = AnnotationTools.get(field, OneToManyDoc.class);
+		if (annotation == null) {
+			throw new DataAccessException("Fail to find the annotation:'@ManyToManyDoc' in class: "
+					+ clazz.getCanonicalName() + " for fieldName='" + fieldName + "'");
+		}
+		// Step 1 get all the data (prevent clear removing)
+		final List<T> data = DataAccess.gets(clazz);
+		// Step 2 clear the remote elements
+		if (resetRemote) {
+			FieldTools.setFieldAtNull(annotation.targetEntity(), annotation.remoteField());
+		}
+		// Step 3 force the system to update the values
+		for (final T elem : data) {
+			final Object dataTemp = field.get(elem);
+			final Object primaryKey = primaryKeyField.get(elem);
+			field.set(elem, null);
+			DataAccess.update(elem, primaryKey);
+			field.set(elem, dataTemp);
+			DataAccess.update(elem, primaryKey);
+		}
+	}
 }
