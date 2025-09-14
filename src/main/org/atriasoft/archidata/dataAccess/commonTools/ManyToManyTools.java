@@ -116,7 +116,7 @@ public class ManyToManyTools {
 		} else {
 			data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
-		if (data.filedNameOfTheObject == null) {
+		if (data == null || data.filedNameOfTheObject == null) {
 			return;
 		}
 		final List<Object> newList = new ArrayList<>();

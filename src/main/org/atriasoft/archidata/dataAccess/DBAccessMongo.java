@@ -560,20 +560,6 @@ public class DBAccessMongo extends DBAccess {
 		return out;
 	}
 
-	private void inspectType(final Type type, final int depth) {
-		if (type instanceof final ParameterizedType pType) {
-			System.out.println(" ".repeat(depth * 2) + "Raw type: " + pType.getRawType());
-
-			for (final Type arg : pType.getActualTypeArguments()) {
-				inspectType(arg, depth + 1);
-			}
-		} else if (type instanceof Class) {
-			System.out.println(" ".repeat(depth * 2) + "Class: " + ((Class<?>) type).getName());
-		} else {
-			System.out.println(" ".repeat(depth * 2) + "Unknown type: " + type);
-		}
-	}
-
 	public <T> void setValueFromDoc(
 			final Type type,
 			final Object data,
@@ -1021,7 +1007,7 @@ public class DBAccessMongo extends DBAccess {
 		}
 		List<LazyGetter> actionsAsync = asyncActions;
 		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-			List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
 			for (final LazyGetter action : actionsAsync) {
 				action.doRequest(actionsAsyncNew);
 			}
@@ -1145,7 +1131,7 @@ public class DBAccessMongo extends DBAccess {
 			final UpdateResult ret = collection.updateMany(filters, actions);
 			List<LazyGetter> actionsAsync = asyncActions;
 			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-				List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+				final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
 				for (final LazyGetter action : actionsAsync) {
 					action.doRequest(actionsAsyncNew);
 				}
@@ -1272,7 +1258,7 @@ public class DBAccessMongo extends DBAccess {
 				// LOGGER.trace("Async calls: {}", lazyCall.size());
 				List<LazyGetter> actionsAsync = lazyCall;
 				for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-					List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+					final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
 					for (final LazyGetter action : actionsAsync) {
 						action.doRequest(actionsAsyncNew);
 					}
@@ -1601,7 +1587,7 @@ public class DBAccessMongo extends DBAccess {
 	}
 
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
-		List<LazyGetter> lazyCall = new ArrayList<>();
+		final List<LazyGetter> lazyCall = new ArrayList<>();
 		// Some mode need to get the previous data to perform a correct update...
 		boolean needPreviousValues = false;
 		final List<Field> hasDeletedActionFields = new ArrayList<>();
@@ -1636,7 +1622,7 @@ public class DBAccessMongo extends DBAccess {
 		}
 		List<LazyGetter> actionsAsync = lazyCall;
 		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-			List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
 			for (final LazyGetter action : actionsAsync) {
 				action.doRequest(actionsAsyncNew);
 			}
