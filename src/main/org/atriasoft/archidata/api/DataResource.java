@@ -120,8 +120,7 @@ public class DataResource {
 			LOGGER.error("Fail to generate the hash of the objectId ==> ise direct value ... {}", ex.getMessage());
 		}
 		final String finalPath = dir1 + File.separator + dir2 + File.separator + dir3;
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_oid" + File.separator + finalPath
-				+ File.separator;
+		String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + finalPath + File.separator;
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
