@@ -146,7 +146,7 @@ public class BackupEngine {
 			}
 
 			final byte[] data = jsonOut.toByteArray();
-			LOGGER.warn("Store data take in memory: {} Bytes", data.length);
+			LOGGER.debug("Store data take in memory: {} Bytes", data.length);
 
 			final TarArchiveEntry entry = new TarArchiveEntry(collectionDescription.name() + ".json");
 			entry.setSize(data.length);
@@ -253,7 +253,7 @@ public class BackupEngine {
 				}
 				// Ignore the folder history_restore_* at the first data level
 				if (file.isDirectory() && basePath.equals("data/") && file.getName().startsWith("history_restore")) {
-					LOGGER.info("Folder history_restore_* ignored: {}", file.getName());
+					LOGGER.debug("Folder history_restore ignored: {}", file.getName());
 					continue;
 				}
 				final String entryName = basePath + file.getName();
@@ -450,17 +450,18 @@ public class BackupEngine {
 				+ (since != null ? "_partial" : "") + ".tar.gz";
 		// Create a hidden file fort the temporary generation
 		final Path outputFileTmp = this.pathStore.resolve("." + fileName + "_tmp");
-		LOGGER.warn("Sttore in path: {} [BEGIN]", outputFileTmp);
+		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
 		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp)) {
 			backupCollectionsToStream(tarOut);
 			backupDataToStream(tarOut);
 		}
 		try {
 			Files.move(outputFileTmp, this.pathStore.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
+			LOGGER.info("Backup done in file: {}", this.pathStore.resolve(fileName));
 		} catch (final IOException e) {
 			LOGGER.error("Erreur lors du déplacement du fichier {} vers {}", outputFileTmp, fileName, e);
 		}
-		LOGGER.warn("Sttore in path: {} [ END ]", outputFileTmp);
+		LOGGER.debug("Store in path: {} [ END ]", outputFileTmp);
 		return now;
 	}
 
