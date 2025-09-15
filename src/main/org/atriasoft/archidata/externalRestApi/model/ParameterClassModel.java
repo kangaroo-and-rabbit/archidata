@@ -20,7 +20,12 @@ public record ParameterClassModel(
 		ClassModel model) {
 	public ParameterClassModel(final boolean valid, final Class<?>[] groups, final ClassModel model) {
 		this.valid = valid;
-		this.groups = groups;
+		if (groups == null) {
+			// by default the Read group is the default.
+			this.groups = new Class<?>[] { GroupRead.class };
+		} else {
+			this.groups = groups;
+		}
 		this.model = model;
 	}
 
