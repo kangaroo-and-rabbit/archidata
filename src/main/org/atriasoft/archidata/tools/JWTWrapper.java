@@ -122,15 +122,15 @@ public class JWTWrapper {
 		try {
 			String generatedStringForKey = baseUUID;
 			if (generatedStringForKey == null) {
-				LOGGER.error(" Generate new UUID : {}", generatedStringForKey);
+				LOGGER.trace("Generate new UUID: {}", generatedStringForKey);
 				generatedStringForKey = UUID.randomUUID().toString();
 			} else {
-				LOGGER.error("USE UUID : {}", generatedStringForKey);
+				LOGGER.trace("USE UUID: {}", generatedStringForKey);
 			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
-			LOGGER.error("RSA key (all): " + rsaJWK.toJSONString());
-			LOGGER.error("RSA key (pub): " + rsaPublicJWK.toJSONString());
+			LOGGER.trace("RSA key (all): " + rsaJWK.toJSONString());
+			LOGGER.trace("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (final JOSEException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

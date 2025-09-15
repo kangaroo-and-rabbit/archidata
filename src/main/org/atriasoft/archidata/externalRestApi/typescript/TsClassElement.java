@@ -358,15 +358,6 @@ public class TsClassElement {
 		return out.toString();
 	}
 
-	private boolean containGroup(final Class<?>[] groupsA, final Class<?> groupB) {
-		for (final Class<?> elemA : groupsA) {
-			if (TypeUtils.isSameClass(elemA, groupB)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	private boolean isCompatibleGroup(final Class<?>[] groupsA, final Class<?>[] groupsB) {
 		if (groupsA == null || groupsB == null) {
 			return false;
@@ -439,9 +430,6 @@ public class TsClassElement {
 
 	public String optionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (isOptionalTypeZod(field, isValid, groups)) {
-			if (field.name().equals("oid")) {
-				LOGGER.error("lkjlkjlkj");
-			}
 			return ".optional()";
 		}
 		return "";
