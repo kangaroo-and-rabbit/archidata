@@ -110,9 +110,6 @@ public class ClassObjectModel extends ClassModel {
 				final NotNull annotationNotNull, //
 				final Null annotationNull, //
 				final Boolean nullable) {
-			if (name.equals("oid")) {
-				LOGGER.error("plop");
-			}
 			this.name = name;
 			this.model = model;
 			this.linkClass = linkClass;
