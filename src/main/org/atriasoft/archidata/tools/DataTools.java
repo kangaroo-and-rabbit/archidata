@@ -345,6 +345,41 @@ public class DataTools {
 		ListInDbTools.addLink(clazz, id, null, data.oid);
 	}
 
+	public static <CLASS_TYPE, ID_TYPE> ObjectId uploadData(
+			final InputStream fileInputStream,
+			final FormDataContentDisposition fileMetaData) throws Exception {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccess ioDb = ctx.get();
+			LOGGER.info("Upload media file: {}", fileMetaData);
+			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
+			LOGGER.info("    - fileInputStream: {}", fileInputStream);
+			LOGGER.info("    - fileMetaData: {}", fileMetaData);
+
+			final long tmpUID = getTmpDataId();
+			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+			Data data = getWithSha512(ioDb, sha512);
+			if (data == null) {
+				LOGGER.info("Need to add the data in the BDD ... ");
+				try {
+					data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
+				} catch (final IOException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
+				} catch (final SQLException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED, "Error in DB insertion", ex);
+				}
+			} else if (data.deleted) {
+				LOGGER.error("Data already exist but deleted");
+				undelete(ioDb, data.oid);
+				data.deleted = false;
+			} else {
+				LOGGER.error("Data already exist ... all good");
+			}
+			return data.oid;
+		}
+	}
+
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
@@ -378,7 +413,7 @@ public class DataTools {
 				} catch (final SQLException ex) {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED,
-							clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
+							clazz.getCanonicalName() + "[" + id.toString() + "] Error in DB insertion", ex);
 				}
 			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");
