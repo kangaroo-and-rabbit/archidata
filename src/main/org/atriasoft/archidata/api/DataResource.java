@@ -22,6 +22,8 @@ import java.util.UUID;
 import javax.imageio.ImageIO;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiInputOptional;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
+import org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection;
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
@@ -30,6 +32,7 @@ import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.filter.GenericContext;
 import org.atriasoft.archidata.model.Data;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.atriasoft.archidata.tools.DataTools;
 import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -283,28 +286,16 @@ public class DataResource {
 	}
 
 	@POST
-	@Path("/upload/")
+	@Path("upload")
+	@RolesAllowed({ "USER" })
 	@Consumes({ MediaType.MULTIPART_FORM_DATA })
-	@RolesAllowed("ADMIN")
-	@Operation(description = "Insert a new data in the data environment", tags = "SYSTEM")
-	public void uploadFile(
-			@Context final SecurityContext sc,
+	@Operation(description = "Upload data in the system", tags = "SYSTEM")
+	@ApiTypeScriptProgress
+	@DataAccessSingleConnection
+	public ObjectId uploadMedia(
 			@FormDataParam("file") final InputStream fileInputStream,
-			@FormDataParam("file") final FormDataContentDisposition fileMetaData) throws FailException {
-		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		LOGGER.info("===================================================");
-		LOGGER.info("== DATA uploadFile {}", (gc == null ? "null" : gc.userByToken));
-		LOGGER.info("===================================================");
-		// public NodeSmall uploadFile(final FormDataMultiPart form) {
-		LOGGER.info("Upload file: ");
-		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
-		try {
-			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (final IOException ex) {
-			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
-					"Impossible to create the folder in the server", ex);
-		}
-		saveFile(fileInputStream, filePath);
+			@FormDataParam("file") final FormDataContentDisposition fileMetaData) throws Exception {
+		return DataTools.uploadData(fileInputStream, fileMetaData);
 	}
 
 	@GET
