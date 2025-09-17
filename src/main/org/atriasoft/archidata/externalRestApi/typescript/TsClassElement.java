@@ -516,6 +516,7 @@ public class TsClassElement {
 		out.append(this.declaration);
 		out.append(";");
 		out.append(generateZodInfer(this.tsTypeName, this.zodName));
+		out.append(generateExportCheckFunction(this.tsCheckType, this.tsTypeName, this.zodName));
 		return out.toString();
 	}
 
