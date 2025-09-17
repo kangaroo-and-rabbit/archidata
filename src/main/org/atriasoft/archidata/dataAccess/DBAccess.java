@@ -171,6 +171,7 @@ public abstract class DBAccess implements Closeable {
 	 * @param jsonData Json data (partial) values to update
 	 * @return the number of object updated
 	 * @throws Exception */
+	@Deprecated
 	public <T, ID_TYPE> long updateWithJson(
 			final Class<T> clazz,
 			final ID_TYPE id,
@@ -182,6 +183,7 @@ public abstract class DBAccess implements Closeable {
 		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
 	}
 
+	@Deprecated
 	public <T> long updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
