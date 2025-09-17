@@ -36,6 +36,7 @@ import org.atriasoft.archidata.dataAccess.addOnSQL.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DBInterfaceRoot;
+import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.GroupBy;
 import org.atriasoft.archidata.dataAccess.options.Limit;
@@ -1155,7 +1156,15 @@ public class DBAccessSQL extends DBAccess {
 		if (filters.size() != 1) {
 			throw new DataAccessException("request a gets without/or with more 1 filter of values");
 		}
-		final FilterValue filter = filters.get(0);
+		final FilterValue filterKey = filters.get(0);
+
+		final List<FilterOmit> filterOmitKeys = options != null ? options.get(FilterOmit.class) : new ArrayList<>();
+		FilterOmit filterOmitKey = null;
+		if (filterOmitKeys.size() > 1) {
+			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
+		} else if (filterOmitKeys.size() == 1) {
+			filterOmitKey = filterOmitKeys.get(0);
+		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 		// real add in the BDD:
 		try {
@@ -1172,11 +1181,12 @@ public class DBAccessSQL extends DBAccess {
 				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
-				final FieldName name = AnnotationTools.getFieldName(field, options);
-				if (!filter.getValues().contains(name.inStruct())) {
-					continue;
-				}
+				final FieldName fieldName = AnnotationTools.getFieldName(field, options);
 				if (AnnotationTools.isGenericField(field)) {
+					continue;
+				} else if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
+					continue;
+				} else if (!filterKey.getValues().contains(fieldName.inStruct())) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
@@ -1199,7 +1209,7 @@ public class DBAccessSQL extends DBAccess {
 					continue;
 				}
 				final FieldName name = AnnotationTools.getFieldName(field, options);
-				if (!filter.getValues().contains(name.inStruct())) {
+				if (!filterKey.getValues().contains(name.inStruct())) {
 					continue;
 				} else if (AnnotationTools.isGenericField(field)) {
 					continue;
@@ -1255,7 +1265,7 @@ public class DBAccessSQL extends DBAccess {
 							continue;
 						}
 						final String name = AnnotationTools.getFieldName(field, options).inStruct();
-						if (!filter.getValues().contains(name)) {
+						if (!filterKey.getValues().contains(name)) {
 							continue;
 						} else if (AnnotationTools.isGenericField(field)) {
 							continue;

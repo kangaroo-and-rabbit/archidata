@@ -31,6 +31,7 @@ import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
+import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
@@ -1026,9 +1027,16 @@ public class DBAccessMongo extends DBAccess {
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final List<FilterValue> filterKeys = options != null ? options.get(FilterValue.class) : new ArrayList<>();
 		if (filterKeys.size() != 1) {
-			throw new DataAccessException("request a gets without/or with more 1 filter of values");
+			throw new DataAccessException("request a gets without/or with more 1 FilterValue of values");
 		}
 		final FilterValue filterKey = filterKeys.get(0);
+		final List<FilterOmit> filterOmitKeys = options != null ? options.get(FilterOmit.class) : new ArrayList<>();
+		FilterOmit filterOmitKey = null;
+		if (filterOmitKeys.size() > 1) {
+			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
+		} else if (filterOmitKeys.size() == 1) {
+			filterOmitKey = filterOmitKeys.get(0);
+		}
 
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
@@ -1079,9 +1087,11 @@ public class DBAccessMongo extends DBAccess {
 				if (!directdata && createTime) {
 					continue;
 				}
-				if (!filterKey.getValues().contains(fieldName.inStruct())) {
+				if (AnnotationTools.isGenericField(field)) {
 					continue;
-				} else if (AnnotationTools.isGenericField(field)) {
+				} else if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
+					continue;
+				} else if (!filterKey.getValues().contains(fieldName.inStruct())) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
