@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -192,7 +193,11 @@ public class DataResource {
 		final String mediaPath = getFileData(injectedData.oid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
-		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
+		try {
+			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
+		} catch (AtomicMoveNotSupportedException ex) {
+			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.REPLACE_EXISTING);
+		}
 		LOGGER.info("Move done");
 		return injectedData;
 	}
@@ -204,14 +209,26 @@ public class DataResource {
 		LOGGER.info("dst = {}", mediaDestPath);
 		if (Files.exists(Paths.get(mediaCurentPath))) {
 			LOGGER.info("move: {} ==> {}", mediaCurentPath, mediaDestPath);
-			Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
+			try {
+				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
+				LOGGER.info("Atomic-move done");
+			} catch (AtomicMoveNotSupportedException ex) {
+				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.REPLACE_EXISTING);
+				LOGGER.info("Move done");
+			}
 		}
 		// Move old meta-data...
 		mediaCurentPath = mediaCurentPath.substring(mediaCurentPath.length() - 4) + "meta.json";
 		mediaDestPath = mediaCurentPath.substring(mediaDestPath.length() - 4) + "meta.json";
 		if (Files.exists(Paths.get(mediaCurentPath))) {
 			LOGGER.info("moveM: {} ==> {}", mediaCurentPath, mediaDestPath);
-			Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
+			try {
+				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
+				LOGGER.info("Atomic-move done");
+			} catch (AtomicMoveNotSupportedException ex) {
+				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.REPLACE_EXISTING);
+				LOGGER.info("Move done");
+			}
 		}
 		LOGGER.info("Move done");
 	}

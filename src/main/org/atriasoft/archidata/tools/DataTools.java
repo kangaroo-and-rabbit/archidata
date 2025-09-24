@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -125,9 +126,13 @@ public class DataTools {
 		final String mediaPath = DataResource.getFileData(out.oid);
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
-		Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
-
-		LOGGER.info("Move done");
+		try {
+			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
+			LOGGER.info("Atomic-move done");
+		} catch (AtomicMoveNotSupportedException ex) {
+			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.REPLACE_EXISTING);
+			LOGGER.info("Move done");
+		}
 		// all is done the file is correctly installed...
 		return out;
 	}
