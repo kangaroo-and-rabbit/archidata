@@ -64,11 +64,20 @@ public class BackupEngine {
 	private final String baseName;
 	private final EngineBackupType type;
 	private final List<CollectionWithUpdate> collections = new ArrayList<>();
+	private boolean enableStoreOrRestoreData = true;
 
 	public BackupEngine(final Path pathToStoreDB, final String baseName, final EngineBackupType type) {
 		this.pathStore = pathToStoreDB;
 		this.baseName = baseName;
 		this.type = type;
+	}
+
+	/**
+	 * Change the state of the store of the data in the system (need to be disable when data can be too big...
+	 * @param value new state
+	 */
+	public void setEnableStoreOrRestoreData(boolean value) {
+		this.enableStoreOrRestoreData = value;
 	}
 
 	public void addClass(final Class<?>... classes) throws DataAccessException {
@@ -453,7 +462,9 @@ public class BackupEngine {
 		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
 		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp)) {
 			backupCollectionsToStream(tarOut);
-			backupDataToStream(tarOut);
+			if (this.enableStoreOrRestoreData) {
+				backupDataToStream(tarOut);
+			}
 		}
 		try {
 			Files.move(outputFileTmp, this.pathStore.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
@@ -497,8 +508,10 @@ public class BackupEngine {
 			restoreStreamToCollections(tarIn, collectionName);
 		}
 		// Need to open the stream 2 time due to the fact it is not possible to reset marker position.
-		try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
-			restoreStreamToData(tarIn, false, true);
+		if (this.enableStoreOrRestoreData) {
+			try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
+				restoreStreamToData(tarIn, false, true);
+			}
 		}
 		LOGGER.info("Restore DB: [ END ]");
 		return true;
