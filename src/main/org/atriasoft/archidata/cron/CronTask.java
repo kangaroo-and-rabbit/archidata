@@ -10,15 +10,16 @@ record CronTask(
 		String name,
 		String cronExpression,
 		Runnable action,
-		boolean uniqueInQueue) {
+		boolean uniqueInQueue)
+		implements Task {
 
 	/**
 	 * Check if the cron expression matches the given time.
 	 * Supports: "*" , "number" , "*\/n".
 	 * Format: minute hour day month dayOfWeek
 	 */
-	public boolean matches(LocalDateTime time) {
-		String[] parts = cronExpression.split(" ");
+	public boolean matches(final LocalDateTime time) {
+		final String[] parts = this.cronExpression.split(" ");
 		if (parts.length != 5) {
 			throw new IllegalArgumentException("Cron expression must be 'minute hour day month dayOfWeek'");
 		}
@@ -30,47 +31,45 @@ record CronTask(
 				&& matchField(parts[4], time.getDayOfWeek().getValue());
 	}
 
-	private boolean matchField(String expr, int value) {
+	private boolean matchField(final String expr, final int value) {
 		// Multiple values separated by commas
-		String[] parts = expr.split(",");
-		for (String part : parts) {
+		final String[] parts = expr.split(",");
+		for (final String part : parts) {
 			if (part.equals("*")) {
 				return true;
 			}
 			if (part.startsWith("*/")) {
-				int step = Integer.parseInt(part.substring(2));
+				final int step = Integer.parseInt(part.substring(2));
 				if (value % step == 0) {
 					return true;
 				}
 			} else if (part.contains("-")) {
-				String[] range = part.split("-");
-				int start = Integer.parseInt(range[0]);
-				int end = Integer.parseInt(range[1]);
+				final String[] range = part.split("-");
+				final int start = Integer.parseInt(range[0]);
+				final int end = Integer.parseInt(range[1]);
 				if (value >= start && value <= end) {
 					return true;
 				}
-			} else {
-				if (Integer.parseInt(part) == value) {
-					return true;
-				}
+			} else if (Integer.parseInt(part) == value) {
+				return true;
 			}
 		}
 		return false;
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(final Object o) {
 		if (this == o) {
 			return true;
 		}
-		if (!(o instanceof CronTask other)) {
+		if (!(o instanceof final CronTask other)) {
 			return false;
 		}
-		return Objects.equals(name, other.name);
+		return Objects.equals(this.name, other.name);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name);
+		return Objects.hash(this.name);
 	}
 }

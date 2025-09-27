@@ -7,8 +7,8 @@ import org.atriasoft.archidata.cron.CronScheduler;
 public class TestCronManual {
 
 	// Example usage
-	public static void main(String[] args) throws InterruptedException {
-		CronScheduler scheduler = new CronScheduler();
+	public static void main(final String[] args) throws InterruptedException {
+		final CronScheduler scheduler = new CronScheduler();
 		scheduler.setGracePeriodMinutes(2);
 		// Every 5 minutes, allow duplicates in queue
 		scheduler.addTask("every5min", "*/5 * * * *",
@@ -18,11 +18,11 @@ public class TestCronManual {
 		scheduler.addTask("uniqueTask", "* * * * *", () -> {
 			System.out.println("Unique task executed: " + LocalDateTime.now());
 			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException ignored) {}
+				Thread.sleep(140000);
+			} catch (final InterruptedException ignored) {}
 		}, true);
 
-		String[][] testCrons = { //
+		final String[][] testCrons = { //
 				{ "everyMinute", "** * * *" }, //
 				{ "every5Min", "5/88 * * * *" }, //
 				{ "hourlyAt15", "1514 * * * *" }, //
@@ -34,14 +34,17 @@ public class TestCronManual {
 				{ "listMinutes", "0,15,30,45 ** * *" }, //
 				{ "complex", "0-10,20-25 */21,15 */* 1,5" } //
 		};
+		final LocalDateTime date = LocalDateTime.now().plusMinutes(2).plusSeconds(30);
+		scheduler.addTask("specificDate", date,
+				() -> System.out.println("Texecute at ? : " + LocalDateTime.now() + " ?=? " + date));
 
-		for (String[] cronData : testCrons) {
-			String name = cronData[0];
-			String expr = cronData[1];
+		for (final String[] cronData : testCrons) {
+			final String name = cronData[0];
+			final String expr = cronData[1];
 			boolean detect = false;
 			try {
 				scheduler.addTask(name, expr, () -> {}, false);
-			} catch (IllegalArgumentException ex) {
+			} catch (final IllegalArgumentException ex) {
 				detect = true;
 			}
 			if (!detect) {

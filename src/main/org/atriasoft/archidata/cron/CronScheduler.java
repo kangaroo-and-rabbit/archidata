@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,8 +17,9 @@ import org.slf4j.LoggerFactory;
  */
 public class CronScheduler {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CronScheduler.class);
-	private final Map<String, CronTask> tasks = new ConcurrentHashMap<>();
-	private final BlockingQueue<CronTask> queue = new LinkedBlockingQueue<>();
+	private final Map<String, CronTask> cronTasks = new ConcurrentHashMap<>();
+	private final Map<String, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
+	private final BlockingQueue<Task> queue = new LinkedBlockingQueue<>();
 
 	private ExecutorService producerThread;
 	private ExecutorService consumerThread;
@@ -26,7 +28,7 @@ public class CronScheduler {
 	/**
 	 * Set a grace period (in minutes) to ignore tasks after start.
 	 */
-	public void setGracePeriodMinutes(Integer minutes) {
+	public void setGracePeriodMinutes(final Integer minutes) {
 		if (minutes == null || minutes <= 0) {
 			disableGracePeriodMinutes();
 			return;
@@ -45,101 +47,122 @@ public class CronScheduler {
 	 * Start scheduler: producer scans every 5s, consumer executes.
 	 */
 	public synchronized void start() {
-		if (producerThread != null && !producerThread.isShutdown()) {
+		if (this.producerThread != null && !this.producerThread.isShutdown()) {
 			return;
 		}
 
-		producerThread = Executors.newSingleThreadExecutor();
-		consumerThread = Executors.newSingleThreadExecutor();
+		this.producerThread = Executors.newSingleThreadExecutor();
+		this.consumerThread = Executors.newSingleThreadExecutor();
 
 		// Producer: scans every 5 seconds
-		producerThread.submit(() -> this.producerThread());
+		this.producerThread.submit((Runnable) this::producerThread);
 
 		// Consumer: executes tasks
-		consumerThread.submit(() -> this.consumerThread());
+		this.consumerThread.submit((Runnable) this::consumerThread);
 	}
 
 	private void producerThread() {
-		LOGGER.info("Start CRON producer thread");
+		LOGGER.debug("Start CRON producer thread");
 		// Step 1: wait for grace period
-		LOGGER.info("grace period [BEGIN]");
-		if (gracePeriodMinutes > 0) {
+		LOGGER.debug("grace period [BEGIN]");
+		if (this.gracePeriodMinutes > 0) {
 			try {
-				Thread.sleep(gracePeriodMinutes * 60_000L);
-			} catch (InterruptedException e) {
+				Thread.sleep(this.gracePeriodMinutes * 60_000L);
+			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 				return;
 			}
 		}
-		LOGGER.info("grace period [ END ]");
+		LOGGER.debug("grace period [ END ]");
 		// Step 2: normal scheduling loop
 		int lastMinute = -1;
 		while (!Thread.currentThread().isInterrupted()) {
 			try {
-				LocalDateTime now = LocalDateTime.now();
-				int currentMinute = now.getMinute();
+				final LocalDateTime now = LocalDateTime.now();
+				final int currentMinute = now.getMinute();
 				if (currentMinute != lastMinute) {
 					lastMinute = currentMinute;
-					for (CronTask task : tasks.values()) {
+
+					for (final ScheduledTask task : this.scheduledTasks.values()) {
+						if (!this.queue.contains(task) && !now.isBefore(task.executeAt())) {
+							LOGGER.info("Add scheduled task '{}' to queue", task.name());
+							this.queue.put(task);
+							// Remove from scheduledTasks to avoid re-adding
+							this.scheduledTasks.remove(task.name());
+						}
+					}
+					// scheduled task:
+					for (final CronTask task : this.cronTasks.values()) {
 						if (task.matches(now)) {
 							if (task.uniqueInQueue()) {
-								if (!queue.contains(task)) {
+								if (!this.queue.contains(task)) {
 									LOGGER.info("Add Unique Task in Queue: {}", task.name());
-									queue.put(task);
+									this.queue.put(task);
 								} else {
 									LOGGER.info("Reject Unique Task in Queue: {} (already added)", task.name());
 								}
 							} else {
 								LOGGER.info("Add Task in Queue: {}", task.name());
-								queue.put(task);
+								this.queue.put(task);
 							}
 						}
 					}
 				}
 				Thread.sleep(1000);
-			} catch (InterruptedException e) {
+			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
 		}
-		LOGGER.info("Stop CRON producer thread");
+		LOGGER.debug("Stop CRON producer thread");
 	}
 
 	private void consumerThread() {
-		LOGGER.info("Start CRON consumer thread");
+		LOGGER.debug("Start CRON consumer thread");
 		while (!Thread.currentThread().isInterrupted()) {
 			try {
-				CronTask task = queue.take();
+				final Task task = this.queue.take();
 				LOGGER.info("CRON consume task: '{}'", task.name());
-				task.action().run();
-			} catch (InterruptedException e) {
+				final long start = System.currentTimeMillis();
+				try {
+					task.action().run();
+				} finally {
+					final long duration = System.currentTimeMillis() - start;
+					if (duration > 120_000) { // 2 minutes
+						LOGGER.error("Task '{}' executed in {} ms took too long! > 2 minutes", task.name(), duration);
+					} else {
+						LOGGER.debug("Task '{}' executed in {} ms", task.name(), duration);
+					}
+				}
+			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
-			} catch (Exception ex) {
+			} catch (final Exception ex) {
 				LOGGER.error("Fail in CRON consumer throw in CronTask: {}", ex.getMessage());
 				ex.printStackTrace();
 			}
 		}
-		LOGGER.info("Stop CRON consumer thread");
+		LOGGER.debug("Stop CRON consumer thread");
 	}
 
 	/**
 	 * Stop scheduler threads.
 	 */
 	public synchronized void stop() {
-		LOGGER.info("Request STOP CRON");
-		if (producerThread != null) {
-			producerThread.shutdownNow();
+		LOGGER.debug("Request STOP CRON");
+		if (this.producerThread != null) {
+			this.producerThread.shutdownNow();
 		}
-		queue.clear();
-		if (consumerThread != null) {
-			consumerThread.shutdownNow();
+		this.queue.clear();
+		if (this.consumerThread != null) {
+			this.consumerThread.shutdownNow();
 		}
 	}
 
 	/**
 	 * Add a task.
 	 * @param name task name
-	 * @param cronExpression cron expression ("minute hour day month dayOfWeek")
-	 *        With values:
+	 * @param cronExpression cron expression ("minute hour dayofMonth month dayOfWeek")
+	 *        minute(0-59) hour(0 - 23) dayofMonth(1 - 31) month(1 - 12) dayOfWeek(0 - 6)
+	 *        With value format:
 	 *          - "*": All the values.
 	 *          - "*\/5": all the 5 unit"
 	 *          - "1-5" Values include between 1 and 5 units.
@@ -148,29 +171,54 @@ public class CronScheduler {
 	 * @param action lambda to execute
 	 * @param uniqueInQueue if true, only one pending instance in queue
 	 */
-	public void addTask(String name, String cronExpression, Runnable action, boolean uniqueInQueue)
+	public void addTask(String name, final String cronExpression, final Runnable action, final boolean uniqueInQueue)
 			throws IllegalArgumentException {
-		LOGGER.info("Add task name '{}' cron='{}'", name, cronExpression);
+		if (name == null || name.isEmpty()) {
+			name = new ObjectId().toString();
+		}
+		LOGGER.debug("Add task name '{}' cron='{}'", name, cronExpression);
 		validateCronExpression(cronExpression);
-		tasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
+		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
+	}
+
+	public void addTask(final String name, final String cronExpression, final Runnable action) {
+		addTask(name, cronExpression, action, true);
+	}
+
+	public void addTask(String name, final LocalDateTime executeAt, final Runnable action) {
+		if (executeAt == null || executeAt.isBefore(LocalDateTime.now().minusMinutes(1))) {
+			throw new IllegalArgumentException("Execution time must be in the future (1 minute delta)");
+		}
+		if (name == null || name.isEmpty()) {
+			name = new ObjectId().toString();
+		}
+		this.scheduledTasks.put(name, new ScheduledTask(name, executeAt, action));
+		LOGGER.info("Add scheduled task '{}' at {}", name, executeAt);
+	}
+
+	public void addTask(final Runnable action) {
+		final String name = new ObjectId().toString();
+		final LocalDateTime date = LocalDateTime.now();
+		this.scheduledTasks.put(name, new ScheduledTask(name, date, action));
+		LOGGER.info("Add scheduled task '{}' at (now)", name, date);
 	}
 
 	/**
 	 * Remove a task.
 	 */
-	public void removeTask(String name) {
-		LOGGER.info("remove task name '{}'", name);
-		tasks.remove(name);
+	public void removeTask(final String name) {
+		LOGGER.debug("remove task name '{}'", name);
+		this.cronTasks.remove(name);
 	}
 
-	private void validateCronExpression(String expr) throws IllegalArgumentException {
-		String[] parts = expr.split(" ");
+	private void validateCronExpression(final String expr) throws IllegalArgumentException {
+		final String[] parts = expr.split(" ");
 		if (parts.length != 5) {
 			throw new IllegalArgumentException("Cron expression must have 5 fields (minute hour day month dayOfWeek)");
 		}
 
 		// ranges for fields: minute(0-59), hour(0-23), day(1-31), month(1-12), dayOfWeek(1-7)
-		int[][] limits = { { 0, 59 }, // minute
+		final int[][] limits = { { 0, 59 }, // minute
 				{ 0, 23 }, // hour
 				{ 1, 31 }, // day
 				{ 1, 12 }, // month
@@ -178,16 +226,17 @@ public class CronScheduler {
 		};
 
 		for (int i = 0; i < parts.length; i++) {
-			String field = parts[i];
-			int min = limits[i][0];
-			int max = limits[i][1];
+			final String field = parts[i];
+			final int min = limits[i][0];
+			final int max = limits[i][1];
 
 			validateField(field, min, max, i);
 		}
 	}
 
-	private void validateField(String field, int min, int max, int position) throws IllegalArgumentException {
-		String fieldName = switch (position) {
+	private void validateField(final String field, final int min, final int max, final int position)
+			throws IllegalArgumentException {
+		final String fieldName = switch (position) {
 			case 0 -> "minute";
 			case 1 -> "hour";
 			case 2 -> "day of month";
@@ -200,25 +249,25 @@ public class CronScheduler {
 			return;
 		}
 
-		for (String part : field.split(",")) {
+		for (final String part : field.split(",")) {
 			if (part.startsWith("*/")) {
-				int step = Integer.parseInt(part.substring(2));
+				final int step = Integer.parseInt(part.substring(2));
 				if (step <= 0) {
 					throw new IllegalArgumentException("Invalid step in " + fieldName + ": " + part);
 				}
 			} else if (part.contains("-")) {
-				String[] range = part.split("-");
+				final String[] range = part.split("-");
 				if (range.length != 2) {
 					throw new IllegalArgumentException("Invalid range in " + fieldName + ": " + part);
 				}
-				int start = Integer.parseInt(range[0]);
-				int end = Integer.parseInt(range[1]);
+				final int start = Integer.parseInt(range[0]);
+				final int end = Integer.parseInt(range[1]);
 				if (start > end || start < min || end > max) {
 					throw new IllegalArgumentException(
 							"Range out of bounds in " + fieldName + ": " + part + " (valid: " + min + "-" + max + ")");
 				}
 			} else {
-				int value = Integer.parseInt(part);
+				final int value = Integer.parseInt(part);
 				if (value < min || value > max) {
 					throw new IllegalArgumentException(
 							"Value out of bounds in " + fieldName + ": " + part + " (valid: " + min + "-" + max + ")");
