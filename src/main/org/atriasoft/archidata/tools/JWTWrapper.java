@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.atriasoft.archidata.filter.AuthenticationFilter;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,7 +173,7 @@ public class JWTWrapper {
 	 * @param timeOutInMunites Expiration of the token.
 	 * @return the encoded token */
 	public static String generateJWToken(
-			final long userID,
+			final Object userID,
 			final String userLogin,
 			final String isuer,
 			final String application,
@@ -194,7 +195,15 @@ public class JWTWrapper {
 			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
 
 			LOGGER.warn("expiration= {}", expiration);
-			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
+			String serializeUserId = "";
+			if (userID instanceof Long userIdLong) {
+				serializeUserId = Long.toString(userIdLong);
+			} else if (userID instanceof ObjectId userIdObjectId) {
+				serializeUserId = userIdObjectId.toString();
+			} else {
+				return null;
+			}
+			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(serializeUserId)
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
 					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
 			// add right if needed:
