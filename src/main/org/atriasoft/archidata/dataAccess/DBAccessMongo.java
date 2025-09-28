@@ -150,6 +150,12 @@ public class DBAccessMongo extends DBAccess {
 		return this.db.getDatabase().listCollectionNames().into(new ArrayList<>());
 	}
 
+	public void renameCollection(final String source, final String destination) {
+		final MongoCollection<Document> previousCollection = this.db.getDatabase().getCollection(source);
+		previousCollection
+				.renameCollection(new com.mongodb.MongoNamespace(this.db.getDatabase().getName(), destination));
+	}
+
 	@Override
 	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
 		// in Mongo DB we do not need to create a DB, then we have no need to check if
