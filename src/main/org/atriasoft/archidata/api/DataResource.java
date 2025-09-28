@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
@@ -195,7 +196,7 @@ public class DataResource {
 		LOGGER.info("dst = {}", mediaPath);
 		try {
 			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
-		} catch (AtomicMoveNotSupportedException ex) {
+		} catch (final AtomicMoveNotSupportedException ex) {
 			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.REPLACE_EXISTING);
 		}
 		LOGGER.info("Move done");
@@ -212,7 +213,7 @@ public class DataResource {
 			try {
 				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
 				LOGGER.info("Atomic-move done");
-			} catch (AtomicMoveNotSupportedException ex) {
+			} catch (final AtomicMoveNotSupportedException ex) {
 				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.REPLACE_EXISTING);
 				LOGGER.info("Move done");
 			}
@@ -225,7 +226,7 @@ public class DataResource {
 			try {
 				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.ATOMIC_MOVE);
 				LOGGER.info("Atomic-move done");
-			} catch (AtomicMoveNotSupportedException ex) {
+			} catch (final AtomicMoveNotSupportedException ex) {
 				Files.move(Paths.get(mediaCurentPath), Paths.get(mediaDestPath), StandardCopyOption.REPLACE_EXISTING);
 				LOGGER.info("Move done");
 			}
@@ -313,6 +314,17 @@ public class DataResource {
 			@FormDataParam("file") final InputStream fileInputStream,
 			@FormDataParam("file") final FormDataContentDisposition fileMetaData) throws Exception {
 		return DataTools.uploadData(fileInputStream, fileMetaData);
+	}
+
+	@POST
+	@Path("uploadUri")
+	@RolesAllowed({ "USER" })
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Operation(description = "Upload data in the system with an external URI", tags = "SYSTEM")
+	@ApiTypeScriptProgress
+	@DataAccessSingleConnection
+	public ObjectId uploadMediaFromUri(@QueryParam("uri") @NotNull final String uri) throws Exception {
+		return DataTools.uploadDataFromUri(uri);
 	}
 
 	@GET

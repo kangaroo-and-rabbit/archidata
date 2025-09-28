@@ -129,7 +129,7 @@ public class DataTools {
 		try {
 			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.ATOMIC_MOVE);
 			LOGGER.info("Atomic-move done");
-		} catch (AtomicMoveNotSupportedException ex) {
+		} catch (final AtomicMoveNotSupportedException ex) {
 			Files.move(Paths.get(tmpPath), Paths.get(mediaPath), StandardCopyOption.REPLACE_EXISTING);
 			LOGGER.info("Move done");
 		}
@@ -348,6 +348,59 @@ public class DataTools {
 			LOGGER.error("Data already exist ... all good");
 		}
 		ListInDbTools.addLink(clazz, id, null, data.oid);
+	}
+
+	public static ObjectId uploadDataFromUri(final String url) throws Exception {
+		// Download data:
+		final Client client = ClientBuilder.newClient();
+		byte[] dataResponse = null;
+		try {
+			final WebTarget target = client.target(url);
+			final Response response = target.request().get();
+			if (response.getStatus() != 200) {
+				throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media");
+			}
+			dataResponse = response.readEntity(byte[].class);
+		} catch (final Exception ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "[] can not create input media", ex);
+		}
+		if (dataResponse == null) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data does not exist");
+		}
+		if (dataResponse.length == 0 || dataResponse.length == 50 * 1024 * 1024) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data size is not correct " + dataResponse.length);
+		}
+
+		final long tmpUID = getTmpDataId();
+		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccess ioDb = ctx.get();
+			Data data = getWithSha512(ioDb, sha512);
+			final String mimeType = getMimeType(dataResponse);
+			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not accesptable: "
+						+ mimeType + "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+			}
+			if (data == null) {
+				LOGGER.info("Need to add the data in the BDD ... ");
+				try {
+					data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
+				} catch (final IOException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
+				} catch (final SQLException ex) {
+					removeTemporaryFile(tmpUID);
+					throw new FailException(Response.Status.NOT_MODIFIED, "Error in SQL insertion", ex);
+				}
+			} else if (data.deleted) {
+				LOGGER.error("Data already exist but deleted");
+				undelete(ioDb, data.oid);
+				data.deleted = false;
+			} else {
+				LOGGER.error("Data already exist ... all good");
+			}
+			return data.oid;
+		}
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> ObjectId uploadData(
