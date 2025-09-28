@@ -108,7 +108,7 @@ public class JWTWrapper {
 			}
 			in.close();
 			// print result
-			LOGGER.debug(response.toString());
+			// Do not commit security fail: LOGGER.debug(response.toString());
 			final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
 			final PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
 			rsaPublicJWK = RSAKey.parse(values.key);
@@ -123,19 +123,19 @@ public class JWTWrapper {
 		try {
 			String generatedStringForKey = baseUUID;
 			if (generatedStringForKey == null) {
-				LOGGER.trace("Generate new UUID: {}", generatedStringForKey);
+				// LOGGER.trace("Generate new UUID: {}", generatedStringForKey);
 				generatedStringForKey = UUID.randomUUID().toString();
 			} else {
-				LOGGER.trace("USE UUID: {}", generatedStringForKey);
+				// LOGGER.trace("USE UUID: {}", generatedStringForKey);
 			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
-			LOGGER.trace("RSA key (all): " + rsaJWK.toJSONString());
-			LOGGER.trace("RSA key (pub): " + rsaPublicJWK.toJSONString());
+			// LOGGER.trace("RSA key (all): " + rsaJWK.toJSONString());
+			// LOGGER.trace("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (final JOSEException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			LOGGER.debug("Can not generate teh  public abnd private keys ...");
+			LOGGER.debug("Can not generate keys public abord private keys ...");
 			rsaJWK = null;
 			rsaPublicJWK = null;
 		}
@@ -146,7 +146,7 @@ public class JWTWrapper {
 			rsaPublicJWK = RSAKey.parse(publicKey);
 		} catch (final ParseException e) {
 			e.printStackTrace();
-			LOGGER.debug("Can not retrieve public Key !!!!!!!! RSAKey='{}'", publicKey);
+			// Dangerous: LOGGER.debug("Can not retrieve public Key !!!!!!!! RSAKey='{}'", publicKey);
 		}
 
 	}
@@ -196,9 +196,9 @@ public class JWTWrapper {
 
 			LOGGER.warn("expiration= {}", expiration);
 			String serializeUserId = "";
-			if (userID instanceof Long userIdLong) {
+			if (userID instanceof final Long userIdLong) {
 				serializeUserId = Long.toString(userIdLong);
-			} else if (userID instanceof ObjectId userIdObjectId) {
+			} else if (userID instanceof final ObjectId userIdObjectId) {
 				serializeUserId = userIdObjectId.toString();
 			} else {
 				return null;
