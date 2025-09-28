@@ -50,30 +50,29 @@ public class CronScheduler {
 		if (this.producerThread != null && !this.producerThread.isShutdown()) {
 			return;
 		}
-
 		this.producerThread = Executors.newSingleThreadExecutor();
 		this.consumerThread = Executors.newSingleThreadExecutor();
-
-		// Producer: scans every 5 seconds
 		this.producerThread.submit((Runnable) this::producerThread);
-
-		// Consumer: executes tasks
 		this.consumerThread.submit((Runnable) this::consumerThread);
 	}
 
 	private void producerThread() {
 		LOGGER.debug("Start CRON producer thread");
 		// Step 1: wait for grace period
-		LOGGER.debug("grace period [BEGIN]");
-		if (this.gracePeriodMinutes > 0) {
-			try {
-				Thread.sleep(this.gracePeriodMinutes * 60_000L);
-			} catch (final InterruptedException e) {
-				Thread.currentThread().interrupt();
-				return;
+		if (this.gracePeriodMinutes == null) {
+			LOGGER.debug("grace period disabled");
+		} else {
+			LOGGER.debug("grace period [BEGIN]");
+			if (this.gracePeriodMinutes > 0) {
+				try {
+					Thread.sleep(this.gracePeriodMinutes * 60_000L);
+				} catch (final InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return;
+				}
 			}
+			LOGGER.debug("grace period [ END ]");
 		}
-		LOGGER.debug("grace period [ END ]");
 		// Step 2: normal scheduling loop
 		int lastMinute = -1;
 		while (!Thread.currentThread().isInterrupted()) {
