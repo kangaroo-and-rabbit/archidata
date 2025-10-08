@@ -15,6 +15,7 @@ import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.model.UserByToken;
 import org.atriasoft.archidata.tools.JWTWrapper;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -253,9 +254,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		// check userID
 		final String userUID = ret.getSubject();
-		final long id = Long.parseLong(userUID);
+		final ObjectId oid = new ObjectId(userUID);
 		final UserByToken user = new UserByToken();
-		user.id = id;
+		user.oid = oid;
 		user.name = (String) ret.getClaim("login");
 		user.type = UserByToken.TYPE_USER;
 		final Object rowRight = ret.getClaim("right");

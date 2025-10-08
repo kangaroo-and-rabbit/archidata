@@ -50,7 +50,7 @@ public class MySecurityContext implements SecurityContext {
 	// Not sure the Long type is definitive.
 	public Object getUserID() {
 		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.id;
+			return this.contextPrincipale.userByToken.oid;
 		}
 		return null;
 	}

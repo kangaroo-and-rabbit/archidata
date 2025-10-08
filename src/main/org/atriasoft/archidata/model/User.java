@@ -30,7 +30,7 @@ import jakarta.ws.rs.DefaultValue;
 @DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
-public class User extends GenericDataSoftDelete {
+public class User extends OIDGenericDataSoftDelete {
 	@NotNull
 	@Column(length = 128)
 	@Size(min = 3, max = 128)
