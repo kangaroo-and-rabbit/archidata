@@ -8,12 +8,14 @@ import java.util.List;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIo;
@@ -147,6 +149,14 @@ public abstract class DBAccess implements Closeable {
 		}
 		final List<OptionSpecifyType> typeOptions = options.get(OptionSpecifyType.class);
 		for (final OptionSpecifyType elem : typeOptions) {
+			injectedOptions.add(elem);
+		}
+		final List<ReadAllColumn> readAllColumnOptions = options.get(ReadAllColumn.class);
+		for (final ReadAllColumn elem : readAllColumnOptions) {
+			injectedOptions.add(elem);
+		}
+		final List<AccessDeletedItems> accessDeletedItemsOptions = options.get(AccessDeletedItems.class);
+		for (final AccessDeletedItems elem : accessDeletedItemsOptions) {
 			injectedOptions.add(elem);
 		}
 		return (T) get(data.getClass(), insertedId, injectedOptions.getAllArray());
