@@ -259,7 +259,6 @@ public class MigrationEngine {
 					// we insert a placeholder to simulate the last migration is well done.
 					final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
 					Migration migrationResult = new Migration();
-					migrationResult.id = 1000L;
 					migrationResult.name = placeholderName;
 					migrationResult.stepId = 0;
 					migrationResult.terminated = true;
