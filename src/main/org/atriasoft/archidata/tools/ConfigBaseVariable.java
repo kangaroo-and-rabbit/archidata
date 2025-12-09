@@ -4,7 +4,6 @@ public class ConfigBaseVariable {
 	static public String tmpDataFolder;
 	static public String dataFolder;
 	static public String dbAbleToCreate;
-	static public String dbType;
 	static public String dbHost;
 	static public String dbPort;
 	static public String dbUser;
@@ -27,7 +26,6 @@ public class ConfigBaseVariable {
 		tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
 		dataFolder = System.getenv("DATA_FOLDER");
 		dbAbleToCreate = System.getenv("DB_ABLE_TO_CREATE");
-		dbType = System.getenv("DB_TYPE");
 		dbHost = System.getenv("DB_HOST");
 		dbPort = System.getenv("DB_PORT");
 		dbUser = System.getenv("DB_USER");
@@ -71,13 +69,6 @@ public class ConfigBaseVariable {
 		return Boolean.getBoolean(dbAbleToCreate);
 	}
 
-	public static String getDBType() {
-		if (dbType == null) {
-			return "mysql";
-		}
-		return dbType;
-	}
-
 	public static String getDBHost() {
 		if (dbHost == null) {
 			return "localhost";
@@ -87,10 +78,7 @@ public class ConfigBaseVariable {
 
 	public static Short getDBPort() {
 		if (dbPort == null) {
-			if (getDBType().equals("mongo")) {
-				return 27017;
-			}
-			return 3306;
+			return 27017;
 		}
 		if (dbPort == null) {
 			return null;

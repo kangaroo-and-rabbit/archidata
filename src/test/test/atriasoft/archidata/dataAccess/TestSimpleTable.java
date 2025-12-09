@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.junit.jupiter.api.AfterAll;
@@ -51,13 +48,6 @@ public class TestSimpleTable {
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTable.startAction = Timestamp.from(Instant.now());
-		final List<String> sqlCommand = DataFactory.createTable(SimpleTable.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
 		final SimpleTable test = new SimpleTable();
 		test.data = TestSimpleTable.DATA_INJECTED;
 		final SimpleTable insertedData = ConfigureDb.da.insert(test);

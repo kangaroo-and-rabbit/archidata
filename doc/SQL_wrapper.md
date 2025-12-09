@@ -1,7 +1,6 @@
-Wrapping over the DB
+Managing relation over the Mongo DB interface
 ====================
 
-In the current version we consider 2 DB access: MySQL and SQLite, We commonly use the SQLite in test mode to permit to test is a real case.
 
 Generic Access:
 ---------------

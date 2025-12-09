@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.sql.PreparedStatement;
 import java.util.List;
 
 import org.bson.conversions.Bson;
@@ -45,14 +44,6 @@ public class QueryInList<T> implements QueryItem {
 		}
 		query.append(")");
 
-	}
-
-	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
-		for (final Object elem : this.value) {
-			ioDb.addElement(ps, elem, iii);
-			iii.inc();
-		}
 	}
 
 	@Override

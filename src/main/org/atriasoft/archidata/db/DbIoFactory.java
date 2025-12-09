@@ -38,15 +38,7 @@ public class DbIoFactory {
 	}
 
 	private static DbIo createInstance(final DbConfig config) throws IOException {
-		switch (config.getType()) {
-			case "mysql":
-				return new DbIoSql(config);
-			case "sqlite":
-				return new DbIoSql(config);
-			case "mongo":
-				return new DbIoMongo(config);
-		}
-		throw new IOException("DB type: '" + config.getType() + "'is not managed");
+		return new DbIoMongo(config);
 
 	}
 

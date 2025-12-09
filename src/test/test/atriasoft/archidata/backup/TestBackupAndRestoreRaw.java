@@ -34,7 +34,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +41,7 @@ import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.backup.model.DataStoreWithUpdate;
 import test.atriasoft.archidata.backup.model.DataStoreWithoutUpdate;
 
-//@ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 public class TestBackupAndRestoreRaw {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestBackupAndRestoreRaw.class);
 

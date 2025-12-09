@@ -1,16 +1,11 @@
 package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Date;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -19,7 +14,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +35,6 @@ public class TestTypes {
 	@AfterAll
 	public static void removeDataBase() throws IOException {
 		ConfigureDb.clear();
-	}
-
-	@Order(1)
-	@Test
-	public void testCreateTable() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(TypesTable.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
 	}
 
 	@Order(2)
@@ -235,36 +217,6 @@ public class TestTypes {
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertNotNull(retrieve.booleanData);
 		Assertions.assertEquals(insertedData.booleanData, retrieve.booleanData);
-
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
-	}
-
-	@Order(10)
-	@Test
-	@EnabledIfEnvironmentVariable(named = "INCLUDE_SQL_SPECIFIC", matches = "true")
-	public void testTimeStamp() throws Exception {
-
-		final TypesTable test = new TypesTable();
-		test.timeStampData = Timestamp.from(Instant.now());
-		LOGGER.debug("Timestamp = {}", test.timeStampData);
-		final TypesTable insertedData = ConfigureDb.da.insert(test);
-		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
-
-		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
-
-		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
-		LOGGER.debug("Retreive Timestamp = {}", retrieve.timeStampData);
-		Assertions.assertNotNull(retrieve.timeStampData);
-		// Can not compare the exact timestamp due to aproximation and model of storing data :
-		final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		final String insertedFormatted = sdf.format(insertedData.timeStampData);
-		final String retrieveFormatted = sdf.format(retrieve.timeStampData);
-		Assertions.assertEquals(insertedFormatted, retrieveFormatted);
 
 		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
 	}

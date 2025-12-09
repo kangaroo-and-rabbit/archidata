@@ -70,8 +70,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 				.build();
 		this.mongoClient = MongoClients.create(clientSettings);
 		if (dbName == null) {
-			LOGGER.error("Connect on the DB: host:{} port:{} type:{}", this.config.getHostname(), this.config.getPort(),
-					this.config.getType());
+			LOGGER.error("Connect on the DB: host:{} port:{}", this.config.getHostname(), this.config.getPort());
 		}
 		this.dataBase = this.mongoClient.getDatabase(dbName);
 	}

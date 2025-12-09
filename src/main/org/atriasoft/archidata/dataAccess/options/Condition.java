@@ -1,11 +1,8 @@
 package org.atriasoft.archidata.dataAccess.options;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.CountInOut;
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
 import org.atriasoft.archidata.dataAccess.QueryItem;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.bson.conversions.Bson;
@@ -27,12 +24,6 @@ public class Condition extends QueryOption {
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		if (this.condition != null) {
 			this.condition.generateQuery(query, tableName);
-		}
-	}
-
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
-		if (this.condition != null) {
-			this.condition.injectQuery(ioDb, ps, iii);
 		}
 	}
 

@@ -26,7 +26,6 @@
 //
 //@ExtendWith(StepwiseExtension.class)
 //@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-//@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 //@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 //public class TestOneToManyDocOID {
 //	final static private Logger LOGGER = LoggerFactory.getLogger(TestOneToManyDocOID.class);

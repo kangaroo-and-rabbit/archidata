@@ -1,4 +1,4 @@
-package org.atriasoft.archidata.dataAccess.addOnMongo;
+package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
@@ -13,13 +13,6 @@ public interface DataAccessAddOn {
 	/** Get the Class of the declaration annotation
 	 * @return The annotation class */
 	Class<?> getAnnotationClass();
-
-	/** Get the SQL type that is needed to declare for the specific Field Type.
-	 * @param elem Field to declare.
-	 * @return SQL type to create. */
-	default String getSQLFieldType(final Field elem, final QueryOptions options) throws Exception {
-		return null;
-	}
 
 	/** Check if the field is manage by the local add-on
 	 * @param elem Field to inspect.

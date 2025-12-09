@@ -5,18 +5,17 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.TimeZone;
 
-import org.atriasoft.archidata.tools.ConfigBaseVariable;
-import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
-import org.slf4j.Logger;
-import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.backup.BackupEngine;
+import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
+import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class restoreDB {
 	final static Logger LOGGER = LoggerFactory.getLogger(restoreDB.class);
 
 	public static void main(final String[] args) throws IOException, DataAccessException {
-		ConfigBaseVariable.dbType = "mongo";
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		LOGGER.info("program arguments length={}", args.length);
 		for (final String elem : args) {

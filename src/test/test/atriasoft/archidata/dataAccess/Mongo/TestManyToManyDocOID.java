@@ -3,10 +3,7 @@ package test.atriasoft.archidata.dataAccess.Mongo;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyTools;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
@@ -19,7 +16,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +28,6 @@ import test.atriasoft.archidata.dataAccess.model.TypeManyToManyDocOIDRootExpand;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@EnabledIfEnvironmentVariable(named = "INCLUDE_MONGO_SPECIFIC", matches = "true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestManyToManyDocOID {
 	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToManyDocOID.class);
@@ -53,25 +48,10 @@ public class TestManyToManyDocOID {
 	class SimpleTestInsertionAndRetrieve {
 
 		@BeforeAll
-		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
-			sqlCommand.addAll(sqlCommand2);
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				for (final String elem : sqlCommand) {
-					LOGGER.debug("request: '{}'", elem);
-					daSQL.executeSimpleQuery(elem);
-				}
-			}
-		}
+		public void testCreateTable() throws Exception {}
 
 		@AfterAll
-		public void dropTables() throws Exception {
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyDocOIDRoot.class);
-				daSQL.drop(TypeManyToManyDocOIDRemote.class);
-			}
-		}
+		public void dropTables() throws Exception {}
 
 		@Order(2)
 		@Test
@@ -109,25 +89,10 @@ public class TestManyToManyDocOID {
 		TypeManyToManyDocOIDRoot insertedData;
 
 		@BeforeAll
-		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
-			sqlCommand.addAll(sqlCommand2);
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				for (final String elem : sqlCommand) {
-					LOGGER.debug("request: '{}'", elem);
-					daSQL.executeSimpleQuery(elem);
-				}
-			}
-		}
+		public void testCreateTable() throws Exception {}
 
 		@AfterAll
-		public void dropTables() throws Exception {
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyDocOIDRoot.class);
-				daSQL.drop(TypeManyToManyDocOIDRemote.class);
-			}
-		}
+		public void dropTables() throws Exception {}
 
 		// ---------------------------------------------------------------
 		// -- Add remote:
@@ -292,25 +257,10 @@ public class TestManyToManyDocOID {
 		TypeManyToManyDocOIDRoot insertedRoot2;
 
 		@BeforeAll
-		public void testCreateTable() throws Exception {
-			final List<String> sqlCommand2 = DataFactory.createTable(TypeManyToManyDocOIDRoot.class);
-			final List<String> sqlCommand = DataFactory.createTable(TypeManyToManyDocOIDRemote.class);
-			sqlCommand.addAll(sqlCommand2);
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				for (final String elem : sqlCommand) {
-					LOGGER.debug("request: '{}'", elem);
-					daSQL.executeSimpleQuery(elem);
-				}
-			}
-		}
+		public void testCreateTable() throws Exception {}
 
 		@AfterAll
-		public void dropTables() throws Exception {
-			if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-				daSQL.drop(TypeManyToManyDocOIDRoot.class);
-				daSQL.drop(TypeManyToManyDocOIDRemote.class);
-			}
-		}
+		public void dropTables() throws Exception {}
 
 		// ---------------------------------------------------------------
 		// -- Add remote:

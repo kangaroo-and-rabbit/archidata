@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.sql.PreparedStatement;
 import java.util.List;
 
 import org.bson.conversions.Bson;
@@ -37,12 +36,6 @@ public class QueryCondition implements QueryItem {
 		query.append(" ");
 		query.append(this.comparator);
 		query.append(" ?");
-	}
-
-	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
-		ioDb.addElement(ps, this.value, iii);
-		iii.inc();
 	}
 
 	@Override

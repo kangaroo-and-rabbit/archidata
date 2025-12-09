@@ -2,10 +2,7 @@ package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
@@ -41,15 +38,7 @@ public class TestListJson {
 
 	@Order(1)
 	@Test
-	public void testTableInsertAndRetrieve() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJson.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
-	}
+	public void testTableInsertAndRetrieve() throws Exception {}
 
 	@Order(2)
 	@Test
@@ -130,18 +119,6 @@ public class TestListJson {
 		Assertions.assertEquals(2, retrieve.data.size());
 		Assertions.assertEquals(firstDataInserted1, retrieve.data.get(0));
 		Assertions.assertEquals(firstDataInserted3, retrieve.data.get(1));
-	}
-
-	@Order(101)
-	@Test
-	public void testOIDTableInsertAndRetrieve() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(SerializeListAsJsonObjectId.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
 	}
 
 	@Order(102)

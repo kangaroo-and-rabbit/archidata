@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.sql.PreparedStatement;
 import java.util.List;
 
 import org.bson.conversions.Bson;
@@ -23,10 +22,6 @@ public class QueryNotNull implements QueryItem {
 		query.append(this.key);
 		query.append(" IS NOT NULL");
 	}
-
-	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {}
 
 	@Override
 	public void generateFilter(final List<Bson> filters) {

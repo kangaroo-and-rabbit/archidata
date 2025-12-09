@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 public class DbConfig {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccess.class);
-	private final String type;
 	private final String hostname;
 	private final Short port;
 	private final String login;
@@ -21,33 +20,21 @@ public class DbConfig {
 	private final List<Class<?>> classes;
 
 	public DbConfig() throws DataAccessException {
-		this(ConfigBaseVariable.getDBType(), ConfigBaseVariable.getDBHost(), ConfigBaseVariable.getDBPort(),
-				ConfigBaseVariable.getDBLogin(), ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
+		this(ConfigBaseVariable.getDBHost(), ConfigBaseVariable.getDBPort(), ConfigBaseVariable.getDBLogin(),
+				ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
 				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getBbInterfacesClasses()));
 	}
 
-	public DbConfig(final String type, final String hostname, final Short port, final String login,
-			final String password, final String dbName, final boolean keepConnected, final List<Class<?>> classes)
-			throws DataAccessException {
-		if (type == null) {
-			this.type = "mysql";
-		} else {
-			if (!"mysql".equals(type) && !"sqlite".equals(type) && !"mongo".equals(type)) {
-				throw new DataAccessException("unexpected DB type: '" + type + "'");
-			}
-			this.type = type;
-		}
+	public DbConfig(final String hostname, final Short port, final String login, final String password,
+			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
+
 		if (hostname == null) {
 			this.hostname = "localhost";
 		} else {
 			this.hostname = hostname;
 		}
 		if (port == null) {
-			if ("mysql".equals(this.type)) {
-				this.port = 3306;
-			} else {
-				this.port = 27017;
-			}
+			this.port = 27017;
 		} else {
 			this.port = port;
 		}
@@ -61,17 +48,12 @@ public class DbConfig {
 
 	@Override
 	public String toString() {
-		return "DBConfig{type='" + this.type + '\'' + ", hostname='" + this.hostname + '\'' + ", port=" + this.port
-				+ ", login='" + this.login + '\'' + ", password='" + this.password + '\'' + ", dbName='" + this.dbName
-				+ "' }";
+		return "DBConfig{hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\''
+				+ ", password='" + this.password + '\'' + ", dbName='" + this.dbName + "' }";
 	}
 
 	public String getHostname() {
 		return this.hostname;
-	}
-
-	public String getType() {
-		return this.type;
 	}
 
 	public int getPort() {
@@ -103,38 +85,20 @@ public class DbConfig {
 	}
 
 	public String getUrl() {
-		if (this.type.equals("sqlite")) {
-			if (this.hostname.equals("memory")) {
-				return "jdbc:sqlite::memory:";
-			}
-			return "jdbc:sqlite:" + this.hostname + ".db";
+		final String tmpPassword = getPassword().replace("@", "%40");
+		final StringBuilder tmp = new StringBuilder("mongodb://");
+		tmp.append(getLogin());
+		tmp.append(":");
+		tmp.append(tmpPassword);
+		tmp.append("@");
+		tmp.append(this.hostname);
+		tmp.append(":");
+		tmp.append(this.port);
+		if (!"root".equals(getLogin())) {
+			tmp.append("/");
+			tmp.append(this.dbName);
 		}
-		if ("mongo".equals(this.type)) {
-			final String tmpPassword = getPassword().replace("@", "%40");
-			final StringBuilder tmp = new StringBuilder("mongodb://");
-			tmp.append(getLogin());
-			tmp.append(":");
-			tmp.append(tmpPassword);
-			tmp.append("@");
-			tmp.append(this.hostname);
-			tmp.append(":");
-			tmp.append(this.port);
-			if (!"root".equals(getLogin())) {
-				tmp.append("/");
-				tmp.append(this.dbName);
-			}
-			return tmp.toString();
-		}
-		if ("mysql".equals(this.type)) {
-			if (this.dbName == null || this.dbName.isEmpty()) {
-				LOGGER.warn("Request log on SQL: root");
-				return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port
-						+ "/?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
-			}
-			return "jdbc:" + this.type + "://" + this.hostname + ":" + this.port + "/" + this.dbName
-					+ "?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC";
-		}
-		return "dead_code";
+		return tmp.toString();
 	}
 
 	@Override
@@ -148,7 +112,6 @@ public class DbConfig {
 		if (other instanceof final DbConfig dbConfig) {
 			return Objects.equals(this.port, dbConfig.port) //
 					&& this.keepConnected == dbConfig.keepConnected //
-					&& Objects.equals(this.type, dbConfig.type) //
 					&& Objects.equals(this.hostname, dbConfig.hostname) //
 					&& Objects.equals(this.login, dbConfig.login) //
 					&& Objects.equals(this.password, dbConfig.password) //
@@ -160,15 +123,15 @@ public class DbConfig {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(this.type, this.hostname, this.port, this.login, this.password, this.dbName,
-				this.keepConnected, this.classes);
+		return Objects.hash(this.hostname, this.port, this.login, this.password, this.dbName, this.keepConnected,
+				this.classes);
 	}
 
 	@Override
 	public DbConfig clone() {
 		try {
-			return new DbConfig(this.type, this.hostname, this.port, this.login, this.password, this.dbName,
-					this.keepConnected, this.classes);
+			return new DbConfig(this.hostname, this.port, this.login, this.password, this.dbName, this.keepConnected,
+					this.classes);
 		} catch (final DataAccessException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

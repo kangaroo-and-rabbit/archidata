@@ -2,10 +2,7 @@ package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,15 +37,7 @@ public class TestListElements {
 
 	@Order(1)
 	@Test
-	public void testTableInsertAndRetrieve() throws Exception {
-		final List<String> sqlCommand = DataFactory.createTable(DataWithSubJsonList.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
-	}
+	public void testTableInsertAndRetrieve() throws Exception {}
 
 	@Order(2)
 	@Test

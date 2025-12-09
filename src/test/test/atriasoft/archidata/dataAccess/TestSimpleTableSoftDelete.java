@@ -4,13 +4,9 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
-import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,13 +49,6 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testTableInsertAndRetrieve() throws Exception {
 		TestSimpleTableSoftDelete.startAction = Timestamp.from(Instant.now());
-		final List<String> sqlCommand = DataFactory.createTable(SimpleTableSoftDelete.class);
-		if (ConfigureDb.da instanceof final DBAccessSQL daSQL) {
-			for (final String elem : sqlCommand) {
-				LOGGER.debug("request: '{}'", elem);
-				daSQL.executeSimpleQuery(elem);
-			}
-		}
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED;
 		final SimpleTableSoftDelete insertedData = ConfigureDb.da.insert(test);
@@ -130,11 +119,7 @@ public class TestSimpleTableSoftDelete {
 	@Order(4)
 	@Test
 	public void testSoftDeleteTheObject() throws Exception {
-		if ("sqlite".equalsIgnoreCase(ConfigBaseVariable.getDBType())) {
-			Thread.sleep(Duration.ofMillis(1100));
-		} else {
-			Thread.sleep(Duration.ofMillis(15));
-		}
+		Thread.sleep(Duration.ofMillis(15));
 		// Delete the entry:
 		ConfigureDb.da.delete(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,

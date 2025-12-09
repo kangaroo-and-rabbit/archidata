@@ -1,4 +1,4 @@
-package org.atriasoft.archidata.dataAccess.addOnMongo;
+package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;

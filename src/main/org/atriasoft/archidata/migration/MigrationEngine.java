@@ -1,13 +1,10 @@
 package org.atriasoft.archidata.migration;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccess;
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.db.DbConfig;
@@ -134,9 +131,6 @@ public class MigrationEngine {
 	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
 		if (ConfigBaseVariable.getDBAbleToCreate()) {
 			final DbConfig config = configInput.clone();
-			if (!"MONGO".equalsIgnoreCase(config.getType())) {
-				config.setDbName(null);
-			}
 			final String dbName = configInput.getDbName();
 			LOGGER.info("Verify existance of '{}'", dbName);
 			try (final DBAccess da = DBAccess.createInterface(config)) {
@@ -185,29 +179,6 @@ public class MigrationEngine {
 		try (final DBAccess da = DBAccess.createInterface(config)) {
 			// STEP 2: Check migration table exist:
 			LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
-			if (da instanceof final DBAccessSQL daSQL) {
-				final boolean exist = da.isTableExist("KAR_migration");
-				if (!exist) {
-					LOGGER.info("'{}' Does not exist create a new one...", "KAR_migration");
-					// create the table:
-					List<String> sqlQuery;
-					try {
-						sqlQuery = DataFactory.createTable(Migration.class);
-					} catch (final Exception ex) {
-						ex.printStackTrace();
-						throw new MigrationException(
-								"Fail to create the local DB SQL model for migaration ==> wait administrator interventions");
-					}
-					LOGGER.info("Create Table with : {}", sqlQuery.get(0));
-					try {
-						daSQL.executeQuery(sqlQuery.get(0));
-					} catch (SQLException | IOException ex) {
-						ex.printStackTrace();
-						throw new MigrationException(
-								"Fail to create the local DB model for migaration ==> wait administrator interventions");
-					}
-				}
-			}
 			final Migration currentVersion = getCurrentVersion(da);
 			List<MigrationInterface> toApply = new ArrayList<>();
 			boolean needPlaceholder = false;

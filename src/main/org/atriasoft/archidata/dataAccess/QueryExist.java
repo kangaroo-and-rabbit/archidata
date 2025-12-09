@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.sql.PreparedStatement;
 import java.util.List;
 
 import org.bson.conversions.Bson;
@@ -20,10 +19,6 @@ public class QueryExist implements QueryItem {
 	public void generateQuery(final StringBuilder query, final String tableName) {
 		// not implemented
 	}
-
-	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii)
-			throws Exception {}
 
 	@Override
 	public void generateFilter(final List<Bson> filters) {

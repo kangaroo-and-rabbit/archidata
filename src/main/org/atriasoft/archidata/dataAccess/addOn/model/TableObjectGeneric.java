@@ -1,4 +1,4 @@
-package org.atriasoft.archidata.dataAccess.addOnSQL.model;
+package org.atriasoft.archidata.dataAccess.addOn.model;
 
 import jakarta.persistence.Id;
 

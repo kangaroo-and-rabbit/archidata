@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,13 +34,6 @@ public class QueryOr implements QueryItem {
 		}
 		if (this.childs.size() >= 1) {
 			query.append(")");
-		}
-	}
-
-	@Override
-	public void injectQuery(final DBAccessSQL ioDb, final PreparedStatement ps, final CountInOut iii) throws Exception {
-		for (final QueryItem elem : this.childs) {
-			elem.injectQuery(ioDb, ps, iii);
 		}
 	}
 

@@ -6,32 +6,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccess;
-import org.atriasoft.archidata.dataAccess.DBAccessSQL;
-import org.atriasoft.archidata.dataAccess.DataFactory;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.migration.model.Migration;
-import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 record Action(
 		String action,
-		AsyncCall async,
-		List<String> filterDB) {
+		AsyncCall async) {
 	public Action(final String action) {
-		this(action, null, List.of());
-	}
-
-	public Action(final String action, final String filterDB) {
-		this(action, null, List.of(filterDB));
+		this(action, null);
 	}
 
 	public Action(final AsyncCall async) {
-		this(null, async, List.of());
-	}
-
-	public Action(final AsyncCall async, final String filterDB) {
-		this(null, async, List.of(filterDB));
+		this(null, async);
 	}
 }
 
@@ -53,11 +41,9 @@ public class MigrationSqlStep implements MigrationInterface {
 		for (int iii = 0; iii < this.actions.size(); iii++) {
 			final Action action = this.actions.get(iii);
 			if (action.action() != null) {
-				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\n{}", iii, this.actions.size(), action.filterDB(),
-						action.action());
+				LOGGER.info(" >>>> DB ACTION : {}/{}\n{}", iii, this.actions.size(), action.action());
 			} else {
-				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> filter='{}'\nAsync lambda", iii, this.actions.size(),
-						action.filterDB());
+				LOGGER.info(" >>>> DB ACTION : {}/{}\nAsync lambda", iii, this.actions.size());
 			}
 		}
 	}
@@ -82,40 +68,22 @@ public class MigrationSqlStep implements MigrationInterface {
 			final Action action = this.actions.get(iii);
 
 			if (action.action() != null) {
-				LOGGER.info("SQL request: ```{}``` on '{}' current={}", action.action(), action.filterDB(),
-						ConfigBaseVariable.getDBType());
-				log.append("SQL: " + action.action() + " on " + action.filterDB() + "\n");
+				LOGGER.info("DB request: ```{}```", action.action());
+				log.append("DB: " + action.action() + "\n");
 			} else {
-				LOGGER.info("SQL request: <Lambda> on '{}' current={}", action.filterDB(),
-						ConfigBaseVariable.getDBType());
-				log.append("SQL: <Lambda> on " + action.filterDB() + "\n");
-			}
-			boolean isValid = true;
-			if (action.filterDB() != null && action.filterDB().size() > 0) {
-				isValid = false;
-				for (final String elem : action.filterDB()) {
-					if (ConfigBaseVariable.getDBType().equals(elem)) {
-						isValid = true;
-					}
-				}
-			}
-			if (!isValid) {
-				log.append("==> Skip (DB is not compatible: " + ConfigBaseVariable.getDBType() + ")\n");
-				LOGGER.info(" >>>> SQL ACTION : {}/{} ==> SKIP", iii + 1, this.actions.size());
-				continue;
+				LOGGER.info("DB request: <Lambda>");
+				log.append("DB: <Lambda>\n");
 			}
 			try {
 				if (action.action() != null) {
-					if (da instanceof final DBAccessSQL ioDBSQL) {
-						ioDBSQL.executeQuery(action.action());
-					}
+
 				} else {
 					action.async().doRequest(da);
 				}
 			} catch (SQLException | IOException ex) {
 				ex.printStackTrace();
-				LOGGER.info("SQL request ERROR: ", ex.getMessage());
-				log.append("SQL request ERROR: " + ex.getMessage() + "\n");
+				LOGGER.info("DB request ERROR: ", ex.getMessage());
+				log.append("DB request ERROR: " + ex.getMessage() + "\n");
 				model.stepId = iii + 1;
 				model.log = log.toString();
 				try {
@@ -126,7 +94,7 @@ public class MigrationSqlStep implements MigrationInterface {
 				return false;
 			}
 			log.append("action [" + (iii + 1) + "/" + this.actions.size() + "] ==> DONE\n");
-			LOGGER.info(" >>>> SQL ACTION : {}/{} ==> DONE", iii + 1, this.actions.size());
+			LOGGER.info(" >>>> DB ACTION : {}/{} ==> DONE", iii + 1, this.actions.size());
 			model.stepId = iii + 1;
 			model.log = log.toString();
 			try {
@@ -156,21 +124,6 @@ public class MigrationSqlStep implements MigrationInterface {
 
 	public void addAction(final AsyncCall async) {
 		this.actions.add(new Action(async));
-	}
-
-	public void addAction(final String action, final String filterdBType) {
-		this.actions.add(new Action(action, filterdBType));
-	}
-
-	public void addAction(final AsyncCall async, final String filterdBType) {
-		this.actions.add(new Action(async, filterdBType));
-	}
-
-	public void addClass(final Class<?> clazz) throws Exception {
-		final List<String> tmp = DataFactory.createTable(clazz);
-		for (final String elem : tmp) {
-			this.actions.add(new Action(elem));
-		}
 	}
 
 	@Override
