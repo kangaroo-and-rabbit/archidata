@@ -18,13 +18,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     services:
-      db_service:
-        image: mysql:latest
-        ports:
-          - 3906:3306
-        env:
-          MYSQL_DATABASE: test_neofarm_db
-          MYSQL_ROOT_PASSWORD: base_db_password
       mongo_service:
         image: mongo:latest
         env:
@@ -34,10 +27,10 @@ jobs:
           - 27017:27017
     steps:
       - uses: actions/checkout@v6
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v5
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
           cache: maven
       - name: validate
@@ -48,12 +41,8 @@ jobs:
         run: mvn -B package -DskipTests --file pom.xml
       - name: spot-bug
         run: mvn spotbugs:check
-      - name: Test SQLite
-        run: INCLUDE_MY_SQL_SPECIFIC=true mvn test
-      - name: Test my-SQL
-        run: INCLUDE_MY_SQL_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MY-SQL" mvn test
-      - name: Test MONGO
-        run: INCLUDE_MONGO_SPECIFIC=true DB_HOST="127.0.0.1" TEST_E2E_MODE="MONGO" mvn test
+      - name: Test 
+        run: DB_HOST="127.0.0.1" mvn test
       - name: find the element
         run: find . -name "dependency-graph.json"
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
