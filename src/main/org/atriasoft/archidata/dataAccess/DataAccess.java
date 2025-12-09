@@ -78,15 +78,6 @@ public class DataAccess {
 		}
 	}
 
-	// seems a good idea, but very dangerous if we not filter input data... if set
-	// an id it can be complicated...
-	public static <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.insertWithJson(clazz, jsonData);
-		}
-	}
-
 	public static <ID_TYPE> QueryCondition getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
@@ -94,38 +85,6 @@ public class DataAccess {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
 			return db.getTableIdCondition(clazz, idKey, options);
-		}
-	}
-
-	/**
-	 * Update an object with the inserted json data
-	 *
-	 * @param <T>       Type of the object to insert
-	 * @param <ID_TYPE> Master key on the object manage with @Id
-	 * @param clazz     Class reference of the insertion model
-	 * @param id        Key to insert data
-	 * @param jsonData  Json data (partial) values to update
-	 * @return the number of object updated
-	 * @throws Exception
-	 */
-	public static <T, ID_TYPE> long updateWithJson(
-			final Class<T> clazz,
-			final ID_TYPE id,
-			final String jsonData,
-			final QueryOption... options) throws Exception {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.updateWithJson(clazz, id, jsonData, options);
-		}
-	}
-
-	public static <T> long updateWhereWithJson(
-			final Class<T> clazz,
-			final String jsonData,
-			final QueryOption... options) throws Exception {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.updateWhereWithJson(clazz, jsonData, options);
 		}
 	}
 

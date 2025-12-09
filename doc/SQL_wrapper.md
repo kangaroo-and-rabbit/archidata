@@ -50,14 +50,6 @@ The second way is preferable for some reasons
   - Throw in the jakarta parsing are not well catch when we will generate generic error
   - The Check will permit to explain what is wrong better than a generic Json parser.
 
-Updating with JSON:
-
-```java
-UUID id = ...;
-String jsonRequest = "{...}";
-DataAccess.updateWithJson(MyDataModel.class, id, jsonRequest);
-```
-
 Updating with direct data:
 
 ```java

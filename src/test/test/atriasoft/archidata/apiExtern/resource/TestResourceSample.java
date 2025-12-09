@@ -66,9 +66,8 @@ public class TestResourceSample {
 	@Path("{id}")
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
-	public SimpleTable patch(@PathParam("id") final Long id, @ApiAsyncType(SimpleTable.class) final String jsonRequest)
-			throws Exception {
-		DataAccess.updateWithJson(SimpleTable.class, id, jsonRequest);
+	public SimpleTable patch(@PathParam("id") final Long id, final SimpleTable data) throws Exception {
+		DataAccess.update(data, id);
 		return DataAccess.get(SimpleTable.class, id);
 	}
 

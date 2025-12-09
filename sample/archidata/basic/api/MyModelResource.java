@@ -65,8 +65,8 @@ public class MyModelResource {
 	@Path("{id}")
 	@PermitAll
 	@Consumes(MyModelType.APPLICATION_JSON)
-	public MyModel patch(@PathParam("id") final Long id, final String jsonRequest) throws Exception {
-		DataAccess.updateWithJson(MyModel.class, id, jsonRequest);
+	public MyModel patch(@PathParam("id") final Long id, final MyModel data) throws Exception {
+		DataAccess.update(data, id);
 		return DataAccess.get(MyModel.class, id);
 	}
 

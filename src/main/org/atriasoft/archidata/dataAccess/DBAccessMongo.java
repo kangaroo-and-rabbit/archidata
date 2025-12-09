@@ -64,8 +64,6 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReturnDocument;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
@@ -258,47 +256,9 @@ public class DBAccessMongo implements Closeable {
 		return (T) get(data.getClass(), insertedId, injectedOptions.getAllArray());
 	}
 
-	public <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
-		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		return insert(data);
-	}
-
 	// ========================================================================
 	// Update methods
 	// ========================================================================
-
-	@Deprecated
-	public <T, ID_TYPE> long updateWithJson(
-			final Class<T> clazz,
-			final ID_TYPE id,
-			final String jsonData,
-			final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		options.add(new TransmitKey(id));
-		return updateWhereWithJson(clazz, jsonData, options.getAllArray());
-	}
-
-	@Deprecated
-	public <T> long updateWhereWithJson(final Class<T> clazz, final String jsonData, final QueryOption... option)
-			throws Exception {
-		final QueryOptions options = new QueryOptions(option);
-		if (options.get(Condition.class).size() == 0) {
-			throw new DataAccessException("request a updateWhereWithJson without any condition");
-		}
-		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
-		// parse the object to be sure the data are valid:
-		final T data = mapper.readValue(jsonData, clazz);
-		// Read the tree to filter injection of data:
-		final JsonNode root = mapper.readTree(jsonData);
-		final List<String> keys = new ArrayList<>();
-		final var iterator = root.fieldNames();
-		iterator.forEachRemaining(e -> keys.add(e));
-		options.add(new FilterValue(keys));
-		return updateWhere(data, options.getAllArray());
-	}
 
 	public <T, ID_TYPE> long update(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
