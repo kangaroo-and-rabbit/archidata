@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.slf4j.Logger;
@@ -57,7 +57,8 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean applyMigration(final DBAccess da, final StringBuilder log, final Migration model) throws Exception {
+	public boolean applyMigration(final DBAccessMongo da, final StringBuilder log, final Migration model)
+			throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
 			generateStep();
@@ -113,7 +114,7 @@ public class MigrationSqlStep implements MigrationInterface {
 	}
 
 	@Override
-	public boolean revertMigration(final DBAccess da, final StringBuilder log) throws Exception {
+	public boolean revertMigration(final DBAccessMongo da, final StringBuilder log) throws Exception {
 		generateRevertStep();
 		return false;
 	}

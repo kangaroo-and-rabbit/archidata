@@ -3,14 +3,14 @@ package org.atriasoft.archidata.db;
 import java.util.List;
 import java.util.Objects;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DbConfig {
-	static final Logger LOGGER = LoggerFactory.getLogger(DBAccess.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 	private final String hostname;
 	private final Short port;
 	private final String login;

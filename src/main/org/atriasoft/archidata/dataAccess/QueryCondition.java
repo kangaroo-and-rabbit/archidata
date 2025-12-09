@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.client.model.Filters;
 
 public class QueryCondition implements QueryItem {
-	static final Logger LOGGER = LoggerFactory.getLogger(DBAccess.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 	private final String key;
 	private final String comparator;
 	private final Object value;

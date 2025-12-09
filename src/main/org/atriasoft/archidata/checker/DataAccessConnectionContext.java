@@ -2,16 +2,16 @@ package org.atriasoft.archidata.checker;
 
 import java.io.IOException;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 
 import jakarta.ws.rs.InternalServerErrorException;
 
-// Note: never sent the DBAccess through an other thread.
+// Note: never sent the DBAccessMongo through an other thread.
 public class DataAccessConnectionContext implements AutoCloseable {
 	private static long createdReal = 0L;
 	private static long created = 0L;
-	private static final ThreadLocal<DBAccess> threadLocalConnection = new ThreadLocal<>();
+	private static final ThreadLocal<DBAccessMongo> threadLocalConnection = new ThreadLocal<>();
 	private final boolean isOwner;
 
 	/**
@@ -25,7 +25,7 @@ public class DataAccessConnectionContext implements AutoCloseable {
 	 */
 	public DataAccessConnectionContext() throws InternalServerErrorException, IOException, DataAccessException {
 		if (threadLocalConnection.get() == null) {
-			final DBAccess db = DBAccess.createInterface();
+			final DBAccessMongo db = DBAccessMongo.createInterface();
 			threadLocalConnection.set(db);
 			this.isOwner = true;
 			createdReal++;
@@ -36,38 +36,38 @@ public class DataAccessConnectionContext implements AutoCloseable {
 	}
 
 	/**
-	 * Returns the DBAccess connection for the current thread.
+	 * Returns the DBAccessMongo connection for the current thread.
 	 */
-	public DBAccess get() {
-		final DBAccess db = threadLocalConnection.get();
+	public DBAccessMongo get() {
+		final DBAccessMongo db = threadLocalConnection.get();
 		if (db == null) {
 			throw new IllegalStateException(
-					"No DBAccess available in current thread. Ensure you're within a DataAccessConnectionContext.");
+					"No DBAccessMongo available in current thread. Ensure you're within a DataAccessConnectionContext.");
 		}
 		return db;
 	}
 
 	/**
-	 * Returns the DBAccess connection for the current thread.
+	 * Returns the DBAccessMongo connection for the current thread.
 	 */
-	public static DBAccess getConnection() {
-		final DBAccess db = threadLocalConnection.get();
+	public static DBAccessMongo getConnection() {
+		final DBAccessMongo db = threadLocalConnection.get();
 		if (db == null) {
 			throw new IllegalStateException(
-					"No DBAccess available in current thread. Ensure you're within a DataAccessConnectionContext.");
+					"No DBAccessMongo available in current thread. Ensure you're within a DataAccessConnectionContext.");
 		}
 		return db;
 	}
 
 	/**
-	 * Closes the DBAccess connection if this context created it.
+	 * Closes the DBAccessMongo connection if this context created it.
 	 *
 	 * @throws IOException
 	 */
 	@Override
 	public void close() throws IOException {
 		if (this.isOwner) {
-			final DBAccess db = threadLocalConnection.get();
+			final DBAccessMongo db = threadLocalConnection.get();
 			if (db != null) {
 				try {
 					db.close();

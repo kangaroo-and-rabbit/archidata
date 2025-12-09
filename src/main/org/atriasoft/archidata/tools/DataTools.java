@@ -18,7 +18,7 @@ import java.util.List;
 import org.apache.tika.Tika;
 import org.atriasoft.archidata.api.DataResource;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.QueryAnd;
 import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
@@ -79,7 +79,7 @@ public class DataTools {
 		return filePath;
 	}
 
-	public static Data getWithSha512(final DBAccess ioDb, final String sha512) {
+	public static Data getWithSha512(final DBAccessMongo ioDb, final String sha512) {
 		try {
 			return ioDb.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
 					new ReadAllColumn());
@@ -90,7 +90,7 @@ public class DataTools {
 		return null;
 	}
 
-	public static Data getWithId(final DBAccess ioDb, final long id) {
+	public static Data getWithId(final DBAccessMongo ioDb, final long id) {
 		try {
 			return ioDb.getWhere(Data.class, new Condition(new QueryAnd(
 					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
@@ -102,7 +102,7 @@ public class DataTools {
 	}
 
 	public static Data createNewData(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512,
@@ -138,7 +138,7 @@ public class DataTools {
 	}
 
 	public static Data createNewData(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512) throws IOException, SQLException {
@@ -157,7 +157,7 @@ public class DataTools {
 		return createNewData(ioDb, tmpUID, originalFileName, sha512, mimeType);
 	}
 
-	public static void undelete(final DBAccess ioDb, final ObjectId oid) {
+	public static void undelete(final DBAccessMongo ioDb, final ObjectId oid) {
 		try {
 			ioDb.unsetDelete(Data.class, oid);
 		} catch (final Exception e) {
@@ -280,7 +280,7 @@ public class DataTools {
 	}
 
 	public static <CLASS_TYPE, ID_TYPE> void uploadCoverFromUri(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,
 			final String url) throws Exception {
@@ -374,7 +374,7 @@ public class DataTools {
 		final long tmpUID = getTmpDataId();
 		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess ioDb = ctx.get();
+			final DBAccessMongo ioDb = ctx.get();
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
 			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
@@ -407,7 +407,7 @@ public class DataTools {
 			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess ioDb = ctx.get();
+			final DBAccessMongo ioDb = ctx.get();
 			LOGGER.info("Upload media file: {}", fileMetaData);
 			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
@@ -444,7 +444,7 @@ public class DataTools {
 			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess ioDb = ctx.get();
+			final DBAccessMongo ioDb = ctx.get();
 			// public NodeSmall uploadFile(final FormDataMultiPart form) {
 			LOGGER.info("Upload media file: {}", fileMetaData);
 			LOGGER.info("    - id: {}", id);

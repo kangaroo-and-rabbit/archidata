@@ -2,7 +2,7 @@ package test.atriasoft.archidata.apiExtern.resource;
 
 import org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +25,7 @@ public class DataAccessTestResource {
 	public String getAlreadyConnected() throws Exception {
 		// Verify if the connection is in the threadLocal
 		try {
-			DBAccess db = DataAccessConnectionContext.getConnection();
+			DBAccessMongo db = DataAccessConnectionContext.getConnection();
 			return "OK";
 		} catch (IllegalStateException ex) {
 			return "ERROR";
@@ -38,7 +38,7 @@ public class DataAccessTestResource {
 	public String getNoConnection() throws Exception {
 		// Verify if the connection is in the threadLocal
 		try {
-			DBAccess db = DataAccessConnectionContext.getConnection();
+			DBAccessMongo db = DataAccessConnectionContext.getConnection();
 			return "ERROR";
 		} catch (IllegalStateException ex) {
 			return "OK";

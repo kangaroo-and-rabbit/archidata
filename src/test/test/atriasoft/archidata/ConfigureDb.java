@@ -2,7 +2,7 @@ package test.atriasoft.archidata;
 
 import java.io.IOException;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIoFactory;
@@ -15,13 +15,13 @@ import jakarta.ws.rs.InternalServerErrorException;
 
 public class ConfigureDb {
 	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
-	public static DBAccess da = null;
+	public static DBAccessMongo da = null;
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
 		ConfigBaseVariable.bdDatabase = "test_db";
 		removeDB();
 		// Connect the dataBase...
-		da = DBAccess.createInterface();
+		da = DBAccessMongo.createInterface();
 	}
 
 	public static void removeDB() {
@@ -34,7 +34,7 @@ public class ConfigureDb {
 			return;
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
-		try (final DBAccess daRoot = DBAccess.createInterface(config)) {
+		try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
 			daRoot.deleteDB(ConfigBaseVariable.bdDatabase);
 			daRoot.createDB(ConfigBaseVariable.bdDatabase);
 		} catch (final InternalServerErrorException e) {

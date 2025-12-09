@@ -33,7 +33,7 @@ public class DataAccess {
 	public static List<String> listCollections(final String name, final QueryOption... options)
 			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.listCollections(name, options);
 		}
 	}
@@ -41,7 +41,7 @@ public class DataAccess {
 	public static boolean isDBExist(final String name, final QueryOption... options)
 			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.isDBExist(name, options);
 		}
 	}
@@ -49,7 +49,7 @@ public class DataAccess {
 	public static boolean createDB(final String name)
 			throws IOException, InternalServerErrorException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.createDB(name);
 		}
 	}
@@ -57,7 +57,7 @@ public class DataAccess {
 	public static boolean isTableExist(final String name, final QueryOption... options)
 			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.isTableExist(name, options);
 		}
 	}
@@ -65,7 +65,7 @@ public class DataAccess {
 	// TODO: manage insert batch...
 	public static <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.insertMultiple(data, options);
 		}
 	}
@@ -73,7 +73,7 @@ public class DataAccess {
 	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
 	public static <T> T insert(final T data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.insert(data, options);
 		}
 	}
@@ -82,7 +82,7 @@ public class DataAccess {
 	// an id it can be complicated...
 	public static <T> T insertWithJson(final Class<T> clazz, final String jsonData) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.insertWithJson(clazz, jsonData);
 		}
 	}
@@ -92,7 +92,7 @@ public class DataAccess {
 			final ID_TYPE idKey,
 			final QueryOptions options) throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.getTableIdCondition(clazz, idKey, options);
 		}
 	}
@@ -114,7 +114,7 @@ public class DataAccess {
 			final String jsonData,
 			final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.updateWithJson(clazz, id, jsonData, options);
 		}
 	}
@@ -124,14 +124,14 @@ public class DataAccess {
 			final String jsonData,
 			final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.updateWhereWithJson(clazz, jsonData, options);
 		}
 	}
 
 	public static <T, ID_TYPE> long update(final T data, final ID_TYPE id) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.update(data, id);
 		}
 	}
@@ -139,7 +139,7 @@ public class DataAccess {
 	public static <T, ID_TYPE> long update(final T data, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.update(data, id, option);
 		}
 	}
@@ -147,42 +147,42 @@ public class DataAccess {
 	public static <T, ID_TYPE> long updateFull(final T data, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.updateFull(data, id, options);
 		}
 	}
 
 	public static <T> long updateWhere(final T data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.updateWhere(data, options);
 		}
 	}
 
 	public static <T> long updateWhere(final T data, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.updateWhere(data, options);
 		}
 	}
 
 	public static <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.getWhere(clazz, options);
 		}
 	}
 
 	public static <T> T getWhere(final Class<T> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.getWhere(clazz, options);
 		}
 	}
 
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.getsWhere(clazz, options);
 		}
 	}
@@ -190,7 +190,7 @@ public class DataAccess {
 	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.conditionFusionOrEmpty(options, throwIfEmpty);
 		}
 	}
@@ -198,7 +198,7 @@ public class DataAccess {
 	public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.getsWhere(clazz, options);
 		}
 	}
@@ -206,21 +206,21 @@ public class DataAccess {
 	public static <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.count(clazz, id, options);
 		}
 	}
 
 	public static long countWhere(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.countWhere(clazz, options);
 		}
 	}
 
 	public static long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.countWhere(clazz, options);
 		}
 	}
@@ -229,21 +229,21 @@ public class DataAccess {
 	public static <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.get(clazz, id, options);
 		}
 	}
 
 	public static <T> List<T> gets(final Class<T> clazz) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.gets(clazz);
 		}
 	}
 
 	public static <T> List<T> gets(final Class<T> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.gets(clazz, options);
 		}
 	}
@@ -262,7 +262,7 @@ public class DataAccess {
 	public static <ID_TYPE> long delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.delete(clazz, id, options);
 		}
 	}
@@ -278,7 +278,7 @@ public class DataAccess {
 	 */
 	public static long deleteWhere(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.deleteWhere(clazz, options);
 		}
 	}
@@ -286,14 +286,14 @@ public class DataAccess {
 	public static <ID_TYPE> long deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.deleteHard(clazz, id, options);
 		}
 	}
 
 	public static long deleteHardWhere(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.deleteHardWhere(clazz, options);
 		}
 	}
@@ -301,14 +301,14 @@ public class DataAccess {
 	public static <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.deleteSoft(clazz, id, options);
 		}
 	}
 
 	public static long deleteSoftWhere(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.deleteSoftWhere(clazz, options);
 		}
 	}
@@ -316,7 +316,7 @@ public class DataAccess {
 	public static <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.unsetDelete(clazz, id);
 		}
 	}
@@ -324,7 +324,7 @@ public class DataAccess {
 	public static <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.unsetDelete(clazz, id, options);
 		}
 	}
@@ -332,21 +332,21 @@ public class DataAccess {
 	public static long unsetDeleteWhere(final Class<?> clazz, final QueryOption... options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			return db.unsetDeleteWhere(clazz, options);
 		}
 	}
 
 	public static void drop(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			db.drop(clazz, options);
 		}
 	}
 
 	public static void cleanAll(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			db.cleanAll(clazz, options);
 		}
 	}

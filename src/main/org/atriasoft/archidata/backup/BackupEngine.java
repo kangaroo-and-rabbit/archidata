@@ -30,7 +30,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -215,7 +215,7 @@ public class BackupEngine {
 	private void backupCollectionsToStream(final TarArchiveOutputStream tarOut)
 			throws IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			if (db instanceof final DBAccessMongo dbMongo) {
 				backupCollectionsToStream(dbMongo, tarOut);
 				return;
@@ -227,7 +227,7 @@ public class BackupEngine {
 	private void restoreStreamToCollections(final TarArchiveInputStream tarIn, final String collectionName)
 			throws IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccess db = ctx.get();
+			final DBAccessMongo db = ctx.get();
 			if (db instanceof final DBAccessMongo dbMongo) {
 				restoreStreamToCollections(dbMongo, tarIn, collectionName);
 				return;

@@ -11,7 +11,7 @@ import jakarta.ws.rs.NameBinding;
  * Annotation to activate a per-request single DB connection context on a Jakarta REST endpoint or resource class.
  *
  * <p>When applied to a JAX-RS resource class or method, this annotation triggers the opening of a single
- * {@code DBAccess} connection stored in a {@code ThreadLocal} at the beginning of the request,
+ * {@code DBAccessMongo} connection stored in a {@code ThreadLocal} at the beginning of the request,
  * and ensures it is properly closed at the end of the request.</p>
  *
  * <p>This allows all calls to {@code DataAccessConnectionContext.getConnection()} within the request
@@ -30,7 +30,7 @@ import jakarta.ws.rs.NameBinding;
  *     &#64;Path("/{id}")
  *     &#64;DataAccessSingleConnection
  *     public User getUser(@PathParam("id") String id) {
- *         DBAccess db = DataAccessConnectionContext.getConnection();
+ *         DBAccessMongo db = DataAccessConnectionContext.getConnection();
  *         return db.queryUserById(id);
  *     }
  * }

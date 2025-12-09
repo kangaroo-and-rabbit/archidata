@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.db.DbConfig;
@@ -52,7 +52,7 @@ public class MigrationEngine {
 	/** Get the current version/migration name
 	 * @return Model represent the last migration. If null then no migration has been done.
 	 * @throws MigrationException */
-	public Migration getCurrentVersion(final DBAccess da) throws MigrationException {
+	public Migration getCurrentVersion(final DBAccessMongo da) throws MigrationException {
 		if (!da.isTableExist("KAR_migration")) {
 			return null;
 		}
@@ -133,7 +133,7 @@ public class MigrationEngine {
 			final DbConfig config = configInput.clone();
 			final String dbName = configInput.getDbName();
 			LOGGER.info("Verify existance of '{}'", dbName);
-			try (final DBAccess da = DBAccess.createInterface(config)) {
+			try (final DBAccessMongo da = DBAccessMongo.createInterface(config)) {
 				boolean exist = da.isDBExist(dbName);
 				if (!exist) {
 					LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", dbName);
@@ -176,7 +176,7 @@ public class MigrationEngine {
 		// STEP 1: Check the DB exist:
 		createTableIfAbleOrWaitAdmin(config);
 		LOGGER.info("DB '{}' exist.", config.getDbName());
-		try (final DBAccess da = DBAccess.createInterface(config)) {
+		try (final DBAccessMongo da = DBAccessMongo.createInterface(config)) {
 			// STEP 2: Check migration table exist:
 			LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");
 			final Migration currentVersion = getCurrentVersion(da);
@@ -253,7 +253,7 @@ public class MigrationEngine {
 		}
 	}
 
-	public void migrateSingle(final DBAccess da, final MigrationInterface elem, final int id, final int count)
+	public void migrateSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count)
 			throws MigrationException {
 		LOGGER.info("---------------------------------------------------------");
 		LOGGER.info("-- Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
@@ -315,7 +315,7 @@ public class MigrationEngine {
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
 
-	public void revertTo(final DBAccess da, final String migrationName) throws MigrationException {
+	public void revertTo(final DBAccessMongo da, final String migrationName) throws MigrationException {
 		final Migration currentVersion = getCurrentVersion(da);
 		final List<MigrationInterface> toApply = new ArrayList<>();
 		boolean find = false;
@@ -338,7 +338,7 @@ public class MigrationEngine {
 		}
 	}
 
-	public void revertSingle(final DBAccess da, final MigrationInterface elem, final int id, final int count) {
+	public void revertSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count) {
 		LOGGER.info("Revert migration: {} [BEGIN]", elem.getName());
 
 		LOGGER.info("Revert migration: {} [ END ]", elem.getName());

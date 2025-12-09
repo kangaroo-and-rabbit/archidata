@@ -7,7 +7,7 @@ import java.util.List;
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOn.model.TableListObjectGeneric;
@@ -22,7 +22,7 @@ import org.atriasoft.archidata.exception.DataAccessException;
 public class ManyToManyTools {
 
 	private static void addLinkLocal(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final String clazzPrimaryKeyName,
 			final Object clazzPrimaryKeyValue,
@@ -57,7 +57,7 @@ public class ManyToManyTools {
 	}
 
 	public static void addLink(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
@@ -75,7 +75,7 @@ public class ManyToManyTools {
 	}
 
 	public static void addLinkRemote(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Field localField,
 			final Object localPrimaryKeyValue,
 			final Object remotePrimaryKeyValue) throws Exception {
@@ -97,7 +97,7 @@ public class ManyToManyTools {
 	}
 
 	private static void removeLinkLocal(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final String clazzPrimaryKeyName,
 			final Object clazzPrimaryKeyValue,
@@ -137,7 +137,7 @@ public class ManyToManyTools {
 	}
 
 	public static void removeLink(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
@@ -156,7 +156,7 @@ public class ManyToManyTools {
 	}
 
 	public static void removeLinkRemote(
-			final DBAccess ioDb,
+			final DBAccessMongo ioDb,
 			final Field localField,
 			final Object localPrimaryKeyValue,
 			final Object remotePrimaryKeyValue) throws Exception {

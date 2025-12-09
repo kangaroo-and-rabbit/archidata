@@ -1,7 +1,7 @@
 package org.atriasoft.archidata.migration;
 
-import org.atriasoft.archidata.dataAccess.DBAccess;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 
 public interface AsyncCall {
-	void doRequest(DBAccess da) throws Exception;
+	void doRequest(DBAccessMongo da) throws Exception;
 }
