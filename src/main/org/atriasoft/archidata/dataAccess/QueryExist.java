@@ -16,11 +16,6 @@ public class QueryExist implements QueryItem {
 	}
 
 	@Override
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		// not implemented
-	}
-
-	@Override
 	public void generateFilter(final List<Bson> filters) {
 		filters.add(Filters.exists(this.key, this.exist));
 	}

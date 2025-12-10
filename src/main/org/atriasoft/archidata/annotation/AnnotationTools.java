@@ -372,7 +372,7 @@ public class AnnotationTools {
 			final List<OptionRenameColumn> renamesColumn = options.get(OptionRenameColumn.class);
 			for (final OptionRenameColumn rename : renamesColumn) {
 				if (rename.columnName.equals(inStructName)) {
-					inTableName = rename.colomnNewName;
+					inTableName = rename.ColumnNewName;
 					LOGGER.trace("Detect overwrite of column name '{}' => '{}'", inStructName, inTableName);
 					break;
 				}

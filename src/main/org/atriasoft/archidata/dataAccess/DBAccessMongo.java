@@ -46,7 +46,6 @@ import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
 import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
-import org.atriasoft.archidata.tools.ContextGenericTools;
 import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.Document;
@@ -125,28 +124,56 @@ public class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Add a new add-on on the current management.
+	 * Registers a custom add-on to extend database access functionality.
 	 *
-	 * @param addOn instantiate object on the Add-on
+	 * <p>
+	 * Add-ons provide specialized handling for complex field types (e.g., OneToMany, ManyToOne).
+	 * This method allows registration of custom add-ons beyond the default ones.
+	 * </p>
+	 *
+	 * @param addOn The add-on implementation to register
 	 */
 	public static void addAddOn(final DataAccessAddOn addOn) {
 		DBAccessMongo.addOn.add(addOn);
 	}
 
-	// ========================================================================
-	// Static factory methods
-	// ========================================================================
-
+	/**
+	 * Creates a new DBAccessMongo instance using default database configuration.
+	 *
+	 * <p>
+	 * The default configuration is loaded from environment variables or configuration files.
+	 * </p>
+	 *
+	 * @return A new DBAccessMongo instance
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 * @throws DataAccessException          if database access configuration is invalid
+	 */
 	public static final DBAccessMongo createInterface()
 			throws InternalServerErrorException, IOException, DataAccessException {
 		return DBAccessMongo.createInterface(DbIoFactory.create());
 	}
 
+	/**
+	 * Creates a new DBAccessMongo instance using the specified database configuration.
+	 *
+	 * @param config Custom database configuration
+	 * @return A new DBAccessMongo instance
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 */
 	public static final DBAccessMongo createInterface(final DbConfig config)
 			throws InternalServerErrorException, IOException {
 		return DBAccessMongo.createInterface(DbIoFactory.create(config));
 	}
 
+	/**
+	 * Creates a new DBAccessMongo instance using an existing database I/O interface.
+	 *
+	 * @param io Existing database I/O interface
+	 * @return A new DBAccessMongo instance
+	 * @throws InternalServerErrorException if database connection fails
+	 */
 	public static final DBAccessMongo createInterface(final DbIo io) throws InternalServerErrorException {
 		if (io instanceof final DbIoMongo ioMorphia) {
 			try {
@@ -159,29 +186,72 @@ public class DBAccessMongo implements Closeable {
 		throw new InternalServerErrorException("unknown DB interface ... ");
 	}
 
-	// ========================================================================
-	// Instance fields
-	// ========================================================================
-
 	private final DbIoMongo db;
 
+	/**
+	 * Constructs a new DBAccessMongo instance with the specified MongoDB I/O interface.
+	 *
+	 * <p>
+	 * This constructor opens the database connection. Use {@link #close()} to properly
+	 * release resources when done.
+	 * </p>
+	 *
+	 * @param db MongoDB I/O interface
+	 * @throws IOException if connection fails
+	 */
 	public DBAccessMongo(final DbIoMongo db) throws IOException {
 		this.db = db;
 		db.open();
 	}
 
+	/**
+	 * Closes the database connection and releases associated resources.
+	 *
+	 * <p>
+	 * This method should be called when the DBAccessMongo instance is no longer needed.
+	 * Typically used with try-with-resources pattern.
+	 * </p>
+	 *
+	 * @throws IOException if closing connection fails
+	 */
+	@Override
 	public void close() throws IOException {
 		this.db.close();
 	}
 
+	/**
+	 * Returns the underlying MongoDB I/O interface.
+	 *
+	 * @return The MongoDB I/O interface
+	 */
 	public DbIoMongo getInterface() {
 		return this.db;
 	}
 
-	// ========================================================================
-	// Helper methods from DBAccessMongo
-	// ========================================================================
-
+	/**
+	 * Generates a query condition for matching an entity by its primary key ID.
+	 *
+	 * <p>
+	 * This method automatically detects the ID field type and creates the appropriate
+	 * condition for querying by ID.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * QueryCondition condition = db.getTableIdCondition(User.class, userId, options);
+	 * // condition will be: "_id" = ObjectId("507f1f77bcf86cd799439011")
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     The entity class
+	 * @param idKey     The ID value to match
+	 * @param options   Query options
+	 * @return A QueryCondition for matching the entity by ID
+	 * @throws DataAccessException if the class has no @Id field
+	 */
 	public <ID_TYPE> QueryCondition getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
@@ -219,10 +289,29 @@ public class DBAccessMongo implements Closeable {
 		return new QueryCondition(fieldName.inTable(), "=", idKey);
 	}
 
-	// ========================================================================
-	// Insert methods
-	// ========================================================================
-
+	/**
+	 * Inserts multiple entities into the database.
+	 *
+	 * <p>
+	 * Each entity is inserted individually and returned with its generated ID.
+	 * The order of insertion is maintained in the returned list.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * List&lt;User&gt; users = List.of(user1, user2, user3);
+	 * List&lt;User&gt; insertedUsers = db.insertMultiple(users);
+	 * ObjectId firstUserId = insertedUsers.get(0).id;
+	 * </pre>
+	 *
+	 * @param <T>     The type of the entities
+	 * @param data    List of entities to insert
+	 * @param options Optional query options (e.g., table selection)
+	 * @return List of inserted entities with generated IDs
+	 * @throws Exception if insertion operation fails
+	 */
 	public <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
 		final List<T> out = new ArrayList<>();
 		for (final T elem : data) {
@@ -232,6 +321,34 @@ public class DBAccessMongo implements Closeable {
 		return out;
 	}
 
+	/**
+	 * Inserts a single entity into the database.
+	 *
+	 * <p>
+	 * The entity is inserted and then retrieved with its generated ID and any
+	 * auto-generated fields (timestamps, etc.). The primary key is automatically
+	 * generated based on the field type (ObjectId, UUID, or Long).
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * User user = new User();
+	 * user.name = "John Doe";
+	 * user.email = "john@example.com";
+	 *
+	 * User insertedUser = db.insert(user);
+	 * ObjectId userId = insertedUser.id; // Auto-generated ObjectId
+	 * Timestamp created = insertedUser.createdAt; // Auto-generated timestamp
+	 * </pre>
+	 *
+	 * @param <T>    The type of the entity
+	 * @param data   Entity to insert
+	 * @param option Optional query options (e.g., table selection, field filtering)
+	 * @return The inserted entity with generated ID and auto-populated fields
+	 * @throws Exception if insertion operation fails
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> T insert(final T data, final QueryOption... option) throws Exception {
 		final Object insertedId = insertPrimaryKey(data, option);
@@ -256,10 +373,6 @@ public class DBAccessMongo implements Closeable {
 		return (T) getById(data.getClass(), insertedId, injectedOptions.getAllArray());
 	}
 
-	// ========================================================================
-	// Update methods
-	// ========================================================================
-
 	/**
 	 * Updates an entity identified by its ID with the provided data.
 	 *
@@ -270,24 +383,28 @@ public class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage:
+	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * User updateData = new User();
+	 * updateData.email = "newemail@example.com";
+	 *
 	 * // Update all fields
-	 * updateById(myData, 123);
+	 * db.updateById(updateData, userId);
 	 *
 	 * // Update only editable fields
-	 * updateById(myData, 123, FilterValue.getEditableFieldsNames(MyClass.class));
+	 * db.updateById(updateData, userId, FilterValue.getEditableFieldsNames(User.class));
 	 *
 	 * // Update specific fields only
-	 * updateById(myData, 123, new FilterValue(List.of("name", "email")));
+	 * db.updateById(updateData, userId, new FilterValue(List.of("email", "lastModified")));
 	 * </pre>
 	 *
-	 * @param <T>      The type of the entity
-	 * @param <ID_TYPE> The type of the ID
-	 * @param data     The entity data to update
-	 * @param id       The unique identifier of the entity
-	 * @param option   Optional query options (e.g., FilterValue, table selection)
+	 * @param <T>       The type of the entity
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
+	 * @param data      The entity data to update
+	 * @param id        The unique identifier of the entity (e.g., ObjectId)
+	 * @param option    Optional query options (e.g., FilterValue, table selection)
 	 * @return Number of entities updated (typically 0 or 1)
 	 * @throws Exception if update operation fails
 	 */
@@ -316,12 +433,23 @@ public class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage:
+	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * update(myData,
-	 *        new Condition("status", "active"),
-	 *        new FilterValue(List.of("lastModified", "status")));
+	 * User updateData = new User();
+	 * updateData.status = "inactive";
+	 * updateData.lastModified = Timestamp.from(Instant.now());
+	 *
+	 * // Update all users with status "active"
+	 * long count = db.update(updateData,
+	 *     new Condition(new QueryCondition("status", "=", "active")),
+	 *     new FilterValue(List.of("status", "lastModified")));
+	 *
+	 * // Update users created by specific author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * db.update(updateData,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new FilterValue(List.of("status")));
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
@@ -334,10 +462,6 @@ public class DBAccessMongo implements Closeable {
 		final QueryOptions options = new QueryOptions(option);
 		return update(data, options);
 	}
-
-	// ========================================================================
-	// Get methods
-	// ========================================================================
 
 	/**
 	 * Retrieves a single entity matching the specified conditions (QueryOptions variant).
@@ -387,6 +511,20 @@ public class DBAccessMongo implements Closeable {
 	 * If no entity matches, returns null.
 	 * </p>
 	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Find user by email
+	 * User user = db.get(User.class,
+	 *     new Condition(new QueryCondition("email", "=", "john@example.com")));
+	 *
+	 * // Find document created by specific author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * Document doc = db.get(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * </pre>
+	 *
 	 * @param <T>    The type of the entity
 	 * @param clazz  The class of the entity
 	 * @param option Query options including conditions, filters, etc.
@@ -413,6 +551,22 @@ public class DBAccessMongo implements Closeable {
 
 	/**
 	 * Retrieves all entities of the specified type matching the conditions.
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Get all active users
+	 * List&lt;User&gt; users = db.gets(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *
+	 * // Get documents by author with limit
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * List&lt;Document&gt; docs = db.gets(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Limit(10),
+	 *     new OrderBy("createdAt", false));
+	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
 	 * @param clazz  The class of the entity
@@ -456,11 +610,26 @@ public class DBAccessMongo implements Closeable {
 	/**
 	 * Retrieves an entity by its unique identifier.
 	 *
-	 * @param <T>      The type of the entity
-	 * @param <ID_TYPE> The type of the ID
-	 * @param clazz    The class of the entity
-	 * @param id       The unique identifier
-	 * @param option   Optional query options (e.g., table selection, column filters)
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Get user by ObjectId
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * User user = db.getById(User.class, userId);
+	 * if (user != null) {
+	 *     System.out.println("Found: " + user.name);
+	 * }
+	 *
+	 * // Get user with all columns (including non-readable ones)
+	 * User userWithAllData = db.getById(User.class, userId, QueryOptions.READ_ALL_COLUMN);
+	 * </pre>
+	 *
+	 * @param <T>       The type of the entity
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier (e.g., ObjectId)
+	 * @param option    Optional query options (e.g., table selection, column filters)
 	 * @return The entity with the specified ID or null if not found
 	 * @throws Exception if retrieval operation fails
 	 */
@@ -488,10 +657,6 @@ public class DBAccessMongo implements Closeable {
 		return gets(clazz);
 	}
 
-	// ========================================================================
-	// Count methods
-	// ========================================================================
-
 	/**
 	 * Checks if an entity with the specified ID exists.
 	 *
@@ -500,9 +665,21 @@ public class DBAccessMongo implements Closeable {
 	 * Returns true if the entity exists, false otherwise.
 	 * </p>
 	 *
-	 * @param <ID_TYPE> The type of the ID
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * if (db.existsById(User.class, userId)) {
+	 *     System.out.println("User exists");
+	 * } else {
+	 *     System.out.println("User not found");
+	 * }
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     The class of the entity
-	 * @param id        The unique identifier to check
+	 * @param id        The unique identifier to check (e.g., ObjectId)
 	 * @param option    Optional query options (e.g., table selection)
 	 * @return true if an entity with this ID exists, false otherwise
 	 * @throws Exception if existence check operation fails
@@ -517,6 +694,20 @@ public class DBAccessMongo implements Closeable {
 	/**
 	 * Counts the number of entities matching the specified conditions.
 	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Count all active users
+	 * long activeCount = db.count(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *
+	 * // Count documents by author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * long docCount = db.count(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * </pre>
+	 *
 	 * @param clazz  The class of the entity
 	 * @param option Query options including conditions, filters, etc.
 	 * @return The number of matching entities
@@ -526,10 +717,6 @@ public class DBAccessMongo implements Closeable {
 		final QueryOptions options = new QueryOptions(option);
 		return count(clazz, options);
 	}
-
-	// ========================================================================
-	// Delete methods
-	// ========================================================================
 
 	/**
 	 * Deletes an entity by its unique identifier.
@@ -545,9 +732,25 @@ public class DBAccessMongo implements Closeable {
 	 * over the delete behavior.
 	 * </p>
 	 *
-	 * @param <ID_TYPE> The type of the ID
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 *
+	 * // Automatic routing (soft delete if @SoftDeleted, hard delete otherwise)
+	 * long deleted = db.deleteById(User.class, userId);
+	 * if (deleted &gt; 0) {
+	 *     System.out.println("User deleted");
+	 * }
+	 *
+	 * // Explicit hard delete (ignores @SoftDeleted)
+	 * db.deleteHardById(User.class, userId);
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     The class of the entity
-	 * @param id        The unique identifier of the entity to delete
+	 * @param id        The unique identifier of the entity to delete (e.g., ObjectId)
 	 * @param options   Optional query options
 	 * @return Number of entities deleted (typically 0 or 1)
 	 * @throws Exception if delete operation fails
@@ -576,6 +779,21 @@ public class DBAccessMongo implements Closeable {
 	 * over the delete behavior.
 	 * </p>
 	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Delete all inactive users
+	 * long deleted = db.delete(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "inactive")));
+	 *
+	 * // Delete documents by author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * long count = db.delete(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * System.out.println("Deleted " + count + " documents");
+	 * </pre>
+	 *
 	 * @param clazz  The class of the entity
 	 * @param option Query options including conditions
 	 * @return Number of entities deleted
@@ -590,46 +808,92 @@ public class DBAccessMongo implements Closeable {
 		}
 	}
 
-	// ========================================================================
-	// MongoDB-specific and existing implementations
-	// ========================================================================
-
+	/**
+	 * Lists all collection names in the current database.
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * List&lt;String&gt; collections = db.listCollections("mydb");
+	 * for (String collName : collections) {
+	 *     System.out.println("Collection: " + collName);
+	 * }
+	 * </pre>
+	 *
+	 * @param name   Database name (not currently used in MongoDB implementation)
+	 * @param option Optional query options
+	 * @return List of collection names
+	 * @throws InternalServerErrorException if listing fails
+	 */
 	public List<String> listCollections(final String name, final QueryOption... option)
 			throws InternalServerErrorException {
 		return this.db.getDatabase().listCollectionNames().into(new ArrayList<>());
 	}
 
+	/**
+	 * Renames a MongoDB collection.
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * db.renameCollection("old_users", "users");
+	 * </pre>
+	 *
+	 * @param source      Current collection name
+	 * @param destination New collection name
+	 */
 	public void renameCollection(final String source, final String destination) {
 		final MongoCollection<Document> previousCollection = this.db.getDatabase().getCollection(source);
 		previousCollection
 				.renameCollection(new com.mongodb.MongoNamespace(this.db.getDatabase().getName(), destination));
 	}
 
-	public boolean isDBExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		// in Mongo DB we do not need to create a DB, then we have no need to check if
-		// it exist
-		return true;
-	}
-
-	public boolean createDB(final String name) {
-		// in Mongo DB we do not need to create a DB it is dynamically created when
-		// insert the first element.
-		return true;
-	}
-
-	public boolean deleteDB(final String name) {
+	/**
+	 * Deletes (drops) an entire database.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This permanently deletes all collections and documents
+	 * in the specified database. Use with caution.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * db.deleteCollection("test_database");
+	 * </pre>
+	 *
+	 * @param name Collection name to delete
+	 * @return true if deletion succeeds
+	 */
+	public boolean deleteCollection(final String name) {
 		final MongoDatabase database = this.db.getClient().getDatabase(name);
 		database.drop();
 		return true;
 	}
 
-	public boolean isTableExist(final String name, final QueryOption... option) throws InternalServerErrorException {
-		// With mongo the dB exist only when the data is inserted
-		return true;
-	}
-
 	/**
-	 * This is a test
+	 * Creates an ascending index on a specific field in a collection.
+	 *
+	 * <p>
+	 * Indexes improve query performance for frequently queried fields.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId field:
+	 * </p>
+	 * <pre>
+	 * // Create index on authorId field for faster lookups
+	 * db.ascendingIndex("documents", "authorId");
+	 *
+	 * // Create index on email field
+	 * db.ascendingIndex("users", "email");
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection
+	 * @param fieldName      Name of the field to index
 	 */
 	public void ascendingIndex(final String collectionName, final String fieldName) {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
@@ -1623,7 +1887,7 @@ public class DBAccessMongo implements Closeable {
 	}
 
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
-		final boolean readAllFields = QueryOptions.readAllColomn(options);
+		final boolean readAllFields = QueryOptions.readAllColumn(options);
 		final List<String> fieldsName = new ArrayList<>();
 
 		for (final Field elem : clazz.getFields()) {
@@ -1696,11 +1960,6 @@ public class DBAccessMongo implements Closeable {
 			} else {
 				retFind = collection.find();
 			}
-			/*
-			 * Not manage right now ... final List<GroupBy> groups =
-			 * options.get(GroupBy.class); for (final GroupBy group : groups) {
-			 * group.generateQuery(query, tableName); }
-			 */
 			final List<OrderBy> orders = options.get(OrderBy.class);
 			if (orders.size() != 0) {
 				final Document sorts = new Document();
@@ -1928,7 +2187,7 @@ public class DBAccessMongo implements Closeable {
 			if (doc instanceof final Document documentModel) {
 				final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 				// LOGGER.trace("createObjectFromDocument: {}", clazz.getCanonicalName());
-				final boolean readAllfields = QueryOptions.readAllColomn(options);
+				final boolean readAllfields = QueryOptions.readAllColumn(options);
 				// TODO: manage class that is defined inside a class ==> Not manage for now...
 				Object data = null;
 				for (final Constructor<?> contructor : clazz.getConstructors()) {
@@ -2245,9 +2504,28 @@ public class DBAccessMongo implements Closeable {
 	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
 	 * </p>
 	 *
-	 * @param <ID_TYPE> The type of the ID
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 *
+	 * // Soft delete a user
+	 * db.deleteSoftById(User.class, userId);
+	 *
+	 * // Later, restore the user
+	 * long restored = db.restoreById(User.class, userId);
+	 * if (restored &gt; 0) {
+	 *     System.out.println("User restored successfully");
+	 * }
+	 *
+	 * // User is now visible in normal queries again
+	 * User user = db.getById(User.class, userId);
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     The class of the entity
-	 * @param id        The unique identifier of the entity to restore
+	 * @param id        The unique identifier of the entity to restore (e.g., ObjectId)
 	 * @param option    Optional query options
 	 * @return Number of entities restored (typically 0 or 1)
 	 * @throws DataAccessException if the class has no deleted field or restore fails
@@ -2293,6 +2571,26 @@ public class DBAccessMongo implements Closeable {
 		return ret.getModifiedCount();
 	}
 
+	/**
+	 * Drops (deletes) the entire collection for the specified entity class.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This permanently removes the collection and all its documents.
+	 * This operation cannot be undone. Use with extreme caution.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Drop the entire users collection
+	 * db.drop(User.class);
+	 * </pre>
+	 *
+	 * @param clazz  The entity class whose collection will be dropped
+	 * @param option Optional query options (e.g., table name override)
+	 * @throws Exception if drop operation fails
+	 */
 	public void drop(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -2301,6 +2599,26 @@ public class DBAccessMongo implements Closeable {
 		collection.drop();
 	}
 
+	/**
+	 * Deletes all documents from the collection for the specified entity class.
+	 *
+	 * <p>
+	 * Unlike {@link #drop(Class, QueryOption...)}, this keeps the collection structure
+	 * (indexes, schema) but removes all documents. This is a hard delete that cannot be undone.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Remove all user documents but keep the collection
+	 * db.cleanAll(User.class);
+	 * </pre>
+	 *
+	 * @param clazz  The entity class whose documents will be deleted
+	 * @param option Optional query options (e.g., table name override)
+	 * @throws Exception if clean operation fails
+	 */
 	public void cleanAll(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);

@@ -2,7 +2,6 @@ package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -233,7 +232,7 @@ public class ClassObjectModel extends ClassModel {
 		}
 		final List<Class<?>> basicClass = List.of(Void.class, void.class, Character.class, char.class, Short.class,
 				short.class, Integer.class, int.class, Long.class, long.class, Float.class, float.class, Double.class,
-				double.class, Date.class, Timestamp.class, LocalDate.class, LocalTime.class);
+				double.class, Date.class, LocalDate.class, LocalTime.class);
 		if (basicClass.contains(clazz)) {
 			return;
 		}

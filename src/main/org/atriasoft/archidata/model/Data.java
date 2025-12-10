@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.model;
 
-import org.atriasoft.archidata.annotation.DataIfNotExists;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
@@ -17,7 +16,6 @@ import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
 @Table(name = "data")
-@DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends OIDGenericDataSoftDelete {
 	@Column(length = 128, nullable = false)

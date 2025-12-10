@@ -7,10 +7,6 @@ public class Limit extends QueryOption {
 		this.limit = limit;
 	}
 
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		query.append(" LIMIT ? \n");
-	}
-
 	public long getValue() {
 		return this.limit;
 	}

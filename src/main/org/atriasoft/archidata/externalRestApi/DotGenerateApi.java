@@ -2,7 +2,6 @@ package org.atriasoft.archidata.externalRestApi;
 
 import java.io.FileWriter;
 import java.io.InputStream;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -153,11 +152,6 @@ public class DotGenerateApi {
 		models = api.getCompatibleModels(List.of(Date.class));
 		if (models != null) {
 			dotModels.add(new DotClassElement(models, "Date", "IsoDate", "isIsoDate", "Date", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Timestamp.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Timestamp", "Timestamp", "isTimestamp", "Timestamp",
-					DefinedPosition.BASIC));
 		}
 		models = api.getCompatibleModels(List.of(LocalDate.class));
 		if (models != null) {

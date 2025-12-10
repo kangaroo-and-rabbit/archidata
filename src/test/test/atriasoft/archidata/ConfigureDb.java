@@ -3,7 +3,6 @@ package test.atriasoft.archidata;
 import java.io.IOException;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
-import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIoFactory;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -20,7 +19,6 @@ public class ConfigureDb {
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
 		ConfigBaseVariable.bdDatabase = "test_db";
 		removeDB();
-		// Connect the dataBase...
 		da = DBAccessMongo.createInterface();
 	}
 
@@ -35,8 +33,7 @@ public class ConfigureDb {
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
 		try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
-			daRoot.deleteDB(ConfigBaseVariable.bdDatabase);
-			daRoot.createDB(ConfigBaseVariable.bdDatabase);
+			daRoot.deleteCollection(ConfigBaseVariable.bdDatabase);
 		} catch (final InternalServerErrorException e) {
 			e.printStackTrace();
 			LOGGER.error("Fail to clean the DB");

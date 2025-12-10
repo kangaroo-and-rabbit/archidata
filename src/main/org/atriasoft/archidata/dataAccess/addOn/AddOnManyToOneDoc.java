@@ -1,7 +1,6 @@
 package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -87,13 +86,13 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			return;
 		}
 		if (previousDataValue != null) {
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				ListInDbTools.removeLink(decorators.targetEntity(), previousDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
 		}
 		if (insertedDataValue != null) {
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				ListInDbTools.addLink(decorators.targetEntity(), insertedDataValue, decorators.remoteField(),
 						primaryKeyValue);
 			});
@@ -134,7 +133,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		}
 		final ManyToOneDoc decorators = field.getDeclaredAnnotation(ManyToOneDoc.class);
 		if (decorators.addLinkWhenCreate()) {
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				ListInDbTools.addLink(decorators.targetEntity(), insertedData, decorators.remoteField(),
 						primaryKeyValue);
 			});
@@ -163,8 +162,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Field field,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall)
-			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
+			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);
@@ -183,7 +181,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 					.getFieldName(AnnotationTools.getIdField(decorators.targetEntity()), options);
 			// In the lazy mode, the request is done in asynchronous mode, they will be done
 			// after...
-			final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
+			final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 				final Object foreignData = ioDb.getRaw(decorators.targetEntity(),
 						new Condition(new QueryCondition(idField.inTable(), "=", dataRetrieve)));
 				if (foreignData == null) {
@@ -217,7 +215,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object primaryKeyRemovedObject = primaryKeyDeletedObjects.get(obj);
 			final Object parentKey = field.get(obj);
 			if (parentKey != null) {
-				actions.add((List<LazyGetter> actionsAsync) -> {
+				actions.add((final List<LazyGetter> actionsAsync) -> {
 					ListInDbTools.removeLink(decorators.targetEntity(), parentKey, decorators.remoteField(),
 							primaryKeyRemovedObject);
 				});

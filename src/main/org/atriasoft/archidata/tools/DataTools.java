@@ -11,7 +11,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -105,7 +104,7 @@ public class DataTools {
 			final long tmpUID,
 			final String originalFileName,
 			final String sha512,
-			final String mimeType) throws IOException, SQLException {
+			final String mimeType) throws IOException {
 
 		final String tmpPath = getTmpFileInData(tmpUID);
 		final long fileSize = Files.size(Paths.get(tmpPath));
@@ -140,7 +139,7 @@ public class DataTools {
 			final DBAccessMongo ioDb,
 			final long tmpUID,
 			final String originalFileName,
-			final String sha512) throws IOException, SQLException {
+			final String sha512) throws IOException {
 		// determine mime type:
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
@@ -334,10 +333,6 @@ public class DataTools {
 				removeTemporaryFile(tmpUID);
 				throw new FailException(Response.Status.NOT_MODIFIED,
 						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
-			} catch (final SQLException ex) {
-				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_MODIFIED,
-						clazz.getCanonicalName() + "[" + id.toString() + "] Error in SQL insertion", ex);
 			}
 		} else if (data.deleted) {
 			LOGGER.error("Data already exist but deleted");
@@ -387,9 +382,6 @@ public class DataTools {
 				} catch (final IOException ex) {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
-				} catch (final SQLException ex) {
-					removeTemporaryFile(tmpUID);
-					throw new FailException(Response.Status.NOT_MODIFIED, "Error in SQL insertion", ex);
 				}
 			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");
@@ -422,9 +414,6 @@ public class DataTools {
 				} catch (final IOException ex) {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
-				} catch (final SQLException ex) {
-					removeTemporaryFile(tmpUID);
-					throw new FailException(Response.Status.NOT_MODIFIED, "Error in DB insertion", ex);
 				}
 			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");
@@ -467,10 +456,6 @@ public class DataTools {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED,
 							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
-				} catch (final SQLException ex) {
-					removeTemporaryFile(tmpUID);
-					throw new FailException(Response.Status.NOT_MODIFIED,
-							clazz.getCanonicalName() + "[" + id.toString() + "] Error in DB insertion", ex);
 				}
 			} else if (data.deleted) {
 				LOGGER.error("Data already exist but deleted");

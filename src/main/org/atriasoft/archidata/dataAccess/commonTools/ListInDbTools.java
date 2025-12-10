@@ -28,16 +28,16 @@ public class ListInDbTools {
 		// TODO: check the type of the keys...
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-		final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+		final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 
 		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldName);
-		final FieldName localFieldColomnName = AnnotationTools.getFieldName(localField, null);
+		final FieldName localFieldColumnName = AnnotationTools.getFieldName(localField, null);
 
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
 				new OptionSpecifyType("idOfTheObject", primaryKey.getClass()),
 				new OptionSpecifyType("filedNameOfTheObject", foreignKey.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColomnName.inTable()));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColomnName.inTable()));
+		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColumnName.inTable()));
+		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColumnName.inTable()));
 		options.add(new AccessDeletedItems());
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
@@ -69,16 +69,16 @@ public class ListInDbTools {
 		// TODO: check the type of the keys...
 		final String tableName = AnnotationTools.getTableName(clazz);
 		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-		final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+		final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 
 		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldName);
-		final FieldName localFieldColomnName = AnnotationTools.getFieldName(localField, null);
+		final FieldName localFieldColumnName = AnnotationTools.getFieldName(localField, null);
 
 		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
 				new OptionSpecifyType("idOfTheObject", primaryKey.getClass()),
 				new OptionSpecifyType("filedNameOfTheObject", foreignKey.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColomnName.inTable()));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColomnName.inTable()));
+		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColumnName.inTable()));
+		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColumnName.inTable()));
 		options.add(new AccessDeletedItems());
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {

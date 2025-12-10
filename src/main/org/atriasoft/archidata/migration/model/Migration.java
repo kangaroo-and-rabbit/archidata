@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.migration.model;
 
-import org.atriasoft.archidata.annotation.DataIfNotExists;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
@@ -16,7 +15,6 @@ import jakarta.ws.rs.DefaultValue;
 
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
 @Table(name = "KAR_migration")
-@DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration extends GenericDataSoftDelete {
 	final static int VERSION_MIGRATION = 2;

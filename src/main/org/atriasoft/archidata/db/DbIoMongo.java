@@ -3,8 +3,7 @@ package org.atriasoft.archidata.db;
 import java.io.Closeable;
 import java.io.IOException;
 
-import org.atriasoft.archidata.converter.morphia.OffsetDateTimeCodec;
-import org.atriasoft.archidata.converter.morphia.SqlTimestampCodec;
+import org.atriasoft.archidata.converter.mongo.OffsetDateTimeCodec;
 import org.bson.UuidRepresentation;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -48,10 +47,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 		final String dbName = this.config.getDbName();
 		// Connect to MongoDB (complex form):
 		final ConnectionString connectionString = new ConnectionString(dbUrl);
-		// Créer un CodecRegistry pour UUID
-		final CodecRegistry SqlTimestampCodecRegistry = CodecRegistries.fromCodecs(new SqlTimestampCodec());
 		final CodecRegistry OffsetDateTimeCodecRegistry = CodecRegistries.fromCodecs(new OffsetDateTimeCodec());
-		// Créer un CodecRegistry pour POJOs
 		final CodecRegistry pojoCodecRegistry = CodecRegistries
 				.fromProviders(PojoCodecProvider.builder().automatic(true).build());
 		// Ajouter le CodecRegistry par défaut, le codec UUID et celui pour POJOs
@@ -61,7 +57,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 		final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
-				pojoCodecRegistry, SqlTimestampCodecRegistry, OffsetDateTimeCodecRegistry);
+				pojoCodecRegistry, OffsetDateTimeCodecRegistry);
 		// Configure MongoClientSettings
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString)//

@@ -27,18 +27,6 @@ public class QueryCondition implements QueryItem {
 	}
 
 	@Override
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		if (tableName != null) {
-			query.append(tableName);
-			query.append(".");
-		}
-		query.append(this.key);
-		query.append(" ");
-		query.append(this.comparator);
-		query.append(" ?");
-	}
-
-	@Override
 	public void generateFilter(final List<Bson> filters) {
 		if ("=".equals(this.comparator)) {
 			filters.add(Filters.eq(this.key, this.value));

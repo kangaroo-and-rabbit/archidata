@@ -5,15 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
-import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.ws.rs.InternalServerErrorException;
 
 public class MigrationEngine {
@@ -53,13 +52,10 @@ public class MigrationEngine {
 	 * @return Model represent the last migration. If null then no migration has been done.
 	 * @throws MigrationException */
 	public Migration getCurrentVersion(final DBAccessMongo da) throws MigrationException {
-		if (!da.isTableExist("KAR_migration")) {
-			return null;
-		}
 		try {
 			List<Migration> data = null;
 			try {
-				data = da.gets(Migration.class, QueryOptions.READ_ALL_COLOMN);
+				data = da.gets(Migration.class, new ReadAllColumn());
 			} catch (final Exception e) {
 				// Previous version does not have the same timeCode...
 				data = da.gets(Migration.class);
@@ -134,23 +130,13 @@ public class MigrationEngine {
 			final String dbName = configInput.getDbName();
 			LOGGER.info("Verify existance of '{}'", dbName);
 			try (final DBAccessMongo da = DBAccessMongo.createInterface(config)) {
-				boolean exist = da.isDBExist(dbName);
-				if (!exist) {
-					LOGGER.warn("DB: '{}' DOES NOT EXIST ==> create one", dbName);
-					// create the local DB:
-					da.createDB(dbName);
-				}
-				exist = da.isDBExist(dbName);
-				while (!exist) {
-					LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
-					LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
-					try {
-						Thread.sleep(30000);
-					} catch (final InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					exist = da.isDBExist(dbName);
+				LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
+				LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
+				try {
+					Thread.sleep(30000);
+				} catch (final InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			} catch (final InternalServerErrorException e) {
 				e.printStackTrace();
@@ -168,8 +154,6 @@ public class MigrationEngine {
 	/** Process the automatic migration of the system
 	 * @param config SQL connection for the migration
 	 * @throws MigrationException Error if access on the DB */
-	@SuppressFBWarnings({ "SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING",
-			"SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE" })
 	public void migrateErrorThrow(final DbConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 		listAvailableMigration();

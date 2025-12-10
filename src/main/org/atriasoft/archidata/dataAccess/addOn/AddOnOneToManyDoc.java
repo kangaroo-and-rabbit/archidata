@@ -2,7 +2,6 @@ package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -216,8 +215,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final Field field,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall)
-			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
+			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException {
 		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
 		if (!doc.containsKey(fieldName)) {
 			field.set(data, null);

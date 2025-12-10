@@ -54,11 +54,11 @@ public class OneToManyTools {
 		{
 			// get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 
 			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
 			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			setRemoteFieldToNull(manyLocal.targetEntity(), primaryKeyColomnName.inTable(), remotePrimaryKeyValue,
+			setRemoteFieldToNull(manyLocal.targetEntity(), primaryKeyColumnName.inTable(), remotePrimaryKeyValue,
 					localFieldName.inTable());
 		}
 	}
@@ -110,11 +110,11 @@ public class OneToManyTools {
 		{
 			// get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 
 			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
 			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			return setRemoteFieldToValue(manyLocal.targetEntity(), primaryKeyColomnName.inTable(),
+			return setRemoteFieldToValue(manyLocal.targetEntity(), primaryKeyColumnName.inTable(),
 					remotePrimaryKeyValue, localFieldName.inTable(), valueToSet);
 		}
 	}

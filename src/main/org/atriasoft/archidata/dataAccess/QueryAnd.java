@@ -24,25 +24,6 @@ public class QueryAnd implements QueryItem {
 		Collections.addAll(this.childs, child);
 	}
 
-	@Override
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		if (this.childs.size() >= 1) {
-			query.append(" (");
-		}
-		boolean first = true;
-		for (final QueryItem elem : this.childs) {
-			if (first) {
-				first = false;
-			} else {
-				query.append(" AND ");
-			}
-			elem.generateQuery(query, tableName);
-		}
-		if (this.childs.size() >= 1) {
-			query.append(")");
-		}
-	}
-
 	public int size() {
 		return this.childs.size();
 	}

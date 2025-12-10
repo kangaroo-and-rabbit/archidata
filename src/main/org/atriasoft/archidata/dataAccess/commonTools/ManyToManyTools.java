@@ -66,9 +66,9 @@ public class ManyToManyTools {
 		{
 			//get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			addLinkLocal(ioDb, clazz, primaryKeyColomnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
+			addLinkLocal(ioDb, clazz, primaryKeyColumnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
 					valueToAdd);
 		}
 		addLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToAdd);
@@ -88,10 +88,10 @@ public class ManyToManyTools {
 		{
 			//get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
 			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			addLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColomnName.inTable(), remotePrimaryKeyValue,
+			addLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColumnName.inTable(), remotePrimaryKeyValue,
 					localFieldName.inTable(), localPrimaryKeyValue);
 		}
 	}
@@ -147,9 +147,9 @@ public class ManyToManyTools {
 		{
 			//get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			removeLinkLocal(ioDb, clazz, primaryKeyColomnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
+			removeLinkLocal(ioDb, clazz, primaryKeyColumnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
 					valueToRemove);
 		}
 		removeLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToRemove);
@@ -169,10 +169,10 @@ public class ManyToManyTools {
 		{
 			//get local field to find the remote field name:
 			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColomnName = AnnotationTools.getFieldName(primaryKeyField, null);
+			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
 			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
 			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			removeLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColomnName.inTable(), remotePrimaryKeyValue,
+			removeLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColumnName.inTable(), remotePrimaryKeyValue,
 					localFieldName.inTable(), localPrimaryKeyValue);
 		}
 	}

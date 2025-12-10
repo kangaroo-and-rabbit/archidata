@@ -5,8 +5,9 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -75,7 +76,7 @@ public class TestSimpleTableSoftDelete {
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
-				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
+				TestSimpleTableSoftDelete.idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -102,8 +103,7 @@ public class TestSimpleTableSoftDelete {
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
 		ConfigureDb.da.updateById(test, TestSimpleTableSoftDelete.idOfTheObject, new FilterValue("data"));
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
-				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
-				QueryOptions.READ_ALL_COLOMN);
+				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -133,7 +133,7 @@ public class TestSimpleTableSoftDelete {
 
 		// check if we set get deleted element
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
-				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS);
+				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
@@ -149,8 +149,7 @@ public class TestSimpleTableSoftDelete {
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
-				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
-				QueryOptions.READ_ALL_COLOMN);
+				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);

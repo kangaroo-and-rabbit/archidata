@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /* TODO list:
@@ -19,9 +18,39 @@ import jakarta.ws.rs.InternalServerErrorException;
  */
 
 /**
- * Data access is an abstraction class that permit to access on the DB with a
- * function wrapping that permit to minimize the SQL writing of SQL code. This
- * interface support the SQL and SQLite back-end.
+ * Static wrapper providing simplified access to MongoDB database operations.
+ *
+ * <p>
+ * This class provides static methods that automatically manage database connections
+ * via {@link DataAccessConnectionContext}. All methods use try-with-resources to
+ * ensure proper connection lifecycle management.
+ * </p>
+ *
+ * <p>
+ * <strong>Thread Safety:</strong> Connection management is thread-local. Each thread
+ * gets its own database connection which is automatically reused within the same thread.
+ * </p>
+ *
+ * <p>
+ * Example usage with ObjectId:
+ * </p>
+ * <pre>
+ * // Insert a new user
+ * User user = new User();
+ * user.name = "John Doe";
+ * User inserted = DataAccess.insert(user);
+ * ObjectId userId = inserted.id;
+ *
+ * // Retrieve by ID
+ * User found = DataAccess.getById(User.class, userId);
+ *
+ * // Update
+ * found.name = "Jane Doe";
+ * DataAccess.updateById(found, userId);
+ *
+ * // Delete
+ * DataAccess.deleteById(User.class, userId);
+ * </pre>
  */
 public class DataAccess {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
@@ -30,6 +59,30 @@ public class DataAccess {
 
 	}
 
+	// ========================================================================
+	// Database management methods
+	// ========================================================================
+
+	/**
+	 * Lists all collection names in the database.
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * List&lt;String&gt; collections = DataAccess.listCollections("mydb");
+	 * for (String name : collections) {
+	 *     System.out.println("Collection: " + name);
+	 * }
+	 * </pre>
+	 *
+	 * @param name    Database name
+	 * @param options Optional query options
+	 * @return List of collection names
+	 * @throws InternalServerErrorException if operation fails
+	 * @throws IOException                  if I/O error occurs
+	 * @throws DataAccessException          if database access fails
+	 */
 	public static List<String> listCollections(final String name, final QueryOption... options)
 			throws InternalServerErrorException, IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -38,31 +91,32 @@ public class DataAccess {
 		}
 	}
 
-	public static boolean isDBExist(final String name, final QueryOption... options)
-			throws InternalServerErrorException, IOException, DataAccessException {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.isDBExist(name, options);
-		}
-	}
+	// ========================================================================
+	// Insert methods
+	// ========================================================================
 
-	public static boolean createDB(final String name)
-			throws IOException, InternalServerErrorException, DataAccessException {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.createDB(name);
-		}
-	}
-
-	public static boolean isTableExist(final String name, final QueryOption... options)
-			throws InternalServerErrorException, IOException, DataAccessException {
-		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			return db.isTableExist(name, options);
-		}
-	}
-
-	// TODO: manage insert batch...
+	/**
+	 * Inserts multiple entities into the database.
+	 *
+	 * <p>
+	 * Each entity is inserted individually with its auto-generated ID.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * List&lt;User&gt; users = Arrays.asList(user1, user2, user3);
+	 * List&lt;User&gt; inserted = DataAccess.insertMultiple(users);
+	 * ObjectId firstId = inserted.get(0).id;
+	 * </pre>
+	 *
+	 * @param <T>     The type of entities
+	 * @param data    List of entities to insert
+	 * @param options Optional query options
+	 * @return List of inserted entities with generated IDs
+	 * @throws Exception if insertion fails
+	 */
 	public static <T> List<T> insertMultiple(final List<T> data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -70,7 +124,32 @@ public class DataAccess {
 		}
 	}
 
-	@SuppressFBWarnings("SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING")
+	/**
+	 * Inserts a single entity into the database.
+	 *
+	 * <p>
+	 * The entity is inserted and returned with its auto-generated ID and timestamps.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * User user = new User();
+	 * user.name = "John Doe";
+	 * user.email = "john@example.com";
+	 *
+	 * User inserted = DataAccess.insert(user);
+	 * ObjectId userId = inserted.id; // Auto-generated
+	 * Timestamp created = inserted.createdAt; // Auto-populated
+	 * </pre>
+	 *
+	 * @param <T>     The type of entity
+	 * @param data    Entity to insert
+	 * @param options Optional query options
+	 * @return The inserted entity with generated fields
+	 * @throws Exception if insertion fails
+	 */
 	public static <T> T insert(final T data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -78,6 +157,25 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Update methods
+	// ========================================================================
+
+	/**
+	 * Generates a query condition for matching by ID.
+	 *
+	 * <p>
+	 * This is a utility method used internally for building ID-based queries.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param idKey     ID value
+	 * @param options   Query options
+	 * @return Query condition for the ID
+	 * @throws DataAccessException if operation fails
+	 * @throws IOException         if I/O error occurs
+	 */
 	public static <ID_TYPE> QueryCondition getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
@@ -88,6 +186,37 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Updates an entity identified by its ID.
+	 *
+	 * <p>
+	 * <strong>Field filtering:</strong> By default, ALL fields are updated.
+	 * Use {@code FilterValue} to update only specific fields.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * User updateData = new User();
+	 * updateData.email = "newemail@example.com";
+	 *
+	 * // Update all fields
+	 * DataAccess.updateById(updateData, userId);
+	 *
+	 * // Update only specific fields
+	 * DataAccess.updateById(updateData, userId, new FilterValue(List.of("email")));
+	 * </pre>
+	 *
+	 * @param <T>       The type of entity
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param data      Entity data to update
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param option    Optional query options (e.g., FilterValue)
+	 * @return Number of entities updated (typically 0 or 1)
+	 * @throws Exception if update fails
+	 */
 	public static <T, ID_TYPE> long updateById(final T data, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -96,6 +225,32 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Updates entities matching specified conditions (varargs version).
+	 *
+	 * <p>
+	 * <strong>Required:</strong> Must provide {@code FilterValue} and {@code Condition}.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * User updateData = new User();
+	 * updateData.status = "inactive";
+	 *
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * long count = DataAccess.update(updateData,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new FilterValue(List.of("status")));
+	 * </pre>
+	 *
+	 * @param <T>     The type of entity
+	 * @param data    Entity data with update values
+	 * @param options Query options (FilterValue and Condition required)
+	 * @return Number of entities updated
+	 * @throws Exception if update fails
+	 */
 	public static <T> long update(final T data, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -103,6 +258,16 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Updates entities matching specified conditions (QueryOptions version).
+	 *
+	 * @param <T>     The type of entity
+	 * @param data    Entity data with update values
+	 * @param options Query options object
+	 * @return Number of entities updated
+	 * @throws Exception if update fails
+	 * @see #update(Object, QueryOption...)
+	 */
 	public static <T> long update(final T data, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -110,6 +275,20 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Read/Get methods
+	// ========================================================================
+
+	/**
+	 * Retrieves a single entity matching conditions (QueryOptions version).
+	 *
+	 * @param <T>     The type of entity
+	 * @param clazz   Entity class
+	 * @param options Query options with conditions
+	 * @return First matching entity or null
+	 * @throws Exception if retrieval fails
+	 * @see #get(Class, QueryOption...)
+	 */
 	public static <T> T get(final Class<T> clazz, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -117,6 +296,33 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Retrieves a single entity matching conditions.
+	 *
+	 * <p>
+	 * Returns the first entity matching the conditions, or null if none found.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Find user by email
+	 * User user = DataAccess.get(User.class,
+	 *     new Condition(new QueryCondition("email", "=", "john@example.com")));
+	 *
+	 * // Find document by author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * Document doc = DataAccess.get(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * </pre>
+	 *
+	 * @param <T>     The type of entity
+	 * @param clazz   Entity class
+	 * @param options Query options (e.g., Condition)
+	 * @return First matching entity or null
+	 * @throws Exception if retrieval fails
+	 */
 	public static <T> T get(final Class<T> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -124,6 +330,30 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Retrieves all entities matching conditions (varargs version).
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Get all active users
+	 * List&lt;User&gt; users = DataAccess.gets(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *
+	 * // Get documents by author with limit
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * List&lt;Document&gt; docs = DataAccess.gets(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Limit(10));
+	 * </pre>
+	 *
+	 * @param <T>     The type of entity
+	 * @param clazz   Entity class
+	 * @param options Query options (e.g., Condition, Limit, OrderBy)
+	 * @return List of matching entities (empty if none found)
+	 * @throws Exception if retrieval fails
+	 */
 	public static <T> List<T> gets(final Class<T> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -131,6 +361,19 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Merges multiple conditions from options into a single condition.
+	 *
+	 * <p>
+	 * This is a utility method used internally for condition handling.
+	 * </p>
+	 *
+	 * @param options       Query options containing conditions
+	 * @param throwIfEmpty  If true, throws exception when no conditions found
+	 * @return Merged condition
+	 * @throws DataAccessException if no conditions and throwIfEmpty is true
+	 * @throws IOException         if I/O error occurs
+	 */
 	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -139,6 +382,17 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Retrieves all entities matching conditions (QueryOptions version).
+	 *
+	 * @param <T>     The type of entity
+	 * @param clazz   Entity class
+	 * @param options Query options object
+	 * @return List of matching entities (empty if none found)
+	 * @throws DataAccessException if retrieval fails
+	 * @throws IOException         if I/O error occurs
+	 * @see #gets(Class, QueryOption...)
+	 */
 	public static <T> List<T> gets(final Class<T> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -147,6 +401,30 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Count methods
+	// ========================================================================
+
+	/**
+	 * Checks if an entity with the specified ID exists.
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * if (DataAccess.existsById(User.class, userId)) {
+	 *     System.out.println("User exists");
+	 * }
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options
+	 * @return true if entity exists, false otherwise
+	 * @throws Exception if check fails
+	 */
 	public static <ID_TYPE> boolean existsById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -155,6 +433,28 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Counts entities matching conditions (varargs version).
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Count active users
+	 * long count = DataAccess.count(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *
+	 * // Count documents by author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * long docCount = DataAccess.count(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * </pre>
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options (e.g., Condition)
+	 * @return Number of matching entities
+	 * @throws Exception if count fails
+	 */
 	public static long count(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -162,6 +462,15 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Counts entities matching conditions (QueryOptions version).
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options object
+	 * @return Number of matching entities
+	 * @throws Exception if count fails
+	 * @see #count(Class, QueryOption...)
+	 */
 	public static long count(final Class<?> clazz, final QueryOptions options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -169,6 +478,31 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Retrieves an entity by its unique identifier.
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * User user = DataAccess.getById(User.class, userId);
+	 * if (user != null) {
+	 *     System.out.println("Found: " + user.name);
+	 * }
+	 *
+	 * // Get with all columns (including non-readable)
+	 * User fullUser = DataAccess.getById(User.class, userId, new ReadAllColumn());
+	 * </pre>
+	 *
+	 * @param <T>       The type of entity
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options (e.g., ReadAllColumn)
+	 * @return Entity with specified ID or null if not found
+	 * @throws Exception if retrieval fails
+	 */
 	@Nullable
 	public static <T, ID_TYPE> T getById(final Class<T> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
@@ -178,6 +512,26 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Retrieves all entities of the specified type.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This retrieves ALL entities without filtering.
+	 * Use with caution on large datasets.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * List&lt;User&gt; allUsers = DataAccess.getAll(User.class);
+	 * </pre>
+	 *
+	 * @param <T>   The type of entity
+	 * @param clazz Entity class
+	 * @return List of all entities (empty if none found)
+	 * @throws Exception if retrieval fails
+	 */
 	public static <T> List<T> getAll(final Class<T> clazz) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -185,16 +539,35 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Delete methods
+	// ========================================================================
+
 	/**
-	 * Delete items with the specific Id (cf @Id) and some options. If the Entity is
-	 * manage as a softDeleted model, then it is flag as removed (if not already
-	 * done before).
+	 * Deletes an entity by its ID (automatic soft/hard routing).
 	 *
-	 * @param <ID_TYPE> Type of the reference @Id
-	 * @param clazz     Data model that might remove element
-	 * @param id        Unique Id of the model
-	 * @param options   (Optional) Options of the request
-	 * @return Number of element that is removed.
+	 * <p>
+	 * <strong>Automatic routing:</strong> If entity is {@code @SoftDeleted}, performs soft delete.
+	 * Otherwise performs hard delete.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * long deleted = DataAccess.deleteById(User.class, userId);
+	 * if (deleted &gt; 0) {
+	 *     System.out.println("User deleted");
+	 * }
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options
+	 * @return Number of entities deleted (typically 0 or 1)
+	 * @throws Exception if deletion fails
 	 */
 	public static <ID_TYPE> long deleteById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
@@ -205,13 +578,31 @@ public class DataAccess {
 	}
 
 	/**
-	 * Delete items with the specific condition and some options. If the Entity is
-	 * manage as a softDeleted model, then it is flag as removed (if not already
-	 * done before).
+	 * Deletes entities matching conditions (automatic soft/hard routing).
 	 *
-	 * @param clazz   Data model that might remove element.
-	 * @param options (Optional) Options of the request.
-	 * @return Number of element that is removed.
+	 * <p>
+	 * <strong>Automatic routing:</strong> If entity is {@code @SoftDeleted}, performs soft delete.
+	 * Otherwise performs hard delete.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * // Delete all inactive users
+	 * long count = DataAccess.delete(User.class,
+	 *     new Condition(new QueryCondition("status", "=", "inactive")));
+	 *
+	 * // Delete documents by author
+	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
+	 * DataAccess.delete(Document.class,
+	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 * </pre>
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options (Condition required)
+	 * @return Number of entities deleted
+	 * @throws Exception if deletion fails
 	 */
 	public static long delete(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -220,6 +611,24 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Physically deletes an entity by its ID (ignores {@code @SoftDeleted}).
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * DataAccess.deleteHardById(User.class, userId);
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options
+	 * @return Number of entities deleted (typically 0 or 1)
+	 * @throws Exception if deletion fails
+	 */
 	public static <ID_TYPE> long deleteHardById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -228,6 +637,15 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Physically deletes entities matching conditions (ignores {@code @SoftDeleted}).
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options (Condition required)
+	 * @return Number of entities deleted
+	 * @throws Exception if deletion fails
+	 * @see #deleteHardById(Class, Object, QueryOption...)
+	 */
 	public static long deleteHard(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -235,6 +653,28 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Soft deletes an entity by its ID (marks as deleted).
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * DataAccess.deleteSoftById(User.class, userId);
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options
+	 * @return Number of entities soft deleted (typically 0 or 1)
+	 * @throws Exception if soft deletion fails
+	 */
 	public static <ID_TYPE> long deleteSoftById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -243,6 +683,19 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Soft deletes entities matching conditions (marks as deleted).
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options (Condition required)
+	 * @return Number of entities soft deleted
+	 * @throws Exception if soft deletion fails
+	 * @see #deleteSoftById(Class, Object, QueryOption...)
+	 */
 	public static long deleteSoft(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -250,6 +703,40 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Restore methods
+	// ========================================================================
+
+	/**
+	 * Restores (un-deletes) a soft-deleted entity by its ID.
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 *
+	 * // Soft delete
+	 * DataAccess.deleteSoftById(User.class, userId);
+	 *
+	 * // Later, restore
+	 * long restored = DataAccess.restoreById(User.class, userId);
+	 * if (restored &gt; 0) {
+	 *     System.out.println("User restored");
+	 * }
+	 * </pre>
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @return Number of entities restored (typically 0 or 1)
+	 * @throws DataAccessException if entity has no deleted field or restore fails
+	 * @throws IOException         if I/O error occurs
+	 */
 	public static <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -258,6 +745,18 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Restores (un-deletes) a soft-deleted entity by its ID with options.
+	 *
+	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
+	 * @param clazz     Entity class
+	 * @param id        Unique identifier (e.g., ObjectId)
+	 * @param options   Optional query options
+	 * @return Number of entities restored (typically 0 or 1)
+	 * @throws DataAccessException if entity has no deleted field or restore fails
+	 * @throws IOException         if I/O error occurs
+	 * @see #restoreById(Class, Object)
+	 */
 	public static <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -266,6 +765,28 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Restores (un-deletes) soft-deleted entities matching conditions.
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Restore all users deleted in last 24 hours
+	 * DataAccess.restore(User.class,
+	 *     new Condition(new QueryCondition("deletedAt", "&gt;", yesterday)));
+	 * </pre>
+	 *
+	 * @param clazz   Entity class
+	 * @param options Query options (Condition required)
+	 * @return Number of entities restored
+	 * @throws DataAccessException if entity has no deleted field or restore fails
+	 * @throws IOException         if I/O error occurs
+	 */
 	public static long restore(final Class<?> clazz, final QueryOption... options)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
@@ -274,6 +795,30 @@ public class DataAccess {
 		}
 	}
 
+	// ========================================================================
+	// Collection management methods
+	// ========================================================================
+
+	/**
+	 * Drops (permanently deletes) the entire collection for an entity class.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This permanently removes the collection and all documents.
+	 * Cannot be undone.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Drop entire users collection
+	 * DataAccess.drop(User.class);
+	 * </pre>
+	 *
+	 * @param clazz   Entity class whose collection will be dropped
+	 * @param options Optional query options (e.g., table name override)
+	 * @throws Exception if drop fails
+	 */
 	public static void drop(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
@@ -281,6 +826,26 @@ public class DataAccess {
 		}
 	}
 
+	/**
+	 * Deletes all documents from the collection (keeps collection structure).
+	 *
+	 * <p>
+	 * Unlike {@link #drop(Class, QueryOption...)}, this preserves the collection
+	 * structure (indexes, schema) but removes all documents.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Remove all user documents but keep collection
+	 * DataAccess.cleanAll(User.class);
+	 * </pre>
+	 *
+	 * @param clazz   Entity class whose documents will be deleted
+	 * @param options Optional query options (e.g., table name override)
+	 * @throws Exception if clean fails
+	 */
 	public static void cleanAll(final Class<?> clazz, final QueryOption... options) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();

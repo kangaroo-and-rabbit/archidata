@@ -21,45 +21,6 @@ public class Condition extends QueryOption {
 		this.condition = null;
 	}
 
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		if (this.condition != null) {
-			this.condition.generateQuery(query, tableName);
-		}
-	}
-
-	public void whereAppendQuery(
-			final StringBuilder query,
-			final String tableName,
-			final QueryOptions options,
-			final String deletedFieldName) {
-		boolean exclude_deleted = true;
-		if (options != null) {
-			exclude_deleted = !options.exist(AccessDeletedItems.class);
-		}
-		// Check if we have a condition to generate
-		if (this.condition == null) {
-			if (exclude_deleted && deletedFieldName != null) {
-				query.append(" WHERE ");
-				query.append(tableName);
-				query.append(".");
-				query.append(deletedFieldName);
-				query.append(" = false \n");
-			}
-			return;
-		}
-		query.append(" WHERE (");
-		this.condition.generateQuery(query, tableName);
-		query.append(") ");
-		if (exclude_deleted && deletedFieldName != null) {
-			query.append("AND ");
-			query.append(tableName);
-			query.append(".");
-			query.append(deletedFieldName);
-			query.append(" = false ");
-		}
-		query.append("\n");
-	}
-
 	public Bson getFilter(final String collectionName, final QueryOptions options, final String deletedFieldName) {
 		boolean exclude_deleted = true;
 		if (options != null) {

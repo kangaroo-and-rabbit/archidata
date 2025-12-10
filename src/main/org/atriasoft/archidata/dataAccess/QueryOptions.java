@@ -3,8 +3,6 @@ package org.atriasoft.archidata.dataAccess;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
-import org.atriasoft.archidata.dataAccess.options.CreateDropTable;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.slf4j.Logger;
@@ -12,9 +10,6 @@ import org.slf4j.LoggerFactory;
 
 public class QueryOptions {
 	static final Logger LOGGER = LoggerFactory.getLogger(QueryOptions.class);
-	public static final ReadAllColumn READ_ALL_COLOMN = new ReadAllColumn();
-	public static final AccessDeletedItems ACCESS_DELETED_ITEMS = new AccessDeletedItems();
-	public static final CreateDropTable CREATE_DROP_TABLE = new CreateDropTable();
 
 	private final List<QueryOption> options = new ArrayList<>();
 
@@ -65,7 +60,7 @@ public class QueryOptions {
 		return false;
 	}
 
-	public static boolean readAllColomn(final QueryOptions options) {
+	public static boolean readAllColumn(final QueryOptions options) {
 		if (options != null) {
 			return options.exist(ReadAllColumn.class);
 		}

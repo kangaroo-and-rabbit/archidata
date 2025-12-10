@@ -1,8 +1,5 @@
 package org.atriasoft.archidata.model;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 public class Token {
 	public Long id;
 	public Long userId;
@@ -19,19 +16,6 @@ public class Token {
 		this.token = token;
 		this.createTime = createTime;
 		this.endValidityTime = endValidityTime;
-	}
-
-	public Token(final ResultSet rs) {
-		int iii = 1;
-		try {
-			this.id = rs.getLong(iii++);
-			this.userId = rs.getLong(iii++);
-			this.token = rs.getString(iii++);
-			this.createTime = rs.getString(iii++);
-			this.endValidityTime = rs.getString(iii++);
-		} catch (final SQLException ex) {
-			ex.printStackTrace();
-		}
 	}
 
 	@Override

@@ -14,16 +14,6 @@ public class QueryNotNull implements QueryItem {
 	}
 
 	@Override
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		if (tableName != null) {
-			query.append(tableName);
-			query.append(".");
-		}
-		query.append(this.key);
-		query.append(" IS NOT NULL");
-	}
-
-	@Override
 	public void generateFilter(final List<Bson> filters) {
 		filters.add(Filters.exists(this.key));
 	}

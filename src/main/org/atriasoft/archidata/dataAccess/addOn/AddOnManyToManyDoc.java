@@ -2,7 +2,6 @@ package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -98,7 +97,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
@@ -107,7 +106,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			if (insertedDataCollection.contains(value)) {
 				continue;
 			}
-			actions.add((List<LazyGetter> actionsAsync) -> {
+			actions.add((final List<LazyGetter> actionsAsync) -> {
 				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
@@ -142,7 +141,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			for (final Object value : insertedDataCollection) {
-				actions.add((List<LazyGetter> actionsAsync) -> {
+				actions.add((final List<LazyGetter> actionsAsync) -> {
 					ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
 				});
 			}
@@ -172,8 +171,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final Field field,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall)
-			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException {
+			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException {
 
 		if (field.getType() != List.class) {
 			throw new SystemException("@ManyToManyLocal must contain a List");
@@ -214,7 +212,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 								options);
 						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
+						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
 									new Condition(new QueryInList<>(idField.inTable(), idList)));
@@ -231,7 +229,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 								options);
 						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
+						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<UUID> childs = new ArrayList<>(idList);
 							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
@@ -249,7 +247,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
 								options);
 						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
-						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
+						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<ObjectId> childs = new ArrayList<>(idList);
 							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),

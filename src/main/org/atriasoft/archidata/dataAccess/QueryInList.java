@@ -26,27 +26,6 @@ public class QueryInList<T> implements QueryItem {
 	}
 
 	@Override
-	public void generateQuery(final StringBuilder query, final String tableName) {
-		if (tableName != null) {
-			query.append(tableName);
-			query.append(".");
-		}
-		query.append(this.key);
-		query.append(" ");
-		query.append(this.comparator);
-		query.append(" (");
-		for (int iii = 0; iii < this.value.size(); iii++) {
-			if (iii != 0) {
-				query.append(",?");
-			} else {
-				query.append("?");
-			}
-		}
-		query.append(")");
-
-	}
-
-	@Override
 	public void generateFilter(final List<Bson> filters) {
 		filters.add(Filters.in(this.key, this.value));
 	}

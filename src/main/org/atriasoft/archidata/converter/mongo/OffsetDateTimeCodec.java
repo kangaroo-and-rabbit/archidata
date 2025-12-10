@@ -1,4 +1,4 @@
-package org.atriasoft.archidata.converter.morphia;
+package org.atriasoft.archidata.converter.mongo;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

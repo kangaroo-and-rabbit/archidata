@@ -3,7 +3,6 @@ package org.atriasoft.archidata.model;
 import java.util.Date;
 import java.util.List;
 
-import org.atriasoft.archidata.annotation.DataIfNotExists;
 import org.atriasoft.archidata.annotation.DataJson;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
@@ -27,7 +26,6 @@ import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.DefaultValue;
 
 @Table(name = "user")
-@DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
 public class User extends OIDGenericDataSoftDelete {
@@ -37,11 +35,11 @@ public class User extends OIDGenericDataSoftDelete {
 	@Pattern(regexp = "^[a-zA-Z0-9-_ \\.]+$")
 	@UniqueInBaseId(target = User.class, nameOfField = "login", groups = GroupWithContext.class)
 	public String login = null;
-
+	
 	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public Date lastConnection = null;
-
+	
 	@DefaultValue("'0'")
 	@Column(nullable = false)
 	public Boolean blocked = false;
@@ -50,18 +48,18 @@ public class User extends OIDGenericDataSoftDelete {
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	public String blockedReason;
-
+	
 	@Schema(description = "List of Id of the specific covers")
 	@DataJson(targetEntity = Data.class)
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	public List<ObjectId> covers;
-
+	
 	@Override
 	public String toString() {
 		return "User [login=" + this.login + ", last=" + this.lastConnection + ", blocked=" + this.blocked
 				+ ", blockedReason=" + this.blockedReason + "]";
 	}
-
+	
 }

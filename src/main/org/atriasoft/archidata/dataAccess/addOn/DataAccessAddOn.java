@@ -1,7 +1,6 @@
 package org.atriasoft.archidata.dataAccess.addOn;
 
 import java.lang.reflect.Field;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
@@ -41,15 +40,14 @@ public interface DataAccessAddOn {
 		return false;
 	}
 
-	// Return the number of colomn read
+	// Return the number of Column read
 	void fillFromDoc(
 			final DBAccessMongo ioDb,
 			Document doc,
 			Field field,
 			Object data,
 			QueryOptions options,
-			final List<LazyGetter> lazyCall)
-			throws Exception, SQLException, IllegalArgumentException, IllegalAccessException;
+			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException;
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field

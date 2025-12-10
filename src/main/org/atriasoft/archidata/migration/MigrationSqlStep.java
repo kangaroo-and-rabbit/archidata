@@ -1,7 +1,6 @@
 package org.atriasoft.archidata.migration;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,7 +80,7 @@ public class MigrationSqlStep implements MigrationInterface {
 				} else {
 					action.async().doRequest(da);
 				}
-			} catch (SQLException | IOException ex) {
+			} catch (final IOException ex) {
 				ex.printStackTrace();
 				LOGGER.info("DB request ERROR: ", ex.getMessage());
 				log.append("DB request ERROR: " + ex.getMessage() + "\n");

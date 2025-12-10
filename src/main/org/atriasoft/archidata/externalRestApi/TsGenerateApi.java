@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -229,11 +228,6 @@ public class TsGenerateApi {
 		models = api.getCompatibleModels(List.of(Date.class));
 		if (models != null) {
 			tsModels.add(new TsClassElement(models, "ZodIsoDate", "IsoDate", "isIsoDate",
-					"zod.string().datetime({ precision: 3 })", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Timestamp.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodTimestamp", "Timestamp", "isTimestamp",
 					"zod.string().datetime({ precision: 3 })", DefinedPosition.BASIC));
 		}
 		models = api.getCompatibleModels(List.of(LocalDate.class));

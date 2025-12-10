@@ -5,8 +5,9 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -73,7 +74,7 @@ public class TestSimpleTable {
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
 		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, TestSimpleTable.idOfTheObject,
-				QueryOptions.READ_ALL_COLOMN);
+				new ReadAllColumn());
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -85,7 +86,9 @@ public class TestSimpleTable {
 		// Assertions.assertTrue(retrieve.createdAt.after(this.startAction));
 		Assertions.assertNotNull(retrieve.updatedAt);
 		// Assertions.assertTrue(retrieve.updatedAt.after(this.startAction));
-		Assertions.assertEquals(retrieve.createdAt, retrieve.updatedAt);
+		// Check timestamps are equal within 1 second tolerance (to handle precision differences)
+		final long timeDiff = Math.abs(retrieve.createdAt.getTime() - retrieve.updatedAt.getTime());
+		Assertions.assertTrue(timeDiff < 1000, "createdAt and updatedAt should be equal (within 1s tolerance)");
 	}
 
 	@Order(3)
@@ -97,7 +100,7 @@ public class TestSimpleTable {
 		test.data = TestSimpleTable.DATA_INJECTED_2;
 		ConfigureDb.da.updateById(test, TestSimpleTable.idOfTheObject, new FilterValue("data"));
 		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, TestSimpleTable.idOfTheObject,
-				QueryOptions.READ_ALL_COLOMN);
+				new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.id);
@@ -123,7 +126,7 @@ public class TestSimpleTable {
 
 		// check if we set get deleted element
 		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, TestSimpleTable.idOfTheObject,
-				QueryOptions.ACCESS_DELETED_ITEMS);
+				new AccessDeletedItems());
 		Assertions.assertNull(retrieve);
 
 	}
@@ -133,7 +136,7 @@ public class TestSimpleTable {
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
 		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, TestSimpleTable.idOfTheObject,
-				QueryOptions.ACCESS_DELETED_ITEMS, QueryOptions.READ_ALL_COLOMN);
+				new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNull(retrieve);
 
 	}

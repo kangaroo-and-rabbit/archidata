@@ -1,6 +1,5 @@
 package org.atriasoft.archidata.migration.model;
 
-import org.atriasoft.archidata.annotation.DataIfNotExists;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -14,7 +13,6 @@ import jakarta.ws.rs.DefaultValue;
 //public static final String TABLE_NAME = "KAR_migration";
 
 @Table(name = "KAR_migration")
-@DataIfNotExists
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration1 extends GenericDataSoftDelete {
 	final static int VERSION_MIGRATION = 1;
