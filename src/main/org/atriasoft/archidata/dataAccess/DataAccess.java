@@ -7,6 +7,8 @@ import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -850,6 +852,173 @@ public class DataAccess {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
 			db.cleanAll(clazz, options);
+		}
+	}
+
+	// ========================================================================
+	// BSON Direct Access API
+	// ========================================================================
+
+	/**
+	 * Inserts a BSON Document directly into the specified collection.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and inserts a raw BSON document
+	 * directly into MongoDB. Useful for advanced use cases requiring full document control.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * Document doc = new Document()
+	 *     .append("_id", new ObjectId())
+	 *     .append("name", "John Doe")
+	 *     .append("email", "john@example.com")
+	 *     .append("age", 30);
+	 *
+	 * ObjectId insertedId = DataAccess.insertBsonDocument("users", doc);
+	 * System.out.println("Inserted document with ID: " + insertedId);
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to insert into
+	 * @param document       BSON Document to insert
+	 * @return The ObjectId of the inserted document (auto-generated if not provided)
+	 * @throws DataAccessException          if insertion fails
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 */
+	public static ObjectId insertBsonDocument(final String collectionName, final Document document)
+			throws DataAccessException, InternalServerErrorException, IOException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			return db.insertBsonDocument(collectionName, document);
+		}
+	}
+
+	/**
+	 * Retrieves a single BSON Document from the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and returns a raw BSON document
+	 * directly from MongoDB. Useful for advanced use cases requiring full document control.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 *
+	 * // Get document by ID
+	 * Document userDoc = DataAccess.getBsonDocument("users",
+	 *     new Condition(new QueryCondition("_id", "=", userId)));
+	 *
+	 * if (userDoc != null) {
+	 *     String name = userDoc.getString("name");
+	 *     Integer age = userDoc.getInteger("age");
+	 *     System.out.println("User: " + name + ", age: " + age);
+	 * }
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to query
+	 * @param options        Query options including conditions for filtering
+	 * @return The first matching BSON Document or null if not found
+	 * @throws DataAccessException          if retrieval fails
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 */
+	@Nullable
+	public static Document getBsonDocument(final String collectionName, final QueryOption... options)
+			throws DataAccessException, InternalServerErrorException, IOException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			return db.getBsonDocument(collectionName, options);
+		}
+	}
+
+	/**
+	 * Retrieves multiple BSON Documents from the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and returns raw BSON documents
+	 * directly from MongoDB. Useful for advanced use cases requiring full document control.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Get all users older than 25, ordered by name, limited to 10
+	 * List&lt;Document&gt; users = DataAccess.getBsonDocuments("users",
+	 *     new Condition(new QueryCondition("age", "&gt;", 25)),
+	 *     new OrderBy("name", true),
+	 *     new Limit(10));
+	 *
+	 * for (Document user : users) {
+	 *     System.out.println(user.toJson());
+	 * }
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to query
+	 * @param options        Query options including conditions, ordering, limits
+	 * @return List of matching BSON Documents (empty list if none found)
+	 * @throws DataAccessException          if retrieval fails
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 */
+	public static List<Document> getBsonDocuments(final String collectionName, final QueryOption... options)
+			throws DataAccessException, InternalServerErrorException, IOException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			return db.getBsonDocuments(collectionName, options);
+		}
+	}
+
+	/**
+	 * Updates BSON Documents in the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and updates documents directly
+	 * using MongoDB update operators. Useful for advanced use cases requiring full control
+	 * over the update operation.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Update all users older than 25, set status to "active"
+	 * Document updateOps = new Document("$set",
+	 *     new Document("status", "active")
+	 *         .append("updatedAt", new Date()));
+	 *
+	 * long count = DataAccess.updateBsonDocuments("users", updateOps,
+	 *     new Condition(new QueryCondition("age", "&gt;", 25)));
+	 *
+	 * System.out.println("Updated " + count + " documents");
+	 * </pre>
+	 *
+	 * <p>
+	 * <strong>Note:</strong> The updateDocument should use MongoDB update operators like
+	 * $set, $inc, $push, etc. See MongoDB documentation for available operators.
+	 * </p>
+	 *
+	 * @param collectionName Name of the collection to update
+	 * @param updateDocument BSON Document containing MongoDB update operators
+	 * @param options        Query options including conditions for filtering which documents to update
+	 * @return Number of documents modified
+	 * @throws DataAccessException          if update fails
+	 * @throws InternalServerErrorException if database connection fails
+	 * @throws IOException                  if I/O error occurs
+	 */
+	public static long updateBsonDocuments(
+			final String collectionName,
+			final Document updateDocument,
+			final QueryOption... options) throws DataAccessException, InternalServerErrorException, IOException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			return db.updateBsonDocuments(collectionName, updateDocument, options);
 		}
 	}
 

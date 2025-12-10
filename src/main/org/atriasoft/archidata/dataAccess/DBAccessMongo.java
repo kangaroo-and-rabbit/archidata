@@ -2627,4 +2627,236 @@ public class DBAccessMongo implements Closeable {
 		collection.deleteMany(new Document());
 	}
 
+	// =======================================================================
+	// -- BSON Direct Access API
+	// =======================================================================
+
+	/**
+	 * Inserts a BSON Document directly into the specified collection.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and inserts a raw BSON document
+	 * directly into MongoDB. This is useful for advanced use cases where you need
+	 * full control over the document structure.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * Document doc = new Document()
+	 *     .append("_id", new ObjectId())
+	 *     .append("name", "John Doe")
+	 *     .append("email", "john@example.com")
+	 *     .append("age", 30);
+	 *
+	 * ObjectId insertedId = db.insertBsonDocument("users", doc);
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to insert into
+	 * @param document       BSON Document to insert
+	 * @return The ObjectId of the inserted document (auto-generated if not provided)
+	 * @throws DataAccessException if insertion fails
+	 */
+	public ObjectId insertBsonDocument(final String collectionName, final Document document)
+			throws DataAccessException {
+		try {
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+			statistic.countInsertOne++;
+			final InsertOneResult result = collection.insertOne(document);
+			final Object insertedId = result.getInsertedId();
+			if (insertedId != null && insertedId instanceof org.bson.BsonObjectId) {
+				return ((org.bson.BsonObjectId) insertedId).getValue();
+			}
+			// If no ID was returned, check if the document has one
+			final Object docId = document.get("_id");
+			if (docId instanceof ObjectId) {
+				return (ObjectId) docId;
+			}
+			throw new DataAccessException("Failed to retrieve inserted document ID");
+		} catch (final DataAccessException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			throw new DataAccessException("Failed to insert BSON document: " + ex.getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves a single BSON Document from the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and returns a raw BSON document
+	 * directly from MongoDB. This is useful for advanced use cases where you need
+	 * full control over the document structure.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage with ObjectId:
+	 * </p>
+	 * <pre>
+	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 *
+	 * // Get document by ID
+	 * Document userDoc = db.getBsonDocument("users",
+	 *     new Condition(new QueryCondition("_id", "=", userId)));
+	 *
+	 * if (userDoc != null) {
+	 *     String name = userDoc.getString("name");
+	 *     Integer age = userDoc.getInteger("age");
+	 * }
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to query
+	 * @param options        Query options including conditions for filtering
+	 * @return The first matching BSON Document or null if not found
+	 * @throws DataAccessException if retrieval fails
+	 */
+	public Document getBsonDocument(final String collectionName, final QueryOption... options)
+			throws DataAccessException {
+		try {
+			final QueryOptions queryOptions = new QueryOptions(options);
+			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			statistic.countFind++;
+			final FindIterable<Document> cursor = filters != null ? collection.find(filters) : collection.find();
+			try (MongoCursor<Document> iterator = cursor.iterator()) {
+				if (iterator.hasNext()) {
+					return iterator.next();
+				}
+			}
+			return null;
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			throw new DataAccessException("Failed to retrieve BSON document: " + ex.getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves multiple BSON Documents from the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and returns raw BSON documents
+	 * directly from MongoDB. This is useful for advanced use cases where you need
+	 * full control over the document structure.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Get all users older than 25
+	 * List&lt;Document&gt; users = db.getBsonDocuments("users",
+	 *     new Condition(new QueryCondition("age", "&gt;", 25)),
+	 *     new OrderBy("name", true),
+	 *     new Limit(10));
+	 *
+	 * for (Document user : users) {
+	 *     System.out.println(user.toJson());
+	 * }
+	 * </pre>
+	 *
+	 * @param collectionName Name of the collection to query
+	 * @param options        Query options including conditions, ordering, limits
+	 * @return List of matching BSON Documents (empty list if none found)
+	 * @throws DataAccessException if retrieval fails
+	 */
+	public List<Document> getBsonDocuments(final String collectionName, final QueryOption... options)
+			throws DataAccessException {
+		try {
+			final QueryOptions queryOptions = new QueryOptions(options);
+			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			statistic.countFind++;
+			FindIterable<Document> cursor = filters != null ? collection.find(filters) : collection.find();
+
+			// Apply ordering
+			final List<OrderBy> orders = queryOptions.get(OrderBy.class);
+			if (!orders.isEmpty()) {
+				final Document sorts = new Document();
+				for (final OrderBy order : orders) {
+					order.generateSort(sorts);
+				}
+				cursor = cursor.sort(sorts);
+			}
+
+			// Apply limit
+			final List<Limit> limits = queryOptions.get(Limit.class);
+			if (!limits.isEmpty()) {
+				cursor = cursor.limit((int) limits.get(0).getValue());
+			}
+
+			final List<Document> results = new ArrayList<>();
+			try (MongoCursor<Document> iterator = cursor.iterator()) {
+				while (iterator.hasNext()) {
+					results.add(iterator.next());
+				}
+			}
+			return results;
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage());
+		}
+	}
+
+	/**
+	 * Updates BSON Documents in the specified collection matching the given conditions.
+	 *
+	 * <p>
+	 * This method bypasses the object mapping layer and updates documents directly
+	 * using MongoDB update operators. This is useful for advanced use cases where you need
+	 * full control over the update operation.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Update all users older than 25, set status to "active"
+	 * Document updateOps = new Document("$set",
+	 *     new Document("status", "active")
+	 *         .append("updatedAt", new Date()));
+	 *
+	 * long count = db.updateBsonDocuments("users", updateOps,
+	 *     new Condition(new QueryCondition("age", "&gt;", 25)));
+	 *
+	 * System.out.println("Updated " + count + " documents");
+	 * </pre>
+	 *
+	 * <p>
+	 * <strong>Note:</strong> The updateDocument should use MongoDB update operators like
+	 * $set, $inc, $push, etc. See MongoDB documentation for available operators.
+	 * </p>
+	 *
+	 * @param collectionName Name of the collection to update
+	 * @param updateDocument BSON Document containing MongoDB update operators
+	 * @param options        Query options including conditions for filtering which documents to update
+	 * @return Number of documents modified
+	 * @throws DataAccessException if update fails
+	 */
+	public long updateBsonDocuments(
+			final String collectionName,
+			final Document updateDocument,
+			final QueryOption... options) throws DataAccessException {
+		try {
+			final QueryOptions queryOptions = new QueryOptions(options);
+			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
+			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
+			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			statistic.countUpdateMany++;
+			if (filters != null) {
+				final UpdateResult result = collection.updateMany(filters, updateDocument);
+				return result.getModifiedCount();
+			}
+			// If no filter, update all documents
+			final UpdateResult result = collection.updateMany(new Document(), updateDocument);
+			return result.getModifiedCount();
+		} catch (final Exception ex) {
+			ex.printStackTrace();
+			throw new DataAccessException("Failed to update BSON documents: " + ex.getMessage());
+		}
+	}
+
 }
