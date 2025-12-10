@@ -8,22 +8,25 @@ import org.bson.conversions.Bson;
 import com.mongodb.client.model.Filters;
 
 public class QueryOr implements QueryItem {
-	protected final List<QueryItem> childs;
+	protected final Bson filter;
 
-	public QueryOr(final List<QueryItem> childs) {
-		this.childs = childs;
+	public QueryOr(final List<QueryItem> children) {
+		final List<Bson> filtersLocal = new ArrayList<>();
+		for (final QueryItem child : children) {
+			final Bson filter = child.getFilter();
+			if (filter != null) {
+				filtersLocal.add(filter);
+			}
+		}
+		this.filter = Filters.or(filtersLocal.toArray(new Bson[0]));
 	}
 
-	public QueryOr(final QueryItem... childs) {
-		this.childs = List.of(childs);
+	public QueryOr(final QueryItem... children) {
+		this(List.of(children));
 	}
 
 	@Override
-	public void generateFilter(final List<Bson> filters) {
-		final List<Bson> filtersLocal = new ArrayList<>();
-		for (final QueryItem elem : this.childs) {
-			elem.generateFilter(filtersLocal);
-		}
-		filters.add(Filters.or(filtersLocal.toArray(new Bson[0])));
+	public Bson getFilter() {
+		return this.filter;
 	}
 }

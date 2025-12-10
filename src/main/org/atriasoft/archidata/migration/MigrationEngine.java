@@ -9,7 +9,6 @@ import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.migration.model.Migration;
-import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,42 +123,12 @@ public class MigrationEngine {
 		}
 	}
 
-	private void createTableIfAbleOrWaitAdmin(final DbConfig configInput) throws MigrationException {
-		if (ConfigBaseVariable.getDBAbleToCreate()) {
-			final DbConfig config = configInput.clone();
-			final String dbName = configInput.getDbName();
-			LOGGER.info("Verify existance of '{}'", dbName);
-			try (final DBAccessMongo da = DBAccessMongo.createInterface(config)) {
-				LOGGER.error("DB: '{}' DOES NOT EXIST after trying to create one ", dbName);
-				LOGGER.error("Waiting administrator create a new one, we check after 30 seconds...");
-				try {
-					Thread.sleep(30000);
-				} catch (final InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} catch (final InternalServerErrorException e) {
-				e.printStackTrace();
-				throw new MigrationException("TODO ...");
-			} catch (final IOException e) {
-				e.printStackTrace();
-				throw new MigrationException("TODO ...");
-			}
-		} else {
-			final String dbName = configInput.getDbName();
-			LOGGER.warn("DB: '{}' is not check if it EXIST", dbName);
-		}
-	}
-
 	/** Process the automatic migration of the system
 	 * @param config SQL connection for the migration
 	 * @throws MigrationException Error if access on the DB */
 	public void migrateErrorThrow(final DbConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
 		listAvailableMigration();
-		// STEP 1: Check the DB exist:
-		createTableIfAbleOrWaitAdmin(config);
-		LOGGER.info("DB '{}' exist.", config.getDbName());
 		try (final DBAccessMongo da = DBAccessMongo.createInterface(config)) {
 			// STEP 2: Check migration table exist:
 			LOGGER.info("Verify existance of migration table '{}'", "KAR_migration");

@@ -9,31 +9,71 @@ import org.bson.conversions.Bson;
 import com.mongodb.client.model.Filters;
 
 public class QueryAnd implements QueryItem {
-	protected final List<QueryItem> childs;
+	protected final List<Bson> children;
+	protected Bson filter;
+
+	public QueryAnd() {
+		this.children = new ArrayList<>();
+	}
 
 	public QueryAnd(final List<QueryItem> child) {
-		this.childs = child;
+		this.children = new ArrayList<>();
+		for (final QueryItem elem : child) {
+			final Bson filter = elem.getFilter();
+			if (filter != null) {
+				this.children.add(filter);
+			}
+		}
+		updateFilter();
 	}
 
 	public QueryAnd(final QueryItem... child) {
-		this.childs = new ArrayList<>();
-		Collections.addAll(this.childs, child);
+		this.children = new ArrayList<>();
+		for (final QueryItem elem : child) {
+			final Bson filter = elem.getFilter();
+			if (filter != null) {
+				this.children.add(filter);
+			}
+		}
+		updateFilter();
+	}
+
+	public QueryAnd(final List<Bson> bsonFilters, final boolean isBson) {
+		this.children = new ArrayList<>(bsonFilters);
+		updateFilter();
+	}
+
+	public QueryAnd(final Bson... bsonFilters) {
+		this.children = new ArrayList<>();
+		Collections.addAll(this.children, bsonFilters);
+		updateFilter();
 	}
 
 	public void add(final QueryItem... child) {
-		Collections.addAll(this.childs, child);
+		for (final QueryItem elem : child) {
+			final Bson filter = elem.getFilter();
+			if (filter != null) {
+				this.children.add(filter);
+			}
+		}
+		updateFilter();
+	}
+
+	public void add(final Bson... bsonFilters) {
+		Collections.addAll(this.children, bsonFilters);
+		updateFilter();
 	}
 
 	public int size() {
-		return this.childs.size();
+		return this.children.size();
+	}
+
+	protected void updateFilter() {
+		this.filter = Filters.and(this.children.toArray(new Bson[0]));
 	}
 
 	@Override
-	public void generateFilter(final List<Bson> filters) {
-		final List<Bson> filtersLocal = new ArrayList<>();
-		for (final QueryItem elem : this.childs) {
-			elem.generateFilter(filtersLocal);
-		}
-		filters.add(Filters.and(filtersLocal.toArray(new Bson[0])));
+	public Bson getFilter() {
+		return this.filter;
 	}
 }

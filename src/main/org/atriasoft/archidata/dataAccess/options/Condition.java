@@ -9,16 +9,89 @@ import org.bson.conversions.Bson;
 
 import com.mongodb.client.model.Filters;
 
-/** By default some element are not read like createAt and UpdatedAt. This option permit to read it. */
+/**
+ * Condition option for filtering database queries.
+ *
+ * <p>
+ * Supports two approaches for defining conditions:
+ * </p>
+ * <ul>
+ * <li><strong>QueryItem-based</strong>: Using QueryCondition for simple comparisons</li>
+ * <li><strong>BSON-based</strong>: Using raw MongoDB Filters for advanced queries</li>
+ * </ul>
+ *
+ * <h3>Examples with QueryItem:</h3>
+ * <pre>
+ * // Simple equality
+ * DataAccess.gets(User.class, new Condition(new QueryCondition("age", "=", 25)));
+ *
+ * // Greater than
+ * DataAccess.gets(User.class, new Condition(new QueryCondition("age", ">", 18)));
+ *
+ * // Multiple conditions with QueryAnd
+ * DataAccess.gets(User.class, new Condition(new QueryAnd(
+ *     new QueryCondition("age", ">=", 18),
+ *     new QueryCondition("age", "<=", 65)
+ * )));
+ * </pre>
+ *
+ * <h3>Examples with BSON Filters:</h3>
+ * <pre>
+ * // Simple filter
+ * DataAccess.gets(User.class, new Condition(Filters.gt("age", 18)));
+ *
+ * // Complex filter with multiple conditions
+ * DataAccess.gets(User.class, new Condition(Filters.and(
+ *     Filters.gt("age", 18),
+ *     Filters.lt("age", 65),
+ *     Filters.eq("active", true)
+ * )));
+ *
+ * // Using MongoDB operators
+ * DataAccess.gets(User.class, new Condition(Filters.in("role", "admin", "moderator")));
+ * DataAccess.gets(User.class, new Condition(Filters.regex("email", ".*@example.com")));
+ * </pre>
+ */
 public class Condition extends QueryOption {
-	public final QueryItem condition;
+	private final Bson bsonFilter;
 
-	public Condition(final QueryItem items) {
-		this.condition = items;
+	/**
+	 * Create a Condition with a QueryItem.
+	 *
+	 * <p>Example:</p>
+	 * <pre>
+	 * new Condition(new QueryCondition("age", ">", 18))
+	 * </pre>
+	 *
+	 * @param item The query item to use
+	 */
+	public Condition(final QueryItem item) {
+		this.bsonFilter = item.getFilter();
 	}
 
+	/**
+	 * Create a Condition with a raw BSON filter.
+	 *
+	 * <p>Example:</p>
+	 * <pre>
+	 * new Condition(Filters.gt("age", 18))
+	 * </pre>
+	 *
+	 * @param bsonFilter The BSON filter to use
+	 */
+	public Condition(final Bson bsonFilter) {
+		this.bsonFilter = bsonFilter;
+	}
+
+	/**
+	 * Create an empty Condition (no filter).
+	 */
 	public Condition() {
-		this.condition = null;
+		this.bsonFilter = null;
+	}
+
+	public Bson getFilter() {
+		return this.bsonFilter;
 	}
 
 	public Bson getFilter(final String collectionName, final QueryOptions options, final String deletedFieldName) {
@@ -31,8 +104,8 @@ public class Condition extends QueryOption {
 			filter.add(Filters.or(Filters.eq(deletedFieldName, false), Filters.exists(deletedFieldName, false)));
 		}
 		// Check if we have a condition to generate
-		if (this.condition != null) {
-			this.condition.generateFilter(filter);
+		if (this.bsonFilter != null) {
+			filter.add(this.bsonFilter);
 		}
 		if (filter.size() == 0) {
 			return null;

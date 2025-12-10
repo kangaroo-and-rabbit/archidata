@@ -211,8 +211,8 @@ public class TestBsonDirectAccess {
 				new OrderBy(new OrderItem("age", OrderItem.Order.ASC)));
 		Assertions.assertNotNull(ascDocs);
 		Assertions.assertEquals(3, ascDocs.size());
-		Assertions.assertEquals("John Doe", ascDocs.get(0).getString("name"));
-		Assertions.assertEquals(30, ascDocs.get(0).getInteger("age"));
+		Assertions.assertEquals("Jane Doe", ascDocs.get(0).getString("name"));
+		Assertions.assertEquals(28, ascDocs.get(0).getInteger("age"));
 		Assertions.assertEquals("Bob Smith", ascDocs.get(2).getString("name"));
 		Assertions.assertEquals(35, ascDocs.get(2).getInteger("age"));
 

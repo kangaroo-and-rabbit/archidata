@@ -1928,7 +1928,7 @@ public class DBAccessMongo implements Closeable {
 		} else {
 			final QueryAnd andCondition = new QueryAnd();
 			for (final Condition cond : conditions) {
-				andCondition.add(cond.condition);
+				andCondition.add(cond.getFilter());
 			}
 			condition = new Condition(andCondition);
 		}

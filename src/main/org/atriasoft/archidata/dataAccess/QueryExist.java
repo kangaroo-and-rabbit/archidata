@@ -1,22 +1,18 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.util.List;
-
 import org.bson.conversions.Bson;
 
 import com.mongodb.client.model.Filters;
 
 public class QueryExist implements QueryItem {
-	private final String key;
-	private final boolean exist;
+	private final Bson filter;
 
 	public QueryExist(final String key, final boolean exist) {
-		this.key = key;
-		this.exist = exist;
+		this.filter = Filters.exists(key, exist);
 	}
 
 	@Override
-	public void generateFilter(final List<Bson> filters) {
-		filters.add(Filters.exists(this.key, this.exist));
+	public Bson getFilter() {
+		return this.filter;
 	}
 }

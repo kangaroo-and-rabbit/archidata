@@ -7,7 +7,6 @@ import java.util.List;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.atriasoft.archidata.annotation.method.ARCHIVE;
 import org.atriasoft.archidata.annotation.method.RESTORE;
-import org.atriasoft.archidata.exception.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +14,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;

@@ -1,7 +1,5 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.util.List;
-
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +8,7 @@ import com.mongodb.client.model.Filters;
 
 public class QueryCondition implements QueryItem {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
-	private final String key;
-	private final String comparator;
-	private final Object value;
+	private final Bson filter;
 
 	/**
 	 * Simple DB comparison element. Note the injected object is injected in the statement and not in the query directly.
@@ -21,28 +17,27 @@ public class QueryCondition implements QueryItem {
 	 * @param value Value that the field must be equals.
 	 */
 	public QueryCondition(final String key, final String comparator, final Object value) {
-		this.key = key;
-		this.comparator = comparator;
-		this.value = value;
+		if ("=".equals(comparator)) {
+			this.filter = Filters.eq(key, value);
+		} else if ("!=".equals(comparator)) {
+			this.filter = Filters.ne(key, value);
+		} else if (">".equals(comparator)) {
+			this.filter = Filters.gt(key, value);
+		} else if (">=".equals(comparator)) {
+			this.filter = Filters.gte(key, value);
+		} else if ("<".equals(comparator)) {
+			this.filter = Filters.lt(key, value);
+		} else if ("<=".equals(comparator)) {
+			this.filter = Filters.lte(key, value);
+		} else {
+			LOGGER.error("Not manage comparison: '{}' for key '{}'", comparator, key);
+			this.filter = null;
+		}
 	}
 
 	@Override
-	public void generateFilter(final List<Bson> filters) {
-		if ("=".equals(this.comparator)) {
-			filters.add(Filters.eq(this.key, this.value));
-		} else if ("!=".equals(this.comparator)) {
-			filters.add(Filters.ne(this.key, this.value));
-		} else if (">".equals(this.comparator)) {
-			filters.add(Filters.gt(this.key, this.value));
-		} else if (">=".equals(this.comparator)) {
-			filters.add(Filters.gte(this.key, this.value));
-		} else if ("<".equals(this.comparator)) {
-			filters.add(Filters.lt(this.key, this.value));
-		} else if ("<=".equals(this.comparator)) {
-			filters.add(Filters.lte(this.key, this.value));
-		} else {
-			LOGGER.error("Not manage comparison: '{}'", this.key);
-		}
-
+	public Bson getFilter() {
+		return this.filter;
 	}
+
 }

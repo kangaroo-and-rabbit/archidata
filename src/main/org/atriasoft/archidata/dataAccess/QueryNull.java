@@ -1,21 +1,18 @@
 package org.atriasoft.archidata.dataAccess;
 
-import java.util.List;
-
 import org.bson.conversions.Bson;
 
 import com.mongodb.client.model.Filters;
 
 public class QueryNull implements QueryItem {
-	private final String key;
+	private final Bson filter;
 
 	public QueryNull(final String key) {
-		this.key = key;
+		this.filter = Filters.eq(key, null);
 	}
 
 	@Override
-	public void generateFilter(final List<Bson> filters) {
-		// Not sure of the result ... maybe check it ...
-		filters.add(Filters.eq(this.key, null));
+	public Bson getFilter() {
+		return this.filter;
 	}
 }
