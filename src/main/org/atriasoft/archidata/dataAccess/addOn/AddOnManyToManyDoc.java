@@ -216,7 +216,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
 						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+							final Object foreignData = ioDb.gets(decorators.targetEntity(),
 									new Condition(new QueryInList<>(idField.inTable(), idList)));
 							if (foreignData == null) {
 								return;
@@ -234,7 +234,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 							final List<UUID> childs = new ArrayList<>(idList);
 							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+							final Object foreignData = ioDb.gets(decorators.targetEntity(),
 									new Condition(new QueryInList<>(idField.inTable(), childs)));
 							if (foreignData == null) {
 								return;
@@ -252,7 +252,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
 							final List<ObjectId> childs = new ArrayList<>(idList);
 							// TODO: update to have get with abstract types ....
-							final Object foreignData = ioDb.getsWhere(decorators.targetEntity(),
+							final Object foreignData = ioDb.gets(decorators.targetEntity(),
 									new Condition(new QueryInList<>(idField.inTable(), childs)));
 							if (foreignData == null) {
 								return;

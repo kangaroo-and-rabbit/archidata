@@ -44,9 +44,9 @@ public class ManyToOneTools {
 			final Object dataTemp = field.get(elem);
 			final Object primaryKey = primaryKeyField.get(elem);
 			field.set(elem, null);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 			field.set(elem, dataTemp);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 		}
 	}
 }

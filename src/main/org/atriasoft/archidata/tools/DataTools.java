@@ -81,8 +81,7 @@ public class DataTools {
 
 	public static Data getWithSha512(final DBAccessMongo ioDb, final String sha512) {
 		try {
-			return ioDb.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)),
-					new ReadAllColumn());
+			return ioDb.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)), new ReadAllColumn());
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -92,7 +91,7 @@ public class DataTools {
 
 	public static Data getWithId(final DBAccessMongo ioDb, final long id) {
 		try {
-			return ioDb.getWhere(Data.class, new Condition(new QueryAnd(
+			return ioDb.get(Data.class, new Condition(new QueryAnd(
 					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
@@ -159,7 +158,7 @@ public class DataTools {
 
 	public static void undelete(final DBAccessMongo ioDb, final ObjectId oid) {
 		try {
-			ioDb.unsetDelete(Data.class, oid);
+			ioDb.restoreById(Data.class, oid);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -287,7 +286,7 @@ public class DataTools {
 
 		LOGGER.info("    - id: {}", id);
 		LOGGER.info("    - url: {} ", url);
-		final CLASS_TYPE media = ioDb.get(clazz, id);
+		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
 			throw new InputException(clazz.getCanonicalName(),
 					"[" + id.toString() + "] Id does not exist or removed...");
@@ -451,7 +450,7 @@ public class DataTools {
 			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
-			final CLASS_TYPE media = ioDb.get(clazz, id);
+			final CLASS_TYPE media = ioDb.getById(clazz, id);
 			if (media == null) {
 				throw new InputException(clazz.getCanonicalName(),
 						"[" + id.toString() + "] Id does not exist or removed...");

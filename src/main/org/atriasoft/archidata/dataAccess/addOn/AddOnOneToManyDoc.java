@@ -122,7 +122,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			switch (oneToManyDoc.cascadeUpdate()) {
 				case CascadeMode.DELETE:
 					actions.add((final List<LazyGetter> actionsAsync) -> {
-						ioDb.delete(oneToManyDoc.targetEntity(), value);
+						ioDb.deleteById(oneToManyDoc.targetEntity(), value);
 					});
 					break;
 				case CascadeMode.SET_NULL:
@@ -239,7 +239,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 					// In the lazy mode, the request is done in asynchronous mode, they will be done
 					// after...
 					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-						final Object foreignData = ioDb.getsWhereRaw(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsRaw(decorators.targetEntity(),
 								new Condition(new QueryInList<>(idField.inTable(), idList)));
 						if (foreignData == null) {
 							return;
@@ -280,7 +280,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 					switch (decorators.cascadeUpdate()) {
 						case CascadeMode.DELETE:
 							actions.add((final List<LazyGetter> actionsAsync) -> {
-								ioDb.delete(decorators.targetEntity(), childKey);
+								ioDb.deleteById(decorators.targetEntity(), childKey);
 							});
 							break;
 						case CascadeMode.SET_NULL:

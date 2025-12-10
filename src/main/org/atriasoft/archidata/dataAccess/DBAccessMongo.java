@@ -253,131 +253,340 @@ public class DBAccessMongo implements Closeable {
 		for (final AccessDeletedItems elem : accessDeletedItemsOptions) {
 			injectedOptions.add(elem);
 		}
-		return (T) get(data.getClass(), insertedId, injectedOptions.getAllArray());
+		return (T) getById(data.getClass(), insertedId, injectedOptions.getAllArray());
 	}
 
 	// ========================================================================
 	// Update methods
 	// ========================================================================
 
-	public <T, ID_TYPE> long update(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
+	/**
+	 * Updates an entity identified by its ID with the provided data.
+	 *
+	 * <p>
+	 * <strong>Field filtering behavior:</strong> By default, ALL fields in the data object will be updated.
+	 * To update only specific fields, use the {@link FilterValue} option to explicitly specify which fields
+	 * should be updated.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * // Update all fields
+	 * updateById(myData, 123);
+	 *
+	 * // Update only editable fields
+	 * updateById(myData, 123, FilterValue.getEditableFieldsNames(MyClass.class));
+	 *
+	 * // Update specific fields only
+	 * updateById(myData, 123, new FilterValue(List.of("name", "email")));
+	 * </pre>
+	 *
+	 * @param <T>      The type of the entity
+	 * @param <ID_TYPE> The type of the ID
+	 * @param data     The entity data to update
+	 * @param id       The unique identifier of the entity
+	 * @param option   Optional query options (e.g., FilterValue, table selection)
+	 * @return Number of entities updated (typically 0 or 1)
+	 * @throws Exception if update operation fails
+	 */
+	public <T, ID_TYPE> long updateById(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
+		// Ensure FilterValue is present - if not provided, update ALL fields
 		if (!options.exist(FilterValue.class)) {
-			options.add(FilterValue.getEditableFieldsNames(data.getClass()));
+			options.add(FilterValue.getAllFieldsNames(data.getClass()));
 		}
-		return updateFull(data, id, options.getAllArray());
-	}
-
-	public <T, ID_TYPE> long updateFull(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
-		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(data.getClass(), id, options)));
 		options.add(new TransmitKey(id));
-		return updateWhere(data, options);
+		return update(data, options);
 	}
 
-	public <T> long updateWhere(final T data, final QueryOption... option) throws Exception {
+	/**
+	 * Updates entities matching the specified conditions.
+	 *
+	 * <p>
+	 * <strong>Required option:</strong> You MUST provide a {@link FilterValue} option to specify which
+	 * fields should be updated. This prevents accidental full-row updates.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Condition specification:</strong> Use {@link Condition} option to specify which entities
+	 * to update. Without conditions, the operation will fail with an exception.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * update(myData,
+	 *        new Condition("status", "active"),
+	 *        new FilterValue(List.of("lastModified", "status")));
+	 * </pre>
+	 *
+	 * @param <T>    The type of the entity
+	 * @param data   The entity data containing the update values
+	 * @param option Query options including FilterValue (required) and Condition
+	 * @return Number of entities updated
+	 * @throws Exception if update operation fails or FilterValue is missing
+	 */
+	public <T> long update(final T data, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return updateWhere(data, options);
+		return update(data, options);
 	}
 
 	// ========================================================================
 	// Get methods
 	// ========================================================================
 
-	public <T> T getWhere(final Class<T> clazz, final QueryOptions options) throws Exception {
+	/**
+	 * Retrieves a single entity matching the specified conditions (QueryOptions variant).
+	 *
+	 * <p>
+	 * If multiple entities match the conditions, only the first one is returned.
+	 * If no entity matches, returns null.
+	 * </p>
+	 *
+	 * @param <T>     The type of the entity
+	 * @param clazz   The class of the entity
+	 * @param options Query options including conditions, filters, etc.
+	 * @return The first matching entity or null if none found
+	 * @throws Exception if retrieval operation fails
+	 */
+	public <T> T get(final Class<T> clazz, final QueryOptions options) throws Exception {
 		options.add(new Limit(1));
-		final List<T> values = getsWhere(clazz, options);
+		final List<T> values = gets(clazz, options);
 		if (values.size() == 0) {
 			return null;
 		}
 		return values.get(0);
 	}
 
-	public Object getWhereRaw(final Class<?> clazz, final QueryOptions options) throws Exception {
+	/**
+	 * Retrieves a single entity matching the specified conditions (internal raw version).
+	 *
+	 * @param clazz   The class of the entity
+	 * @param options Query options
+	 * @return The first matching entity as Object or null
+	 * @throws Exception if retrieval operation fails
+	 */
+	public Object getRaw(final Class<?> clazz, final QueryOptions options) throws Exception {
 		options.add(new Limit(1));
-		final List<Object> values = getsWhereRaw(clazz, options);
+		final List<Object> values = getsRaw(clazz, options);
 		if (values.size() == 0) {
 			return null;
 		}
 		return values.get(0);
 	}
 
-	public <T> T getWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Retrieves a single entity matching the specified conditions.
+	 *
+	 * <p>
+	 * If multiple entities match the conditions, only the first one is returned.
+	 * If no entity matches, returns null.
+	 * </p>
+	 *
+	 * @param <T>    The type of the entity
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions, filters, etc.
+	 * @return The first matching entity or null if none found
+	 * @throws Exception if retrieval operation fails
+	 */
+	public <T> T get(final Class<T> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return getWhere(clazz, options);
+		return get(clazz, options);
 	}
 
-	public Object getWhereRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Retrieves a single entity matching the specified conditions (internal raw version).
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options
+	 * @return The first matching entity as Object or null
+	 * @throws Exception if retrieval operation fails
+	 */
+	public Object getRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return getWhereRaw(clazz, options);
+		return getRaw(clazz, options);
 	}
 
-	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Retrieves all entities of the specified type matching the conditions.
+	 *
+	 * @param <T>    The type of the entity
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions, filters, limits, etc.
+	 * @return List of matching entities (empty list if none found)
+	 * @throws Exception if retrieval operation fails
+	 */
+	public <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return getsWhere(clazz, options);
+		return gets(clazz, options);
 	}
 
-	public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Retrieves all entities of the specified type matching the conditions (internal raw version).
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options
+	 * @return List of matching entities as Objects
+	 * @throws Exception if retrieval operation fails
+	 */
+	public List<Object> getsRaw(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return getsWhereRaw(clazz, options);
+		return getsRaw(clazz, options);
 	}
 
+	/**
+	 * Retrieves all entities of the specified type matching the conditions (QueryOptions variant).
+	 *
+	 * @param <T>     The type of the entity
+	 * @param clazz   The class of the entity
+	 * @param options Query options including conditions, filters, limits, etc.
+	 * @return List of matching entities (empty list if none found)
+	 * @throws Exception if retrieval operation fails
+	 */
 	@SuppressWarnings("unchecked")
-	public <T> List<T> getsWhere(final Class<T> clazz, final QueryOptions options)
-			throws DataAccessException, IOException {
-		final List<Object> out = getsWhereRaw(clazz, options);
+	public <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws DataAccessException, IOException {
+		final List<Object> out = getsRaw(clazz, options);
 		return (List<T>) out;
 	}
 
-	public <T, ID_TYPE> T get(final Class<T> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	/**
+	 * Retrieves an entity by its unique identifier.
+	 *
+	 * @param <T>      The type of the entity
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz    The class of the entity
+	 * @param id       The unique identifier
+	 * @param option   Optional query options (e.g., table selection, column filters)
+	 * @return The entity with the specified ID or null if not found
+	 * @throws Exception if retrieval operation fails
+	 */
+	public <T, ID_TYPE> T getById(final Class<T> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		return getWhere(clazz, options.getAllArray());
+		return get(clazz, options.getAllArray());
 	}
 
-	public <T> List<T> gets(final Class<T> clazz) throws Exception {
-		return getsWhere(clazz);
-	}
-
-	public <T> List<T> gets(final Class<T> clazz, final QueryOption... option) throws Exception {
-		return getsWhere(clazz, option);
+	/**
+	 * Retrieves all entities of the specified type (no conditions).
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This method retrieves ALL entities from the table.
+	 * Use with caution on large datasets. Consider adding pagination via QueryOptions.
+	 * </p>
+	 *
+	 * @param <T>   The type of the entity
+	 * @param clazz The class of the entity
+	 * @return List of all entities (empty list if none found)
+	 * @throws Exception if retrieval operation fails
+	 */
+	public <T> List<T> getAll(final Class<T> clazz) throws Exception {
+		return gets(clazz);
 	}
 
 	// ========================================================================
 	// Count methods
 	// ========================================================================
 
-	public <ID_TYPE> long count(final Class<?> clazz, final ID_TYPE id, final QueryOption... option) throws Exception {
+	/**
+	 * Checks if an entity with the specified ID exists.
+	 *
+	 * <p>
+	 * This method verifies the existence of an entity by its unique identifier.
+	 * Returns true if the entity exists, false otherwise.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier to check
+	 * @param option    Optional query options (e.g., table selection)
+	 * @return true if an entity with this ID exists, false otherwise
+	 * @throws Exception if existence check operation fails
+	 */
+	public <ID_TYPE> boolean existsById(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		return countWhere(clazz, options);
+		return count(clazz, options) > 0;
 	}
 
-	public long countWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Counts the number of entities matching the specified conditions.
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions, filters, etc.
+	 * @return The number of matching entities
+	 * @throws Exception if count operation fails
+	 */
+	public long count(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		return countWhere(clazz, options);
+		return count(clazz, options);
 	}
 
 	// ========================================================================
 	// Delete methods
 	// ========================================================================
 
-	public <ID_TYPE> long delete(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
+	/**
+	 * Deletes an entity by its unique identifier.
+	 *
+	 * <p>
+	 * <strong>Automatic routing behavior:</strong> If the entity class is annotated with
+	 * {@code @SoftDeleted}, this method performs a soft delete (marking as deleted).
+	 * Otherwise, it performs a hard delete (physical removal).
+	 * </p>
+	 *
+	 * <p>
+	 * Use {@link #deleteHardById} or {@link #deleteSoftById} if you need explicit control
+	 * over the delete behavior.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier of the entity to delete
+	 * @param options   Optional query options
+	 * @return Number of entities deleted (typically 0 or 1)
+	 * @throws Exception if delete operation fails
+	 */
+	public <ID_TYPE> long deleteById(final Class<?> clazz, final ID_TYPE id, final QueryOption... options)
 			throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
-			return deleteSoft(clazz, id, options);
+			return deleteSoftById(clazz, id, options);
 		} else {
-			return deleteHard(clazz, id, options);
+			return deleteHardById(clazz, id, options);
 		}
 	}
 
-	public long deleteWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Deletes entities matching the specified conditions.
+	 *
+	 * <p>
+	 * <strong>Automatic routing behavior:</strong> If the entity class is annotated with
+	 * {@code @SoftDeleted}, this method performs a soft delete (marking as deleted).
+	 * Otherwise, it performs a hard delete (physical removal).
+	 * </p>
+	 *
+	 * <p>
+	 * Use {@link #deleteHard} or {@link #deleteSoft} if you need explicit control
+	 * over the delete behavior.
+	 * </p>
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions
+	 * @return Number of entities deleted
+	 * @throws Exception if delete operation fails
+	 */
+	public long delete(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final String hasDeletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		if (hasDeletedFieldName != null) {
-			return deleteSoftWhere(clazz, option);
+			return deleteSoft(clazz, option);
 		} else {
-			return deleteHardWhere(clazz, option);
+			return deleteHard(clazz, option);
 		}
 	}
 
@@ -1258,7 +1467,26 @@ public class DBAccessMongo implements Closeable {
 		return uniqueId;
 	}
 
-	public <T> long updateWhere(final T data, QueryOptions options) throws Exception {
+	/**
+	 * Updates entities matching the specified conditions (QueryOptions variant).
+	 *
+	 * <p>
+	 * <strong>Required option:</strong> You MUST provide a {@link FilterValue} option to specify which
+	 * fields should be updated. This prevents accidental full-row updates.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Condition specification:</strong> Use {@link Condition} option to specify which entities
+	 * to update. Without conditions, the operation will fail with an exception.
+	 * </p>
+	 *
+	 * @param <T>     The type of the entity
+	 * @param data    The entity data containing the update values
+	 * @param options Query options including FilterValue (required) and Condition
+	 * @return Number of entities updated
+	 * @throws Exception if update operation fails or FilterValue is missing
+	 */
+	public <T> long update(final T data, QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
 		if (options == null) {
 			options = new QueryOptions();
@@ -1299,7 +1527,7 @@ public class DBAccessMongo implements Closeable {
 		Object previousData = null;
 		if (needPreviousValues) {
 			final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
-			previousData = this.get(data.getClass(), transmitKey.get(0).getKey(), new AccessDeletedItems(),
+			previousData = this.getById(data.getClass(), transmitKey.get(0).getKey(), new AccessDeletedItems(),
 					new ReadAllColumn());
 		}
 
@@ -1395,7 +1623,7 @@ public class DBAccessMongo implements Closeable {
 	}
 
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
-		final boolean readAllfields = QueryOptions.readAllColomn(options);
+		final boolean readAllFields = QueryOptions.readAllColomn(options);
 		final List<String> fieldsName = new ArrayList<>();
 
 		for (final Field elem : clazz.getFields()) {
@@ -1408,7 +1636,7 @@ public class DBAccessMongo implements Closeable {
 				continue;
 			}
 			final boolean notRead = AnnotationTools.isDefaultNotRead(elem);
-			if (!readAllfields && notRead) {
+			if (!readAllFields && notRead) {
 				continue;
 			}
 			final String name = AnnotationTools.getFieldName(elem, options).inTable();
@@ -1443,7 +1671,7 @@ public class DBAccessMongo implements Closeable {
 		return condition;
 	}
 
-	public List<Object> getsWhereRaw(final Class<?> clazz, final QueryOptions options)
+	public List<Object> getsRaw(final Class<?> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final List<LazyGetter> lazyCall = new ArrayList<>();
@@ -1786,7 +2014,15 @@ public class DBAccessMongo implements Closeable {
 		return typeModified;
 	}
 
-	public long countWhere(final Class<?> clazz, final QueryOptions options) throws Exception {
+	/**
+	 * Counts the number of entities matching the specified conditions (QueryOptions variant).
+	 *
+	 * @param clazz   The class of the entity
+	 * @param options Query options including conditions, filters, etc.
+	 * @return The number of matching entities
+	 * @throws Exception if count operation fails
+	 */
+	public long count(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final Condition condition = conditionFusionOrEmpty(options, false);
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -1805,11 +2041,27 @@ public class DBAccessMongo implements Closeable {
 		}
 	}
 
-	public <ID_TYPE> long deleteHard(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+	/**
+	 * Performs a hard (physical) delete of an entity by its unique identifier.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This permanently removes the entity from the database,
+	 * regardless of whether the class is annotated with {@code @SoftDeleted}.
+	 * The data cannot be recovered after this operation.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier of the entity to delete
+	 * @param option    Optional query options
+	 * @return Number of entities deleted (typically 0 or 1)
+	 * @throws Exception if delete operation fails
+	 */
+	public <ID_TYPE> long deleteHardById(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		return deleteHardWhere(clazz, options.getAllArray());
+		return deleteHard(clazz, options.getAllArray());
 	}
 
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
@@ -1838,7 +2090,7 @@ public class DBAccessMongo implements Closeable {
 			final QueryOptions options = new QueryOptions(option);
 			options.add(new AccessDeletedItems());
 			options.add(new ReadAllColumn());
-			previousData = this.getsWhereRaw(clazz, options);
+			previousData = this.getsRaw(clazz, options);
 		}
 		for (final Field field : hasDeletedActionFields) {
 			final DataAccessAddOn addOn = findAddOnforField(field);
@@ -1856,7 +2108,27 @@ public class DBAccessMongo implements Closeable {
 		}
 	}
 
-	public long deleteHardWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Performs a hard (physical) delete of entities matching the specified conditions.
+	 *
+	 * <p>
+	 * <strong>Warning:</strong> This permanently removes matching entities from the database,
+	 * regardless of whether the class is annotated with {@code @SoftDeleted}.
+	 * The data cannot be recovered after this operation.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Required:</strong> You MUST provide conditions via {@link Condition} option.
+	 * Attempting to delete without conditions will throw an exception to prevent accidental
+	 * deletion of all records.
+	 * </p>
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions (required)
+	 * @return Number of entities deleted
+	 * @throws Exception if delete operation fails or no conditions provided
+	 */
+	public long deleteHard(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -1876,14 +2148,56 @@ public class DBAccessMongo implements Closeable {
 		return retFind.getDeletedCount();
 	}
 
-	public <ID_TYPE> long deleteSoft(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+	/**
+	 * Performs a soft delete of an entity by its unique identifier.
+	 *
+	 * <p>
+	 * Soft delete marks the entity as deleted without physically removing it from the database.
+	 * The entity will be excluded from normal queries unless {@code AccessDeletedItems} option is used.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}
+	 * and have a corresponding deleted flag field.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier of the entity to soft delete
+	 * @param option    Optional query options
+	 * @return Number of entities soft deleted (typically 0 or 1)
+	 * @throws Exception if soft delete operation fails
+	 */
+	public <ID_TYPE> long deleteSoftById(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		return deleteSoftWhere(clazz, options.getAllArray());
+		return deleteSoft(clazz, options.getAllArray());
 	}
 
-	public long deleteSoftWhere(final Class<?> clazz, final QueryOption... option) throws Exception {
+	/**
+	 * Performs a soft delete of entities matching the specified conditions.
+	 *
+	 * <p>
+	 * Soft delete marks matching entities as deleted without physically removing them from the database.
+	 * These entities will be excluded from normal queries unless {@code AccessDeletedItems} option is used.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}
+	 * and have a corresponding deleted flag field.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Required:</strong> You MUST provide conditions via {@link Condition} option.
+	 * </p>
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions (required)
+	 * @return Number of entities soft deleted
+	 * @throws Exception if soft delete operation fails or no conditions provided
+	 */
+	public long deleteSoft(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);
@@ -1897,18 +2211,73 @@ public class DBAccessMongo implements Closeable {
 		return ret.getModifiedCount();
 	}
 
-	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
-		return unsetDeleteWhere(clazz, new Condition(getTableIdCondition(clazz, id, new QueryOptions())));
+	/**
+	 * Restores (un-deletes) a soft-deleted entity by its unique identifier.
+	 *
+	 * <p>
+	 * This method clears the soft delete flag, making the entity visible in normal queries again.
+	 * Only works for entities that were previously soft deleted.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier of the entity to restore
+	 * @return Number of entities restored (typically 0 or 1)
+	 * @throws DataAccessException if the class has no deleted field or restore fails
+	 */
+	public <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
+		return restore(clazz, new Condition(getTableIdCondition(clazz, id, new QueryOptions())));
 	}
 
-	public <ID_TYPE> long unsetDelete(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
+	/**
+	 * Restores (un-deletes) a soft-deleted entity by its unique identifier.
+	 *
+	 * <p>
+	 * This method clears the soft delete flag, making the entity visible in normal queries again.
+	 * Only works for entities that were previously soft deleted.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * </p>
+	 *
+	 * @param <ID_TYPE> The type of the ID
+	 * @param clazz     The class of the entity
+	 * @param id        The unique identifier of the entity to restore
+	 * @param option    Optional query options
+	 * @return Number of entities restored (typically 0 or 1)
+	 * @throws DataAccessException if the class has no deleted field or restore fails
+	 */
+	public <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id, final QueryOption... option)
 			throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		options.add(new Condition(getTableIdCondition(clazz, id, options)));
-		return unsetDeleteWhere(clazz, options.getAllArray());
+		return restore(clazz, options.getAllArray());
 	}
 
-	public long unsetDeleteWhere(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
+	/**
+	 * Restores (un-deletes) soft-deleted entities matching the specified conditions.
+	 *
+	 * <p>
+	 * This method clears the soft delete flag for matching entities, making them visible
+	 * in normal queries again. Only works for entities that were previously soft deleted.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * You MUST provide conditions via {@link Condition} option.
+	 * </p>
+	 *
+	 * @param clazz  The class of the entity
+	 * @param option Query options including conditions (required)
+	 * @return Number of entities restored
+	 * @throws DataAccessException if the class has no deleted field, no conditions provided, or restore fails
+	 */
+	public long restore(final Class<?> clazz, final QueryOption... option) throws DataAccessException {
 		final QueryOptions options = new QueryOptions(option);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final String collectionName = AnnotationTools.getTableName(clazz, options);

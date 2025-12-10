@@ -63,7 +63,7 @@ public class TestListElements {
 		Assertions.assertEquals(test.listIntegerData.get(4), insertedData.listIntegerData.get(4));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonList retrieve = ConfigureDb.da.get(DataWithSubJsonList.class, insertedData.oid);
+		final DataWithSubJsonList retrieve = ConfigureDb.da.getById(DataWithSubJsonList.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);
@@ -100,7 +100,7 @@ public class TestListElements {
 		Assertions.assertEquals(test.listLongData.get(4), insertedData.listLongData.get(4));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonList retrieve = ConfigureDb.da.get(DataWithSubJsonList.class, insertedData.oid);
+		final DataWithSubJsonList retrieve = ConfigureDb.da.getById(DataWithSubJsonList.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);
@@ -137,7 +137,7 @@ public class TestListElements {
 		Assertions.assertEquals(test.listObjectData.get(4), insertedData.listObjectData.get(4));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonList retrieve = ConfigureDb.da.get(DataWithSubJsonList.class, insertedData.oid);
+		final DataWithSubJsonList retrieve = ConfigureDb.da.getById(DataWithSubJsonList.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);
@@ -174,7 +174,7 @@ public class TestListElements {
 		Assertions.assertEquals(test.listEnumData.get(4), insertedData.listEnumData.get(4));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonList retrieve = ConfigureDb.da.get(DataWithSubJsonList.class, insertedData.oid);
+		final DataWithSubJsonList retrieve = ConfigureDb.da.getById(DataWithSubJsonList.class, insertedData.oid);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.oid);

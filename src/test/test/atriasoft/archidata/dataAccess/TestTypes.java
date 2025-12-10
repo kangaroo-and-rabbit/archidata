@@ -49,7 +49,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -57,7 +57,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.intData);
 		Assertions.assertEquals(insertedData.intData, retrieve.intData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(3)
@@ -72,7 +72,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -80,7 +80,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.longData);
 		Assertions.assertEquals(insertedData.longData, retrieve.longData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(4)
@@ -95,7 +95,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -103,7 +103,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.floatData);
 		Assertions.assertEquals(insertedData.floatData, retrieve.floatData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(5)
@@ -118,7 +118,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -126,7 +126,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.doubleData);
 		Assertions.assertEquals(insertedData.doubleData, retrieve.doubleData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(6)
@@ -141,7 +141,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -149,7 +149,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.textData);
 		Assertions.assertEquals(insertedData.textData, retrieve.textData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(7)
@@ -164,7 +164,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -172,7 +172,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.varcharData);
 		Assertions.assertEquals(insertedData.varcharData, retrieve.varcharData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(8)
@@ -187,7 +187,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -195,7 +195,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.booleanData);
 		Assertions.assertEquals(insertedData.booleanData, retrieve.booleanData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(9)
@@ -210,7 +210,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -218,7 +218,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.booleanData);
 		Assertions.assertEquals(insertedData.booleanData, retrieve.booleanData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(11)
@@ -234,7 +234,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -243,7 +243,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.dateFullData);
 		Assertions.assertEquals(insertedData.dateFullData, retrieve.dateFullData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(12)
@@ -259,7 +259,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -268,7 +268,7 @@ public class TestTypes {
 		Assertions.assertNotNull(retrieve.dateData);
 		Assertions.assertEquals(insertedData.dateData, retrieve.dateData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(13)
@@ -284,7 +284,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -295,7 +295,7 @@ public class TestTypes {
 		Assertions.assertEquals(insertedData.timeData.getMinute(), retrieve.timeData.getMinute());
 		Assertions.assertEquals(insertedData.timeData.getSecond(), retrieve.timeData.getSecond());
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 	@Order(14)
@@ -312,7 +312,7 @@ public class TestTypes {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesTable retrieve = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -327,11 +327,11 @@ public class TestTypes {
 		retrieve.textData = "test 2";
 		retrieve.booleanData = true;
 		retrieve.varcharData = null;
-		final long nbUpdate = ConfigureDb.da.update(retrieve, insertedData.id);
+		final long nbUpdate = ConfigureDb.da.updateById(retrieve, insertedData.id);
 		Assertions.assertEquals(1L, nbUpdate);
 
 		// Get new data
-		final TypesTable retrieve2 = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve2 = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve2);
 		Assertions.assertNotNull(retrieve2.id);
@@ -346,11 +346,11 @@ public class TestTypes {
 		retrieve.textData = "test 3";
 		retrieve.booleanData = false;
 		retrieve.varcharData = "test3";
-		final long nbUpdate2 = ConfigureDb.da.updateFull(retrieve, insertedData.id, new FilterValue("textData"));
+		final long nbUpdate2 = ConfigureDb.da.updateById(retrieve, insertedData.id, new FilterValue("textData"));
 		Assertions.assertEquals(1L, nbUpdate2);
 
 		// Get new data
-		final TypesTable retrieve3 = ConfigureDb.da.get(TypesTable.class, insertedData.id);
+		final TypesTable retrieve3 = ConfigureDb.da.getById(TypesTable.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve3);
 		Assertions.assertNotNull(retrieve3.id);
@@ -362,7 +362,7 @@ public class TestTypes {
 		Assertions.assertEquals(retrieve2.booleanData, retrieve3.booleanData);
 		Assertions.assertNull(retrieve3.varcharData);
 
-		ConfigureDb.da.delete(TypesTable.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesTable.class, insertedData.id);
 	}
 
 }

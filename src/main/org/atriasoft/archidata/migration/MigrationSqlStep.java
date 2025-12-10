@@ -88,7 +88,7 @@ public class MigrationSqlStep implements MigrationInterface {
 				model.stepId = iii + 1;
 				model.log = log.toString();
 				try {
-					da.updateFull(model, model.id, new FilterValue("stepId", "log"));
+					da.updateById(model, model.id, new FilterValue("stepId", "log"));
 				} catch (final Exception e) {
 					e.printStackTrace();
 				}
@@ -99,7 +99,7 @@ public class MigrationSqlStep implements MigrationInterface {
 			model.stepId = iii + 1;
 			model.log = log.toString();
 			try {
-				da.updateFull(model, model.id, new FilterValue("stepId", "log"));
+				da.updateById(model, model.id, new FilterValue("stepId", "log"));
 			} catch (final Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

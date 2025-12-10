@@ -64,7 +64,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertNull(insertedData.remote);
 
 			// Try to retrieve all the data:
-			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -74,7 +74,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(insertedData.otherData, retrieve.otherData);
 			Assertions.assertNull(retrieve.remote);
 
-			ConfigureDb.da.delete(TypeManyToManyDocOIDRoot.class, insertedData.oid);
+			ConfigureDb.da.deleteById(TypeManyToManyDocOIDRoot.class, insertedData.oid);
 		}
 	}
 
@@ -105,7 +105,7 @@ public class TestManyToManyDocOID {
 			for (int iii = 0; iii < 100; iii++) {
 				remote.data = "tmp" + iii;
 				this.insertedRemote1 = ConfigureDb.da.insert(remote);
-				ConfigureDb.da.delete(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
+				ConfigureDb.da.deleteById(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
 			}
 			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote1";
@@ -130,7 +130,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertNull(this.insertedData.remote);
 
 			// Try to retrieve all the data:
-			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -155,7 +155,7 @@ public class TestManyToManyDocOID {
 					this.insertedData.oid, //
 					"remote", this.insertedRemote2.oid);
 
-			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid, new AccessDeletedItems(), new ReadAllColumn());
 
 			Assertions.assertNotNull(retrieve);
@@ -176,7 +176,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertTrue(formattedUpdatedAt.compareTo(formattedCreatedAt) > 0);
 
 			// -- Verify remote is linked:
-			final TypeManyToManyDocOIDRemote retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieveRemote = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote1.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -193,7 +193,7 @@ public class TestManyToManyDocOID {
 		@Test
 		public void testExpand() throws Exception {
 			final TypeManyToManyDocOIDRootExpand retrieveExpand = ConfigureDb.da
-					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedData.oid);
+					.getById(TypeManyToManyDocOIDRootExpand.class, this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
 			Assertions.assertNotNull(retrieveExpand.oid);
@@ -216,7 +216,7 @@ public class TestManyToManyDocOID {
 					this.insertedData.oid, //
 					"remote", this.insertedRemote1.oid);
 
-			TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -233,7 +233,7 @@ public class TestManyToManyDocOID {
 					retrieve.oid, //
 					"remote", this.insertedRemote2.oid);
 
-			retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
+			retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
 
 			Assertions.assertNotNull(retrieve);
 			Assertions.assertNotNull(retrieve.oid);
@@ -242,7 +242,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedData.otherData, retrieve.otherData);
 			Assertions.assertNull(retrieve.remote);
 
-			ConfigureDb.da.delete(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
+			ConfigureDb.da.deleteById(TypeManyToManyDocOIDRoot.class, this.insertedData.oid);
 		}
 	}
 
@@ -273,7 +273,7 @@ public class TestManyToManyDocOID {
 			for (int iii = 0; iii < 100; iii++) {
 				remote.data = "tmp" + iii;
 				this.insertedRemote1 = ConfigureDb.da.insert(remote);
-				ConfigureDb.da.delete(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
+				ConfigureDb.da.deleteById(TypeManyToManyDocOIDRemote.class, this.insertedRemote1.oid);
 			}
 			remote = new TypeManyToManyDocOIDRemote();
 			remote.data = "remote 1";
@@ -305,7 +305,7 @@ public class TestManyToManyDocOID {
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
-			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -318,7 +318,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRoot1.oid, retrieve.remoteToParent.get(0));
 			Assertions.assertEquals(this.insertedRoot2.oid, retrieve.remoteToParent.get(1));
 
-			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
@@ -331,7 +331,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRemote2.oid, retrieveExpand.remote.get(0));
 
 			// -- Verify remote is linked:
-			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -352,7 +352,7 @@ public class TestManyToManyDocOID {
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot2.oid);
 
-			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -365,7 +365,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRoot1.oid, retrieve.remoteToParent.get(0));
 
 			// -- Verify remote is linked:
-			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveExpand = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
@@ -378,7 +378,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRemote2.oid, retrieveExpand.remote.get(0));
 
 			// -- Verify remote is un-linked:
-			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			final TypeManyToManyDocOIDRoot retrieveRemote = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
@@ -398,7 +398,7 @@ public class TestManyToManyDocOID {
 					this.insertedRemote2.oid, //
 					"remoteToParent", this.insertedRoot1.oid);
 
-			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
+			final TypeManyToManyDocOIDRemote retrieve = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
 					this.insertedRemote2.oid);
 
 			Assertions.assertNotNull(retrieve);
@@ -410,7 +410,7 @@ public class TestManyToManyDocOID {
 
 			// -- Verify remote is linked:
 			final TypeManyToManyDocOIDRootExpand retrieveExpand = ConfigureDb.da
-					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot1.oid);
+					.getById(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveExpand);
 			Assertions.assertNotNull(retrieveExpand.oid);
@@ -421,7 +421,7 @@ public class TestManyToManyDocOID {
 
 			// -- Verify remote is un-linked:
 			final TypeManyToManyDocOIDRootExpand retrieveRemote = ConfigureDb.da
-					.get(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot2.oid);
+					.getById(TypeManyToManyDocOIDRootExpand.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRemote);
 			Assertions.assertNotNull(retrieveRemote.oid);
@@ -454,7 +454,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRoot2.oid, this.insertedParameters.remoteToParent.get(1));
 
 			// -- Verify remote is linked:
-			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
@@ -466,7 +466,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(1, retrieveRoot.remote.size());
 			Assertions.assertEquals(this.insertedParameters.oid, retrieveRoot.remote.get(0));
 
-			retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
+			retrieveRoot = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
 			Assertions.assertNotNull(retrieveRoot.oid);
@@ -488,11 +488,11 @@ public class TestManyToManyDocOID {
 			final TypeManyToManyDocOIDRemote testUpdate = new TypeManyToManyDocOIDRemote();
 			testUpdate.remoteToParent = new ArrayList<>();
 			testUpdate.remoteToParent.add(this.insertedRoot2.oid);
-			final long numberUpdate = ConfigureDb.da.update(testUpdate, this.insertedParameters.oid);
+			final long numberUpdate = ConfigureDb.da.updateById(testUpdate, this.insertedParameters.oid);
 			Assertions.assertEquals(1, numberUpdate);
 
-			final TypeManyToManyDocOIDRemote insertedDataUpdate = ConfigureDb.da.get(TypeManyToManyDocOIDRemote.class,
-					this.insertedParameters.oid);
+			final TypeManyToManyDocOIDRemote insertedDataUpdate = ConfigureDb.da
+					.getById(TypeManyToManyDocOIDRemote.class, this.insertedParameters.oid);
 			Assertions.assertNotNull(insertedDataUpdate);
 			Assertions.assertNotNull(insertedDataUpdate.oid);
 			Assertions.assertNotNull(insertedDataUpdate.remoteToParent);
@@ -500,7 +500,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedRoot2.oid, insertedDataUpdate.remoteToParent.get(0));
 
 			// -- Verify remote is linked (removed):
-			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class,
+			TypeManyToManyDocOIDRoot retrieveRoot = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class,
 					this.insertedRoot1.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
@@ -511,7 +511,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertNull(retrieveRoot.remote);
 
 			// -- Verify remote is linked (keep):
-			retrieveRoot = ConfigureDb.da.get(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
+			retrieveRoot = ConfigureDb.da.getById(TypeManyToManyDocOIDRoot.class, this.insertedRoot2.oid);
 
 			Assertions.assertNotNull(retrieveRoot);
 			Assertions.assertNotNull(retrieveRoot.oid);

@@ -45,7 +45,7 @@ public class TestTypeEnum2 {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		TypesEnum2 retrieve = ConfigureDb.da.get(TypesEnum2.class, insertedData.id);
+		TypesEnum2 retrieve = ConfigureDb.da.getById(TypesEnum2.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
@@ -54,22 +54,22 @@ public class TestTypeEnum2 {
 
 		// Update data to null
 		retrieve.data = null;
-		long ret = ConfigureDb.da.update(retrieve, retrieve.id);
+		long ret = ConfigureDb.da.updateById(retrieve, retrieve.id);
 		Assertions.assertEquals(1L, ret);
 
 		// get new data
-		retrieve = ConfigureDb.da.get(TypesEnum2.class, insertedData.id);
+		retrieve = ConfigureDb.da.getById(TypesEnum2.class, insertedData.id);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertNull(retrieve.data);
 
 		// Remove the data
-		ret = ConfigureDb.da.delete(TypesEnum2.class, insertedData.id);
+		ret = ConfigureDb.da.deleteById(TypesEnum2.class, insertedData.id);
 		Assertions.assertEquals(1L, ret);
 
 		// Get the removed data:
-		retrieve = ConfigureDb.da.get(TypesEnum2.class, insertedData.id);
+		retrieve = ConfigureDb.da.getById(TypesEnum2.class, insertedData.id);
 		Assertions.assertNull(retrieve);
 	}
 
@@ -85,13 +85,13 @@ public class TestTypeEnum2 {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesEnum2 retrieve = ConfigureDb.da.get(TypesEnum2.class, insertedData.id);
+		final TypesEnum2 retrieve = ConfigureDb.da.getById(TypesEnum2.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
 		Assertions.assertEquals(insertedData.id, retrieve.id);
 		Assertions.assertNull(retrieve.data);
 
-		ConfigureDb.da.delete(TypesEnum2.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesEnum2.class, insertedData.id);
 	}
 }

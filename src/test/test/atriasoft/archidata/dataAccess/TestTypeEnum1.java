@@ -45,7 +45,7 @@ public class TestTypeEnum1 {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final TypesEnum1 retrieve = ConfigureDb.da.get(TypesEnum1.class, insertedData.id);
+		final TypesEnum1 retrieve = ConfigureDb.da.getById(TypesEnum1.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -53,6 +53,6 @@ public class TestTypeEnum1 {
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals(insertedData.data, retrieve.data);
 
-		ConfigureDb.da.delete(TypesEnum1.class, insertedData.id);
+		ConfigureDb.da.deleteById(TypesEnum1.class, insertedData.id);
 	}
 }

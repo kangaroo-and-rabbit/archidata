@@ -22,8 +22,8 @@ public class CheckForeignKeyValidator implements ConstraintValidator<CheckForeig
 			return true;
 		}
 		try {
-			final long count = DataAccess.count(this.target, value);
-			if (count != 1) {
+			final boolean exists = DataAccess.existsById(this.target, value);
+			if (!exists) {
 				return false;
 			}
 		} catch (final Exception e) {

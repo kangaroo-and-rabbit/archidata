@@ -292,7 +292,7 @@ public class MigrationEngine {
 		if (ret) {
 			migrationResult.terminated = true;
 			try {
-				da.updateFull(migrationResult, migrationResult.id, new FilterValue("terminated"));
+				da.updateById(migrationResult, migrationResult.id, new FilterValue("terminated"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException(
@@ -302,7 +302,7 @@ public class MigrationEngine {
 			try {
 				log.append("Fail in the migration engine...");
 				migrationResult.log = log.toString();
-				da.updateFull(migrationResult, migrationResult.id, new FilterValue("log"));
+				da.updateById(migrationResult, migrationResult.id, new FilterValue("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
 				throw new MigrationException("Fail to update migration Log in the migration table: "

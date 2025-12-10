@@ -39,9 +39,9 @@ public class ManyToManyTools {
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.getById(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
 		} else {
-			data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.getById(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
@@ -53,7 +53,7 @@ public class ManyToManyTools {
 		}
 		data.filedNameOfTheObject.add(valueToAdd);
 		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
+		ioDb.updateById(data, data.idOfTheObject, options.getAllArray());
 	}
 
 	public static void addLink(
@@ -114,9 +114,9 @@ public class ManyToManyTools {
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.get(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.getById(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
 		} else {
-			data = ioDb.get(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = ioDb.getById(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
 		if (data == null || data.filedNameOfTheObject == null) {
 			return;
@@ -133,7 +133,7 @@ public class ManyToManyTools {
 			data.filedNameOfTheObject = null;
 		}
 		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateFull(data, data.idOfTheObject, options.getAllArray());
+		ioDb.updateById(data, data.idOfTheObject, options.getAllArray());
 	}
 
 	public static void removeLink(
@@ -211,9 +211,9 @@ public class ManyToManyTools {
 			final Object dataTemp = field.get(elem);
 			final Object primaryKey = primaryKeyField.get(elem);
 			field.set(elem, null);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 			field.set(elem, dataTemp);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 		}
 	}
 }

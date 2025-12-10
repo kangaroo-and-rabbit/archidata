@@ -184,7 +184,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			// In the lazy mode, the request is done in asynchronous mode, they will be done
 			// after...
 			final LazyGetter lambda = (List<LazyGetter> actionsAsync) -> {
-				final Object foreignData = ioDb.getWhereRaw(decorators.targetEntity(),
+				final Object foreignData = ioDb.getRaw(decorators.targetEntity(),
 						new Condition(new QueryCondition(idField.inTable(), "=", dataRetrieve)));
 				if (foreignData == null) {
 					return;

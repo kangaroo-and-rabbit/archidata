@@ -142,7 +142,7 @@ public class DataResource {
 	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return DataAccess.getWhere(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
+			return DataAccess.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -153,7 +153,7 @@ public class DataResource {
 	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
-			return DataAccess.get(Data.class, id);
+			return DataAccess.getById(Data.class, id);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -295,7 +295,7 @@ public class DataResource {
 
 	public Data getSmall(final ObjectId oid) {
 		try {
-			return DataAccess.get(Data.class, oid);
+			return DataAccess.getById(Data.class, oid);
 		} catch (final Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -542,7 +542,7 @@ public class DataResource {
 	}
 
 	public void undelete(final Long id) throws Exception {
-		DataAccess.unsetDelete(Data.class, id);
+		DataAccess.restoreById(Data.class, id);
 	}
 
 }

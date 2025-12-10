@@ -38,21 +38,21 @@ public class TestResourceSample {
 	@Path("{id}")
 	@PermitAll
 	public SimpleTable get(@PathParam("id") final Long id) throws Exception {
-		return DataAccess.get(SimpleTable.class, id);
+		return DataAccess.getById(SimpleTable.class, id);
 	}
 
 	@ARCHIVE
 	@Path("{id}")
 	@PermitAll
 	public SimpleTable archive(@PathParam("id") final Long id) throws Exception {
-		return DataAccess.get(SimpleTable.class, id);
+		return DataAccess.getById(SimpleTable.class, id);
 	}
 
 	@RESTORE
 	@Path("{id}")
 	@PermitAll
 	public SimpleTable restore(@PathParam("id") final Long id) throws Exception {
-		return DataAccess.get(SimpleTable.class, id);
+		return DataAccess.getById(SimpleTable.class, id);
 	}
 
 	@POST
@@ -67,8 +67,8 @@ public class TestResourceSample {
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
 	public SimpleTable patch(@PathParam("id") final Long id, final SimpleTable data) throws Exception {
-		DataAccess.update(data, id);
-		return DataAccess.get(SimpleTable.class, id);
+		DataAccess.updateById(data, id);
+		return DataAccess.getById(SimpleTable.class, id);
 	}
 
 	@PUT
@@ -76,15 +76,15 @@ public class TestResourceSample {
 	@PermitAll
 	@Consumes(MediaType.APPLICATION_JSON)
 	public SimpleTable put(@PathParam("id") final Long id, final SimpleTable data) throws Exception {
-		DataAccess.update(data, id);
-		return DataAccess.get(SimpleTable.class, id);
+		DataAccess.updateById(data, id);
+		return DataAccess.getById(SimpleTable.class, id);
 	}
 
 	@DELETE
 	@Path("{id}")
 	@PermitAll
 	public void remove(@PathParam("id") final Long id) throws Exception {
-		DataAccess.delete(SimpleTable.class, id);
+		DataAccess.deleteById(SimpleTable.class, id);
 	}
 
 }

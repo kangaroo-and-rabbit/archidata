@@ -58,7 +58,7 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertTrue(insertedData.id >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class, insertedData.id);
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -74,7 +74,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadable() throws Exception {
 		// check the full values
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -100,8 +100,8 @@ public class TestSimpleTableSoftDelete {
 		// Delete the entry:
 		final SimpleTableSoftDelete test = new SimpleTableSoftDelete();
 		test.data = TestSimpleTableSoftDelete.DATA_INJECTED_2;
-		ConfigureDb.da.updateFull(test, TestSimpleTableSoftDelete.idOfTheObject, new FilterValue("data"));
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
+		ConfigureDb.da.updateById(test, TestSimpleTableSoftDelete.idOfTheObject, new FilterValue("data"));
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);
@@ -121,8 +121,8 @@ public class TestSimpleTableSoftDelete {
 	public void testSoftDeleteTheObject() throws Exception {
 		Thread.sleep(Duration.ofMillis(15));
 		// Delete the entry:
-		ConfigureDb.da.delete(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
+		ConfigureDb.da.deleteById(SimpleTableSoftDelete.class, TestSimpleTableSoftDelete.idOfTheObject);
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject);
 		Assertions.assertNull(retrieve);
 	}
@@ -132,7 +132,7 @@ public class TestSimpleTableSoftDelete {
 	public void testReadDeletedObject() throws Exception {
 
 		// check if we set get deleted element
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS);
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
@@ -148,7 +148,7 @@ public class TestSimpleTableSoftDelete {
 	@Test
 	public void testReadAllValuesUnreadableOfDeletedObject() throws Exception {
 		// check if we set get deleted element with all data
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.get(SimpleTableSoftDelete.class,
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, QueryOptions.ACCESS_DELETED_ITEMS,
 				QueryOptions.READ_ALL_COLOMN);
 		Assertions.assertNotNull(retrieve);

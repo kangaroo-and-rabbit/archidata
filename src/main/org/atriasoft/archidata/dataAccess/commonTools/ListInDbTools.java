@@ -42,9 +42,9 @@ public class ListInDbTools {
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.getById(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
 		} else {
-			data = DataAccess.get(TableListObjectGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.getById(TableListObjectGeneric.class, primaryKey, options.getAllArray());
 		}
 		if (data.filedNameOfTheObject == null) {
 			data.filedNameOfTheObject = new ArrayList<>();
@@ -56,7 +56,7 @@ public class ListInDbTools {
 		}
 		data.filedNameOfTheObject.add(foreignKey);
 		options.add(new FilterValue("filedNameOfTheObject"));
-		DataAccess.updateFull(data, data.idOfTheObject, options.getAllArray());
+		DataAccess.updateById(data, data.idOfTheObject, options.getAllArray());
 
 	}
 
@@ -83,12 +83,12 @@ public class ListInDbTools {
 		TableListObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
+			data = DataAccess.getById(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				throw new FailException("Try to remove remote link from an object that does not exist");
 			}
 		} else {
-			data = DataAccess.get(TableListObjectGeneric.class, primaryKey, options.getAllArray());
+			data = DataAccess.getById(TableListObjectGeneric.class, primaryKey, options.getAllArray());
 			if (data == null) {
 				// Data is already removed
 				return;
@@ -115,6 +115,6 @@ public class ListInDbTools {
 			data.filedNameOfTheObject = newList;
 		}
 		options.add(new FilterValue("filedNameOfTheObject"));
-		DataAccess.updateFull(data, data.idOfTheObject, options.getAllArray());
+		DataAccess.updateById(data, data.idOfTheObject, options.getAllArray());
 	}
 }

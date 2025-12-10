@@ -30,7 +30,7 @@ public class FieldTools {
 		for (final T elem : data) {
 			field.set(elem, null);
 			final Object primaryKey = primaryKeyField.get(elem);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 		}
 	}
 }

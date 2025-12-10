@@ -39,7 +39,7 @@ public class OneToManyTools {
 		}
 		data.fieldToUpdate = null;
 		options.add(new FilterValue("fieldToUpdate"));
-		DataAccess.updateFull(data, clazzPrimaryKeyValue, options.getAllArray());
+		DataAccess.updateById(data, clazzPrimaryKeyValue, options.getAllArray());
 	}
 
 	// the objective is to set a specific field at null
@@ -81,9 +81,9 @@ public class OneToManyTools {
 		TableObjectGeneric data = null;
 		if (updateFieldName != null) {
 			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.get(TableObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = DataAccess.getById(TableObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
 		} else {
-			data = DataAccess.get(TableObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
+			data = DataAccess.getById(TableObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
 		}
 		if (Objects.equals(data.fieldToUpdate, valueToSet)) {
 			// The object has already the good value ==> Nothing to do ...
@@ -92,7 +92,7 @@ public class OneToManyTools {
 		final Object previousValue = data.fieldToUpdate;
 		data.fieldToUpdate = valueToSet;
 		options.add(new FilterValue("fieldToUpdate"));
-		DataAccess.updateFull(data, clazzPrimaryKeyValue, options.getAllArray());
+		DataAccess.updateById(data, clazzPrimaryKeyValue, options.getAllArray());
 		return previousValue;
 	}
 
@@ -153,9 +153,9 @@ public class OneToManyTools {
 			final Object dataTemp = field.get(elem);
 			final Object primaryKey = primaryKeyField.get(elem);
 			field.set(elem, null);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 			field.set(elem, dataTemp);
-			DataAccess.update(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey);
 		}
 	}
 }

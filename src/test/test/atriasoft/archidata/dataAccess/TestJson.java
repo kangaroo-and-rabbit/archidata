@@ -54,7 +54,7 @@ public class TestJson {
 		Assertions.assertEquals(test.data.data, insertedData.data.data);
 
 		// Try to retrieve all the data:
-		final SerializeAsJson retrieve = ConfigureDb.da.get(SerializeAsJson.class, insertedData.id);
+		final SerializeAsJson retrieve = ConfigureDb.da.getById(SerializeAsJson.class, insertedData.id);
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.id);
