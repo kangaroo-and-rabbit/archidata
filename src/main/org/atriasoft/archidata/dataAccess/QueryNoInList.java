@@ -14,7 +14,12 @@ public class QueryNoInList<T> implements QueryItem {
 	}
 
 	public QueryNoInList(final String key, @SuppressWarnings("unchecked") final T... value) {
-		this(key, List.of(value));
+		// Detect if a collection was passed as varargs (which creates an array with a single element)
+		if (value.length == 1 && value[0] instanceof Collection) {
+			this.filter = Filters.nin(key, (Collection<?>) value[0]);
+		} else {
+			this.filter = Filters.nin(key, value);
+		}
 	}
 
 	@Override
