@@ -8,19 +8,22 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ./data/mongo:/data
+      # Note keep the 3 element they are mount separately inside the docker.
+      - ./data/mongo/keys/:/data/keys/
+      - ./data/mongo/config/:/data/configdb
+      - ./data/mongo/db:/data/db
     entrypoint:
       - bash
       - -c
       - |
-        if [ ! -f /data/keyfile ]; then
-          openssl rand -base64 756 > /data/keyfile
-          chmod 400 /data/keyfile
-          chown 999:999 /data/keyfile
+        if [ ! -f /data/keys/keyfile ]; then
+          openssl rand -base64 756 > /data/keys/keyfile
+          chmod 400 /data/keys/keyfile
+          chown 999:999 /data/keys/keyfile
         fi
-        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/keys/keyfile
     # after init: remove entrypoint and uncomment command below
-    # command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile","/data/keyfile"]
+    # command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile","/data/keys/keyfile"]
     healthcheck:
       test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}) }" | mongosh --username root --password base_db_password --authenticationDatabase admin
       # after init: test: echo "rs.status()"
