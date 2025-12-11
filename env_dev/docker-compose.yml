@@ -1,0 +1,52 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: base_db_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data
+    entrypoint:
+      - bash
+      - -c
+      - |
+        if [ ! -f /data/keyfile ]; then
+          openssl rand -base64 756 > /data/keyfile
+          chmod 400 /data/keyfile
+          chown 999:999 /data/keyfile
+        fi
+        exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/keyfile
+    # after init: remove entrypoint and uncomment command below
+    # command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile","/data/keyfile"]
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}) }" | mongosh --username root --password base_db_password --authenticationDatabase admin
+      # after init: test: echo "rs.status()"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mongo-network
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: base_db_password
+      ME_CONFIG_MONGODB_URL: mongodb://root:base_db_password@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    ports:
+      - "4077:8081"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - mongo-network
+
+networks:
+  mongo-network:
+    driver: bridge
