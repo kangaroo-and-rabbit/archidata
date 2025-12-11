@@ -1,8 +1,5 @@
 package org.atriasoft.archidata.migration.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
@@ -16,13 +13,13 @@ import jakarta.ws.rs.DefaultValue;
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
 @Table(name = "KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Migration extends GenericDataSoftDelete {
-	final static int VERSION_MIGRATION = 3;
+public class Migration2 extends GenericDataSoftDelete {
+	final static int VERSION_MIGRATION = 2;
 	@Schema(description = "Name of the migration")
 	@Column(length = 256)
 	public String name;
 	@DataNotRead
-	@DefaultValue("'3'")
+	@DefaultValue("'2'")
 	@Schema(description = "Version of the migration engine")
 	public Integer version;
 	@Column(nullable = false)
@@ -35,5 +32,5 @@ public class Migration extends GenericDataSoftDelete {
 	public Integer count;
 	@Schema(description = "Log generate by the migration")
 	@Column(length = -1)
-	public List<MigrationMessage> logs = new ArrayList<>();
+	public String log = "";
 }

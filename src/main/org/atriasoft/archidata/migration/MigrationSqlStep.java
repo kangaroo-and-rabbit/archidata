@@ -7,6 +7,7 @@ import java.util.List;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.migration.model.Migration;
+import org.atriasoft.archidata.migration.model.MigrationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,28 +52,23 @@ public class MigrationSqlStep implements MigrationInterface {
 		throw new Exception("Forward is not implemented");
 	}
 
-	public void generateRevertStep() throws Exception {
-		throw new Exception("Backward is not implemented");
-	}
-
 	@Override
-	public boolean applyMigration(final DBAccessMongo da, final StringBuilder log, final Migration model)
-			throws Exception {
+	public boolean applyMigration(final DBAccessMongo da, final Migration model) throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
 			generateStep();
 		}
 		for (int iii = 0; iii < this.actions.size(); iii++) {
-			log.append("action [" + (iii + 1) + "/" + this.actions.size() + "]\n");
+			model.logs.add(new MigrationMessage(iii + 1, "action [" + this.actions.size() + "]"));
 			LOGGER.info(" >>>> SQL ACTION : {}/{}", iii + 1, this.actions.size());
 			final Action action = this.actions.get(iii);
 
 			if (action.action() != null) {
 				LOGGER.info("DB request: ```{}```", action.action());
-				log.append("DB: " + action.action() + "\n");
+				model.logs.add(new MigrationMessage(iii + 1, "DB: " + action.action()));
 			} else {
 				LOGGER.info("DB request: <Lambda>");
-				log.append("DB: <Lambda>\n");
+				model.logs.add(new MigrationMessage(iii + 1, "DB: <Lambda>"));
 			}
 			try {
 				if (action.action() != null) {
@@ -83,9 +79,8 @@ public class MigrationSqlStep implements MigrationInterface {
 			} catch (final IOException ex) {
 				ex.printStackTrace();
 				LOGGER.info("DB request ERROR: ", ex.getMessage());
-				log.append("DB request ERROR: " + ex.getMessage() + "\n");
+				model.logs.add(new MigrationMessage(iii + 1, "DB request ERROR: " + ex.getMessage()));
 				model.stepId = iii + 1;
-				model.log = log.toString();
 				try {
 					da.updateById(model, model.id, new FilterValue("stepId", "log"));
 				} catch (final Exception e) {
@@ -93,10 +88,9 @@ public class MigrationSqlStep implements MigrationInterface {
 				}
 				return false;
 			}
-			log.append("action [" + (iii + 1) + "/" + this.actions.size() + "] ==> DONE\n");
+			model.logs.add(new MigrationMessage(iii + 1, "==> DONE"));
 			LOGGER.info(" >>>> DB ACTION : {}/{} ==> DONE", iii + 1, this.actions.size());
 			model.stepId = iii + 1;
-			model.log = log.toString();
 			try {
 				da.updateById(model, model.id, new FilterValue("stepId", "log"));
 			} catch (final Exception e) {
@@ -110,12 +104,6 @@ public class MigrationSqlStep implements MigrationInterface {
 			}
 		}
 		return true;
-	}
-
-	@Override
-	public boolean revertMigration(final DBAccessMongo da, final StringBuilder log) throws Exception {
-		generateRevertStep();
-		return false;
 	}
 
 	public void addAction(final String action) {

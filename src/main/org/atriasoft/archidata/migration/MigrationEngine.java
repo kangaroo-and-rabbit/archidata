@@ -9,6 +9,7 @@ import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.migration.model.Migration;
+import org.atriasoft.archidata.migration.model.MigrationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,7 +188,7 @@ public class MigrationEngine {
 					migrationResult.stepId = 0;
 					migrationResult.terminated = true;
 					migrationResult.count = 0;
-					migrationResult.log = "Place-holder for first initialization";
+					migrationResult.logs.add(new MigrationMessage(0, "Place-holder for first initialization"));
 					try {
 						migrationResult = da.insert(migrationResult);
 					} catch (final Exception e) {
@@ -211,12 +212,11 @@ public class MigrationEngine {
 		LOGGER.info("---------------------------------------------------------");
 		LOGGER.info("-- Migrate: [{}/{}] {} [BEGIN]", id, count, elem.getName());
 		LOGGER.info("---------------------------------------------------------");
-		final StringBuilder log = new StringBuilder();
-		log.append("Start migration\n");
 		Migration migrationResult = new Migration();
 		migrationResult.name = elem.getName();
 		migrationResult.stepId = 0;
 		migrationResult.terminated = false;
+		migrationResult.logs.add(new MigrationMessage(0, "Start migration"));
 		try {
 			migrationResult.count = elem.getNumberOfStep();
 		} catch (final Exception e) {
@@ -224,7 +224,6 @@ public class MigrationEngine {
 			throw new MigrationException(
 					"Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage());
 		}
-		migrationResult.log = log.toString();
 		try {
 			migrationResult = da.insert(migrationResult);
 		} catch (final Exception e) {
@@ -234,10 +233,10 @@ public class MigrationEngine {
 		}
 		boolean ret = true;
 		try {
-			ret = elem.applyMigration(da, log, migrationResult);
+			ret = elem.applyMigration(da, migrationResult);
 		} catch (final Exception e) {
-			log.append("\nFail in the migration apply ");
-			log.append(e.getLocalizedMessage());
+			migrationResult.logs.add(new MigrationMessage(0, "Fail in the migration apply "));
+			migrationResult.logs.add(new MigrationMessage(0, e.getLocalizedMessage()));
 			e.printStackTrace();
 			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @"
 					+ migrationResult.stepId + "/" + migrationResult.count);
@@ -253,8 +252,7 @@ public class MigrationEngine {
 			}
 		} else {
 			try {
-				log.append("Fail in the migration engine...");
-				migrationResult.log = log.toString();
+				migrationResult.logs.add(new MigrationMessage(0, "Fail in the migration engine..."));
 				da.updateById(migrationResult, migrationResult.id, new FilterValue("log"));
 			} catch (final Exception e) {
 				e.printStackTrace();
