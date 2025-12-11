@@ -39,10 +39,7 @@ public class QueryAnd implements QueryItem {
 	}
 
 	public void add(final QueryItem... child) {
-		List.of(child).stream()
-				.map(QueryItem::getFilter)
-				.filter(filter -> filter != null)
-				.forEach(this.children::add);
+		List.of(child).stream().map(QueryItem::getFilter).filter(filter -> filter != null).forEach(this.children::add);
 		updateFilter();
 	}
 

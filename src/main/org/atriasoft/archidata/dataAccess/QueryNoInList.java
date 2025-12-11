@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.dataAccess;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.bson.conversions.Bson;

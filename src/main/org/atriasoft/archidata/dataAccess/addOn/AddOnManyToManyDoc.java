@@ -24,18 +24,18 @@ import org.slf4j.LoggerFactory;
 
 public class AddOnManyToManyDoc implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyDoc.class);
-	
+
 	@Override
 	public Class<?> getAnnotationClass() {
 		return ManyToManyDoc.class;
 	}
-	
+
 	@Override
 	public boolean isCompatibleField(final Field elem) {
 		final ManyToManyDoc decorators = elem.getDeclaredAnnotation(ManyToManyDoc.class);
 		return decorators != null;
 	}
-	
+
 	public boolean canRetreiveAnWrite(final Field field) {
 		if (field.getType() != List.class) {
 			return false;
@@ -54,7 +54,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public void insertData(
 			final DBAccessMongo ioDb,
@@ -67,12 +67,12 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
 		ioDb.setValueToDb(null, type, rootObject, field, tableFieldName.inTable(), docSet, docUnSet);
 	}
-	
+
 	@Override
 	public boolean isUpdateAsync(final Field field) {
 		return true;
 	}
-	
+
 	@Override
 	public void asyncUpdate(
 			final DBAccessMongo ioDb,
@@ -110,9 +110,9 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
 			});
 		}
-		
+
 	}
-	
+
 	/** Some action must be done asynchronously for update or remove element
 	 * @param field
 	 * @return */
@@ -120,7 +120,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 	public boolean isInsertAsync(final Field field) throws Exception {
 		return true;
 	}
-	
+
 	/** When insert is mark async, this function permit to create or update the data.
 	 * @param primaryKeyValue Local ID of the current table
 	 * @param field Field that is updated.
@@ -147,22 +147,22 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean isPreviousDataNeeded(final Field field) {
 		return true;
 	}
-	
+
 	@Override
 	public boolean canInsert(final Field field) {
 		return canRetreiveAnWrite(field);
 	}
-	
+
 	@Override
 	public boolean canRetrieve(final Field field) {
 		return canRetreiveAnWrite(field);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void fillFromDoc(
@@ -172,7 +172,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final Object data,
 			final QueryOptions options,
 			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException {
-		
+
 		if (field.getType() != List.class) {
 			throw new SystemException("@ManyToManyLocal must contain a List");
 		}
