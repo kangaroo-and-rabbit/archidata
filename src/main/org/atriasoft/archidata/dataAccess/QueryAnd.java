@@ -8,6 +8,7 @@ import org.bson.conversions.Bson;
 
 import com.mongodb.client.model.Filters;
 
+// Note the query Item is deprecated soon, please use Filter.xxx() instead
 public class QueryAnd implements QueryItem {
 	protected final List<Bson> children;
 	protected Bson filter;

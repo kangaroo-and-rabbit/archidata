@@ -8,6 +8,7 @@ import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Note the query Item is deprecated soon, please use Filter.xxx() instead
 public class QueryOptions {
 	static final Logger LOGGER = LoggerFactory.getLogger(QueryOptions.class);
 

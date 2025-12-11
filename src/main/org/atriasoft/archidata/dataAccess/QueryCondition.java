@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.model.Filters;
 
+// Note the query Item is deprecated soon, please use Filter.xxx() instead
 public class QueryCondition implements QueryItem {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 	private final Bson filter;
