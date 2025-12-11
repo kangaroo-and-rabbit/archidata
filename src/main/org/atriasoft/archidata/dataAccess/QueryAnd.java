@@ -17,24 +17,12 @@ public class QueryAnd implements QueryItem {
 	}
 
 	public QueryAnd(final List<QueryItem> child) {
-		this.children = new ArrayList<>();
-		for (final QueryItem elem : child) {
-			final Bson filter = elem.getFilter();
-			if (filter != null) {
-				this.children.add(filter);
-			}
-		}
+		this.children = child.stream().map(QueryItem::getFilter).filter(filter -> filter != null).toList();
 		updateFilter();
 	}
 
 	public QueryAnd(final QueryItem... child) {
-		this.children = new ArrayList<>();
-		for (final QueryItem elem : child) {
-			final Bson filter = elem.getFilter();
-			if (filter != null) {
-				this.children.add(filter);
-			}
-		}
+		this.children = List.of(child).stream().map(QueryItem::getFilter).filter(filter -> filter != null).toList();
 		updateFilter();
 	}
 
@@ -50,12 +38,10 @@ public class QueryAnd implements QueryItem {
 	}
 
 	public void add(final QueryItem... child) {
-		for (final QueryItem elem : child) {
-			final Bson filter = elem.getFilter();
-			if (filter != null) {
-				this.children.add(filter);
-			}
-		}
+		List.of(child).stream()
+				.map(QueryItem::getFilter)
+				.filter(filter -> filter != null)
+				.forEach(this.children::add);
 		updateFilter();
 	}
 
