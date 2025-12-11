@@ -599,7 +599,6 @@ public class DBAccessMongo implements Closeable {
 	 * @param clazz   The class of the entity
 	 * @param options Query options including conditions, filters, limits, etc.
 	 * @return List of matching entities (empty list if none found)
-	 * @throws Exception if retrieval operation fails
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws DataAccessException, IOException {

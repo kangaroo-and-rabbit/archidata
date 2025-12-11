@@ -10,7 +10,6 @@ public interface MigrationInterface {
 
 	/** Migrate the system to a new version.
 	 * @param entry DB interface for the migration.
-	 * @param log Stored data in the BDD for the migration progression.
 	 * @param migration Migration post data on each step...
 	 * @return true if migration is finished. */
 	boolean applyMigration(DBAccessMongo entry, Migration migration) throws Exception;

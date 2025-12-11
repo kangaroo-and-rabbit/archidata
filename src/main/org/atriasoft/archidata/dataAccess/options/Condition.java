@@ -20,8 +20,8 @@ import com.mongodb.client.model.Filters;
  * <li><strong>BSON-based</strong>: Using raw MongoDB Filters for advanced queries</li>
  * </ul>
  *
- * <h3>Examples with QueryItem:</h3>
- * <pre>
+ * <strong>Examples with QueryItem:</strong>
+ * <pre>{@code
  * // Simple equality
  * DataAccess.gets(User.class, new Condition(new QueryCondition("age", "=", 25)));
  *
@@ -30,13 +30,13 @@ import com.mongodb.client.model.Filters;
  *
  * // Multiple conditions with QueryAnd
  * DataAccess.gets(User.class, new Condition(new QueryAnd(
- *     new QueryCondition("age", ">=", 18),
- *     new QueryCondition("age", "<=", 65)
+ *     new QueryCondition("age", "&gt;=", 18),
+ *     new QueryCondition("age", "&lt;=", 65)
  * )));
- * </pre>
+ * }</pre>
  *
- * <h3>Examples with BSON Filters:</h3>
- * <pre>
+ * <strong>Examples with BSON Filters:</strong>
+ * <pre>{@code
  * // Simple filter
  * DataAccess.gets(User.class, new Condition(Filters.gt("age", 18)));
  *
@@ -50,7 +50,7 @@ import com.mongodb.client.model.Filters;
  * // Using MongoDB operators
  * DataAccess.gets(User.class, new Condition(Filters.in("role", "admin", "moderator")));
  * DataAccess.gets(User.class, new Condition(Filters.regex("email", ".*@example.com")));
- * </pre>
+ * }</pre>
  */
 public class Condition extends QueryOption {
 	private final Bson bsonFilter;
