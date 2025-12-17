@@ -25,6 +25,25 @@ jobs:
           MONGO_INITDB_ROOT_PASSWORD: base_db_password
         ports:
           - 27017:27017
+        # the next element are to manage a replica-set needed for DataStreamEvent
+        container_name: mongodb
+        entrypoint:
+          - bash
+          - -c
+          - |
+            if [ ! -f /data/keys/keyfile ]; then
+              openssl rand -base64 756 > /data/keys/keyfile
+              chmod 400 /data/keys/keyfile
+              chown 999:999 /data/keys/keyfile
+            fi
+            exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /data/keys/keyfile
+        healthcheck:
+          test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}) }" | mongosh --username root --password base_db_password --authenticationDatabase admin
+          # after init: test: echo "rs.status()"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+          start_period: 30s
     steps:
       - uses: actions/checkout@v6
       - name: Set up JDK 25
