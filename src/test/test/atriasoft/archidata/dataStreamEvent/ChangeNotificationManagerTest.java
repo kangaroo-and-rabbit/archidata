@@ -11,6 +11,7 @@ import org.atriasoft.archidata.dataStreamEvent.CollectionWatchBuilder;
 import org.atriasoft.archidata.dataStreamEvent.ListenerRegistrationBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(1)
 	public void testSingletonInstance() {
 		final ChangeNotificationManager instance1 = ChangeNotificationManager.getInstance();
 		final ChangeNotificationManager instance2 = ChangeNotificationManager.getInstance();
@@ -48,6 +50,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(20)
 	public void testInitialState() {
 		assertFalse(this.manager.isRunning(), "Manager should not be running initially");
 		assertEquals(0, this.manager.getListenerCount(), "Should have no listeners initially");
@@ -55,6 +58,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(30)
 	public void testRegisterGlobalListener() {
 		this.manager.registerListener(event -> LOGGER.info("Event received: {}", event));
 
@@ -62,6 +66,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(40)
 	public void testRegisterCollectionListener() {
 		this.manager.registerListener(event -> LOGGER.info("User event: {}", event), "users");
 
@@ -69,6 +74,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(50)
 	public void testRegisterMultipleListeners() {
 		this.manager.registerListener(event -> LOGGER.info("Global: {}", event));
 		this.manager.registerListener(event -> LOGGER.info("Users: {}", event), "users");
@@ -78,6 +84,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(60)
 	public void testUnregisterListener() {
 		final ChangeNotificationListener listener = event -> LOGGER.info("Event: {}", event);
 		this.manager.registerListener(listener);
@@ -88,6 +95,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(70)
 	public void testDefaultFullDocumentMode() {
 		// The global mode defaults to UPDATE_LOOKUP when not explicitly set during start()
 		// Since this test doesn't start the manager with a database, it uses the internal default
@@ -95,6 +103,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(80)
 	public void testComputeEffectiveMode() {
 		// Register listeners - the mode parameter is now ignored, global mode is used
 		this.manager.registerListener(event -> LOGGER.info("Listener 1"), "users", FullDocument.DEFAULT);
@@ -106,6 +115,7 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(90)
 	public void testBuilderApi() {
 		this.manager.createListenerBuilder(event -> LOGGER.info("Admin user: {}", event), "users")
 				.filterField("role", "admin").register();
@@ -114,12 +124,14 @@ public class ChangeNotificationManagerTest {
 	}
 
 	@Test
+	@Order(100)
 	public void testWatchBuilder() {
 		final CollectionWatchBuilder builder = this.manager.watch("users");
 		assertNotNull(builder, "Watch builder should not be null");
 	}
 
 	@Test
+	@Order(110)
 	public void testListenerRegistrationBuilder() {
 		final ListenerRegistrationBuilder builder = this.manager
 				.createListenerBuilder(event -> LOGGER.info("Event: {}", event));

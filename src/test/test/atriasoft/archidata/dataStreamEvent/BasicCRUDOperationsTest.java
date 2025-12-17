@@ -10,11 +10,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.client.model.changestream.FullDocument;
 
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.dataStreamEvent.model.TestChangeStreamEntity;
@@ -59,6 +58,7 @@ public class BasicCRUDOperationsTest {
 	}
 
 	@Test
+	@Order(1)
 	public void testInsertOperation() throws Exception {
 		LOGGER.info("=== TEST: INSERT Operation ===");
 
@@ -88,6 +88,7 @@ public class BasicCRUDOperationsTest {
 	}
 
 	@Test
+	@Order(10)
 	public void testUpdateOperation() throws Exception {
 		LOGGER.info("=== TEST: UPDATE Operation ===");
 
@@ -124,6 +125,7 @@ public class BasicCRUDOperationsTest {
 	}
 
 	@Test
+	@Order(20)
 	public void testDeleteOperation() throws Exception {
 		LOGGER.info("=== TEST: DELETE Operation ===");
 

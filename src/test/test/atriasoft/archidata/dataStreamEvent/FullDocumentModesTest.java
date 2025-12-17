@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,18 +49,19 @@ public class FullDocumentModesTest {
 
 	@AfterEach
 	public void cleanupAfterTest() {
-		capturedEvents.clear();
+		this.capturedEvents.clear();
 		manager.clearAllListeners();
 	}
 
 	private void captureEvent(final ChangeEvent event) {
-		synchronized (capturedEvents) {
-			capturedEvents.add(event);
+		synchronized (this.capturedEvents) {
+			this.capturedEvents.add(event);
 			LOGGER.info("Captured event: {}", event);
 		}
 	}
 
 	@Test
+	@Order(10)
 	public void testDefaultMode() throws Exception {
 		LOGGER.info("=== TEST: DEFAULT Mode ===");
 
@@ -69,22 +71,23 @@ public class FullDocumentModesTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Alice", "user", 50);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(capturedEvents, 1, 5000);
-		synchronized (capturedEvents) {
-			final long insertCount = capturedEvents.stream().filter(e -> e.isInsert()).count();
+		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		synchronized (this.capturedEvents) {
+			final long insertCount = this.capturedEvents.stream().filter(ChangeEvent::isInsert).count();
 			Assertions.assertTrue(insertCount >= 1, "Should have at least 1 INSERT event");
-			final ChangeEvent insertEvent = capturedEvents.stream().filter(e -> e.isInsert()).findFirst().orElseThrow();
+			final ChangeEvent insertEvent = this.capturedEvents.stream().filter(ChangeEvent::isInsert).findFirst()
+					.orElseThrow();
 			Assertions.assertTrue(insertEvent.hasFullDocument(), "DEFAULT mode should have full document on INSERT");
 		}
 
-		capturedEvents.clear();
+		this.capturedEvents.clear();
 		inserted.name = "Alice Updated";
 		ConfigureDb.da.updateById(inserted, inserted.id);
 
-		TestHelper.waitForEvents(capturedEvents, 1, 5000);
-		synchronized (capturedEvents) {
-			Assertions.assertTrue(capturedEvents.size() >= 1);
-			final ChangeEvent updateEvent = capturedEvents.get(0);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		synchronized (this.capturedEvents) {
+			Assertions.assertTrue(this.capturedEvents.size() >= 1);
+			final ChangeEvent updateEvent = this.capturedEvents.get(0);
 			Assertions.assertNotNull(updateEvent.getUpdateDescription(),
 					"UPDATE should have update description even in DEFAULT mode");
 		}
@@ -94,6 +97,7 @@ public class FullDocumentModesTest {
 	}
 
 	@Test
+	@Order(20)
 	public void testDefaultModeUpdateBehavior() throws Exception {
 		LOGGER.info("=== TEST: DEFAULT Mode UPDATE Behavior ===");
 
@@ -103,20 +107,21 @@ public class FullDocumentModesTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Bob", "admin", 75);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(capturedEvents, 1, 5000);
-		synchronized (capturedEvents) {
-			Assertions.assertTrue(capturedEvents.get(0).hasFullDocument(),
+		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		synchronized (this.capturedEvents) {
+			Assertions.assertTrue(this.capturedEvents.get(0).hasFullDocument(),
 					"DEFAULT mode should have full document on INSERT");
 		}
 
-		capturedEvents.clear();
+		this.capturedEvents.clear();
 		inserted.name = "Bob Updated";
 		ConfigureDb.da.updateById(inserted, inserted.id);
 
-		TestHelper.waitForEvents(capturedEvents, 1, 5000);
-		synchronized (capturedEvents) {
-			Assertions.assertTrue(capturedEvents.size() >= 1);
-			final ChangeEvent updateEvent = capturedEvents.stream().filter(e -> e.isUpdate()).findFirst().orElseThrow();
+		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		synchronized (this.capturedEvents) {
+			Assertions.assertTrue(this.capturedEvents.size() >= 1);
+			final ChangeEvent updateEvent = this.capturedEvents.stream().filter(ChangeEvent::isUpdate).findFirst()
+					.orElseThrow();
 			// With DEFAULT mode, UPDATE events do NOT have full documents
 			Assertions.assertFalse(updateEvent.hasFullDocument(),
 					"DEFAULT mode should NOT have full document on UPDATE");
@@ -130,6 +135,7 @@ public class FullDocumentModesTest {
 
 	@org.junit.jupiter.api.Disabled("Flaky when run with other tests due to worker restart timing - tested in ChangeNotificationIntegrationTest instead")
 	@Test
+	@Order(30)
 	public void testAutomaticModeComputation() throws Exception {
 		LOGGER.info("=== TEST: Automatic Mode Computation ===");
 
@@ -188,7 +194,7 @@ public class FullDocumentModesTest {
 				Assertions.assertTrue(listener2Events.size() >= 2, "Listener 2 should receive events");
 
 				final java.util.Optional<ChangeEvent> updateEventOpt = listener1Events.stream()
-						.filter(e -> e.isUpdate()).findFirst();
+						.filter(ChangeEvent::isUpdate).findFirst();
 				Assertions.assertTrue(updateEventOpt.isPresent(), "Should have at least one UPDATE event");
 				final ChangeEvent updateEvent = updateEventOpt.get();
 				Assertions.assertFalse(updateEvent.hasFullDocument(),
