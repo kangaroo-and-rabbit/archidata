@@ -250,8 +250,8 @@ public class ChangeNotificationManager {
 
 		try {
 			final MongoClient mongoClient = createMongoClient(dbConfig);
-			final MongoDatabase database = mongoClient.getDatabase(dbConfig.getDbName());
-			start(database, mode);
+			final MongoDatabase databaseTmp = mongoClient.getDatabase(dbConfig.getDbName());
+			start(databaseTmp, mode);
 		} catch (final Exception e) {
 			throw new DataAccessException("Failed to connect to MongoDB: " + e.getMessage());
 		}
