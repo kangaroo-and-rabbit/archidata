@@ -33,7 +33,7 @@ public class ConfigureDb {
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
 		try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
-			daRoot.deleteCollection(ConfigBaseVariable.bdDatabase);
+			daRoot.deleteDatabase(ConfigBaseVariable.bdDatabase);
 		} catch (final InternalServerErrorException e) {
 			e.printStackTrace();
 			LOGGER.error("Fail to clean the DB");

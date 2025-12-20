@@ -861,13 +861,13 @@ public class DBAccessMongo implements Closeable {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * db.deleteCollection("test_database");
+	 * db.deleteDatabase("test_database");
 	 * </pre>
 	 *
-	 * @param name Collection name to delete
+	 * @param name DataBase name to delete
 	 * @return true if deletion succeeds
 	 */
-	public boolean deleteCollection(final String name) {
+	public boolean deleteDatabase(final String name) {
 		final MongoDatabase database = this.db.getClient().getDatabase(name);
 		database.drop();
 		return true;
