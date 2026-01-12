@@ -10,6 +10,7 @@ import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -89,6 +90,33 @@ public class ChangeStreamWorker implements Runnable {
 		while (this.running) {
 			try {
 				watchChangeStream();
+			} catch (final MongoCommandException e) {
+				// Handle InvalidResumeToken error (code 260) - reset token and restart from beginning
+				if (e.getErrorCode() == 260) {
+					LOGGER.warn(
+							"InvalidResumeToken error for collection: {}. Resetting resume token and restarting from beginning.",
+							this.collectionName);
+					this.resumeToken = null;
+					this.status = WorkerStatus.RECONNECTING;
+					// Short delay before reconnecting
+					try {
+						Thread.sleep(1000);
+					} catch (final InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				} else {
+					LOGGER.error("MongoDB command error in ChangeStreamWorker for collection: {}", this.collectionName,
+							e);
+					this.status = WorkerStatus.RECONNECTING;
+					// Exponential backoff before reconnecting
+					try {
+						Thread.sleep(5000);
+					} catch (final InterruptedException ie) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
 			} catch (final MongoException e) {
 				LOGGER.error("MongoDB error in ChangeStreamWorker for collection: {}", this.collectionName, e);
 				this.status = WorkerStatus.RECONNECTING;
