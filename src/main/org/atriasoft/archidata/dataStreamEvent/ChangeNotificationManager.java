@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoCredential;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -259,26 +258,18 @@ public class ChangeNotificationManager {
 
 	/**
 	 * Creates a MongoClient from the provided DbConfig.
+	 * Uses the same connection URL format as DbIoMongo for consistency.
 	 *
 	 * @param dbConfig The database configuration
 	 * @return A configured MongoClient instance
 	 */
 	private MongoClient createMongoClient(final DbConfig dbConfig) {
-		final MongoClientSettings.Builder settingsBuilder = MongoClientSettings.builder();
-
-		// Configure connection string
-		final ConnectionString connectionString = new ConnectionString(
-				String.format("mongodb://%s:%d/%s", dbConfig.getHostname(), dbConfig.getPort(), dbConfig.getDbName()));
-		settingsBuilder.applyConnectionString(connectionString);
-
-		// Configure credentials if provided
-		if (dbConfig.getLogin() != null && dbConfig.getPassword() != null) {
-			final MongoCredential credential = MongoCredential.createCredential(dbConfig.getLogin(),
-					dbConfig.getDbName(), dbConfig.getPassword().toCharArray());
-			settingsBuilder.credential(credential);
-		}
-
-		return MongoClients.create(settingsBuilder.build());
+		// Build URL like DbIoMongo does, with proper authentication
+		final String url = dbConfig.getUrl();
+		final ConnectionString connectionString = new ConnectionString(url);
+		final MongoClientSettings clientSettings = MongoClientSettings.builder().applyConnectionString(connectionString)
+				.build();
+		return MongoClients.create(clientSettings);
 	}
 
 	/**
@@ -827,6 +818,8 @@ public class ChangeNotificationManager {
 			this.totalEventsProcessed.incrementAndGet();
 
 			final String collectionName = event.getCollectionName();
+			LOGGER.info("ChangeNotificationManager received event: collection={}, operation={}, oid={}", collectionName,
+					event.getOperationType(), event.getOid());
 
 			// 1. Notify global listeners
 			for (final ListenerRegistration reg : this.globalListeners) {

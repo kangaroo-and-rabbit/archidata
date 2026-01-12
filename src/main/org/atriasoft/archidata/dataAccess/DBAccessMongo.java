@@ -1154,6 +1154,9 @@ public class DBAccessMongo implements Closeable {
 		if (data == null) {
 			return null;
 		}
+		if (data instanceof String) {
+			return data;
+		}
 		if (data instanceof Long) {
 			return data;
 		}
