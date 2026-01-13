@@ -81,3 +81,22 @@ Alternatively, calling `DataAccess.query(...)` or similar methods will automatic
 The explicit form `getConnection()` is useful if you need to:
   - Perform DB-specific initialization steps
   - Interact with advanced connection features
+
+
+Virtual Thread Support
+----------------------
+
+All connection management methods are compatible with virtual threads (Java 21+).
+
+Each virtual thread has its own `ThreadLocal` storage, which is **not shared** with the carrier thread. This means database connections are safely isolated between virtual threads.
+
+When using Grizzly with virtual threads for SSE scalability:
+
+```java
+for (NetworkListener listener : server.getListeners()) {
+    var transport = listener.getTransport();
+    transport.setWorkerThreadPool(Executors.newVirtualThreadPerTaskExecutor());
+}
+```
+
+This allows thousands of concurrent connections (like SSE) without exhausting the thread pool, while maintaining proper connection isolation per request.
