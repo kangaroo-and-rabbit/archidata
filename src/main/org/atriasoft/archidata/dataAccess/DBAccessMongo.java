@@ -2465,7 +2465,14 @@ public class DBAccessMongo implements Closeable {
 		final String deletedFieldName = AnnotationTools.getDeletedFieldName(clazz);
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
-		final Document actions = new Document("$set", new Document(deletedFieldName, true));
+		final FieldName fieldNameUpdate = AnnotationTools.getUpdatedFieldName(clazz);
+		Document actions = null;
+		if (fieldNameUpdate == null) {
+			actions = new Document("$set", new Document(deletedFieldName, true));
+		} else {
+			actions = new Document("$set",
+					new Document(deletedFieldName, true).append(fieldNameUpdate.inTable(), Date.from(Instant.now())));
+		}
 		actionOnDelete(clazz, option);
 		statistic.countUpdateMany++;
 		final UpdateResult ret = collection.updateMany(filters, actions);
