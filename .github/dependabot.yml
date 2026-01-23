@@ -22,3 +22,22 @@ updates:
       prefix: "[DEV-OPS] (dependabot) "
     assignees:
       - HeeroYui
+    groups:
+      junit:
+        patterns:
+          - "org.junit.jupiter:*"
+      jackson:
+        patterns:
+          - "com.fasterxml.jackson.*:*"
+      jersey:
+        patterns:
+          - "org.glassfish.jersey.*:*"
+      mockito:
+        patterns:
+          - "org.mockito:*"
+      slf4j:
+        patterns:
+          - "org.slf4j:*"
+      logback:
+        patterns:
+          - "ch.qos.logback:*"
