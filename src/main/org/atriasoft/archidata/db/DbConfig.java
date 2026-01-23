@@ -94,9 +94,11 @@ public class DbConfig {
 		tmp.append(this.hostname);
 		tmp.append(":");
 		tmp.append(this.port);
-		if (!"root".equals(getLogin())) {
-			tmp.append("/");
-			tmp.append(this.dbName);
+		tmp.append("/");
+		tmp.append(this.dbName);
+		if ("root".equals(getLogin())) {
+			// For root user, authenticate against admin database
+			tmp.append("?authSource=admin");
 		}
 		return tmp.toString();
 	}
