@@ -71,7 +71,7 @@ public class DataAccessConnectionContext implements AutoCloseable {
 			if (db != null) {
 				try {
 					db.close();
-					System.out.println("connection the DB: real=" + createdReal + " requested=" + created);
+					//System.out.println("connection the DB: real=" + createdReal + " requested=" + created);
 				} finally {
 					threadLocalConnection.remove();
 				}
