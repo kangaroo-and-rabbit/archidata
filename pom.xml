@@ -118,6 +118,11 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.21.0</version>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.21</version>
+		</dependency>
 		<!-- encode output in CSV -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
