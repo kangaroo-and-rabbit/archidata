@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
-import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -113,8 +112,7 @@ public class TestApiReadOnly {
 		updateData.objectNotUpdate = createSubModel("obj_readonly_modified");
 
 		// Update specifying only the updatable fields via FilterValue
-		ConfigureDb.da.updateById(updateData, idOfTheObject,
-				new FilterValue("valueUpdatable", "dateUpdatable", "listUpdatable", "objectUpdatable"));
+		ConfigureDb.da.updateById(updateData, idOfTheObject);
 
 		final ApiReadOnlyModel retrieve = ConfigureDb.da.getById(ApiReadOnlyModel.class, idOfTheObject);
 
