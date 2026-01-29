@@ -34,6 +34,7 @@ import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.ForceReadOnlyField;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
@@ -412,7 +413,7 @@ public class DBAccessMongo implements Closeable {
 		final QueryOptions options = new QueryOptions(option);
 		// Ensure FilterValue is present - if not provided, update ALL fields
 		if (!options.exist(FilterValue.class)) {
-			options.add(FilterValue.getAllFieldsNames(data.getClass()));
+			options.add(FilterValue.getEditableFieldsNames(data.getClass()));
 		}
 		options.add(new Condition(getTableIdCondition(data.getClass(), id, options)));
 		options.add(new TransmitKey(id));
@@ -1758,6 +1759,7 @@ public class DBAccessMongo implements Closeable {
 			options = new QueryOptions();
 		}
 		final boolean directdata = options.exist(DirectData.class);
+		final boolean forceReadOnlyField = options.exist(ForceReadOnlyField.class);
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final List<FilterValue> filterKeys = options != null ? options.get(FilterValue.class) : new ArrayList<>();
 		if (filterKeys.size() != 1) {
@@ -1826,6 +1828,8 @@ public class DBAccessMongo implements Closeable {
 				} else if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
 					continue;
 				} else if (!filterKey.getValues().contains(fieldName.inStruct())) {
+					continue;
+				} else if (!forceReadOnlyField && AnnotationTools.isApiReadOnly(field)) {
 					continue;
 				}
 				final DataAccessAddOn addOn = findAddOnforField(field);
