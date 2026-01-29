@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.CollectionItemNotNull;
 import org.atriasoft.archidata.annotation.checker.CollectionItemUnique;
 import org.atriasoft.archidata.annotation.checker.CollectionNotEmpty;
@@ -73,10 +74,10 @@ public class AnnotationTools {
 			final Class<?> clazz,
 			final Class<TYPE> annotationClass) {
 		final List<TYPE> result = new ArrayList<>();
-		TYPE[] declared = clazz.getDeclaredAnnotationsByType(annotationClass);
+		final TYPE[] declared = clazz.getDeclaredAnnotationsByType(annotationClass);
 		Collections.addAll(result, declared);
-		for (Class<?> iface : clazz.getInterfaces()) {
-			TYPE[] ifaceAnnotations = iface.getDeclaredAnnotationsByType(annotationClass);
+		for (final Class<?> iface : clazz.getInterfaces()) {
+			final TYPE[] ifaceAnnotations = iface.getDeclaredAnnotationsByType(annotationClass);
 			Collections.addAll(result, ifaceAnnotations);
 		}
 
@@ -133,17 +134,17 @@ public class AnnotationTools {
 
 		final List<TYPE> result = new ArrayList<>();
 		final Parameter parameter = method.getParameters()[parameterIndex];
-		TYPE[] declared = parameter.getDeclaredAnnotationsByType(annotationClass);
+		final TYPE[] declared = parameter.getDeclaredAnnotationsByType(annotationClass);
 		Collections.addAll(result, declared);
 		final Class<?> declaringClass = method.getDeclaringClass();
 		for (final Class<?> iface : declaringClass.getInterfaces()) {
 			try {
-				Method ifaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
-				Parameter ifaceParam = ifaceMethod.getParameters()[parameterIndex];
+				final Method ifaceMethod = iface.getMethod(method.getName(), method.getParameterTypes());
+				final Parameter ifaceParam = ifaceMethod.getParameters()[parameterIndex];
 
-				TYPE[] ifaceAnnotations = ifaceParam.getDeclaredAnnotationsByType(annotationClass);
+				final TYPE[] ifaceAnnotations = ifaceParam.getDeclaredAnnotationsByType(annotationClass);
 				Collections.addAll(result, ifaceAnnotations);
-			} catch (NoSuchMethodException e) {
+			} catch (final NoSuchMethodException e) {
 				// Ignored
 			}
 		}
@@ -458,6 +459,10 @@ public class AnnotationTools {
 		return element.getDeclaredAnnotationsByType(DataNotRead.class).length != 0;
 	}
 
+	public static boolean isApiReadOnly(final Field element) {
+		return element.getDeclaredAnnotationsByType(ApiReadOnly.class).length != 0;
+	}
+
 	public static boolean isIdField(final Field element) {
 		return element.getDeclaredAnnotationsByType(Id.class).length != 0;
 	}
@@ -552,8 +557,10 @@ public class AnnotationTools {
 	}
 
 	public static boolean isGenericField(final Field elem) {
-		return AnnotationTools.isPrimaryKey(elem) || AnnotationTools.isCreatedAtField(elem)
-				|| AnnotationTools.isUpdateAtField(elem) || AnnotationTools.isDeletedField(elem);
+		return AnnotationTools.isPrimaryKey(elem) //
+				|| AnnotationTools.isCreatedAtField(elem) //
+				|| AnnotationTools.isUpdateAtField(elem) //
+				|| AnnotationTools.isDeletedField(elem);
 	}
 
 	public static Field getFieldOfId(final Class<?> clazz) {
