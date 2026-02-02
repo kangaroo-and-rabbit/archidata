@@ -49,8 +49,8 @@ public class ChangeStreamWorker implements Runnable {
 	private final String collectionName;
 	private final MongoCollection<Document> collection;
 	private final ChangeNotificationManager manager;
-	private FullDocument fullDocumentMode;
-	private List<Bson> pipeline;
+	private final FullDocument fullDocumentMode;
+	private final List<Bson> pipeline;
 
 	private volatile boolean running = true;
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
@@ -90,6 +90,18 @@ public class ChangeStreamWorker implements Runnable {
 		while (this.running) {
 			try {
 				watchChangeStream();
+			} catch (final com.mongodb.MongoInterruptedException ex) {
+				LOGGER.warn("MongoInterruptedException error for collection: {}=> {} (normal case)",
+						this.collectionName, ex.getMessage());
+				this.resumeToken = null;
+				this.status = WorkerStatus.RECONNECTING;
+				// Short delay before reconnecting
+				try {
+					Thread.sleep(1000);
+				} catch (final InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
 			} catch (final MongoCommandException e) {
 				// Handle InvalidResumeToken error (code 260) - reset token and restart from beginning
 				if (e.getErrorCode() == 260) {
