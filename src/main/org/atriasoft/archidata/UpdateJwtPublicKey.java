@@ -9,6 +9,10 @@ public class UpdateJwtPublicKey extends Thread {
 	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateJwtPublicKey.class);
 	boolean kill = false;
 
+	public UpdateJwtPublicKey() {
+		setDaemon(true);
+	}
+
 	@Override
 	public void run() {
 		if (ConfigBaseVariable.getSSOAddress() == null) {
@@ -29,12 +33,15 @@ public class UpdateJwtPublicKey extends Thread {
 				// update every 5 minutes the master token
 				Thread.sleep(1000 * 60 * 5, 0);
 			} catch (final InterruptedException e) {
-				e.printStackTrace();
+				LOGGER.debug("UpdateJwtPublicKey interrupted, stopping.");
+				Thread.currentThread().interrupt();
+				break;
 			}
 		}
 	}
 
 	public void kill() {
 		this.kill = true;
+		this.interrupt();
 	}
 }

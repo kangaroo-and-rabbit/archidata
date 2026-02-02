@@ -312,10 +312,10 @@ public class ChangeNotificationManager {
 			this.executorService.shutdown();
 			try {
 				final long start = System.currentTimeMillis();
-				if (!this.executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+				if (!this.executorService.awaitTermination(5, TimeUnit.SECONDS)) {
 					this.executorService.shutdownNow();
 					// Give shutdownNow a brief moment to complete
-					this.executorService.awaitTermination(500, TimeUnit.MILLISECONDS);
+					this.executorService.awaitTermination(2, TimeUnit.SECONDS);
 				}
 				final long end = System.currentTimeMillis();
 				LOGGER.info("Executor shutdown completed in {} seconds", (end - start) * 0.001);
