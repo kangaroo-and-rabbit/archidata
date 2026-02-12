@@ -641,6 +641,7 @@ public class TsClassElement {
 			final TsClassElementGroup tsGroup,
 			final ImportModel imports) {
 		final StringBuilder out = new StringBuilder();
+		boolean enumKey = false;
 		out.append("zod.record(");
 		if (model.keyModel instanceof final ClassListModel fieldListModel) {
 			final String tmp = generateTsList(fieldListModel, tsGroup, imports);
@@ -654,6 +655,7 @@ public class TsClassElement {
 		} else if (model.keyModel instanceof final ClassEnumModel fieldEnumModel) {
 			final String tmp = generateTsEnum(fieldEnumModel, tsGroup, imports);
 			out.append(tmp);
+			enumKey = true;
 		}
 		out.append(", ");
 		if (model.valueModel instanceof final ClassListModel fieldListModel) {
@@ -670,6 +672,9 @@ public class TsClassElement {
 			out.append(tmp);
 		}
 		out.append(")");
+		if (enumKey) {
+			out.append(".partial()");
+		}
 		return out.toString();
 	}
 
