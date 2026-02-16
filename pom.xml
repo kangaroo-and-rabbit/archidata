@@ -4,7 +4,7 @@
 	<groupId>org.atria-soft</groupId>
 	<artifactId>archidata</artifactId>
 	<name>archidata</name>
-	<version>0.40.8</version>
+	<version>0.40.9-SNAPSHOT</version>
 	<description>Wrapper to manage a simple interface for REST project to bind mongoDB.</description>
 	<url>https://github.com/kangaroo-and-rabbit/archidata</url>
 	<licenses>
