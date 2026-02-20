@@ -247,7 +247,7 @@ public class TestBackupAndRestoreRaw {
 
 		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
 				EngineBackupType.JSON_STANDARD);
-		engine.restore(null);
+		engine.restore((String) null);
 		{
 			final List<DataStoreWithUpdate> testData = DataAccess.gets(DataStoreWithUpdate.class,
 					new AccessDeletedItems(), new ReadAllColumn());
@@ -284,6 +284,296 @@ public class TestBackupAndRestoreRaw {
 	}
 
 	@Test
+	public void testBackupWithSequence() throws Exception {
+		insertData();
+		final Path backupDir = Files.createTempDirectory("backup_seq_test");
+		try {
+			final BackupEngine engine = new BackupEngine(backupDir, "myapp", EngineBackupType.JSON_EXTENDED);
+			engine.addClass(DataStoreWithUpdate.class);
+			engine.addClass(DataStoreWithoutUpdate.class);
+			final Date started = engine.store("2025-06-20");
+			Assertions.assertNotNull(started);
+
+			// Verify the file is named correctly with the sequence
+			final Path expectedFile = backupDir.resolve("myapp_2025-06-20.tar.gz");
+			Assertions.assertTrue(Files.exists(expectedFile), "Archive file should exist with sequence in name");
+
+			// Verify archive content
+			final Map<String, String> dataExtract = extractTarGzToMap(expectedFile);
+			Assertions.assertEquals(2, dataExtract.size());
+			Assertions.assertTrue(dataExtract.containsKey("DataStoreWithUpdate.json"));
+			Assertions.assertTrue(dataExtract.containsKey("DataStoreWithoutUpdate.json"));
+		} finally {
+			// Cleanup
+			try (var stream = Files.walk(backupDir)) {
+				stream.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+					try {
+						Files.deleteIfExists(p);
+					} catch (IOException e) {
+						// ignore cleanup errors
+					}
+				});
+			}
+		}
+	}
+
+	@Test
+	public void testBackupWithAddCollection() throws Exception {
+		insertData();
+		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_addcol", EngineBackupType.JSON_EXTENDED);
+		// Use addCollection instead of addClass
+		engine.addCollection("DataStoreWithUpdate", "DataStoreWithoutUpdate");
+		engine.store(null);
+
+		final Map<String, String> dataExtract = extractTarGzToMap(Paths.get("./").resolve("test_addcol.tar.gz"));
+		Assertions.assertNotNull(dataExtract);
+		Assertions.assertEquals(2, dataExtract.size());
+		Assertions.assertTrue(dataExtract.containsKey("DataStoreWithUpdate.json"));
+		Assertions.assertTrue(dataExtract.containsKey("DataStoreWithoutUpdate.json"));
+
+		// Cleanup
+		Files.deleteIfExists(Paths.get("./").resolve("test_addcol.tar.gz"));
+	}
+
+	@Test
+	public void testStoreAllAndRestoreRoundTrip() throws Exception {
+		insertData();
+		final Path backupDir = Files.createTempDirectory("backup_storeall_test");
+		try {
+			final BackupEngine storeEngine = new BackupEngine(backupDir, "allcol", EngineBackupType.JSON_EXTENDED);
+			storeEngine.setEnableStoreOrRestoreData(false);
+			storeEngine.storeAll("round-trip");
+
+			final Path archivePath = backupDir.resolve("allcol_round-trip.tar.gz");
+			Assertions.assertTrue(Files.exists(archivePath));
+
+			// Verify archive has at least our test collections
+			final Map<String, String> dataExtract = extractTarGzToMap(archivePath);
+			Assertions.assertTrue(dataExtract.containsKey("DataStoreWithUpdate.json"));
+			Assertions.assertTrue(dataExtract.containsKey("DataStoreWithoutUpdate.json"));
+
+			// Drop collections and restore from file
+			DataAccess.drop(DataStoreWithUpdate.class);
+			DataAccess.drop(DataStoreWithoutUpdate.class);
+
+			final BackupEngine restoreEngine = new BackupEngine(backupDir, "allcol", EngineBackupType.JSON_EXTENDED);
+			restoreEngine.setEnableStoreOrRestoreData(false);
+			final boolean result = restoreEngine.restoreFile(archivePath, null);
+			Assertions.assertTrue(result);
+
+			// Verify data is restored
+			final List<DataStoreWithUpdate> restored = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertEquals(2, restored.size());
+			Assertions.assertEquals(9953, restored.get(0).dataLong);
+		} finally {
+			try (var stream = Files.walk(backupDir)) {
+				stream.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+					try {
+						Files.deleteIfExists(p);
+					} catch (IOException e) {
+						// ignore
+					}
+				});
+			}
+		}
+	}
+
+	@Test
+	public void testRestoreWithSequenceRoundTrip() throws Exception {
+		insertData();
+		final Path backupDir = Files.createTempDirectory("backup_restore_seq_test");
+		try {
+			final BackupEngine engine = new BackupEngine(backupDir, "seqtest", EngineBackupType.JSON_EXTENDED);
+			engine.addClass(DataStoreWithUpdate.class);
+			engine.addClass(DataStoreWithoutUpdate.class);
+			engine.setEnableStoreOrRestoreData(false);
+			engine.store("2025-07-01");
+
+			// Drop and restore using sequence
+			DataAccess.drop(DataStoreWithUpdate.class);
+			DataAccess.drop(DataStoreWithoutUpdate.class);
+
+			engine.restore("2025-07-01");
+
+			final List<DataStoreWithUpdate> restored = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertEquals(2, restored.size());
+		} finally {
+			try (var stream = Files.walk(backupDir)) {
+				stream.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+					try {
+						Files.deleteIfExists(p);
+					} catch (IOException e) {
+						// ignore
+					}
+				});
+			}
+		}
+	}
+
+	@Test
+	public void testRestoreFileReturnsFalseWhenDbNotEmpty() throws Exception {
+		insertData();
+		// Create a valid archive
+		final Map<String, String> data = Map.of("DataStoreWithUpdate.json", """
+				{"_id": {"$oid": "6855248a4345497e60f63c05"}, "dataLong": 1}
+				""");
+		final Path fileTestPath = Paths.get("./").resolve("test_notempty.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		try {
+			// DB is not empty (insertData was called) — restoreFile should return false
+			final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_notempty",
+					EngineBackupType.JSON_EXTENDED);
+			engine.setEnableStoreOrRestoreData(false);
+			final boolean result = engine.restoreFile(fileTestPath, null);
+			Assertions.assertFalse(result, "restoreFile should return false when DB is not empty");
+		} finally {
+			Files.deleteIfExists(fileTestPath);
+		}
+	}
+
+	@Test
+	public void testRestoreFileSingleCollection() throws Exception {
+		// Clean both collections
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		DataAccess.drop(DataStoreWithUpdate.class);
+
+		// Insert data only in DataStoreWithUpdate (so DataStoreWithoutUpdate is empty)
+		final DataStoreWithUpdate d = new DataStoreWithUpdate();
+		d.dataLong = 123L;
+		d.dataDoubles = List.of(1.0);
+		DataAccess.insert(d);
+
+		// Create an archive with both collections
+		final Map<String, String> data = Map.of("DataStoreWithUpdate.json", """
+				{"_id": {"$oid": "aaaaaaaaaaaaaaaaaaaaaaaa"}, "dataLong": 555}
+				""", "DataStoreWithoutUpdate.json", """
+				{"_id": {"$oid": "bbbbbbbbbbbbbbbbbbbbbbbb"}, "dataString": "filtered restore"}
+				""");
+		final Path fileTestPath = Paths.get("./").resolve("test_single_col.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		try {
+			// Restore only DataStoreWithoutUpdate (which is empty), skipping DataStoreWithUpdate
+			final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_single_col",
+					EngineBackupType.JSON_EXTENDED);
+			engine.setEnableStoreOrRestoreData(false);
+			final boolean result = engine.restoreFile(fileTestPath, "DataStoreWithoutUpdate");
+			Assertions.assertTrue(result);
+
+			// DataStoreWithoutUpdate should have the restored data
+			final List<DataStoreWithoutUpdate> restored = DataAccess.gets(DataStoreWithoutUpdate.class);
+			Assertions.assertEquals(1, restored.size());
+			Assertions.assertEquals("filtered restore", restored.get(0).dataString);
+
+			// DataStoreWithUpdate should still have the original data (not overwritten)
+			final List<DataStoreWithUpdate> untouched = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertEquals(1, untouched.size());
+			Assertions.assertEquals(123L, untouched.get(0).dataLong);
+		} finally {
+			Files.deleteIfExists(fileTestPath);
+		}
+	}
+
+	@Test
+	public void testRestoreFailsWhenCollectionNotEmpty() throws Exception {
+		// Insert data so the collection is not empty
+		DataAccess.drop(DataStoreWithUpdate.class);
+		final DataStoreWithUpdate d = new DataStoreWithUpdate();
+		d.dataLong = 1L;
+		d.dataDoubles = List.of(1.0);
+		DataAccess.insert(d);
+
+		// Create an archive with the same collection
+		final Map<String, String> data = Map.of("DataStoreWithUpdate.json", """
+				{"_id": {"$oid": "cccccccccccccccccccccccc"}, "dataLong": 999}
+				""");
+		final Path fileTestPath = Paths.get("./").resolve("test_conflict.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		try {
+			final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_conflict",
+					EngineBackupType.JSON_EXTENDED);
+			engine.setEnableStoreOrRestoreData(false);
+			// Restoring a specific collection that is not empty should throw
+			Assertions.assertThrows(IOException.class, () -> {
+				engine.restoreFile(fileTestPath, "DataStoreWithUpdate");
+			});
+		} finally {
+			Files.deleteIfExists(fileTestPath);
+		}
+	}
+
+	@Test
+	public void testRestoreSkipsNonJsonEntries() throws Exception {
+		// Non-.json entries in a tar archive should be silently skipped during collection restore
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+
+		// Build an archive with a .json entry and a non-.json entry (e.g. a media file)
+		final Map<String, String> data = Map.of( //
+				"DataStoreWithUpdate.json",
+				"""
+						{"_id": {"$oid": "aaaaaaaaaaaaaaaaaaaaaaaa"}, "dataLong": {"$numberLong": "42"}, "dataDoubles": [{"$numberDouble": "1.0"}]}
+						""", //
+				"data/some-media-file.png", "not real image data", //
+				"README.txt", "this is not JSON");
+		final Path fileTestPath = Paths.get("./").resolve("test_skip_nonjson.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		try {
+			final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_skip_nonjson",
+					EngineBackupType.JSON_EXTENDED);
+			engine.setEnableStoreOrRestoreData(false);
+			final boolean result = engine.restoreFile(fileTestPath, null);
+			Assertions.assertTrue(result);
+
+			// Only the .json entry should have been restored
+			final List<DataStoreWithUpdate> restored = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertEquals(1, restored.size());
+			Assertions.assertEquals(42L, restored.get(0).dataLong);
+		} finally {
+			Files.deleteIfExists(fileTestPath);
+		}
+	}
+
+	@Test
+	public void testRestoreFileLargeBatch() throws Exception {
+		// Test the batch insertMany path (>=1000 documents) via file-based restore
+		DataAccess.drop(DataStoreWithUpdate.class);
+
+		// Build an archive with 1050 documents
+		final StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < 1050; i++) {
+			sb.append(String.format(
+					"{\"_id\": {\"$oid\": \"%024x\"}, \"dataLong\": {\"$numberLong\": \"%d\"}, \"dataDoubles\": [{\"$numberDouble\": \"%d.0\"}]}%n",
+					i + 1, i, i));
+		}
+		final Map<String, String> data = Map.of("DataStoreWithUpdate.json", sb.toString());
+		final Path fileTestPath = Paths.get("./").resolve("test_large_batch.tar.gz");
+		writeMapToTarGz(data, fileTestPath);
+
+		try {
+			final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_large_batch",
+					EngineBackupType.JSON_EXTENDED);
+			engine.setEnableStoreOrRestoreData(false);
+			// Use specific collection name to avoid "DB not empty" check (other tests may leave collections)
+			final boolean result = engine.restoreFile(fileTestPath, "DataStoreWithUpdate");
+			Assertions.assertTrue(result);
+
+			final List<DataStoreWithUpdate> restored = DataAccess.gets(DataStoreWithUpdate.class,
+					new AccessDeletedItems(), new ReadAllColumn());
+			Assertions.assertEquals(1050, restored.size());
+		} finally {
+			Files.deleteIfExists(fileTestPath);
+		}
+	}
+
+	@Test
 	public void testRestoreCollectionRawData_JSON_EXTENDED() throws Exception {
 		// Clean the collection
 		DataAccess.drop(DataStoreWithoutUpdate.class);
@@ -305,7 +595,7 @@ public class TestBackupAndRestoreRaw {
 
 		final BackupEngine engine = new BackupEngine(Paths.get("./"), "test_store_data_base",
 				EngineBackupType.JSON_EXTENDED);
-		engine.restore(null);
+		engine.restore((String) null);
 		{
 			final List<DataStoreWithUpdate> testData = DataAccess.gets(DataStoreWithUpdate.class,
 					new AccessDeletedItems(), new ReadAllColumn());
