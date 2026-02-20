@@ -2,6 +2,7 @@ package org.atriasoft.archidata.backup;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,15 +12,24 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Field;
+
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -27,10 +37,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
-import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -47,25 +54,46 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 
+/**
+ * Engine for backing up and restoring a MongoDB database to/from tar.gz archives.
+ * <p>
+ * Collections to back up can be registered explicitly via {@link #addClass} or {@link #addCollection},
+ * or discovered automatically via {@link #storeAll}. Media files from the configured data folder are
+ * also included unless disabled with {@link #setEnableStoreOrRestoreData}.
+ * <p>
+ * Archives are stored in a configurable directory with a naming convention based on a base name
+ * and a caller-provided sequence string (typically a date such as {@code "2025-06-20"}).
+ * A {@link RetentionPolicy} can be applied via {@link #clean} to automatically remove old backups.
+ */
 public class BackupEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupEngine.class);
 
+	/** JSON serialization mode used when writing collection documents to the archive. */
 	public static enum EngineBackupType {
-		JSON_EXTERNAL, // serialize time as ISO and OID as String
-		JSON_STANDARD, //
-		JSON_EXTENDED, // best solution to retrieve the same DB
+		/** Serialize via Jackson ObjectMapper: dates become ISO strings, ObjectId become plain strings. Lossy. */
+		JSON_EXTERNAL,
+		/** Serialize via BSON relaxed JSON mode. */
+		JSON_STANDARD,
+		/** Serialize via BSON extended JSON mode. Lossless round-trip with MongoDB types. Recommended. */
+		JSON_EXTENDED,
 	}
 
-	private record CollectionWithUpdate(
-			String name,
-			String updateField) {};
+	private static final String SUFFIX_TAR_GZ = ".tar.gz";
+	private static final String SUFFIX_PARTIAL = "_partial";
+	private static final String SUFFIX_JSON = ".json";
 
 	private final Path pathStore;
 	private final String baseName;
 	private final EngineBackupType type;
-	private final List<CollectionWithUpdate> collections = new ArrayList<>();
+	private final List<String> collectionNames = new ArrayList<>();
 	private boolean enableStoreOrRestoreData = true;
 
+	/**
+	 * Create a new backup engine.
+	 * @param pathToStoreDB directory where archive files are stored
+	 * @param baseName prefix used for archive filenames and for identifying the target database
+	 * @param type JSON serialization mode for collection documents
+	 */
 	public BackupEngine(final Path pathToStoreDB, final String baseName, final EngineBackupType type) {
 		this.pathStore = pathToStoreDB;
 		this.baseName = baseName;
@@ -73,77 +101,79 @@ public class BackupEngine {
 	}
 
 	/**
-	 * Change the state of the store of the data in the system (need to be disable when data can be too big...
-	 * @param value new state
+	 * Enable or disable backup/restore of media files (the data folder).
+	 * When disabled, only MongoDB collections are included in the archive.
+	 * Useful when media data is too large or managed separately.
+	 * @param value {@code true} to include media files (default), {@code false} to skip them
 	 */
 	public void setEnableStoreOrRestoreData(boolean value) {
 		this.enableStoreOrRestoreData = value;
 	}
 
+	/**
+	 * Register model classes for backup. The MongoDB collection name is resolved from class annotations.
+	 * @param classes the model classes to register
+	 * @throws DataAccessException if a collection name cannot be resolved from the class annotations
+	 */
 	public void addClass(final Class<?>... classes) throws DataAccessException {
 		for (final Class<?> clazz : classes) {
-			final String collectionName = AnnotationTools.getTableName(clazz, null);
-			boolean foundUpdate = false;
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
-				foundUpdate = field.getDeclaredAnnotationsByType(UpdateTimestamp.class).length != 0;
-				if (foundUpdate) {
-					final FieldName tableFieldName = AnnotationTools.getFieldName(field, null);
-					this.collections.add(new CollectionWithUpdate(collectionName, tableFieldName.inTable()));
-					break;
-				}
-			}
-			if (!foundUpdate) {
-				this.collections.add(new CollectionWithUpdate(collectionName, null));
-			}
+			this.collectionNames.add(AnnotationTools.getTableName(clazz, null));
 		}
 	}
 
-	public void addCollection(final String... collectionNames) {
-		for (final String elem : collectionNames) {
-			this.collections.add(new CollectionWithUpdate(elem, null));
+	/**
+	 * Register collection names for backup.
+	 * @param names the MongoDB collection names to backup
+	 */
+	public void addCollection(final String... names) {
+		for (final String name : names) {
+			this.collectionNames.add(name);
 		}
-	}
-
-	public void addCollectionUpdateAt(final String collectionName, final String fieldUpdateName) {
-		this.collections.add(new CollectionWithUpdate(collectionName, fieldUpdateName));
 	}
 
 	private TarArchiveOutputStream openTarGzOutputStream(final Path tarGzPath) throws IOException {
 		final OutputStream fos = Files.newOutputStream(tarGzPath);
-		final GzipCompressorOutputStream gcos = new GzipCompressorOutputStream(fos);
-		final TarArchiveOutputStream taos = new TarArchiveOutputStream(gcos);
-		taos.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
-		return taos;
+		try {
+			final GzipCompressorOutputStream gcos = new GzipCompressorOutputStream(fos);
+			final TarArchiveOutputStream taos = new TarArchiveOutputStream(gcos);
+			taos.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
+			return taos;
+		} catch (final IOException e) {
+			fos.close();
+			throw e;
+		}
 	}
 
 	private TarArchiveInputStream openTarGzInputStream(final Path tarGzPath) throws IOException {
 		final InputStream fis = Files.newInputStream(tarGzPath);
-		final GzipCompressorInputStream gcis = new GzipCompressorInputStream(fis);
-		return new TarArchiveInputStream(gcis);
+		try {
+			final GzipCompressorInputStream gcis = new GzipCompressorInputStream(fis);
+			return new TarArchiveInputStream(gcis);
+		} catch (final IOException e) {
+			fis.close();
+			throw e;
+		}
 	}
 
-	private void backupCollectionsToStream(final DBAccessMongo dbMongo, final TarArchiveOutputStream tarOut)
+	private Map<String, byte[]> serializeCollections(final MongoDatabase db, final List<String> names)
 			throws IOException {
-		final MongoDatabase db = dbMongo.getInterface().getDatabase();
-		// Mapper for external:
 		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
-		// config for BSON Mapper
 		final JsonWriterSettings settings = JsonWriterSettings.builder()//
 				.outputMode(this.type == EngineBackupType.JSON_EXTENDED ? JsonMode.EXTENDED : JsonMode.RELAXED) //
 				.build();
 
-		for (final CollectionWithUpdate collectionDescription : this.collections) {
+		// Use LinkedHashMap to preserve insertion order
+		final Map<String, byte[]> result = new LinkedHashMap<>();
+		for (final String collectionName : names) {
 			final ByteArrayOutputStream jsonOut = new ByteArrayOutputStream();
 
 			// TODO use a better way to stream the data ... here if the collection is too
 			// big, it will fail
-			final MongoCollection<Document> collection = db.getCollection(collectionDescription.name());
+			final MongoCollection<Document> collection = db.getCollection(collectionName);
+			int count = 0;
 			try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(jsonOut))) {
 				for (final Document doc : collection.find()) {
+					count++;
 					if (this.type == EngineBackupType.JSON_EXTERNAL) {
 						writer.write(mapper.writeValueAsString(doc));
 					} else {
@@ -155,14 +185,43 @@ public class BackupEngine {
 			}
 
 			final byte[] data = jsonOut.toByteArray();
-			LOGGER.debug("Store data take in memory: {} Bytes", data.length);
+			final String colNameFormatted = String.format("%-25s", collectionName);
+			final String countFormatted = String.format("%5d", count);
+			LOGGER.info("Backup collection:  [ END ] {} {} document(s), {} Bytes", colNameFormatted, countFormatted,
+					data.length);
+			result.put(collectionName, data);
+		}
+		return result;
+	}
 
-			final TarArchiveEntry entry = new TarArchiveEntry(collectionDescription.name() + ".json");
-			entry.setSize(data.length);
-			tarOut.putArchiveEntry(entry);
-			tarOut.write(data);
+	private void backupCollectionListToStream(
+			final MongoDatabase db,
+			final List<String> names,
+			final TarArchiveOutputStream tarOut) throws IOException {
+		final Map<String, byte[]> serialized = serializeCollections(db, names);
+		for (final Map.Entry<String, byte[]> entry : serialized.entrySet()) {
+			final TarArchiveEntry tarEntry = new TarArchiveEntry(entry.getKey() + SUFFIX_JSON);
+			tarEntry.setSize(entry.getValue().length);
+			tarOut.putArchiveEntry(tarEntry);
+			tarOut.write(entry.getValue());
 			tarOut.closeArchiveEntry();
 		}
+	}
+
+	private void backupCollectionsToStream(final DBAccessMongo dbMongo, final TarArchiveOutputStream tarOut)
+			throws IOException {
+		final MongoDatabase db = dbMongo.getInterface().getDatabase();
+		backupCollectionListToStream(db, this.collectionNames, tarOut);
+	}
+
+	private void backupAllCollectionsToStream(final DBAccessMongo dbMongo, final TarArchiveOutputStream tarOut)
+			throws IOException {
+		final MongoDatabase db = dbMongo.getInterface().getDatabase();
+		final List<String> allNames = db.listCollectionNames().into(new ArrayList<>());
+		// Filter out system collections
+		final List<String> filtered = allNames.stream().filter(name -> !name.startsWith("system.")).sorted().toList();
+		LOGGER.info("Discovered {} collections for backup (filtered from {} total)", filtered.size(), allNames.size());
+		backupCollectionListToStream(db, filtered, tarOut);
 	}
 
 	private void restoreStreamToCollections(
@@ -171,23 +230,26 @@ public class BackupEngine {
 			final String collectionName) throws IOException {
 		final MongoDatabase db = dbMongo.getInterface().getDatabase();
 		if (this.type == EngineBackupType.JSON_EXTERNAL) {
-			LOGGER.error("Try to retreive data with generic JSON engine, you will lost real DB inforamtion");
+			LOGGER.error("Try to retrieve data with generic JSON engine, you will lose real DB information");
 		}
 		TarArchiveEntry entry;
 		while ((entry = tarIn.getNextEntry()) != null) {
-			if (!entry.getName().endsWith(".json")) {
+			if (!entry.getName().endsWith(SUFFIX_JSON)) {
 				continue;
 			}
 
-			final String colName = entry.getName().replace(".json", "");
+			final String colName = entry.getName().replace(SUFFIX_JSON, "");
 			if (collectionName != null && !collectionName.equals(colName)) {
 				LOGGER.info("Skip collection: {} (filtered)", colName);
 				continue;
 			}
 			LOGGER.info("Restore collection: [START] {}", colName);
 			final MongoCollection<Document> collection = db.getCollection(colName);
-			if (collection.find().limit(1).iterator().hasNext()) {
-				throw new IOException("Collection : '" + colName + "'is not empty ==> can not insert object inside");
+			try (var cursor = collection.find().limit(1).iterator()) {
+				if (cursor.hasNext()) {
+					throw new IOException(
+							"Collection: '" + colName + "' is not empty ==> can not insert object inside");
+				}
 			}
 			final List<Document> buffer = new ArrayList<>();
 
@@ -212,27 +274,61 @@ public class BackupEngine {
 
 	}
 
+	private void restoreCollectionsFromMap(final DBAccessMongo dbMongo, final Map<String, byte[]> data)
+			throws IOException {
+		final MongoDatabase db = dbMongo.getInterface().getDatabase();
+		if (this.type == EngineBackupType.JSON_EXTERNAL) {
+			LOGGER.error("Try to retrieve data with generic JSON engine, you will lose real DB information");
+		}
+		for (final Map.Entry<String, byte[]> entry : data.entrySet()) {
+			final String colName = entry.getKey();
+			LOGGER.info("Restore collection: [START] {}", colName);
+			final MongoCollection<Document> collection = db.getCollection(colName);
+			final List<Document> buffer = new ArrayList<>();
+
+			try (BufferedReader reader = new BufferedReader(
+					new InputStreamReader(new ByteArrayInputStream(entry.getValue())))) {
+				String line;
+				int count = 0;
+				while ((line = reader.readLine()) != null) {
+					count++;
+					buffer.add(Document.parse(line));
+					if (buffer.size() >= 1000) {
+						collection.insertMany(buffer);
+						buffer.clear();
+					}
+				}
+				if (!buffer.isEmpty()) {
+					collection.insertMany(buffer);
+				}
+				final String colNameFormatted = String.format("%-25s", colName);
+				final String countFormatted = String.format("%5d", count);
+				LOGGER.info("Restore collection: [ END ] {} {} document(s)", colNameFormatted, countFormatted);
+			}
+		}
+	}
+
 	private void backupCollectionsToStream(final TarArchiveOutputStream tarOut)
 			throws IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			if (db instanceof final DBAccessMongo dbMongo) {
-				backupCollectionsToStream(dbMongo, tarOut);
-				return;
-			}
-			throw new DataAccessException("Fait to restore DB: only implemented on mongoDb");
+			final DBAccessMongo dbMongo = ctx.get();
+			backupCollectionsToStream(dbMongo, tarOut);
+		}
+	}
+
+	private void backupAllCollectionsToStream(final TarArchiveOutputStream tarOut)
+			throws IOException, DataAccessException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo dbMongo = ctx.get();
+			backupAllCollectionsToStream(dbMongo, tarOut);
 		}
 	}
 
 	private void restoreStreamToCollections(final TarArchiveInputStream tarIn, final String collectionName)
 			throws IOException, DataAccessException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
-			final DBAccessMongo db = ctx.get();
-			if (db instanceof final DBAccessMongo dbMongo) {
-				restoreStreamToCollections(dbMongo, tarIn, collectionName);
-				return;
-			}
-			throw new DataAccessException("Fait to restore DB: only implemented on mongoDb");
+			final DBAccessMongo dbMongo = ctx.get();
+			restoreStreamToCollections(dbMongo, tarIn, collectionName);
 		}
 	}
 
@@ -274,8 +370,8 @@ public class BackupEngine {
 
 						addDirectoryToTar(tarOut, file, entryName + "/");
 					} else {
-						if (!file.exists() || file.length() < 0) {
-							LOGGER.warn("Fichier invalide, ignoré : {}", file.getAbsolutePath());
+						if (!file.exists()) {
+							LOGGER.warn("Invalid file, ignored: {}", file.getAbsolutePath());
 							continue;
 						}
 
@@ -290,13 +386,13 @@ public class BackupEngine {
 							}
 							tarOut.closeArchiveEntry();
 						} catch (final IOException e) {
-							LOGGER.error("Fal to read the file, ignored: {} - {}", file.getAbsolutePath(),
+							LOGGER.error("Fail to read the file, ignored: {} - {}", file.getAbsolutePath(),
 									e.getMessage());
 							tarOut.closeArchiveEntry();
 						}
 					}
 				} catch (final IOException e) {
-					LOGGER.error("Fait to add data in the archive, element ignored: {} - {}", file.getAbsolutePath(),
+					LOGGER.error("Fail to add data in the archive, element ignored: {} - {}", file.getAbsolutePath(),
 							e.getMessage());
 				}
 			}
@@ -305,43 +401,18 @@ public class BackupEngine {
 		}
 	}
 
-	private void restoreStreamToData(
-			final TarArchiveInputStream tarIn,
-			final boolean eraseOldData,
-			final boolean moveOldData) throws IOException, DataAccessException {
+	private void restoreStreamToData(final TarArchiveInputStream tarIn, final boolean moveOldData)
+			throws IOException, DataAccessException {
 		final String mediaFolder = ConfigBaseVariable.getMediaDataFolder();
 		final File mediaDirFile = new File(mediaFolder);
 
-		// First step: erase or move previous data...
+		// First step: move previous data if requested
 		if (moveOldData && mediaDirFile.exists() && mediaDirFile.isDirectory()) {
 			moveExistingDataToHistoryRestore(mediaDirFile);
 			deleteEmptyFolder(mediaDirFile, false);
-		} else if (eraseOldData && mediaDirFile.exists()) {
-			// Remove the old data
-			deleteDirectory(mediaDirFile, false);
 		}
 		// extract data from tar
 		extractTarToMediaFolder(tarIn, mediaDirFile);
-	}
-
-	private void deleteDirectory(final File directory, final boolean deletecurrentFolder) throws IOException {
-		// disable, I an not sure it is a good ideas...
-		return;
-		/*
-		final File[] files = directory.listFiles();
-		if (files != null) {
-			for (final File file : files) {
-				if (file.isDirectory()) {
-					deleteDirectory(file, true);
-				} else if (!file.delete()) {
-					LOGGER.warn("Fail to remove the file : {}", file.getAbsolutePath());
-				}
-			}
-		}
-		if (deletecurrentFolder && !directory.delete()) {
-			LOGGER.warn("Fail to remove the folder: {}", directory.getAbsolutePath());
-		}
-		*/
 	}
 
 	private boolean deleteEmptyFolder(final File directory, final boolean deletecurrentFolder) throws IOException {
@@ -390,9 +461,9 @@ public class BackupEngine {
 				final Path destination = historyRestorePath.resolve(fileName);
 				try {
 					Files.move(entry, destination, StandardCopyOption.REPLACE_EXISTING);
-					LOGGER.debug("Déplacé : {} vers {}", fileName, destination);
+					LOGGER.debug("Moved: {} to {}", fileName, destination);
 				} catch (final IOException e) {
-					LOGGER.error("Erreur lors du déplacement de {} : {}", entry, e.getMessage());
+					LOGGER.error("Fail to move {} : {}", entry, e.getMessage());
 					throw e;
 				}
 			}
@@ -453,75 +524,371 @@ public class BackupEngine {
 		}
 	}
 
-	private Date executeStore(final String sequence, final Date since) throws IOException, DataAccessException {
+	@FunctionalInterface
+	private interface BackupCollectionStrategy {
+		void backup(TarArchiveOutputStream tarOut) throws IOException, DataAccessException;
+	}
+
+	private Date executeStoreInternal(final String sequence, final BackupCollectionStrategy strategy)
+			throws IOException, DataAccessException {
 		final Date now = Date.from(Instant.now());
-		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "")
-				+ (since != null ? "_partial" : "") + ".tar.gz";
-		// Create a hidden file fort the temporary generation
+		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
+		// Ensure the store directory exists
+		Files.createDirectories(this.pathStore);
+		// Create a hidden file for the temporary generation
 		final Path outputFileTmp = this.pathStore.resolve("." + fileName + "_tmp");
 		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
 		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp)) {
-			backupCollectionsToStream(tarOut);
+			strategy.backup(tarOut);
 			if (this.enableStoreOrRestoreData) {
 				backupDataToStream(tarOut);
 			}
 		}
-		try {
-			Files.move(outputFileTmp, this.pathStore.resolve(fileName), StandardCopyOption.REPLACE_EXISTING);
-			LOGGER.info("Backup done in file: {}", this.pathStore.resolve(fileName));
-		} catch (final IOException e) {
-			LOGGER.error("Erreur lors du déplacement du fichier {} vers {}", outputFileTmp, fileName, e);
-		}
-		LOGGER.debug("Store in path: {} [ END ]", outputFileTmp);
+		final Path outputFileFinal = this.pathStore.resolve(fileName);
+		Files.move(outputFileTmp, outputFileFinal, StandardCopyOption.REPLACE_EXISTING);
+		LOGGER.info("Backup done in file: {}", outputFileFinal);
+		LOGGER.debug("Store in path: {} [ END ]", outputFileFinal);
 		return now;
 	}
 
-	private void executeRestore(final String sequence, final Date since) throws IOException, DataAccessException {
-		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "")
-				+ (since != null ? "_partial" : "") + ".tar.gz";
-
-		final Path retoreFileName = this.pathStore.resolve(fileName);
-		restoreFile(retoreFileName, null);
+	private void executeRestore(final String sequence) throws IOException, DataAccessException {
+		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
+		final Path restoreFileName = this.pathStore.resolve(fileName);
+		restoreFile(restoreFileName, null);
 	}
 
-	// sequence number correspond a un element a ajouter a baseName, cela permet de
-	// choisir par exmple 2025-05-16 et donc de faire une sauvegarde complète par
-	// jour ou autre selon vos besoins
+	/**
+	 * Backup registered collections to a tar.gz archive.
+	 * The archive is written to {@code pathStore/baseName_sequence.tar.gz}.
+	 * Only collections previously registered via {@link #addClass} or {@link #addCollection} are included.
+	 * @param sequence the sequence identifier appended to the backup filename (e.g. {@code "2025-05-16"})
+	 * @return the date at which the backup started
+	 * @throws IOException if the archive cannot be written
+	 * @throws DataAccessException if the database connection fails
+	 */
 	public Date store(final String sequence) throws IOException, DataAccessException {
-		return executeStore(sequence, null);
+		return executeStoreInternal(sequence, this::backupCollectionsToStream);
 	}
 
-	public Date storePartial(final String sequence, final Date since) throws IOException, DataAccessException {
-		return executeStore(sequence, since);
+	/**
+	 * Backup all collections discovered in the database, excluding {@code system.*} collections.
+	 * This method does not require prior {@link #addClass}/{@link #addCollection} calls.
+	 * @param sequence the sequence identifier (e.g. {@code "2025-06-20"})
+	 * @return the date at which the backup started
+	 * @throws IOException if the archive cannot be written
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public Date storeAll(final String sequence) throws IOException, DataAccessException {
+		return executeStoreInternal(sequence, this::backupAllCollectionsToStream);
 	}
 
-	public boolean restoreFile(final Path retoreFileName, final String collectionName)
+	/**
+	 * Restore collections (and optionally media data) from an archive file.
+	 * <p>
+	 * If {@code collectionName} is {@code null}, all collections in the archive are restored and the
+	 * target database must be empty. If a specific collection name is given, only that collection is
+	 * restored and it must be empty.
+	 * @param restoreFileName path to the tar.gz archive to restore from
+	 * @param collectionName name of a single collection to restore, or {@code null} to restore all
+	 * @return {@code true} if the restore succeeded, {@code false} if the database was not empty
+	 * @throws IOException if the archive cannot be read or a collection is not empty
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public boolean restoreFile(final Path restoreFileName, final String collectionName)
 			throws IOException, DataAccessException {
-		LOGGER.info("Restore DB: [START] BD: '{}' from file: '{}'", this.baseName, retoreFileName);
+		LOGGER.info("Restore DB: [START] BD: '{}' from file: '{}'", this.baseName, restoreFileName);
 		// check only the existence if not try to restore only a part of the BD
-		if (collectionName == null && DataAccess.listCollections(this.baseName).size() != 0) {
+		if (collectionName == null && !DataAccess.listCollections(this.baseName).isEmpty()) {
 			LOGGER.info("Restore DB: [ END ]");
 			LOGGER.error("Can not restore, the DB {} already exist", this.baseName);
 			return false;
 		}
-		try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
+		try (TarArchiveInputStream tarIn = openTarGzInputStream(restoreFileName)) {
 			restoreStreamToCollections(tarIn, collectionName);
 		}
 		// Need to open the stream 2 time due to the fact it is not possible to reset marker position.
 		if (this.enableStoreOrRestoreData) {
-			try (TarArchiveInputStream tarIn = openTarGzInputStream(retoreFileName)) {
-				restoreStreamToData(tarIn, false, true);
+			try (TarArchiveInputStream tarIn = openTarGzInputStream(restoreFileName)) {
+				restoreStreamToData(tarIn, true);
 			}
 		}
 		LOGGER.info("Restore DB: [ END ]");
 		return true;
 	}
 
+	/**
+	 * Restore all collections and media data from the archive identified by the given sequence.
+	 * The archive filename is resolved as {@code baseName_sequence.tar.gz} in the store directory.
+	 * The target database must be empty.
+	 * @param sequence the sequence identifier of the archive to restore
+	 * @throws IOException if the archive cannot be read or a collection is not empty
+	 * @throws DataAccessException if the database connection fails
+	 */
 	public void restore(final String sequence) throws IOException, DataAccessException {
-		executeRestore(sequence, null);
+		executeRestore(sequence);
 	}
 
-	public void restorePartial(final String sequence, final Date since) throws IOException, DataAccessException {
-		executeRestore(sequence, since);
+	/**
+	 * Capture an in-memory snapshot of registered collections (those added via {@link #addClass}/{@link #addCollection}).
+	 * The returned snapshot can later be restored with {@link #restore(BackupSnapshot)}.
+	 * @return an immutable snapshot of the registered collections
+	 * @throws IOException if serialization fails
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public BackupSnapshot snapshot() throws IOException, DataAccessException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo dbMongo = ctx.get();
+			final MongoDatabase db = dbMongo.getInterface().getDatabase();
+			return new BackupSnapshot(serializeCollections(db, this.collectionNames));
+		}
+	}
+
+	/**
+	 * Capture an in-memory snapshot of all collections discovered in the database,
+	 * excluding {@code system.*} collections.
+	 * This method does not require prior {@link #addClass}/{@link #addCollection} calls.
+	 * @return an immutable snapshot of all user collections
+	 * @throws IOException if serialization fails
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public BackupSnapshot snapshotAll() throws IOException, DataAccessException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo dbMongo = ctx.get();
+			final MongoDatabase db = dbMongo.getInterface().getDatabase();
+			final List<String> allNames = db.listCollectionNames().into(new ArrayList<>());
+			final List<String> filtered = allNames.stream().filter(name -> !name.startsWith("system.")).sorted()
+					.toList();
+			LOGGER.info("Discovered {} collections for snapshot (filtered from {} total)", filtered.size(),
+					allNames.size());
+			return new BackupSnapshot(serializeCollections(db, filtered));
+		}
+	}
+
+	/**
+	 * Restore database state from an in-memory snapshot.
+	 * Each collection present in the snapshot is dropped and re-populated. Collections not present
+	 * in the snapshot are left untouched.
+	 * @param snapshot the snapshot to restore from
+	 * @throws IOException if deserialization fails
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public void restore(final BackupSnapshot snapshot) throws IOException, DataAccessException {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo dbMongo = ctx.get();
+			final MongoDatabase db = dbMongo.getInterface().getDatabase();
+			// Drop each collection present in the snapshot before restoring
+			for (final String colName : snapshot.collections().keySet()) {
+				LOGGER.info("Snapshot restore: dropping collection '{}'", colName);
+				db.getCollection(colName).drop();
+			}
+			restoreCollectionsFromMap(dbMongo, snapshot.collections());
+		}
+	}
+
+	private static final List<DateTimeFormatter> SEQUENCE_DATE_FORMATTERS = List.of(
+			DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss"), DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"),
+			DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+	/**
+	 * Parse a date from a backup sequence string.
+	 * Supports formats: yyyy-MM-dd, yyyy-MM-ddTHH-mm-ss, yyyy-MM-dd_HH-mm-ss.
+	 * @param sequence the sequence string to parse
+	 * @return the parsed LocalDate, or null if unparseable
+	 */
+	public static LocalDate parseDateFromSequence(final String sequence) {
+		if (sequence == null || sequence.isEmpty()) {
+			return null;
+		}
+		for (final DateTimeFormatter formatter : SEQUENCE_DATE_FORMATTERS) {
+			try {
+				return LocalDate.parse(sequence, formatter);
+			} catch (final DateTimeParseException e) {
+				// try next format
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * List all backup files in pathStore matching this engine's baseName.
+	 * Parses the sequence date from each filename.
+	 * Files with unparseable dates are ignored with a warning.
+	 * @return sorted list of BackupFileInfo (oldest first)
+	 */
+	List<BackupFileInfo> listBackupFiles() throws IOException {
+		final List<BackupFileInfo> result = new ArrayList<>();
+		final String prefix = this.baseName + "_";
+		if (!Files.isDirectory(this.pathStore)) {
+			return result;
+		}
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.pathStore, prefix + "*" + SUFFIX_TAR_GZ)) {
+			for (final Path filePath : stream) {
+				final String fileName = filePath.getFileName().toString();
+				// Skip hidden temporary files
+				if (fileName.startsWith(".")) {
+					continue;
+				}
+				// Extract the part between baseName_ and .tar.gz
+				String middle = fileName.substring(prefix.length(), fileName.length() - SUFFIX_TAR_GZ.length());
+				final boolean partial = middle.endsWith(SUFFIX_PARTIAL);
+				if (partial) {
+					middle = middle.substring(0, middle.length() - SUFFIX_PARTIAL.length());
+				}
+				final LocalDate date = parseDateFromSequence(middle);
+				if (date == null) {
+					LOGGER.warn("Backup file with unparseable date in sequence, ignored for retention: {}", fileName);
+					continue;
+				}
+				result.add(new BackupFileInfo(filePath, middle, date, partial));
+			}
+		}
+		Collections.sort(result);
+		return result;
+	}
+
+	/**
+	 * Apply retention policy logic and return the list of files to delete.
+	 * @param files sorted list of backup files (oldest first)
+	 * @param policy the retention policy
+	 * @param referenceDate the reference date for age calculation (typically today)
+	 * @return list of files to delete
+	 */
+	static List<BackupFileInfo> applyRetentionPolicy(
+			final List<BackupFileInfo> files,
+			final RetentionPolicy policy,
+			final LocalDate referenceDate) {
+		final LocalDate keepAllLimit = referenceDate.minusDays(policy.keepAllDays());
+		final LocalDate keepDailyLimit = referenceDate.minusMonths(policy.keepDailyMonths());
+		final LocalDate keepWeeklyLimit = referenceDate.minusMonths(policy.keepWeeklyMonths());
+		final WeekFields weekFields = WeekFields.of(Locale.getDefault());
+
+		final List<BackupFileInfo> toDelete = new ArrayList<>();
+
+		// Group files by zone, then apply deduplication per group
+		// Zone 1: date >= keepAllLimit (recent) → keep all
+		// Zone 2: date >= keepDailyLimit && date < keepAllLimit → keep 1 per day
+		// Zone 3: date >= keepWeeklyLimit && date < keepDailyLimit → keep 1 per week
+		// Zone 4: date < keepWeeklyLimit → delete all
+
+		// For daily dedup: group by LocalDate, keep latest (highest sequence) per day
+		final Map<LocalDate, BackupFileInfo> dailyBest = new HashMap<>();
+		final List<BackupFileInfo> dailyAll = new ArrayList<>();
+
+		// For weekly dedup: group by year+week, keep latest per week
+		final Map<String, BackupFileInfo> weeklyBest = new HashMap<>();
+		final List<BackupFileInfo> weeklyAll = new ArrayList<>();
+
+		for (final BackupFileInfo file : files) {
+			final LocalDate fileDate = file.date();
+			if (!fileDate.isBefore(keepAllLimit)) {
+				// Zone 1: keep all
+				continue;
+			} else if (!fileDate.isBefore(keepDailyLimit)) {
+				// Zone 2: daily dedup
+				dailyAll.add(file);
+				final BackupFileInfo existing = dailyBest.get(fileDate);
+				if (existing == null || file.compareTo(existing) > 0) {
+					dailyBest.put(fileDate, file);
+				}
+			} else if (!fileDate.isBefore(keepWeeklyLimit)) {
+				// Zone 3: weekly dedup
+				weeklyAll.add(file);
+				final int weekNumber = fileDate.get(weekFields.weekOfWeekBasedYear());
+				final int year = fileDate.get(weekFields.weekBasedYear());
+				final String weekKey = year + "-W" + weekNumber;
+				final BackupFileInfo existingWeek = weeklyBest.get(weekKey);
+				if (existingWeek == null || file.compareTo(existingWeek) > 0) {
+					weeklyBest.put(weekKey, file);
+				}
+			} else {
+				// Zone 4: delete
+				toDelete.add(file);
+			}
+		}
+
+		// Mark non-best daily files for deletion
+		for (final BackupFileInfo file : dailyAll) {
+			if (!file.equals(dailyBest.get(file.date()))) {
+				toDelete.add(file);
+			}
+		}
+
+		// Mark non-best weekly files for deletion
+		for (final BackupFileInfo file : weeklyAll) {
+			final int weekNumber = file.date().get(weekFields.weekOfWeekBasedYear());
+			final int year = file.date().get(weekFields.weekBasedYear());
+			final String weekKey = year + "-W" + weekNumber;
+			if (!file.equals(weeklyBest.get(weekKey))) {
+				toDelete.add(file);
+			}
+		}
+
+		return toDelete;
+	}
+
+	/**
+	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy.
+	 * Uses today as the reference date for age calculation.
+	 * @param policy the retention policy to apply
+	 * @return list of deleted file paths
+	 * @throws IOException if listing or deleting files fails
+	 */
+	public List<Path> clean(final RetentionPolicy policy) throws IOException {
+		return executeClean(policy, false, LocalDate.now());
+	}
+
+	/**
+	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy.
+	 * @param policy the retention policy to apply
+	 * @param referenceDate the reference date for age calculation (instead of today)
+	 * @return list of deleted file paths
+	 * @throws IOException if listing or deleting files fails
+	 */
+	public List<Path> clean(final RetentionPolicy policy, final LocalDate referenceDate) throws IOException {
+		return executeClean(policy, false, referenceDate);
+	}
+
+	/**
+	 * Simulate a retention policy without actually deleting any files.
+	 * Uses today as the reference date for age calculation.
+	 * @param policy the retention policy to evaluate
+	 * @return list of file paths that would be deleted
+	 * @throws IOException if listing files fails
+	 */
+	public List<Path> cleanDryRun(final RetentionPolicy policy) throws IOException {
+		return executeClean(policy, true, LocalDate.now());
+	}
+
+	/**
+	 * Simulate a retention policy without actually deleting any files.
+	 * @param policy the retention policy to evaluate
+	 * @param referenceDate the reference date for age calculation (instead of today)
+	 * @return list of file paths that would be deleted
+	 * @throws IOException if listing files fails
+	 */
+	public List<Path> cleanDryRun(final RetentionPolicy policy, final LocalDate referenceDate) throws IOException {
+		return executeClean(policy, true, referenceDate);
+	}
+
+	private List<Path> executeClean(final RetentionPolicy policy, final boolean dryRun, final LocalDate referenceDate)
+			throws IOException {
+		final List<BackupFileInfo> allFiles = listBackupFiles();
+		final List<BackupFileInfo> toDelete = applyRetentionPolicy(allFiles, policy, referenceDate);
+		final List<Path> deletedPaths = new ArrayList<>();
+
+		for (final BackupFileInfo file : toDelete) {
+			if (dryRun) {
+				LOGGER.info("Retention [DRY-RUN] would delete: {}", file.path().getFileName());
+			} else {
+				LOGGER.info("Retention delete: {}", file.path().getFileName());
+				Files.deleteIfExists(file.path());
+			}
+			deletedPaths.add(file.path());
+		}
+
+		LOGGER.info("Retention policy applied: {} kept, {} {}", allFiles.size() - toDelete.size(), toDelete.size(),
+				dryRun ? "would be deleted (dry-run)" : "deleted");
+
+		return deletedPaths;
 	}
 }
