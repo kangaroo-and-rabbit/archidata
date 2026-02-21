@@ -987,10 +987,18 @@ public class DBAccessMongo implements Closeable {
 		if (type == Boolean.class || type == boolean.class) {
 			return Boolean.parseBoolean(data);
 		}
-		if (type == Date.class) {}
-		if (type == Instant.class) {}
-		if (type == LocalDate.class) {}
-		if (type == LocalTime.class) {}
+		if (type == Date.class) {
+			return new Date(Long.parseLong(data));
+		}
+		if (type == Instant.class) {
+			return Instant.parse(data);
+		}
+		if (type == LocalDate.class) {
+			return LocalDate.parse(data);
+		}
+		if (type == LocalTime.class) {
+			return LocalTime.parse(data);
+		}
 		if (type == String.class) {
 			return data;
 		}
