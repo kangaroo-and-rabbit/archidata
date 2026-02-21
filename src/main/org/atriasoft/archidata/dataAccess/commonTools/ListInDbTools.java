@@ -1,22 +1,21 @@
 package org.atriasoft.archidata.dataAccess.commonTools;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
+import org.atriasoft.archidata.checker.DataAccessConnectionContext;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
+import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
+import org.atriasoft.archidata.exception.DataAccessException;
 
-import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
-import org.atriasoft.archidata.dataAccess.DataAccess;
-import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOn.model.TableListObjectGeneric;
-import org.atriasoft.archidata.dataAccess.addOn.model.TableListObjectGenericUpdateAt;
-import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
-import org.atriasoft.archidata.dataAccess.options.FilterValue;
-import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
-import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
-import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
-import org.atriasoft.archidata.exception.FailException;
-
+/**
+ * Utility for adding/removing values in array fields of MongoDB documents.
+ *
+ * <p>This is a convenience wrapper around {@link MongoLinkManager} that resolves
+ * field names from Java property names using {@link DbClassModel}.
+ *
+ * <p>Delegates to atomic MongoDB operations ({@code $addToSet}, {@code $pull})
+ * instead of the previous read-modify-write pattern.
+ */
 public class ListInDbTools {
 
 	public static void addLink(
@@ -24,40 +23,11 @@ public class ListInDbTools {
 			final Object primaryKey,
 			final String fieldName,
 			final Object foreignKey) throws Exception {
-		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
-		// TODO: check the type of the keys...
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-		final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
-
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldName);
-		final FieldName localFieldColumnName = AnnotationTools.getFieldName(localField, null);
-
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", primaryKey.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", foreignKey.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColumnName.inTable()));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColumnName.inTable()));
-		options.add(new AccessDeletedItems());
-		TableListObjectGeneric data = null;
-		if (updateFieldName != null) {
-			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.getById(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
-		} else {
-			data = DataAccess.getById(TableListObjectGeneric.class, primaryKey, options.getAllArray());
+		final String fieldColumn = resolveFieldColumn(clazz, fieldName);
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			MongoLinkManager.addToList(db, clazz, primaryKey, fieldColumn, foreignKey);
 		}
-		if (data.filedNameOfTheObject == null) {
-			data.filedNameOfTheObject = new ArrayList<>();
-		}
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(foreignKey)) {
-				return;
-			}
-		}
-		data.filedNameOfTheObject.add(foreignKey);
-		options.add(new FilterValue("filedNameOfTheObject"));
-		DataAccess.updateById(data, data.idOfTheObject, options.getAllArray());
-
 	}
 
 	public static void removeLink(
@@ -65,56 +35,29 @@ public class ListInDbTools {
 			final Object primaryKey,
 			final String fieldName,
 			final Object foreignKey) throws Exception {
-		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
-		// TODO: check the type of the keys...
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-		final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
+		final String fieldColumn = resolveFieldColumn(clazz, fieldName);
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			MongoLinkManager.removeFromList(db, clazz, primaryKey, fieldColumn, foreignKey);
+		}
+	}
 
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldName);
-		final FieldName localFieldColumnName = AnnotationTools.getFieldName(localField, null);
-
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", primaryKey.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", foreignKey.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", primaryKeyColumnName.inTable()));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", localFieldColumnName.inTable()));
-		options.add(new AccessDeletedItems());
-		TableListObjectGeneric data = null;
-		if (updateFieldName != null) {
-			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = DataAccess.getById(TableListObjectGenericUpdateAt.class, primaryKey, options.getAllArray());
-			if (data == null) {
-				throw new FailException("Try to remove remote link from an object that does not exist");
-			}
-		} else {
-			data = DataAccess.getById(TableListObjectGeneric.class, primaryKey, options.getAllArray());
-			if (data == null) {
-				// Data is already removed
-				return;
-			}
+	private static String resolveFieldColumn(final Class<?> clazz, final String fieldName) throws Exception {
+		if (fieldName == null) {
+			throw new DataAccessException(
+					"fieldName is null in ListInDbTools for class: " + clazz.getCanonicalName());
 		}
-		if (data.filedNameOfTheObject == null) {
-			data.filedNameOfTheObject = new ArrayList<>();
+		final DbClassModel model = DbClassModel.of(clazz);
+		// Try property name first
+		final DbPropertyDescriptor desc = model.findByPropertyName(fieldName);
+		if (desc != null) {
+			return desc.getFieldName(null).inTable();
 		}
-		boolean found = false;
-		final List<Object> newList = new ArrayList<>();
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(foreignKey)) {
-				found = true;
-				continue;
-			}
-			newList.add(elem);
+		// Fallback: try DB field name (for callers passing column names directly)
+		final DbPropertyDescriptor descByDb = model.findByDbFieldName(fieldName);
+		if (descByDb != null) {
+			return descByDb.getFieldName(null).inTable();
 		}
-		if (!found) {
-			return;
-		}
-		if (newList.size() == 0) {
-			data.filedNameOfTheObject = null;
-		} else {
-			data.filedNameOfTheObject = newList;
-		}
-		options.add(new FilterValue("filedNameOfTheObject"));
-		DataAccess.updateById(data, data.idOfTheObject, options.getAllArray());
+		throw new DataAccessException("Cannot find field '" + fieldName + "' in " + clazz.getCanonicalName());
 	}
 }

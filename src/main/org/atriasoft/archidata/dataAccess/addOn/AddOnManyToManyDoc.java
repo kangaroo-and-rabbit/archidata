@@ -1,21 +1,22 @@
 package org.atriasoft.archidata.dataAccess.addOn;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
+import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.commonTools.ManyToManyTools;
+import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
+import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -31,21 +32,21 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 	}
 
 	@Override
-	public boolean isCompatibleField(final Field elem) {
-		final ManyToManyDoc decorators = elem.getDeclaredAnnotation(ManyToManyDoc.class);
-		return decorators != null;
+	public boolean isCompatibleField(final DbPropertyDescriptor desc) {
+		final PropertyDescriptor prop = desc.getProperty();
+		return prop.hasAnnotation(ManyToManyDoc.class);
 	}
 
-	public boolean canRetreiveAnWrite(final Field field) {
-		if (field.getType() != List.class) {
+	public boolean canRetreiveAnWrite(final DbPropertyDescriptor desc) {
+		final PropertyDescriptor prop = desc.getProperty();
+		if (prop.getType() != List.class) {
 			return false;
 		}
-		final Class<?> objectClass = (Class<?>) ((ParameterizedType) field.getGenericType())
-				.getActualTypeArguments()[0];
+		final Class<?> objectClass = prop.getElementType();
 		if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
 			return true;
 		}
-		final ManyToManyDoc decorators = field.getDeclaredAnnotation(ManyToManyDoc.class);
+		final ManyToManyDoc decorators = prop.getAnnotation(ManyToManyDoc.class);
 		if (decorators == null) {
 			return false;
 		}
@@ -58,18 +59,20 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 	@Override
 	public void insertData(
 			final DBAccessMongo ioDb,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object rootObject,
 			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
-		final Class<?> type = field.getType();
-		final FieldName tableFieldName = AnnotationTools.getFieldName(field, options);
-		ioDb.setValueToDb(null, type, rootObject, field, tableFieldName.inTable(), docSet, docUnSet);
+		final var codec = desc.getCodec();
+		if (codec != null) {
+			final FieldName tableFieldName = desc.getFieldName(options);
+			codec.writeToDoc(null, tableFieldName.inTable(), rootObject, docSet, docUnSet);
+		}
 	}
 
 	@Override
-	public boolean isUpdateAsync(final Field field) {
+	public boolean isUpdateAsync(final DbPropertyDescriptor desc) {
 		return true;
 	}
 
@@ -78,11 +81,12 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object primaryKeyValue,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object insertedData,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
-		final Object previousDataValue = field.get(previousData);
+		final PropertyDescriptor prop = desc.getProperty();
+		final Object previousDataValue = prop.getValue(previousData);
 		Collection<?> previousDataCollection = new ArrayList<>();
 		if (previousDataValue instanceof final Collection<?> tmpCollection) {
 			previousDataCollection = tmpCollection;
@@ -92,38 +96,47 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
 			insertedDataCollection = tmpCollection;
 		}
-		// add new Values
+		// Resolve remote collection and field info once
+		final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
+		if (manyDoc == null || manyDoc.targetEntity() == null
+				|| manyDoc.remoteField() == null || manyDoc.remoteField().isEmpty()) {
+			return;
+		}
+		final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
+
+		// add new Values (atomic $addToSet on remote document)
 		for (final Object value : insertedDataCollection) {
 			if (previousDataCollection.contains(value)) {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+				MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value,
+						remoteFieldColumn, primaryKeyValue);
 			});
 		}
-		// remove old values:
+		// remove old values (atomic $pull on remote document)
 		for (final Object value : previousDataCollection) {
 			if (insertedDataCollection.contains(value)) {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				ManyToManyTools.removeLinkRemote(ioDb, field, primaryKeyValue, value);
+				MongoLinkManager.removeFromList(ioDb, manyDoc.targetEntity(), value,
+						remoteFieldColumn, primaryKeyValue);
 			});
 		}
-
 	}
 
 	/** Some action must be done asynchronously for update or remove element
-	 * @param field
+	 * @param desc
 	 * @return */
 	@Override
-	public boolean isInsertAsync(final Field field) throws Exception {
+	public boolean isInsertAsync(final DbPropertyDescriptor desc) throws Exception {
 		return true;
 	}
 
 	/** When insert is mark async, this function permit to create or update the data.
 	 * @param primaryKeyValue Local ID of the current table
-	 * @param field Field that is updated.
+	 * @param desc Property descriptor that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	@Override
@@ -131,7 +144,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object primaryKeyValue,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
@@ -140,27 +153,35 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			return;
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
+			final PropertyDescriptor prop = desc.getProperty();
+			final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
+			if (manyDoc == null || manyDoc.targetEntity() == null
+					|| manyDoc.remoteField() == null || manyDoc.remoteField().isEmpty()) {
+				return;
+			}
+			final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
 			for (final Object value : insertedDataCollection) {
 				actions.add((final List<LazyGetter> actionsAsync) -> {
-					ManyToManyTools.addLinkRemote(ioDb, field, primaryKeyValue, value);
+					MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value,
+							remoteFieldColumn, primaryKeyValue);
 				});
 			}
 		}
 	}
 
 	@Override
-	public boolean isPreviousDataNeeded(final Field field) {
+	public boolean isPreviousDataNeeded(final DbPropertyDescriptor desc) {
 		return true;
 	}
 
 	@Override
-	public boolean canInsert(final Field field) {
-		return canRetreiveAnWrite(field);
+	public boolean canInsert(final DbPropertyDescriptor desc) {
+		return canRetreiveAnWrite(desc);
 	}
 
 	@Override
-	public boolean canRetrieve(final Field field) {
-		return canRetreiveAnWrite(field);
+	public boolean canRetrieve(final DbPropertyDescriptor desc) {
+		return canRetreiveAnWrite(desc);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -168,99 +189,110 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 	public void fillFromDoc(
 			final DBAccessMongo ioDb,
 			final Document doc,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException {
+			final List<LazyGetter> lazyCall) throws Exception {
+		final PropertyDescriptor prop = desc.getProperty();
 
-		if (field.getType() != List.class) {
+		if (prop.getType() != List.class) {
 			throw new SystemException("@ManyToManyLocal must contain a List");
 		}
-		final String fieldName = AnnotationTools.getFieldName(field, options).inTable();
+		final String fieldName = desc.getFieldName(options).inTable();
 		if (!doc.containsKey(fieldName)) {
-			field.set(data, null);
+			prop.setValue(data, null);
 			return;
 		}
-		final Object dataRetrieve = doc.get(fieldName, field.getType());
+		final Object dataRetrieve = doc.get(fieldName, prop.getType());
 		if (dataRetrieve instanceof final Collection<?> dataCollection) {
-			final ParameterizedType listType = (ParameterizedType) field.getGenericType();
-			final Class<?> objectClass = (Class<?>) listType.getActualTypeArguments()[0];
+			if (dataCollection.isEmpty()) {
+				prop.setValue(data, null);
+				return;
+			}
+			final Class<?> objectClass = prop.getElementType();
 			if (objectClass == Long.class) {
 				final List<Long> dataParsed = (List<Long>) dataCollection;
-				field.set(data, dataParsed);
+				prop.setValue(data, dataParsed);
 				return;
 			}
 			if (objectClass == UUID.class) {
 				final List<UUID> dataParsed = (List<UUID>) dataCollection;
-				field.set(data, dataParsed);
+				prop.setValue(data, dataParsed);
 				return;
 			}
 			if (objectClass == ObjectId.class) {
 				final List<ObjectId> dataParsed = (List<ObjectId>) dataCollection;
-				field.set(data, dataParsed);
+				prop.setValue(data, dataParsed);
 				return;
 			}
-			final ManyToManyDoc decorators = field.getDeclaredAnnotation(ManyToManyDoc.class);
+			final ManyToManyDoc decorators = prop.getAnnotation(ManyToManyDoc.class);
 			if (decorators == null) {
 				return;
 			}
 			if (objectClass == decorators.targetEntity()) {
-				final Class<?> foreignKeyType = AnnotationTools.getPrimaryKeyField(objectClass).getType();
+				final DbClassModel targetModel = DbClassModel.of(objectClass);
+				final DbPropertyDescriptor targetPk = targetModel.getPrimaryKey();
+				final Class<?> foreignKeyType = targetPk.getProperty().getType();
+				final String idFieldColumn = targetPk.getFieldName(options).inTable();
+
 				if (foreignKeyType == Long.class) {
 					final List<Long> idList = (List<Long>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					if (idList != null && !idList.isEmpty()) {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), idList)));
+									new Condition(new QueryInList<>(idFieldColumn, idList)));
 							if (foreignData == null) {
 								return;
 							}
-							field.set(data, foreignData);
+							prop.setValue(data, foreignData);
 						};
 						lazyCall.add(lambda);
 					}
 				} else if (foreignKeyType == UUID.class) {
 					final List<UUID> idList = (List<UUID>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					if (idList != null && !idList.isEmpty()) {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<UUID> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs)));
+									new Condition(new QueryInList<>(idFieldColumn, childs)));
 							if (foreignData == null) {
 								return;
 							}
-							field.set(data, foreignData);
+							prop.setValue(data, foreignData);
 						};
 						lazyCall.add(lambda);
 					}
 				} else if (foreignKeyType == ObjectId.class) {
 					final List<ObjectId> idList = (List<ObjectId>) dataCollection;
-					if (idList != null && idList.size() > 0) {
-						final FieldName idField = AnnotationTools.getFieldName(AnnotationTools.getIdField(objectClass),
-								options);
-						// In the lazy mode, the request is done in asynchronous mode, they will be done after...
+					if (idList != null && !idList.isEmpty()) {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<ObjectId> childs = new ArrayList<>(idList);
-							// TODO: update to have get with abstract types ....
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idField.inTable(), childs.toArray())));
+									new Condition(new QueryInList<>(idFieldColumn, childs.toArray())));
 							if (foreignData == null) {
 								return;
 							}
-							field.set(data, foreignData);
+							prop.setValue(data, foreignData);
 						};
 						lazyCall.add(lambda);
 					}
 				}
 			}
 		}
+	}
+
+	// ========== Private helpers ==========
+
+	/**
+	 * Resolve the DB column name of the remote field for a ManyToMany relationship.
+	 */
+	private static String resolveRemoteFieldColumn(final ManyToManyDoc manyDoc) throws Exception {
+		final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
+		final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
+		if (remoteDesc == null) {
+			throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField()
+					+ "' in " + manyDoc.targetEntity().getSimpleName());
+		}
+		return remoteDesc.getFieldName(null).inTable();
 	}
 }

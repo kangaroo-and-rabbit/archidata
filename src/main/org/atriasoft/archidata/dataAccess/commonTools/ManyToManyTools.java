@@ -1,218 +1,139 @@
 package org.atriasoft.archidata.dataAccess.commonTools;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
 
-import org.atriasoft.archidata.annotation.AnnotationTools;
-import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
+import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
-import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.addOn.model.TableListObjectGeneric;
-import org.atriasoft.archidata.dataAccess.addOn.model.TableListObjectGenericUpdateAt;
-import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
-import org.atriasoft.archidata.dataAccess.options.FilterValue;
-import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
-import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
-import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
+import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.exception.DataAccessException;
 
+/**
+ * Utility for managing ManyToMany bidirectional links.
+ *
+ * <p>All link operations now use atomic MongoDB operations ({@code $addToSet}, {@code $pull})
+ * via {@link MongoLinkManager} instead of read-modify-write.
+ */
 public class ManyToManyTools {
 
-	private static void addLinkLocal(
-			final DBAccessMongo ioDb,
-			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToAdd) throws Exception {
-		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", valueToAdd.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		options.add(new AccessDeletedItems());
-		TableListObjectGeneric data = null;
-		if (updateFieldName != null) {
-			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.getById(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
-		} else {
-			data = ioDb.getById(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		}
-		if (data.filedNameOfTheObject == null) {
-			data.filedNameOfTheObject = new ArrayList<>();
-		}
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(valueToAdd)) {
-				return;
-			}
-		}
-		data.filedNameOfTheObject.add(valueToAdd);
-		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateById(data, data.idOfTheObject, options.getAllArray());
-	}
-
+	/**
+	 * Add a bidirectional ManyToMany link.
+	 * Atomically adds valueToAdd to the local field's array AND adds
+	 * clazzPrimaryKeyValue to the remote field's array.
+	 */
 	public static void addLink(
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToAdd) throws Exception {
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldNameToUpdate);
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			addLinkLocal(ioDb, clazz, primaryKeyColumnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
-					valueToAdd);
+		final DbClassModel model = DbClassModel.of(clazz);
+		final DbPropertyDescriptor fieldDesc = model.findByPropertyName(fieldNameToUpdate);
+		if (fieldDesc == null) {
+			throw new DataAccessException(
+					"Cannot find field '" + fieldNameToUpdate + "' in " + clazz.getCanonicalName());
 		}
-		addLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToAdd);
-	}
+		final String localFieldColumn = fieldDesc.getFieldName(null).inTable();
 
-	public static void addLinkRemote(
-			final DBAccessMongo ioDb,
-			final Field localField,
-			final Object localPrimaryKeyValue,
-			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyDoc manyLocal = AnnotationTools.get(localField, ManyToManyDoc.class);
-		// Update the remote elements:
-		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
-				|| manyLocal.remoteField().isEmpty()) {
-			return;
-		}
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
-			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			addLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColumnName.inTable(), remotePrimaryKeyValue,
-					localFieldName.inTable(), localPrimaryKeyValue);
-		}
-	}
+		// Add to local array
+		MongoLinkManager.addToList(ioDb, clazz, clazzPrimaryKeyValue, localFieldColumn, valueToAdd);
 
-	private static void removeLinkLocal(
-			final DBAccessMongo ioDb,
-			final Class<?> clazz,
-			final String clazzPrimaryKeyName,
-			final Object clazzPrimaryKeyValue,
-			final String fieldNameToUpdate,
-			final Object valueToRemove) throws Exception {
-		final FieldName updateFieldName = AnnotationTools.getUpdatedFieldName(clazz);
-		final String tableName = AnnotationTools.getTableName(clazz);
-		final QueryOptions options = new QueryOptions(new OverrideTableName(tableName),
-				new OptionSpecifyType("idOfTheObject", clazzPrimaryKeyValue.getClass()),
-				new OptionSpecifyType("filedNameOfTheObject", valueToRemove.getClass(), true));
-		options.add(new OptionRenameColumn("idOfTheObject", clazzPrimaryKeyName));
-		options.add(new OptionRenameColumn("filedNameOfTheObject", fieldNameToUpdate));
-		options.add(new AccessDeletedItems());
-		TableListObjectGeneric data = null;
-		if (updateFieldName != null) {
-			options.add(new OptionRenameColumn("updatedAt", updateFieldName.inTable()));
-			data = ioDb.getById(TableListObjectGenericUpdateAt.class, clazzPrimaryKeyValue, options.getAllArray());
-		} else {
-			data = ioDb.getById(TableListObjectGeneric.class, clazzPrimaryKeyValue, options.getAllArray());
-		}
-		if (data == null || data.filedNameOfTheObject == null) {
-			return;
-		}
-		final List<Object> newList = new ArrayList<>();
-		for (final Object elem : data.filedNameOfTheObject) {
-			if (elem.equals(valueToRemove)) {
-				continue;
+		// Add to remote array (bidirectional)
+		final ManyToManyDoc manyDoc = fieldDesc.getProperty().getAnnotation(ManyToManyDoc.class);
+		if (manyDoc != null && manyDoc.targetEntity() != null
+				&& manyDoc.remoteField() != null && !manyDoc.remoteField().isEmpty()) {
+			final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
+			final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
+			if (remoteDesc == null) {
+				throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField()
+						+ "' in " + manyDoc.targetEntity().getSimpleName());
 			}
-			newList.add(elem);
+			final String remoteFieldColumn = remoteDesc.getFieldName(null).inTable();
+			MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), valueToAdd,
+					remoteFieldColumn, clazzPrimaryKeyValue);
 		}
-		data.filedNameOfTheObject = newList;
-		if (data.filedNameOfTheObject.isEmpty()) {
-			data.filedNameOfTheObject = null;
-		}
-		options.add(new FilterValue("filedNameOfTheObject"));
-		ioDb.updateById(data, data.idOfTheObject, options.getAllArray());
 	}
 
+	/**
+	 * Remove a bidirectional ManyToMany link.
+	 * Atomically removes valueToRemove from the local field's array AND removes
+	 * clazzPrimaryKeyValue from the remote field's array.
+	 */
 	public static void removeLink(
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object clazzPrimaryKeyValue,
 			final String fieldNameToUpdate,
 			final Object valueToRemove) throws Exception {
-
-		final Field localField = AnnotationTools.getFieldNamed(clazz, fieldNameToUpdate);
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final FieldName localFieldName = AnnotationTools.getFieldName(localField, null);
-			removeLinkLocal(ioDb, clazz, primaryKeyColumnName.inTable(), clazzPrimaryKeyValue, localFieldName.inTable(),
-					valueToRemove);
+		final DbClassModel model = DbClassModel.of(clazz);
+		final DbPropertyDescriptor fieldDesc = model.findByPropertyName(fieldNameToUpdate);
+		if (fieldDesc == null) {
+			throw new DataAccessException(
+					"Cannot find field '" + fieldNameToUpdate + "' in " + clazz.getCanonicalName());
 		}
-		removeLinkRemote(ioDb, localField, clazzPrimaryKeyValue, valueToRemove);
-	}
+		final String localFieldColumn = fieldDesc.getFieldName(null).inTable();
 
-	public static void removeLinkRemote(
-			final DBAccessMongo ioDb,
-			final Field localField,
-			final Object localPrimaryKeyValue,
-			final Object remotePrimaryKeyValue) throws Exception {
-		final ManyToManyDoc manyLocal = AnnotationTools.get(localField, ManyToManyDoc.class);
-		// Update the remote elements:
-		if (manyLocal == null || manyLocal.targetEntity() == null || manyLocal.remoteField() == null
-				|| manyLocal.remoteField().isEmpty()) {
-			return;
-		}
-		{
-			//get local field to find the remote field name:
-			final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(manyLocal.targetEntity());
-			final FieldName primaryKeyColumnName = AnnotationTools.getFieldName(primaryKeyField, null);
-			final Field remoteField = AnnotationTools.getFieldNamed(manyLocal.targetEntity(), manyLocal.remoteField());
-			final FieldName localFieldName = AnnotationTools.getFieldName(remoteField, null);
-			removeLinkLocal(ioDb, manyLocal.targetEntity(), primaryKeyColumnName.inTable(), remotePrimaryKeyValue,
-					localFieldName.inTable(), localPrimaryKeyValue);
+		// Remove from local array
+		MongoLinkManager.removeFromList(ioDb, clazz, clazzPrimaryKeyValue, localFieldColumn, valueToRemove);
+
+		// Remove from remote array (bidirectional)
+		final ManyToManyDoc manyDoc = fieldDesc.getProperty().getAnnotation(ManyToManyDoc.class);
+		if (manyDoc != null && manyDoc.targetEntity() != null
+				&& manyDoc.remoteField() != null && !manyDoc.remoteField().isEmpty()) {
+			final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
+			final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
+			if (remoteDesc == null) {
+				throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField()
+						+ "' in " + manyDoc.targetEntity().getSimpleName());
+			}
+			final String remoteFieldColumn = remoteDesc.getFieldName(null).inTable();
+			MongoLinkManager.removeFromList(ioDb, manyDoc.targetEntity(), valueToRemove,
+					remoteFieldColumn, clazzPrimaryKeyValue);
 		}
 	}
 
 	/**
-	 * This function update the remote field with the correct value, it permit to update a remote filed after adding the decorator or correct a fail in the BDD.
-	 * @param clazz Class that the correct data is present
-	 * @param fieldName Name if the field to update
-	 * @param resetRemote Clear the remote data before updating
+	 * Rebuild all remote links for a ManyToMany field.
+	 * Useful after adding the annotation or correcting data.
 	 */
-	public static <T> void updateRemoteLinks(final Class<T> clazz, final String fieldName, final boolean resetRemote)
-			throws Exception {
-		final Field field = clazz.getField(fieldName);
-		if (field == null) {
+	public static <T> void updateRemoteLinks(
+			final Class<T> clazz,
+			final String fieldName,
+			final boolean resetRemote) throws Exception {
+		final DbClassModel model = DbClassModel.of(clazz);
+		final DbPropertyDescriptor fieldDesc = model.findByPropertyName(fieldName);
+		if (fieldDesc == null) {
 			throw new DataAccessException(
-					"Fail to find the field name:'" + fieldName + "' in class: " + clazz.getCanonicalName());
+					"Cannot find field '" + fieldName + "' in " + clazz.getCanonicalName());
 		}
-		final Field primaryKeyField = AnnotationTools.getPrimaryKeyField(clazz);
-		if (primaryKeyField == null) {
+		final DbPropertyDescriptor pkDesc = model.getPrimaryKey();
+		if (pkDesc == null) {
 			throw new DataAccessException(
-					"Fail to find the primary field not found in class: " + clazz.getCanonicalName());
+					"Cannot find primary key in " + clazz.getCanonicalName());
 		}
-		final ManyToManyDoc annotation = AnnotationTools.get(field, ManyToManyDoc.class);
+		final ManyToManyDoc annotation = fieldDesc.getProperty().getAnnotation(ManyToManyDoc.class);
 		if (annotation == null) {
-			throw new DataAccessException("Fail to find the annotation:'@ManyToManyDoc' in class: "
-					+ clazz.getCanonicalName() + " for fieldName='" + fieldName + "'");
+			throw new DataAccessException("Cannot find @ManyToManyDoc in "
+					+ clazz.getCanonicalName() + " for field '" + fieldName + "'");
 		}
-		// Step 1 get all the data (prevent clear removing)
+		// Step 1: get all data
 		final List<T> data = DataAccess.gets(clazz);
-		// Step 2 clear the remote elements
+		// Step 2: clear remote elements if requested
 		if (resetRemote) {
 			FieldTools.setFieldAtNull(annotation.targetEntity(), annotation.remoteField());
 		}
-		// Step 3 force the system to update the values
+		// Step 3: force re-update by clearing and re-setting
+		final PropertyDescriptor fieldProp = fieldDesc.getProperty();
+		final PropertyDescriptor pkProp = pkDesc.getProperty();
 		for (final T elem : data) {
-			final Object dataTemp = field.get(elem);
-			final Object primaryKey = primaryKeyField.get(elem);
-			field.set(elem, null);
+			final Object dataTemp = fieldProp.getValue(elem);
+			final Object primaryKey = pkProp.getValue(elem);
+			fieldProp.setValue(elem, null);
 			DataAccess.updateById(elem, primaryKey);
-			field.set(elem, dataTemp);
+			fieldProp.setValue(elem, dataTemp);
 			DataAccess.updateById(elem, primaryKey);
 		}
 	}

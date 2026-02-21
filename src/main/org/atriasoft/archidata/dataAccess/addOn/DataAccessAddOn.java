@@ -1,11 +1,11 @@
 package org.atriasoft.archidata.dataAccess.addOn;
 
-import java.lang.reflect.Field;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.bson.Document;
 
 public interface DataAccessAddOn {
@@ -14,29 +14,29 @@ public interface DataAccessAddOn {
 	Class<?> getAnnotationClass();
 
 	/** Check if the field is manage by the local add-on
-	 * @param elem Field to inspect.
+	 * @param desc Property descriptor to inspect.
 	 * @return True of the field is manage by the current Add-on. */
-	boolean isCompatibleField(Field elem);
+	boolean isCompatibleField(DbPropertyDescriptor desc);
 
 	void insertData(
 			final DBAccessMongo ioDb,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object rootObject,
 			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception;
 
 	/** Element can insert in the single request
-	 * @param field
+	 * @param desc
 	 * @return */
-	default boolean canInsert(final Field field) {
+	default boolean canInsert(final DbPropertyDescriptor desc) {
 		return false;
 	}
 
 	/** Element can be retrieve with the specific mode
-	 * @param field
+	 * @param desc
 	 * @return */
-	default boolean canRetrieve(final Field field) {
+	default boolean canRetrieve(final DbPropertyDescriptor desc) {
 		return false;
 	}
 
@@ -44,28 +44,28 @@ public interface DataAccessAddOn {
 	void fillFromDoc(
 			final DBAccessMongo ioDb,
 			Document doc,
-			Field field,
+			DbPropertyDescriptor desc,
 			Object data,
 			QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception, IllegalArgumentException, IllegalAccessException;
+			final List<LazyGetter> lazyCall) throws Exception;
 
 	/** Some action must be done asynchronously for update or remove element
-	 * @param field
+	 * @param desc
 	 * @return */
-	default boolean isInsertAsync(final Field field) throws Exception {
+	default boolean isInsertAsync(final DbPropertyDescriptor desc) throws Exception {
 		return false;
 	}
 
 	/** When insert is mark async, this function permit to create or update the data
 	 * @param localId Local ID of the current table
-	 * @param field Field that is updated.
+	 * @param desc Property descriptor that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncInsert(
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
 			final Object localId,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
@@ -73,22 +73,22 @@ public interface DataAccessAddOn {
 	}
 
 	/** Some action must be done asynchronously for update or remove element
-	 * @param field
+	 * @param desc
 	 * @return */
-	default boolean isUpdateAsync(final Field field) throws Exception {
+	default boolean isUpdateAsync(final DbPropertyDescriptor desc) throws Exception {
 		return false;
 	}
 
 	/** When insert is mark async, this function permit to create or update the data
 	 * @param localId Local ID of the current table
-	 * @param field Field that is updated.
+	 * @param desc Property descriptor that is updated.
 	 * @param data Data that might be inserted.
 	 * @param actions Asynchronous action to do after main request. */
 	default void asyncUpdate(
 			final DBAccessMongo ioDb,
 			final Object previousData,
 			final Object localId,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
@@ -96,26 +96,27 @@ public interface DataAccessAddOn {
 	}
 
 	/** Some annotation need to collect data before updating the current values
-	 * @param field
+	 * @param desc
 	 * @return */
-	default boolean isPreviousDataNeeded(final Field field) {
+	default boolean isPreviousDataNeeded(final DbPropertyDescriptor desc) {
 		return false;
 	}
 
-	default boolean asDeleteAction(final Field field) {
+	default boolean asDeleteAction(final DbPropertyDescriptor desc) {
 		return false;
 	}
 
 	default void onDelete(
 			final DBAccessMongo ioDb,
 			final Class<?> clazz,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final List<Object> previousData,
 			final List<LazyGetter> actions) throws Exception {
 
 	}
 
-	default void drop(final DBAccessMongo ioDb, final String tableName, final Field field, final QueryOptions options)
+	default void drop(final DBAccessMongo ioDb, final String tableName, final DbPropertyDescriptor desc,
+			final QueryOptions options)
 			throws Exception {
 
 	}
@@ -123,7 +124,7 @@ public interface DataAccessAddOn {
 	default void cleanAll(
 			final DBAccessMongo ioDb,
 			final String tableName,
-			final Field field,
+			final DbPropertyDescriptor desc,
 			final QueryOptions options) throws Exception {
 
 	}
