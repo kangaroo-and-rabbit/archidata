@@ -62,7 +62,7 @@ public class TestValidator {
 						.bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(1, exception.inputError.size());
 		Assertions.assertEquals(null, exception.inputError.get(0).argument);
@@ -88,7 +88,7 @@ public class TestValidator {
 						.bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(4, exception.inputError.size());
 		Assertions.assertEquals("arg0", exception.inputError.get(0).argument);

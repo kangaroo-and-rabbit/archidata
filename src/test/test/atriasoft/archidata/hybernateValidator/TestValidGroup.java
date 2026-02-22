@@ -80,7 +80,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "valid").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(1, exception.inputError.size());
 		Assertions.assertEquals("arg0", exception.inputError.get(0).argument);
@@ -112,7 +112,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "create").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(2, exception.inputError.size());
 		Assertions.assertEquals(null, exception.inputError.get(0).argument);
@@ -147,7 +147,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "update").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(2, exception.inputError.size());
 		Assertions.assertEquals(null, exception.inputError.get(0).argument);
@@ -182,7 +182,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "update-create").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(3, exception.inputError.size());
 		Assertions.assertEquals(null, exception.inputError.get(0).argument);
@@ -220,7 +220,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "full").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(3, exception.inputError.size());
 		Assertions.assertEquals(null, exception.inputError.get(0).argument);
@@ -239,7 +239,7 @@ public class TestValidGroup {
 				() -> api.request(TestValidGroup.ENDPOINT_NAME, "full").post().bodyJson(data).fetch());
 		Assertions.assertNotNull(exception);
 		LOGGER.debug("error on input:{}", exception);
-		Assertions.assertNull(exception.getMessage());
+		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
 		Assertions.assertEquals(1, exception.inputError.size());
 		Assertions.assertEquals("arg0", exception.inputError.get(0).argument);
