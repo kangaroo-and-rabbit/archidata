@@ -12,10 +12,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -26,15 +24,13 @@ class TestApiReadOnlyField {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public String editable;
 		@ApiReadOnly
 		public String readOnly;
 	}
 
-	private static Long idOfTheObject = null;
+	private static ObjectId idOfTheObject = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -56,10 +52,10 @@ class TestApiReadOnlyField {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertEquals("editable_initial", retrieved.editable);
 		Assertions.assertEquals("readonly_initial", retrieved.readOnly);
-		idOfTheObject = retrieved.id;
+		idOfTheObject = retrieved._id;
 	}
 
 	@Order(2)

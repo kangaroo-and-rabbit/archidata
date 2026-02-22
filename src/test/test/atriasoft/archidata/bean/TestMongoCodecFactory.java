@@ -195,7 +195,7 @@ class TestMongoCodecFactory {
 	void testReaderLongCoercion() throws Exception {
 		final MongoTypeReader reader = MongoCodecFactory.buildReader(TypeInfo.ofRaw(Long.class));
 		Assertions.assertEquals(42L, reader.fromMongo(42L));
-		Assertions.assertEquals(42L, reader.fromMongo(42));       // Integer → Long
+		Assertions.assertEquals(42L, reader.fromMongo(42)); // Integer → Long
 		Assertions.assertEquals(42L, reader.fromMongo((short) 42)); // Short → Long
 	}
 
@@ -203,7 +203,7 @@ class TestMongoCodecFactory {
 	void testReaderIntegerCoercion() throws Exception {
 		final MongoTypeReader reader = MongoCodecFactory.buildReader(TypeInfo.ofRaw(Integer.class));
 		Assertions.assertEquals(42, reader.fromMongo(42));
-		Assertions.assertEquals(42, reader.fromMongo(42L));       // Long → Integer
+		Assertions.assertEquals(42, reader.fromMongo(42L)); // Long → Integer
 		Assertions.assertEquals(42, reader.fromMongo((short) 42)); // Short → Integer
 	}
 
@@ -211,7 +211,7 @@ class TestMongoCodecFactory {
 	void testReaderShortCoercion() throws Exception {
 		final MongoTypeReader reader = MongoCodecFactory.buildReader(TypeInfo.ofRaw(Short.class));
 		Assertions.assertEquals((short) 42, reader.fromMongo((short) 42));
-		Assertions.assertEquals((short) 42, reader.fromMongo(42));  // Integer → Short
+		Assertions.assertEquals((short) 42, reader.fromMongo(42)); // Integer → Short
 		Assertions.assertEquals((short) 42, reader.fromMongo(42L)); // Long → Short
 	}
 

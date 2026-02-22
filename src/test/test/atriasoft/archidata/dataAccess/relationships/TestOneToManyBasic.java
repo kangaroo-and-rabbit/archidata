@@ -68,8 +68,8 @@ class TestOneToManyBasic {
 	@Order(3)
 	@Test
 	void testRetrieveParentWithRemotes() throws Exception {
-		final TypeOneToManyDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeOneToManyDocLongParentIgnore.class, insertedParent.id);
+		final TypeOneToManyDocLongParentIgnore parentCheck = ConfigureDb.da
+				.getById(TypeOneToManyDocLongParentIgnore.class, insertedParent.id);
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.remoteIds);
 		Assertions.assertEquals(1, parentCheck.remoteIds.size());

@@ -70,7 +70,10 @@ class TestClassModel {
 	}
 
 	// Record
-	public record SimpleRecord(String name, int age, List<String> tags) {}
+	public record SimpleRecord(
+			String name,
+			int age,
+			List<String> tags) {}
 
 	// Enum
 	public enum SimpleEnum {

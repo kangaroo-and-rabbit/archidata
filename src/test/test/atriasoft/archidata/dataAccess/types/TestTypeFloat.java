@@ -10,10 +10,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -24,9 +22,7 @@ class TestTypeFloat {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public float data;
 	}
 
@@ -48,11 +44,11 @@ class TestTypeFloat {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(3.14f, retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -63,13 +59,13 @@ class TestTypeFloat {
 		final Model inserted = ConfigureDb.da.insert(test);
 
 		inserted.data = -1.5f;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted._id);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(-1.5f, retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(3)
@@ -79,11 +75,11 @@ class TestTypeFloat {
 		test.data = 0.0f;
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(0.0f, retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(4)
@@ -93,8 +89,8 @@ class TestTypeFloat {
 		test.data = 42.0f;
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNull(retrieved);
 	}
 }

@@ -95,14 +95,14 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		final String remoteFieldColumn = resolveRemoteFieldColumn(decorators);
 		if (previousDataValue != null) {
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.removeFromList(ioDb, decorators.targetEntity(), previousDataValue,
-						remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.removeFromList(ioDb, decorators.targetEntity(), previousDataValue, remoteFieldColumn,
+						primaryKeyValue);
 			});
 		}
 		if (insertedDataValue != null) {
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, decorators.targetEntity(), insertedDataValue,
-						remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, decorators.targetEntity(), insertedDataValue, remoteFieldColumn,
+						primaryKeyValue);
 			});
 		}
 	}
@@ -129,8 +129,8 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		if (decorators.addLinkWhenCreate()) {
 			final String remoteFieldColumn = resolveRemoteFieldColumn(decorators);
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, decorators.targetEntity(), insertedData,
-						remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, decorators.targetEntity(), insertedData, remoteFieldColumn,
+						primaryKeyValue);
 			});
 		}
 	}
@@ -215,8 +215,8 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object parentKey = prop.getValue(obj);
 			if (parentKey != null) {
 				actions.add((final List<LazyGetter> actionsAsync) -> {
-					MongoLinkManager.removeFromList(ioDb, decorators.targetEntity(), parentKey,
-							remoteFieldColumn, primaryKeyRemovedObject);
+					MongoLinkManager.removeFromList(ioDb, decorators.targetEntity(), parentKey, remoteFieldColumn,
+							primaryKeyRemovedObject);
 				});
 			}
 		}
@@ -228,8 +228,8 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		final DbClassModel targetModel = DbClassModel.of(manyOneDoc.targetEntity());
 		final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyOneDoc.remoteField());
 		if (remoteDesc == null) {
-			throw new DataAccessException("Cannot find remote field '" + manyOneDoc.remoteField()
-					+ "' in " + manyOneDoc.targetEntity().getSimpleName());
+			throw new DataAccessException("Cannot find remote field '" + manyOneDoc.remoteField() + "' in "
+					+ manyOneDoc.targetEntity().getSimpleName());
 		}
 		return remoteDesc.getFieldName(null).inTable();
 	}

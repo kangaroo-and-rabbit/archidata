@@ -10,10 +10,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -24,13 +22,11 @@ class TestHardDelete {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public String data;
 	}
 
-	private static Long idOfTheObject = null;
+	private static ObjectId idOfTheObject = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -50,8 +46,8 @@ class TestHardDelete {
 		test.data = "hard_delete_test";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.id);
-		idOfTheObject = inserted.id;
+		Assertions.assertNotNull(inserted._id);
+		idOfTheObject = inserted._id;
 	}
 
 	@Order(2)

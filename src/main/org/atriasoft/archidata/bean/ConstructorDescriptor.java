@@ -44,10 +44,8 @@ public record ConstructorDescriptor(
 		try {
 			return this.constructor.newInstance(args);
 		} catch (final InstantiationException | IllegalAccessException | IllegalArgumentException e) {
-			throw new IntrospectionException(
-					"Failed to instantiate " + this.constructor.getDeclaringClass().getSimpleName()
-							+ " with " + args.length + " args",
-					e);
+			throw new IntrospectionException("Failed to instantiate "
+					+ this.constructor.getDeclaringClass().getSimpleName() + " with " + args.length + " args", e);
 		} catch (final InvocationTargetException e) {
 			throw new IntrospectionException(
 					"Constructor of " + this.constructor.getDeclaringClass().getSimpleName() + " threw an exception",

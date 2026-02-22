@@ -10,10 +10,9 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -24,9 +23,7 @@ class TestColumnRename {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		@Column(name = "custom_field_name")
 		public String renamedField;
 		public String normalField;
@@ -51,12 +48,12 @@ class TestColumnRename {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("renamed_value", retrieved.renamedField);
 		Assertions.assertEquals("normal_value", retrieved.normalField);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -69,13 +66,13 @@ class TestColumnRename {
 
 		inserted.renamedField = "updated_renamed";
 		inserted.normalField = "updated_normal";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted._id);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated_renamed", retrieved.renamedField);
 		Assertions.assertEquals("updated_normal", retrieved.normalField);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 }

@@ -57,10 +57,10 @@ class TestManyToManyBasic {
 	@Order(2)
 	@Test
 	void testAddLinks() throws Exception {
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class,
-				insertedRoot.id, "remote", insertedRemote1.id);
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class,
-				insertedRoot.id, "remote", insertedRemote2.id);
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
+				insertedRemote1.id);
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
+				insertedRemote2.id);
 
 		// Root should have both remotes
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
@@ -81,8 +81,8 @@ class TestManyToManyBasic {
 	@Order(3)
 	@Test
 	void testRemoveLink() throws Exception {
-		ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class,
-				insertedRoot.id, "remote", insertedRemote1.id);
+		ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
+				insertedRemote1.id);
 
 		// Root should only have remote2
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,

@@ -9,11 +9,7 @@ import org.atriasoft.archidata.model.GenericData;
 public class TypeOneToManyDocLongParentCascadeUpdateDelete extends GenericData {
 	public String data;
 
-	@OneToManyDoc(targetEntity = TypeOneToManyDocLongRemote.class,
-			remoteField = "parentId",
-			addLinkWhenCreate = true,
-			cascadeUpdate = CascadeMode.DELETE,
-			cascadeDelete = CascadeMode.IGNORE)
+	@OneToManyDoc(targetEntity = TypeOneToManyDocLongRemote.class, remoteField = "parentId", addLinkWhenCreate = true, cascadeUpdate = CascadeMode.DELETE, cascadeDelete = CascadeMode.IGNORE)
 	public List<Long> remoteIds;
 
 	public TypeOneToManyDocLongParentCascadeUpdateDelete() {}

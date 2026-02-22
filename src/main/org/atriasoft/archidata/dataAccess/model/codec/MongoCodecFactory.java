@@ -43,8 +43,7 @@ public final class MongoCodecFactory {
 	private static final MongoTypeWriter IDENTITY_W = v -> v;
 	private static final MongoTypeReader IDENTITY_R = v -> v;
 
-	private MongoCodecFactory() {
-	}
+	private MongoCodecFactory() {}
 
 	// ========== Public API ==========
 
@@ -235,8 +234,7 @@ public final class MongoCodecFactory {
 			return v -> {
 				final Object result = lookup.get((String) v);
 				if (result == null) {
-					throw new DataAccessException(
-							"Unknown enum value '" + v + "' for " + raw.getSimpleName());
+					throw new DataAccessException("Unknown enum value '" + v + "' for " + raw.getSimpleName());
 				}
 				return result;
 			};
@@ -399,9 +397,8 @@ public final class MongoCodecFactory {
 	 */
 	private static Object readSubObject(final Object mongoValue, final Class<?> targetClass) throws Exception {
 		if (!(mongoValue instanceof final Document doc)) {
-			throw new DataAccessException(
-					"Expected Document for " + targetClass.getSimpleName()
-							+ " but got " + mongoValue.getClass().getSimpleName());
+			throw new DataAccessException("Expected Document for " + targetClass.getSimpleName() + " but got "
+					+ mongoValue.getClass().getSimpleName());
 		}
 		final DbClassModel dbModel = DbClassModel.of(targetClass);
 		final Object instance = dbModel.getClassModel().newInstance();

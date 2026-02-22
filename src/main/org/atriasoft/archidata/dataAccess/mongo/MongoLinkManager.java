@@ -53,8 +53,7 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update = Updates.addToSet(fieldColumnName, valueToAdd);
@@ -62,13 +61,11 @@ public final class MongoLinkManager {
 		// Also update the updateAt timestamp if present
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		collection.updateOne(filter, update);
-		LOGGER.trace("addToList: {}.{} += {} (pk={})", collectionName, fieldColumnName,
-				valueToAdd, primaryKeyValue);
+		LOGGER.trace("addToList: {}.{} += {} (pk={})", collectionName, fieldColumnName, valueToAdd, primaryKeyValue);
 	}
 
 	/**
@@ -93,21 +90,19 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update = Updates.pull(fieldColumnName, valueToRemove);
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		collection.updateOne(filter, update);
-		LOGGER.trace("removeFromList: {}.{} -= {} (pk={})", collectionName, fieldColumnName,
-				valueToRemove, primaryKeyValue);
+		LOGGER.trace("removeFromList: {}.{} -= {} (pk={})", collectionName, fieldColumnName, valueToRemove,
+				primaryKeyValue);
 	}
 
 	// ========== Scalar operations (for ManyToOne / OneToMany single values) ==========
@@ -134,8 +129,7 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update;
@@ -147,13 +141,11 @@ public final class MongoLinkManager {
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		collection.updateOne(filter, update);
-		LOGGER.trace("setField: {}.{} = {} (pk={})", collectionName, fieldColumnName,
-				value, primaryKeyValue);
+		LOGGER.trace("setField: {}.{} = {} (pk={})", collectionName, fieldColumnName, value, primaryKeyValue);
 	}
 
 	/**
@@ -177,8 +169,7 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update;
@@ -190,8 +181,7 @@ public final class MongoLinkManager {
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		// findOneAndUpdate returns the document BEFORE the update by default
@@ -228,24 +218,20 @@ public final class MongoLinkManager {
 		final DbClassModel model = DbClassModel.of(clazz);
 		final String collectionName = model.getTableName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
-		final Bson filter = filterFieldName != null
-				? Filters.eq(filterFieldName, filterValue)
-				: new Document();
+		final Bson filter = filterFieldName != null ? Filters.eq(filterFieldName, filterValue) : new Document();
 		Bson update = Updates.unset(fieldToNullify);
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		// Use updateMany in case multiple documents match
 		collection.updateMany(filter, update);
-		LOGGER.trace("setFieldToNullWhere: {}.{} where {}={}", collectionName,
-				fieldToNullify, filterFieldName, filterValue);
+		LOGGER.trace("setFieldToNullWhere: {}.{} where {}={}", collectionName, fieldToNullify, filterFieldName,
+				filterValue);
 	}
 
 	// ========== Batch operations ==========
@@ -273,21 +259,19 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update = Updates.addEachToSet(fieldColumnName, valuesToAdd);
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		collection.updateOne(filter, update);
-		LOGGER.trace("addAllToList: {}.{} += {} values (pk={})", collectionName,
-				fieldColumnName, valuesToAdd.size(), primaryKeyValue);
+		LOGGER.trace("addAllToList: {}.{} += {} values (pk={})", collectionName, fieldColumnName, valuesToAdd.size(),
+				primaryKeyValue);
 	}
 
 	/**
@@ -313,20 +297,18 @@ public final class MongoLinkManager {
 		final String collectionName = model.getTableName();
 		final String pkColumn = model.getPrimaryKey().getDbFieldName();
 
-		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase()
-				.getCollection(collectionName);
+		final MongoCollection<Document> collection = ioDb.getInterface().getDatabase().getCollection(collectionName);
 
 		final Bson filter = Filters.eq(pkColumn, primaryKeyValue);
 		Bson update = Updates.pullAll(fieldColumnName, valuesToRemove);
 
 		final DbPropertyDescriptor updateTs = model.getUpdateTimestamp();
 		if (updateTs != null) {
-			update = Updates.combine(update,
-					Updates.set(updateTs.getDbFieldName(), new Date()));
+			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
 		collection.updateOne(filter, update);
-		LOGGER.trace("removeAllFromList: {}.{} -= {} values (pk={})", collectionName,
-				fieldColumnName, valuesToRemove.size(), primaryKeyValue);
+		LOGGER.trace("removeAllFromList: {}.{} -= {} values (pk={})", collectionName, fieldColumnName,
+				valuesToRemove.size(), primaryKeyValue);
 	}
 }

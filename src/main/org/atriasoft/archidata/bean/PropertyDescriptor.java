@@ -38,16 +38,9 @@ public final class PropertyDescriptor {
 	private final boolean readOnly;
 	private final Map<Class<? extends Annotation>, Annotation> annotationCache;
 
-	PropertyDescriptor(
-			final String name,
-			final TypeInfo typeInfo,
-			final Field field,
-			final Method getter,
-			final Method setter,
-			final PropertyGetter lambdaGetter,
-			final PropertySetter lambdaSetter,
-			final boolean constructorSettable,
-			final boolean readOnly) {
+	PropertyDescriptor(final String name, final TypeInfo typeInfo, final Field field, final Method getter,
+			final Method setter, final PropertyGetter lambdaGetter, final PropertySetter lambdaSetter,
+			final boolean constructorSettable, final boolean readOnly) {
 		this.name = name;
 		this.typeInfo = typeInfo;
 		this.field = field;
@@ -174,7 +167,8 @@ public final class PropertyDescriptor {
 	 */
 	public void setValue(final Object instance, final Object value) throws IntrospectionException {
 		if (this.lambdaSetter == null) {
-			throw new IntrospectionException("Property '" + this.name + "' has no setter (readOnly=" + this.readOnly + ")");
+			throw new IntrospectionException(
+					"Property '" + this.name + "' has no setter (readOnly=" + this.readOnly + ")");
 		}
 		try {
 			this.lambdaSetter.set(instance, value);
@@ -219,9 +213,8 @@ public final class PropertyDescriptor {
 	 * @throws IntrospectionException if no getter is available
 	 */
 	@SuppressWarnings("unchecked")
-	public <T, V> TypedPropertyGetter<T, V> createTypedGetter(
-			final Class<T> beanType,
-			final Class<V> valueType) throws IntrospectionException {
+	public <T, V> TypedPropertyGetter<T, V> createTypedGetter(final Class<T> beanType, final Class<V> valueType)
+			throws IntrospectionException {
 		if (this.getter != null) {
 			return LambdaAccessorFactory.createTypedGetter(this.getter, beanType, valueType);
 		}
@@ -245,14 +238,14 @@ public final class PropertyDescriptor {
 	 * @throws IntrospectionException if no setter is available
 	 */
 	@SuppressWarnings("unchecked")
-	public <T, V> TypedPropertySetter<T, V> createTypedSetter(
-			final Class<T> beanType,
-			final Class<V> valueType) throws IntrospectionException {
+	public <T, V> TypedPropertySetter<T, V> createTypedSetter(final Class<T> beanType, final Class<V> valueType)
+			throws IntrospectionException {
 		if (this.setter != null) {
 			return LambdaAccessorFactory.createTypedSetter(this.setter, beanType, valueType);
 		}
 		if (this.field != null) {
-			final TypedPropertySetter<T, V> result = LambdaAccessorFactory.createTypedFieldSetter(this.field, beanType, valueType);
+			final TypedPropertySetter<T, V> result = LambdaAccessorFactory.createTypedFieldSetter(this.field, beanType,
+					valueType);
 			if (result == null) {
 				throw new IntrospectionException("Property '" + this.name + "' is final (no setter)");
 			}
@@ -333,16 +326,8 @@ public final class PropertyDescriptor {
 		}
 
 		PropertyDescriptor build() {
-			return new PropertyDescriptor(
-					this.name,
-					this.typeInfo,
-					this.field,
-					this.getter,
-					this.setter,
-					this.lambdaGetter,
-					this.lambdaSetter,
-					this.constructorSettable,
-					this.readOnly);
+			return new PropertyDescriptor(this.name, this.typeInfo, this.field, this.getter, this.setter,
+					this.lambdaGetter, this.lambdaSetter, this.constructorSettable, this.readOnly);
 		}
 	}
 }

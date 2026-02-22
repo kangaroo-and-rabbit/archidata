@@ -115,9 +115,11 @@ public interface DataAccessAddOn {
 
 	}
 
-	default void drop(final DBAccessMongo ioDb, final String tableName, final DbPropertyDescriptor desc,
-			final QueryOptions options)
-			throws Exception {
+	default void drop(
+			final DBAccessMongo ioDb,
+			final String tableName,
+			final DbPropertyDescriptor desc,
+			final QueryOptions options) throws Exception {
 
 	}
 

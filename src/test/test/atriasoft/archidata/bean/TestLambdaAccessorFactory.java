@@ -156,8 +156,8 @@ class TestLambdaAccessorFactory {
 	@Test
 	void testCreateTypedGetterFromMethod() throws Throwable {
 		final Method getter = SimpleBean.class.getMethod("getTitle");
-		final TypedPropertyGetter<SimpleBean, String> tg = LambdaAccessorFactory.createTypedGetter(
-				getter, SimpleBean.class, String.class);
+		final TypedPropertyGetter<SimpleBean, String> tg = LambdaAccessorFactory.createTypedGetter(getter,
+				SimpleBean.class, String.class);
 
 		final SimpleBean bean = new SimpleBean();
 		bean.setTitle("Typed");
@@ -168,8 +168,8 @@ class TestLambdaAccessorFactory {
 	@Test
 	void testCreateTypedSetterFromMethod() throws Throwable {
 		final Method setter = SimpleBean.class.getMethod("setTitle", String.class);
-		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedSetter(
-				setter, SimpleBean.class, String.class);
+		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedSetter(setter,
+				SimpleBean.class, String.class);
 
 		final SimpleBean bean = new SimpleBean();
 		ts.set(bean, "TypedSet");
@@ -179,8 +179,8 @@ class TestLambdaAccessorFactory {
 	@Test
 	void testCreateTypedFieldGetter() throws Throwable {
 		final Field field = SimpleBean.class.getField("name");
-		final TypedPropertyGetter<SimpleBean, String> tg = LambdaAccessorFactory.createTypedFieldGetter(
-				field, SimpleBean.class, String.class);
+		final TypedPropertyGetter<SimpleBean, String> tg = LambdaAccessorFactory.createTypedFieldGetter(field,
+				SimpleBean.class, String.class);
 
 		final SimpleBean bean = new SimpleBean();
 		bean.name = "TypedField";
@@ -190,8 +190,8 @@ class TestLambdaAccessorFactory {
 	@Test
 	void testCreateTypedFieldSetter() throws Throwable {
 		final Field field = SimpleBean.class.getField("name");
-		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedFieldSetter(
-				field, SimpleBean.class, String.class);
+		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedFieldSetter(field,
+				SimpleBean.class, String.class);
 		Assertions.assertNotNull(ts);
 
 		final SimpleBean bean = new SimpleBean();
@@ -202,8 +202,8 @@ class TestLambdaAccessorFactory {
 	@Test
 	void testCreateTypedFieldSetterFinalReturnsNull() throws Exception {
 		final Field field = SimpleBean.class.getField("immutable");
-		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedFieldSetter(
-				field, SimpleBean.class, String.class);
+		final TypedPropertySetter<SimpleBean, String> ts = LambdaAccessorFactory.createTypedFieldSetter(field,
+				SimpleBean.class, String.class);
 		Assertions.assertNull(ts, "Typed setter for final field should be null");
 	}
 

@@ -10,10 +10,9 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -24,9 +23,7 @@ class TestRecordWithColumnRename {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		@Column(name = "custom_name")
 		public String name;
 		public int value;
@@ -51,12 +48,12 @@ class TestRecordWithColumnRename {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("renamed-field", retrieved.name);
 		Assertions.assertEquals(77, retrieved.value);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -69,13 +66,13 @@ class TestRecordWithColumnRename {
 
 		inserted.name = "updated-renamed";
 		inserted.value = 2;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted._id);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated-renamed", retrieved.name);
 		Assertions.assertEquals(2, retrieved.value);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 }

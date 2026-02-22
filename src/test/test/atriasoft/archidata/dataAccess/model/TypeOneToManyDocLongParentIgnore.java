@@ -9,11 +9,7 @@ import org.atriasoft.archidata.model.GenericData;
 public class TypeOneToManyDocLongParentIgnore extends GenericData {
 	public String data;
 
-	@OneToManyDoc(targetEntity = TypeOneToManyDocLongRemote.class,
-			remoteField = "parentId",
-			addLinkWhenCreate = true,
-			cascadeUpdate = CascadeMode.IGNORE,
-			cascadeDelete = CascadeMode.IGNORE)
+	@OneToManyDoc(targetEntity = TypeOneToManyDocLongRemote.class, remoteField = "parentId", addLinkWhenCreate = true, cascadeUpdate = CascadeMode.IGNORE, cascadeDelete = CascadeMode.IGNORE)
 	public List<Long> remoteIds;
 
 	public TypeOneToManyDocLongParentIgnore() {}

@@ -54,8 +54,8 @@ class TestManyToManyWithTimestamps {
 	void testAddLinkUpdatesTimestamps() throws Exception {
 		Thread.sleep(Duration.ofMillis(150));
 
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class,
-				insertedRoot.id, "remote", insertedRemote.id);
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
+				insertedRemote.id);
 
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
 				insertedRoot.id, new AccessDeletedItems(), new ReadAllColumn());

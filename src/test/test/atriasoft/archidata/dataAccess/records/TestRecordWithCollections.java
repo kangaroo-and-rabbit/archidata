@@ -15,10 +15,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -29,18 +27,19 @@ import test.atriasoft.archidata.StepwiseExtension;
 class TestRecordWithCollections {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestRecordWithCollections.class);
 
-	public record RecWithColl(String name, List<Integer> values, Map<String, String> labels) {}
+	public record RecWithColl(
+			String name,
+			List<Integer> values,
+			Map<String, String> labels) {}
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 
 		public RecWithColl data;
 	}
 
-	private static Long idOfTheObject = null;
+	private static ObjectId idOfTheObject = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -57,22 +56,20 @@ class TestRecordWithCollections {
 	@Test
 	void testInsertAndRetrieve() throws Exception {
 		final Model test = new Model();
-		test.data = new RecWithColl(
-				"collections-test",
-				List.of(1, 2, 3, 4, 5),
+		test.data = new RecWithColl("collections-test", List.of(1, 2, 3, 4, 5),
 				Map.of("key1", "value1", "key2", "value2"));
 
 		final Model insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData._id);
+		Assertions.assertNotNull(insertedData._id);
 
-		final Model retrieve = ConfigureDb.da.getById(Model.class, insertedData.id);
+		final Model retrieve = ConfigureDb.da.getById(Model.class, insertedData._id);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve._id);
+		Assertions.assertEquals(insertedData._id, retrieve._id);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals("collections-test", retrieve.data.name());
 		Assertions.assertNotNull(retrieve.data.values());
@@ -82,6 +79,6 @@ class TestRecordWithCollections {
 		Assertions.assertEquals("value2", retrieve.data.labels().get("key2"));
 		Assertions.assertEquals(2, retrieve.data.labels().size());
 
-		idOfTheObject = retrieve.id;
+		idOfTheObject = retrieve._id;
 	}
 }

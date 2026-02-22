@@ -61,7 +61,8 @@ class TestManyToOneAllTrue {
 
 		// Parent should now have the child link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
@@ -76,14 +77,14 @@ class TestManyToOneAllTrue {
 		Assertions.assertEquals(1, count);
 
 		// Old parent should lose the link
-		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent1Check);
 		Assertions.assertNull(parent1Check.childIds);
 
 		// New parent should get the link
-		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent2Check);
 		Assertions.assertNotNull(parent2Check.childIds);
 		Assertions.assertEquals(1, parent2Check.childIds.size());
@@ -98,7 +99,8 @@ class TestManyToOneAllTrue {
 
 		// Parent should lose the link
 		final TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parent2Check);
 		Assertions.assertNull(parent2Check.childIds);
 	}

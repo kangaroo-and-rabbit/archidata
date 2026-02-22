@@ -10,10 +10,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -24,9 +22,7 @@ class TestTypeString {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public String data;
 	}
 
@@ -48,11 +44,11 @@ class TestTypeString {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("hello world", retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -63,13 +59,13 @@ class TestTypeString {
 		final Model inserted = ConfigureDb.da.insert(test);
 
 		inserted.data = "updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted._id);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated", retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(3)
@@ -79,11 +75,11 @@ class TestTypeString {
 		test.data = "";
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("", retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(4)
@@ -93,11 +89,11 @@ class TestTypeString {
 		test.data = null;
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertNull(retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(5)
@@ -107,10 +103,10 @@ class TestTypeString {
 		test.data = "àéîôù ñ 日本語 emoji:🎉 <html>&amp; \"quotes\" tab:\there";
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(test.data, retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 }

@@ -154,7 +154,8 @@ public final class ClassModel {
 	/**
 	 * Find all properties that have the given annotation.
 	 */
-	public <A extends Annotation> List<PropertyDescriptor> findPropertiesWithAnnotation(final Class<A> annotationClass) {
+	public <A extends Annotation> List<PropertyDescriptor> findPropertiesWithAnnotation(
+			final Class<A> annotationClass) {
 		final List<PropertyDescriptor> result = new ArrayList<>();
 		for (final PropertyDescriptor p : this.properties) {
 			if (p.hasAnnotation(annotationClass)) {
@@ -298,8 +299,7 @@ public final class ClassModel {
 		}
 		this.propertiesByName = Collections.unmodifiableMap(byName);
 
-		LOGGER.trace("Introspected '{}': {} properties, {} constructors",
-				this.simpleName, props.size(), ctors.size());
+		LOGGER.trace("Introspected '{}': {} properties, {} constructors", this.simpleName, props.size(), ctors.size());
 	}
 
 	// ========== Introspection steps ==========
@@ -344,10 +344,7 @@ public final class ClassModel {
 			final PropertySetter setter = isFinal ? null : LambdaAccessorFactory.createFieldSetter(field);
 
 			final PropertyDescriptor.Builder b = builders.computeIfAbsent(name, PropertyDescriptor::builder);
-			b.typeInfo(typeInfo)
-					.field(field)
-					.readOnly(isFinal && setter == null)
-					.lambdaGetter(getter);
+			b.typeInfo(typeInfo).field(field).readOnly(isFinal && setter == null).lambdaGetter(getter);
 			if (setter != null) {
 				b.lambdaSetter(setter);
 			}
@@ -379,7 +376,8 @@ public final class ClassModel {
 				if (method.getParameterCount() == 0 && method.getReturnType() != void.class) {
 					final TypeInfo typeInfo = TypeInfo.fromReturnType(method);
 					final PropertyGetter getter = LambdaAccessorFactory.createGetter(method);
-					final PropertyDescriptor.Builder b = builders.computeIfAbsent(methodName, PropertyDescriptor::builder);
+					final PropertyDescriptor.Builder b = builders.computeIfAbsent(methodName,
+							PropertyDescriptor::builder);
 					if (b.getTypeInfo() == null) {
 						b.typeInfo(typeInfo);
 					}
@@ -389,12 +387,9 @@ public final class ClassModel {
 			}
 
 			// getXxx() — non-boolean return, no params, name length > 3, 4th char uppercase
-			if (methodName.startsWith("get") && methodName.length() > 3
-					&& Character.isUpperCase(methodName.charAt(3))
-					&& method.getParameterCount() == 0
-					&& method.getReturnType() != void.class
-					&& method.getReturnType() != boolean.class
-					&& method.getReturnType() != Boolean.class) {
+			if (methodName.startsWith("get") && methodName.length() > 3 && Character.isUpperCase(methodName.charAt(3))
+					&& method.getParameterCount() == 0 && method.getReturnType() != void.class
+					&& method.getReturnType() != boolean.class && method.getReturnType() != Boolean.class) {
 
 				final String propName = decapitalize(methodName.substring(3));
 				final TypeInfo typeInfo = TypeInfo.fromReturnType(method);
@@ -410,8 +405,7 @@ public final class ClassModel {
 
 			// isXxx() — boolean return, no params, name length > 2, 3rd char uppercase
 			if (!this.isRecord && methodName.startsWith("is") && methodName.length() > 2
-					&& Character.isUpperCase(methodName.charAt(2))
-					&& method.getParameterCount() == 0
+					&& Character.isUpperCase(methodName.charAt(2)) && method.getParameterCount() == 0
 					&& (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
 
 				final String propName = decapitalize(methodName.substring(2));
@@ -428,8 +422,7 @@ public final class ClassModel {
 
 			// setXxx(value) — void return, 1 param, name length > 3, 4th char uppercase
 			if (!this.isRecord && methodName.startsWith("set") && methodName.length() > 3
-					&& Character.isUpperCase(methodName.charAt(3))
-					&& method.getReturnType() == void.class
+					&& Character.isUpperCase(methodName.charAt(3)) && method.getReturnType() == void.class
 					&& method.getParameterCount() == 1) {
 
 				final String propName = decapitalize(methodName.substring(3));
@@ -473,7 +466,7 @@ public final class ClassModel {
 
 	@Override
 	public String toString() {
-		return "ClassModel{" + this.clazz.getSimpleName() + ", properties=" + this.properties.size()
-				+ ", constructors=" + this.constructors.size() + "}";
+		return "ClassModel{" + this.clazz.getSimpleName() + ", properties=" + this.properties.size() + ", constructors="
+				+ this.constructors.size() + "}";
 	}
 }

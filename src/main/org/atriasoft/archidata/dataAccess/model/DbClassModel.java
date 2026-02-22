@@ -285,17 +285,13 @@ public final class DbClassModel {
 		this.asyncInsertFields = Collections.unmodifiableList(asyncInsert);
 		this.asyncUpdateFields = Collections.unmodifiableList(asyncUpdate);
 
-		LOGGER.trace("DbClassModel '{}': table='{}', pk={}, fields={}, addons={}",
-				clazz.getSimpleName(), this.tableName,
-				pk != null ? pk.getDbFieldName() : "none",
-				regular.size(), addon.size());
+		LOGGER.trace("DbClassModel '{}': table='{}', pk={}, fields={}, addons={}", clazz.getSimpleName(),
+				this.tableName, pk != null ? pk.getDbFieldName() : "none", regular.size(), addon.size());
 	}
 
 	@Override
 	public String toString() {
-		return "DbClassModel{" + this.classModel.getSimpleName()
-				+ ", table='" + this.tableName + "'"
-				+ ", fields=" + this.allFields.size()
-				+ "}";
+		return "DbClassModel{" + this.classModel.getSimpleName() + ", table='" + this.tableName + "'" + ", fields="
+				+ this.allFields.size() + "}";
 	}
 }

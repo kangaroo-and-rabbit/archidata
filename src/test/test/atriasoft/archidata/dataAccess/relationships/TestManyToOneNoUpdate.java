@@ -55,12 +55,14 @@ class TestManyToOneNoUpdate {
 	@Test
 	void testInsertChildDoesNotAddLink() throws Exception {
 		// addLinkWhenCreate=false
-		final TypeManyToOneDocLongChildFFT child = new TypeManyToOneDocLongChildFFT("child_noupdate", insertedParent1.id);
+		final TypeManyToOneDocLongChildFFT child = new TypeManyToOneDocLongChildFFT("child_noupdate",
+				insertedParent1.id);
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNull(parentCheck.childIds);
 	}
@@ -69,12 +71,14 @@ class TestManyToOneNoUpdate {
 	@Test
 	void testManuallyAddLinkToParent() throws Exception {
 		// Manually add link so we can test update behavior
-		final TypeManyToOneDocLongParentIgnore parentUpdate = new TypeManyToOneDocLongParentIgnore("parent1_noupdate", List.of(insertedChild.id));
+		final TypeManyToOneDocLongParentIgnore parentUpdate = new TypeManyToOneDocLongParentIgnore("parent1_noupdate",
+				List.of(insertedChild.id));
 		ConfigureDb.da.updateById(parentUpdate, insertedParent1.id);
 
 		// Verify link is added
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
@@ -84,19 +88,20 @@ class TestManyToOneNoUpdate {
 	@Test
 	void testUpdateChildMovesLink() throws Exception {
 		// updateLinkWhenUpdate=true — changing parent should update both parents
-		final TypeManyToOneDocLongChildFFT childUpdate = new TypeManyToOneDocLongChildFFT("child_noupdate", insertedParent2.id);
+		final TypeManyToOneDocLongChildFFT childUpdate = new TypeManyToOneDocLongChildFFT("child_noupdate",
+				insertedParent2.id);
 		final long count = ConfigureDb.da.updateById(childUpdate, insertedChild.id);
 		Assertions.assertEquals(1, count);
 
 		// Old parent should lose link
-		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent1Check);
 		Assertions.assertNull(parent1Check.childIds);
 
 		// New parent should get link
-		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent2Check);
 		Assertions.assertNotNull(parent2Check.childIds);
 		Assertions.assertEquals(1, parent2Check.childIds.size());

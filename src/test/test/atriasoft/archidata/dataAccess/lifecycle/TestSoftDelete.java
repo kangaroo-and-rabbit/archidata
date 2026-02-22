@@ -80,7 +80,8 @@ class TestSoftDelete {
 	@Order(5)
 	@Test
 	void testSoftDeletedFlagIsTrue() throws Exception {
-		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
+		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("soft_delete_test", retrieved.data);
 		Assertions.assertNotNull(retrieved.deleted);

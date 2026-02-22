@@ -23,8 +23,7 @@ public class FieldTools {
 		final DbClassModel model = DbClassModel.of(clazz);
 		final DbPropertyDescriptor fieldDesc = model.findByPropertyName(fieldName);
 		if (fieldDesc == null) {
-			throw new DataAccessException(
-					"Cannot find field '" + fieldName + "' in " + clazz.getCanonicalName());
+			throw new DataAccessException("Cannot find field '" + fieldName + "' in " + clazz.getCanonicalName());
 		}
 		final String fieldColumn = fieldDesc.getFieldName(null).inTable();
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {

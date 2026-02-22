@@ -86,7 +86,8 @@ class TestHardDeleteSoftDeletedObject {
 		final long count = ConfigureDb.da.deleteById(Model.class, idOfTheObject);
 		Assertions.assertEquals(1, count);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
+		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated_before_delete", retrieved.data);
 		Assertions.assertNotNull(retrieved.createdAt);

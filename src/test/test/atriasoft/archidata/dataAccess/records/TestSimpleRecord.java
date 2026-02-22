@@ -13,10 +13,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -27,18 +25,18 @@ import test.atriasoft.archidata.StepwiseExtension;
 class TestSimpleRecord {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestSimpleRecord.class);
 
-	public record SimpleRec(String name, int value) {}
+	public record SimpleRec(
+			String name,
+			int value) {}
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 
 		public SimpleRec data;
 	}
 
-	private static Long idOfTheObject = null;
+	private static ObjectId idOfTheObject = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -60,19 +58,19 @@ class TestSimpleRecord {
 		final Model insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData._id);
+		Assertions.assertNotNull(insertedData._id);
 
-		final Model retrieve = ConfigureDb.da.getById(Model.class, insertedData.id);
+		final Model retrieve = ConfigureDb.da.getById(Model.class, insertedData._id);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve._id);
+		Assertions.assertEquals(insertedData._id, retrieve._id);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals("hello", retrieve.data.name());
 		Assertions.assertEquals(42, retrieve.data.value());
 
-		idOfTheObject = retrieve.id;
+		idOfTheObject = retrieve._id;
 	}
 
 	@Order(2)
@@ -86,7 +84,7 @@ class TestSimpleRecord {
 		final Model retrieve = ConfigureDb.da.getById(Model.class, idOfTheObject);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertEquals(idOfTheObject, retrieve.id);
+		Assertions.assertEquals(idOfTheObject, retrieve._id);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertEquals("updated", retrieve.data.name());
 		Assertions.assertEquals(99, retrieve.data.value());

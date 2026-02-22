@@ -10,10 +10,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.ws.rs.DefaultValue;
 import test.atriasoft.archidata.ConfigureDb;
@@ -25,9 +23,7 @@ class TestDefaultValue {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		@DefaultValue("'default_text'")
 		public String textData = null;
 		@DefaultValue("'42'")
@@ -53,13 +49,13 @@ class TestDefaultValue {
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("default_text", retrieved.textData);
 		Assertions.assertEquals(42, retrieved.intData);
 		Assertions.assertEquals(false, retrieved.boolData);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -71,12 +67,12 @@ class TestDefaultValue {
 		test.boolData = true;
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("explicit", retrieved.textData);
 		Assertions.assertEquals(99, retrieved.intData);
 		Assertions.assertEquals(true, retrieved.boolData);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 }

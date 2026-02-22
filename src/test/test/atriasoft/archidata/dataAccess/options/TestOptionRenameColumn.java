@@ -11,10 +11,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -25,9 +23,7 @@ class TestOptionRenameColumn {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public String data;
 	}
 
@@ -50,10 +46,10 @@ class TestOptionRenameColumn {
 		final Model inserted = ConfigureDb.da.insert(test, rename);
 		Assertions.assertNotNull(inserted);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id, rename);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id, rename);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("renamed_column_test", retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id, rename);
+		ConfigureDb.da.deleteById(Model.class, inserted._id, rename);
 	}
 }

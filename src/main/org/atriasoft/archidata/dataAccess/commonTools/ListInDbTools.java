@@ -47,8 +47,7 @@ public class ListInDbTools {
 
 	private static String resolveFieldColumn(final Class<?> clazz, final String fieldName) throws Exception {
 		if (fieldName == null) {
-			throw new DataAccessException(
-					"fieldName is null in ListInDbTools for class: " + clazz.getCanonicalName());
+			throw new DataAccessException("fieldName is null in ListInDbTools for class: " + clazz.getCanonicalName());
 		}
 		final DbClassModel model = DbClassModel.of(clazz);
 		// Try property name first

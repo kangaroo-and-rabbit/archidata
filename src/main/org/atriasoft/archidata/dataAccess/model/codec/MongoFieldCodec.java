@@ -24,13 +24,8 @@ public final class MongoFieldCodec {
 	private final MongoTypeReader reader;
 	private final boolean primitive;
 
-	public MongoFieldCodec(
-			final PropertyGetter getter,
-			final PropertySetter setter,
-			final String dbFieldName,
-			final MongoTypeWriter writer,
-			final MongoTypeReader reader,
-			final boolean primitive) {
+	public MongoFieldCodec(final PropertyGetter getter, final PropertySetter setter, final String dbFieldName,
+			final MongoTypeWriter writer, final MongoTypeReader reader, final boolean primitive) {
 		this.getter = getter;
 		this.setter = setter;
 		this.dbFieldName = dbFieldName;
@@ -99,9 +94,7 @@ public final class MongoFieldCodec {
 	 * @param doc the MongoDB document
 	 * @param instance the Java bean instance to populate
 	 */
-	public void readFromDoc(
-			final Document doc,
-			final Object instance) throws Exception {
+	public void readFromDoc(final Document doc, final Object instance) throws Exception {
 		readFromDocInternal(doc, this.dbFieldName, this.reader, instance);
 	}
 
@@ -112,10 +105,8 @@ public final class MongoFieldCodec {
 	 * @param overrideFieldName the field name to read from the document
 	 * @param instance the Java bean instance to populate
 	 */
-	public void readFromDoc(
-			final Document doc,
-			final String overrideFieldName,
-			final Object instance) throws Exception {
+	public void readFromDoc(final Document doc, final String overrideFieldName, final Object instance)
+			throws Exception {
 		readFromDocInternal(doc, overrideFieldName, this.reader, instance);
 	}
 

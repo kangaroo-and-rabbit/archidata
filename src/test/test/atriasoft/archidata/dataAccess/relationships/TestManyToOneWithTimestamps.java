@@ -58,7 +58,8 @@ class TestManyToOneWithTimestamps {
 
 		// Check parent's updatedAt changed
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.createdAt);
 		Assertions.assertNotNull(parentCheck.updatedAt);
@@ -75,7 +76,8 @@ class TestManyToOneWithTimestamps {
 		Assertions.assertEquals(1, count);
 
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.updatedAt);
 		Assertions.assertTrue(parentCheck.updatedAt.after(parentUpdatedAtAfterInsert));

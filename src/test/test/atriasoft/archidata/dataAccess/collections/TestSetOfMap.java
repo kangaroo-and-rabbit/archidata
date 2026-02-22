@@ -14,10 +14,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -28,9 +26,7 @@ class TestSetOfMap {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public Set<Map<String, Integer>> data;
 	}
 
@@ -61,13 +57,13 @@ class TestSetOfMap {
 		Assertions.assertNotNull(inserted.data);
 		Assertions.assertEquals(2, inserted.data.size());
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertNotNull(retrieved.data);
 		Assertions.assertEquals(2, retrieved.data.size());
 		Assertions.assertTrue(retrieved.data.containsAll(test.data));
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(2)
@@ -84,9 +80,9 @@ class TestSetOfMap {
 		final Map<String, Integer> newMap = new HashMap<>();
 		newMap.put("y", 20);
 		inserted.data.add(newMap);
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted._id);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(1, retrieved.data.size());
 		final Set<Map<String, Integer>> expected = new HashSet<>();
@@ -95,7 +91,7 @@ class TestSetOfMap {
 		expected.add(expectedMap);
 		Assertions.assertTrue(retrieved.data.containsAll(expected));
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 
 	@Order(3)
@@ -105,10 +101,10 @@ class TestSetOfMap {
 		test.data = null;
 		final Model inserted = ConfigureDb.da.insert(test);
 
-		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted.id);
+		final Model retrieved = ConfigureDb.da.getById(Model.class, inserted._id);
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertNull(retrieved.data);
 
-		ConfigureDb.da.deleteById(Model.class, inserted.id);
+		ConfigureDb.da.deleteById(Model.class, inserted._id);
 	}
 }

@@ -56,7 +56,8 @@ class TestManyToOneAllFalse {
 		Assertions.assertNotNull(insertedChild);
 
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNull(parentCheck.childIds);
 	}
@@ -64,17 +65,18 @@ class TestManyToOneAllFalse {
 	@Order(3)
 	@Test
 	void testUpdateChildNoLinkChange() throws Exception {
-		final TypeManyToOneDocLongChildFFF childUpdate = new TypeManyToOneDocLongChildFFF("child_fff", insertedParent2.id);
+		final TypeManyToOneDocLongChildFFF childUpdate = new TypeManyToOneDocLongChildFFF("child_fff",
+				insertedParent2.id);
 		final long count = ConfigureDb.da.updateById(childUpdate, insertedChild.id);
 		Assertions.assertEquals(1, count);
 
 		// Neither parent should have links
-		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNull(parent1Check.childIds);
 
-		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNull(parent2Check.childIds);
 	}
 
@@ -85,8 +87,8 @@ class TestManyToOneAllFalse {
 		Assertions.assertEquals(1, count);
 
 		// Parent still no links
-		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
+				insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNull(parent2Check.childIds);
 	}
 }

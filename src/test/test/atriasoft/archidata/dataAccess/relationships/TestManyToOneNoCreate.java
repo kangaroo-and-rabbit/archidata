@@ -47,14 +47,16 @@ class TestManyToOneNoCreate {
 	@Order(2)
 	@Test
 	void testInsertChildDoesNotAddLink() throws Exception {
-		final TypeManyToOneDocLongChildFFF child = new TypeManyToOneDocLongChildFFF("child_no_create", insertedParent1.id);
+		final TypeManyToOneDocLongChildFFF child = new TypeManyToOneDocLongChildFFF("child_no_create",
+				insertedParent1.id);
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 		Assertions.assertEquals(insertedParent1.id, insertedChild.parentId);
 
 		// Parent should NOT have the child link (addLinkWhenCreate=false)
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNull(parentCheck.childIds);
 	}

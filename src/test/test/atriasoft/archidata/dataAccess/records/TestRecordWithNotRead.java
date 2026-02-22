@@ -12,10 +12,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
@@ -26,15 +24,13 @@ class TestRecordWithNotRead {
 
 	public static class Model {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
-		public Long id = null;
+		public ObjectId _id = null;
 		public String visible;
 		@DataNotRead
 		public String hidden;
 	}
 
-	private static Long idOfTheObject = null;
+	private static ObjectId idOfTheObject = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -55,7 +51,7 @@ class TestRecordWithNotRead {
 		test.hidden = "I am hidden";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		idOfTheObject = inserted.id;
+		idOfTheObject = inserted._id;
 	}
 
 	@Order(2)

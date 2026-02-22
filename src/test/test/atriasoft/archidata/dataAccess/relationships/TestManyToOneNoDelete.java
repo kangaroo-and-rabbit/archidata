@@ -47,13 +47,15 @@ class TestManyToOneNoDelete {
 	@Order(2)
 	@Test
 	void testInsertChildAddsLink() throws Exception {
-		final TypeManyToOneDocLongChildTFF child = new TypeManyToOneDocLongChildTFF("child_nodelete", insertedParent.id);
+		final TypeManyToOneDocLongChildTFF child = new TypeManyToOneDocLongChildTFF("child_nodelete",
+				insertedParent.id);
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 
 		// addLinkWhenCreate=true, so parent should have the link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
@@ -68,7 +70,8 @@ class TestManyToOneNoDelete {
 
 		// removeLinkWhenDelete=false, so parent should STILL have the link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(), new ReadAllColumn());
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());

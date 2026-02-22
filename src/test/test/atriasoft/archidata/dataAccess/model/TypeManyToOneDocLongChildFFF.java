@@ -10,11 +10,7 @@ import jakarta.persistence.Table;
 public class TypeManyToOneDocLongChildFFF extends GenericData {
 	public String otherData;
 
-	@ManyToOneDoc(targetEntity = TypeManyToOneDocLongParentIgnore.class,
-			remoteField = "childIds",
-			addLinkWhenCreate = false,
-			removeLinkWhenDelete = false,
-			updateLinkWhenUpdate = false)
+	@ManyToOneDoc(targetEntity = TypeManyToOneDocLongParentIgnore.class, remoteField = "childIds", addLinkWhenCreate = false, removeLinkWhenDelete = false, updateLinkWhenUpdate = false)
 	@Column(nullable = false)
 	public Long parentId;
 

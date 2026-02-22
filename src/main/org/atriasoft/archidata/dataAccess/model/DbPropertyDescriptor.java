@@ -52,8 +52,7 @@ public final class DbPropertyDescriptor {
 	// Pre-compiled codec for zero-overhead MongoDB read/write
 	private MongoFieldCodec codec;
 
-	DbPropertyDescriptor(
-			final PropertyDescriptor property) {
+	DbPropertyDescriptor(final PropertyDescriptor property) {
 		this.property = property;
 
 		final Field field = property.getField();
@@ -121,10 +120,8 @@ public final class DbPropertyDescriptor {
 	 */
 	void buildCodec() {
 		if (this.property.canRead()) {
-			this.codec = MongoCodecFactory.buildFieldCodec(
-					this.property.getRawGetter(),
-					this.property.canWrite() ? this.property.getRawSetter() : null,
-					this.property.getTypeInfo(),
+			this.codec = MongoCodecFactory.buildFieldCodec(this.property.getRawGetter(),
+					this.property.canWrite() ? this.property.getRawSetter() : null, this.property.getTypeInfo(),
 					this.dbFieldName);
 		}
 	}
@@ -212,16 +209,13 @@ public final class DbPropertyDescriptor {
 
 	/** Quick check: is this a "generic" field that shouldn't be updated by users? */
 	public boolean isGenericField() {
-		return this.action == DbFieldAction.PRIMARY_KEY
-				|| this.action == DbFieldAction.CREATION_TIMESTAMP
-				|| this.action == DbFieldAction.UPDATE_TIMESTAMP
-				|| this.action == DbFieldAction.DELETED;
+		return this.action == DbFieldAction.PRIMARY_KEY || this.action == DbFieldAction.CREATION_TIMESTAMP
+				|| this.action == DbFieldAction.UPDATE_TIMESTAMP || this.action == DbFieldAction.DELETED;
 	}
 
 	// ========== Private helpers ==========
 
-	private static DbFieldAction determineActionWithoutAddOn(
-			final PropertyDescriptor property) {
+	private static DbFieldAction determineActionWithoutAddOn(final PropertyDescriptor property) {
 		if (property.hasAnnotation(Id.class)) {
 			return DbFieldAction.PRIMARY_KEY;
 		}

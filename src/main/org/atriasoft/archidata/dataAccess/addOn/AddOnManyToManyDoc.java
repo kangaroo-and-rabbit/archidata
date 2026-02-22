@@ -99,8 +99,8 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		}
 		// Resolve remote collection and field info once
 		final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
-		if (manyDoc == null || manyDoc.targetEntity() == null
-				|| manyDoc.remoteField() == null || manyDoc.remoteField().isEmpty()) {
+		if (manyDoc == null || manyDoc.targetEntity() == null || manyDoc.remoteField() == null
+				|| manyDoc.remoteField().isEmpty()) {
 			return;
 		}
 		final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
@@ -111,8 +111,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value,
-						remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 		// remove old values (atomic $pull on remote document)
@@ -121,8 +120,8 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.removeFromList(ioDb, manyDoc.targetEntity(), value,
-						remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.removeFromList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn,
+						primaryKeyValue);
 			});
 		}
 	}
@@ -156,15 +155,14 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
 			final PropertyDescriptor prop = desc.getProperty();
 			final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
-			if (manyDoc == null || manyDoc.targetEntity() == null
-					|| manyDoc.remoteField() == null || manyDoc.remoteField().isEmpty()) {
+			if (manyDoc == null || manyDoc.targetEntity() == null || manyDoc.remoteField() == null
+					|| manyDoc.remoteField().isEmpty()) {
 				return;
 			}
 			final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
 			for (final Object value : insertedDataCollection) {
 				actions.add((final List<LazyGetter> actionsAsync) -> {
-					MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value,
-							remoteFieldColumn, primaryKeyValue);
+					MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn, primaryKeyValue);
 				});
 			}
 		}
@@ -291,8 +289,8 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
 		final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
 		if (remoteDesc == null) {
-			throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField()
-					+ "' in " + manyDoc.targetEntity().getSimpleName());
+			throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField() + "' in "
+					+ manyDoc.targetEntity().getSimpleName());
 		}
 		return remoteDesc.getFieldName(null).inTable();
 	}

@@ -1140,6 +1140,7 @@ public class DBAccessMongo implements Closeable {
 										"Fail to Insert data in DB.. when use 'DirectData.class' or 'DirectPrimaryKey.class' you need to provide a primary key...");
 							}
 							uniqueId = primaryKeyValue;
+							docSet.append(fieldName.inTable(), primaryKeyValue);
 						}
 						break;
 					}
@@ -1755,8 +1756,8 @@ public class DBAccessMongo implements Closeable {
 		if (updateTsDesc == null) {
 			actions = new Document("$set", new Document(deletedFieldName, true));
 		} else {
-			actions = new Document("$set",
-					new Document(deletedFieldName, true).append(updateTsDesc.getDbFieldName(), Date.from(Instant.now())));
+			actions = new Document("$set", new Document(deletedFieldName, true).append(updateTsDesc.getDbFieldName(),
+					Date.from(Instant.now())));
 		}
 		actionOnDelete(clazz, option);
 		statistic.countUpdateMany++;

@@ -139,8 +139,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testFieldAnnotation() throws Exception {
 		final Field field = FieldOnly.class.getField("name");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				field, null, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(field,
+				null, null);
 
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
 		Assertions.assertEquals("field", UnifiedAnnotationLookup.get(cache, Alpha.class).value());
@@ -149,8 +149,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testGetterAnnotation() throws Exception {
 		final Method getter = GetterOnly.class.getMethod("getName");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				null, getter, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(null,
+				getter, null);
 
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
 		Assertions.assertEquals("getter", UnifiedAnnotationLookup.get(cache, Alpha.class).value());
@@ -159,8 +159,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testSetterAnnotation() throws Exception {
 		final Method setter = SetterOnly.class.getMethod("setName", String.class);
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				null, null, setter);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(null,
+				null, setter);
 
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
 		Assertions.assertEquals("setter", UnifiedAnnotationLookup.get(cache, Alpha.class).value());
@@ -170,8 +170,8 @@ class TestUnifiedAnnotationLookup {
 	void testFieldPriorityOverGetter() throws Exception {
 		final Field field = FieldAndGetter.class.getDeclaredField("name");
 		final Method getter = FieldAndGetter.class.getMethod("getName");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				field, getter, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(field,
+				getter, null);
 
 		// Field should win (higher priority)
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
@@ -182,8 +182,8 @@ class TestUnifiedAnnotationLookup {
 	void testMultipleAnnotationTypes() throws Exception {
 		final Field field = MultipleAnnotations.class.getDeclaredField("name");
 		final Method getter = MultipleAnnotations.class.getMethod("getName");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				field, getter, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(field,
+				getter, null);
 
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Beta.class));
@@ -196,8 +196,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testInterfaceAnnotationInheritance() throws Exception {
 		final Method getter = ImplementsInterface.class.getMethod("getName");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				null, getter, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(null,
+				getter, null);
 
 		// Interface annotation should be picked up
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
@@ -207,8 +207,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testClassAnnotationOverridesInterface() throws Exception {
 		final Method getter = OverridesInterfaceAnnotation.class.getMethod("getName");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				null, getter, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(null,
+				getter, null);
 
 		// Class getter annotation should have higher priority than interface
 		Assertions.assertTrue(UnifiedAnnotationLookup.has(cache, Alpha.class));
@@ -217,8 +217,8 @@ class TestUnifiedAnnotationLookup {
 
 	@Test
 	void testEmptyCache() {
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				null, null, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(null,
+				null, null);
 
 		Assertions.assertTrue(cache.isEmpty());
 		Assertions.assertFalse(UnifiedAnnotationLookup.has(cache, Alpha.class));
@@ -244,8 +244,8 @@ class TestUnifiedAnnotationLookup {
 	@Test
 	void testCacheIsUnmodifiable() throws Exception {
 		final Field field = FieldOnly.class.getField("name");
-		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(
-				field, null, null);
+		final Map<Class<? extends Annotation>, Annotation> cache = UnifiedAnnotationLookup.buildAnnotationCache(field,
+				null, null);
 
 		Assertions.assertThrows(UnsupportedOperationException.class, () -> cache.put(Beta.class, null));
 	}

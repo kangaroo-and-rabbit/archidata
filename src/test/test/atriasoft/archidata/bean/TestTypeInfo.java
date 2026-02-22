@@ -34,7 +34,9 @@ class TestTypeInfo {
 		public TestEnum enumField;
 	}
 
-	public record TestRecord(String name, int age) {}
+	public record TestRecord(
+			String name,
+			int age) {}
 
 	public enum TestEnum {
 		A, B
