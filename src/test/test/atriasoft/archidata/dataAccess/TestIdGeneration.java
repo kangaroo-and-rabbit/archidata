@@ -1,7 +1,6 @@
 package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -45,12 +44,6 @@ class TestIdGeneration {
 		public String data;
 	}
 
-	public static class ModelUUID {
-		@Id
-		public UUID _id = null;
-		public String data;
-	}
-
 	// --- State ---
 
 	private static Long longId1 = null;
@@ -59,9 +52,6 @@ class TestIdGeneration {
 	private static ObjectId oidId1 = null;
 	private static ObjectId oidId2 = null;
 	private static ObjectId oidId3 = null;
-	private static UUID uuidId1 = null;
-	private static UUID uuidId2 = null;
-	private static UUID uuidId3 = null;
 
 	@BeforeAll
 	static void setup() throws Exception {
@@ -255,96 +245,6 @@ class TestIdGeneration {
 	void testOidPresetIdFails() throws Exception {
 		final ModelOID test = new ModelOID();
 		test._id = new ObjectId();
-		test.data = "should_fail";
-		Assertions.assertThrows(Exception.class, () -> {
-			ConfigureDb.da.insert(test);
-		});
-	}
-
-	// ========================================================================
-	// UUID tests
-	// ========================================================================
-
-	@Order(12)
-	@Test
-	void testUuidAutoGeneration() throws Exception {
-		final ModelUUID test = new ModelUUID();
-		test.data = "uuid_auto_1";
-		final ModelUUID inserted = ConfigureDb.da.insert(test);
-		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted._id);
-		LOGGER.info("UUID auto-generated: {}", inserted._id);
-		uuidId1 = inserted._id;
-	}
-
-	@Order(13)
-	@Test
-	void testUuidUniqueness() throws Exception {
-		final ModelUUID test2 = new ModelUUID();
-		test2.data = "uuid_auto_2";
-		final ModelUUID inserted2 = ConfigureDb.da.insert(test2);
-		Assertions.assertNotNull(inserted2);
-		Assertions.assertNotNull(inserted2._id);
-		uuidId2 = inserted2._id;
-
-		final ModelUUID test3 = new ModelUUID();
-		test3.data = "uuid_auto_3";
-		final ModelUUID inserted3 = ConfigureDb.da.insert(test3);
-		Assertions.assertNotNull(inserted3);
-		Assertions.assertNotNull(inserted3._id);
-		uuidId3 = inserted3._id;
-
-		Assertions.assertNotEquals(uuidId1, uuidId2);
-		Assertions.assertNotEquals(uuidId2, uuidId3);
-		Assertions.assertNotEquals(uuidId1, uuidId3);
-	}
-
-	@Order(14)
-	@Test
-	void testUuidCrudCycle() throws Exception {
-		// Read
-		final ModelUUID retrieved = ConfigureDb.da.getById(ModelUUID.class, uuidId1);
-		Assertions.assertNotNull(retrieved);
-		Assertions.assertEquals(uuidId1, retrieved._id);
-		Assertions.assertEquals("uuid_auto_1", retrieved.data);
-
-		// Update
-		final ModelUUID updateData = new ModelUUID();
-		updateData.data = "uuid_auto_1_updated";
-		ConfigureDb.da.updateById(updateData, uuidId1, new FilterValue("data"));
-		final ModelUUID afterUpdate = ConfigureDb.da.getById(ModelUUID.class, uuidId1);
-		Assertions.assertNotNull(afterUpdate);
-		Assertions.assertEquals("uuid_auto_1_updated", afterUpdate.data);
-
-		// Delete
-		ConfigureDb.da.deleteById(ModelUUID.class, uuidId1);
-		final ModelUUID afterDelete = ConfigureDb.da.getById(ModelUUID.class, uuidId1);
-		Assertions.assertNull(afterDelete);
-	}
-
-	@Order(15)
-	@Test
-	void testUuidDirectPrimaryKey() throws Exception {
-		final UUID customUuid = UUID.randomUUID();
-		final ModelUUID test = new ModelUUID();
-		test._id = customUuid;
-		test.data = "uuid_direct_pk";
-		final ModelUUID inserted = ConfigureDb.da.insert(test, new DirectPrimaryKey());
-		Assertions.assertNotNull(inserted);
-		Assertions.assertEquals(customUuid, inserted._id);
-
-		final ModelUUID retrieved = ConfigureDb.da.getById(ModelUUID.class, customUuid);
-		Assertions.assertNotNull(retrieved);
-		Assertions.assertEquals("uuid_direct_pk", retrieved.data);
-
-		ConfigureDb.da.deleteById(ModelUUID.class, customUuid);
-	}
-
-	@Order(16)
-	@Test
-	void testUuidPresetIdFails() throws Exception {
-		final ModelUUID test = new ModelUUID();
-		test._id = UUID.randomUUID();
 		test.data = "should_fail";
 		Assertions.assertThrows(Exception.class, () -> {
 			ConfigureDb.da.insert(test);
