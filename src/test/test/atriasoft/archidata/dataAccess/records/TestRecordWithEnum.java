@@ -26,7 +26,7 @@ import test.atriasoft.archidata.dataAccess.model.Enum2ForTest;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestRecordWithEnum {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestRecordWithEnum.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestRecordWithEnum.class);
 
 	public record RecEnum(Enum2ForTest status, String label) {}
 

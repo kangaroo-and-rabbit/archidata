@@ -314,7 +314,7 @@ public class ClassObjectModel extends ClassModel {
 			}
 		}
 		if (this.extendsClass != null) {
-			out.addAll(this.extendsClass.getReadOnlyFields());
+			out.addAll(this.extendsClass.getCreateFields());
 		}
 		return out;
 	}
@@ -328,7 +328,7 @@ public class ClassObjectModel extends ClassModel {
 			}
 		}
 		if (this.extendsClass != null) {
-			out.addAll(this.extendsClass.getReadOnlyFields());
+			out.addAll(this.extendsClass.getUpdateFields());
 		}
 		return out;
 	}

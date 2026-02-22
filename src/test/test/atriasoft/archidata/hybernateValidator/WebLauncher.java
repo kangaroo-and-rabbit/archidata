@@ -30,7 +30,7 @@ import test.atriasoft.archidata.hybernateValidator.resource.TestResourceValidGro
 import test.atriasoft.archidata.hybernateValidator.resource.TestResourceValidator;
 
 public class WebLauncher {
-	final static Logger LOGGER = LoggerFactory.getLogger(WebLauncher.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(WebLauncher.class);
 	protected UpdateJwtPublicKey keyUpdater = null;
 	protected HttpServer server = null;
 

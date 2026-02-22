@@ -21,7 +21,7 @@ import test.atriasoft.archidata.dataAccess.model.SimpleTable;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestJson {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestJson.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestJson.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

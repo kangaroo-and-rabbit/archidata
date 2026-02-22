@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.InternalServerErrorException;
 
 public class ConfigureDb {
-	final static private Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigureDb.class);
 	public static DBAccessMongo da = null;
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {

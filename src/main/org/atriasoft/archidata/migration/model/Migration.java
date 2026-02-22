@@ -17,7 +17,7 @@ import jakarta.ws.rs.DefaultValue;
 @Table(name = "KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration extends GenericDataSoftDelete {
-	final static int VERSION_MIGRATION = 3;
+	static final int VERSION_MIGRATION = 3;
 	@Schema(description = "Name of the migration")
 	@Column(length = 256)
 	public String name;

@@ -3,6 +3,9 @@ package org.atriasoft.archidata.catcher;
 import org.glassfish.jersey.server.ResourceConfig;
 
 public class GenericCatcher {
+	private GenericCatcher() {
+		// Utility class
+	}
 
 	/**
 	 * Add All the the generic catcher to standardize returns.

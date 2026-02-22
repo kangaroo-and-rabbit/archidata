@@ -17,6 +17,9 @@ import org.atriasoft.archidata.exception.DataAccessException;
  * instead of the previous read-modify-write pattern.
  */
 public class ListInDbTools {
+	private ListInDbTools() {
+		// Utility class
+	}
 
 	public static void addLink(
 			final Class<?> clazz,

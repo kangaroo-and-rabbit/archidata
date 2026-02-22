@@ -135,8 +135,7 @@ public class CronScheduler {
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 			} catch (final Exception ex) {
-				LOGGER.error("Fail in CRON consumer throw in CronTask: {}", ex.getMessage());
-				ex.printStackTrace();
+				LOGGER.error("Fail in CRON consumer throw in CronTask: {}", ex.getMessage(), ex);
 			}
 		}
 		LOGGER.debug("Stop CRON consumer thread");

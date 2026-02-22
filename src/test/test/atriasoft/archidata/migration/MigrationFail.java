@@ -3,9 +3,9 @@ package test.atriasoft.archidata.migration;
 import java.io.IOException;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
-import org.atriasoft.archidata.migration.MigrationSqlStep;
+import org.atriasoft.archidata.migration.MigrationStep;
 
-class MigrationFail extends MigrationSqlStep {
+class MigrationFail extends MigrationStep {
 
 	@Override
 	public String getName() {

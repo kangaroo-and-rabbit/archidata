@@ -17,7 +17,7 @@ public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error OID={}", ret.oid);
 		if (exception.exception != null) {
-			exception.exception.printStackTrace();
+			LOGGER.error("FailException cause: {}", exception.exception.getMessage(), exception.exception);
 		}
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}

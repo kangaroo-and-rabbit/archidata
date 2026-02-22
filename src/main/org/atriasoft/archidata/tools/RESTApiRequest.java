@@ -37,7 +37,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import jakarta.ws.rs.core.HttpHeaders;
 
 public class RESTApiRequest {
-	final static Logger LOGGER = LoggerFactory.getLogger(RESTApiRequest.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(RESTApiRequest.class);
 	private final String url;
 	private final String token;
 	private final String tokenKey;
@@ -514,18 +514,15 @@ public class RESTApiRequest {
 						RESTErrorResponseException.class);
 				throw out;
 			} catch (final InvalidDefinitionException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final MismatchedInputException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final JsonParseException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			}
@@ -601,18 +598,15 @@ public class RESTApiRequest {
 						RESTErrorResponseException.class);
 				throw out;
 			} catch (final InvalidDefinitionException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final MismatchedInputException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final JsonParseException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			}

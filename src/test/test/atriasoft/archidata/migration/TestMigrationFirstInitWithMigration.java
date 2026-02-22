@@ -24,7 +24,7 @@ import test.atriasoft.archidata.migration.model.TypesMigrationInitialisationCurr
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestMigrationFirstInitWithMigration {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestMigrationFirstInitWithMigration.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestMigrationFirstInitWithMigration.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

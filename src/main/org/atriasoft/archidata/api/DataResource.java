@@ -67,8 +67,8 @@ import jakarta.ws.rs.core.StreamingOutput;
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
-	private final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	private final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
+	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+	private static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some datas */
 	private static long tmpFolderId = 1;
 
@@ -88,7 +88,7 @@ public class DataResource {
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
 		} catch (final IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create tmp data folder: {}", e.getMessage(), e);
 		}
 		return filePath;
 	}
@@ -104,7 +104,7 @@ public class DataResource {
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create data folder for UUID: {}", e.getMessage(), e);
 		}
 		filePath += part3;
 		return filePath;
@@ -129,7 +129,7 @@ public class DataResource {
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create data folder for OID: {}", e.getMessage(), e);
 		}
 		filePath += stringOid;
 		return filePath;
@@ -144,8 +144,7 @@ public class DataResource {
 		try {
 			return DataAccess.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to get data with sha512: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -155,8 +154,7 @@ public class DataResource {
 		try {
 			return DataAccess.getById(Data.class, id);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to get data with id: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -188,7 +186,7 @@ public class DataResource {
 		try {
 			injectedData = DataAccess.insert(injectedData);
 		} catch (final Exception e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to insert data: {}", e.getMessage(), e);
 			return null;
 		}
 		final String mediaPath = getFileData(injectedData.oid);
@@ -219,8 +217,8 @@ public class DataResource {
 			}
 		}
 		// Move old meta-data...
-		mediaCurentPath = mediaCurentPath.substring(mediaCurentPath.length() - 4) + "meta.json";
-		mediaDestPath = mediaCurentPath.substring(mediaDestPath.length() - 4) + "meta.json";
+		mediaCurentPath = mediaCurentPath.substring(0, mediaCurentPath.length() - 4) + "meta.json";
+		mediaDestPath = mediaDestPath.substring(0, mediaDestPath.length() - 4) + "meta.json";
 		if (Files.exists(Paths.get(mediaCurentPath))) {
 			LOGGER.info("moveM: {} ==> {}", mediaCurentPath, mediaDestPath);
 			try {
@@ -245,8 +243,7 @@ public class DataResource {
 			try {
 				Files.delete(Paths.get(filepath));
 			} catch (final IOException e) {
-				LOGGER.info("can not delete temporary file : {}", Paths.get(filepath));
-				e.printStackTrace();
+				LOGGER.error("Can not delete temporary file '{}': {}", Paths.get(filepath), e.getMessage(), e);
 			}
 		}
 	}
@@ -297,8 +294,7 @@ public class DataResource {
 		try {
 			return DataAccess.getById(Data.class, oid);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to get data by OID: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -408,7 +404,7 @@ public class DataResource {
 			try {
 				ImageIO.write(outputImage, ConfigBaseVariable.getThumbnailFormat(), baos);
 			} catch (final IOException e) {
-				e.printStackTrace();
+				LOGGER.error("Failed to write thumbnail image: {}", e.getMessage(), e);
 				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain")
 						.build();
 			}

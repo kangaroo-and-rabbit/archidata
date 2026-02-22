@@ -24,7 +24,7 @@ import test.atriasoft.archidata.dataAccess.model.SerializeListAsJsonObjectId;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestListJson {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestListJson.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

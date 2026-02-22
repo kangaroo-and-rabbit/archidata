@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.GET;
 
 public class TestAnalyzeApiName {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiName.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiName.class);
 
 	public class ApiName {
 		@GET

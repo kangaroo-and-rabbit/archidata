@@ -8,6 +8,9 @@ import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.exception.DataAccessException;
 
 public class FieldTools {
+	private FieldTools() {
+		// Utility class
+	}
 
 	/**
 	 * Set a specific field to null on ALL documents of the given class.

@@ -3,6 +3,9 @@ package org.atriasoft.archidata.filter;
 import java.util.Map;
 
 public class RightSafeCaster {
+	private RightSafeCaster() {
+		// Utility class
+	}
 
 	public static Map<String, Map<String, PartRight>> safeCastAndTransform(final Object obj) {
 		if (!(obj instanceof Map)) {

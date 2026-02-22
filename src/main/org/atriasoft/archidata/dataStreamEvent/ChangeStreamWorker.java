@@ -12,10 +12,12 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
+import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.OperationType;
 
 /**
  * Worker thread that monitors a single MongoDB collection for changes using
@@ -158,7 +160,7 @@ public class ChangeStreamWorker implements Runnable {
 	}
 
 	private void watchChangeStream() {
-		var changeStreamBuilder = this.collection.watch();
+		ChangeStreamIterable<Document> changeStreamBuilder = this.collection.watch();
 
 		// Apply full document mode
 		changeStreamBuilder = changeStreamBuilder.fullDocument(this.fullDocumentMode);
@@ -193,12 +195,12 @@ public class ChangeStreamWorker implements Runnable {
 
 	private ChangeEvent convertToChangeEvent(final ChangeStreamDocument<Document> changeDoc) {
 		try {
-			final var operationType = changeDoc.getOperationType();
+			final OperationType operationType = changeDoc.getOperationType();
 			if (operationType == null) {
 				return null;
 			}
 
-			final var documentKey = changeDoc.getDocumentKey();
+			final BsonDocument documentKey = changeDoc.getDocumentKey();
 			final Object oid = documentKey != null ? documentKey.get("_id") : null;
 
 			final Instant timestamp = changeDoc.getClusterTime() != null

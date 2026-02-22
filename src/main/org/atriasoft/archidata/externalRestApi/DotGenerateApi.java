@@ -22,6 +22,9 @@ import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 public class DotGenerateApi {
+	private DotGenerateApi() {
+		// Utility class
+	}
 
 	public static void generateApi(final AnalyzeApi api, final String pathDotFile) throws Exception {
 		final List<DotClassElement> localModel = generateApiModel(api);

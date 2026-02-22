@@ -18,6 +18,9 @@ import org.atriasoft.archidata.exception.DataAccessException;
  * via {@link MongoLinkManager} instead of read-modify-write.
  */
 public class ManyToManyTools {
+	private ManyToManyTools() {
+		// Utility class
+	}
 
 	/**
 	 * Add a bidirectional ManyToMany link.

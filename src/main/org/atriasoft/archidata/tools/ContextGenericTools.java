@@ -10,6 +10,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class ContextGenericTools {
+	private ContextGenericTools() {
+		// Utility class
+	}
 
 	public static ObjectMapper createObjectMapper() {
 		final ObjectMapper objectMapper = new ObjectMapper();

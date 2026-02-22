@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.GET;
 
 public class TestAnalyzeApiParameterType {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiParameterType.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiParameterType.class);
 
 	public enum TestEnum {
 		PLOP, PLIP

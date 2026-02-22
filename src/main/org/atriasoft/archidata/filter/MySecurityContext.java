@@ -91,8 +91,7 @@ public class MySecurityContext implements SecurityContext {
 				try {
 					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
 				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}'", role);
-					ex.printStackTrace();
+					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
 					return false;
 				}
 				needWrite = true;
@@ -100,8 +99,7 @@ public class MySecurityContext implements SecurityContext {
 				try {
 					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
 				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}'", role);
-					ex.printStackTrace();
+					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
 					return false;
 				}
 				needRead = true;
@@ -109,8 +107,7 @@ public class MySecurityContext implements SecurityContext {
 				try {
 					roleEdit = roleEdit.substring(0, roleEdit.length() - 3);
 				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}'", role);
-					ex.printStackTrace();
+					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
 					return false;
 				}
 				needRead = true;

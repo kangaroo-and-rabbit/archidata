@@ -34,7 +34,7 @@ import test.atriasoft.archidata.StepwiseExtension;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestBsonDirectAccess {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestBsonDirectAccess.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestBsonDirectAccess.class);
 	private static final String TEST_COLLECTION = "test_bson_collection";
 	private static ObjectId insertedId1 = null;
 	private static ObjectId insertedId2 = null;

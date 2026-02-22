@@ -1,8 +1,8 @@
 package test.atriasoft.archidata.migration;
 
-import org.atriasoft.archidata.migration.MigrationSqlStep;
+import org.atriasoft.archidata.migration.MigrationStep;
 
-class Migration1 extends MigrationSqlStep {
+class Migration1 extends MigrationStep {
 
 	@Override
 	public String getName() {
@@ -15,11 +15,9 @@ class Migration1 extends MigrationSqlStep {
 
 	@Override
 	public void generateStep() throws Exception {
-
-		addAction("""
-				ALTER TABLE `TestTableMigration`
-					RENAME COLUMN `testData` TO `testDataMigration1`
-				""");
+		addAction((final org.atriasoft.archidata.dataAccess.DBAccessMongo da) -> {
+			// Migration step placeholder (was SQL: ALTER TABLE RENAME COLUMN)
+		});
 		display();
 	}
 

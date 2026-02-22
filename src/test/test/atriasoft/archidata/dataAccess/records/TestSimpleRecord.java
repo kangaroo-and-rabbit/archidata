@@ -25,7 +25,7 @@ import test.atriasoft.archidata.StepwiseExtension;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestSimpleRecord {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestSimpleRecord.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestSimpleRecord.class);
 
 	public record SimpleRec(String name, int value) {}
 

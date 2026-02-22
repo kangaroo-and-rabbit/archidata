@@ -9,6 +9,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -27,7 +28,7 @@ public class ConstraintViolationExceptionCatcher implements ExceptionMapper<Cons
 
 	private RestErrorResponse build(final ConstraintViolationException exception) {
 		final List<RestInputError> inputError = new ArrayList<>();
-		for (final var cv : exception.getConstraintViolations()) {
+		for (final ConstraintViolation<?> cv : exception.getConstraintViolations()) {
 			if (cv == null) {
 				continue;
 			}

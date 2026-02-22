@@ -28,6 +28,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
 public class ApiTool {
+	private ApiTool() {
+		// Utility class
+	}
 
 	public static String apiAnnotationGetPath(final Class<?> element) throws Exception {
 		final List<Path> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Path.class);

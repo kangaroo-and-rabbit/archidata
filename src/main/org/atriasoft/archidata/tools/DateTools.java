@@ -14,7 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DateTools {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DateTools.class);
+	private DateTools() {
+		// Utility class
+	}
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DateTools.class);
 
 	// List of supported parsers for flexible date string parsing.
 	// Includes patterns with optional parts, slashes, and ISO standard formats.

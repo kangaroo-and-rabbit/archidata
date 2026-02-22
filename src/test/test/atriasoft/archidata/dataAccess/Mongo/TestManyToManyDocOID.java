@@ -30,7 +30,7 @@ import test.atriasoft.archidata.dataAccess.model.TypeManyToManyDocOIDRootExpand;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestManyToManyDocOID {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToManyDocOID.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestManyToManyDocOID.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

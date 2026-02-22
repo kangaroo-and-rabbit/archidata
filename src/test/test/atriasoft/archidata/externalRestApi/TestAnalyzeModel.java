@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestAnalyzeModel {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeModel.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeModel.class);
 
 	public class TestObject {
 		public Integer value;

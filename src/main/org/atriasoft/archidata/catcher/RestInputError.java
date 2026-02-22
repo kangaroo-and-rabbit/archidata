@@ -28,7 +28,7 @@ public class RestInputError {
 	public RestInputError() {}
 
 	public RestInputError(final String argument, final String path, final String message) {
-		this.path = argument;
+		this.argument = argument;
 		this.path = path;
 		this.message = message;
 	}

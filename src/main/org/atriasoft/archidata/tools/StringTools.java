@@ -1,6 +1,10 @@
 package org.atriasoft.archidata.tools;
 
 public class StringTools {
+	private StringTools() {
+		// Utility class
+	}
+
 	public static String RandGeneratedStr(final int length) {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";
 		final StringBuilder out = new StringBuilder(length);

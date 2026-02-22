@@ -40,6 +40,10 @@ import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.DefaultValue;
 
 public class AnnotationTools {
+	private AnnotationTools() {
+		// Utility class
+	}
+
 	static final Logger LOGGER = LoggerFactory.getLogger(AnnotationTools.class);
 
 	public static boolean methodHasAnnotation(final Method method, final Class<? extends Annotation> annotationClass) {
@@ -480,7 +484,7 @@ public class AnnotationTools {
 				}
 			}
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to get deleted field name: {}", ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -498,7 +502,7 @@ public class AnnotationTools {
 				}
 			}
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to get updated field name: {}", ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -515,7 +519,7 @@ public class AnnotationTools {
 				}
 			}
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to get id field: {}", ex.getMessage(), ex);
 		}
 		return null;
 	}

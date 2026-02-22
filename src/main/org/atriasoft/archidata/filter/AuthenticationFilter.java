@@ -41,7 +41,7 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
-	private final static Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 	@Context
 	private ResourceInfo resourceInfo;
 	protected final String applicationName;
@@ -175,8 +175,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		try {
 			haveRight = checkRight(requestContext, userContext, roles);
 		} catch (final SystemException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to check rights: {}", e.getMessage(), e);
 		}
 
 		// Is user valid?

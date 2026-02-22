@@ -27,6 +27,7 @@ public class RESTErrorResponseException extends Exception {
 
 	public RESTErrorResponseException(final ObjectId oid, final String time, final String name, final String message,
 			final int status, final String statusMessage, final List<RestInputError> inputError) {
+		super(message);
 		this.oid = oid;
 		this.time = time;
 		this.name = name;
@@ -34,6 +35,11 @@ public class RESTErrorResponseException extends Exception {
 		this.status = status;
 		this.statusMessage = statusMessage;
 		this.inputError = inputError;
+	}
+
+	@Override
+	public String getMessage() {
+		return this.message;
 	}
 
 	@Override

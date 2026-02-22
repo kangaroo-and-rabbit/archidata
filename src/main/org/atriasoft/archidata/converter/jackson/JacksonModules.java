@@ -8,6 +8,10 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 public class JacksonModules {
+	private JacksonModules() {
+		// Utility class
+	}
+
 	public static SimpleModule getAllModules() {
 		final SimpleModule module = new SimpleModule();
 		module.addSerializer(ObjectId.class, new ObjectIdSerializer());

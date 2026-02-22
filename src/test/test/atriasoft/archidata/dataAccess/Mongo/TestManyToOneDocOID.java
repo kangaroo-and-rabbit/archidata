@@ -30,7 +30,7 @@ import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDParentSetNul
 @ExtendWith(StepwiseExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestManyToOneDocOID {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestManyToOneDocOID.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestManyToOneDocOID.class);
 
 	@BeforeAll
 	public void configureWebServer() throws Exception {

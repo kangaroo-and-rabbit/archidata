@@ -8,6 +8,9 @@ import java.lang.reflect.Proxy;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 
 public class AnnotationCreator {
+	private AnnotationCreator() {
+		// Utility class
+	}
 
 	@SuppressWarnings("unchecked")
 	public static <A extends Annotation> A createAnnotation(final Class<A> annotationClass, final Object... values) {

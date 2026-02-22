@@ -25,7 +25,7 @@ import test.atriasoft.archidata.dataAccess.model.TypesTable;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTypes {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypes.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestTypes.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

@@ -37,15 +37,19 @@ import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 
 public class DataTools {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DataTools.class);
+	private DataTools() {
+		// Utility class
+	}
 
-	public final static int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	public final static int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
+	private static final Logger LOGGER = LoggerFactory.getLogger(DataTools.class);
+
+	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
 	/** Upload some data */
 	private static long tmpFolderId = 1;
-	public final static String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
-	public final static String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
-	public final static String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
+	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
+	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
+	public static final String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
 
 	public static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
@@ -63,7 +67,7 @@ public class DataTools {
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
 		} catch (final IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create tmp data folder: {}", e.getMessage(), e);
 		}
 		return filePath;
 	}
@@ -73,7 +77,7 @@ public class DataTools {
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
 		} catch (final IOException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to create tmp folder: {}", e.getMessage(), e);
 		}
 		return filePath;
 	}
@@ -82,8 +86,7 @@ public class DataTools {
 		try {
 			return ioDb.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)), new ReadAllColumn());
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to get data with sha512: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -93,8 +96,7 @@ public class DataTools {
 			return ioDb.get(Data.class, new Condition(new QueryAnd(
 					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to get data with id: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -116,8 +118,7 @@ public class DataTools {
 			out.size = fileSize;
 			out = ioDb.insert(out);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to insert data: {}", e.getMessage(), e);
 			return null;
 		}
 
@@ -159,8 +160,7 @@ public class DataTools {
 		try {
 			ioDb.restoreById(Data.class, oid);
 		} catch (final Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			LOGGER.error("Failed to restore data: {}", e.getMessage(), e);
 		}
 	}
 
@@ -178,8 +178,7 @@ public class DataTools {
 			try {
 				Files.delete(Paths.get(filepath));
 			} catch (final IOException e) {
-				LOGGER.info("can not delete temporary file : {}", Paths.get(filepath));
-				e.printStackTrace();
+				LOGGER.error("Can not delete temporary file '{}': {}", Paths.get(filepath), e.getMessage(), e);
 			}
 		}
 	}
@@ -206,11 +205,9 @@ public class DataTools {
 			out = bytesToHex(sha512Digest);
 			uploadedInputStream.close();
 		} catch (final IOException ex) {
-			LOGGER.error("Can not write in temporary file ... ");
-			ex.printStackTrace();
+			LOGGER.error("Can not write in temporary file: {}", ex.getMessage(), ex);
 		} catch (final NoSuchAlgorithmException ex) {
-			LOGGER.error("Can not find sha512 algorithms");
-			ex.printStackTrace();
+			LOGGER.error("Can not find sha512 algorithms: {}", ex.getMessage(), ex);
 		}
 		return out;
 	}
@@ -231,11 +228,9 @@ public class DataTools {
 			// convert in hexadecimal
 			out = bytesToHex(sha512Digest);
 		} catch (final IOException ex) {
-			LOGGER.error("Can not write in temporary file ... ");
-			ex.printStackTrace();
+			LOGGER.error("Can not write in temporary file: {}", ex.getMessage(), ex);
 		} catch (final NoSuchAlgorithmException ex) {
-			LOGGER.error("Can not find sha512 algorithms");
-			ex.printStackTrace();
+			LOGGER.error("Can not find sha512 algorithms: {}", ex.getMessage(), ex);
 		}
 		return out;
 	}

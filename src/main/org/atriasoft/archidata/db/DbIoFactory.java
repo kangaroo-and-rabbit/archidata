@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DbIoFactory {
-	final static Logger LOGGER = LoggerFactory.getLogger(DbIoFactory.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(DbIoFactory.class);
 	private static List<DbIo> dbIoStored = new ArrayList<>();
 
 	private DbIoFactory() throws IOException {}

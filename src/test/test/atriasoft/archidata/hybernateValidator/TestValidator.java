@@ -24,8 +24,8 @@ import test.atriasoft.archidata.hybernateValidator.model.ValidatorSubModel;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestValidator {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestValidator.class);
-	public final static String ENDPOINT_NAME = "TestResourceValidator";
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestValidator.class);
+	public static final String ENDPOINT_NAME = "TestResourceValidator";
 
 	static WebLauncherTest webInterface = null;
 	static RESTApi api = null;

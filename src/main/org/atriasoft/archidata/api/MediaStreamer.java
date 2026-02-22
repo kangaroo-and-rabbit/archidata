@@ -49,7 +49,7 @@ public class MediaStreamer implements StreamingOutput {
 			try {
 				this.raf.close();
 			} catch (final IOException ex) {
-				ex.printStackTrace();
+				LOGGER.error("Failed to close RandomAccessFile: {}", ex.getMessage(), ex);
 				throw new InternalServerErrorException(ex);
 			}
 		}

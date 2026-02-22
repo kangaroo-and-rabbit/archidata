@@ -26,8 +26,8 @@ import test.atriasoft.archidata.apiExtern.model.DataForJSR310String;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTime {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestTime.class);
-	public final static String ENDPOINT_NAME = "TimeResource";
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestTime.class);
+	public static final String ENDPOINT_NAME = "TimeResource";
 
 	static WebLauncherTest webInterface = null;
 	static RESTApi api = null;

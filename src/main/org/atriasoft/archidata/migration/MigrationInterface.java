@@ -15,6 +15,6 @@ public interface MigrationInterface {
 	boolean applyMigration(DBAccessMongo entry, Migration migration) throws Exception;
 
 	/** Get the number of step in the migration process.
-	 * @return count of SQL access. */
+	 * @return count of migration steps. */
 	int getNumberOfStep() throws Exception;
 }

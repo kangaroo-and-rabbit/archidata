@@ -23,8 +23,7 @@ public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException
 	public Response toResponse(final JacksonException exception) {
 		LOGGER.warn("Catch exception Input data parsing:");
 		final RestErrorResponse ret = build(exception);
-		LOGGER.error("Error OID={}", ret.oid);
-		exception.printStackTrace();
+		LOGGER.error("Error OID={}: {}", ret.oid, exception.getMessage(), exception);
 		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON)
 				.build();
 	}

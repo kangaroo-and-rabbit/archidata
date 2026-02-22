@@ -19,8 +19,8 @@ import test.atriasoft.archidata.StepwiseExtension;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestDataAccessTest {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestAPI.class);
-	public final static String ENDPOINT_NAME = "DataAccessTestResource";
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAPI.class);
+	public static final String ENDPOINT_NAME = "DataAccessTestResource";
 
 	static WebLauncherTest webInterface = null;
 	static RESTApi api = null;

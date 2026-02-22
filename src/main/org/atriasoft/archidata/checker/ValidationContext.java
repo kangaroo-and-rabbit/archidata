@@ -83,5 +83,6 @@ public class ValidationContext implements AutoCloseable {
 	@Override
 	public void close() {
 		context.remove();
+		this.factory.close();
 	}
 }

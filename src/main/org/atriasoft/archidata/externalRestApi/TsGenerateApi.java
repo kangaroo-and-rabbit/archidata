@@ -32,6 +32,10 @@ import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 public class TsGenerateApi {
+	private TsGenerateApi() {
+		// Utility class
+	}
+
 	/**
 	 * Generate a full API tree for Typescript in a specific folder.
 	 * This generate a folder containing a full API with "model" folder and "api" folder.

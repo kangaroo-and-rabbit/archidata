@@ -23,7 +23,7 @@ import test.atriasoft.archidata.migration.model.TypesMigrationInitialisationFirs
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestMigrationFirstInit {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestMigrationFail.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestMigrationFail.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

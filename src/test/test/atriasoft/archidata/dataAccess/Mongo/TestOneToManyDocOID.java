@@ -28,7 +28,7 @@
 //@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 //@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 //public class TestOneToManyDocOID {
-//	final static private Logger LOGGER = LoggerFactory.getLogger(TestOneToManyDocOID.class);
+//	private static final Logger LOGGER = LoggerFactory.getLogger(TestOneToManyDocOID.class);
 //
 //	@BeforeAll
 //	public static void configureWebServer() throws Exception {

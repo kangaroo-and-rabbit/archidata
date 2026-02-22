@@ -1,13 +1,12 @@
 package org.atriasoft.archidata.exception;
 
-import org.atriasoft.archidata.api.DataResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.Response;
 
 public class FailException extends Exception {
-	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(FailException.class);
 	private static final long serialVersionUID = 1L;
 	public final Response.Status status;
 	public final Exception exception;
@@ -22,8 +21,7 @@ public class FailException extends Exception {
 		super(message);
 		this.status = status;
 		this.exception = ex;
-		ex.printStackTrace();
-		LOGGER.error("Generate Fail exception with exceptionData: {}", ex.getMessage());
+		LOGGER.error("Generate Fail exception with exceptionData: {}", ex.getMessage(), ex);
 	}
 
 	public FailException(final String message) {

@@ -5,6 +5,9 @@ import java.lang.reflect.Type;
 import java.util.List;
 
 public class TypeUtils {
+	private TypeUtils() {
+		// Utility class
+	}
 
 	public static ParameterizedType listOf(final Class<?> clazz) {
 		return new ParameterizedType() {

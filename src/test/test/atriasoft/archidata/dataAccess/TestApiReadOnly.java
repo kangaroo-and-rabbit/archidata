@@ -23,7 +23,7 @@ import test.atriasoft.archidata.dataAccess.model.ApiReadOnlySubModel;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestApiReadOnly {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestApiReadOnly.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestApiReadOnly.class);
 
 	private static final String VALUE_UPDATABLE_INITIAL = "updatable_initial";
 	private static final String VALUE_NOT_UPDATE_INITIAL = "readonly_initial";

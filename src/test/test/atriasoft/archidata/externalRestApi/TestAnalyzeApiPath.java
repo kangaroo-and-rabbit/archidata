@@ -13,7 +13,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 
 public class TestAnalyzeApiPath {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiPath.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiPath.class);
 
 	public class NoPath {
 		@GET

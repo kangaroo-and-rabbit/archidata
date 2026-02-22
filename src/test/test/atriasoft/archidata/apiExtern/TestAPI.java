@@ -20,8 +20,8 @@ import test.atriasoft.archidata.apiExtern.model.SimpleArchiveTable;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestAPI {
-	private final static Logger LOGGER = LoggerFactory.getLogger(TestAPI.class);
-	public final static String ENDPOINT_NAME = "TestResource";
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAPI.class);
+	public static final String ENDPOINT_NAME = "TestResource";
 
 	static WebLauncherTest webInterface = null;
 	static RESTApi api = null;

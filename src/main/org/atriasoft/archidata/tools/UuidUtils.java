@@ -11,6 +11,9 @@ import java.util.UUID;
 import org.atriasoft.archidata.exception.DataAccessException;
 
 public class UuidUtils {
+	private UuidUtils() {
+		// Utility class
+	}
 
 	public static UUID asUuid(final BigInteger bigInteger) {
 		final long mostSignificantBits = bigInteger.longValue();

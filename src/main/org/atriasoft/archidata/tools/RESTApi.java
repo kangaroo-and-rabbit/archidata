@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import jakarta.ws.rs.core.HttpHeaders;
 
 public class RESTApi {
-	final static Logger LOGGER = LoggerFactory.getLogger(RESTApi.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(RESTApi.class);
 	final String baseUrl;
 	private String tokenKey = null;
 	private String token = null;
@@ -296,18 +296,15 @@ public class RESTApi {
 						RESTErrorResponseException.class);
 				throw out;
 			} catch (final InvalidDefinitionException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final MismatchedInputException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			} catch (final JsonParseException ex) {
-				ex.printStackTrace();
-				LOGGER.error("body: {}", httpResponse.body());
+				LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
 				throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 						+ httpResponse.statusCode() + "] " + httpResponse.body());
 			}

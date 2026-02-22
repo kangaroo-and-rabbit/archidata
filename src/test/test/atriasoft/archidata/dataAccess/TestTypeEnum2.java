@@ -21,7 +21,7 @@ import test.atriasoft.archidata.dataAccess.model.TypesEnum2;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestTypeEnum2 {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeEnum2.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestTypeEnum2.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

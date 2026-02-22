@@ -18,7 +18,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.core.Response;
 
 public class TestAnalyzeApiReturn {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiReturn.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestAnalyzeApiReturn.class);
 
 	public enum TestEnum {
 		PLOP, PLIP

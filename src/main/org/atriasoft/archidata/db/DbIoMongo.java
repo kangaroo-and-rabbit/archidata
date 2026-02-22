@@ -18,7 +18,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
 public class DbIoMongo extends DbIo implements Closeable {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DbIoMongo.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DbIoMongo.class);
 	private MongoClient mongoClient = null;
 	private MongoDatabase dataBase = null;
 

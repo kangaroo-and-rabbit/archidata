@@ -110,6 +110,8 @@ public class ChangeNotificationManager {
 
 	// MongoDB database reference
 	private MongoDatabase database;
+	// MongoDB client reference (for proper cleanup)
+	private MongoClient ownedMongoClient;
 
 	// Global FullDocument mode set at startup (applies to all collections)
 	private FullDocument globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;
@@ -249,6 +251,7 @@ public class ChangeNotificationManager {
 
 		try {
 			final MongoClient mongoClient = createMongoClient(dbConfig);
+			this.ownedMongoClient = mongoClient;
 			final MongoDatabase databaseTmp = mongoClient.getDatabase(dbConfig.getDbName());
 			start(databaseTmp, mode);
 		} catch (final Exception e) {
@@ -330,6 +333,12 @@ public class ChangeNotificationManager {
 			this.globalListeners.clear();
 			this.resumeTokens.clear();
 			this.database = null;
+
+			// Close owned MongoClient if we created one
+			if (this.ownedMongoClient != null) {
+				this.ownedMongoClient.close();
+				this.ownedMongoClient = null;
+			}
 
 			// Reset global mode to UPDATE_LOOKUP for next test
 			this.globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;

@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class DbIo implements Closeable {
-	private final static Logger LOGGER = LoggerFactory.getLogger(DbIo.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DbIo.class);
 
 	// we count the number of connection in the system to prevent disconnection in a
 	// middle of a stream.

@@ -43,7 +43,7 @@ import test.atriasoft.archidata.backup.model.DataStoreWithoutUpdate;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestBackupAndRestoreRaw {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestBackupAndRestoreRaw.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestBackupAndRestoreRaw.class);
 
 	@BeforeAll
 	public static void setUp() {

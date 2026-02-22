@@ -1,25 +1,29 @@
 package org.atriasoft.archidata.tools;
 
 public class ConfigBaseVariable {
-	static public String tmpDataFolder;
-	static public String dataFolder;
-	static public String dbAbleToCreate;
-	static public String dbHost;
-	static public String dbPort;
-	static public String dbUser;
-	static public String dbKeepConnected;
-	static public String dbPassword;
-	static public String bdDatabase;
-	static public String apiAdress;
-	static public String ssoAdress;
-	static public String ssoToken;
-	static public String testMode;
-	static public String eMailFrom;
-	static public String eMailLogin;
-	static public String eMailPassword;
-	static public String thumbnailFormat;
-	static public String thumbnailWidth;
-	static public Class<?>[] dbInterfacesClasses;
+	private ConfigBaseVariable() {
+		// Utility class
+	}
+
+	public static String tmpDataFolder;
+	public static String dataFolder;
+	public static String dbAbleToCreate;
+	public static String dbHost;
+	public static String dbPort;
+	public static String dbUser;
+	public static String dbKeepConnected;
+	public static String dbPassword;
+	public static String bdDatabase;
+	public static String apiAdress;
+	public static String ssoAdress;
+	public static String ssoToken;
+	public static String testMode;
+	public static String eMailFrom;
+	public static String eMailLogin;
+	public static String eMailPassword;
+	public static String thumbnailFormat;
+	public static String thumbnailWidth;
+	public static Class<?>[] dbInterfacesClasses;
 
 	// For test only
 	public static void clearAllValue() {

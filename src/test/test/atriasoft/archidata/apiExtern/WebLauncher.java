@@ -36,7 +36,7 @@ import test.atriasoft.archidata.apiExtern.resource.TestResource;
 import test.atriasoft.archidata.apiExtern.resource.TimeResource;
 
 public class WebLauncher {
-	final static Logger LOGGER = LoggerFactory.getLogger(WebLauncher.class);
+	static final Logger LOGGER = LoggerFactory.getLogger(WebLauncher.class);
 	protected UpdateJwtPublicKey keyUpdater = null;
 	protected HttpServer server = null;
 

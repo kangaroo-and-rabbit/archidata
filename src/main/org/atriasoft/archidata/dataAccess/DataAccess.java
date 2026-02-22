@@ -57,8 +57,8 @@ import jakarta.ws.rs.InternalServerErrorException;
 public class DataAccess {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataAccess.class);
 
-	public DataAccess() {
-
+	private DataAccess() {
+		// Utility class
 	}
 
 	// ========================================================================

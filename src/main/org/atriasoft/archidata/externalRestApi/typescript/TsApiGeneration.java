@@ -31,6 +31,10 @@ import org.slf4j.LoggerFactory;
 import jakarta.ws.rs.core.MediaType;
 
 public class TsApiGeneration {
+	private TsApiGeneration() {
+		// Utility class
+	}
+
 	static final Logger LOGGER = LoggerFactory.getLogger(TsApiGeneration.class);
 
 	public static String getBaseHeader() {

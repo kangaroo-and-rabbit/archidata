@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.OneToManyDoc;
 import org.atriasoft.archidata.annotation.OneToManyDoc.CascadeMode;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
@@ -14,6 +15,7 @@ import org.atriasoft.archidata.dataAccess.QueryInList;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -60,9 +62,9 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
-		final var codec = desc.getCodec();
+		final MongoFieldCodec codec = desc.getCodec();
 		if (codec != null) {
-			final var tableFieldName = desc.getFieldName(options);
+			final FieldName tableFieldName = desc.getFieldName(options);
 			codec.writeToDoc(null, tableFieldName.inTable(), rootObject, docSet, docUnSet);
 		}
 	}

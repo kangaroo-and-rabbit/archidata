@@ -14,6 +14,7 @@ import org.atriasoft.archidata.dataAccess.QueryCondition;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -59,7 +60,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final QueryOptions options,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
-		final var codec = desc.getCodec();
+		final MongoFieldCodec codec = desc.getCodec();
 		if (codec != null) {
 			final FieldName tableFieldName = desc.getFieldName(options);
 			codec.writeToDoc(null, tableFieldName.inTable(), rootObject, docSet, docUnSet);

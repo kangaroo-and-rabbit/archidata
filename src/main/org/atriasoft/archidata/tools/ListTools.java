@@ -3,6 +3,10 @@ package org.atriasoft.archidata.tools;
 import java.util.List;
 
 public class ListTools {
+	private ListTools() {
+		// Utility class
+	}
+
 	public static boolean checkListIdentical(final List<?> list1, final List<?> list2) {
 		if (list1 == list2) {
 			return true;

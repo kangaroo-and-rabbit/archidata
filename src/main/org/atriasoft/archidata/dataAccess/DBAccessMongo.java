@@ -28,6 +28,7 @@ import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbFieldAction;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
+import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoTypeReader;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
@@ -185,7 +186,7 @@ public class DBAccessMongo implements Closeable {
 			try {
 				return new DBAccessMongo(ioMorphia);
 			} catch (final IOException e) {
-				e.printStackTrace();
+				LOGGER.error("Failed to create DB interface: {}", e.getMessage(), e);
 				throw new InternalServerErrorException("Fail to create DB interface.");
 			}
 		}
@@ -1081,8 +1082,7 @@ public class DBAccessMongo implements Closeable {
 			final ObjectId insertedId = res.getInsertedId().asObjectId().getValue();
 			return insertedId;
 		} catch (final Exception ex) {
-			LOGGER.error("Fail Mongo request: {}", ex.getMessage());
-			ex.printStackTrace();
+			LOGGER.error("Fail Mongo request: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
 		}
 	}
@@ -1178,7 +1178,7 @@ public class DBAccessMongo implements Closeable {
 					case NORMAL:
 					case JSON:
 					default: {
-						final var codec = desc.getCodec();
+						final MongoFieldCodec codec = desc.getCodec();
 						if (codec == null) {
 							break;
 						}
@@ -1210,8 +1210,7 @@ public class DBAccessMongo implements Closeable {
 			statistic.countInsertOne++;
 			final InsertOneResult result = collection.insertOne(docSet);
 		} catch (final Exception ex) {
-			LOGGER.error("Fail Mongo request: {} ({})", ex.getMessage(), ex.getClass().getSimpleName());
-			ex.printStackTrace();
+			LOGGER.error("Fail Mongo request: {} ({})", ex.getMessage(), ex.getClass().getSimpleName(), ex);
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage(), ex);
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
@@ -1345,7 +1344,7 @@ public class DBAccessMongo implements Closeable {
 				if (!forceReadOnlyField && desc.isApiReadOnly()) {
 					continue;
 				}
-				final var codec = desc.getCodec();
+				final MongoFieldCodec codec = desc.getCodec();
 				if (codec == null) {
 					continue;
 				}
@@ -1381,9 +1380,9 @@ public class DBAccessMongo implements Closeable {
 			}
 			return ret.getModifiedCount();
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Error in update: {}", ex.getMessage(), ex);
+			throw ex;
 		}
-		return 0;
 	}
 
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
@@ -1490,7 +1489,7 @@ public class DBAccessMongo implements Closeable {
 				}
 			}
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to retrieve data: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
 		}
 		return outs;
@@ -1531,7 +1530,7 @@ public class DBAccessMongo implements Closeable {
 			if (fieldAddOn != null) {
 				fieldAddOn.fillFromDoc(this, documentModel, desc, data, options, lazyCall);
 			} else {
-				final var codec = desc.getCodec();
+				final MongoFieldCodec codec = desc.getCodec();
 				if (codec == null) {
 					continue;
 				}
@@ -1591,7 +1590,7 @@ public class DBAccessMongo implements Closeable {
 			}
 			return collection.countDocuments();
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to count documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
 		}
 	}
@@ -1978,7 +1977,7 @@ public class DBAccessMongo implements Closeable {
 		} catch (final DataAccessException ex) {
 			throw ex;
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to insert BSON document: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Failed to insert BSON document: " + ex.getMessage());
 		}
 	}
@@ -2029,7 +2028,7 @@ public class DBAccessMongo implements Closeable {
 			}
 			return null;
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to retrieve BSON document: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Failed to retrieve BSON document: " + ex.getMessage());
 		}
 	}
@@ -2097,7 +2096,7 @@ public class DBAccessMongo implements Closeable {
 			}
 			return results;
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to retrieve BSON documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage());
 		}
 	}
@@ -2155,7 +2154,7 @@ public class DBAccessMongo implements Closeable {
 			final UpdateResult result = collection.updateMany(new Document(), updateDocument);
 			return result.getModifiedCount();
 		} catch (final Exception ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to update BSON documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Failed to update BSON documents: " + ex.getMessage());
 		}
 	}

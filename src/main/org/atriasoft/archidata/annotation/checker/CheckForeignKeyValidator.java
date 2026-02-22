@@ -9,7 +9,7 @@ import jakarta.validation.ConstraintValidatorContext;
 
 public class CheckForeignKeyValidator implements ConstraintValidator<CheckForeignKey, Object> {
 	Class<?> target = null;
-	private final static Logger LOGGER = LoggerFactory.getLogger(CheckForeignKeyValidator.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(CheckForeignKeyValidator.class);
 
 	@Override
 	public void initialize(final CheckForeignKey annotation) {

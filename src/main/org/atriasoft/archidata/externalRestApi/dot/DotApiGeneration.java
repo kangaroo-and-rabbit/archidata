@@ -18,6 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DotApiGeneration {
+	private DotApiGeneration() {
+		// Utility class
+	}
+
 	static final Logger LOGGER = LoggerFactory.getLogger(DotApiGeneration.class);
 
 	public static String generateClassEnumModelTypescript(
@@ -115,8 +119,8 @@ public class DotApiGeneration {
 	public static List<String> generateClassModelsLinks(
 			final List<ClassModel> models,
 			final DotClassElementGroup dotGroup) throws IOException {
-		if (models.size() == 0) {
-			return null;
+		if (models.isEmpty()) {
+			return new ArrayList<>();
 		}
 		final List<String> out = new ArrayList<>();
 		for (final ClassModel model : models) {

@@ -65,6 +65,10 @@ class TestSigner implements JWSSigner {
 }
 
 public class JWTWrapper {
+	private JWTWrapper() {
+		// Utility class
+	}
+
 	static final Logger LOGGER = LoggerFactory.getLogger(JWTWrapper.class);
 
 	private static RSAKey rsaJWK = null;
@@ -133,9 +137,7 @@ public class JWTWrapper {
 			// LOGGER.trace("RSA key (all): " + rsaJWK.toJSONString());
 			// LOGGER.trace("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (final JOSEException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			LOGGER.debug("Can not generate keys public abord private keys ...");
+			LOGGER.error("Can not generate keys, aborting private keys: {}", e.getMessage(), e);
 			rsaJWK = null;
 			rsaPublicJWK = null;
 		}
@@ -145,8 +147,7 @@ public class JWTWrapper {
 		try {
 			rsaPublicJWK = RSAKey.parse(publicKey);
 		} catch (final ParseException e) {
-			e.printStackTrace();
-			// Dangerous: LOGGER.debug("Can not retrieve public Key !!!!!!!! RSAKey='{}'", publicKey);
+			LOGGER.error("Can not parse public key: {}", e.getMessage(), e);
 		}
 
 	}
@@ -192,7 +193,7 @@ public class JWTWrapper {
 			LOGGER.warn("timeOutInMunites= {}", timeOutInMunites);
 			final Date now = new Date();
 			LOGGER.warn("now       = {}", now);
-			final Date expiration = new Date(new Date().getTime() - 60 * timeOutInMunites * 1000 /* millisecond */);
+			final Date expiration = new Date(now.getTime() + 60 * timeOutInMunites * 1000 /* millisecond */);
 
 			LOGGER.warn("expiration= {}", expiration);
 			String serializeUserId = "";
@@ -205,7 +206,7 @@ public class JWTWrapper {
 			}
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(serializeUserId)
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)
-					.expirationTime(expiration); // Do not ask why we need a "-" here ... this have no meaning
+					.expirationTime(expiration);
 			// add right if needed:
 			if (rights != null) {
 				builder.claim("right", rights);
@@ -220,7 +221,7 @@ public class JWTWrapper {
 			// serialize the output...
 			return signedJWT.serialize();
 		} catch (final JOSEException ex) {
-			ex.printStackTrace();
+			LOGGER.error("Failed to generate JWT token: {}", ex.getMessage(), ex);
 		}
 		return null;
 	}
@@ -272,7 +273,7 @@ public class JWTWrapper {
 			// LOGGER.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 			return signedJWT.getJWTClaimsSet();
 		} catch (final JOSEException | ParseException e) {
-			e.printStackTrace();
+			LOGGER.error("Failed to validate JWT token: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -311,8 +312,7 @@ public class JWTWrapper {
 			// serialize the output...
 			return signedJWT.serialize();
 		} catch (final Exception ex) {
-			ex.printStackTrace();
-			LOGGER.error("Can not generate Test Token... {}", ex.getLocalizedMessage());
+			LOGGER.error("Can not generate Test Token: {}", ex.getMessage(), ex);
 		}
 		return null;
 	}

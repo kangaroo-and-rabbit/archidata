@@ -16,7 +16,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 
 public class TestTypeScriptApiGenerationAPI {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestTypeScriptApiGenerationAPI.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestTypeScriptApiGenerationAPI.class);
 
 	public enum TestEnum {
 		PLOP, PLIP

@@ -1,8 +1,8 @@
 package test.atriasoft.archidata.migration;
 
-import org.atriasoft.archidata.migration.MigrationSqlStep;
+import org.atriasoft.archidata.migration.MigrationStep;
 
-class InitializationCurrent extends MigrationSqlStep {
+class InitializationCurrent extends MigrationStep {
 
 	@Override
 	public String getName() {

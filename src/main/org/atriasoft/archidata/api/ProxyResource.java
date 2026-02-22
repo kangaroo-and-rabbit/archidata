@@ -1,5 +1,8 @@
 package org.atriasoft.archidata.api;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +27,25 @@ public class ProxyResource {
 		if (url == null || url.isEmpty()) {
 			return Response.status(Status.BAD_REQUEST).entity("URL manquante").build();
 		}
+		// Validate URL to prevent SSRF attacks
+		try {
+			final URI uri = new URI(url);
+			final String scheme = uri.getScheme();
+			if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
+				return Response.status(Status.BAD_REQUEST).entity("Only HTTP and HTTPS URLs are allowed").build();
+			}
+			final String host = uri.getHost();
+			if (host == null || host.equals("localhost") || host.equals("127.0.0.1") || host.equals("0.0.0.0")
+					|| host.startsWith("10.") || host.startsWith("192.168.") || host.equals("[::1]")
+					|| host.startsWith("169.254.") || host.startsWith("172.16.") || host.startsWith("172.17.")
+					|| host.startsWith("172.18.") || host.startsWith("172.19.") || host.startsWith("172.2")
+					|| host.startsWith("172.30.") || host.startsWith("172.31.")) {
+				return Response.status(Status.FORBIDDEN).entity("Access to internal network addresses is forbidden")
+						.build();
+			}
+		} catch (final URISyntaxException e) {
+			return Response.status(Status.BAD_REQUEST).entity("Invalid URL format").build();
+		}
 		final Client client = ClientBuilder.newClient();
 		try {
 			final WebTarget target = client.target(url);
@@ -37,6 +59,8 @@ public class ProxyResource {
 		} catch (final Exception e) {
 			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("SERVER internal error : " + e.getMessage())
 					.build();
+		} finally {
+			client.close();
 		}
 	}
 }

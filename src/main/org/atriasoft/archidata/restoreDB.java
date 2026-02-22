@@ -13,7 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class restoreDB {
-	final static Logger LOGGER = LoggerFactory.getLogger(restoreDB.class);
+	private restoreDB() {
+		// Utility class
+	}
+
+	static final Logger LOGGER = LoggerFactory.getLogger(restoreDB.class);
 
 	public static void main(final String[] args) throws IOException, DataAccessException {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));

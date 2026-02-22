@@ -23,7 +23,7 @@ import test.atriasoft.archidata.dataAccess.model.Enum2ForTest;
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TestListElements {
-	final static private Logger LOGGER = LoggerFactory.getLogger(TestListElements.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TestListElements.class);
 
 	@BeforeAll
 	public static void configureWebServer() throws Exception {

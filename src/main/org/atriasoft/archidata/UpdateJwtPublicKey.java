@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 
 public class UpdateJwtPublicKey extends Thread {
 	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateJwtPublicKey.class);
-	boolean kill = false;
+	private volatile boolean kill = false;
 
 	public UpdateJwtPublicKey() {
 		setDaemon(true);
@@ -25,8 +25,7 @@ public class UpdateJwtPublicKey extends Thread {
 			try {
 				JWTWrapper.initLocalTokenRemote(ConfigBaseVariable.getSSOAddress(), "archidata");
 			} catch (final Exception e1) {
-				e1.printStackTrace();
-				LOGGER.error("Can not retreive the basic tocken");
+				LOGGER.error("Can not retreive the basic tocken: {}", e1.getMessage(), e1);
 				return;
 			}
 			try {
