@@ -86,9 +86,9 @@ public class MultiCollectionTest {
 		simple.data = "test_data";
 		ConfigureDb.da.insert(simple);
 
-		TestHelper.waitForEvents(collection1Events, 1, 5000);
-		TestHelper.waitForEvents(collection2Events, 1, 5000);
-		TestHelper.waitForEvents(globalEvents, 2, 5000);
+		TestHelper.waitForEvents(collection1Events, 1, 2000);
+		TestHelper.waitForEvents(collection2Events, 1, 2000);
+		TestHelper.waitForEvents(globalEvents, 2, 2000);
 
 		synchronized (collection1Events) {
 			Assertions.assertTrue(collection1Events.size() >= 1,

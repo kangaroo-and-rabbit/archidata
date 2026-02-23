@@ -71,7 +71,7 @@ public class BasicCRUDOperationsTest {
 		Assertions.assertNotNull(inserted);
 		Assertions.assertNotNull(inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Should have at least 1 INSERT event");
 			final ChangeEvent event = this.capturedEvents.stream().filter(ChangeEvent::isInsert).findFirst()
@@ -99,14 +99,14 @@ public class BasicCRUDOperationsTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Bob", "user", 50);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		this.capturedEvents.clear();
 
 		inserted.name = "Bob Updated";
 		inserted.value = 200;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Should have at least 1 UPDATE event");
 			final ChangeEvent event = this.capturedEvents.stream().filter(ChangeEvent::isUpdate).findFirst()
@@ -136,12 +136,12 @@ public class BasicCRUDOperationsTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Charlie", "admin", 75);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		this.capturedEvents.clear();
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Should have at least 1 DELETE event");
 			final ChangeEvent event = this.capturedEvents.stream().filter(ChangeEvent::isDelete).findFirst()

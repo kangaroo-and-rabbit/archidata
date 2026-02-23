@@ -112,7 +112,7 @@ public class ChangeNotificationIntegrationTest {
 		Assertions.assertNotNull(inserted.getId());
 
 		// Wait for INSERT event
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should have 1 INSERT event");
 			final ChangeEvent insertEvent = this.capturedEvents.get(0);
@@ -132,7 +132,7 @@ public class ChangeNotificationIntegrationTest {
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		// Wait for UPDATE event
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should have 1 UPDATE event");
 			final ChangeEvent updateEvent = this.capturedEvents.get(0);
@@ -153,7 +153,7 @@ public class ChangeNotificationIntegrationTest {
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		// Wait for DELETE event
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should have 1 DELETE event");
 			final ChangeEvent deleteEvent = this.capturedEvents.get(0);
@@ -185,7 +185,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity1 = new TestChangeStreamEntity("Bob", "user", 50);
 		final TestChangeStreamEntity inserted1 = ConfigureDb.da.insert(entity1);
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			// May receive DELETE from previous test + INSERT, so filter for INSERT only
 			final long insertCount = this.capturedEvents.stream().filter(ChangeEvent::isInsert).count();
@@ -201,7 +201,7 @@ public class ChangeNotificationIntegrationTest {
 		inserted1.name = "Bob Updated";
 		ConfigureDb.da.updateById(inserted1, inserted1.getId());
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size());
 			// UPDATE_LOOKUP mode should have full document on UPDATE
@@ -226,7 +226,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity2 = new TestChangeStreamEntity("Charlie", "admin", 75);
 		final TestChangeStreamEntity inserted2 = ConfigureDb.da.insert(entity2);
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.get(0).hasFullDocument(),
 					"UPDATE_LOOKUP should have full document on INSERT");
@@ -236,7 +236,7 @@ public class ChangeNotificationIntegrationTest {
 		inserted2.name = "Charlie Updated";
 		ConfigureDb.da.updateById(inserted2, inserted2.getId());
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size());
 			Assertions.assertTrue(this.capturedEvents.get(0).hasFullDocument(),
@@ -296,7 +296,7 @@ public class ChangeNotificationIntegrationTest {
 					return !listener1Events.isEmpty() && !listener2Events.isEmpty();
 				}
 			}
-		}, 5000, "Both listeners should receive INSERT event");
+		}, 2000, "Both listeners should receive INSERT event");
 
 		synchronized (listener1Events) {
 			synchronized (listener2Events) {
@@ -338,7 +338,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity user = new TestChangeStreamEntity("RegularUser", "user", 50);
 		final TestChangeStreamEntity insertedUser = ConfigureDb.da.insert(user);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			// Filter for INSERT events with admin role
@@ -363,7 +363,7 @@ public class ChangeNotificationIntegrationTest {
 		insertedUser.value = 75;
 		ConfigureDb.da.updateById(insertedUser, insertedUser.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should only capture admin update");
@@ -400,7 +400,7 @@ public class ChangeNotificationIntegrationTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture initial insert with value=50");
+		}, 500, "Should not capture initial insert with value=50");
 
 		this.capturedEvents.clear();
 
@@ -408,7 +408,7 @@ public class ChangeNotificationIntegrationTest {
 		inserted.value = 150;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update with value=150");
@@ -425,7 +425,7 @@ public class ChangeNotificationIntegrationTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture update with value=80");
+		}, 500, "Should not capture update with value=80");
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
@@ -455,7 +455,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity1 = new TestChangeStreamEntity("Frank", "user", 30);
 		ConfigureDb.da.insert(entity1);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Listener should receive event");
@@ -478,7 +478,7 @@ public class ChangeNotificationIntegrationTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Removed listener should not receive events");
+		}, 500, "Removed listener should not receive events");
 
 		// Verify collection is still being monitored
 		Assertions.assertTrue(manager.isWatching("TestChangeStreamEntity"),
@@ -538,9 +538,9 @@ public class ChangeNotificationIntegrationTest {
 		simple.data = "test_data";
 		ConfigureDb.da.insert(simple);
 
-		TestHelper.waitForEvents(collection1Events, 1, 5000);
-		TestHelper.waitForEvents(collection2Events, 1, 5000);
-		TestHelper.waitForEvents(globalEvents, 2, 5000);
+		TestHelper.waitForEvents(collection1Events, 1, 2000);
+		TestHelper.waitForEvents(collection2Events, 1, 2000);
+		TestHelper.waitForEvents(globalEvents, 2, 2000);
 
 		// Verify collection-specific listeners
 		synchronized (collection1Events) {
@@ -598,7 +598,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Iris", "user", 90);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture INSERT");
@@ -610,7 +610,7 @@ public class ChangeNotificationIntegrationTest {
 		inserted.name = "Iris Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture name field update");
@@ -627,7 +627,7 @@ public class ChangeNotificationIntegrationTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture value-only update");
+		}, 500, "Should not capture value-only update");
 
 		this.capturedEvents.clear();
 
@@ -636,7 +636,7 @@ public class ChangeNotificationIntegrationTest {
 		inserted.value = 150;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		waitForEvents(1, 5);
+		waitForEvents(1, 2);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update containing name field");
@@ -669,7 +669,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Jack", "admin", 200);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size());
@@ -723,7 +723,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Kate", "user", 55);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture INSERT");
@@ -740,12 +740,12 @@ public class ChangeNotificationIntegrationTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture UPDATE");
+		}, 500, "Should not capture UPDATE");
 
 		// Delete - should be captured
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture DELETE");

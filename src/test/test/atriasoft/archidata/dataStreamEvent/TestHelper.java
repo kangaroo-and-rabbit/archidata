@@ -111,6 +111,6 @@ public class TestHelper {
 		waitForCondition(() -> manager.isWatching(collectionName), timeoutMs,
 				"Change stream for collection '" + collectionName + "' did not initialize in time");
 		// Additional small delay for stream to be fully ready
-		Thread.sleep(100);
+		Thread.sleep(20);
 	}
 }

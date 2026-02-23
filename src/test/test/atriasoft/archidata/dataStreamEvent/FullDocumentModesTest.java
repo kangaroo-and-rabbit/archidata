@@ -71,7 +71,7 @@ public class FullDocumentModesTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Alice", "user", 50);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			final long insertCount = this.capturedEvents.stream().filter(ChangeEvent::isInsert).count();
 			Assertions.assertTrue(insertCount >= 1, "Should have at least 1 INSERT event");
@@ -84,7 +84,7 @@ public class FullDocumentModesTest {
 		inserted.name = "Alice Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1);
 			final ChangeEvent updateEvent = this.capturedEvents.get(0);
@@ -107,7 +107,7 @@ public class FullDocumentModesTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Bob", "admin", 75);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.get(0).hasFullDocument(),
 					"DEFAULT mode should have full document on INSERT");
@@ -117,7 +117,7 @@ public class FullDocumentModesTest {
 		inserted.name = "Bob Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1);
 			final ChangeEvent updateEvent = this.capturedEvents.stream().filter(ChangeEvent::isUpdate).findFirst()
@@ -175,7 +175,7 @@ public class FullDocumentModesTest {
 					return listener1Events.size() >= 1 && listener2Events.size() >= 1;
 				}
 			}
-		}, 5000, "Both listeners should receive INSERT event");
+		}, 2000, "Both listeners should receive INSERT event");
 
 		inserted.name = "Charlie Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
@@ -186,7 +186,7 @@ public class FullDocumentModesTest {
 					return listener1Events.size() >= 2 && listener2Events.size() >= 2;
 				}
 			}
-		}, 5000, "Both listeners should receive UPDATE event");
+		}, 2000, "Both listeners should receive UPDATE event");
 
 		synchronized (listener1Events) {
 			synchronized (listener2Events) {

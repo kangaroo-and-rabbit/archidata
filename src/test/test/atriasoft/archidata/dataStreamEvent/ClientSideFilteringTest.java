@@ -75,7 +75,7 @@ public class ClientSideFilteringTest {
 		final TestChangeStreamEntity user = new TestChangeStreamEntity("RegularUser", "user", 50);
 		final TestChangeStreamEntity insertedUser = ConfigureDb.da.insert(user);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			final long adminInsertCount = this.capturedEvents.stream().filter(
@@ -124,7 +124,7 @@ public class ClientSideFilteringTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture initial insert with value=50");
+		}, 500, "Should not capture initial insert with value=50");
 
 		this.capturedEvents.clear();
 
@@ -138,7 +138,7 @@ public class ClientSideFilteringTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "UPDATE events should not be captured without full documents");
+		}, 500, "UPDATE events should not be captured without full documents");
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
@@ -158,7 +158,7 @@ public class ClientSideFilteringTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Bob", "user", 55);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			final long insertCount = this.capturedEvents.stream().filter(ChangeEvent::isInsert).count();
@@ -174,11 +174,11 @@ public class ClientSideFilteringTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture UPDATE");
+		}, 500, "Should not capture UPDATE");
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			final long deleteCount = this.capturedEvents.stream().filter(ChangeEvent::isDelete).count();
@@ -205,13 +205,13 @@ public class ClientSideFilteringTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Charlie", "user", 90);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 		this.capturedEvents.clear();
 
 		inserted.name = "Charlie Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Should capture name field update");
@@ -230,7 +230,7 @@ public class ClientSideFilteringTest {
 			synchronized (this.capturedEvents) {
 				return this.capturedEvents.size() == 0;
 			}
-		}, 2000, "Should not capture value-only update");
+		}, 500, "Should not capture value-only update");
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
