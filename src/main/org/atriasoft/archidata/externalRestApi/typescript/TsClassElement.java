@@ -429,10 +429,38 @@ public class TsClassElement {
 	}
 
 	public String optionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
-		if (isOptionalTypeZod(field, isValid, groups)) {
+		return optionalTypeZod(field, isValid, groups, false, false);
+	}
+
+	public String optionalTypeZod(
+			final FieldProperty field,
+			final boolean isValid,
+			final Class<?>[] groups,
+			final boolean jsonIncludeNonNull,
+			final boolean nullableOptionalForWrite) {
+		if (!isOptionalTypeZod(field, isValid, groups)) {
+			return "";
+		}
+		if (jsonIncludeNonNull) {
+			if (nullableOptionalForWrite && isWriteGroup(groups)) {
+				return ".nullable().optional()";
+			}
 			return ".optional()";
 		}
-		return "";
+		return ".nullable()";
+	}
+
+	private boolean isWriteGroup(final Class<?>[] groups) {
+		if (groups == null) {
+			return false;
+		}
+		for (final Class<?> group : groups) {
+			if (TypeUtils.isSameClass(group, org.atriasoft.archidata.annotation.checker.GroupCreate.class)
+					|| TypeUtils.isSameClass(group, org.atriasoft.archidata.annotation.checker.GroupUpdate.class)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public String maxSizeZod(final FieldProperty field) {
@@ -608,7 +636,9 @@ public class TsClassElement {
 			}
 			outContent.append(maxSizeZod(field));
 			outContent.append(readOnlyZod(field));
-			outContent.append(optionalTypeZod(field, parameterClassModel.valid(), parameterClassModel.groups()));
+			outContent.append(optionalTypeZod(field, parameterClassModel.valid(), parameterClassModel.groups(),
+					model.isJsonIncludeNonNull(),
+					model.getApiGenerationMode().nullableOptionalForWriteSchemas()));
 			outContent.append(",\n");
 		}
 		if (model.getExtendsClass() != null) {

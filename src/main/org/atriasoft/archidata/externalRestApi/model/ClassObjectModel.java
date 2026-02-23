@@ -14,11 +14,17 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiNotNull;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
+import org.atriasoft.archidata.bean.PropertyDescriptor;
+import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -52,17 +58,31 @@ public class ClassObjectModel extends ClassModel {
 		return out.toString();
 	}
 
-	private static boolean isFieldFromSuperClass(final Class<?> model, final String filedName) {
+	private static boolean hasJsonIncludeNonNull(final Class<?> clazz) {
+		Class<?> current = clazz;
+		while (current != null && current != Object.class) {
+			final JsonInclude annotation = current.getAnnotation(JsonInclude.class);
+			if (annotation != null && annotation.value() == JsonInclude.Include.NON_NULL) {
+				return true;
+			}
+			current = current.getSuperclass();
+		}
+		return false;
+	}
+
+	private static boolean isPropertyFromSuperClass(final Class<?> model, final String propertyName) {
 		final Class<?> superClass = model.getSuperclass();
 		if (superClass == null) {
 			return false;
 		}
-		for (final Field field : AnnotationTools.getAllInstanceFields(superClass)) {
-			if (filedName.equals(field.getName())) {
-				return true;
-			}
+		try {
+			final org.atriasoft.archidata.bean.ClassModel superBeanModel = org.atriasoft.archidata.bean.ClassModel
+					.of(superClass);
+			return superBeanModel.getProperty(propertyName) != null;
+		} catch (final IntrospectionException e) {
+			LOGGER.trace("Catch error introspecting parent class: {}", e.getMessage());
+			return false;
 		}
-		return false;
 	}
 
 	public record FieldProperty(
@@ -126,6 +146,79 @@ public class ClassObjectModel extends ClassModel {
 
 		}
 
+		// -- PropertyDescriptor-based helpers (bean introspection) --
+
+		private static String getSchemaDescription(final PropertyDescriptor property) {
+			final Schema schema = property.getAnnotation(Schema.class);
+			if (schema == null) {
+				return null;
+			}
+			final String desc = schema.description();
+			if (desc == null || desc.isEmpty()) {
+				return null;
+			}
+			return desc;
+		}
+
+		private static Class<?> getSubModelIfExist2(final PropertyDescriptor property) {
+			final ManyToOne manyToOne = property.getAnnotation(ManyToOne.class);
+			if (manyToOne != null) {
+				if (manyToOne.targetEntity() != null && manyToOne.targetEntity() != void.class) {
+					return manyToOne.targetEntity();
+				}
+				return null;
+			}
+			final ManyToMany manyToMany = property.getAnnotation(ManyToMany.class);
+			if (manyToMany != null) {
+				if (manyToMany.targetEntity() != null && manyToMany.targetEntity() != void.class) {
+					return manyToMany.targetEntity();
+				}
+				return null;
+			}
+			final OneToMany oneToMany = property.getAnnotation(OneToMany.class);
+			if (oneToMany != null) {
+				if (oneToMany.targetEntity() != null && oneToMany.targetEntity() != void.class) {
+					return oneToMany.targetEntity();
+				}
+				return null;
+			}
+			return null;
+		}
+
+		private static ClassModel getSubModelIfExist(final PropertyDescriptor property, final ModelGroup previous)
+				throws IOException {
+			final Class<?> tmp = getSubModelIfExist2(property);
+			if (tmp == null) {
+				return null;
+			}
+			return ClassModel.getModel(tmp, previous);
+		}
+
+		/** Construct a FieldProperty from a bean PropertyDescriptor (supports POJO, Record, Bean). */
+		public FieldProperty(final PropertyDescriptor property, final ModelGroup previous)
+				throws DataAccessException, IOException {
+			this(property.getName(), //
+					ClassModel.getModel(property.getTypeInfo().genericType(), previous), //
+					getSubModelIfExist(property, previous), //
+					getSchemaDescription(property), //
+					property.getAnnotation(Size.class), //
+					property.getAnnotation(Min.class), //
+					property.getAnnotation(Max.class), //
+					property.getAnnotation(DecimalMin.class), //
+					property.getAnnotation(DecimalMax.class), //
+					property.getAnnotation(Pattern.class), //
+					property.getAnnotation(Email.class), //
+					property.getAnnotation(ApiAccessLimitation.class), //
+					property.getAnnotation(ApiReadOnly.class), //
+					property.getAnnotation(ApiNotNull.class), //
+					property.getAnnotation(NotNull.class), //
+					property.getAnnotation(Null.class), //
+					property.hasAnnotation(Nullable.class));
+		}
+
+		// -- Legacy Field-based helpers (kept for backward compatibility) --
+
+		@Deprecated
 		private static Class<?> getSubModelIfExist2(final Field field) {
 			final ManyToOne manyToOne = AnnotationTools.getManyToOne(field);
 			if (manyToOne != null) {
@@ -151,6 +244,7 @@ public class ClassObjectModel extends ClassModel {
 			return null;
 		}
 
+		@Deprecated
 		private static ClassModel getSubModelIfExist(final Field field, final ModelGroup previous) throws IOException {
 			final Class<?> tmp = getSubModelIfExist2(field);
 			if (tmp == null) {
@@ -159,6 +253,7 @@ public class ClassObjectModel extends ClassModel {
 			return ClassModel.getModel(tmp, previous);
 		}
 
+		@Deprecated
 		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
@@ -183,6 +278,7 @@ public class ClassObjectModel extends ClassModel {
 
 	String name = "";
 	boolean isPrimitive = false;
+	boolean jsonIncludeNonNull = false;
 	String description = null;
 	String example = null;
 	ClassModel extendsClass = null;
@@ -194,6 +290,10 @@ public class ClassObjectModel extends ClassModel {
 
 	public boolean isPrimitive() {
 		return this.isPrimitive;
+	}
+
+	public boolean isJsonIncludeNonNull() {
+		return this.jsonIncludeNonNull;
 	}
 
 	public String getDescription() {
@@ -225,34 +325,47 @@ public class ClassObjectModel extends ClassModel {
 		}
 		final List<Class<?>> basicClass = List.of(Void.class, void.class, Character.class, char.class, Short.class,
 				short.class, Integer.class, int.class, Long.class, long.class, Float.class, float.class, Double.class,
-				double.class, Date.class, LocalDate.class, LocalTime.class);
+				double.class, Boolean.class, boolean.class, String.class, Object.class, Date.class, LocalDate.class,
+				LocalTime.class, byte[].class);
 		if (basicClass.contains(clazz)) {
 			return;
 		}
 
-		// Local generation of class:
+		// Detect @JsonInclude(NON_NULL) on this class or any parent class
+		this.jsonIncludeNonNull = hasJsonIncludeNonNull(clazz);
+
+		// Use bean introspection (supports POJO, Record, Bean)
 		LOGGER.trace("parse class: '{}'", clazz.getCanonicalName());
+
+		final org.atriasoft.archidata.bean.ClassModel beanModel = org.atriasoft.archidata.bean.ClassModel.of(clazz);
+
 		final List<String> alreadyAdded = new ArrayList<>();
-		for (final Field elem : AnnotationTools.getAllInstanceFields(clazz)) {
-			final String dataName = elem.getName();
-			if (isFieldFromSuperClass(clazz, dataName)) {
-				LOGGER.trace("        SKIP:  '{}'", elem.getName());
+		for (final PropertyDescriptor prop : beanModel.getProperties()) {
+			// Only consider properties backed by a field (skip getter-only computed
+			// properties from external classes like ObjectId.getDate()).
+			if (prop.getField() == null) {
+				LOGGER.trace("        SKIP (no field): '{}'", prop.getName());
+				continue;
+			}
+			final String dataName = prop.getName();
+			if (isPropertyFromSuperClass(clazz, dataName)) {
+				LOGGER.trace("        SKIP:  '{}'", dataName);
 				continue;
 			}
 			if (alreadyAdded.contains(dataName)) {
-				LOGGER.trace("        SKIP2: '{}'", elem.getName());
+				LOGGER.trace("        SKIP2: '{}'", dataName);
 				continue;
 			}
 			alreadyAdded.add(dataName);
-			LOGGER.trace("        + '{}'", elem.getName());
-			LOGGER.trace("Create type for: {} ==> {}", AnnotationTools.getFieldNameRaw(elem), elem.getType());
-			final FieldProperty porperty = new FieldProperty(elem, previous);
-			for (final ClassModel depModel : porperty.model().getAlls()) {
+			LOGGER.trace("        + '{}'", dataName);
+			LOGGER.trace("Create type for: {} ==> {}", dataName, prop.getType());
+			final FieldProperty fieldProperty = new FieldProperty(prop, previous);
+			for (final ClassModel depModel : fieldProperty.model().getAlls()) {
 				if (!this.dependencyModels.contains(depModel)) {
 					this.dependencyModels.add(depModel);
 				}
 			}
-			this.fields.add(new FieldProperty(elem, previous));
+			this.fields.add(fieldProperty);
 		}
 		this.name = clazz.getName();
 

@@ -14,7 +14,10 @@ import org.atriasoft.archidata.annotation.method.CALL;
 import org.atriasoft.archidata.annotation.method.RESTORE;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.model.OIDGenericDataSoftDelete;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -137,6 +140,60 @@ public class TestTypeScriptApiGeneration {
 		}
 	}
 
+	// -- Record test model --
+
+	public record TestRecordObject(
+			Long valueNullable,
+			@NotNull Long valueNotNull,
+			String name) {}
+
+	@Path("recordPath")
+	public class SampleResourceRecordGet {
+		@GET
+		@Path("{oid}")
+		public TestRecordObject get(@PathParam("oid") final ObjectId oid) {
+			return null;
+		}
+	}
+
+	// -- @JsonInclude(NON_NULL) test models --
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	public static class TestJsonIncludeObject {
+		public Long valueRequired;
+		@NotNull
+		public Long valueNotNull;
+		public Long valueNullable;
+	}
+
+	@Path("jsonIncludePath")
+	public class SampleResourceJsonIncludeGet {
+		@GET
+		@Path("{oid}")
+		public TestJsonIncludeObject get(@PathParam("oid") final ObjectId oid) {
+			return null;
+		}
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@ApiGenerationMode(read = true, create = true, nullableOptionalForWriteSchemas = true)
+	public static class TestJsonIncludeWriteObject {
+		public Long valueNullable;
+		@NotNull
+		public Long valueNotNull;
+		@NotNull(groups = GroupCreate.class)
+		public Long valueNotNullCreate;
+	}
+
+	@Path("jsonIncludeWritePath")
+	public class SampleResourceJsonIncludePost {
+		@POST
+		public TestJsonIncludeWriteObject create(
+				@Valid @ValidGroup(GroupCreate.class) final TestJsonIncludeWriteObject data) {
+			return null;
+		}
+	}
+
 	@Test
 	public void testGenerateABasicRestApiGet() throws Exception {
 
@@ -194,15 +251,15 @@ public class TestTypeScriptApiGeneration {
 				import { ZodOIDGenericDataSoftDelete } from "./oid-generic-data-soft-delete";
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupUpdate: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupUpdate: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-					valueNotNullGroupUpdate: ZodLong.optional(),
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupUpdate: ZodLong.nullable(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -277,15 +334,15 @@ public class TestTypeScriptApiGeneration {
 				} from "./oid-generic-data-soft-delete";
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupUpdate: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupUpdate: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-					valueNotNullGroupUpdate: ZodLong.optional(),
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupUpdate: ZodLong.nullable(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -301,15 +358,15 @@ public class TestTypeScriptApiGeneration {
 				}
 
 				export const ZodTestObjectCreate = ZodOIDGenericDataSoftDeleteCreate.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupRead: ZodLong.optional(),
-					valueNullGroupUpdate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupRead: ZodLong.nullable(),
+					valueNullGroupUpdate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
-					valueNotNullGroupRead: ZodLong.optional(),
-					valueNotNullGroupUpdate: ZodLong.optional(),
+					valueNotNullGroupRead: ZodLong.nullable(),
+					valueNotNullGroupUpdate: ZodLong.nullable(),
 					valueNotNullGroupCreate: ZodLong,
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObjectCreate = zod.infer<typeof ZodTestObjectCreate>;
@@ -384,15 +441,15 @@ public class TestTypeScriptApiGeneration {
 				} from "./oid-generic-data-soft-delete";
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupUpdate: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupUpdate: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-					valueNotNullGroupUpdate: ZodLong.optional(),
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupUpdate: ZodLong.nullable(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -408,15 +465,15 @@ public class TestTypeScriptApiGeneration {
 				}
 
 				export const ZodTestObjectUpdate = ZodOIDGenericDataSoftDeleteUpdate.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupRead: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupRead: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
-					valueNotNullGroupRead: ZodLong.optional(),
+					valueNotNullGroupRead: ZodLong.nullable(),
 					valueNotNullGroupUpdate: ZodLong,
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObjectUpdate = zod.infer<typeof ZodTestObjectUpdate>;
@@ -491,15 +548,15 @@ public class TestTypeScriptApiGeneration {
 				} from "./oid-generic-data-soft-delete";
 
 				export const ZodTestObject = ZodOIDGenericDataSoftDelete.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupUpdate: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupUpdate: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
 					valueNotNullGroupRead: ZodLong,
-					valueNotNullGroupUpdate: ZodLong.optional(),
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupUpdate: ZodLong.nullable(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObject = zod.infer<typeof ZodTestObject>;
@@ -515,15 +572,15 @@ public class TestTypeScriptApiGeneration {
 				}
 
 				export const ZodTestObjectUpdate = ZodOIDGenericDataSoftDeleteUpdate.extend({
-					valueEmpty: ZodLong.optional(),
-					valueNullGroupRead: ZodLong.optional(),
-					valueNullGroupCreate: ZodLong.optional(),
-					valueNullGroupOther: ZodLong.optional(),
+					valueEmpty: ZodLong.nullable(),
+					valueNullGroupRead: ZodLong.nullable(),
+					valueNullGroupCreate: ZodLong.nullable(),
+					valueNullGroupOther: ZodLong.nullable(),
 					valueNotNullValid: ZodLong,
-					valueNotNullGroupRead: ZodLong.optional(),
+					valueNotNullGroupRead: ZodLong.nullable(),
 					valueNotNullGroupUpdate: ZodLong,
-					valueNotNullGroupCreate: ZodLong.optional(),
-					valueNotNullGroupOther: ZodLong.optional(),
+					valueNotNullGroupCreate: ZodLong.nullable(),
+					valueNotNullGroupOther: ZodLong.nullable(),
 				});
 
 				export type TestObjectUpdate = zod.infer<typeof ZodTestObjectUpdate>;
@@ -735,5 +792,247 @@ public class TestTypeScriptApiGeneration {
 					};
 				}
 				""", generation.get(Paths.get("api/sample-resource-restore.ts")));
+	}
+
+	@Test
+	public void testJsonIncludeNonNullOptional() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceJsonIncludeGet.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		for (final java.nio.file.Path elem : generation.keySet()) {
+			LOGGER.info("path= {}", elem);
+		}
+		Assertions.assertEquals(12, generation.size());
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import {
+					HTTPRequestModel,
+					RESTConfig,
+					RESTRequestJson,
+				} from "../rest-tools";
+				import {
+					ObjectId,
+					TestJsonIncludeObject,
+					isTestJsonIncludeObject,
+				} from "../model";
+
+				export namespace SampleResourceJsonIncludeGet {
+					export function get({
+							restConfig,
+							params,
+						}: {
+						restConfig: RESTConfig,
+						params: {
+							oid: ObjectId,
+						},
+					}): Promise<TestJsonIncludeObject> {
+						return RESTRequestJson({
+							restModel: {
+								endPoint: "jsonIncludePath/{oid}",
+								requestType: HTTPRequestModel.GET,
+							},
+							restConfig,
+							params,
+						}, isTestJsonIncludeObject);
+					};
+				}
+				""", generation.get(Paths.get("api/sample-resource-json-include-get.ts")));
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodLong } from "./long";
+
+				export const ZodTestJsonIncludeObject = zod.object({
+					valueRequired: ZodLong.optional(),
+					valueNotNull: ZodLong,
+					valueNullable: ZodLong.optional(),
+
+				});
+
+				export type TestJsonIncludeObject = zod.infer<typeof ZodTestJsonIncludeObject>;
+
+				export function isTestJsonIncludeObject(data: any): data is TestJsonIncludeObject {
+					try {
+						ZodTestJsonIncludeObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestJsonIncludeObject' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-json-include-object.ts")));
+	}
+
+	@Test
+	public void testJsonIncludeNonNullWithWriteOption() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceJsonIncludePost.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		for (final java.nio.file.Path elem : generation.keySet()) {
+			LOGGER.info("path= {}", elem);
+		}
+		Assertions.assertEquals(12, generation.size());
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import {
+					HTTPRequestModel,
+					RESTConfig,
+					RESTRequestJson,
+				} from "../rest-tools";
+				import {
+					TestJsonIncludeWriteObject,
+					TestJsonIncludeWriteObjectCreate,
+					isTestJsonIncludeWriteObject,
+				} from "../model";
+
+				export namespace SampleResourceJsonIncludePost {
+					export function create({
+							restConfig,
+							data,
+						}: {
+						restConfig: RESTConfig,
+						data: TestJsonIncludeWriteObjectCreate,
+					}): Promise<TestJsonIncludeWriteObject> {
+						return RESTRequestJson({
+							restModel: {
+								endPoint: "jsonIncludeWritePath/",
+								requestType: HTTPRequestModel.POST,
+							},
+							restConfig,
+							data,
+						}, isTestJsonIncludeWriteObject);
+					};
+				}
+				""", generation.get(Paths.get("api/sample-resource-json-include-post.ts")));
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodLong } from "./long";
+
+				export const ZodTestJsonIncludeWriteObject = zod.object({
+					valueNullable: ZodLong.optional(),
+					valueNotNull: ZodLong,
+					valueNotNullCreate: ZodLong.optional(),
+
+				});
+
+				export type TestJsonIncludeWriteObject = zod.infer<typeof ZodTestJsonIncludeWriteObject>;
+
+				export function isTestJsonIncludeWriteObject(data: any): data is TestJsonIncludeWriteObject {
+					try {
+						ZodTestJsonIncludeWriteObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObject' error=${e}`);
+						return false;
+					}
+				}
+
+				export const ZodTestJsonIncludeWriteObjectCreate = zod.object({
+					valueNullable: ZodLong.nullable().optional(),
+					valueNotNull: ZodLong,
+					valueNotNullCreate: ZodLong,
+
+				});
+
+				export type TestJsonIncludeWriteObjectCreate = zod.infer<typeof ZodTestJsonIncludeWriteObjectCreate>;
+
+				export function isTestJsonIncludeWriteObjectCreate(data: any): data is TestJsonIncludeWriteObjectCreate {
+					try {
+						ZodTestJsonIncludeWriteObjectCreate.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObjectCreate' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-json-include-write-object.ts")));
+	}
+
+	@Test
+	public void testGenerateRecordModel() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceRecordGet.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		for (final java.nio.file.Path elem : generation.keySet()) {
+			LOGGER.info("path= {}", elem);
+		}
+		Assertions.assertEquals(12, generation.size());
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import {
+					HTTPRequestModel,
+					RESTConfig,
+					RESTRequestJson,
+				} from "../rest-tools";
+				import {
+					ObjectId,
+					TestRecordObject,
+					isTestRecordObject,
+				} from "../model";
+
+				export namespace SampleResourceRecordGet {
+					export function get({
+							restConfig,
+							params,
+						}: {
+						restConfig: RESTConfig,
+						params: {
+							oid: ObjectId,
+						},
+					}): Promise<TestRecordObject> {
+						return RESTRequestJson({
+							restModel: {
+								endPoint: "recordPath/{oid}",
+								requestType: HTTPRequestModel.GET,
+							},
+							restConfig,
+							params,
+						}, isTestRecordObject);
+					};
+				}
+				""", generation.get(Paths.get("api/sample-resource-record-get.ts")));
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodLong } from "./long";
+
+				export const ZodTestRecordObject = zod.object({
+					valueNullable: ZodLong.nullable(),
+					valueNotNull: ZodLong,
+					name: zod.string().nullable(),
+
+				});
+
+				export type TestRecordObject = zod.infer<typeof ZodTestRecordObject>;
+
+				export function isTestRecordObject(data: any): data is TestRecordObject {
+					try {
+						ZodTestRecordObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestRecordObject' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-record-object.ts")));
 	}
 }

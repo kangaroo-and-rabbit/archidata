@@ -370,6 +370,10 @@ public final class ClassModel {
 				if (Modifier.isStatic(field.getModifiers())) {
 					continue;
 				}
+				// Skip synthetic fields (e.g. this$0 for non-static inner classes)
+				if (field.isSynthetic()) {
+					continue;
+				}
 				if (!seen.contains(field.getName())) {
 					seen.add(field.getName());
 					field.setAccessible(true);
