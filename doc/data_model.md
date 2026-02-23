@@ -180,7 +180,7 @@ public String status = null;
 public Boolean deleted = null;
 ```
 
-> **Note:** The value string uses SQL-like quoting: `'string_value'` for strings, `0` or `1` for booleans.
+> **Note:** The value string uses single-quote quoting: `'string_value'` for strings, `0` or `1` for booleans.
 
 ### @DataNotRead
 

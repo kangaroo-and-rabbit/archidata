@@ -442,7 +442,7 @@ Next Steps
 ----------
 
 - [Data Model](data_model.md) — Learn about all available annotations and relationships
-- [Database Access](SQL_wrapper.md) — Advanced queries with conditions, ordering, and pagination
+- [Database Access](database_access.md) — Advanced queries with conditions, ordering, and pagination
 - [Migration](migration.md) — Manage database schema changes
 - [Security](security.md) — JWT authentication and role-based permissions
 - [Connection Management](connectionManagement.md) — Optimize database connections

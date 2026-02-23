@@ -14,7 +14,7 @@ Core Concepts
 -------------
 
 - [Data Model](data_model.md) — Model classes, annotations, relationships, and validation
-- [Database Access](SQL_wrapper.md) — CRUD operations, query options, and conditions
+- [Database Access](database_access.md) — CRUD operations, query options, and conditions
 - [Migration](migration.md) — Database migration engine
 - [Security & Authentication](security.md) — JWT tokens, roles, and permissions
 
