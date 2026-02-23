@@ -266,7 +266,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			if (childKeys instanceof final Collection childCollection) {
 				for (final Object childKey : childCollection) {
-					switch (decorators.cascadeUpdate()) {
+					switch (decorators.cascadeDelete()) {
 						case CascadeMode.DELETE:
 							actions.add((final List<LazyGetter> actionsAsync) -> {
 								ioDb.deleteById(decorators.targetEntity(), childKey);

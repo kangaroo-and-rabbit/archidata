@@ -10,11 +10,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.bean.TypeInfo;
 import org.atriasoft.archidata.bean.accessor.PropertyGetter;
 import org.atriasoft.archidata.bean.accessor.PropertySetter;
@@ -394,6 +396,10 @@ public final class MongoCodecFactory {
 	/**
 	 * Read a MongoDB Document into a Java POJO/record (recursive reader).
 	 * Replaces the old sub-object path in {@code createObjectFromDocument()}.
+	 *
+	 * <p>For Records, collects all field values from the Document first, then uses
+	 * the canonical constructor via {@link ClassModel#newInstance(Map)}.
+	 * For POJOs, uses the no-arg constructor and populates fields via setters.
 	 */
 	private static Object readSubObject(final Object mongoValue, final Class<?> targetClass) throws Exception {
 		if (!(mongoValue instanceof final Document doc)) {
@@ -401,11 +407,33 @@ public final class MongoCodecFactory {
 					+ mongoValue.getClass().getSimpleName());
 		}
 		final DbClassModel dbModel = DbClassModel.of(targetClass);
-		final Object instance = dbModel.getClassModel().newInstance();
+		final ClassModel classModel = dbModel.getClassModel();
 
+		if (classModel.isRecord()) {
+			// Records: collect all values then instantiate via canonical constructor
+			final Map<String, Object> values = new LinkedHashMap<>();
+			for (final DbPropertyDescriptor desc : dbModel.getAllFields()) {
+				if (desc.getAddOn() != null) {
+					continue;
+				}
+				final MongoFieldCodec codec = desc.getCodec();
+				if (codec != null) {
+					final String fieldName = codec.getDbFieldName();
+					if (doc.containsKey(fieldName)) {
+						final Object mongoVal = doc.get(fieldName);
+						if (mongoVal != null) {
+							values.put(desc.getProperty().getName(), codec.getReader().fromMongo(mongoVal));
+						}
+					}
+				}
+			}
+			return classModel.newInstance(values);
+		}
+
+		// POJOs: no-arg constructor + setters
+		final Object instance = classModel.newInstance();
 		for (final DbPropertyDescriptor desc : dbModel.getAllFields()) {
 			if (desc.getAddOn() != null) {
-				// AddOns have their own fillFromDoc logic, skip for simple sub-objects
 				continue;
 			}
 			final MongoFieldCodec codec = desc.getCodec();

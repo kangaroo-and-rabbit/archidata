@@ -14,14 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.junit.jupiter.api.Disabled;
-
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.dataAccess.model.TypeOneToManyDocLongParentCascadeDeleteSetNull;
 import test.atriasoft.archidata.dataAccess.model.TypeOneToManyDocLongRemote;
 
-@Disabled("Framework bug: AddOnOneToManyDoc.onDelete() uses cascadeUpdate instead of cascadeDelete (line 269)")
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestOneToManyCascadeDeleteSetNull {

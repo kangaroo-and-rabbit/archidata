@@ -7,7 +7,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import org.glassfish.jersey.Beta;
 
 /**
  * In Document entity the relation is stored in the 2 part of the entity, then
@@ -53,19 +52,16 @@ public @interface ManyToOneDoc {
 	/**
 	 * When create the object, the system add the link on the parent
 	 */
-	@Beta
-	boolean addLinkWhenCreate() default true;
+boolean addLinkWhenCreate() default true;
 
 	/**
 	 * When delete the object, the system remove the link from the parent
 	 */
-	@Beta
-	boolean removeLinkWhenDelete() default true;
+boolean removeLinkWhenDelete() default true;
 
 	/**
 	 * When delete the object, the system remove the link from the parent
 	 */
-	@Beta
-	boolean updateLinkWhenUpdate() default true;
+boolean updateLinkWhenUpdate() default true;
 
 }
