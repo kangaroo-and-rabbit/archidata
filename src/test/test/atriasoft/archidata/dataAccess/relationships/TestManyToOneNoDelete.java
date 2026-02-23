@@ -48,33 +48,33 @@ class TestManyToOneNoDelete {
 	@Test
 	void testInsertChildAddsLink() throws Exception {
 		final TypeManyToOneDocLongChildTFF child = new TypeManyToOneDocLongChildTFF("child_nodelete",
-				insertedParent.id);
+				insertedParent.getId());
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 
 		// addLinkWhenCreate=true, so parent should have the link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
-		Assertions.assertEquals(insertedChild.id, parentCheck.childIds.get(0));
+		Assertions.assertEquals(insertedChild.getId(), parentCheck.childIds.get(0));
 	}
 
 	@Order(3)
 	@Test
 	void testDeleteChildKeepsLink() throws Exception {
-		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTFF.class, insertedChild.id);
+		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTFF.class, insertedChild.getId());
 		Assertions.assertEquals(1, count);
 
 		// removeLinkWhenDelete=false, so parent should STILL have the link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
-		Assertions.assertEquals(insertedChild.id, parentCheck.childIds.get(0));
+		Assertions.assertEquals(insertedChild.getId(), parentCheck.childIds.get(0));
 	}
 }

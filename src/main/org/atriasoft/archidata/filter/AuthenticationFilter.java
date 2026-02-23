@@ -255,13 +255,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final String userUID = ret.getSubject();
 		final ObjectId oid = new ObjectId(userUID);
 		final UserByToken user = new UserByToken();
-		user.oid = oid;
-		user.name = (String) ret.getClaim("login");
-		user.type = UserByToken.TYPE_USER;
+		user.setOid(oid);
+		user.setName((String) ret.getClaim("login"));
+		user.setType(UserByToken.TYPE_USER);
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
 			LOGGER.info("Detect right in Authentication Filter: {}", rowRight);
-			user.right = RightSafeCaster.safeCastAndTransform(ret.getClaim("right"));
+			user.setRight(RightSafeCaster.safeCastAndTransform(ret.getClaim("right")));
 			/*
 			if (rights.containsKey(this.applicationName)) {
 				user.right = rights.get(this.applicationName);

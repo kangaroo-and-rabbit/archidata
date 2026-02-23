@@ -27,7 +27,7 @@ public class GenericTiming {
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public Date createdAt = null;
+	private Date createdAt = null;
 	@DataNotRead
 	@UpdateTimestamp
 	@Column(nullable = false, insertable = false, updatable = false)
@@ -36,5 +36,21 @@ public class GenericTiming {
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public Date updatedAt = null;
+	private Date updatedAt = null;
+
+	public Date getCreatedAt() {
+		return this.createdAt;
+	}
+
+	public void setCreatedAt(final Date createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Date getUpdatedAt() {
+		return this.updatedAt;
+	}
+
+	public void setUpdatedAt(final Date updatedAt) {
+		this.updatedAt = updatedAt;
+	}
 }

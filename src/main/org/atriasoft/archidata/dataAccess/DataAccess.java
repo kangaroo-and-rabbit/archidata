@@ -16,7 +16,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /* TODO list:
-   - Manage to group of SQL action to permit to commit only at the end.
+   - Manage to group DB actions to permit to commit only at the end.
  */
 
 /**

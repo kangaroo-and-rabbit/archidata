@@ -7,7 +7,6 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.DataDeleted;
-import org.atriasoft.archidata.annotation.DataJson;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
@@ -227,9 +226,6 @@ public final class DbPropertyDescriptor {
 		}
 		if (property.hasAnnotation(DataDeleted.class)) {
 			return DbFieldAction.DELETED;
-		}
-		if (property.hasAnnotation(DataJson.class)) {
-			return DbFieldAction.JSON;
 		}
 		if (property.hasAnnotation(DataNotRead.class)) {
 			return DbFieldAction.NOT_READ;

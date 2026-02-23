@@ -60,15 +60,15 @@ public class TestAPI {
 		final SimpleArchiveTable inserted = api.request(TestAPI.ENDPOINT_NAME).showIOStrean().formatBody().post()
 				.bodyJson(data).fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.id);
+		Assertions.assertNotNull(inserted.getId());
 		Assertions.assertNotNull(inserted.name);
 		Assertions.assertEquals(data.name, inserted.name);
 
-		TestAPI.idTest = inserted.id;
+		TestAPI.idTest = inserted.getId();
 		final SimpleArchiveTable retrieve = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest)).get()
 				.fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertEquals(TestAPI.idTest, retrieve.id);
+		Assertions.assertEquals(TestAPI.idTest, retrieve.getId());
 		Assertions.assertNotNull(retrieve.name);
 		Assertions.assertEquals(data.name, retrieve.name);
 	}
@@ -79,7 +79,7 @@ public class TestAPI {
 		final SimpleArchiveTable archivedData = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest))
 				.archive().fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(archivedData);
-		Assertions.assertEquals(TestAPI.idTest, archivedData.id);
+		Assertions.assertEquals(TestAPI.idTest, archivedData.getId());
 		Assertions.assertNotNull(archivedData.name);
 		Assertions.assertNotNull(archivedData.archive);
 	}
@@ -90,7 +90,7 @@ public class TestAPI {
 		final SimpleArchiveTable archivedData = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest))
 				.restore().fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(archivedData);
-		Assertions.assertEquals(TestAPI.idTest, archivedData.id);
+		Assertions.assertEquals(TestAPI.idTest, archivedData.getId());
 		Assertions.assertNotNull(archivedData.name);
 		Assertions.assertNull(archivedData.archive);
 	}

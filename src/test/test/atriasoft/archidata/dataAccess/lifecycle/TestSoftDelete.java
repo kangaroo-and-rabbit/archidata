@@ -45,8 +45,8 @@ class TestSoftDelete {
 		test.data = "soft_delete_test";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.id);
-		idOfTheObject = inserted.id;
+		Assertions.assertNotNull(inserted.getId());
+		idOfTheObject = inserted.getId();
 	}
 
 	@Order(2)
@@ -55,8 +55,8 @@ class TestSoftDelete {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("soft_delete_test", retrieved.data);
-		Assertions.assertNotNull(retrieved.deleted);
-		Assertions.assertEquals(false, retrieved.deleted);
+		Assertions.assertNotNull(retrieved.getDeleted());
+		Assertions.assertEquals(false, retrieved.getDeleted());
 	}
 
 	@Order(3)
@@ -84,7 +84,7 @@ class TestSoftDelete {
 				new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("soft_delete_test", retrieved.data);
-		Assertions.assertNotNull(retrieved.deleted);
-		Assertions.assertEquals(true, retrieved.deleted);
+		Assertions.assertNotNull(retrieved.getDeleted());
+		Assertions.assertEquals(true, retrieved.getDeleted());
 	}
 }

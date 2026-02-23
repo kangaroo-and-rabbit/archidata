@@ -178,10 +178,10 @@ public class DataResource {
 		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
 		mimeType = getMimeType(extension);
-		injectedData.mimeType = mimeType;
-		injectedData.sha512 = sha512;
+		injectedData.setMimeType(mimeType);
+		injectedData.setSha512(sha512);
 		final String tmpPath = getTmpFileInData(tmpUID);
-		injectedData.size = Files.size(Paths.get(tmpPath));
+		injectedData.setSize(Files.size(Paths.get(tmpPath)));
 
 		try {
 			injectedData = DataAccess.insert(injectedData);
@@ -189,7 +189,7 @@ public class DataResource {
 			LOGGER.error("Failed to insert data: {}", e.getMessage(), e);
 			return null;
 		}
-		final String mediaPath = getFileData(injectedData.oid);
+		final String mediaPath = getFileData(injectedData.getOid());
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		try {
@@ -344,7 +344,7 @@ public class DataResource {
 		}
 		try {
 			return buildStream(getFileData(oid), range,
-					value.mimeType == null ? "application/octet-stream" : value.mimeType);
+					value.getMimeType() == null ? "application/octet-stream" : value.getMimeType());
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
@@ -376,7 +376,7 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + oid + "\"}")
 					.type("application/json").build();
 		}
-		if (value.mimeType.contentEquals("image/jpeg") || value.mimeType.contentEquals("image/png")
+		if (value.getMimeType().contentEquals("image/jpeg") || value.getMimeType().contentEquals("image/png")
 		// || value.mimeType.contentEquals("image/webp")
 		) {
 			// reads input image
@@ -432,7 +432,7 @@ public class DataResource {
 			return out.build();
 		}
 		try {
-			return buildStream(filePathName, range, value.mimeType);
+			return buildStream(filePathName, range, value.getMimeType());
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
@@ -459,7 +459,7 @@ public class DataResource {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
 		return buildStream(getFileData(oid), range,
-				value.mimeType == null ? "application/octet-stream" : value.mimeType);
+				value.getMimeType() == null ? "application/octet-stream" : value.getMimeType());
 	}
 
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541

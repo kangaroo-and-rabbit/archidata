@@ -56,7 +56,7 @@ public class TestMigrationFirstInitWithMigration {
 		final List<Migration> elements = ConfigureDb.da.gets(Migration.class);
 		LOGGER.info("List of migrations:");
 		for (final Migration elem : elements) {
-			LOGGER.info("    - {} => {}", elem.id, elem.name);
+			LOGGER.info("    - {} => {}", elem.getId(), elem.name);
 		}
 	}
 

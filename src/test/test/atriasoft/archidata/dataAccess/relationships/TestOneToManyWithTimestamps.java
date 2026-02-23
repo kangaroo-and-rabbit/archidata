@@ -45,14 +45,14 @@ class TestOneToManyWithTimestamps {
 		Thread.sleep(Duration.ofMillis(15));
 
 		final TypeOneToManyDocLongParentCascadeDeleteSetNull parent = new TypeOneToManyDocLongParentCascadeDeleteSetNull(
-				"parent_ts", List.of(insertedRemote.id));
+				"parent_ts", List.of(insertedRemote.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 
 		final TypeOneToManyDocLongParentCascadeDeleteSetNull parentCheck = ConfigureDb.da
-				.getById(TypeOneToManyDocLongParentCascadeDeleteSetNull.class, insertedParent.id, new ReadAllColumn());
+				.getById(TypeOneToManyDocLongParentCascadeDeleteSetNull.class, insertedParent.getId(), new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
-		Assertions.assertNotNull(parentCheck.createdAt);
-		Assertions.assertNotNull(parentCheck.updatedAt);
+		Assertions.assertNotNull(parentCheck.getCreatedAt());
+		Assertions.assertNotNull(parentCheck.getUpdatedAt());
 	}
 
 	@Order(2)
@@ -60,11 +60,11 @@ class TestOneToManyWithTimestamps {
 	void testChildHasUpdatedTimestamp() throws Exception {
 		// The child should have updatedAt changed because parent insert updated its parentId
 		final TypeOneToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote.id, new ReadAllColumn());
+				insertedRemote.getId(), new ReadAllColumn());
 		Assertions.assertNotNull(remoteCheck);
-		Assertions.assertNotNull(remoteCheck.createdAt);
-		Assertions.assertNotNull(remoteCheck.updatedAt);
+		Assertions.assertNotNull(remoteCheck.getCreatedAt());
+		Assertions.assertNotNull(remoteCheck.getUpdatedAt());
 		// updatedAt should be >= createdAt (may be equal if update was fast)
-		Assertions.assertTrue(remoteCheck.updatedAt.compareTo(remoteCheck.createdAt) >= 0);
+		Assertions.assertTrue(remoteCheck.getUpdatedAt().compareTo(remoteCheck.getCreatedAt()) >= 0);
 	}
 }

@@ -91,17 +91,17 @@ public class ClientSideFilteringTest {
 		this.capturedEvents.clear();
 
 		insertedAdmin.value = 150;
-		ConfigureDb.da.updateById(insertedAdmin, insertedAdmin.id);
+		ConfigureDb.da.updateById(insertedAdmin, insertedAdmin.getId());
 
 		insertedUser.value = 75;
-		ConfigureDb.da.updateById(insertedUser, insertedUser.id);
+		ConfigureDb.da.updateById(insertedUser, insertedUser.getId());
 
 		// Note: With DEFAULT mode, UPDATE events don't have full documents
 		// So we cannot filter by field values on UPDATE operations
 		// The filter will be skipped for UPDATE events without full documents
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedAdmin.id);
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedUser.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedAdmin.getId());
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedUser.getId());
 
 		LOGGER.info("=== Field-Based Filtering test completed ===");
 	}
@@ -131,7 +131,7 @@ public class ClientSideFilteringTest {
 		// Note: With DEFAULT mode, UPDATE events don't have full documents
 		// This test only verifies INSERT operations which have full documents
 		inserted.value = 150;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		// No events expected since UPDATE operations lack full documents for filtering
 		TestHelper.waitForCondition(() -> {
@@ -140,7 +140,7 @@ public class ClientSideFilteringTest {
 			}
 		}, 2000, "UPDATE events should not be captured without full documents");
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Lambda Predicate Filtering test completed ===");
 	}
@@ -168,7 +168,7 @@ public class ClientSideFilteringTest {
 		this.capturedEvents.clear();
 
 		inserted.name = "Bob Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (this.capturedEvents) {
@@ -176,7 +176,7 @@ public class ClientSideFilteringTest {
 			}
 		}, 2000, "Should not capture UPDATE");
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 
@@ -209,7 +209,7 @@ public class ClientSideFilteringTest {
 		this.capturedEvents.clear();
 
 		inserted.name = "Charlie Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 
@@ -224,7 +224,7 @@ public class ClientSideFilteringTest {
 		this.capturedEvents.clear();
 
 		inserted.value = 120;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (this.capturedEvents) {
@@ -232,7 +232,7 @@ public class ClientSideFilteringTest {
 			}
 		}, 2000, "Should not capture value-only update");
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Field-Specific Inspection test completed ===");
 	}

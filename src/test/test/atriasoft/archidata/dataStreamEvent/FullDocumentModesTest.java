@@ -82,7 +82,7 @@ public class FullDocumentModesTest {
 
 		this.capturedEvents.clear();
 		inserted.name = "Alice Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		synchronized (this.capturedEvents) {
@@ -92,7 +92,7 @@ public class FullDocumentModesTest {
 					"UPDATE should have update description even in DEFAULT mode");
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 		LOGGER.info("=== DEFAULT Mode test completed ===");
 	}
 
@@ -115,7 +115,7 @@ public class FullDocumentModesTest {
 
 		this.capturedEvents.clear();
 		inserted.name = "Bob Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		synchronized (this.capturedEvents) {
@@ -129,7 +129,7 @@ public class FullDocumentModesTest {
 					"UPDATE should have update description with changed fields");
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 		LOGGER.info("=== DEFAULT Mode UPDATE Behavior test completed ===");
 	}
 
@@ -178,7 +178,7 @@ public class FullDocumentModesTest {
 		}, 5000, "Both listeners should receive INSERT event");
 
 		inserted.name = "Charlie Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (listener1Events) {
@@ -202,7 +202,7 @@ public class FullDocumentModesTest {
 			}
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 		LOGGER.info("=== Automatic Mode Computation test completed ===");
 	}
 }

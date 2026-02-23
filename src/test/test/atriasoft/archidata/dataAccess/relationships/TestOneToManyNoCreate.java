@@ -48,13 +48,13 @@ class TestOneToManyNoCreate {
 	void testInsertParentDoesNotLinkChildren() throws Exception {
 		// addLinkWhenCreate=false
 		final TypeOneToManyDocLongParentNoCreate parent = new TypeOneToManyDocLongParentNoCreate("parent_nocreate",
-				List.of(insertedRemote.id));
+				List.of(insertedRemote.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 		Assertions.assertNotNull(insertedParent);
 
 		// Check that remote does NOT have parentId set
 		final TypeOneToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRemote.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(remoteCheck);
 		Assertions.assertNull(remoteCheck.parentId);
 	}

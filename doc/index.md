@@ -1,17 +1,28 @@
-Archi-data documentation
+Archi-data Documentation
 ========================
 
-Archidata is base on generic Jakarta, grizzly and SQL or SQLite service.
-
-It permit to simplify the interface of the server to concentrate on the API design.
+Archidata is a Java framework built on Jakarta JAX-RS (Jersey/Grizzly) and MongoDB. It simplifies REST server development by handling data access, authentication, validation, and API generation so you can focus on your API design.
 
 
-Archi-data is a group of tools that manage some parts:
-  - [Wrapping over the DB](SQL_wrapper.md)
-  - [Data Model](data_model.md)
-  - [TypeScript Api generation](typescript_api_generation.md)
-  - [Migration tool](migration.md)
-  - [Reduce connection on DB](connectionManagement.md)
+Getting Started
+---------------
 
-Some initialization tutorials:
-  - [Basic tutorial](TUTORIAL_01_first_install.md)
+- [Getting Started Tutorial](TUTORIAL_01_first_install.md) — Build your first application step by step
+
+
+Core Concepts
+-------------
+
+- [Data Model](data_model.md) — Model classes, annotations, relationships, and validation
+- [Database Access](SQL_wrapper.md) — CRUD operations, query options, and conditions
+- [Migration](migration.md) — Database migration engine
+- [Security & Authentication](security.md) — JWT tokens, roles, and permissions
+
+
+Advanced Topics
+---------------
+
+- [Connection Management](connectionManagement.md) — Persistent connections and virtual threads
+- [ChangeStream Quick Start](ChangeStream_QuickStart.md) — Real-time database change notifications
+- [ChangeStream Advanced](ChangeStream_Advanced.md) — Filtering, monitoring, and performance
+- [TypeScript API Generation](typescript_api_generation.md) — Generate TypeScript client code from your API

@@ -3,8 +3,6 @@ package sample.archidata.basic.model;
 import java.util.List;
 import java.util.UUID;
 
-import org.atriasoft.archidata.annotation.DataJson;
-import org.atriasoft.archidata.model.Data;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;

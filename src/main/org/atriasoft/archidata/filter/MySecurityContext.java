@@ -28,7 +28,7 @@ public class MySecurityContext implements SecurityContext {
 
 	public PartRight getRightOfRoleInGroup(final String group, final String role) {
 		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getRight(group, role);
+			return this.contextPrincipale.userByToken.getRightForKey(group, role);
 		}
 		return null;
 	}
@@ -50,7 +50,7 @@ public class MySecurityContext implements SecurityContext {
 	// Not sure the Long type is definitive.
 	public Object getUserID() {
 		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.oid;
+			return this.contextPrincipale.userByToken.getOid();
 		}
 		return null;
 	}
@@ -132,8 +132,8 @@ public class MySecurityContext implements SecurityContext {
 		LOGGER.info("contextPrincipale={}", this.contextPrincipale);
 		if (this.contextPrincipale.userByToken != null) {
 			LOGGER.info("contextPrincipale.userByToken={}", this.contextPrincipale.userByToken);
-			LOGGER.info("contextPrincipale.userByToken.right={}", this.contextPrincipale.userByToken.right);
-			return this.contextPrincipale.userByToken.right.get(role);
+			LOGGER.info("contextPrincipale.userByToken.right={}", this.contextPrincipale.userByToken.getRight());
+			return this.contextPrincipale.userByToken.getRight().get(role);
 		}
 		return null;
 	}

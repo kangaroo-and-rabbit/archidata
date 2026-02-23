@@ -1177,7 +1177,6 @@ public class DBAccessMongo implements Closeable {
 						break;
 					}
 					case NORMAL:
-					case JSON:
 					default: {
 						final MongoFieldCodec codec = desc.getCodec();
 						if (codec == null) {

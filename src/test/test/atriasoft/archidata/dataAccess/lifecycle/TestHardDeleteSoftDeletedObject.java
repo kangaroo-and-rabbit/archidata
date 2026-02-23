@@ -47,7 +47,7 @@ class TestHardDeleteSoftDeletedObject {
 		test.data = "soft_delete_timestamps";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		idOfTheObject = inserted.id;
+		idOfTheObject = inserted.getId();
 	}
 
 	@Order(2)
@@ -55,11 +55,11 @@ class TestHardDeleteSoftDeletedObject {
 	void testTimestampsOnInsert() throws Exception {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
-		Assertions.assertNotNull(retrieved.createdAt);
-		Assertions.assertNotNull(retrieved.updatedAt);
-		Assertions.assertEquals(retrieved.createdAt, retrieved.updatedAt);
-		Assertions.assertNotNull(retrieved.deleted);
-		Assertions.assertEquals(false, retrieved.deleted);
+		Assertions.assertNotNull(retrieved.getCreatedAt());
+		Assertions.assertNotNull(retrieved.getUpdatedAt());
+		Assertions.assertEquals(retrieved.getCreatedAt(), retrieved.getUpdatedAt());
+		Assertions.assertNotNull(retrieved.getDeleted());
+		Assertions.assertEquals(false, retrieved.getDeleted());
 	}
 
 	@Order(3)
@@ -74,8 +74,8 @@ class TestHardDeleteSoftDeletedObject {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated_before_delete", retrieved.data);
-		Assertions.assertTrue(retrieved.updatedAt.after(retrieved.createdAt));
-		Assertions.assertEquals(false, retrieved.deleted);
+		Assertions.assertTrue(retrieved.getUpdatedAt().after(retrieved.getCreatedAt()));
+		Assertions.assertEquals(false, retrieved.getDeleted());
 	}
 
 	@Order(4)
@@ -90,9 +90,9 @@ class TestHardDeleteSoftDeletedObject {
 				new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("updated_before_delete", retrieved.data);
-		Assertions.assertNotNull(retrieved.createdAt);
-		Assertions.assertNotNull(retrieved.updatedAt);
-		Assertions.assertTrue(retrieved.updatedAt.after(retrieved.createdAt));
-		Assertions.assertEquals(true, retrieved.deleted);
+		Assertions.assertNotNull(retrieved.getCreatedAt());
+		Assertions.assertNotNull(retrieved.getUpdatedAt());
+		Assertions.assertTrue(retrieved.getUpdatedAt().after(retrieved.getCreatedAt()));
+		Assertions.assertEquals(true, retrieved.getDeleted());
 	}
 }

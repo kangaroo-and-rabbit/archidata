@@ -24,18 +24,42 @@ public class Data extends OIDGenericDataSoftDelete {
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public String sha512;
+	private String sha512;
 	@Column(length = 128, nullable = false)
 	@Schema(description = "Mime -type of the media")
 	@Size(max = 512)
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public String mimeType;
+	private String mimeType;
 	@Column(nullable = false)
 	@Schema(description = "Size in Byte of the data")
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public Long size;
+	private Long size;
+
+	public String getSha512() {
+		return this.sha512;
+	}
+
+	public void setSha512(final String sha512) {
+		this.sha512 = sha512;
+	}
+
+	public String getMimeType() {
+		return this.mimeType;
+	}
+
+	public void setMimeType(final String mimeType) {
+		this.mimeType = mimeType;
+	}
+
+	public Long getSize() {
+		return this.size;
+	}
+
+	public void setSize(final Long size) {
+		this.size = size;
+	}
 }

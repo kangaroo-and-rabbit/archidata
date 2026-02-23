@@ -164,8 +164,8 @@ public class TestBackupAndRestoreRaw {
 		Assertions.assertNotNull(dataExtract);
 		Assertions.assertEquals(2, dataExtract.size());
 		Assertions.assertEquals("""
-				{"_id":"IGNORE","dataLong":9953,"dataDoubles":[1.25,-1.66],"createdAt":"IGNORE","updatedAt":"IGNORE"}
-				{"_id":"IGNORE","dataDoubles":[152.8,5.213546345E9],"createdAt":"IGNORE","updatedAt":"IGNORE"}
+				{"_id":"IGNORE","createdAt":"IGNORE","updatedAt":"IGNORE","dataLong":9953,"dataDoubles":[1.25,-1.66]}
+				{"_id":"IGNORE","createdAt":"IGNORE","updatedAt":"IGNORE","dataDoubles":[152.8,5.213546345E9]}
 				""", revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
 		Assertions.assertEquals("""
 				{"_id":"IGNORE","dataString":"my test String","dataTime":"2523-12-22T15:32:00.254Z"}
@@ -187,8 +187,8 @@ public class TestBackupAndRestoreRaw {
 		Assertions.assertEquals(2, dataExtract.size());
 		Assertions.assertEquals(
 				"""
-						{"_id": {"$oid":"IGNORE"}, "dataLong": 9953, "dataDoubles": [1.25, -1.66], "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}}
-						{"_id": {"$oid":"IGNORE"}, "dataDoubles": [152.8, 5.213546345E9], "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}, "dataLong": 9953, "dataDoubles": [1.25, -1.66]}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}, "dataDoubles": [152.8, 5.213546345E9]}
 						""",
 				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
 		Assertions.assertEquals(
@@ -213,8 +213,8 @@ public class TestBackupAndRestoreRaw {
 		Assertions.assertEquals(2, dataExtract.size());
 		Assertions.assertEquals(
 				"""
-						{"_id": {"$oid":"IGNORE"}, "dataLong": {"$numberLong": "9953"}, "dataDoubles": [{"$numberDouble": "1.25"}, {"$numberDouble": "-1.66"}], "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}}
-						{"_id": {"$oid":"IGNORE"}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E9"}], "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}, "dataLong": {"$numberLong": "9953"}, "dataDoubles": [{"$numberDouble": "1.25"}, {"$numberDouble": "-1.66"}]}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E9"}]}
 						""",
 				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
 		Assertions.assertEquals(
@@ -253,17 +253,17 @@ public class TestBackupAndRestoreRaw {
 					new AccessDeletedItems(), new ReadAllColumn());
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
-			Assertions.assertEquals("6855248a4345497e60f63c05", testData.get(0).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 12:08:18 UTC 2025", testData.get(0).createdAt.toString());
-			Assertions.assertEquals("Tue Jun 10 09:09:18 UTC 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals("6855248a4345497e60f63c05", testData.get(0).getOid().toString());
+			Assertions.assertEquals("Fri Jun 20 12:08:18 UTC 2025", testData.get(0).getCreatedAt().toString());
+			Assertions.assertEquals("Tue Jun 10 09:09:18 UTC 2025", testData.get(0).getUpdatedAt().toString());
 			Assertions.assertEquals(9953, testData.get(0).dataLong);
 			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
 			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
 			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
 
-			Assertions.assertEquals("6855248a4345497e60f63c07", testData.get(1).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 09:01:22 UTC 2025", testData.get(1).createdAt.toString());
-			Assertions.assertEquals("Wed Jun 25 09:06:18 UTC 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertEquals("6855248a4345497e60f63c07", testData.get(1).getOid().toString());
+			Assertions.assertEquals("Fri Jun 20 09:01:22 UTC 2025", testData.get(1).getCreatedAt().toString());
+			Assertions.assertEquals("Wed Jun 25 09:06:18 UTC 2025", testData.get(1).getUpdatedAt().toString());
 			Assertions.assertNull(testData.get(1).dataLong);
 			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
 			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);
@@ -601,17 +601,17 @@ public class TestBackupAndRestoreRaw {
 					new AccessDeletedItems(), new ReadAllColumn());
 			Assertions.assertNotNull(testData);
 			Assertions.assertEquals(2, testData.size());
-			Assertions.assertEquals("685524d44345497e60f63c15", testData.get(0).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 09:07:38 UTC 2025", testData.get(0).createdAt.toString());
-			Assertions.assertEquals("Fri Jun 20 09:11:25 UTC 2025", testData.get(0).updatedAt.toString());
+			Assertions.assertEquals("685524d44345497e60f63c15", testData.get(0).getOid().toString());
+			Assertions.assertEquals("Fri Jun 20 09:07:38 UTC 2025", testData.get(0).getCreatedAt().toString());
+			Assertions.assertEquals("Fri Jun 20 09:11:25 UTC 2025", testData.get(0).getUpdatedAt().toString());
 			Assertions.assertEquals(9953, testData.get(0).dataLong);
 			Assertions.assertEquals(2, testData.get(0).dataDoubles.size());
 			Assertions.assertEquals(1.25, testData.get(0).dataDoubles.get(0), 0.0001);
 			Assertions.assertEquals(-1.66, testData.get(0).dataDoubles.get(1), 0.0001);
 
-			Assertions.assertEquals("685524d44345497e60f63c17", testData.get(1).oid.toString());
-			Assertions.assertEquals("Fri Jun 20 09:07:35 UTC 2025", testData.get(1).createdAt.toString());
-			Assertions.assertEquals("Fri Jun 20 09:09:08 UTC 2025", testData.get(1).updatedAt.toString());
+			Assertions.assertEquals("685524d44345497e60f63c17", testData.get(1).getOid().toString());
+			Assertions.assertEquals("Fri Jun 20 09:07:35 UTC 2025", testData.get(1).getCreatedAt().toString());
+			Assertions.assertEquals("Fri Jun 20 09:09:08 UTC 2025", testData.get(1).getUpdatedAt().toString());
 			Assertions.assertNull(testData.get(1).dataLong);
 			Assertions.assertEquals(2, testData.get(1).dataDoubles.size());
 			Assertions.assertEquals(152.8, testData.get(1).dataDoubles.get(0), 0.0001);

@@ -51,7 +51,7 @@ class TestOneToManyBasic {
 	void testInsertParentLinksChildren() throws Exception {
 		// addLinkWhenCreate=true — children should get parentId set
 		final TypeOneToManyDocLongParentIgnore parent = new TypeOneToManyDocLongParentIgnore("parent1",
-				List.of(insertedRemote1.id));
+				List.of(insertedRemote1.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 		Assertions.assertNotNull(insertedParent);
 		Assertions.assertNotNull(insertedParent.remoteIds);
@@ -59,33 +59,33 @@ class TestOneToManyBasic {
 
 		// Check remote1 has parentId set
 		final TypeOneToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote1.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRemote1.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(remoteCheck);
 		Assertions.assertNotNull(remoteCheck.parentId);
-		Assertions.assertEquals(insertedParent.id, remoteCheck.parentId);
+		Assertions.assertEquals(insertedParent.getId(), remoteCheck.parentId);
 	}
 
 	@Order(3)
 	@Test
 	void testRetrieveParentWithRemotes() throws Exception {
 		final TypeOneToManyDocLongParentIgnore parentCheck = ConfigureDb.da
-				.getById(TypeOneToManyDocLongParentIgnore.class, insertedParent.id);
+				.getById(TypeOneToManyDocLongParentIgnore.class, insertedParent.getId());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.remoteIds);
 		Assertions.assertEquals(1, parentCheck.remoteIds.size());
-		Assertions.assertEquals(insertedRemote1.id, parentCheck.remoteIds.get(0));
+		Assertions.assertEquals(insertedRemote1.getId(), parentCheck.remoteIds.get(0));
 	}
 
 	@Order(4)
 	@Test
 	void testDeleteParentDoesNotAffectChildren() throws Exception {
 		// cascadeDelete=IGNORE
-		final long count = ConfigureDb.da.deleteById(TypeOneToManyDocLongParentIgnore.class, insertedParent.id);
+		final long count = ConfigureDb.da.deleteById(TypeOneToManyDocLongParentIgnore.class, insertedParent.getId());
 		Assertions.assertEquals(1, count);
 
 		// Children should still exist
 		final TypeOneToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote1.id);
+				insertedRemote1.getId());
 		Assertions.assertNotNull(remoteCheck);
 	}
 }

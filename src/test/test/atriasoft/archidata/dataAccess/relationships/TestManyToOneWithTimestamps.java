@@ -52,19 +52,19 @@ class TestManyToOneWithTimestamps {
 	void testInsertChildUpdatesParentTimestamp() throws Exception {
 		Thread.sleep(Duration.ofMillis(15));
 
-		final TypeManyToOneDocLongChildTTT child = new TypeManyToOneDocLongChildTTT("child_ts", insertedParent.id);
+		final TypeManyToOneDocLongChildTTT child = new TypeManyToOneDocLongChildTTT("child_ts", insertedParent.getId());
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 
 		// Check parent's updatedAt changed
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
-		Assertions.assertNotNull(parentCheck.createdAt);
-		Assertions.assertNotNull(parentCheck.updatedAt);
-		Assertions.assertTrue(parentCheck.updatedAt.after(parentCheck.createdAt));
-		parentUpdatedAtAfterInsert = parentCheck.updatedAt;
+		Assertions.assertNotNull(parentCheck.getCreatedAt());
+		Assertions.assertNotNull(parentCheck.getUpdatedAt());
+		Assertions.assertTrue(parentCheck.getUpdatedAt().after(parentCheck.getCreatedAt()));
+		parentUpdatedAtAfterInsert = parentCheck.getUpdatedAt();
 	}
 
 	@Order(3)
@@ -72,14 +72,14 @@ class TestManyToOneWithTimestamps {
 	void testDeleteChildUpdatesParentTimestamp() throws Exception {
 		Thread.sleep(Duration.ofMillis(15));
 
-		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTTT.class, insertedChild.id);
+		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTTT.class, insertedChild.getId());
 		Assertions.assertEquals(1, count);
 
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
-		Assertions.assertNotNull(parentCheck.updatedAt);
-		Assertions.assertTrue(parentCheck.updatedAt.after(parentUpdatedAtAfterInsert));
+		Assertions.assertNotNull(parentCheck.getUpdatedAt());
+		Assertions.assertTrue(parentCheck.getUpdatedAt().after(parentUpdatedAtAfterInsert));
 	}
 }

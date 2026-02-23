@@ -230,7 +230,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(15, generation.size());
+		Assertions.assertEquals(16, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -337,7 +337,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(15, generation.size());
+		Assertions.assertEquals(16, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -444,7 +444,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(15, generation.size());
+		Assertions.assertEquals(16, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -551,7 +551,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(9, generation.size());
+		Assertions.assertEquals(10, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -601,7 +601,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(10, generation.size());
+		Assertions.assertEquals(11, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -652,7 +652,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(9, generation.size());
+		Assertions.assertEquals(10, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)
@@ -700,7 +700,7 @@ public class TestTypeScriptApiGeneration {
 		for (final java.nio.file.Path elem : generation.keySet()) {
 			LOGGER.info("path= {}", elem);
 		}
-		Assertions.assertEquals(9, generation.size());
+		Assertions.assertEquals(10, generation.size());
 		Assertions.assertEquals("""
 				/**
 				 * Interface of the server (auto-generated code)

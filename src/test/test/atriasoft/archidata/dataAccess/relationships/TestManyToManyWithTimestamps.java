@@ -54,25 +54,25 @@ class TestManyToManyWithTimestamps {
 	void testAddLinkUpdatesTimestamps() throws Exception {
 		Thread.sleep(Duration.ofMillis(150));
 
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
-				insertedRemote.id);
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.getId(), "remote",
+				insertedRemote.getId());
 
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
-				insertedRoot.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRoot.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(rootCheck);
-		Assertions.assertNotNull(rootCheck.createdAt);
-		Assertions.assertNotNull(rootCheck.updatedAt);
-		Assertions.assertTrue(rootCheck.updatedAt.after(rootCheck.createdAt));
+		Assertions.assertNotNull(rootCheck.getCreatedAt());
+		Assertions.assertNotNull(rootCheck.getUpdatedAt());
+		Assertions.assertTrue(rootCheck.getUpdatedAt().after(rootCheck.getCreatedAt()));
 	}
 
 	@Order(3)
 	@Test
 	void testRemoteLinkUpdatesTimestamps() throws Exception {
 		final TypeManyToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRemote.class,
-				insertedRemote.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRemote.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(remoteCheck);
-		Assertions.assertNotNull(remoteCheck.createdAt);
-		Assertions.assertNotNull(remoteCheck.updatedAt);
-		Assertions.assertTrue(remoteCheck.updatedAt.after(remoteCheck.createdAt));
+		Assertions.assertNotNull(remoteCheck.getCreatedAt());
+		Assertions.assertNotNull(remoteCheck.getUpdatedAt());
+		Assertions.assertTrue(remoteCheck.getUpdatedAt().after(remoteCheck.getCreatedAt()));
 	}
 }

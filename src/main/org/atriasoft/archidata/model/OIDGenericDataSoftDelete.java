@@ -22,5 +22,13 @@ public class OIDGenericDataSoftDelete extends OIDGenericData {
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public Boolean deleted = null;
+	private Boolean deleted = null;
+
+	public Boolean getDeleted() {
+		return this.deleted;
+	}
+
+	public void setDeleted(final Boolean deleted) {
+		this.deleted = deleted;
+	}
 }

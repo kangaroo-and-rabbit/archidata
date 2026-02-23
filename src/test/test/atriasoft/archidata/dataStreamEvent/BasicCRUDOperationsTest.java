@@ -69,7 +69,7 @@ public class BasicCRUDOperationsTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Alice", "admin", 100);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.id);
+		Assertions.assertNotNull(inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		synchronized (this.capturedEvents) {
@@ -83,7 +83,7 @@ public class BasicCRUDOperationsTest {
 			Assertions.assertEquals("Alice", event.getFullDocument().getString("name"));
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 		LOGGER.info("=== INSERT Operation test completed ===");
 	}
 
@@ -104,7 +104,7 @@ public class BasicCRUDOperationsTest {
 
 		inserted.name = "Bob Updated";
 		inserted.value = 200;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		synchronized (this.capturedEvents) {
@@ -120,7 +120,7 @@ public class BasicCRUDOperationsTest {
 			Assertions.assertTrue(event.getUpdatedFields().contains("value"), "Should track 'value' field update");
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 		LOGGER.info("=== UPDATE Operation test completed ===");
 	}
 
@@ -139,7 +139,7 @@ public class BasicCRUDOperationsTest {
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		this.capturedEvents.clear();
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 		synchronized (this.capturedEvents) {

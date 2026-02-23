@@ -44,7 +44,7 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapIntegerData);
 		Assertions.assertEquals(5, insertedData.mapIntegerData.size());
 		Assertions.assertEquals(test.mapIntegerData.get("0"), insertedData.mapIntegerData.get("0"));
@@ -54,10 +54,10 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapIntegerData.get("4"), insertedData.mapIntegerData.get("4"));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapIntegerData);
 		Assertions.assertEquals(5, retrieve.mapIntegerData.size());
 		Assertions.assertEquals(test.mapIntegerData.get("0"), retrieve.mapIntegerData.get("0"));
@@ -81,7 +81,7 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapLongData);
 		Assertions.assertEquals(5, insertedData.mapLongData.size());
 		Assertions.assertEquals(test.mapLongData.get("0"), insertedData.mapLongData.get("0"));
@@ -91,10 +91,10 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapLongData.get("4"), insertedData.mapLongData.get("4"));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapLongData);
 		Assertions.assertEquals(5, retrieve.mapLongData.size());
 		Assertions.assertEquals(test.mapLongData.get("0"), retrieve.mapLongData.get("0"));
@@ -118,7 +118,7 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapObjectData);
 		Assertions.assertEquals(5, insertedData.mapObjectData.size());
 		Assertions.assertEquals(test.mapObjectData.get("0"), insertedData.mapObjectData.get("0"));
@@ -128,10 +128,10 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapObjectData.get("4"), insertedData.mapObjectData.get("4"));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapObjectData);
 		Assertions.assertEquals(5, retrieve.mapObjectData.size());
 		Assertions.assertEquals(test.mapObjectData.get("0"), retrieve.mapObjectData.get("0"));
@@ -155,7 +155,7 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapEnumData);
 		Assertions.assertEquals(5, insertedData.mapEnumData.size());
 		Assertions.assertEquals(test.mapEnumData.get("0"), insertedData.mapEnumData.get("0"));
@@ -165,10 +165,10 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapEnumData.get("4"), insertedData.mapEnumData.get("4"));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapEnumData);
 		Assertions.assertEquals(5, retrieve.mapEnumData.size());
 		Assertions.assertEquals(test.mapEnumData.get("0"), retrieve.mapEnumData.get("0"));
@@ -196,7 +196,7 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapMapEnumData);
 		Assertions.assertEquals(2, insertedData.mapMapEnumData.size());
 		Assertions.assertNotNull(insertedData.mapMapEnumData.get("A"));
@@ -210,10 +210,10 @@ public class TestMapElements {
 		Assertions.assertEquals(test.mapMapEnumData.get("B").get("4"), insertedData.mapMapEnumData.get("B").get("4"));
 
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapMapEnumData);
 		Assertions.assertEquals(2, retrieve.mapMapEnumData.size());
 		Assertions.assertNotNull(retrieve.mapMapEnumData.get("A"));
@@ -240,16 +240,16 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapMapKeyModifiedObjectData);
 		Assertions.assertEquals(2, insertedData.mapMapKeyModifiedObjectData.size());
 		Assertions.assertEquals(-1L, insertedData.mapMapKeyModifiedObjectData.get(firstKey));
 		Assertions.assertEquals(256L, insertedData.mapMapKeyModifiedObjectData.get(secondKey));
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapMapKeyModifiedObjectData);
 		Assertions.assertEquals(2, retrieve.mapMapKeyModifiedObjectData.size());
 		Assertions.assertEquals(-1L, retrieve.mapMapKeyModifiedObjectData.get(firstKey));
@@ -267,16 +267,16 @@ public class TestMapElements {
 		final DataWithSubJsonMap insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.oid);
+		Assertions.assertNotNull(insertedData.getOid());
 		Assertions.assertNotNull(insertedData.mapMapKeyModifiedIntegerData);
 		Assertions.assertEquals(2, insertedData.mapMapKeyModifiedIntegerData.size());
 		Assertions.assertEquals(-1L, insertedData.mapMapKeyModifiedIntegerData.get(56));
 		Assertions.assertEquals(256L, insertedData.mapMapKeyModifiedIntegerData.get(66));
 		// Try to retrieve all the data:
-		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.oid);
+		final DataWithSubJsonMap retrieve = ConfigureDb.da.getById(DataWithSubJsonMap.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.oid);
+		Assertions.assertNotNull(retrieve.getOid());
 		Assertions.assertNotNull(retrieve.mapMapKeyModifiedIntegerData);
 		Assertions.assertEquals(2, retrieve.mapMapKeyModifiedIntegerData.size());
 		Assertions.assertEquals(-1L, retrieve.mapMapKeyModifiedIntegerData.get(56));

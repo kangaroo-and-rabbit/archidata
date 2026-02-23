@@ -113,16 +113,16 @@ public class DataTools {
 		Data out = new Data();
 
 		try {
-			out.sha512 = sha512;
-			out.mimeType = mimeType;
-			out.size = fileSize;
+			out.setSha512(sha512);
+			out.setMimeType(mimeType);
+			out.setSize(fileSize);
 			out = ioDb.insert(out);
 		} catch (final Exception e) {
 			LOGGER.error("Failed to insert data: {}", e.getMessage(), e);
 			return null;
 		}
 
-		final String mediaPath = DataResource.getFileData(out.oid);
+		final String mediaPath = DataResource.getFileData(out.getOid());
 		LOGGER.info("src = {}", tmpPath);
 		LOGGER.info("dst = {}", mediaPath);
 		try {
@@ -329,14 +329,14 @@ public class DataTools {
 				throw new FailException(Response.Status.NOT_MODIFIED,
 						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
 			}
-		} else if (data.deleted) {
+		} else if (data.getDeleted()) {
 			LOGGER.error("Data already exist but deleted");
-			undelete(ioDb, data.oid);
-			data.deleted = false;
+			undelete(ioDb, data.getOid());
+			data.setDeleted(false);
 		} else {
 			LOGGER.error("Data already exist ... all good");
 		}
-		ListInDbTools.addLink(clazz, id, null, data.oid);
+		ListInDbTools.addLink(clazz, id, null, data.getOid());
 	}
 
 	public static ObjectId uploadDataFromUri(final String url) throws Exception {
@@ -378,14 +378,14 @@ public class DataTools {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 				}
-			} else if (data.deleted) {
+			} else if (data.getDeleted()) {
 				LOGGER.error("Data already exist but deleted");
-				undelete(ioDb, data.oid);
-				data.deleted = false;
+				undelete(ioDb, data.getOid());
+				data.setDeleted(false);
 			} else {
 				LOGGER.error("Data already exist ... all good");
 			}
-			return data.oid;
+			return data.getOid();
 		}
 	}
 
@@ -410,14 +410,14 @@ public class DataTools {
 					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 				}
-			} else if (data.deleted) {
+			} else if (data.getDeleted()) {
 				LOGGER.error("Data already exist but deleted");
-				undelete(ioDb, data.oid);
-				data.deleted = false;
+				undelete(ioDb, data.getOid());
+				data.setDeleted(false);
 			} else {
 				LOGGER.error("Data already exist ... all good");
 			}
-			return data.oid;
+			return data.getOid();
 		}
 	}
 
@@ -452,14 +452,14 @@ public class DataTools {
 					throw new FailException(Response.Status.NOT_MODIFIED,
 							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
 				}
-			} else if (data.deleted) {
+			} else if (data.getDeleted()) {
 				LOGGER.error("Data already exist but deleted");
-				undelete(ioDb, data.oid);
-				data.deleted = false;
+				undelete(ioDb, data.getOid());
+				data.setDeleted(false);
 			} else {
 				LOGGER.error("Data already exist ... all good");
 			}
-			ListInDbTools.addLink(clazz, id, "covers", data.oid);
+			ListInDbTools.addLink(clazz, id, "covers", data.getOid());
 		}
 	}
 }

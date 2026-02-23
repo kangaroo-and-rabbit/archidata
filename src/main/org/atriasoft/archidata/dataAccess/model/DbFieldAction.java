@@ -17,8 +17,6 @@ public enum DbFieldAction {
 	DELETED,
 	/** Not read by default (@DataNotRead). */
 	NOT_READ,
-	/** Serialized as JSON (@DataJson). */
-	JSON,
 	/** Managed by a DataAccessAddOn (relationships). */
 	ADDON
 }

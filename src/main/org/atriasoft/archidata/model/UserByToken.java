@@ -12,14 +12,54 @@ public class UserByToken {
 	public static final int TYPE_USER = -1;
 	public static final int TYPE_APPLICATION = -2;
 	// application internal management type: an application generic Id
-	public Integer type = null;
+	private Integer type = null;
 
-	public ObjectId oid = null;
+	private ObjectId oid = null;
 	// For application, this is the id of the application, and of user token, this is the USERID
-	public ObjectId parentId = null;
-	public String name = null;
+	private ObjectId parentId = null;
+	private String name = null;
 	// Right map
-	public Map<String, Map<String, PartRight>> right = new HashMap<>();
+	private Map<String, Map<String, PartRight>> right = new HashMap<>();
+
+	public Integer getType() {
+		return this.type;
+	}
+
+	public void setType(final Integer type) {
+		this.type = type;
+	}
+
+	public ObjectId getOid() {
+		return this.oid;
+	}
+
+	public void setOid(final ObjectId oid) {
+		this.oid = oid;
+	}
+
+	public ObjectId getParentId() {
+		return this.parentId;
+	}
+
+	public void setParentId(final ObjectId parentId) {
+		this.parentId = parentId;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(final String name) {
+		this.name = name;
+	}
+
+	public Map<String, Map<String, PartRight>> getRight() {
+		return this.right;
+	}
+
+	public void setRight(final Map<String, Map<String, PartRight>> right) {
+		this.right = right;
+	}
 
 	public Set<String> getGroups() {
 		return this.right.keySet();
@@ -32,7 +72,7 @@ public class UserByToken {
 		return this.right.containsKey(group);
 	}
 
-	public PartRight getRight(final String group, final String key) {
+	public PartRight getRightForKey(final String group, final String key) {
 		if (!this.right.containsKey(group)) {
 			return null;
 		}
@@ -44,7 +84,7 @@ public class UserByToken {
 	}
 
 	public boolean hasRight(final String group, final String key, final Object value) {
-		final Object data = getRight(group, key);
+		final Object data = getRightForKey(group, key);
 		if (data == null) {
 			return false;
 		}

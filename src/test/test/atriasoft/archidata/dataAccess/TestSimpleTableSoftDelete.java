@@ -55,20 +55,20 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.getId());
+		Assertions.assertTrue(insertedData.getId() >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class, insertedData.id);
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class, insertedData.getId());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(insertedData.getId(), retrieve.getId());
 		Assertions.assertEquals(TestSimpleTableSoftDelete.DATA_INJECTED, retrieve.data);
-		Assertions.assertNull(retrieve.createdAt);
-		Assertions.assertNull(retrieve.updatedAt);
-		Assertions.assertNull(retrieve.deleted);
-		TestSimpleTableSoftDelete.idOfTheObject = retrieve.id;
+		Assertions.assertNull(retrieve.getCreatedAt());
+		Assertions.assertNull(retrieve.getUpdatedAt());
+		Assertions.assertNull(retrieve.getDeleted());
+		TestSimpleTableSoftDelete.idOfTheObject = retrieve.getId();
 	}
 
 	@Order(2)
@@ -78,19 +78,19 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTableSoftDelete.DATA_INJECTED, retrieve.data);
-		Assertions.assertNotNull(retrieve.createdAt);
-		LOGGER.info("start @ {} create @ {}", retrieve.createdAt.toInstant(),
+		Assertions.assertNotNull(retrieve.getCreatedAt());
+		LOGGER.info("start @ {} create @ {}", retrieve.getCreatedAt().toInstant(),
 				TestSimpleTableSoftDelete.startAction.toInstant());
 		// Gros travail sur les timestamp a faire pour que ce soit correct ...
-		// Assertions.assertTrue(retrieve.createdAt.after(this.startAction));
-		Assertions.assertNotNull(retrieve.updatedAt);
-		// Assertions.assertTrue(retrieve.updatedAt.after(this.startAction));
-		Assertions.assertEquals(retrieve.createdAt, retrieve.updatedAt);
-		Assertions.assertNotNull(retrieve.deleted);
-		Assertions.assertEquals(false, retrieve.deleted);
+		// Assertions.assertTrue(retrieve.getCreatedAt().after(this.startAction));
+		Assertions.assertNotNull(retrieve.getUpdatedAt());
+		// Assertions.assertTrue(retrieve.getUpdatedAt().after(this.startAction));
+		Assertions.assertEquals(retrieve.getCreatedAt(), retrieve.getUpdatedAt());
+		Assertions.assertNotNull(retrieve.getDeleted());
+		Assertions.assertEquals(false, retrieve.getDeleted());
 	}
 
 	@Order(3)
@@ -105,15 +105,15 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTableSoftDelete.DATA_INJECTED_2, retrieve.data);
-		Assertions.assertNotNull(retrieve.createdAt);
-		Assertions.assertNotNull(retrieve.updatedAt);
-		LOGGER.info("created @ {} updated @ {}", retrieve.createdAt, retrieve.updatedAt);
-		Assertions.assertTrue(retrieve.updatedAt.after(retrieve.createdAt));
-		Assertions.assertNotNull(retrieve.deleted);
-		Assertions.assertEquals(false, retrieve.deleted);
+		Assertions.assertNotNull(retrieve.getCreatedAt());
+		Assertions.assertNotNull(retrieve.getUpdatedAt());
+		LOGGER.info("created @ {} updated @ {}", retrieve.getCreatedAt(), retrieve.getUpdatedAt());
+		Assertions.assertTrue(retrieve.getUpdatedAt().after(retrieve.getCreatedAt()));
+		Assertions.assertNotNull(retrieve.getDeleted());
+		Assertions.assertEquals(false, retrieve.getDeleted());
 	}
 
 	@Order(4)
@@ -135,12 +135,12 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems());
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTableSoftDelete.DATA_INJECTED_2, retrieve.data);
-		Assertions.assertNull(retrieve.createdAt);
-		Assertions.assertNull(retrieve.updatedAt);
-		Assertions.assertNull(retrieve.deleted);
+		Assertions.assertNull(retrieve.getCreatedAt());
+		Assertions.assertNull(retrieve.getUpdatedAt());
+		Assertions.assertNull(retrieve.getDeleted());
 
 	}
 
@@ -151,15 +151,15 @@ public class TestSimpleTableSoftDelete {
 		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
 				TestSimpleTableSoftDelete.idOfTheObject, new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTableSoftDelete.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTableSoftDelete.DATA_INJECTED_2, retrieve.data);
-		Assertions.assertNotNull(retrieve.createdAt);
-		Assertions.assertNotNull(retrieve.updatedAt);
-		LOGGER.info("created @ {} updated @ {}", retrieve.createdAt, retrieve.updatedAt);
-		Assertions.assertTrue(retrieve.updatedAt.after(retrieve.createdAt));
-		Assertions.assertNotNull(retrieve.deleted);
-		Assertions.assertEquals(true, retrieve.deleted);
+		Assertions.assertNotNull(retrieve.getCreatedAt());
+		Assertions.assertNotNull(retrieve.getUpdatedAt());
+		LOGGER.info("created @ {} updated @ {}", retrieve.getCreatedAt(), retrieve.getUpdatedAt());
+		Assertions.assertTrue(retrieve.getUpdatedAt().after(retrieve.getCreatedAt()));
+		Assertions.assertNotNull(retrieve.getDeleted());
+		Assertions.assertEquals(true, retrieve.getDeleted());
 
 	}
 }

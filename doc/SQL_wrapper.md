@@ -1,193 +1,335 @@
-Managing relation over the Mongo DB interface
-====================
+Database Access
+===============
+
+Archidata provides a high-level API for MongoDB operations through `DBAccessMongo`. All CRUD operations use object introspection — you work with Java objects, not raw MongoDB documents.
 
 
-Generic Access:
+Getting a Database Connection
+-----------------------------
+
+```java
+// Default connection (uses ConfigBaseVariable settings)
+final DBAccessMongo da = DBAccessMongo.createInterface();
+
+// With explicit configuration
+final DbConfig config = new DbConfig();
+final DBAccessMongo da = DBAccessMongo.createInterface(config);
+
+// Don't forget to close when done
+da.close();
+```
+
+For connection reuse within a request, see [Connection Management](connectionManagement.md).
+
+
+CRUD Operations
 ---------------
 
-Some generic function are available to permit you to simply request the DB
-
-### Create a new Value:
+### Insert
 
 ```java
-MyDataModel dataToInsert = ...;
-MyDataModel dataCreated = DataAccess.insert(dataToInsert);
+final Article article = new Article();
+article.title = "Hello World";
+article.content = "My first article";
+final Article created = da.insert(article);
+// created.oid is now set to the auto-generated ObjectId
+```
+
+Insert with a user-provided primary key:
+
+```java
+article.oid = new ObjectId("507f1f77bcf86cd799439011");
+final Article created = da.insert(article, new DirectPrimaryKey());
+```
+
+Insert multiple documents:
+
+```java
+final List<Article> articles = List.of(article1, article2, article3);
+final List<Article> created = da.insertMultiple(articles);
+```
+
+### Read
+
+Get a single document by its primary key:
+
+```java
+final Article article = da.getById(Article.class, someObjectId);
+```
+
+Get the first document matching conditions:
+
+```java
+final Article article = da.get(Article.class,
+	new Condition(new QueryCondition("title", "=", "Hello World"))
+);
+```
+
+Get all documents matching conditions:
+
+```java
+final List<Article> articles = da.gets(Article.class,
+	new Condition(new QueryCondition("status", "=", "published")),
+	new OrderBy(new OrderItem("createdAt", Order.DESC)),
+	new Limit(10)
+);
+```
+
+Get all documents (use with caution on large collections):
+
+```java
+final List<Article> all = da.getAll(Article.class);
+```
+
+### Update
+
+Update specific fields by ID:
+
+```java
+final Article updateData = new Article();
+updateData.title = "Updated Title";
+da.updateById(updateData, articleId, new FilterValue("title"));
+```
+
+Update all editable fields by ID:
+
+```java
+da.updateById(updatedArticle, articleId);
+```
+
+Update documents matching a condition:
+
+```java
+final Article updateData = new Article();
+updateData.status = "archived";
+da.update(updateData,
+	new Condition(new QueryCondition("status", "=", "draft")),
+	new FilterValue("status")
+);
+```
+
+### Delete
+
+Delete by ID (auto-detects soft delete vs hard delete based on the model):
+
+```java
+da.deleteById(Article.class, articleId);
+```
+
+Delete by condition:
+
+```java
+da.delete(Article.class,
+	new Condition(new QueryCondition("status", "=", "expired"))
+);
+```
+
+Explicit soft or hard delete:
+
+```java
+da.deleteSoftById(Article.class, articleId);  // sets deleted = true
+da.deleteHardById(Article.class, articleId);  // removes from MongoDB
+```
+
+### Count and Exists
+
+```java
+final long count = da.count(Article.class,
+	new Condition(new QueryCondition("status", "=", "published"))
+);
+
+final boolean exists = da.existsById(Article.class, someId);
 ```
 
 
-### Get a full table:
+Query Options
+=============
+
+All read, update, and delete methods accept `QueryOption...` as the last parameter. Options can be combined freely.
+
+### Condition
+
+Adds a WHERE clause to the query. Takes a `QueryItem` (see [Condition Models](#condition-models) below).
 
 ```java
-List<MyDataModel> data = DataAccess.gets(MyDataModel.class);
+new Condition(new QueryCondition("status", "=", "active"))
 ```
 
-### Get a single element in the DB:
+### FilterValue
+
+Specifies which fields to read or update. By default, all non-`@DataNotRead` fields are returned.
 
 ```java
-UUID id = ...;
-MyDataModel data = DataAccess.get(MyDataModel.class, id);
+// Read only specific fields
+da.gets(Article.class, new FilterValue("title", "status"));
+
+// Update only specific fields
+da.updateById(data, id, new FilterValue("title", "content"));
 ```
 
-> **_Note:_** The Id type fully managed are UUID and Long
+### FilterOmit
 
-### Removing the Data:
+The opposite of `FilterValue` — specifies which fields to exclude:
 
 ```java
-UUID id = ...;
-DataAccess.delete(MyDataModel.class, id);
+da.gets(Article.class, new FilterOmit("content"));
 ```
 
-> **_Note:_** Removing the data automatically detect if it is a software remove or definitive remove
+### OrderBy
 
-### Updating the Data:
-
-The update of the data can be managed by 2 way:
-  - Direct update of the Object with direct injection (Good for `PUT`)
-  - Update with input json (Good for `PATCH`)
-
-The second way is preferable for some reasons
-  - When jakarta transform the data in you object, we can not detect the element set at null or not set (We consider user of `Optional` il all data class will create a too bug amount of unneeded code in all dev parts)
-  - Throw in the jakarta parsing are not well catch when we will generate generic error
-  - The Check will permit to explain what is wrong better than a generic Json parser.
-
-Updating with direct data:
+Sort results by one or more fields:
 
 ```java
-UUID id = ...;
-MyDataModel dataToUpdate = ...;
-// This update all fields:
-DataAccess.update(dataToUpdate, id);
-// Select the field to update:
-DataAccess.update(dataToUpdate, id, List.of("field1","field2"));
+new OrderBy(new OrderItem("createdAt", Order.DESC))
+new OrderBy(new OrderItem("status", Order.ASC), new OrderItem("title", Order.ASC))
 ```
 
-Generic option of the request:
-------------------------------
+### Limit
 
-Many API have a generic multiple option available like:
+Limit the number of results:
 
 ```java
-public static <T> List<T> getsWhere(final Class<T> clazz, final QueryOption... option) throws Exception
+new Limit(50)
 ```
 
-You just need to add your options in the list of `option`.
+### ReadAllColumn
 
-Filter the list of field read:
+Include fields marked as `@DataNotRead` (such as `createdAt`, `updatedAt`, `deleted`):
+
 ```java
-public FilterValue(final String... filterValue)
-public FilterValue(final List<String> filterValues)
-// example:
-new newFilterValue("field1", "field2");
+da.gets(Article.class, new ReadAllColumn())
 ```
 
-Add a condition [more detail](#condition-models)
+### AccessDeletedItems
+
+Include soft-deleted documents in query results:
+
 ```java
-public Condition(final QueryItem items)
+da.gets(Article.class, new AccessDeletedItems())
 ```
 
-Order the request:
+### DirectPrimaryKey
+
+Allow inserting a document with a user-provided primary key (by default, inserting with a non-null primary key throws an exception):
+
 ```java
-public OrderBy(final OrderItem... childs);
-// example:
-new OrderBy(new OrderItem("name", Order.DESC));
+da.insert(article, new DirectPrimaryKey())
 ```
 
-Limit the :
+### DirectData
+
+Insert or update data without auto-managing `_id`, `createdAt`, or `updatedAt`:
+
 ```java
-public Limit(final long limit)
-// example:
-new Limit(50);
+da.insert(rawData, new DirectData())
 ```
 
-Read all column like update date and create date or delete field
+### ForceReadOnlyField
+
+Allow updating fields marked as `@ApiReadOnly`:
+
 ```java
-public ReadAllColumn()
+da.updateById(data, id, new ForceReadOnlyField(), new FilterValue("oid"))
 ```
 
-Condition models:
------------------
+### OverrideTableName
 
-Creating a condition independent of the DB model use need to have a little abstraction of the query model:
-
-For this we propose some condition that update with the internal "auto" condition that is added (like the soft delete...)
-
-### default generic comparator
-
-This is the base of the comparison tool. It compare a column with a value
+Access a different MongoDB collection than the one defined by the model class:
 
 ```java
-public QueryCondition(final String key, final String comparator, final Object value);
+da.gets(Article.class, new OverrideTableName("articles_archive"))
 ```
 
-Simple DB comparison element. Note the injected object is injected in the statement and not in the query directly.
+### OptionRenameColumn
 
-Example:
+Rename a field in the query:
+
 ```java
-String nameToCheck = "plop";
-new QueryCondition("fieldName", "=", nameToCheck);
-// OR:
-UUID uuid = ...;
-new QueryCondition("uuid", "=", uuid);
+new OptionRenameColumn("fieldName", "newFieldName")
 ```
 
-### List comparator
+### OptionSpecifyType
 
-It permit to check a column is (NOT) in a list of value
-
-```java
-public QueryInList(final String key, final List<T> value)
-public QueryInList(final String key, final T... value)
-```
-and his opposite:
-```java
-public QueryNotInList(final String key, final List<T> value)
-public QueryNotInList(final String key, final T... value)
-```
-
-example
-```java
-new QueryInList("uuid", List.of(uuid1, uuid2));
-```
-
-### NULL and NOT NULL checker
-
-This permit to check an element is `NULL` or `not NULL`
+Specify the concrete type of a field declared as `Object`:
 
 ```java
-public QueryNull(final String key);
-public QueryNotNull(final String key);
-```
-
-### The group condition:
-
-The generic `OR` group:
-```java
-public QueryOr(final List<QueryItem> child);
-public QueryOr(final QueryItem... child);
-```
-
-Or the generic `AND group:
-```java
-public QueryAnd(final List<QueryItem> child);
-public QueryAnd(final QueryItem... child);
-```
-
-### Full example:
-
-```java
-List<MyDataModel> result = DataAccess.getsWhere(MyDataModel.class, 
-        new Limit(50),
-        new OrderBy(new OrderItem("name", Order.DESC)),
-        new Condition(
-            new QueryAnd(
-                QueryNull("Field3")
-                new QueryOr(
-                    new QueryInList("Field4", 5, 55, 65, 62, 27, 84),
-                    new QueryCondition("cityID", ">", 78000);
-                )
-            )
-        )
-    );
+new OptionSpecifyType("data", MyConcreteClass.class)
+new OptionSpecifyType("items", ItemClass.class, true)  // is a list
 ```
 
 
+Condition Models
+================
+
+Conditions are built using `QueryItem` objects, which can be combined into complex queries.
+
+### QueryCondition — basic comparison
+
+```java
+new QueryCondition("fieldName", "=", value)
+new QueryCondition("age", ">", 18)
+new QueryCondition("status", "!=", "deleted")
+```
+
+Supported comparators: `=`, `!=`, `>`, `>=`, `<`, `<=`
+
+### QueryInList / QueryNotInList — value in a set
+
+```java
+new QueryInList("status", "draft", "review", "published")
+new QueryNotInList("category", List.of("spam", "trash"))
+```
+
+### QueryNull / QueryNotNull — null checks
+
+```java
+new QueryNull("deletedAt")
+new QueryNotNull("email")
+```
+
+### QueryAnd / QueryOr — logical grouping
+
+```java
+new QueryAnd(
+	new QueryCondition("status", "=", "active"),
+	new QueryCondition("age", ">=", 18)
+)
+
+new QueryOr(
+	new QueryCondition("role", "=", "admin"),
+	new QueryCondition("role", "=", "moderator")
+)
+```
+
+### Full Example
+
+```java
+final List<User> result = da.gets(User.class,
+	new Limit(50),
+	new OrderBy(new OrderItem("name", Order.DESC)),
+	new Condition(
+		new QueryAnd(
+			new QueryNotNull("email"),
+			new QueryOr(
+				new QueryInList("role", "admin", "moderator", "editor"),
+				new QueryCondition("score", ">", 100)
+			)
+		)
+	)
+);
+```
+
+
+Collection Management
+=====================
+
+```java
+// List all collections
+final List<String> collections = da.listCollections("prefix");
+
+// Rename a collection
+da.renameCollection("old_name", "new_name");
+
+// Drop a database (destructive!)
+da.deleteDatabase("database_name");
+```

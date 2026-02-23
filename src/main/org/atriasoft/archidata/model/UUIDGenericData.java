@@ -22,5 +22,13 @@ public class UUIDGenericData extends GenericTiming {
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public UUID uuid = null;
+	private UUID uuid = null;
+
+	public UUID getUuid() {
+		return this.uuid;
+	}
+
+	public void setUuid(final UUID uuid) {
+		this.uuid = uuid;
+	}
 }

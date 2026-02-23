@@ -54,52 +54,52 @@ class TestManyToOneAllTrue {
 	@Order(2)
 	@Test
 	void testInsertChildAddsLinkToParent() throws Exception {
-		final TypeManyToOneDocLongChildTTT child = new TypeManyToOneDocLongChildTTT("child1", insertedParent1.id);
+		final TypeManyToOneDocLongChildTTT child = new TypeManyToOneDocLongChildTTT("child1", insertedParent1.getId());
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
-		Assertions.assertEquals(insertedParent1.id, insertedChild.parentId);
+		Assertions.assertEquals(insertedParent1.getId(), insertedChild.parentId);
 
 		// Parent should now have the child link
 		final TypeManyToOneDocLongParentIgnore parentCheck = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent1.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent1.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.childIds);
 		Assertions.assertEquals(1, parentCheck.childIds.size());
-		Assertions.assertEquals(insertedChild.id, parentCheck.childIds.get(0));
+		Assertions.assertEquals(insertedChild.getId(), parentCheck.childIds.get(0));
 	}
 
 	@Order(3)
 	@Test
 	void testUpdateChildMovesLink() throws Exception {
-		final TypeManyToOneDocLongChildTTT childUpdate = new TypeManyToOneDocLongChildTTT("child1", insertedParent2.id);
-		final long count = ConfigureDb.da.updateById(childUpdate, insertedChild.id);
+		final TypeManyToOneDocLongChildTTT childUpdate = new TypeManyToOneDocLongChildTTT("child1", insertedParent2.getId());
+		final long count = ConfigureDb.da.updateById(childUpdate, insertedChild.getId());
 		Assertions.assertEquals(1, count);
 
 		// Old parent should lose the link
 		TypeManyToOneDocLongParentIgnore parent1Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
-				insertedParent1.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedParent1.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent1Check);
 		Assertions.assertNull(parent1Check.childIds);
 
 		// New parent should get the link
 		TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(TypeManyToOneDocLongParentIgnore.class,
-				insertedParent2.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedParent2.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(parent2Check);
 		Assertions.assertNotNull(parent2Check.childIds);
 		Assertions.assertEquals(1, parent2Check.childIds.size());
-		Assertions.assertEquals(insertedChild.id, parent2Check.childIds.get(0));
+		Assertions.assertEquals(insertedChild.getId(), parent2Check.childIds.get(0));
 	}
 
 	@Order(4)
 	@Test
 	void testDeleteChildRemovesLink() throws Exception {
-		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTTT.class, insertedChild.id);
+		final long count = ConfigureDb.da.deleteById(TypeManyToOneDocLongChildTTT.class, insertedChild.getId());
 		Assertions.assertEquals(1, count);
 
 		// Parent should lose the link
 		final TypeManyToOneDocLongParentIgnore parent2Check = ConfigureDb.da.getById(
-				TypeManyToOneDocLongParentIgnore.class, insertedParent2.id, new AccessDeletedItems(),
+				TypeManyToOneDocLongParentIgnore.class, insertedParent2.getId(), new AccessDeletedItems(),
 				new ReadAllColumn());
 		Assertions.assertNotNull(parent2Check);
 		Assertions.assertNull(parent2Check.childIds);

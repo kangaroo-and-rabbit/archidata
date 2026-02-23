@@ -46,13 +46,13 @@ class TestTimestamps {
 		test.data = "timestamp_test";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		idOfTheObject = inserted.id;
+		idOfTheObject = inserted.getId();
 
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
-		Assertions.assertNotNull(retrieved.createdAt);
-		Assertions.assertNotNull(retrieved.updatedAt);
-		Assertions.assertEquals(retrieved.createdAt, retrieved.updatedAt);
+		Assertions.assertNotNull(retrieved.getCreatedAt());
+		Assertions.assertNotNull(retrieved.getUpdatedAt());
+		Assertions.assertEquals(retrieved.getCreatedAt(), retrieved.getUpdatedAt());
 	}
 
 	@Order(2)
@@ -60,8 +60,8 @@ class TestTimestamps {
 	void testTimestampsNotReadByDefault() throws Exception {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject);
 		Assertions.assertNotNull(retrieved);
-		Assertions.assertNull(retrieved.createdAt);
-		Assertions.assertNull(retrieved.updatedAt);
+		Assertions.assertNull(retrieved.getCreatedAt());
+		Assertions.assertNull(retrieved.getUpdatedAt());
 	}
 
 	@Order(3)
@@ -76,8 +76,8 @@ class TestTimestamps {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("timestamp_updated", retrieved.data);
-		Assertions.assertNotNull(retrieved.createdAt);
-		Assertions.assertNotNull(retrieved.updatedAt);
-		Assertions.assertTrue(retrieved.updatedAt.after(retrieved.createdAt));
+		Assertions.assertNotNull(retrieved.getCreatedAt());
+		Assertions.assertNotNull(retrieved.getUpdatedAt());
+		Assertions.assertTrue(retrieved.getUpdatedAt().after(retrieved.getCreatedAt()));
 	}
 }

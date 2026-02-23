@@ -9,8 +9,10 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.atriasoft.archidata.bean.accessor.LambdaAccessorFactory;
@@ -328,14 +330,7 @@ public final class ClassModel {
 	}
 
 	private static void parseFields(final Class<?> clazz, final Map<String, PropertyDescriptor.Builder> builders) {
-		for (final Field field : clazz.getFields()) {
-			if (Modifier.isStatic(field.getModifiers())) {
-				continue;
-			}
-			if (!Modifier.isPublic(field.getModifiers())) {
-				continue;
-			}
-
+		for (final Field field : collectAllInstanceFields(clazz)) {
 			final String name = field.getName();
 			final TypeInfo typeInfo = TypeInfo.fromField(field);
 			final boolean isFinal = Modifier.isFinal(field.getModifiers());
@@ -349,6 +344,40 @@ public final class ClassModel {
 				b.lambdaSetter(setter);
 			}
 		}
+	}
+
+	/**
+	 * Collect all non-static instance fields from clazz and its superclasses,
+	 * walking up the hierarchy. Superclass fields come first (preserving declaration order).
+	 */
+	private static List<Field> collectAllInstanceFields(final Class<?> clazz) {
+		final List<Field> result = new ArrayList<>();
+		final List<Class<?>> hierarchy = new ArrayList<>();
+		Class<?> current = clazz;
+		while (current != null && current != Object.class) {
+			// Skip JDK internal classes (e.g. Enum, Boolean) whose fields
+			// cannot be made accessible due to module encapsulation.
+			if (current.getPackageName().startsWith("java.")) {
+				break;
+			}
+			hierarchy.add(current);
+			current = current.getSuperclass();
+		}
+		Collections.reverse(hierarchy);
+		final Set<String> seen = new LinkedHashSet<>();
+		for (final Class<?> cls : hierarchy) {
+			for (final Field field : cls.getDeclaredFields()) {
+				if (Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (!seen.contains(field.getName())) {
+					seen.add(field.getName());
+					field.setAccessible(true);
+					result.add(field);
+				}
+			}
+		}
+		return result;
 	}
 
 	private void parseMethods(

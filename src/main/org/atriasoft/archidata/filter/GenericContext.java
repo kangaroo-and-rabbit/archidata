@@ -17,12 +17,12 @@ public class GenericContext implements Principal {
 		if (this.userByToken == null) {
 			return "???";
 		}
-		return this.userByToken.name;
+		return this.userByToken.getName();
 	}
 
 	public Object getUserID() {
 		if (this.userByToken != null) {
-			return this.userByToken.oid;
+			return this.userByToken.getOid();
 		}
 		return null;
 	}

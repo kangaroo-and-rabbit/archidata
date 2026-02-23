@@ -47,18 +47,18 @@ public class TestJson {
 		final SerializeAsJson insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.getId());
+		Assertions.assertTrue(insertedData.getId() >= 0);
 		Assertions.assertNotNull(insertedData.data);
 		Assertions.assertNotNull(insertedData.data.data);
 		Assertions.assertEquals(test.data.data, insertedData.data.data);
 
 		// Try to retrieve all the data:
-		final SerializeAsJson retrieve = ConfigureDb.da.getById(SerializeAsJson.class, insertedData.id);
+		final SerializeAsJson retrieve = ConfigureDb.da.getById(SerializeAsJson.class, insertedData.getId());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertTrue(retrieve.id >= 0);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertTrue(retrieve.getId() >= 0);
 		Assertions.assertNotNull(retrieve.data);
 		Assertions.assertNotNull(retrieve.data.data);
 		Assertions.assertEquals(test.data.data, retrieve.data.data);

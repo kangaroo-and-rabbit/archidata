@@ -70,7 +70,7 @@ public class MigrationEngine {
 			}
 			LOGGER.info("List of migrations:");
 			for (final Migration elem : data) {
-				LOGGER.info("    - date={} name={} end={}", elem.updatedAt, elem.name, elem.terminated);
+				LOGGER.info("    - date={} name={} end={}", elem.getUpdatedAt(), elem.name, elem.terminated);
 			}
 			return data.get(data.size() - 1);
 		} catch (final Exception ex) {
@@ -80,7 +80,7 @@ public class MigrationEngine {
 	}
 
 	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
-	 * @param config SQL connection for the migration.
+	 * @param config Database connection configuration for the migration.
 	 * @throws InterruptedException user interrupt the migration */
 	public void migrateWaitAdmin(final DbConfig config) throws InterruptedException {
 		try {
@@ -124,7 +124,7 @@ public class MigrationEngine {
 	}
 
 	/** Process the automatic migration of the system
-	 * @param config SQL connection for the migration
+	 * @param config Database connection configuration for the migration
 	 * @throws MigrationException Error if access on the DB */
 	public void migrateErrorThrow(final DbConfig config) throws MigrationException {
 		LOGGER.info("Execute migration ... [BEGIN]");
@@ -242,7 +242,7 @@ public class MigrationEngine {
 		if (ret) {
 			migrationResult.terminated = true;
 			try {
-				da.updateById(migrationResult, migrationResult.id, new FilterValue("terminated"));
+				da.updateById(migrationResult, migrationResult.getId(), new FilterValue("terminated"));
 			} catch (final Exception e) {
 				LOGGER.error("Failed to update migration log (terminated): {}", e.getMessage(), e);
 				throw new MigrationException(
@@ -251,7 +251,7 @@ public class MigrationEngine {
 		} else {
 			try {
 				migrationResult.logs.add(new MigrationMessage(0, "Fail in the migration engine..."));
-				da.updateById(migrationResult, migrationResult.id, new FilterValue("log"));
+				da.updateById(migrationResult, migrationResult.getId(), new FilterValue("log"));
 			} catch (final Exception e) {
 				LOGGER.error("Failed to update migration log (failure): {}", e.getMessage(), e);
 				throw new MigrationException("Fail to update migration Log in the migration table: "

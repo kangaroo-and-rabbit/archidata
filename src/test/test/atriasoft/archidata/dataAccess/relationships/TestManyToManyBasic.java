@@ -57,44 +57,44 @@ class TestManyToManyBasic {
 	@Order(2)
 	@Test
 	void testAddLinks() throws Exception {
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
-				insertedRemote1.id);
-		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
-				insertedRemote2.id);
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.getId(), "remote",
+				insertedRemote1.getId());
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.getId(), "remote",
+				insertedRemote2.getId());
 
 		// Root should have both remotes
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
-				insertedRoot.id);
+				insertedRoot.getId());
 		Assertions.assertNotNull(rootCheck);
 		Assertions.assertNotNull(rootCheck.remote);
 		Assertions.assertEquals(2, rootCheck.remote.size());
 
 		// Remote1 should have root in its remoteToParent
 		final TypeManyToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRemote.class,
-				insertedRemote1.id);
+				insertedRemote1.getId());
 		Assertions.assertNotNull(remoteCheck);
 		Assertions.assertNotNull(remoteCheck.remoteToParent);
 		Assertions.assertEquals(1, remoteCheck.remoteToParent.size());
-		Assertions.assertEquals(insertedRoot.id, remoteCheck.remoteToParent.get(0));
+		Assertions.assertEquals(insertedRoot.getId(), remoteCheck.remoteToParent.get(0));
 	}
 
 	@Order(3)
 	@Test
 	void testRemoveLink() throws Exception {
-		ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.id, "remote",
-				insertedRemote1.id);
+		ManyToManyTools.removeLink(ConfigureDb.da, TypeManyToManyDocLongRoot.class, insertedRoot.getId(), "remote",
+				insertedRemote1.getId());
 
 		// Root should only have remote2
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
-				insertedRoot.id);
+				insertedRoot.getId());
 		Assertions.assertNotNull(rootCheck);
 		Assertions.assertNotNull(rootCheck.remote);
 		Assertions.assertEquals(1, rootCheck.remote.size());
-		Assertions.assertEquals(insertedRemote2.id, rootCheck.remote.get(0));
+		Assertions.assertEquals(insertedRemote2.getId(), rootCheck.remote.get(0));
 
 		// Remote1 should no longer have root
 		final TypeManyToManyDocLongRemote remoteCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRemote.class,
-				insertedRemote1.id);
+				insertedRemote1.getId());
 		Assertions.assertNotNull(remoteCheck);
 		Assertions.assertNull(remoteCheck.remoteToParent);
 	}
@@ -105,7 +105,7 @@ class TestManyToManyBasic {
 		final TypeManyToManyDocLongRemote remote = new TypeManyToManyDocLongRemote();
 		remote.data = "remote_with_links";
 		remote.remoteToParent = new ArrayList<>();
-		remote.remoteToParent.add(insertedRoot.id);
+		remote.remoteToParent.add(insertedRoot.getId());
 		final TypeManyToManyDocLongRemote insertedWithLinks = ConfigureDb.da.insert(remote);
 		Assertions.assertNotNull(insertedWithLinks);
 		Assertions.assertNotNull(insertedWithLinks.remoteToParent);
@@ -113,9 +113,9 @@ class TestManyToManyBasic {
 
 		// Root should now have this remote too
 		final TypeManyToManyDocLongRoot rootCheck = ConfigureDb.da.getById(TypeManyToManyDocLongRoot.class,
-				insertedRoot.id);
+				insertedRoot.getId());
 		Assertions.assertNotNull(rootCheck);
 		Assertions.assertNotNull(rootCheck.remote);
-		Assertions.assertTrue(rootCheck.remote.contains(insertedWithLinks.id));
+		Assertions.assertTrue(rootCheck.remote.contains(insertedWithLinks.getId()));
 	}
 }

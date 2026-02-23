@@ -4,26 +4,19 @@ import java.util.Map;
 
 import jakarta.validation.constraints.NotNull;
 
-public class JwtPayload {
-	// User identification
-	@NotNull
-	public String sub;
-	// Application destination
-	@NotNull
-	public String application;
-	// Emitter of the token
-	@NotNull
-	public String iss;
-	// Access Right Map<application, Map< section, right>>
-	@NotNull
-	public Map<@NotNull String, Map<@NotNull String, @NotNull Long>> right;
-	// user name
-	@NotNull
-	public String login;
-	// Expiration (timestamp)
-	@NotNull
-	public Long exp;
-	// Create time (timestamp)
-	@NotNull
-	public Long iat;
+public record JwtPayload(
+		// User identification
+		@NotNull String sub,
+		// Application destination
+		@NotNull String application,
+		// Emitter of the token
+		@NotNull String iss,
+		// Access Right Map<application, Map< section, right>>
+		@NotNull Map<@NotNull String, Map<@NotNull String, @NotNull Long>> right,
+		// user name
+		@NotNull String login,
+		// Expiration (timestamp)
+		@NotNull Long exp,
+		// Create time (timestamp)
+		@NotNull Long iat) {
 }

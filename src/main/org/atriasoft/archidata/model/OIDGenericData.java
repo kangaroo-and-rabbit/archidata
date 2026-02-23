@@ -22,5 +22,13 @@ public class OIDGenericData extends GenericTiming {
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	public ObjectId oid = null;
+	private ObjectId oid = null;
+
+	public ObjectId getOid() {
+		return this.oid;
+	}
+
+	public void setOid(final ObjectId oid) {
+		this.oid = oid;
+	}
 }

@@ -3,10 +3,13 @@ package org.atriasoft.archidata.annotation;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.CollectionItemNotNull;
@@ -209,7 +212,7 @@ public class AnnotationTools {
 		return annotations;
 	}
 
-	// For SQL declaration table Name
+	// Get the collection name for the given class
 	public static String getTableName(final Class<?> clazz, final QueryOptions options) throws DataAccessException {
 		if (options != null) {
 			final List<OverrideTableName> data = options.get(OverrideTableName.class);
@@ -220,7 +223,7 @@ public class AnnotationTools {
 		return AnnotationTools.getTableName(clazz);
 	}
 
-	// For SQL declaration table Name
+	// Get the collection name from @Table annotation or class name
 	public static String getTableName(final Class<?> element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
 		if (annotation.length == 0) {
@@ -290,9 +293,6 @@ public class AnnotationTools {
 		return get(element, OneToMany.class);
 	}
 
-	public static DataJson getDataJson(final Field element) {
-		return get(element, DataJson.class);
-	}
 
 	public static DecimalMin getConstraintsDecimalMin(final Field element) {
 		return get(element, DecimalMin.class);
@@ -410,12 +410,42 @@ public class AnnotationTools {
 		return true;
 	}
 
-	public static Field getPrimaryKeyField(final Class<?> clazz) {
-		for (final Field field : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-				continue;
+	/**
+	 * Collect all non-static instance fields from clazz and its superclasses,
+	 * walking up the hierarchy. Superclass fields come first.
+	 */
+	public static List<Field> getAllInstanceFields(final Class<?> clazz) {
+		final List<Field> result = new ArrayList<>();
+		final List<Class<?>> hierarchy = new ArrayList<>();
+		Class<?> current = clazz;
+		while (current != null && current != Object.class) {
+			// Skip JDK internal classes (e.g. Enum, Boolean) whose fields
+			// cannot be made accessible due to module encapsulation.
+			if (current.getPackageName().startsWith("java.")) {
+				break;
 			}
+			hierarchy.add(current);
+			current = current.getSuperclass();
+		}
+		Collections.reverse(hierarchy);
+		final Set<String> seen = new LinkedHashSet<>();
+		for (final Class<?> cls : hierarchy) {
+			for (final Field field : cls.getDeclaredFields()) {
+				if (Modifier.isStatic(field.getModifiers())) {
+					continue;
+				}
+				if (!seen.contains(field.getName())) {
+					seen.add(field.getName());
+					field.setAccessible(true);
+					result.add(field);
+				}
+			}
+		}
+		return result;
+	}
+
+	public static Field getPrimaryKeyField(final Class<?> clazz) {
+		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.isPrimaryKey(field)) {
 				return field;
 			}
@@ -424,8 +454,8 @@ public class AnnotationTools {
 	}
 
 	public static boolean isPrimaryKey(final Field element) {
-		final Annotation[] annotationSQL = element.getDeclaredAnnotationsByType(Id.class);
-		if (annotationSQL.length > 0) {
+		final Annotation[] idAnnotations = element.getDeclaredAnnotationsByType(Id.class);
+		if (idAnnotations.length > 0) {
 			return true;
 		}
 		return false;
@@ -474,11 +504,7 @@ public class AnnotationTools {
 	// Note: delete field can not be renamed with OptionRenameColumn
 	public static String getDeletedFieldName(final Class<?> clazz) {
 		try {
-			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-					continue;
-				}
+			for (final Field elem : getAllInstanceFields(clazz)) {
 				if (AnnotationTools.isDeletedField(elem)) {
 					return AnnotationTools.getFieldNameRaw(elem);
 				}
@@ -492,11 +518,7 @@ public class AnnotationTools {
 	// Note: update field can not be renamed with OptionRenameColumn
 	public static FieldName getUpdatedFieldName(final Class<?> clazz) {
 		try {
-			for (final Field elem : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-					continue;
-				}
+			for (final Field elem : getAllInstanceFields(clazz)) {
 				if (AnnotationTools.isUpdateAtField(elem)) {
 					return AnnotationTools.getFieldName(elem, null);
 				}
@@ -509,11 +531,7 @@ public class AnnotationTools {
 
 	public static Field getIdField(final Class<?> clazz) {
 		try {
-			for (final Field field : clazz.getFields()) {
-				// static field is only for internal global declaration ==> remove it ..
-				if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-					continue;
-				}
+			for (final Field field : getAllInstanceFields(clazz)) {
 				if (AnnotationTools.isIdField(field)) {
 					return field;
 				}
@@ -525,11 +543,7 @@ public class AnnotationTools {
 	}
 
 	public static boolean hasFieldsName(final Class<?> clazz, final String name) {
-		for (final Field field : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-				continue;
-			}
+		for (final Field field : getAllInstanceFields(clazz)) {
 			if (field.getName().equals(name)) {
 				return true;
 			}
@@ -547,11 +561,7 @@ public class AnnotationTools {
 
 	public static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) {
 		final List<String> out = new ArrayList<>();
-		for (final Field field : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-				continue;
-			}
+		for (final Field field : getAllInstanceFields(clazz)) {
 			if (!full && AnnotationTools.isGenericField(field)) {
 				continue;
 			}
@@ -568,11 +578,7 @@ public class AnnotationTools {
 	}
 
 	public static Field getFieldOfId(final Class<?> clazz) {
-		for (final Field field : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-				continue;
-			}
+		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.isIdField(field)) {
 				return field;
 			}
@@ -581,11 +587,7 @@ public class AnnotationTools {
 	}
 
 	public static Field getFieldNamed(final Class<?> clazz, final String name) {
-		for (final Field field : clazz.getFields()) {
-			// static field is only for internal global declaration ==> remove it ..
-			if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
-				continue;
-			}
+		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.getFieldNameRaw(field).equals(name)) {
 				return field;
 			}

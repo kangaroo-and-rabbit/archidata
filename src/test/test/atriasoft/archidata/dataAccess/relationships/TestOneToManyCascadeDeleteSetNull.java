@@ -44,24 +44,24 @@ class TestOneToManyCascadeDeleteSetNull {
 	void testSetup() throws Exception {
 		insertedRemote = ConfigureDb.da.insert(new TypeOneToManyDocLongRemote("remote_cdsn", null));
 		final TypeOneToManyDocLongParentCascadeDeleteSetNull parent = new TypeOneToManyDocLongParentCascadeDeleteSetNull(
-				"parent_cdsn", List.of(insertedRemote.id));
+				"parent_cdsn", List.of(insertedRemote.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 
 		// Verify child linked
-		TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote.id,
+		TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote.getId(),
 				new AccessDeletedItems(), new ReadAllColumn());
-		Assertions.assertEquals(insertedParent.id, r.parentId);
+		Assertions.assertEquals(insertedParent.getId(), r.parentId);
 	}
 
 	@Order(2)
 	@Test
 	void testDeleteParentSetsChildParentToNull() throws Exception {
 		final long count = ConfigureDb.da.deleteById(TypeOneToManyDocLongParentCascadeDeleteSetNull.class,
-				insertedParent.id);
+				insertedParent.getId());
 		Assertions.assertEquals(1, count);
 
 		// Child should still exist but parentId should be null
-		final TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote.id,
+		final TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote.getId(),
 				new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(r);
 		Assertions.assertNull(r.parentId);

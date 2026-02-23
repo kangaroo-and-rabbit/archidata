@@ -109,7 +109,7 @@ public class ChangeNotificationIntegrationTest {
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Alice", "admin", 100);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 		Assertions.assertNotNull(inserted);
-		Assertions.assertNotNull(inserted.id);
+		Assertions.assertNotNull(inserted.getId());
 
 		// Wait for INSERT event
 		waitForEvents(1, 5);
@@ -129,7 +129,7 @@ public class ChangeNotificationIntegrationTest {
 		// UPDATE operation
 		inserted.name = "Alice Updated";
 		inserted.value = 200;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		// Wait for UPDATE event
 		waitForEvents(1, 5);
@@ -150,7 +150,7 @@ public class ChangeNotificationIntegrationTest {
 		this.capturedEvents.clear();
 
 		// DELETE operation
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		// Wait for DELETE event
 		waitForEvents(1, 5);
@@ -199,7 +199,7 @@ public class ChangeNotificationIntegrationTest {
 
 		this.capturedEvents.clear();
 		inserted1.name = "Bob Updated";
-		ConfigureDb.da.updateById(inserted1, inserted1.id);
+		ConfigureDb.da.updateById(inserted1, inserted1.getId());
 
 		waitForEvents(1, 5);
 		synchronized (this.capturedEvents) {
@@ -212,7 +212,7 @@ public class ChangeNotificationIntegrationTest {
 			Assertions.assertEquals("Bob Updated", updateEvent.getFullDocument().getString("name"));
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted1.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted1.getId());
 
 		// Clear for next test
 		manager.clearAllListeners();
@@ -234,7 +234,7 @@ public class ChangeNotificationIntegrationTest {
 
 		this.capturedEvents.clear();
 		inserted2.name = "Charlie Updated";
-		ConfigureDb.da.updateById(inserted2, inserted2.id);
+		ConfigureDb.da.updateById(inserted2, inserted2.getId());
 
 		waitForEvents(1, 5);
 		synchronized (this.capturedEvents) {
@@ -244,7 +244,7 @@ public class ChangeNotificationIntegrationTest {
 			Assertions.assertEquals("Charlie Updated", this.capturedEvents.get(0).getFullDocument().getString("name"));
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted2.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted2.getId());
 
 		LOGGER.info("=== FullDocument Modes test completed successfully ===");
 	}
@@ -307,7 +307,7 @@ public class ChangeNotificationIntegrationTest {
 			}
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Fixed Mode Enforcement test completed successfully ===");
 	}
@@ -357,11 +357,11 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update admin - should be captured
 		insertedAdmin.value = 150;
-		ConfigureDb.da.updateById(insertedAdmin, insertedAdmin.id);
+		ConfigureDb.da.updateById(insertedAdmin, insertedAdmin.getId());
 
 		// Update user - should NOT be captured
 		insertedUser.value = 75;
-		ConfigureDb.da.updateById(insertedUser, insertedUser.id);
+		ConfigureDb.da.updateById(insertedUser, insertedUser.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 
@@ -371,8 +371,8 @@ public class ChangeNotificationIntegrationTest {
 		}
 
 		// Cleanup
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedAdmin.id);
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedUser.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedAdmin.getId());
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedUser.getId());
 
 		LOGGER.info("=== Field-Based Filtering test completed successfully ===");
 	}
@@ -406,7 +406,7 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update value to 150 - should be captured
 		inserted.value = 150;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 
@@ -419,7 +419,7 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update value to 80 - should NOT be captured
 		inserted.value = 80;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (this.capturedEvents) {
@@ -427,7 +427,7 @@ public class ChangeNotificationIntegrationTest {
 			}
 		}, 2000, "Should not capture update with value=80");
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Multiple Field Changes test completed successfully ===");
 	}
@@ -608,7 +608,7 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update 'name' field - should be captured
 		inserted.name = "Iris Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		waitForEvents(1, 5);
 
@@ -621,7 +621,7 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update only 'value' field - should NOT be captured
 		inserted.value = 120;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (this.capturedEvents) {
@@ -634,7 +634,7 @@ public class ChangeNotificationIntegrationTest {
 		// Update both 'name' and 'value' - should be captured
 		inserted.name = "Iris Final";
 		inserted.value = 150;
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		waitForEvents(1, 5);
 
@@ -644,7 +644,7 @@ public class ChangeNotificationIntegrationTest {
 			Assertions.assertTrue(this.capturedEvents.get(0).getUpdatedFields().contains("value"));
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Field-Specific Inspection test completed successfully ===");
 	}
@@ -683,21 +683,21 @@ public class ChangeNotificationIntegrationTest {
 			final Object oidObj = event.getOid();
 			if (oidObj instanceof org.bson.BsonObjectId) {
 				final org.bson.BsonObjectId bsonOid = (org.bson.BsonObjectId) oidObj;
-				LOGGER.info("Inserted entity ID (Long): {}, Event OID (BsonObjectId): {}", inserted.id,
+				LOGGER.info("Inserted entity ID (Long): {}, Event OID (BsonObjectId): {}", inserted.getId(),
 						bsonOid.getValue());
-				// Just verify that we can access the OID - don't compare with entity.id as they're different fields
+				// Just verify that we can access the OID - don't compare with entity.getId() as they're different fields
 				Assertions.assertNotNull(bsonOid.getValue());
 			} else if (oidObj instanceof ObjectId) {
 				final ObjectId oid = (ObjectId) oidObj;
-				LOGGER.info("Inserted entity ID (Long): {}, Event OID (ObjectId): {}", inserted.id, oid);
-				// Just verify that we can access the OID - don't compare with entity.id as they're different fields
+				LOGGER.info("Inserted entity ID (Long): {}, Event OID (ObjectId): {}", inserted.getId(), oid);
+				// Just verify that we can access the OID - don't compare with entity.getId() as they're different fields
 				Assertions.assertNotNull(oid);
 			} else {
 				Assertions.fail("Unexpected oid type: " + oidObj.getClass());
 			}
 		}
 
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== ObjectId Handling test completed successfully ===");
 	}
@@ -734,7 +734,7 @@ public class ChangeNotificationIntegrationTest {
 
 		// Update - should NOT be captured
 		inserted.name = "Kate Updated";
-		ConfigureDb.da.updateById(inserted, inserted.id);
+		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForCondition(() -> {
 			synchronized (this.capturedEvents) {
@@ -743,7 +743,7 @@ public class ChangeNotificationIntegrationTest {
 		}, 2000, "Should not capture UPDATE");
 
 		// Delete - should be captured
-		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.id);
+		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 5000);
 

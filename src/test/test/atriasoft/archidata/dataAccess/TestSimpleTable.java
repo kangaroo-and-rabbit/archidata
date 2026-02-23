@@ -54,19 +54,19 @@ public class TestSimpleTable {
 		final SimpleTable insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.getId());
+		Assertions.assertTrue(insertedData.getId() >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, insertedData.id);
+		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, insertedData.getId());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(insertedData.getId(), retrieve.getId());
 		Assertions.assertEquals(TestSimpleTable.DATA_INJECTED, retrieve.data);
-		Assertions.assertNull(retrieve.createdAt);
-		Assertions.assertNull(retrieve.updatedAt);
-		TestSimpleTable.idOfTheObject = retrieve.id;
+		Assertions.assertNull(retrieve.getCreatedAt());
+		Assertions.assertNull(retrieve.getUpdatedAt());
+		TestSimpleTable.idOfTheObject = retrieve.getId();
 	}
 
 	@Order(2)
@@ -77,17 +77,17 @@ public class TestSimpleTable {
 				new ReadAllColumn());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTable.DATA_INJECTED, retrieve.data);
-		Assertions.assertNotNull(retrieve.createdAt);
-		LOGGER.info("start @ {} create @ {}", retrieve.createdAt.toInstant(), TestSimpleTable.startAction.toInstant());
+		Assertions.assertNotNull(retrieve.getCreatedAt());
+		LOGGER.info("start @ {} create @ {}", retrieve.getCreatedAt().toInstant(), TestSimpleTable.startAction.toInstant());
 		// Gros travail sur les timestamp a faire pour que ce soit correct ...
-		// Assertions.assertTrue(retrieve.createdAt.after(this.startAction));
-		Assertions.assertNotNull(retrieve.updatedAt);
-		// Assertions.assertTrue(retrieve.updatedAt.after(this.startAction));
+		// Assertions.assertTrue(retrieve.getCreatedAt().after(this.startAction));
+		Assertions.assertNotNull(retrieve.getUpdatedAt());
+		// Assertions.assertTrue(retrieve.getUpdatedAt().after(this.startAction));
 		// Check timestamps are equal within 1 second tolerance (to handle precision differences)
-		final long timeDiff = Math.abs(retrieve.createdAt.getTime() - retrieve.updatedAt.getTime());
+		final long timeDiff = Math.abs(retrieve.getCreatedAt().getTime() - retrieve.getUpdatedAt().getTime());
 		Assertions.assertTrue(timeDiff < 1000, "createdAt and updatedAt should be equal (within 1s tolerance)");
 	}
 
@@ -102,13 +102,13 @@ public class TestSimpleTable {
 		final SimpleTable retrieve = ConfigureDb.da.getById(SimpleTable.class, TestSimpleTable.idOfTheObject,
 				new ReadAllColumn());
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertNotNull(retrieve.id);
-		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.id);
+		Assertions.assertNotNull(retrieve.getId());
+		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTable.DATA_INJECTED_2, retrieve.data);
-		Assertions.assertNotNull(retrieve.createdAt);
-		Assertions.assertNotNull(retrieve.updatedAt);
-		LOGGER.info("created @ {} updated @ {}", retrieve.createdAt, retrieve.updatedAt);
-		Assertions.assertTrue(retrieve.updatedAt.after(retrieve.createdAt));
+		Assertions.assertNotNull(retrieve.getCreatedAt());
+		Assertions.assertNotNull(retrieve.getUpdatedAt());
+		LOGGER.info("created @ {} updated @ {}", retrieve.getCreatedAt(), retrieve.getUpdatedAt());
+		Assertions.assertTrue(retrieve.getUpdatedAt().after(retrieve.getCreatedAt()));
 	}
 
 	@Order(4)

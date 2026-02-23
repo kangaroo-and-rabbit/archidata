@@ -44,7 +44,7 @@ public class TestResource {
 	public SimpleArchiveTable get(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("get({})", id);
 		for (final SimpleArchiveTable elem : TestResource.data) {
-			if (elem.id.equals(id)) {
+			if (elem.getId().equals(id)) {
 				return elem;
 			}
 		}
@@ -57,8 +57,8 @@ public class TestResource {
 	public SimpleArchiveTable archive(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("archive({})", id);
 		for (final SimpleArchiveTable elem : TestResource.data) {
-			if (elem.id.equals(id)) {
-				elem.updatedAt = new Date();
+			if (elem.getId().equals(id)) {
+				elem.setUpdatedAt(new Date());
 				elem.archive = new Date();
 				return elem;
 			}
@@ -72,8 +72,8 @@ public class TestResource {
 	public SimpleArchiveTable restore(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("restore({})", id);
 		for (final SimpleArchiveTable elem : TestResource.data) {
-			if (elem.id.equals(id)) {
-				elem.updatedAt = new Date();
+			if (elem.getId().equals(id)) {
+				elem.setUpdatedAt(new Date());
 				elem.archive = null;
 				return elem;
 			}
@@ -86,10 +86,10 @@ public class TestResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public SimpleArchiveTable post(final SimpleArchiveTable dataInput) throws Exception {
 		LOGGER.info("post(...)");
-		dataInput.id = TestResource.uniqueId;
+		dataInput.setId(TestResource.uniqueId);
 		TestResource.uniqueId += 5;
-		dataInput.updatedAt = new Date();
-		dataInput.createdAt = new Date();
+		dataInput.setUpdatedAt(new Date());
+		dataInput.setCreatedAt(new Date());
 		data.add(dataInput);
 		return dataInput;
 	}
@@ -119,7 +119,7 @@ public class TestResource {
 	@PermitAll
 	public void remove(@PathParam("id") final Long id) throws Exception {
 		LOGGER.info("remove({})", id);
-		TestResource.data.removeIf(e -> e.id.equals(id));
+		TestResource.data.removeIf(e -> e.getId().equals(id));
 	}
 
 }

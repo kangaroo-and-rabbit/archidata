@@ -75,14 +75,14 @@ public class TestApiReadOnly {
 		final ApiReadOnlyModel insertedData = ConfigureDb.da.insert(test);
 
 		Assertions.assertNotNull(insertedData);
-		Assertions.assertNotNull(insertedData.id);
-		Assertions.assertTrue(insertedData.id >= 0);
+		Assertions.assertNotNull(insertedData.getId());
+		Assertions.assertTrue(insertedData.getId() >= 0);
 
 		// Retrieve and verify all fields were written correctly
-		final ApiReadOnlyModel retrieve = ConfigureDb.da.getById(ApiReadOnlyModel.class, insertedData.id);
+		final ApiReadOnlyModel retrieve = ConfigureDb.da.getById(ApiReadOnlyModel.class, insertedData.getId());
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertEquals(insertedData.id, retrieve.id);
+		Assertions.assertEquals(insertedData.getId(), retrieve.getId());
 		Assertions.assertEquals(VALUE_UPDATABLE_INITIAL, retrieve.valueUpdatable);
 		Assertions.assertEquals(VALUE_NOT_UPDATE_INITIAL, retrieve.valueNotUpdate);
 		Assertions.assertEquals(DATE_UPDATABLE_INITIAL, retrieve.dateUpdatable);
@@ -94,7 +94,7 @@ public class TestApiReadOnly {
 		Assertions.assertNotNull(retrieve.objectNotUpdate);
 		Assertions.assertEquals("obj_readonly", retrieve.objectNotUpdate.data);
 
-		idOfTheObject = retrieve.id;
+		idOfTheObject = retrieve.getId();
 	}
 
 	@Order(2)
@@ -117,7 +117,7 @@ public class TestApiReadOnly {
 		final ApiReadOnlyModel retrieve = ConfigureDb.da.getById(ApiReadOnlyModel.class, idOfTheObject);
 
 		Assertions.assertNotNull(retrieve);
-		Assertions.assertEquals(idOfTheObject, retrieve.id);
+		Assertions.assertEquals(idOfTheObject, retrieve.getId());
 
 		// Updatable fields should be modified
 		Assertions.assertEquals(VALUE_UPDATABLE_MODIFIED, retrieve.valueUpdatable);

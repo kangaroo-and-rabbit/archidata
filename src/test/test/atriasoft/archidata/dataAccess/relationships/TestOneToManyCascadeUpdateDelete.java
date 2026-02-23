@@ -44,7 +44,7 @@ class TestOneToManyCascadeUpdateDelete {
 		insertedRemote2 = ConfigureDb.da.insert(new TypeOneToManyDocLongRemote("remote_cud2", null));
 
 		final TypeOneToManyDocLongParentCascadeUpdateDelete parent = new TypeOneToManyDocLongParentCascadeUpdateDelete(
-				"parent_cud", List.of(insertedRemote1.id, insertedRemote2.id));
+				"parent_cud", List.of(insertedRemote1.getId(), insertedRemote2.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 		Assertions.assertNotNull(insertedParent);
 	}
@@ -54,19 +54,19 @@ class TestOneToManyCascadeUpdateDelete {
 	void testUpdateParentRemovingChildDeletesIt() throws Exception {
 		// Update parent to only keep remote2, removing remote1
 		final TypeOneToManyDocLongParentCascadeUpdateDelete parentUpdate = new TypeOneToManyDocLongParentCascadeUpdateDelete(
-				"parent_cud", List.of(insertedRemote2.id));
-		final long count = ConfigureDb.da.updateById(parentUpdate, insertedParent.id);
+				"parent_cud", List.of(insertedRemote2.getId()));
+		final long count = ConfigureDb.da.updateById(parentUpdate, insertedParent.getId());
 		Assertions.assertEquals(1, count);
 
 		// remote1 should be deleted (cascadeUpdate=DELETE)
 		final TypeOneToManyDocLongRemote r1 = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote1.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRemote1.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNull(r1);
 
 		// remote2 should still exist
 		final TypeOneToManyDocLongRemote r2 = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
-				insertedRemote2.id, new AccessDeletedItems(), new ReadAllColumn());
+				insertedRemote2.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(r2);
-		Assertions.assertEquals(insertedParent.id, r2.parentId);
+		Assertions.assertEquals(insertedParent.getId(), r2.parentId);
 	}
 }

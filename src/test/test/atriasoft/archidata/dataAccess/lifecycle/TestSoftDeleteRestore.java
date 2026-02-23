@@ -45,7 +45,7 @@ class TestSoftDeleteRestore {
 		test.data = "restore_test";
 		final Model inserted = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(inserted);
-		idOfTheObject = inserted.id;
+		idOfTheObject = inserted.getId();
 	}
 
 	@Order(2)
@@ -76,7 +76,7 @@ class TestSoftDeleteRestore {
 	void testRestoredFlagIsFalse() throws Exception {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
-		Assertions.assertNotNull(retrieved.deleted);
-		Assertions.assertEquals(false, retrieved.deleted);
+		Assertions.assertNotNull(retrieved.getDeleted());
+		Assertions.assertEquals(false, retrieved.getDeleted());
 	}
 }

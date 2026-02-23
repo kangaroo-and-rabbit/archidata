@@ -57,16 +57,9 @@ public class ClassObjectModel extends ClassModel {
 		if (superClass == null) {
 			return false;
 		}
-		for (final Field field : superClass.getFields()) {
-			String name;
-			try {
-				name = field.getName();
-				if (filedName.equals(name)) {
-					return true;
-				}
-			} catch (final Exception e) {
-				// TODO Auto-generated catch block
-				LOGGER.trace("Catch error field name in parent create data table: {}", e.getMessage());
+		for (final Field field : AnnotationTools.getAllInstanceFields(superClass)) {
+			if (filedName.equals(field.getName())) {
+				return true;
 			}
 		}
 		return false;
@@ -240,10 +233,7 @@ public class ClassObjectModel extends ClassModel {
 		// Local generation of class:
 		LOGGER.trace("parse class: '{}'", clazz.getCanonicalName());
 		final List<String> alreadyAdded = new ArrayList<>();
-		for (final Field elem : clazz.getFields()) {
-			if (java.lang.reflect.Modifier.isStatic(elem.getModifiers())) {
-				continue;
-			}
+		for (final Field elem : AnnotationTools.getAllInstanceFields(clazz)) {
 			final String dataName = elem.getName();
 			if (isFieldFromSuperClass(clazz, dataName)) {
 				LOGGER.trace("        SKIP:  '{}'", elem.getName());

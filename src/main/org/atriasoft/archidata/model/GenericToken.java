@@ -13,11 +13,43 @@ import jakarta.validation.constraints.NotNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericToken extends OIDGenericDataSoftDelete {
 	@NotNull
-	public ObjectId parentId;
+	private ObjectId parentId;
 	@NotNull
-	public String name;
+	private String name;
 	@NotNull
-	public Date endValidity = null;
+	private Date endValidity = null;
 	@NotNull
-	public String token;
+	private String token;
+
+	public ObjectId getParentId() {
+		return this.parentId;
+	}
+
+	public void setParentId(final ObjectId parentId) {
+		this.parentId = parentId;
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(final String name) {
+		this.name = name;
+	}
+
+	public Date getEndValidity() {
+		return this.endValidity;
+	}
+
+	public void setEndValidity(final Date endValidity) {
+		this.endValidity = endValidity;
+	}
+
+	public String getToken() {
+		return this.token;
+	}
+
+	public void setToken(final String token) {
+		this.token = token;
+	}
 }
