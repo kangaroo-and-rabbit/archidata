@@ -59,7 +59,8 @@ public class TestSimpleTableSoftDelete {
 		Assertions.assertTrue(insertedData.getId() >= 0);
 
 		// Try to retrieve all the data:
-		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class, insertedData.getId());
+		final SimpleTableSoftDelete retrieve = ConfigureDb.da.getById(SimpleTableSoftDelete.class,
+				insertedData.getId());
 
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.getId());

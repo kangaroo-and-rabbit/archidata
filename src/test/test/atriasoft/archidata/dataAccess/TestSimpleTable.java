@@ -81,7 +81,8 @@ public class TestSimpleTable {
 		Assertions.assertEquals(TestSimpleTable.idOfTheObject, retrieve.getId());
 		Assertions.assertEquals(TestSimpleTable.DATA_INJECTED, retrieve.data);
 		Assertions.assertNotNull(retrieve.getCreatedAt());
-		LOGGER.info("start @ {} create @ {}", retrieve.getCreatedAt().toInstant(), TestSimpleTable.startAction.toInstant());
+		LOGGER.info("start @ {} create @ {}", retrieve.getCreatedAt().toInstant(),
+				TestSimpleTable.startAction.toInstant());
 		// Gros travail sur les timestamp a faire pour que ce soit correct ...
 		// Assertions.assertTrue(retrieve.getCreatedAt().after(this.startAction));
 		Assertions.assertNotNull(retrieve.getUpdatedAt());

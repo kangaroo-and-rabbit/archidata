@@ -58,8 +58,8 @@ class TestOneToManyCascadeDeleteSetNull {
 		Assertions.assertEquals(1, count);
 
 		// Child should still exist but parentId should be null
-		final TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote.getId(),
-				new AccessDeletedItems(), new ReadAllColumn());
+		final TypeOneToManyDocLongRemote r = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
+				insertedRemote.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(r);
 		Assertions.assertNull(r.parentId);
 	}

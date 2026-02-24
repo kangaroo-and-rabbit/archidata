@@ -914,51 +914,53 @@ public class TestTypeScriptApiGeneration {
 					};
 				}
 				""", generation.get(Paths.get("api/sample-resource-json-include-post.ts")));
-		Assertions.assertEquals("""
-				/**
-				 * Interface of the server (auto-generated code)
-				 */
-				import { z as zod } from "zod";
-				import { ZodLong } from "./long";
+		Assertions.assertEquals(
+				"""
+						/**
+						 * Interface of the server (auto-generated code)
+						 */
+						import { z as zod } from "zod";
+						import { ZodLong } from "./long";
 
-				export const ZodTestJsonIncludeWriteObject = zod.object({
-					valueNullable: ZodLong.optional(),
-					valueNotNull: ZodLong,
-					valueNotNullCreate: ZodLong.optional(),
+						export const ZodTestJsonIncludeWriteObject = zod.object({
+							valueNullable: ZodLong.optional(),
+							valueNotNull: ZodLong,
+							valueNotNullCreate: ZodLong.optional(),
 
-				});
+						});
 
-				export type TestJsonIncludeWriteObject = zod.infer<typeof ZodTestJsonIncludeWriteObject>;
+						export type TestJsonIncludeWriteObject = zod.infer<typeof ZodTestJsonIncludeWriteObject>;
 
-				export function isTestJsonIncludeWriteObject(data: any): data is TestJsonIncludeWriteObject {
-					try {
-						ZodTestJsonIncludeWriteObject.parse(data);
-						return true;
-					} catch (e: any) {
-						console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObject' error=${e}`);
-						return false;
-					}
-				}
+						export function isTestJsonIncludeWriteObject(data: any): data is TestJsonIncludeWriteObject {
+							try {
+								ZodTestJsonIncludeWriteObject.parse(data);
+								return true;
+							} catch (e: any) {
+								console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObject' error=${e}`);
+								return false;
+							}
+						}
 
-				export const ZodTestJsonIncludeWriteObjectCreate = zod.object({
-					valueNullable: ZodLong.nullable().optional(),
-					valueNotNull: ZodLong,
-					valueNotNullCreate: ZodLong,
+						export const ZodTestJsonIncludeWriteObjectCreate = zod.object({
+							valueNullable: ZodLong.nullable().optional(),
+							valueNotNull: ZodLong,
+							valueNotNullCreate: ZodLong,
 
-				});
+						});
 
-				export type TestJsonIncludeWriteObjectCreate = zod.infer<typeof ZodTestJsonIncludeWriteObjectCreate>;
+						export type TestJsonIncludeWriteObjectCreate = zod.infer<typeof ZodTestJsonIncludeWriteObjectCreate>;
 
-				export function isTestJsonIncludeWriteObjectCreate(data: any): data is TestJsonIncludeWriteObjectCreate {
-					try {
-						ZodTestJsonIncludeWriteObjectCreate.parse(data);
-						return true;
-					} catch (e: any) {
-						console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObjectCreate' error=${e}`);
-						return false;
-					}
-				}
-				""", generation.get(Paths.get("model/test-json-include-write-object.ts")));
+						export function isTestJsonIncludeWriteObjectCreate(data: any): data is TestJsonIncludeWriteObjectCreate {
+							try {
+								ZodTestJsonIncludeWriteObjectCreate.parse(data);
+								return true;
+							} catch (e: any) {
+								console.log(`Fail to parse data type='ZodTestJsonIncludeWriteObjectCreate' error=${e}`);
+								return false;
+							}
+						}
+						""",
+				generation.get(Paths.get("model/test-json-include-write-object.ts")));
 	}
 
 	@Test

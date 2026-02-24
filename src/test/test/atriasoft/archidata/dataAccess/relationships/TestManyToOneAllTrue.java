@@ -72,7 +72,8 @@ class TestManyToOneAllTrue {
 	@Order(3)
 	@Test
 	void testUpdateChildMovesLink() throws Exception {
-		final TypeManyToOneDocLongChildTTT childUpdate = new TypeManyToOneDocLongChildTTT("child1", insertedParent2.getId());
+		final TypeManyToOneDocLongChildTTT childUpdate = new TypeManyToOneDocLongChildTTT("child1",
+				insertedParent2.getId());
 		final long count = ConfigureDb.da.updateById(childUpdate, insertedChild.getId());
 		Assertions.assertEquals(1, count);
 

@@ -48,8 +48,8 @@ class TestOneToManyWithTimestamps {
 				"parent_ts", List.of(insertedRemote.getId()));
 		insertedParent = ConfigureDb.da.insert(parent);
 
-		final TypeOneToManyDocLongParentCascadeDeleteSetNull parentCheck = ConfigureDb.da
-				.getById(TypeOneToManyDocLongParentCascadeDeleteSetNull.class, insertedParent.getId(), new ReadAllColumn());
+		final TypeOneToManyDocLongParentCascadeDeleteSetNull parentCheck = ConfigureDb.da.getById(
+				TypeOneToManyDocLongParentCascadeDeleteSetNull.class, insertedParent.getId(), new ReadAllColumn());
 		Assertions.assertNotNull(parentCheck);
 		Assertions.assertNotNull(parentCheck.getCreatedAt());
 		Assertions.assertNotNull(parentCheck.getUpdatedAt());

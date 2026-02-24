@@ -51,7 +51,8 @@ class TestManyToOneAllFalse {
 	@Order(2)
 	@Test
 	void testInsertChildNoLink() throws Exception {
-		final TypeManyToOneDocLongChildFFF child = new TypeManyToOneDocLongChildFFF("child_fff", insertedParent1.getId());
+		final TypeManyToOneDocLongChildFFF child = new TypeManyToOneDocLongChildFFF("child_fff",
+				insertedParent1.getId());
 		insertedChild = ConfigureDb.da.insert(child);
 		Assertions.assertNotNull(insertedChild);
 

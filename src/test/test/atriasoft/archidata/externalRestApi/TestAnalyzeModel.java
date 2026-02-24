@@ -224,8 +224,7 @@ public class TestAnalyzeModel {
 			}
 		}
 		Assertions.assertNotNull(modelWith);
-		Assertions.assertTrue(modelWith.isJsonIncludeNonNull(),
-				"Model with @JsonInclude(NON_NULL) should be detected");
+		Assertions.assertTrue(modelWith.isJsonIncludeNonNull(), "Model with @JsonInclude(NON_NULL) should be detected");
 
 		// Model WITHOUT @JsonInclude(NON_NULL)
 		final AnalyzeApi apiWithout = new AnalyzeApi();

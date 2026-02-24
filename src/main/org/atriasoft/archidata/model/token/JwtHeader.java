@@ -5,5 +5,4 @@ import jakarta.validation.constraints.Size;
 
 public record JwtHeader(
 		@Size(max = 128) @NotNull String typ,
-		@Size(max = 128) @NotNull String alg) {
-}
+		@Size(max = 128) @NotNull String alg) {}

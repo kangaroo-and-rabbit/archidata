@@ -7,7 +7,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-
 /**
  * In Document entity the relation is stored in the 2 part of the entity, then
  * it is needed to define the field that store the relation data value in the
@@ -58,16 +57,16 @@ public @interface OneToManyDoc {
 	/**
 	 * When create the object, the system add the link on the children
 	 */
-boolean addLinkWhenCreate() default true;
+	boolean addLinkWhenCreate() default true;
 
 	/**
 	 * When object is update, apply some update on child.
 	 */
-CascadeMode cascadeUpdate() default CascadeMode.IGNORE;
+	CascadeMode cascadeUpdate() default CascadeMode.IGNORE;
 
 	/**
 	 * When object is removed, apply some update on child.
 	 */
-CascadeMode cascadeDelete() default CascadeMode.IGNORE;
+	CascadeMode cascadeDelete() default CascadeMode.IGNORE;
 
 }

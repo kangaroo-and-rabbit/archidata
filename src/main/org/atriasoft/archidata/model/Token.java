@@ -5,5 +5,4 @@ public record Token(
 		Long userId,
 		String token,
 		String createTime,
-		String endValidityTime) {
-}
+		String endValidityTime) {}

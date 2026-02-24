@@ -43,8 +43,12 @@ public class TestDeepNestedTypes {
 		ConfigureDb.clear();
 	}
 
-	private static ComplexSubObject createComplexSubObject(final String name, final Integer count,
-			final Boolean active, final Enum2ForTest status, final List<String> tags) {
+	private static ComplexSubObject createComplexSubObject(
+			final String name,
+			final Integer count,
+			final Boolean active,
+			final Enum2ForTest status,
+			final List<String> tags) {
 		return new ComplexSubObject(name, count, active, status, tags);
 	}
 
@@ -139,14 +143,11 @@ public class TestDeepNestedTypes {
 		test.mapOfMapOfObjects = new HashMap<>();
 
 		final Map<String, ComplexSubObject> innerMap1 = new HashMap<>();
-		innerMap1.put("k1",
-				createComplexSubObject("nested1", 1, true, Enum2ForTest.ENUM_VALUE_1, List.of("x")));
-		innerMap1.put("k2",
-				createComplexSubObject("nested2", 2, false, Enum2ForTest.ENUM_VALUE_2, List.of("y")));
+		innerMap1.put("k1", createComplexSubObject("nested1", 1, true, Enum2ForTest.ENUM_VALUE_1, List.of("x")));
+		innerMap1.put("k2", createComplexSubObject("nested2", 2, false, Enum2ForTest.ENUM_VALUE_2, List.of("y")));
 
 		final Map<String, ComplexSubObject> innerMap2 = new HashMap<>();
-		innerMap2.put("k3",
-				createComplexSubObject("nested3", 3, true, Enum2ForTest.ENUM_VALUE_4, List.of("z")));
+		innerMap2.put("k3", createComplexSubObject("nested3", 3, true, Enum2ForTest.ENUM_VALUE_4, List.of("z")));
 
 		test.mapOfMapOfObjects.put("groupA", innerMap1);
 		test.mapOfMapOfObjects.put("groupB", innerMap2);
@@ -220,10 +221,8 @@ public class TestDeepNestedTypes {
 		test.listOfObjects = new ArrayList<>();
 		test.listOfObjects
 				.add(createComplexSubObject("elem1", 100, true, Enum2ForTest.ENUM_VALUE_1, List.of("t1", "t2")));
-		test.listOfObjects
-				.add(createComplexSubObject("elem2", 200, false, Enum2ForTest.ENUM_VALUE_3, List.of("t3")));
-		test.listOfObjects
-				.add(createComplexSubObject("elem3", 300, true, Enum2ForTest.ENUM_VALUE_5, List.of()));
+		test.listOfObjects.add(createComplexSubObject("elem2", 200, false, Enum2ForTest.ENUM_VALUE_3, List.of("t3")));
+		test.listOfObjects.add(createComplexSubObject("elem3", 300, true, Enum2ForTest.ENUM_VALUE_5, List.of()));
 
 		final DeepNestedModel insertedData = ConfigureDb.da.insert(test);
 
@@ -579,8 +578,7 @@ public class TestDeepNestedTypes {
 		entry1.simpleObject = createComplexSubObject("active-entry", 1, true, Enum2ForTest.ENUM_VALUE_1, List.of());
 
 		final DeepNestedModel entry2 = new DeepNestedModel();
-		entry2.simpleObject = createComplexSubObject("inactive-entry", 2, false, Enum2ForTest.ENUM_VALUE_2,
-				List.of());
+		entry2.simpleObject = createComplexSubObject("inactive-entry", 2, false, Enum2ForTest.ENUM_VALUE_2, List.of());
 
 		ConfigureDb.da.insert(entry1);
 		ConfigureDb.da.insert(entry2);

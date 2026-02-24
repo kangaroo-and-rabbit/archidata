@@ -130,7 +130,8 @@ public class TestManyToOneDocOID {
 					this.insertedChild1.otherData, this.insertedParent2.getOid());
 			final long count = ConfigureDb.da.updateById(childToUpdate, this.insertedChild1.getOid());
 			Assertions.assertEquals(1, count);
-			this.insertedChild1 = ConfigureDb.da.getById(TypeManyToOneDocOIDChildTTT.class, this.insertedChild1.getOid());
+			this.insertedChild1 = ConfigureDb.da.getById(TypeManyToOneDocOIDChildTTT.class,
+					this.insertedChild1.getOid());
 			Assertions.assertNotNull(this.insertedChild1);
 			Assertions.assertNotNull(this.insertedChild1.getOid());
 			Assertions.assertEquals(this.insertedParent2.getOid(), this.insertedChild1.parentOid);
@@ -162,7 +163,8 @@ public class TestManyToOneDocOID {
 		@Test
 		public void deleteChildWillUpdateParents() throws Exception {
 			// Update child:
-			final long count = ConfigureDb.da.deleteById(TypeManyToOneDocOIDChildTTT.class, this.insertedChild1.getOid());
+			final long count = ConfigureDb.da.deleteById(TypeManyToOneDocOIDChildTTT.class,
+					this.insertedChild1.getOid());
 			Assertions.assertEquals(1, count);
 
 			// check if parent are well updated:
@@ -255,7 +257,8 @@ public class TestManyToOneDocOID {
 					this.insertedParent2.getOid());
 			count = ConfigureDb.da.updateById(childToUpdate, this.insertedChild1.getOid());
 			Assertions.assertEquals(1, count);
-			this.insertedChild1 = ConfigureDb.da.getById(TypeManyToOneDocOIDChildFFF.class, this.insertedChild1.getOid());
+			this.insertedChild1 = ConfigureDb.da.getById(TypeManyToOneDocOIDChildFFF.class,
+					this.insertedChild1.getOid());
 			Assertions.assertNotNull(this.insertedChild1);
 			Assertions.assertNotNull(this.insertedChild1.getOid());
 			Assertions.assertEquals(this.insertedParent2.getOid(), this.insertedChild1.parentOid);
@@ -283,7 +286,8 @@ public class TestManyToOneDocOID {
 			Assertions.assertNotNull(parentCheck.getUpdatedAt());
 
 			// set back on first for the next step
-			childToUpdate = new TypeManyToOneDocOIDChildFFF(this.insertedChild1.otherData, this.insertedParent1.getOid());
+			childToUpdate = new TypeManyToOneDocOIDChildFFF(this.insertedChild1.otherData,
+					this.insertedParent1.getOid());
 			count = ConfigureDb.da.updateById(childToUpdate, this.insertedChild1.getOid());
 		}
 
@@ -291,7 +295,8 @@ public class TestManyToOneDocOID {
 		@Test
 		public void deleteChildWillNotUpdateParents() throws Exception {
 			// Update child:
-			final long count = ConfigureDb.da.deleteById(TypeManyToOneDocOIDChildFFF.class, this.insertedChild1.getOid());
+			final long count = ConfigureDb.da.deleteById(TypeManyToOneDocOIDChildFFF.class,
+					this.insertedChild1.getOid());
 			Assertions.assertEquals(1, count);
 
 			// check if parent are well updated:

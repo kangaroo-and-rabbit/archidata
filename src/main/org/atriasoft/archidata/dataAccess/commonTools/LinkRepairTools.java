@@ -125,8 +125,8 @@ public class LinkRepairTools {
 						// Remote doesn't exist => mark for removal
 						toRemove.add(remoteId);
 						report.incrementBrokenLinksRemoved();
-						report.addDetail("M2M: Removed broken ref " + remoteId + " from " + clazz.getSimpleName()
-								+ "(" + sourcePk + ")." + fieldDesc.getProperty().getName());
+						report.addDetail("M2M: Removed broken ref " + remoteId + " from " + clazz.getSimpleName() + "("
+								+ sourcePk + ")." + fieldDesc.getProperty().getName());
 					} else {
 						// Remote exists, check if it contains source PK in its list
 						final Object remoteValue = remoteProp.getValue(remoteDoc);
@@ -243,8 +243,8 @@ public class LinkRepairTools {
 						// Child doesn't exist => remove from parent list
 						toRemove.add(childId);
 						report.incrementBrokenLinksRemoved();
-						report.addDetail("O2M: Removed broken child ref " + childId + " from "
-								+ clazz.getSimpleName() + "(" + parentPk + ")." + fieldDesc.getProperty().getName());
+						report.addDetail("O2M: Removed broken child ref " + childId + " from " + clazz.getSimpleName()
+								+ "(" + parentPk + ")." + fieldDesc.getProperty().getName());
 					} else {
 						// Child exists, check that its parent field points to this parent
 						final Object childParentValue = remoteProp.getValue(childDoc);
@@ -280,8 +280,8 @@ public class LinkRepairTools {
 					// Parent doesn't exist => set child's parent to null
 					MongoLinkManager.setField(db, remoteClass, childPk, remoteFieldColumn, null);
 					report.incrementBrokenLinksRemoved();
-					report.addDetail("O2M: Nullified parent ref on child " + remoteClass.getSimpleName() + "("
-							+ childPk + ")." + remoteFieldName + " (parent " + childParentValue + " not found)");
+					report.addDetail("O2M: Nullified parent ref on child " + remoteClass.getSimpleName() + "(" + childPk
+							+ ")." + remoteFieldName + " (parent " + childParentValue + " not found)");
 				} else {
 					// Parent exists, check if it lists this child
 					final Object parentDoc = getByIdWithDeleted(clazz, childParentValue, includeDeletedSource);
@@ -299,8 +299,7 @@ public class LinkRepairTools {
 			}
 		}
 
-		LOGGER.info("OneToMany repair for {}.{}: {}", clazz.getSimpleName(), fieldDesc.getProperty().getName(),
-				report);
+		LOGGER.info("OneToMany repair for {}.{}: {}", clazz.getSimpleName(), fieldDesc.getProperty().getName(), report);
 		return report;
 	}
 
@@ -360,8 +359,8 @@ public class LinkRepairTools {
 						// Add child to parent's list
 						MongoLinkManager.addToList(db, remoteClass, parentId, remoteFieldColumn, childPk);
 						report.incrementMissingLinksAdded();
-						report.addDetail("M2O: Added missing child " + childPk + " to "
-								+ remoteClass.getSimpleName() + "(" + parentId + ")." + remoteFieldName);
+						report.addDetail("M2O: Added missing child " + childPk + " to " + remoteClass.getSimpleName()
+								+ "(" + parentId + ")." + remoteFieldName);
 					}
 				}
 			}
@@ -409,8 +408,7 @@ public class LinkRepairTools {
 			}
 		}
 
-		LOGGER.info("ManyToOne repair for {}.{}: {}", clazz.getSimpleName(), fieldDesc.getProperty().getName(),
-				report);
+		LOGGER.info("ManyToOne repair for {}.{}: {}", clazz.getSimpleName(), fieldDesc.getProperty().getName(), report);
 		return report;
 	}
 

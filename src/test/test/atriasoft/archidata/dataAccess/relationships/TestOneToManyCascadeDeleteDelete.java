@@ -53,8 +53,8 @@ class TestOneToManyCascadeDeleteDelete {
 		Assertions.assertNotNull(insertedParent);
 
 		// Verify children are linked
-		TypeOneToManyDocLongRemote r1 = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class, insertedRemote1.getId(),
-				new AccessDeletedItems(), new ReadAllColumn());
+		TypeOneToManyDocLongRemote r1 = ConfigureDb.da.getById(TypeOneToManyDocLongRemote.class,
+				insertedRemote1.getId(), new AccessDeletedItems(), new ReadAllColumn());
 		Assertions.assertNotNull(r1);
 		Assertions.assertEquals(insertedParent.getId(), r1.parentId);
 	}

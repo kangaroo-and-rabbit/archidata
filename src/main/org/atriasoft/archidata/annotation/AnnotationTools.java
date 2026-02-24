@@ -293,7 +293,6 @@ public class AnnotationTools {
 		return get(element, OneToMany.class);
 	}
 
-
 	public static DecimalMin getConstraintsDecimalMin(final Field element) {
 		return get(element, DecimalMin.class);
 	}

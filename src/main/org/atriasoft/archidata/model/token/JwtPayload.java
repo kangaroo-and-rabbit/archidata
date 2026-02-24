@@ -18,5 +18,4 @@ public record JwtPayload(
 		// Expiration (timestamp)
 		@NotNull Long exp,
 		// Create time (timestamp)
-		@NotNull Long iat) {
-}
+		@NotNull Long iat) {}

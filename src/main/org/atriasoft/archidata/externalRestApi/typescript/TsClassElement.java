@@ -637,8 +637,7 @@ public class TsClassElement {
 			outContent.append(maxSizeZod(field));
 			outContent.append(readOnlyZod(field));
 			outContent.append(optionalTypeZod(field, parameterClassModel.valid(), parameterClassModel.groups(),
-					model.isJsonIncludeNonNull(),
-					model.getApiGenerationMode().nullableOptionalForWriteSchemas()));
+					model.isJsonIncludeNonNull(), model.getApiGenerationMode().nullableOptionalForWriteSchemas()));
 			outContent.append(",\n");
 		}
 		if (model.getExtendsClass() != null) {

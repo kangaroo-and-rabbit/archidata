@@ -7,5 +7,4 @@ import jakarta.validation.constraints.NotNull;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record GetToken(
-		@Column(length = -1, nullable = false) @NotNull String jwt) {
-}
+		@Column(length = -1, nullable = false) @NotNull String jwt) {}
