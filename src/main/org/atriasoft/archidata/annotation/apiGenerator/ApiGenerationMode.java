@@ -55,11 +55,4 @@ public @interface ApiGenerationMode {
 	 */
 	boolean update() default false;
 
-	/**
-	 * (Optional) When true and {@code @JsonInclude(NON_NULL)} is present, use
-	 * {@code .nullable().optional()} for create/update schemas instead of just
-	 * {@code .optional()}. Useful for frameworks like React Hook Form that
-	 * send null explicitly.
-	 */
-	boolean nullableOptionalForWriteSchemas() default false;
 }

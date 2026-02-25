@@ -15,6 +15,7 @@ import org.atriasoft.archidata.annotation.method.RESTORE;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiOptionalIsNullable;
 import org.atriasoft.archidata.model.OIDGenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -176,7 +177,8 @@ public class TestTypeScriptApiGeneration {
 	}
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	@ApiGenerationMode(read = true, create = true, nullableOptionalForWriteSchemas = true)
+	@ApiGenerationMode(read = true, create = true)
+	@ApiOptionalIsNullable(groups = { GroupCreate.class })
 	public static class TestJsonIncludeWriteObject {
 		public Long valueNullable;
 		@NotNull

@@ -13,6 +13,7 @@ import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiNotNull;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiOptionalIsNullable;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
@@ -279,6 +280,7 @@ public class ClassObjectModel extends ClassModel {
 	String name = "";
 	boolean isPrimitive = false;
 	boolean jsonIncludeNonNull = false;
+	Class<?>[] optionalIsNullableGroups = null;
 	String description = null;
 	String example = null;
 	ClassModel extendsClass = null;
@@ -294,6 +296,10 @@ public class ClassObjectModel extends ClassModel {
 
 	public boolean isJsonIncludeNonNull() {
 		return this.jsonIncludeNonNull;
+	}
+
+	public Class<?>[] getOptionalIsNullableGroups() {
+		return this.optionalIsNullableGroups;
 	}
 
 	public String getDescription() {
@@ -333,6 +339,12 @@ public class ClassObjectModel extends ClassModel {
 
 		// Detect @JsonInclude(NON_NULL) on this class or any parent class
 		this.jsonIncludeNonNull = hasJsonIncludeNonNull(clazz);
+
+		// Detect @ApiOptionalIsNullable on this class
+		final ApiOptionalIsNullable optionalIsNullable = clazz.getAnnotation(ApiOptionalIsNullable.class);
+		if (optionalIsNullable != null) {
+			this.optionalIsNullableGroups = optionalIsNullable.groups();
+		}
 
 		// Use bean introspection (supports POJO, Record, Bean)
 		LOGGER.trace("parse class: '{}'", clazz.getCanonicalName());

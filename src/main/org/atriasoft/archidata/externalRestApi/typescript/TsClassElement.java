@@ -429,7 +429,7 @@ public class TsClassElement {
 	}
 
 	public String optionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
-		return optionalTypeZod(field, isValid, groups, false, false);
+		return optionalTypeZod(field, isValid, groups, false, null);
 	}
 
 	public String optionalTypeZod(
@@ -437,12 +437,12 @@ public class TsClassElement {
 			final boolean isValid,
 			final Class<?>[] groups,
 			final boolean jsonIncludeNonNull,
-			final boolean nullableOptionalForWrite) {
+			final Class<?>[] optionalIsNullableGroups) {
 		if (!isOptionalTypeZod(field, isValid, groups)) {
 			return "";
 		}
 		if (jsonIncludeNonNull) {
-			if (nullableOptionalForWrite && isWriteGroup(groups)) {
+			if (optionalIsNullableGroups != null && isMatchingGroup(groups, optionalIsNullableGroups)) {
 				return ".nullable().optional()";
 			}
 			return ".optional()";
@@ -450,14 +450,15 @@ public class TsClassElement {
 		return ".nullable()";
 	}
 
-	private boolean isWriteGroup(final Class<?>[] groups) {
-		if (groups == null) {
+	private boolean isMatchingGroup(final Class<?>[] currentGroups, final Class<?>[] targetGroups) {
+		if (currentGroups == null || targetGroups == null) {
 			return false;
 		}
-		for (final Class<?> group : groups) {
-			if (TypeUtils.isSameClass(group, org.atriasoft.archidata.annotation.checker.GroupCreate.class)
-					|| TypeUtils.isSameClass(group, org.atriasoft.archidata.annotation.checker.GroupUpdate.class)) {
-				return true;
+		for (final Class<?> current : currentGroups) {
+			for (final Class<?> target : targetGroups) {
+				if (TypeUtils.isSameClass(current, target)) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -637,7 +638,7 @@ public class TsClassElement {
 			outContent.append(maxSizeZod(field));
 			outContent.append(readOnlyZod(field));
 			outContent.append(optionalTypeZod(field, parameterClassModel.valid(), parameterClassModel.groups(),
-					model.isJsonIncludeNonNull(), model.getApiGenerationMode().nullableOptionalForWriteSchemas()));
+					model.isJsonIncludeNonNull(), model.getOptionalIsNullableGroups()));
 			outContent.append(",\n");
 		}
 		if (model.getExtendsClass() != null) {
