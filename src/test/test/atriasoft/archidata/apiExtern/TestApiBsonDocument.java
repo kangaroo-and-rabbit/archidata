@@ -53,14 +53,9 @@ public class TestApiBsonDocument {
 	@Test
 	public void testRoundTripSimpleDocument() throws Exception {
 		final DataWithBsonDocument data = new DataWithBsonDocument();
-		data.documentData = new Document()
-				.append("name", "test-value")
-				.append("count", 42)
-				.append("active", true);
+		data.documentData = new Document().append("name", "test-value").append("count", 42).append("active", true);
 
-		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME)
-				.post()
-				.bodyJson(data)
+		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME).post().bodyJson(data)
 				.fetch(DataWithBsonDocument.class);
 
 		Assertions.assertNotNull(inserted);
@@ -71,8 +66,7 @@ public class TestApiBsonDocument {
 		Assertions.assertEquals(true, inserted.documentData.getBoolean("active"));
 
 		// GET it back
-		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString())
-				.get()
+		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString()).get()
 				.fetch(DataWithBsonDocument.class);
 
 		Assertions.assertNotNull(retrieve);
@@ -86,21 +80,15 @@ public class TestApiBsonDocument {
 	@Test
 	public void testRoundTripNestedDocument() throws Exception {
 		final DataWithBsonDocument data = new DataWithBsonDocument();
-		data.documentData = new Document()
-				.append("level1", "value1")
-				.append("nested", new Document()
-						.append("level2", "value2")
-						.append("number", 99));
+		data.documentData = new Document().append("level1", "value1").append("nested",
+				new Document().append("level2", "value2").append("number", 99));
 
-		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME)
-				.post()
-				.bodyJson(data)
+		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME).post().bodyJson(data)
 				.fetch(DataWithBsonDocument.class);
 
 		Assertions.assertNotNull(inserted);
 
-		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString())
-				.get()
+		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString()).get()
 				.fetch(DataWithBsonDocument.class);
 
 		Assertions.assertNotNull(retrieve.documentData);
@@ -116,16 +104,12 @@ public class TestApiBsonDocument {
 	@Test
 	public void testRoundTripDocumentWithList() throws Exception {
 		final DataWithBsonDocument data = new DataWithBsonDocument();
-		data.documentData = new Document()
-				.append("tags", List.of("alpha", "beta", "gamma"));
+		data.documentData = new Document().append("tags", List.of("alpha", "beta", "gamma"));
 
-		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME)
-				.post()
-				.bodyJson(data)
+		final DataWithBsonDocument inserted = api.request(ENDPOINT_NAME).post().bodyJson(data)
 				.fetch(DataWithBsonDocument.class);
 
-		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString())
-				.get()
+		final DataWithBsonDocument retrieve = api.request(ENDPOINT_NAME, inserted.getOid().toHexString()).get()
 				.fetch(DataWithBsonDocument.class);
 
 		Assertions.assertNotNull(retrieve.documentData);

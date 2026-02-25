@@ -38,17 +38,13 @@ public class TestBsonDocumentField {
 	@Test
 	public void testInsertAndRetrieveSimpleDocument() throws Exception {
 		final DataWithBsonDocument test = new DataWithBsonDocument();
-		test.documentData = new Document()
-				.append("name", "test-value")
-				.append("count", 42)
-				.append("active", true);
+		test.documentData = new Document().append("name", "test-value").append("count", 42).append("active", true);
 
 		final DataWithBsonDocument insertedData = ConfigureDb.da.insert(test);
 		Assertions.assertNotNull(insertedData);
 		Assertions.assertNotNull(insertedData.getOid());
 
-		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class,
-				insertedData.getOid());
+		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class, insertedData.getOid());
 		Assertions.assertNotNull(retrieve);
 		Assertions.assertNotNull(retrieve.documentData);
 		Assertions.assertEquals("test-value", retrieve.documentData.getString("name"));
@@ -60,16 +56,11 @@ public class TestBsonDocumentField {
 	@Test
 	public void testInsertAndRetrieveNestedDocument() throws Exception {
 		final DataWithBsonDocument test = new DataWithBsonDocument();
-		test.documentData = new Document()
-				.append("level1", "value1")
-				.append("nested", new Document()
-						.append("level2", "value2")
-						.append("deepNested", new Document()
-								.append("level3", "value3")));
+		test.documentData = new Document().append("level1", "value1").append("nested", new Document()
+				.append("level2", "value2").append("deepNested", new Document().append("level3", "value3")));
 
 		final DataWithBsonDocument insertedData = ConfigureDb.da.insert(test);
-		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class,
-				insertedData.getOid());
+		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve.documentData);
 		Assertions.assertEquals("value1", retrieve.documentData.getString("level1"));
@@ -87,13 +78,11 @@ public class TestBsonDocumentField {
 	@Test
 	public void testInsertAndRetrieveDocumentWithList() throws Exception {
 		final DataWithBsonDocument test = new DataWithBsonDocument();
-		test.documentData = new Document()
-				.append("tags", List.of("alpha", "beta", "gamma"))
-				.append("numbers", List.of(1, 2, 3));
+		test.documentData = new Document().append("tags", List.of("alpha", "beta", "gamma")).append("numbers",
+				List.of(1, 2, 3));
 
 		final DataWithBsonDocument insertedData = ConfigureDb.da.insert(test);
-		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class,
-				insertedData.getOid());
+		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class, insertedData.getOid());
 
 		Assertions.assertNotNull(retrieve.documentData);
 		@SuppressWarnings("unchecked")
@@ -111,8 +100,7 @@ public class TestBsonDocumentField {
 		test.documentData = null;
 
 		final DataWithBsonDocument insertedData = ConfigureDb.da.insert(test);
-		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class,
-				insertedData.getOid());
+		final DataWithBsonDocument retrieve = ConfigureDb.da.getById(DataWithBsonDocument.class, insertedData.getOid());
 
 		Assertions.assertNull(retrieve.documentData);
 	}
