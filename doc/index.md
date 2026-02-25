@@ -22,7 +22,7 @@ Core Concepts
 Advanced Topics
 ---------------
 
-- [Connection Management](connectionManagement.md) — Persistent connections and virtual threads
+- [Connection Management](connectionManagement.md) — Persistent connections, transactions, and virtual threads
 - [ChangeStream Quick Start](ChangeStream_QuickStart.md) — Real-time database change notifications
 - [ChangeStream Advanced](ChangeStream_Advanced.md) — Filtering, monitoring, and performance
 - [TypeScript API Generation](typescript_api_generation.md) — Generate TypeScript client code from your API

@@ -202,8 +202,7 @@ public final class MongoLinkManager {
 
 		// findOneAndUpdate returns the document BEFORE the update by default
 		final ClientSession session = ioDb.getSession();
-		final Document previousDoc = session != null
-				? collection.findOneAndUpdate(session, filter, update)
+		final Document previousDoc = session != null ? collection.findOneAndUpdate(session, filter, update)
 				: collection.findOneAndUpdate(filter, update);
 		if (previousDoc == null) {
 			return null;

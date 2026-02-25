@@ -1175,8 +1175,7 @@ public class DBAccessMongo implements Closeable {
 
 			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
 			statistic.countInsertOne++;
-			final InsertOneResult res = this.session != null
-					? collection.insertOne(this.session, data)
+			final InsertOneResult res = this.session != null ? collection.insertOne(this.session, data)
 					: collection.insertOne(data);
 			if (primaryKey != null) {
 				return primaryKey;
@@ -1310,8 +1309,7 @@ public class DBAccessMongo implements Closeable {
 			}
 
 			statistic.countInsertOne++;
-			final InsertOneResult result = this.session != null
-					? collection.insertOne(this.session, docSet)
+			final InsertOneResult result = this.session != null ? collection.insertOne(this.session, docSet)
 					: collection.insertOne(docSet);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {} ({})", ex.getMessage(), ex.getClass().getSimpleName(), ex);
@@ -1473,8 +1471,7 @@ public class DBAccessMongo implements Closeable {
 			}
 
 			statistic.countUpdateMany++;
-			final UpdateResult ret = this.session != null
-					? collection.updateMany(this.session, filters, actions)
+			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 					: collection.updateMany(filters, actions);
 			List<LazyGetter> actionsAsync = asyncActions;
 			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
@@ -1550,13 +1547,9 @@ public class DBAccessMongo implements Closeable {
 			statistic.countFind++;
 			if (filters != null) {
 				// LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
-				retFind = this.session != null
-						? collection.find(this.session, filters)
-						: collection.find(filters);
+				retFind = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
 			} else {
-				retFind = this.session != null
-						? collection.find(this.session)
-						: collection.find();
+				retFind = this.session != null ? collection.find(this.session) : collection.find();
 			}
 			final List<OrderBy> orders = options.get(OrderBy.class);
 			if (orders.size() != 0) {
@@ -1696,13 +1689,10 @@ public class DBAccessMongo implements Closeable {
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			statistic.countCountDocuments++;
 			if (filters != null) {
-				return this.session != null
-						? collection.countDocuments(this.session, filters)
+				return this.session != null ? collection.countDocuments(this.session, filters)
 						: collection.countDocuments(filters);
 			}
-			return this.session != null
-					? collection.countDocuments(this.session)
-					: collection.countDocuments();
+			return this.session != null ? collection.countDocuments(this.session) : collection.countDocuments();
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to count documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
@@ -1800,8 +1790,7 @@ public class DBAccessMongo implements Closeable {
 		DeleteResult retFind;
 		if (filters != null) {
 			statistic.countDeleteMany++;
-			retFind = this.session != null
-					? collection.deleteMany(this.session, filters)
+			retFind = this.session != null ? collection.deleteMany(this.session, filters)
 					: collection.deleteMany(filters);
 		} else {
 			throw new DataAccessException("Too dangerout to delete element with no filter values !!!");
@@ -1876,8 +1865,7 @@ public class DBAccessMongo implements Closeable {
 		}
 		actionOnDelete(clazz, option);
 		statistic.countUpdateMany++;
-		final UpdateResult ret = this.session != null
-				? collection.updateMany(this.session, filters, actions)
+		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 				: collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
@@ -1985,8 +1973,7 @@ public class DBAccessMongo implements Closeable {
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
 		statistic.countUpdateMany++;
-		final UpdateResult ret = this.session != null
-				? collection.updateMany(this.session, filters, actions)
+		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 				: collection.updateMany(filters, actions);
 		return ret.getModifiedCount();
 	}
@@ -2087,8 +2074,7 @@ public class DBAccessMongo implements Closeable {
 		try {
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			statistic.countInsertOne++;
-			final InsertOneResult result = this.session != null
-					? collection.insertOne(this.session, document)
+			final InsertOneResult result = this.session != null ? collection.insertOne(this.session, document)
 					: collection.insertOne(document);
 			final Object insertedId = result.getInsertedId();
 			if (insertedId != null && insertedId instanceof org.bson.BsonObjectId) {
@@ -2148,13 +2134,9 @@ public class DBAccessMongo implements Closeable {
 			statistic.countFind++;
 			final FindIterable<Document> cursor;
 			if (filters != null) {
-				cursor = this.session != null
-						? collection.find(this.session, filters)
-						: collection.find(filters);
+				cursor = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
 			} else {
-				cursor = this.session != null
-						? collection.find(this.session)
-						: collection.find();
+				cursor = this.session != null ? collection.find(this.session) : collection.find();
 			}
 			try (MongoCursor<Document> iterator = cursor.iterator()) {
 				if (iterator.hasNext()) {
@@ -2207,13 +2189,9 @@ public class DBAccessMongo implements Closeable {
 			statistic.countFind++;
 			FindIterable<Document> cursor;
 			if (filters != null) {
-				cursor = this.session != null
-						? collection.find(this.session, filters)
-						: collection.find(filters);
+				cursor = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
 			} else {
-				cursor = this.session != null
-						? collection.find(this.session)
-						: collection.find();
+				cursor = this.session != null ? collection.find(this.session) : collection.find();
 			}
 
 			// Apply ordering

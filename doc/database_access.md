@@ -333,3 +333,9 @@ da.renameCollection("old_name", "new_name");
 // Drop a database (destructive!)
 da.deleteDatabase("database_name");
 ```
+
+
+Transactions
+============
+
+Archidata supports MongoDB multi-document transactions. See [Connection Management — Transactions](connectionManagement.md#transactions).

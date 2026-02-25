@@ -83,6 +83,95 @@ The explicit form `getConnection()` is useful if you need to:
   - Interact with advanced connection features
 
 
+Transactions
+------------
+
+Archidata supports MongoDB multi-document transactions. All CRUD operations on a `DBAccessMongo` instance can participate in a transaction when one is active.
+
+**Important:** MongoDB transactions require a **replica set** (even a single-node replica set). Standalone MongoDB instances do not support transactions.
+
+
+### Manual Transaction Control
+
+Use `startTransaction()`, `commitTransaction()`, and `abortTransaction()` directly on `DBAccessMongo`:
+
+```java
+final DBAccessMongo db = DBAccessMongo.createInterface();
+db.startTransaction();
+try {
+    db.insert(entity1);
+    db.insert(entity2);
+    db.commitTransaction();
+} catch (Exception ex) {
+    db.abortTransaction();
+    throw ex;
+} finally {
+    db.close();
+}
+```
+
+
+### TransactionContext (try-with-resources)
+
+`TransactionContext` provides automatic abort if `commit()` is not called:
+
+```java
+try (TransactionContext tx = new TransactionContext(db)) {
+    db.insert(entity1);
+    db.insert(entity2);
+    tx.commit();
+}
+// If commit() was not called (e.g., exception thrown), the transaction is auto-aborted.
+```
+
+
+### TransactionContext.getTransactionContext()
+
+Within a `@DataAccessSingleConnection` context, you can use the convenience factory to auto-retrieve the current thread's connection:
+
+```java
+try (TransactionContext tx = TransactionContext.getTransactionContext()) {
+    final DBAccessMongo db = DataAccessConnectionContext.getConnection();
+    db.insert(entity1);
+    db.insert(entity2);
+    tx.commit();
+}
+```
+
+
+### DataAccess.inTransaction()
+
+The static facade provides a lambda-based API that manages the entire lifecycle (connection + transaction):
+
+```java
+DataAccess.inTransaction(db -> {
+    db.insert(entity1);
+    db.insert(entity2);
+});
+// Both inserts are committed atomically, or both are rolled back on error.
+```
+
+
+### Automatic Transactions via @DataAccessSingleConnection
+
+For REST endpoints, you can enable automatic transactions using `@DataAccessSingleConnection(transactional = true)`. The filter starts a transaction at the beginning of the request and:
+- **Commits** on success (2xx response)
+- **Aborts** on error (non-2xx response or exception)
+
+```java
+@POST
+@DataAccessSingleConnection(transactional = true)
+public User createUserWithAccount(final UserRequest req) throws Exception {
+    final DBAccessMongo db = DataAccessConnectionContext.getConnection();
+    final User user = db.insert(new User(req.name));
+    final Account account = new Account(user.getOid());
+    db.insert(account);
+    return user;
+    // Auto-committed on success, auto-aborted on exception
+}
+```
+
+
 Virtual Thread Support
 ----------------------
 
