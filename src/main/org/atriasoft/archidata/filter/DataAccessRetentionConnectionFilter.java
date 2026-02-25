@@ -1,9 +1,11 @@
 package org.atriasoft.archidata.filter;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 import org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,8 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
 
 /**
@@ -21,6 +25,12 @@ import jakarta.ws.rs.ext.Provider;
  * <p>
  * This filter opens a database connection at the start of the request and closes it
  * at the end, ensuring all database operations within the request share the same connection.
+ * </p>
+ *
+ * <p>
+ * When {@code @DataAccessSingleConnection(transactional = true)} is used, this filter
+ * also starts a MongoDB transaction at the beginning of the request and commits it
+ * on success (2xx response) or aborts it on error.
  * </p>
  *
  * <p>
@@ -33,8 +43,12 @@ import jakarta.ws.rs.ext.Provider;
 @DataAccessSingleConnection
 public class DataAccessRetentionConnectionFilter implements ContainerRequestFilter, ContainerResponseFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataAccessRetentionConnectionFilter.class);
+	private static final String TRANSACTIONAL_PROPERTY = "archidata.transactional";
 
 	private static final ThreadLocal<DataAccessConnectionContext> contextHolder = new ThreadLocal<>();
+
+	@Context
+	private ResourceInfo resourceInfo;
 
 	/**
 	 * Opens a database connection for the current thread.
@@ -69,11 +83,67 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		lock();
+		// Check if transactional mode is requested
+		final DataAccessSingleConnection annotation = getMatchedAnnotation();
+		if (annotation != null && annotation.transactional()) {
+			try {
+				final DBAccessMongo db = DataAccessConnectionContext.getConnection();
+				db.startTransaction();
+				requestContext.setProperty(TRANSACTIONAL_PROPERTY, Boolean.TRUE);
+				LOGGER.debug("Auto-transaction started for request");
+			} catch (final DataAccessException ex) {
+				LOGGER.error("Failed to start auto-transaction: {}", ex.getMessage(), ex);
+				throw new IOException("Failed to start transaction: " + ex.getMessage(), ex);
+			}
+		}
 	}
 
 	@Override
 	public void filter(final ContainerRequestContext requestContext, final ContainerResponseContext responseContext)
 			throws IOException {
+		// Handle transaction commit/abort if active
+		final Boolean transactional = (Boolean) requestContext.getProperty(TRANSACTIONAL_PROPERTY);
+		if (Boolean.TRUE.equals(transactional)) {
+			try {
+				final DBAccessMongo db = DataAccessConnectionContext.getConnection();
+				if (db.isTransactionActive()) {
+					final int status = responseContext.getStatus();
+					if (status >= 200 && status < 300) {
+						db.commitTransaction();
+						LOGGER.debug("Auto-transaction committed (status={})", status);
+					} else {
+						db.abortTransaction();
+						LOGGER.debug("Auto-transaction aborted (status={})", status);
+					}
+				}
+			} catch (final DataAccessException ex) {
+				LOGGER.error("Failed to finalize auto-transaction: {}", ex.getMessage(), ex);
+			}
+		}
 		unlock();
+	}
+
+	/**
+	 * Retrieves the {@link DataAccessSingleConnection} annotation from the matched
+	 * resource method or class.
+	 *
+	 * @return the annotation, or null if not found
+	 */
+	private DataAccessSingleConnection getMatchedAnnotation() {
+		if (this.resourceInfo == null) {
+			return null;
+		}
+		final Method method = this.resourceInfo.getResourceMethod();
+		if (method != null) {
+			final DataAccessSingleConnection annotation = method.getAnnotation(DataAccessSingleConnection.class);
+			if (annotation != null) {
+				return annotation;
+			}
+		}
+		final Class<?> resourceClass = this.resourceInfo.getResourceClass();
+		if (resourceClass != null) {
+			return resourceClass.getAnnotation(DataAccessSingleConnection.class);
+		}
+		return null;
 	}
 }

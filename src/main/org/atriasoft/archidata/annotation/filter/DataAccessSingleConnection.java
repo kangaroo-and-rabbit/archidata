@@ -43,5 +43,14 @@ import jakarta.ws.rs.NameBinding;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD })
 public @interface DataAccessSingleConnection {
-
+	/**
+	 * When set to {@code true}, a MongoDB transaction is automatically started at the
+	 * beginning of the request and committed on success (2xx response) or aborted on error.
+	 *
+	 * <p><strong>Important:</strong> MongoDB transactions require a replica set.
+	 * Standalone MongoDB instances do not support transactions.</p>
+	 *
+	 * @return true if the request should be wrapped in a transaction
+	 */
+	boolean transactional() default false;
 }

@@ -15,10 +15,6 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import jakarta.ws.rs.InternalServerErrorException;
 
-/* TODO list:
-   - Manage to group DB actions to permit to commit only at the end.
- */
-
 /**
  * Static wrapper providing simplified access to MongoDB database operations.
  *
@@ -1019,6 +1015,66 @@ public class DataAccess {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo db = ctx.get();
 			return db.updateBsonDocuments(collectionName, updateDocument, options);
+		}
+	}
+
+	// ========================================================================
+	// Transaction support
+	// ========================================================================
+
+	/**
+	 * Functional interface for actions to execute within a transaction.
+	 *
+	 * @see #inTransaction(TransactionalAction)
+	 */
+	@FunctionalInterface
+	public interface TransactionalAction {
+		/**
+		 * Executes the transactional action.
+		 *
+		 * @param db the database access instance (within a transaction)
+		 * @throws Exception if the action fails
+		 */
+		void execute(DBAccessMongo db) throws Exception;
+	}
+
+	/**
+	 * Executes a block of operations within a single MongoDB transaction.
+	 *
+	 * <p>
+	 * This method automatically manages the connection, transaction lifecycle,
+	 * and commit/abort. If the action completes successfully, the transaction
+	 * is committed. If an exception is thrown, the transaction is automatically aborted.
+	 * </p>
+	 *
+	 * <p>
+	 * <strong>Important:</strong> MongoDB transactions require a replica set.
+	 * Standalone MongoDB instances do not support transactions.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
+	 * </p>
+	 * <pre>
+	 * DataAccess.inTransaction(db -&gt; {
+	 *     User user = db.insert(new User("John"));
+	 *     Account account = new Account();
+	 *     account.userId = user.getOid();
+	 *     db.insert(account);
+	 * });
+	 * // Both inserts are committed atomically, or both are rolled back on error.
+	 * </pre>
+	 *
+	 * @param action The transactional action to execute
+	 * @throws Exception if the action or transaction fails
+	 */
+	public static void inTransaction(final TransactionalAction action) throws Exception {
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			try (TransactionContext tx = new TransactionContext(db)) {
+				action.execute(db);
+				tx.commit();
+			}
 		}
 	}
 

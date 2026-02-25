@@ -11,6 +11,7 @@ import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
@@ -64,7 +65,12 @@ public final class MongoLinkManager {
 			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
-		collection.updateOne(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateOne(session, filter, update);
+		} else {
+			collection.updateOne(filter, update);
+		}
 		LOGGER.trace("addToList: {}.{} += {} (pk={})", collectionName, fieldColumnName, valueToAdd, primaryKeyValue);
 	}
 
@@ -100,7 +106,12 @@ public final class MongoLinkManager {
 			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
-		collection.updateOne(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateOne(session, filter, update);
+		} else {
+			collection.updateOne(filter, update);
+		}
 		LOGGER.trace("removeFromList: {}.{} -= {} (pk={})", collectionName, fieldColumnName, valueToRemove,
 				primaryKeyValue);
 	}
@@ -144,7 +155,12 @@ public final class MongoLinkManager {
 			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
-		collection.updateOne(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateOne(session, filter, update);
+		} else {
+			collection.updateOne(filter, update);
+		}
 		LOGGER.trace("setField: {}.{} = {} (pk={})", collectionName, fieldColumnName, value, primaryKeyValue);
 	}
 
@@ -185,7 +201,10 @@ public final class MongoLinkManager {
 		}
 
 		// findOneAndUpdate returns the document BEFORE the update by default
-		final Document previousDoc = collection.findOneAndUpdate(filter, update);
+		final ClientSession session = ioDb.getSession();
+		final Document previousDoc = session != null
+				? collection.findOneAndUpdate(session, filter, update)
+				: collection.findOneAndUpdate(filter, update);
 		if (previousDoc == null) {
 			return null;
 		}
@@ -229,7 +248,12 @@ public final class MongoLinkManager {
 		}
 
 		// Use updateMany in case multiple documents match
-		collection.updateMany(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateMany(session, filter, update);
+		} else {
+			collection.updateMany(filter, update);
+		}
 		LOGGER.trace("setFieldToNullWhere: {}.{} where {}={}", collectionName, fieldToNullify, filterFieldName,
 				filterValue);
 	}
@@ -269,7 +293,12 @@ public final class MongoLinkManager {
 			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
-		collection.updateOne(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateOne(session, filter, update);
+		} else {
+			collection.updateOne(filter, update);
+		}
 		LOGGER.trace("addAllToList: {}.{} += {} values (pk={})", collectionName, fieldColumnName, valuesToAdd.size(),
 				primaryKeyValue);
 	}
@@ -307,7 +336,12 @@ public final class MongoLinkManager {
 			update = Updates.combine(update, Updates.set(updateTs.getDbFieldName(), new Date()));
 		}
 
-		collection.updateOne(filter, update);
+		final ClientSession session = ioDb.getSession();
+		if (session != null) {
+			collection.updateOne(session, filter, update);
+		} else {
+			collection.updateOne(filter, update);
+		}
 		LOGGER.trace("removeAllFromList: {}.{} -= {} values (pk={})", collectionName, fieldColumnName,
 				valuesToRemove.size(), primaryKeyValue);
 	}
