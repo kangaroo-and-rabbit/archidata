@@ -126,6 +126,11 @@ public final class MongoCodecFactory {
 			return Object::toString;
 		}
 
+		// --- BSON Document (must be checked before Map, since Document implements Map) ---
+		if (raw == Document.class) {
+			return IDENTITY_W;
+		}
+
 		// --- List<E> ---
 		if (typeInfo.isList()) {
 			final MongoTypeWriter elementWriter = buildElementWriterFromTypeInfo(typeInfo);
@@ -240,6 +245,11 @@ public final class MongoCodecFactory {
 				}
 				return result;
 			};
+		}
+
+		// --- BSON Document (must be checked before Map, since Document implements Map) ---
+		if (raw == Document.class) {
+			return IDENTITY_R;
 		}
 
 		// --- List<E> ---

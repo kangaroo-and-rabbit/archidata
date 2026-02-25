@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.UriBuilder;
 import test.atriasoft.archidata.apiExtern.resource.DataAccessTestResource;
+import test.atriasoft.archidata.apiExtern.resource.DocumentResource;
 import test.atriasoft.archidata.apiExtern.resource.TestResource;
 import test.atriasoft.archidata.apiExtern.resource.TimeResource;
 
@@ -129,6 +130,7 @@ public class WebLauncher {
 		rc.register(DataResource.class);
 		rc.register(ProxyResource.class);
 		rc.register(DataAccessTestResource.class);
+		rc.register(DocumentResource.class);
 
 		ContextGenericTools.addJsr310(rc);
 
