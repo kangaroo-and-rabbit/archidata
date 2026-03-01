@@ -142,6 +142,11 @@ public final class MongoFieldCodec {
 
 	// ========== Getters ==========
 
+	/** Whether this codec can populate a field value (i.e. has a setter). */
+	public boolean canSetValue() {
+		return this.setter != null;
+	}
+
 	public String getDbFieldName() {
 		return this.dbFieldName;
 	}
@@ -181,6 +186,12 @@ public final class MongoFieldCodec {
 			final String fieldName,
 			final MongoTypeReader readerToUse,
 			final Object instance) throws Exception {
+		if (this.setter == null) {
+			throw new IllegalStateException("Cannot read field '" + this.dbFieldName
+					+ "' from DB: no setter available on class " + instance.getClass().getSimpleName()
+					+ ". If the field is 'private final', either add a setter method or remove the getter"
+					+ " so the field is not mapped by the codec.");
+		}
 		if (!doc.containsKey(fieldName)) {
 			if (!this.primitive) {
 				setFieldValue(instance, null);

@@ -58,11 +58,17 @@ public class DbIoMongo extends DbIo implements Closeable {
 				MongoClientSettings.getDefaultCodecRegistry(),
 				CodecRegistries.fromCodecs(new org.bson.codecs.UuidCodec(UuidRepresentation.STANDARD)),
 				pojoCodecRegistry, OffsetDateTimeCodecRegistry);
-		// Configure MongoClientSettings
+		// Configure MongoClientSettings with connection pool settings
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString)//
 				.codecRegistry(codecRegistry) //
 				.uuidRepresentation(UuidRepresentation.STANDARD)//
+				.applyToConnectionPoolSettings(builder -> builder //
+						.maxSize(200) // Increase max connections from default 100 to 200
+						.minSize(10) // Maintain minimum 10 idle connections
+						.maxWaitTime(5000, java.util.concurrent.TimeUnit.MILLISECONDS) // Wait up to 5s for connection
+						.maxConnectionIdleTime(60000, java.util.concurrent.TimeUnit.MILLISECONDS) // Close idle connections after 60s
+						.maxConnectionLifeTime(300000, java.util.concurrent.TimeUnit.MILLISECONDS)) // Close connections after 5 minutes
 				.build();
 		this.mongoClient = MongoClients.create(clientSettings);
 		if (dbName == null) {

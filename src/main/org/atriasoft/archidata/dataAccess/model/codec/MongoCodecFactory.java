@@ -447,7 +447,7 @@ public final class MongoCodecFactory {
 				continue;
 			}
 			final MongoFieldCodec codec = desc.getCodec();
-			if (codec != null) {
+			if (codec != null && codec.canSetValue()) {
 				codec.readFromDoc(doc, instance);
 			}
 		}

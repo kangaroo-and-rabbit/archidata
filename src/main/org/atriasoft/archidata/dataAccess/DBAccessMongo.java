@@ -1273,10 +1273,7 @@ public class DBAccessMongo implements Closeable {
 						fieldAddOn.insertData(this, desc, data, options, docSet, docUnSet);
 						break;
 					}
-					case NOT_READ: {
-						// Skip fields marked as not-read during insert
-						break;
-					}
+					case NOT_READ:
 					case NORMAL:
 					default: {
 						final MongoFieldCodec codec = desc.getCodec();

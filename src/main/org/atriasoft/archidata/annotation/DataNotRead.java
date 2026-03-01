@@ -7,9 +7,8 @@ import java.lang.annotation.Target;
 
 /**
  * The DataNotRead annotation is used to mark fields in a class that should not
- * be automatically read from the database. This annotation helps in optimizing
- * data retrieval by excluding certain fields from being fetched unless
- * explicitly specified.
+ * be automatically read from the database. The field is still written to the
+ * database during insert and update operations.
  *
  * <p>Usage:
  * - Target: This annotation can be applied to fields within a class.
@@ -17,10 +16,9 @@ import java.lang.annotation.Target;
  *   processed by frameworks or libraries that handle data retrieval logic.
  *
  * <p>Behavior:
- * - When a field is annotated with @DataNotRead, it will not be included in the
- *   default data retrieval process from the database.
- * - To override this behavior and read all columns, including those marked with
- *   `@DataNotRead`, the query must include the option ReadAllColumn.
+ * - The field IS written to the database on insert and update (like a normal field).
+ * - The field is NOT included in the default data retrieval process.
+ * - To read the field, the query must include the {@code ReadAllColumn} option.
  *
  * <p>Example:
  * <pre>{@code
@@ -32,9 +30,9 @@ import java.lang.annotation.Target;
  * }
  * }</pre>
  *
- * In this example, the sensitiveData field will not be read from the database
- * by default. To include it in the query results, the ReadAllColumn option must
- * be specified in the query.
+ * In this example, the sensitiveData field will be stored in the database but
+ * will not be read by default. To include it in the query results, the
+ * ReadAllColumn option must be specified in the query.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

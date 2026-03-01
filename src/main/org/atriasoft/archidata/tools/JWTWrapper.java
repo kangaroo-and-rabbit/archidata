@@ -7,6 +7,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -191,9 +193,10 @@ public class JWTWrapper {
 			final JWSSigner signer = new RSASSASigner(rsaJWK);
 
 			LOGGER.warn("timeOutInMunites= {}", timeOutInMunites);
-			final Date now = new Date();
+			final Instant nowInstant = Instant.now();
+			final Date now = Date.from(nowInstant);
 			LOGGER.warn("now       = {}", now);
-			final Date expiration = new Date(now.getTime() + 60 * timeOutInMunites * 1000 /* millisecond */);
+			final Date expiration = Date.from(nowInstant.plus(Duration.ofMinutes(timeOutInMunites)));
 
 			LOGGER.warn("expiration= {}", expiration);
 			String serializeUserId = "";
@@ -289,10 +292,11 @@ public class JWTWrapper {
 			return null;
 		}
 		try {
-			final int timeOutInMunites = 3600;
+			final int timeOutInMinutes = 3600;
 
-			final Date now = new Date();
-			final Date expiration = new Date(new Date().getTime() + timeOutInMunites * 1000 /* ms */);
+			final Instant nowInstant = Instant.now();
+			final Date now = Date.from(nowInstant);
+			final Date expiration = Date.from(nowInstant.plus(Duration.ofMinutes(timeOutInMinutes)));
 
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
 					.claim("login", userLogin).claim("application", application).issuer(isuer).issueTime(now)

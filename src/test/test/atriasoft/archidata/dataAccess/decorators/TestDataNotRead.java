@@ -67,11 +67,30 @@ class TestDataNotRead {
 	@Order(3)
 	@Test
 	void testGetByIdWithReadAllColumn() throws Exception {
-		// @DataNotRead alone (without @CreationTimestamp/@UpdateTimestamp/@DataDeleted)
-		// means the field is never written to DB, so it remains null even with ReadAllColumn
+		// @DataNotRead fields are written to DB but not read by default.
+		// With ReadAllColumn, they should be retrieved.
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("visible_value", retrieved.visible);
+		Assertions.assertEquals("hidden_value", retrieved.hidden);
+	}
+
+	@Order(4)
+	@Test
+	void testUpdateNotReadField() throws Exception {
+		final Model update = new Model();
+		update.visible = "visible_updated";
+		update.hidden = "hidden_updated";
+		ConfigureDb.da.updateById(update, idOfTheObject);
+		// Default read should not return the hidden field
+		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject);
+		Assertions.assertNotNull(retrieved);
+		Assertions.assertEquals("visible_updated", retrieved.visible);
 		Assertions.assertNull(retrieved.hidden);
+		// With ReadAllColumn, the updated hidden field should be returned
+		final Model retrievedAll = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
+		Assertions.assertNotNull(retrievedAll);
+		Assertions.assertEquals("visible_updated", retrievedAll.visible);
+		Assertions.assertEquals("hidden_updated", retrievedAll.hidden);
 	}
 }
