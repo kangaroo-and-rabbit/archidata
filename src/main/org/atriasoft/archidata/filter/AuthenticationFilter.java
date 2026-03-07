@@ -260,7 +260,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		user.setType(UserByToken.TYPE_USER);
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
-			LOGGER.info("Detect right in Authentication Filter: {}", rowRight);
+			LOGGER.trace("Detect right in Authentication Filter: {}", rowRight);
 			user.setRight(RightSafeCaster.safeCastAndTransform(ret.getClaim("right")));
 			/*
 			if (rights.containsKey(this.applicationName)) {

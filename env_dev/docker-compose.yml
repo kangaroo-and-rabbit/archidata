@@ -1,3 +1,4 @@
+---
 services:
   mongodb:
     image: mongo:latest
@@ -7,7 +8,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: base_db_password
     ports:
-      - "27017:27017"
+      - 27017:27017
     volumes:
       # Note keep the 3 element they are mount separately inside the docker.
       - ./data/mongo/keys/:/data/keys/
@@ -35,9 +36,9 @@ services:
     networks:
       - mongo-network
 
-  mongo-express:
+  mongoexpress:
     image: mongo-express:latest
-    container_name: mongo-express
+    container_name: mongoexpress
     restart: always
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root

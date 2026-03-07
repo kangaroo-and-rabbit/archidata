@@ -192,13 +192,13 @@ public class JWTWrapper {
 			// Create RSA-signer with the private key
 			final JWSSigner signer = new RSASSASigner(rsaJWK);
 
-			LOGGER.warn("timeOutInMunites= {}", timeOutInMunites);
+			LOGGER.trace("timeOutInMunites= {}", timeOutInMunites);
 			final Instant nowInstant = Instant.now();
 			final Date now = Date.from(nowInstant);
-			LOGGER.warn("now       = {}", now);
+			LOGGER.trace("now       = {}", now);
 			final Date expiration = Date.from(nowInstant.plus(Duration.ofMinutes(timeOutInMunites)));
 
-			LOGGER.warn("expiration= {}", expiration);
+			LOGGER.trace("expiration= {}", expiration);
 			String serializeUserId = "";
 			if (userID instanceof final Long userIdLong) {
 				serializeUserId = Long.toString(userIdLong);
