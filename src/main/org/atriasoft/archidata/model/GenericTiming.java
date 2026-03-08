@@ -11,6 +11,7 @@ import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
@@ -18,7 +19,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
 //@ApiGenerationMode(create = true, update = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericTiming {
+
 	@DataNotRead
 	@CreationTimestamp
 	@Column(nullable = false, insertable = false, updatable = false)

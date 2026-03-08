@@ -7,8 +7,12 @@ import java.util.Set;
 import org.atriasoft.archidata.filter.PartRight;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserByToken {
 	// Set here by number to permit to extend it by the user.
+
 	public static final int TYPE_USER = -1;
 	public static final int TYPE_APPLICATION = -2;
 	// application internal management type: an application generic Id

@@ -7,6 +7,8 @@ import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
@@ -14,7 +16,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.ws.rs.DefaultValue;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UUIDGenericData extends GenericTiming {
+
 	@Id
 	@DefaultValue("(UUID_TO_BIN(UUID(), TRUE))")
 	@Column(nullable = false, unique = true)

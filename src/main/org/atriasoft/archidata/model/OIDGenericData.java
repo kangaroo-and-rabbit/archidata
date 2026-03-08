@@ -8,13 +8,17 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericData extends GenericTiming {
+
 	@Id
 	@BsonId
 	@Column(nullable = false, unique = true, name = "_id")
