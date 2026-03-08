@@ -42,13 +42,16 @@ public abstract class ClassModel {
 	public static ClassModel getModel(final Type type, final ModelGroup previousModel) throws IOException {
 		if (type instanceof final ParameterizedType paramType) {
 			final Type[] typeArguments = paramType.getActualTypeArguments();
-			if (paramType.getRawType() == List.class) {
-				return new ClassListModel(typeArguments[0], previousModel);
+			final Type rawType = paramType.getRawType();
+			if (rawType instanceof final Class<?> rawClass) {
+				if (List.class.isAssignableFrom(rawClass)) {
+					return new ClassListModel(typeArguments[0], previousModel);
+				}
+				if (Map.class.isAssignableFrom(rawClass)) {
+					return new ClassMapModel(typeArguments[0], typeArguments[1], previousModel);
+				}
 			}
-			if (paramType.getRawType() == Map.class) {
-				return new ClassMapModel(typeArguments[0], typeArguments[1], previousModel);
-			}
-			throw new IOException("Fail to manage parametrized type...");
+			throw new IOException("Fail to manage parametrized type... '" + rawType + "'");
 		}
 		return previousModel.add((Class<?>) type);
 	}

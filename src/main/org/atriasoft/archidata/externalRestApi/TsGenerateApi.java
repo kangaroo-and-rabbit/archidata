@@ -27,19 +27,22 @@ import org.atriasoft.archidata.externalRestApi.typescript.TsApiGeneration;
 import org.atriasoft.archidata.externalRestApi.typescript.TsClassElement;
 import org.atriasoft.archidata.externalRestApi.typescript.TsClassElement.DefinedPosition;
 import org.atriasoft.archidata.externalRestApi.typescript.TsClassElementGroup;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 public class TsGenerateApi {
+
 	private TsGenerateApi() {
 		// Utility class
 	}
 
 	/**
-	 * Generate a full API tree for Typescript in a specific folder.
-	 * This generate a folder containing a full API with "model" folder and "api" folder.
-	 * The generation depend of Zod and can be strict compile.
+	 * Generate a full API tree for Typescript in a specific folder. This
+	 * generate a folder containing a full API with "model" folder and "api"
+	 * folder. The generation depend of Zod and can be strict compile.
+	 *
 	 * @param api Data model to generate the api
 	 * @param pathPackage Path to store the api.
 	 * @throws Exception
@@ -72,7 +75,7 @@ public class TsGenerateApi {
 		}
 		// Generate index of model files
 		createModelIndex(tsGroup, generation);
-		*/
+		 */
 		// -----------------------------------------------------------
 		// -- Generate The API
 		// -----------------------------------------------------------
@@ -192,6 +195,11 @@ public class TsGenerateApi {
 		if (models != null) {
 			tsModels.add(new TsClassElement(models, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()",
 					DefinedPosition.BASIC));
+		}
+		models = api.getCompatibleModels(List.of(Document.class));
+		if (models != null) {
+			tsModels.add(new TsClassElement(models, "ZodDocument", "Document", "isDocument",
+					"zod.record(zod.string(), zod.any()).nullable()", DefinedPosition.BASIC));
 		}
 		models = api.getCompatibleModels(List.of(ObjectId.class));
 		if (models != null) {
