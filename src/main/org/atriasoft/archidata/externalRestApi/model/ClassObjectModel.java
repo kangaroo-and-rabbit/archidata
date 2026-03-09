@@ -60,15 +60,8 @@ public class ClassObjectModel extends ClassModel {
 	}
 
 	private static boolean hasJsonIncludeNonNull(final Class<?> clazz) {
-		Class<?> current = clazz;
-		while (current != null && current != Object.class) {
-			final JsonInclude annotation = current.getAnnotation(JsonInclude.class);
-			if (annotation != null && annotation.value() == JsonInclude.Include.NON_NULL) {
-				return true;
-			}
-			current = current.getSuperclass();
-		}
-		return false;
+		final JsonInclude annotation = clazz.getDeclaredAnnotation(JsonInclude.class);
+		return annotation != null && annotation.value() == JsonInclude.Include.NON_NULL;
 	}
 
 	private static boolean isPropertyFromSuperClass(final Class<?> model, final String propertyName) {
