@@ -47,6 +47,8 @@ public final class DbClassModel {
 	private final List<DbPropertyDescriptor> asyncInsertFields;
 	private final List<DbPropertyDescriptor> asyncUpdateFields;
 	private final String deletedFieldName;
+	private final DbPropertyDescriptor asyncHardDeletedField;
+	private final String asyncHardDeletedFieldName;
 
 	// ========== Static API ==========
 
@@ -128,6 +130,14 @@ public final class DbClassModel {
 
 	public String getDeletedFieldName() {
 		return this.deletedFieldName;
+	}
+
+	public DbPropertyDescriptor getAsyncHardDeletedField() {
+		return this.asyncHardDeletedField;
+	}
+
+	public String getAsyncHardDeletedFieldName() {
+		return this.asyncHardDeletedFieldName;
 	}
 
 	/** All fields (including special ones). */
@@ -224,7 +234,9 @@ public final class DbClassModel {
 		DbPropertyDescriptor createTs = null;
 		DbPropertyDescriptor updateTs = null;
 		DbPropertyDescriptor deleted = null;
+		DbPropertyDescriptor asyncHardDeleted = null;
 		String deletedName = null;
+		String asyncHardDeletedName = null;
 
 		// 1st pass: build descriptors (without add-on resolution)
 		for (final PropertyDescriptor prop : this.classModel.getProperties()) {
@@ -258,6 +270,10 @@ public final class DbClassModel {
 					deleted = dbProp;
 					deletedName = dbProp.getDbFieldName();
 					break;
+				case ASYNC_HARD_DELETED:
+					asyncHardDeleted = dbProp;
+					asyncHardDeletedName = dbProp.getDbFieldName();
+					break;
 				case ADDON:
 					addon.add(dbProp);
 					break;
@@ -279,6 +295,8 @@ public final class DbClassModel {
 		this.updateTimestamp = updateTs;
 		this.deletedField = deleted;
 		this.deletedFieldName = deletedName;
+		this.asyncHardDeletedField = asyncHardDeleted;
+		this.asyncHardDeletedFieldName = asyncHardDeletedName;
 		this.allFields = Collections.unmodifiableList(all);
 		this.regularFields = Collections.unmodifiableList(regular);
 		this.addonFields = Collections.unmodifiableList(addon);

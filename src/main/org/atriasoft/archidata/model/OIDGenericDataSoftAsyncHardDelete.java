@@ -1,6 +1,6 @@
 package org.atriasoft.archidata.model;
 
-import org.atriasoft.archidata.annotation.DataDeleted;
+import org.atriasoft.archidata.annotation.DataAsyncHardDeleted;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
@@ -14,21 +14,24 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class OIDGenericDataSoftDelete extends OIDGenericData {
+public class OIDGenericDataSoftAsyncHardDelete extends OIDGenericDataSoftDelete {
 
 	@DataNotRead
-	@DataDeleted
+	@DataAsyncHardDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	private Boolean deleted = null;
+	private Boolean hardDeleted = null;
 
-	public Boolean getDeleted() {
-		return this.deleted;
+	public Boolean getHardDeleted() {
+		return this.hardDeleted;
 	}
 
-	public void setDeleted(final Boolean deleted) {
-		this.deleted = deleted;
+	public void setHardDeleted(final boolean hardDeleted) {
+		this.hardDeleted = hardDeleted;
+		if (hardDeleted) {
+			setDeleted(true);
+		}
 	}
 }

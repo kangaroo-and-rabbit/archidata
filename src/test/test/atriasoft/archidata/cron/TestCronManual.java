@@ -53,7 +53,7 @@ public class TestCronManual {
 		}
 		scheduler.start();
 
-		Thread.sleep(1000 * 60 * 10); // Run for 10 minutes
+		Thread.sleep(1000L * 60L * 10L); // Run for 10 minutes
 		scheduler.stop();
 	}
 }

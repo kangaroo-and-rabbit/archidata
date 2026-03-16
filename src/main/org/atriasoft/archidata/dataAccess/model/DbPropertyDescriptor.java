@@ -6,6 +6,7 @@ import java.util.List;
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
+import org.atriasoft.archidata.annotation.DataAsyncHardDeleted;
 import org.atriasoft.archidata.annotation.DataDeleted;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
@@ -209,7 +210,8 @@ public final class DbPropertyDescriptor {
 	/** Quick check: is this a "generic" field that shouldn't be updated by users? */
 	public boolean isGenericField() {
 		return this.action == DbFieldAction.PRIMARY_KEY || this.action == DbFieldAction.CREATION_TIMESTAMP
-				|| this.action == DbFieldAction.UPDATE_TIMESTAMP || this.action == DbFieldAction.DELETED;
+				|| this.action == DbFieldAction.UPDATE_TIMESTAMP || this.action == DbFieldAction.DELETED
+				|| this.action == DbFieldAction.ASYNC_HARD_DELETED;
 	}
 
 	// ========== Private helpers ==========
@@ -226,6 +228,9 @@ public final class DbPropertyDescriptor {
 		}
 		if (property.hasAnnotation(DataDeleted.class)) {
 			return DbFieldAction.DELETED;
+		}
+		if (property.hasAnnotation(DataAsyncHardDeleted.class)) {
+			return DbFieldAction.ASYNC_HARD_DELETED;
 		}
 		if (property.hasAnnotation(DataNotRead.class)) {
 			return DbFieldAction.NOT_READ;
