@@ -107,8 +107,7 @@ public class TestTransaction {
 		// We verify by querying — since we don't have the ID outside, we use gets
 		final java.util.List<SimpleTable> results = ConfigureDb.da.gets(SimpleTable.class,
 				new org.atriasoft.archidata.dataAccess.options.Condition(
-						new org.atriasoft.archidata.dataAccess.QueryCondition("data", "=",
-								"transaction-context-commit-test")));
+						com.mongodb.client.model.Filters.eq("data", "transaction-context-commit-test")));
 		Assertions.assertFalse(results.isEmpty());
 		Assertions.assertEquals("transaction-context-commit-test", results.get(0).data);
 	}

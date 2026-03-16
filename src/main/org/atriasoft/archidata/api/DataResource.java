@@ -27,7 +27,7 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
 import org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection;
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
 import org.atriasoft.archidata.dataAccess.DataAccess;
-import org.atriasoft.archidata.dataAccess.QueryCondition;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.filter.GenericContext;
@@ -142,7 +142,7 @@ public class DataResource {
 	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
-			return DataAccess.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)));
+			return DataAccess.get(Data.class, new Condition(Filters.eq("sha512", sha512)));
 		} catch (final Exception e) {
 			LOGGER.error("Failed to get data with sha512: {}", e.getMessage(), e);
 		}

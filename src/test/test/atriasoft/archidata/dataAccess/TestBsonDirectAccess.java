@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DataAccess;
-import org.atriasoft.archidata.dataAccess.QueryCondition;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
@@ -69,7 +69,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", id)));
+				new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("John Doe", retrieved.getString("name"));
 		Assertions.assertEquals(30, retrieved.getInteger("age"));
@@ -101,7 +101,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", id)));
+				new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Jane Doe", retrieved.getString("name"));
 		Assertions.assertNotNull(retrieved.getDate("dateField"));
@@ -144,7 +144,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", id)));
+				new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Bob Smith", retrieved.getString("name"));
 		Assertions.assertEquals(35, retrieved.getInteger("age"));
@@ -195,7 +195,7 @@ public class TestBsonDirectAccess {
 
 		// Get documents where age > 30
 		final List<Document> filteredDocs = DataAccess.getBsonDocuments(TEST_COLLECTION,
-				new Condition(new QueryCondition("age", ">", 30)));
+				new Condition(Filters.gt("age", 30)));
 		Assertions.assertNotNull(filteredDocs);
 		Assertions.assertEquals(1, filteredDocs.size());
 		Assertions.assertEquals("Bob Smith", filteredDocs.get(0).getString("name"));
@@ -257,7 +257,7 @@ public class TestBsonDirectAccess {
 
 		// Get documents where age >= 30, ordered by age descending, limited to 2
 		final List<Document> combinedDocs = DataAccess.getBsonDocuments(TEST_COLLECTION,
-				new Condition(new QueryCondition("age", ">=", 30)),
+				new Condition(Filters.gte("age", 30)),
 				new OrderBy(new OrderItem("age", OrderItem.Order.DESC)), new Limit(2));
 		Assertions.assertNotNull(combinedDocs);
 		Assertions.assertEquals(2, combinedDocs.size());
@@ -277,13 +277,13 @@ public class TestBsonDirectAccess {
 				new Document("age", 31).append("email", "john.doe@example.com").append("updatedAt", new Date()));
 
 		final long updateCount = DataAccess.updateBsonDocuments(TEST_COLLECTION, updateOps,
-				new Condition(new QueryCondition("name", "=", "John Doe")));
+				new Condition(Filters.eq("name", "John Doe")));
 
 		Assertions.assertEquals(1, updateCount);
 
 		// Verify update
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", insertedId1)));
+				new Condition(Filters.eq("_id", insertedId1)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(31, retrieved.getInteger("age"));
 		Assertions.assertEquals("john.doe@example.com", retrieved.getString("email"));
@@ -299,13 +299,13 @@ public class TestBsonDirectAccess {
 		final Document updateOps = new Document("$inc", new Document("age", 5));
 
 		final long updateCount = DataAccess.updateBsonDocuments(TEST_COLLECTION, updateOps,
-				new Condition(new QueryCondition("name", "=", "Bob Smith")));
+				new Condition(Filters.eq("name", "Bob Smith")));
 
 		Assertions.assertEquals(1, updateCount);
 
 		// Verify update
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", insertedId3)));
+				new Condition(Filters.eq("_id", insertedId3)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals(40, retrieved.getInteger("age")); // Was 35, now 40
 	}
@@ -320,13 +320,13 @@ public class TestBsonDirectAccess {
 		final Document updateOps = new Document("$push", new Document("hobbies", newHobby));
 
 		final long updateCount = DataAccess.updateBsonDocuments(TEST_COLLECTION, updateOps,
-				new Condition(new QueryCondition("name", "=", "Bob Smith")));
+				new Condition(Filters.eq("name", "Bob Smith")));
 
 		Assertions.assertEquals(1, updateCount);
 
 		// Verify update
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", insertedId3)));
+				new Condition(Filters.eq("_id", insertedId3)));
 		Assertions.assertNotNull(retrieved);
 
 		@SuppressWarnings("unchecked")
@@ -346,13 +346,13 @@ public class TestBsonDirectAccess {
 		final Document updateOps = new Document("$unset", new Document("score", ""));
 
 		final long updateCount = DataAccess.updateBsonDocuments(TEST_COLLECTION, updateOps,
-				new Condition(new QueryCondition("name", "=", "John Doe")));
+				new Condition(Filters.eq("name", "John Doe")));
 
 		Assertions.assertEquals(1, updateCount);
 
 		// Verify update
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", insertedId1)));
+				new Condition(Filters.eq("_id", insertedId1)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertFalse(retrieved.containsKey("score"));
 	}
@@ -366,13 +366,13 @@ public class TestBsonDirectAccess {
 		final Document updateOps = new Document("$set", new Document("status", "reviewed"));
 
 		final long updateCount = DataAccess.updateBsonDocuments(TEST_COLLECTION, updateOps,
-				new Condition(new QueryCondition("age", ">=", 30)));
+				new Condition(Filters.gte("age", 30)));
 
 		Assertions.assertEquals(2, updateCount); // Should update Jane Doe and Bob Smith
 
 		// Verify updates
 		final List<Document> reviewedDocs = DataAccess.getBsonDocuments(TEST_COLLECTION,
-				new Condition(new QueryCondition("status", "=", "reviewed")));
+				new Condition(Filters.eq("status", "reviewed")));
 		Assertions.assertNotNull(reviewedDocs);
 		Assertions.assertEquals(2, reviewedDocs.size());
 	}
@@ -383,7 +383,7 @@ public class TestBsonDirectAccess {
 		LOGGER.info("Test get BSON document that doesn't exist");
 
 		final Document notFound = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("name", "=", "Non Existent User")));
+				new Condition(Filters.eq("name", "Non Existent User")));
 
 		Assertions.assertNull(notFound);
 	}
@@ -403,7 +403,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", customId)));
+				new Condition(Filters.eq("_id", customId)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Custom ID User", retrieved.getString("name"));
 		Assertions.assertEquals(25, retrieved.getInteger("age"));
@@ -422,7 +422,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", id)));
+				new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Null Test User", retrieved.getString("name"));
 		Assertions.assertTrue(retrieved.containsKey("email"));
@@ -447,7 +447,7 @@ public class TestBsonDirectAccess {
 
 		// Verify insertion and nested access
 		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(new QueryCondition("_id", "=", id)));
+				new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Deep Nested User", retrieved.getString("name"));
 

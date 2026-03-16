@@ -11,7 +11,7 @@ import org.atriasoft.archidata.annotation.OneToManyDoc.CascadeMode;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
-import org.atriasoft.archidata.dataAccess.QueryInList;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
@@ -227,7 +227,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 					final String idFieldColumn = targetModel.getPrimaryKey().getFieldName(options).inTable();
 					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 						final Object foreignData = ioDb.getsRaw(decorators.targetEntity(),
-								new Condition(new QueryInList<>(idFieldColumn, idList)));
+								new Condition(Filters.in(idFieldColumn, idList)));
 						if (foreignData == null) {
 							return;
 						}

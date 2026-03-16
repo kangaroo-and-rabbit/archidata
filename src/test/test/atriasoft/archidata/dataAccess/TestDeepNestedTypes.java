@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.atriasoft.archidata.dataAccess.QueryCondition;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -468,7 +468,7 @@ public class TestDeepNestedTypes {
 
 		// Query by sub-field
 		final List<DeepNestedModel> results = ConfigureDb.da.gets(DeepNestedModel.class,
-				new Condition(new QueryCondition("simpleObject.name", "=", "findme")));
+				new Condition(Filters.eq("simpleObject.name", "findme")));
 
 		Assertions.assertNotNull(results);
 		Assertions.assertFalse(results.isEmpty());
@@ -500,7 +500,7 @@ public class TestDeepNestedTypes {
 
 		// Query by deep sub-field
 		final List<DeepNestedModel> results = ConfigureDb.da.gets(DeepNestedModel.class,
-				new Condition(new QueryCondition("nestedObject.inner.name", "=", "deep-target")));
+				new Condition(Filters.eq("nestedObject.inner.name", "deep-target")));
 
 		Assertions.assertNotNull(results);
 		Assertions.assertFalse(results.isEmpty());
@@ -530,7 +530,7 @@ public class TestDeepNestedTypes {
 
 		// Query by map value sub-field
 		final List<DeepNestedModel> results = ConfigureDb.da.gets(DeepNestedModel.class,
-				new Condition(new QueryCondition("mapOfObjects.myKey.name", "=", "map-target")));
+				new Condition(Filters.eq("mapOfObjects.myKey.name", "map-target")));
 
 		Assertions.assertNotNull(results);
 		Assertions.assertFalse(results.isEmpty());
@@ -558,7 +558,7 @@ public class TestDeepNestedTypes {
 
 		// Query where simpleObject.count > 500
 		final List<DeepNestedModel> results = ConfigureDb.da.gets(DeepNestedModel.class,
-				new Condition(new QueryCondition("simpleObject.count", ">", 500)));
+				new Condition(Filters.gt("simpleObject.count", 500)));
 
 		Assertions.assertNotNull(results);
 		Assertions.assertFalse(results.isEmpty());
@@ -585,7 +585,7 @@ public class TestDeepNestedTypes {
 
 		// Query where simpleObject.active == false
 		final List<DeepNestedModel> results = ConfigureDb.da.gets(DeepNestedModel.class,
-				new Condition(new QueryCondition("simpleObject.active", "=", false)));
+				new Condition(Filters.eq("simpleObject.active", false)));
 
 		Assertions.assertNotNull(results);
 		Assertions.assertFalse(results.isEmpty());

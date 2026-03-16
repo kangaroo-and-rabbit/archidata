@@ -10,7 +10,7 @@ import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
-import org.atriasoft.archidata.dataAccess.QueryCondition;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
@@ -179,7 +179,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			// after...
 			final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 				final Object foreignData = ioDb.getRaw(decorators.targetEntity(),
-						new Condition(new QueryCondition(idFieldName, "=", dataRetrieve)));
+						new Condition(Filters.eq(idFieldName, dataRetrieve)));
 				if (foreignData == null) {
 					return;
 				}

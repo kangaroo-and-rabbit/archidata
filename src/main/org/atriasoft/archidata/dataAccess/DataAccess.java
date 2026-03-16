@@ -8,6 +8,7 @@ import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,11 +171,11 @@ public class DataAccess {
 	 * @param clazz     Entity class
 	 * @param idKey     ID value
 	 * @param options   Query options
-	 * @return Query condition for the ID
+	 * @return Bson filter for the ID
 	 * @throws DataAccessException if operation fails
 	 * @throws IOException         if I/O error occurs
 	 */
-	public static <ID_TYPE> QueryCondition getTableIdCondition(
+	public static <ID_TYPE> Bson getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
 			final QueryOptions options) throws DataAccessException, IOException {
@@ -239,7 +240,7 @@ public class DataAccess {
 	 *
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * long count = DataAccess.update(updateData,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Condition(Filters.eq("authorId", authorId)),
 	 *     new FilterValue(List.of("status")));
 	 * </pre>
 	 *
@@ -307,12 +308,12 @@ public class DataAccess {
 	 * <pre>
 	 * // Find user by email
 	 * User user = DataAccess.get(User.class,
-	 *     new Condition(new QueryCondition("email", "=", "john@example.com")));
+	 *     new Condition(Filters.eq("email", "john@example.com")));
 	 *
 	 * // Find document by author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * Document doc = DataAccess.get(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * </pre>
 	 *
 	 * @param <T>     The type of entity
@@ -337,12 +338,12 @@ public class DataAccess {
 	 * <pre>
 	 * // Get all active users
 	 * List&lt;User&gt; users = DataAccess.gets(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *     new Condition(Filters.eq("status", "active")));
 	 *
 	 * // Get documents by author with limit
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * List&lt;Document&gt; docs = DataAccess.gets(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Condition(Filters.eq("authorId", authorId)),
 	 *     new Limit(10));
 	 * </pre>
 	 *
@@ -440,12 +441,12 @@ public class DataAccess {
 	 * <pre>
 	 * // Count active users
 	 * long count = DataAccess.count(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *     new Condition(Filters.eq("status", "active")));
 	 *
 	 * // Count documents by author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * long docCount = DataAccess.count(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -589,12 +590,12 @@ public class DataAccess {
 	 * <pre>
 	 * // Delete all inactive users
 	 * long count = DataAccess.delete(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "inactive")));
+	 *     new Condition(Filters.eq("status", "inactive")));
 	 *
 	 * // Delete documents by author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * DataAccess.delete(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -776,7 +777,7 @@ public class DataAccess {
 	 * <pre>
 	 * // Restore all users deleted in last 24 hours
 	 * DataAccess.restore(User.class,
-	 *     new Condition(new QueryCondition("deletedAt", "&gt;", yesterday)));
+	 *     new Condition(Filters.gt("deletedAt", yesterday)));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -908,7 +909,7 @@ public class DataAccess {
 	 *
 	 * // Get document by ID
 	 * Document userDoc = DataAccess.getBsonDocument("users",
-	 *     new Condition(new QueryCondition("_id", "=", userId)));
+	 *     new Condition(Filters.eq("_id", userId)));
 	 *
 	 * if (userDoc != null) {
 	 *     String name = userDoc.getString("name");
@@ -947,7 +948,7 @@ public class DataAccess {
 	 * <pre>
 	 * // Get all users older than 25, ordered by name, limited to 10
 	 * List&lt;Document&gt; users = DataAccess.getBsonDocuments("users",
-	 *     new Condition(new QueryCondition("age", "&gt;", 25)),
+	 *     new Condition(Filters.gt("age", 25)),
 	 *     new OrderBy("name", true),
 	 *     new Limit(10));
 	 *
@@ -990,7 +991,7 @@ public class DataAccess {
 	 *         .append("updatedAt", new Date()));
 	 *
 	 * long count = DataAccess.updateBsonDocuments("users", updateOps,
-	 *     new Condition(new QueryCondition("age", "&gt;", 25)));
+	 *     new Condition(Filters.gt("age", 25)));
 	 *
 	 * System.out.println("Updated " + count + " documents");
 	 * </pre>

@@ -64,6 +64,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
@@ -347,7 +348,7 @@ public class DBAccessMongo implements Closeable {
 	 * </p>
 	 * <pre>
 	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * QueryCondition condition = db.getTableIdCondition(User.class, userId, options);
+	 * Bson condition = db.getTableIdCondition(User.class, userId, options);
 	 * // condition will be: "_id" = ObjectId("507f1f77bcf86cd799439011")
 	 * </pre>
 	 *
@@ -355,10 +356,10 @@ public class DBAccessMongo implements Closeable {
 	 * @param clazz     The entity class
 	 * @param idKey     The ID value to match
 	 * @param options   Query options
-	 * @return A QueryCondition for matching the entity by ID
+	 * @return A Bson filter for matching the entity by ID
 	 * @throws DataAccessException if the class has no @Id field
 	 */
-	public <ID_TYPE> QueryCondition getTableIdCondition(
+	public <ID_TYPE> Bson getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
 			final QueryOptions options) throws DataAccessException {
@@ -396,7 +397,7 @@ public class DBAccessMongo implements Closeable {
 			}
 			throw new DataAccessException("Request update with the wrong type ...");
 		}
-		return new QueryCondition(fieldName.inTable(), "=", idKey);
+		return Filters.eq(fieldName.inTable(), idKey);
 	}
 
 	/**
@@ -552,13 +553,13 @@ public class DBAccessMongo implements Closeable {
 	 *
 	 * // Update all users with status "active"
 	 * long count = db.update(updateData,
-	 *     new Condition(new QueryCondition("status", "=", "active")),
+	 *     new Condition(Filters.eq("status", "active")),
 	 *     new FilterValue(List.of("status", "lastModified")));
 	 *
 	 * // Update users created by specific author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * db.update(updateData,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Condition(Filters.eq("authorId", authorId)),
 	 *     new FilterValue(List.of("status")));
 	 * </pre>
 	 *
@@ -627,12 +628,12 @@ public class DBAccessMongo implements Closeable {
 	 * <pre>
 	 * // Find user by email
 	 * User user = db.get(User.class,
-	 *     new Condition(new QueryCondition("email", "=", "john@example.com")));
+	 *     new Condition(Filters.eq("email", "john@example.com")));
 	 *
 	 * // Find document created by specific author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * Document doc = db.get(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
@@ -668,12 +669,12 @@ public class DBAccessMongo implements Closeable {
 	 * <pre>
 	 * // Get all active users
 	 * List&lt;User&gt; users = db.gets(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *     new Condition(Filters.eq("status", "active")));
 	 *
 	 * // Get documents by author with limit
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * List&lt;Document&gt; docs = db.gets(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)),
+	 *     new Condition(Filters.eq("authorId", authorId)),
 	 *     new Limit(10),
 	 *     new OrderBy("createdAt", false));
 	 * </pre>
@@ -809,12 +810,12 @@ public class DBAccessMongo implements Closeable {
 	 * <pre>
 	 * // Count all active users
 	 * long activeCount = db.count(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "active")));
+	 *     new Condition(Filters.eq("status", "active")));
 	 *
 	 * // Count documents by author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * long docCount = db.count(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * </pre>
 	 *
 	 * @param clazz  The class of the entity
@@ -894,12 +895,12 @@ public class DBAccessMongo implements Closeable {
 	 * <pre>
 	 * // Delete all inactive users
 	 * long deleted = db.delete(User.class,
-	 *     new Condition(new QueryCondition("status", "=", "inactive")));
+	 *     new Condition(Filters.eq("status", "inactive")));
 	 *
 	 * // Delete documents by author
 	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
 	 * long count = db.delete(Document.class,
-	 *     new Condition(new QueryCondition("authorId", "=", authorId)));
+	 *     new Condition(Filters.eq("authorId", authorId)));
 	 * System.out.println("Deleted " + count + " documents");
 	 * </pre>
 	 *
@@ -1509,11 +1510,8 @@ public class DBAccessMongo implements Closeable {
 		if (conditions.size() == 1) {
 			condition = conditions.get(0);
 		} else {
-			final QueryAnd andCondition = new QueryAnd();
-			for (final Condition cond : conditions) {
-				andCondition.add(cond.getFilter());
-			}
-			condition = new Condition(andCondition);
+			condition = new Condition(
+					Filters.and(conditions.stream().map(Condition::getFilter).toList()));
 		}
 		return condition;
 	}
@@ -2136,7 +2134,7 @@ public class DBAccessMongo implements Closeable {
 	 *
 	 * // Get document by ID
 	 * Document userDoc = db.getBsonDocument("users",
-	 *     new Condition(new QueryCondition("_id", "=", userId)));
+	 *     new Condition(Filters.eq("_id", userId)));
 	 *
 	 * if (userDoc != null) {
 	 *     String name = userDoc.getString("name");
@@ -2190,7 +2188,7 @@ public class DBAccessMongo implements Closeable {
 	 * <pre>
 	 * // Get all users older than 25
 	 * List&lt;Document&gt; users = db.getBsonDocuments("users",
-	 *     new Condition(new QueryCondition("age", "&gt;", 25)),
+	 *     new Condition(Filters.gt("age", 25)),
 	 *     new OrderBy("name", true),
 	 *     new Limit(10));
 	 *
@@ -2267,7 +2265,7 @@ public class DBAccessMongo implements Closeable {
 	 *         .append("updatedAt", new Date()));
 	 *
 	 * long count = db.updateBsonDocuments("users", updateOps,
-	 *     new Condition(new QueryCondition("age", "&gt;", 25)));
+	 *     new Condition(Filters.gt("age", 25)));
 	 *
 	 * System.out.println("Updated " + count + " documents");
 	 * </pre>

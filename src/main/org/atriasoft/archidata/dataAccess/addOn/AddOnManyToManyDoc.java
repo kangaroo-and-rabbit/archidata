@@ -10,7 +10,7 @@ import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
-import org.atriasoft.archidata.dataAccess.QueryInList;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
@@ -239,7 +239,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 					if (idList != null && !idList.isEmpty()) {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idFieldColumn, idList)));
+									new Condition(Filters.in(idFieldColumn, idList)));
 							if (foreignData == null) {
 								return;
 							}
@@ -253,7 +253,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<UUID> childs = new ArrayList<>(idList);
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idFieldColumn, childs)));
+									new Condition(Filters.in(idFieldColumn, childs)));
 							if (foreignData == null) {
 								return;
 							}
@@ -267,7 +267,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 							final List<ObjectId> childs = new ArrayList<>(idList);
 							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(new QueryInList<>(idFieldColumn, childs.toArray())));
+									new Condition(Filters.in(idFieldColumn, childs)));
 							if (foreignData == null) {
 								return;
 							}
