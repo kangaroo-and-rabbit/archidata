@@ -1776,6 +1776,11 @@ public class DBAccessMongo implements Closeable {
 	 */
 	public long deleteHard(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
+		// ForceHardDelete implies AccessDeletedItems: when physically removing records,
+		// we must be able to find already soft-deleted records.
+		if (options.exist(ForceHardDelete.class) && !options.exist(AccessDeletedItems.class)) {
+			options.add(new AccessDeletedItems());
+		}
 		final Condition condition = conditionFusionOrEmpty(options, true);
 		final DbClassModel model = DbClassModel.of(clazz);
 		final String collectionName = model.getTableName(options);

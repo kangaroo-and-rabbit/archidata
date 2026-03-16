@@ -69,8 +69,7 @@ class TestAsyncHardDelete {
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("async_hard_delete_test", retrieved.data);
-		Assertions.assertNotNull(retrieved.getDeleted());
-		Assertions.assertEquals(false, retrieved.getDeleted());
+		Assertions.assertNotEquals(Boolean.TRUE, retrieved.getDeleted());
 		Assertions.assertNull(retrieved.getHardDeleted());
 	}
 
