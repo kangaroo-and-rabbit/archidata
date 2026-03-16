@@ -15,6 +15,8 @@ public enum DbFieldAction {
 	UPDATE_TIMESTAMP,
 	/** Soft-delete marker (@DataDeleted). */
 	DELETED,
+	/** Async hard-delete marker (@DataAsyncHardDeleted). */
+	ASYNC_HARD_DELETED,
 	/** Not read by default (@DataNotRead). */
 	NOT_READ,
 	/** Managed by a DataAccessAddOn (relationships). */

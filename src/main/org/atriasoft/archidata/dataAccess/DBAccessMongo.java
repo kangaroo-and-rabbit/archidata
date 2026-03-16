@@ -36,6 +36,7 @@ import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.ForceHardDelete;
 import org.atriasoft.archidata.dataAccess.options.ForceReadOnlyField;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
@@ -1782,6 +1783,28 @@ public class DBAccessMongo implements Closeable {
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 
+		// If the entity has an @DataAsyncHardDeleted field and ForceHardDelete is not requested,
+		// perform an async hard delete (set hardDeleted=true and deleted=true) instead of physical removal.
+		final String asyncHardDeletedFieldName = model.getAsyncHardDeletedFieldName();
+		if (asyncHardDeletedFieldName != null && !options.exist(ForceHardDelete.class)) {
+			final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
+			final Document setFields = new Document(asyncHardDeletedFieldName, true);
+			if (deletedFieldName != null) {
+				setFields.append(deletedFieldName, true);
+			}
+			if (updateTsDesc != null) {
+				setFields.append(updateTsDesc.getDbFieldName(), Date.from(Instant.now()));
+			}
+			final Document actions = new Document("$set", setFields);
+			if (filters == null) {
+				throw new DataAccessException("Too dangerous to delete element with no filter values !!!");
+			}
+			statistic.countUpdateMany++;
+			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
+					: collection.updateMany(filters, actions);
+			return ret.getModifiedCount();
+		}
+
 		actionOnDelete(clazz, option);
 
 		DeleteResult retFind;
@@ -1790,7 +1813,7 @@ public class DBAccessMongo implements Closeable {
 			retFind = this.session != null ? collection.deleteMany(this.session, filters)
 					: collection.deleteMany(filters);
 		} else {
-			throw new DataAccessException("Too dangerout to delete element with no filter values !!!");
+			throw new DataAccessException("Too dangerous to delete element with no filter values !!!");
 		}
 		return retFind.getDeletedCount();
 	}
