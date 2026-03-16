@@ -28,9 +28,9 @@ public class OIDGenericDataSoftAsyncHardDelete extends OIDGenericDataSoftDelete 
 		return this.hardDeleted;
 	}
 
-	public void setHardDeleted(final boolean hardDeleted) {
+	public void setHardDeleted(final Boolean hardDeleted) {
 		this.hardDeleted = hardDeleted;
-		if (hardDeleted) {
+		if (Boolean.TRUE.equals(hardDeleted)) {
 			setDeleted(true);
 		}
 	}
