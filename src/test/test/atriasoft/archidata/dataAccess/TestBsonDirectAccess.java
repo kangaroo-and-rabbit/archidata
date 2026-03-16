@@ -68,8 +68,7 @@ public class TestBsonDirectAccess {
 		insertedId1 = id;
 
 		// Verify insertion
-		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(Filters.eq("_id", id)));
+		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION, new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("John Doe", retrieved.getString("name"));
 		Assertions.assertEquals(30, retrieved.getInteger("age"));
@@ -100,8 +99,7 @@ public class TestBsonDirectAccess {
 		insertedId2 = id;
 
 		// Verify insertion
-		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(Filters.eq("_id", id)));
+		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION, new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Jane Doe", retrieved.getString("name"));
 		Assertions.assertNotNull(retrieved.getDate("dateField"));
@@ -143,8 +141,7 @@ public class TestBsonDirectAccess {
 		insertedId3 = id;
 
 		// Verify insertion
-		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(Filters.eq("_id", id)));
+		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION, new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Bob Smith", retrieved.getString("name"));
 		Assertions.assertEquals(35, retrieved.getInteger("age"));
@@ -257,8 +254,8 @@ public class TestBsonDirectAccess {
 
 		// Get documents where age >= 30, ordered by age descending, limited to 2
 		final List<Document> combinedDocs = DataAccess.getBsonDocuments(TEST_COLLECTION,
-				new Condition(Filters.gte("age", 30)),
-				new OrderBy(new OrderItem("age", OrderItem.Order.DESC)), new Limit(2));
+				new Condition(Filters.gte("age", 30)), new OrderBy(new OrderItem("age", OrderItem.Order.DESC)),
+				new Limit(2));
 		Assertions.assertNotNull(combinedDocs);
 		Assertions.assertEquals(2, combinedDocs.size());
 		Assertions.assertEquals("Bob Smith", combinedDocs.get(0).getString("name"));
@@ -421,8 +418,7 @@ public class TestBsonDirectAccess {
 		Assertions.assertNotNull(id);
 
 		// Verify insertion
-		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(Filters.eq("_id", id)));
+		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION, new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Null Test User", retrieved.getString("name"));
 		Assertions.assertTrue(retrieved.containsKey("email"));
@@ -446,8 +442,7 @@ public class TestBsonDirectAccess {
 		Assertions.assertNotNull(id);
 
 		// Verify insertion and nested access
-		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION,
-				new Condition(Filters.eq("_id", id)));
+		final Document retrieved = DataAccess.getBsonDocument(TEST_COLLECTION, new Condition(Filters.eq("_id", id)));
 		Assertions.assertNotNull(retrieved);
 		Assertions.assertEquals("Deep Nested User", retrieved.getString("name"));
 

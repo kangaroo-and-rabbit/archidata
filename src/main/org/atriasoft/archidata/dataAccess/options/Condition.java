@@ -6,31 +6,33 @@ import java.util.List;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.bson.conversions.Bson;
 
-import com.mongodb.client.model.Filters;
+import org.atriasoft.archidata.dataAccess.Filters;
 
 /**
  * Condition option for filtering database queries.
  *
  * <p>
- * Uses MongoDB BSON Filters for defining conditions.
+ * Uses {@link Filters} for defining conditions. Supports both string-based
+ * field names and type-safe method references.
  * </p>
  *
- * <strong>Examples:</strong>
+ * <strong>String-based examples:</strong>
  * <pre>{@code
- * // Simple filter
  * DataAccess.gets(User.class, new Condition(Filters.gt("age", 18)));
- *
- * // Complex filter with multiple conditions
- * DataAccess.gets(User.class, new Condition(Filters.and(
- *     Filters.gt("age", 18),
- *     Filters.lt("age", 65),
- *     Filters.eq("active", true)
- * )));
- *
- * // Using MongoDB operators
  * DataAccess.gets(User.class, new Condition(Filters.in("role", "admin", "moderator")));
- * DataAccess.gets(User.class, new Condition(Filters.regex("email", ".*@example.com")));
  * }</pre>
+ *
+ * <strong>Type-safe method reference examples:</strong>
+ * <pre>{@code
+ * DataAccess.gets(User.class, new Condition(Filters.gt(User::getAge, 18)));
+ * DataAccess.gets(User.class, new Condition(Filters.eq(User::isActive, true)));
+ * DataAccess.gets(User.class, new Condition(Filters.and(
+ *     Filters.gt(User::getAge, 18),
+ *     Filters.eq(User::isActive, true)
+ * )));
+ * }</pre>
+ *
+ * @see Filters
  */
 public class Condition extends QueryOption {
 	private final Bson bsonFilter;

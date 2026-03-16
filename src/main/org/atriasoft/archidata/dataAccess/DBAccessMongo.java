@@ -359,10 +359,8 @@ public class DBAccessMongo implements Closeable {
 	 * @return A Bson filter for matching the entity by ID
 	 * @throws DataAccessException if the class has no @Id field
 	 */
-	public <ID_TYPE> Bson getTableIdCondition(
-			final Class<?> clazz,
-			final ID_TYPE idKey,
-			final QueryOptions options) throws DataAccessException {
+	public <ID_TYPE> Bson getTableIdCondition(final Class<?> clazz, final ID_TYPE idKey, final QueryOptions options)
+			throws DataAccessException {
 		final DbClassModel model;
 		try {
 			model = DbClassModel.of(clazz);
@@ -1510,8 +1508,7 @@ public class DBAccessMongo implements Closeable {
 		if (conditions.size() == 1) {
 			condition = conditions.get(0);
 		} else {
-			condition = new Condition(
-					Filters.and(conditions.stream().map(Condition::getFilter).toList()));
+			condition = new Condition(Filters.and(conditions.stream().map(Condition::getFilter).toList()));
 		}
 		return condition;
 	}

@@ -12,14 +12,12 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.tika.Tika;
 import org.atriasoft.archidata.api.DataResource;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
-import org.atriasoft.archidata.dataAccess.QueryAnd;
-import org.atriasoft.archidata.dataAccess.QueryCondition;
+import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
@@ -31,12 +29,15 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.model.Filters;
+
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 
 public class DataTools {
+
 	private DataTools() {
 		// Utility class
 	}
@@ -45,7 +46,9 @@ public class DataTools {
 
 	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
-	/** Upload some data */
+	/**
+	 * Upload some data
+	 */
 	private static long tmpFolderId = 1;
 	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
 	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
@@ -84,7 +87,7 @@ public class DataTools {
 
 	public static Data getWithSha512(final DBAccessMongo ioDb, final String sha512) {
 		try {
-			return ioDb.get(Data.class, new Condition(new QueryCondition("sha512", "=", sha512)), new ReadAllColumn());
+			return ioDb.get(Data.class, new Condition(Filters.eq("sha512", sha512)), new ReadAllColumn());
 		} catch (final Exception e) {
 			LOGGER.error("Failed to get data with sha512: {}", e.getMessage(), e);
 		}
@@ -93,8 +96,7 @@ public class DataTools {
 
 	public static Data getWithId(final DBAccessMongo ioDb, final long id) {
 		try {
-			return ioDb.get(Data.class, new Condition(new QueryAnd(
-					List.of(new QueryCondition("deleted", "=", false), new QueryCondition("id", "=", id)))));
+			return ioDb.get(Data.class, new Condition(Filters.and(Filters.eq("deleted", false), Filters.eq("id", id))));
 		} catch (final Exception e) {
 			LOGGER.error("Failed to get data with id: {}", e.getMessage(), e);
 		}
@@ -241,7 +243,6 @@ public class DataTools {
 	 * @Path("{id}") //@RolesAllowed("GUEST")
 	 * @Produces(MediaType.APPLICATION_OCTET_STREAM) public Response retriveData(@HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception { return retriveDataFull(range, id,
 	 * "no-name"); } */
-
 	public static String bytesToHex(final byte[] bytes) {
 		final StringBuilder sb = new StringBuilder();
 		for (final byte b : bytes) {

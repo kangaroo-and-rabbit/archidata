@@ -42,8 +42,8 @@ public class UniqueInBaseIdValidator implements ConstraintValidator<UniqueInBase
 			checkOurselfCondition = id == null ? null : new Condition(Filters.ne("uuid", id));
 		}
 		try {
-			final long count = DataAccess.count(this.target,
-					new Condition(Filters.eq(this.nameOfField, value)), checkOurselfCondition);
+			final long count = DataAccess.count(this.target, new Condition(Filters.eq(this.nameOfField, value)),
+					checkOurselfCondition);
 			if (count != 0) {
 				return false;
 			}

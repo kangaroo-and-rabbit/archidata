@@ -7,8 +7,6 @@ import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.ForceHardDelete;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
-import org.atriasoft.archidata.dataAccess.QueryCondition;
-import org.atriasoft.archidata.dataAccess.QueryOr;
 import org.atriasoft.archidata.model.OIDGenericDataSoftAsyncHardDelete;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
@@ -20,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import com.mongodb.client.model.Filters;
+
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 
@@ -28,6 +28,7 @@ import test.atriasoft.archidata.StepwiseExtension;
 class TestAsyncHardDelete {
 
 	public static class Model extends OIDGenericDataSoftAsyncHardDelete {
+
 		public String data;
 	}
 
@@ -132,8 +133,8 @@ class TestAsyncHardDelete {
 		ConfigureDb.da.insert(b);
 
 		// deleteHard with a condition matching both, without ForceHardDelete => async-delete
-		final Condition bulkCondition = new Condition(new QueryOr(
-				List.of(new QueryCondition("data", "=", "bulk_a"), new QueryCondition("data", "=", "bulk_b"))));
+		final Condition bulkCondition = new Condition(
+				Filters.or(Filters.eq("data", "bulk_a"), Filters.eq("data", "bulk_b")));
 		final long count = ConfigureDb.da.deleteHard(Model.class, bulkCondition);
 		Assertions.assertEquals(2, count);
 
