@@ -13,14 +13,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
-import jakarta.ws.rs.DefaultValue;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericDataSoftAsyncHardDelete extends OIDGenericDataSoftDelete {
 
 	@DataNotRead
 	@Column(nullable = false)
-	@DefaultValue("'0'")
 	@DataAsyncHardDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@ApiReadOnly
