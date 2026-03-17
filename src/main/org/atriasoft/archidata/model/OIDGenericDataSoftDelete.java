@@ -10,13 +10,17 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
+import jakarta.ws.rs.DefaultValue;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericDataSoftDelete extends OIDGenericData {
 
 	@DataNotRead
+	@Column(nullable = false)
+	@DefaultValue("'0'")
 	@DataDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@ApiReadOnly
