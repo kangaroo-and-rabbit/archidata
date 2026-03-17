@@ -2,3 +2,5 @@ out/
 target/
 *.class
 .settings/
+env_dev/data/
+*.tar.gz
