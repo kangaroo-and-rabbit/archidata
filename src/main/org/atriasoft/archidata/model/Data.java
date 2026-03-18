@@ -1,5 +1,8 @@
 package org.atriasoft.archidata.model;
 
+import java.util.Date;
+import java.util.List;
+
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
@@ -38,6 +41,14 @@ public class Data extends OIDGenericDataSoftDelete {
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Long size;
+	@Schema(description = "Analyzed media streams (video, audio, subtitle tracks)")
+	@ApiReadOnly
+	@Null(groups = { GroupCreate.class, GroupUpdate.class })
+	private List<DataStream> streams;
+	@Schema(description = "Timestamp when streams were last analyzed")
+	@ApiReadOnly
+	@Null(groups = { GroupCreate.class, GroupUpdate.class })
+	private Date streamsAnalyzedAt;
 
 	public String getSha512() {
 		return this.sha512;
@@ -61,5 +72,21 @@ public class Data extends OIDGenericDataSoftDelete {
 
 	public void setSize(final Long size) {
 		this.size = size;
+	}
+
+	public List<DataStream> getStreams() {
+		return this.streams;
+	}
+
+	public void setStreams(final List<DataStream> streams) {
+		this.streams = streams;
+	}
+
+	public Date getStreamsAnalyzedAt() {
+		return this.streamsAnalyzedAt;
+	}
+
+	public void setStreamsAnalyzedAt(final Date streamsAnalyzedAt) {
+		this.streamsAnalyzedAt = streamsAnalyzedAt;
 	}
 }
