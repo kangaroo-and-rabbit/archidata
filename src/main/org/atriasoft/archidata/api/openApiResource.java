@@ -1,34 +1,72 @@
 package org.atriasoft.archidata.api;
 
-import io.swagger.v3.jaxrs2.integration.resources.BaseOpenApiResource;
-import io.swagger.v3.oas.annotations.Operation;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
+import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
+import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import jakarta.annotation.security.PermitAll;
-import jakarta.servlet.ServletConfig;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Application;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
 
+/**
+ * REST resource that serves the OpenAPI 3.0.3 specification.
+ *
+ * <p>The application must call {@link #configure(AnalyzeApi, String, String)}
+ * at startup to provide the analyzed API metadata. When configured, this
+ * resource generates the spec from the archidata introspection system
+ * (without depending on the Swagger scanner).
+ *
+ * <p>Usage:
+ * <pre>{@code
+ * AnalyzeApi api = new AnalyzeApi();
+ * api.addAllApi(myResourceClasses);
+ * openApiResource.configure(api, "My API", "1.0.0");
+ * }</pre>
+ */
 @Path("/openapi")
-public class openApiResource extends BaseOpenApiResource {
-	@Context
-	ServletConfig config;
+public class openApiResource {
+	private static final Logger LOGGER = LoggerFactory.getLogger(openApiResource.class);
 
-	@Context
-	Application app;
+	private static AnalyzeApi analyzeApi;
+	private static String apiTitle = "API";
+	private static String apiVersion = "1.0.0";
+	private static String cachedSpec;
+
+	/**
+	 * Configure the OpenAPI resource with analyzed API data.
+	 *
+	 * @param api     the analyzed API (endpoints + models)
+	 * @param title   the API title
+	 * @param version the API version
+	 */
+	public static void configure(final AnalyzeApi api, final String title, final String version) {
+		analyzeApi = api;
+		apiTitle = title;
+		apiVersion = version;
+		cachedSpec = null; // invalidate cache
+	}
 
 	@GET
 	@Path("swagger.json")
 	@Produces({ MediaType.APPLICATION_JSON })
 	@PermitAll
-	@Operation(hidden = true, description = "Get the OPEN-API description", tags = "SYSTEM")
-	public Response getDescription(@Context final HttpHeaders headers, @Context final UriInfo uriInfo)
-			throws Exception {
-		return getOpenApi(headers, this.config, this.app, uriInfo, "json");
+	@ApiDoc(description = "Get the OpenAPI specification", group = "SYSTEM")
+	public Response getDescription() throws Exception {
+		if (analyzeApi == null) {
+			LOGGER.error("OpenAPI resource not configured. Call openApiResource.configure() at startup.");
+			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
+					.entity("{\"error\": \"OpenAPI not configured\"}")
+					.type(MediaType.APPLICATION_JSON)
+					.build();
+		}
+		if (cachedSpec == null) {
+			cachedSpec = OpenApiGenerateApi.generateJson(analyzeApi, apiTitle, apiVersion);
+		}
+		return Response.ok(cachedSpec, MediaType.APPLICATION_JSON).build();
 	}
 }
