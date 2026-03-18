@@ -12,12 +12,11 @@ import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.AddOnFieldContext;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
-import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -97,13 +96,12 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
 			insertedDataCollection = tmpCollection;
 		}
-		// Resolve remote collection and field info once
-		final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
-		if (manyDoc == null || manyDoc.targetEntity() == null || manyDoc.remoteField() == null
-				|| manyDoc.remoteField().isEmpty()) {
+		final AddOnFieldContext ctx = desc.getAddonContext();
+		if (ctx == null || ctx.getRemoteFieldColumn() == null) {
 			return;
 		}
-		final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
+		final Class<?> targetEntity = ctx.getTargetEntity();
+		final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 
 		// add new Values (atomic $addToSet on remote document)
 		for (final Object value : insertedDataCollection) {
@@ -111,7 +109,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, targetEntity, value, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 		// remove old values (atomic $pull on remote document)
@@ -120,25 +118,16 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				continue;
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.removeFromList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn,
-						primaryKeyValue);
+				MongoLinkManager.removeFromList(ioDb, targetEntity, value, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 	}
 
-	/** Some action must be done asynchronously for update or remove element
-	 * @param desc
-	 * @return */
 	@Override
 	public boolean isInsertAsync(final DbPropertyDescriptor desc) throws Exception {
 		return true;
 	}
 
-	/** When insert is mark async, this function permit to create or update the data.
-	 * @param primaryKeyValue Local ID of the current table
-	 * @param desc Property descriptor that is updated.
-	 * @param data Data that might be inserted.
-	 * @param actions Asynchronous action to do after main request. */
 	@Override
 	public void asyncInsert(
 			final DBAccessMongo ioDb,
@@ -153,16 +142,15 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			return;
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
-			final PropertyDescriptor prop = desc.getProperty();
-			final ManyToManyDoc manyDoc = prop.getAnnotation(ManyToManyDoc.class);
-			if (manyDoc == null || manyDoc.targetEntity() == null || manyDoc.remoteField() == null
-					|| manyDoc.remoteField().isEmpty()) {
+			final AddOnFieldContext ctx = desc.getAddonContext();
+			if (ctx == null || ctx.getRemoteFieldColumn() == null) {
 				return;
 			}
-			final String remoteFieldColumn = resolveRemoteFieldColumn(manyDoc);
+			final Class<?> targetEntity = ctx.getTargetEntity();
+			final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 			for (final Object value : insertedDataCollection) {
 				actions.add((final List<LazyGetter> actionsAsync) -> {
-					MongoLinkManager.addToList(ioDb, manyDoc.targetEntity(), value, remoteFieldColumn, primaryKeyValue);
+					MongoLinkManager.addToList(ioDb, targetEntity, value, remoteFieldColumn, primaryKeyValue);
 				});
 			}
 		}
@@ -224,74 +212,56 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				prop.setValue(data, dataParsed);
 				return;
 			}
-			final ManyToManyDoc decorators = prop.getAnnotation(ManyToManyDoc.class);
-			if (decorators == null) {
+			final AddOnFieldContext ctx = desc.getAddonContext();
+			if (ctx == null || !ctx.isEntityReference()) {
 				return;
 			}
-			if (objectClass == decorators.targetEntity()) {
-				final DbClassModel targetModel = DbClassModel.of(objectClass);
-				final DbPropertyDescriptor targetPk = targetModel.getPrimaryKey();
-				final Class<?> foreignKeyType = targetPk.getProperty().getType();
-				final String idFieldColumn = targetPk.getFieldName(options).inTable();
+			final Class<?> targetEntity = ctx.getTargetEntity();
+			final Class<?> foreignKeyType = ctx.getTargetPkType();
+			final String idFieldColumn = ctx.getTargetPkColumn();
 
-				if (foreignKeyType == Long.class) {
-					final List<Long> idList = (List<Long>) dataCollection;
-					if (idList != null && !idList.isEmpty()) {
-						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(Filters.in(idFieldColumn, idList)));
-							if (foreignData == null) {
-								return;
-							}
-							prop.setValue(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == UUID.class) {
-					final List<UUID> idList = (List<UUID>) dataCollection;
-					if (idList != null && !idList.isEmpty()) {
-						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-							final List<UUID> childs = new ArrayList<>(idList);
-							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(Filters.in(idFieldColumn, childs)));
-							if (foreignData == null) {
-								return;
-							}
-							prop.setValue(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
-				} else if (foreignKeyType == ObjectId.class) {
-					final List<ObjectId> idList = (List<ObjectId>) dataCollection;
-					if (idList != null && !idList.isEmpty()) {
-						final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-							final List<ObjectId> childs = new ArrayList<>(idList);
-							final Object foreignData = ioDb.gets(decorators.targetEntity(),
-									new Condition(Filters.in(idFieldColumn, childs)));
-							if (foreignData == null) {
-								return;
-							}
-							prop.setValue(data, foreignData);
-						};
-						lazyCall.add(lambda);
-					}
+			if (foreignKeyType == Long.class) {
+				final List<Long> idList = (List<Long>) dataCollection;
+				if (idList != null && !idList.isEmpty()) {
+					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
+						final Object foreignData = ioDb.gets(targetEntity,
+								new Condition(Filters.in(idFieldColumn, idList)));
+						if (foreignData == null) {
+							return;
+						}
+						prop.setValue(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
+			} else if (foreignKeyType == UUID.class) {
+				final List<UUID> idList = (List<UUID>) dataCollection;
+				if (idList != null && !idList.isEmpty()) {
+					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
+						final List<UUID> childs = new ArrayList<>(idList);
+						final Object foreignData = ioDb.gets(targetEntity,
+								new Condition(Filters.in(idFieldColumn, childs)));
+						if (foreignData == null) {
+							return;
+						}
+						prop.setValue(data, foreignData);
+					};
+					lazyCall.add(lambda);
+				}
+			} else if (foreignKeyType == ObjectId.class) {
+				final List<ObjectId> idList = (List<ObjectId>) dataCollection;
+				if (idList != null && !idList.isEmpty()) {
+					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
+						final List<ObjectId> childs = new ArrayList<>(idList);
+						final Object foreignData = ioDb.gets(targetEntity,
+								new Condition(Filters.in(idFieldColumn, childs)));
+						if (foreignData == null) {
+							return;
+						}
+						prop.setValue(data, foreignData);
+					};
+					lazyCall.add(lambda);
 				}
 			}
 		}
-	}
-
-	// ========== Private helpers ==========
-
-	/**
-	 * Resolve the DB column name of the remote field for a ManyToMany relationship.
-	 */
-	private static String resolveRemoteFieldColumn(final ManyToManyDoc manyDoc) throws Exception {
-		final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
-		final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
-		if (remoteDesc == null) {
-			throw new DataAccessException("Cannot find remote field '" + manyDoc.remoteField() + "' in "
-					+ manyDoc.targetEntity().getSimpleName());
-		}
-		return remoteDesc.getFieldName(null).inTable();
 	}
 }

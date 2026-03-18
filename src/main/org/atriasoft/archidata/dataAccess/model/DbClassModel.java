@@ -52,6 +52,13 @@ public final class DbClassModel {
 	private final DbPropertyDescriptor asyncHardDeletedField;
 	private final String asyncHardDeletedFieldName;
 
+	/** Flag to track if addon contexts have been built (lazy, after model is in cache). */
+	private volatile boolean addonContextsBuilt;
+
+	/** Track classes currently building their addon contexts to break circular references. */
+	private static final ThreadLocal<java.util.Set<Class<?>>> BUILDING_CONTEXTS = ThreadLocal
+			.withInitial(java.util.HashSet::new);
+
 	// ========== Static API ==========
 
 	/**
@@ -65,14 +72,19 @@ public final class DbClassModel {
 
 	/**
 	 * Get or create the DbClassModel for a given class (thread-safe, cached).
+	 *
+	 * <p>AddOn contexts are built lazily after the model is in the cache to avoid
+	 * circular reference issues (e.g. class A references class B which references A).
 	 */
 	public static DbClassModel of(final Class<?> clazz) throws IntrospectionException {
 		final DbClassModel existing = CACHE.get(clazz);
 		if (existing != null) {
+			existing.ensureAddonContextsBuilt();
 			return existing;
 		}
+		final DbClassModel model;
 		try {
-			return CACHE.computeIfAbsent(clazz, cls -> {
+			model = CACHE.computeIfAbsent(clazz, cls -> {
 				try {
 					return new DbClassModel(cls, registeredAddOns);
 				} catch (final IntrospectionException | DataAccessException e) {
@@ -88,6 +100,8 @@ public final class DbClassModel {
 			}
 			throw e;
 		}
+		model.ensureAddonContextsBuilt();
+		return model;
 	}
 
 	/**
@@ -228,6 +242,40 @@ public final class DbClassModel {
 			fields.add(desc.getFieldName(options).inTable());
 		}
 		return fields;
+	}
+
+	// ========== Lazy addon context initialization ==========
+
+	/**
+	 * Build AddOn contexts if not yet built. Called after the model is in the cache
+	 * to avoid circular reference deadlocks in ConcurrentHashMap.computeIfAbsent().
+	 *
+	 * <p>Uses a ThreadLocal set to detect circular references (A refs B refs A).
+	 * When re-entrance is detected, the method returns immediately — the contexts
+	 * will be fully built when the outermost call completes.
+	 */
+	private void ensureAddonContextsBuilt() throws IntrospectionException {
+		if (this.addonContextsBuilt) {
+			return;
+		}
+		final Class<?> clazz = this.classModel.getClassType();
+		final java.util.Set<Class<?>> building = BUILDING_CONTEXTS.get();
+		if (!building.add(clazz)) {
+			return;
+		}
+		try {
+			synchronized (this) {
+				if (this.addonContextsBuilt) {
+					return;
+				}
+				for (final DbPropertyDescriptor dbProp : this.allFields) {
+					dbProp.buildAddonContext();
+				}
+				this.addonContextsBuilt = true;
+			}
+		} finally {
+			building.remove(clazz);
+		}
 	}
 
 	// ========== Private constructor ==========

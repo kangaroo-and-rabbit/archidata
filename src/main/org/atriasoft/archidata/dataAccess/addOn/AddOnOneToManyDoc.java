@@ -13,12 +13,11 @@ import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
 import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
-import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.AddOnFieldContext;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
-import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
@@ -74,6 +73,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void asyncUpdate(
 			final DBAccessMongo ioDb,
@@ -94,8 +94,9 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
 			insertedDataCollection = tmpCollection;
 		}
-		final OneToManyDoc oneToManyDoc = prop.getAnnotation(OneToManyDoc.class);
-		final String remoteFieldColumn = resolveRemoteFieldColumn(oneToManyDoc);
+		final AddOnFieldContext ctx = desc.getAddonContext();
+		final Class<?> targetEntity = ctx.getTargetEntity();
+		final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 		final String localFieldColumn = desc.getFieldName(null).inTable();
 
 		// add new Values: set the remote scalar field to point to us
@@ -105,7 +106,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
 				// Atomically set the remote field and get the previous value
-				final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb, oneToManyDoc.targetEntity(),
+				final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb, targetEntity,
 						value, remoteFieldColumn, primaryKeyValue);
 				// If the child was previously owned by another parent, remove the child from
 				// that parent's list
@@ -118,19 +119,20 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			});
 		}
 		// remove old values:
+		final CascadeMode cascadeUpdate = ctx.getCascadeUpdate();
 		for (final Object value : previousDataCollection) {
 			if (insertedDataCollection.contains(value)) {
 				continue;
 			}
-			switch (oneToManyDoc.cascadeUpdate()) {
+			switch (cascadeUpdate) {
 				case CascadeMode.DELETE:
 					actions.add((final List<LazyGetter> actionsAsync) -> {
-						ioDb.deleteById(oneToManyDoc.targetEntity(), value);
+						ioDb.deleteById(targetEntity, value);
 					});
 					break;
 				case CascadeMode.SET_NULL:
 					actions.add((final List<LazyGetter> actionsAsync) -> {
-						MongoLinkManager.setField(ioDb, oneToManyDoc.targetEntity(), value, remoteFieldColumn, null);
+						MongoLinkManager.setField(ioDb, targetEntity, value, remoteFieldColumn, null);
 					});
 					break;
 				case CascadeMode.IGNORE:
@@ -158,15 +160,16 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			return;
 		}
 		if (insertedData instanceof final Collection<?> insertedDataCollection) {
-			final OneToManyDoc decorators = desc.getProperty().getAnnotation(OneToManyDoc.class);
-			if (decorators.addLinkWhenCreate()) {
-				final String remoteFieldColumn = resolveRemoteFieldColumn(decorators);
+			final AddOnFieldContext ctx = desc.getAddonContext();
+			if (ctx.isAddLinkWhenCreate()) {
+				final Class<?> targetEntity = ctx.getTargetEntity();
+				final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 				final String localFieldColumn = desc.getFieldName(null).inTable();
 				for (final Object value : insertedDataCollection) {
 					actions.add((final List<LazyGetter> actionsAsync) -> {
 						// Atomically set the remote field and get the previous owner
 						final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb,
-								decorators.targetEntity(), value, remoteFieldColumn, primaryKeyValue);
+								targetEntity, value, remoteFieldColumn, primaryKeyValue);
 						// If was owned by another parent, clean up that parent's list
 						if (previousValue != null) {
 							actionsAsync.add((final List<LazyGetter> actionsAsync2) -> {
@@ -209,8 +212,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			prop.setValue(data, null);
 			return;
 		}
-		final OneToManyDoc decorators = prop.getAnnotation(OneToManyDoc.class);
-		final Class<?> objectClass = prop.getElementType();
+		final AddOnFieldContext ctx = desc.getAddonContext();
 		final Object dataRetrieve = doc.get(fieldName, prop.getType());
 		if (dataRetrieve == null) {
 			return;
@@ -220,13 +222,13 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 				prop.setValue(data, null);
 				return;
 			}
-			if (objectClass == decorators.targetEntity()) {
+			if (ctx.isEntityReference()) {
 				final List<Object> idList = (List<Object>) dataCollection;
 				if (idList != null && !idList.isEmpty()) {
-					final DbClassModel targetModel = DbClassModel.of(decorators.targetEntity());
-					final String idFieldColumn = targetModel.getPrimaryKey().getFieldName(options).inTable();
+					final Class<?> targetEntity = ctx.getTargetEntity();
+					final String idFieldColumn = ctx.getTargetPkColumn();
 					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-						final Object foreignData = ioDb.getsRaw(decorators.targetEntity(),
+						final Object foreignData = ioDb.getsRaw(targetEntity,
 								new Condition(Filters.in(idFieldColumn, idList)));
 						if (foreignData == null) {
 							return;
@@ -249,6 +251,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		return decorators.cascadeDelete() != CascadeMode.IGNORE;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void onDelete(
 			final DBAccessMongo ioDb,
@@ -257,8 +260,10 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final List<Object> previousDataThatIsDeleted,
 			final List<LazyGetter> actions) throws Exception {
 		final PropertyDescriptor prop = desc.getProperty();
-		final OneToManyDoc decorators = prop.getAnnotation(OneToManyDoc.class);
-		final String remoteFieldColumn = resolveRemoteFieldColumn(decorators);
+		final AddOnFieldContext ctx = desc.getAddonContext();
+		final Class<?> targetEntity = ctx.getTargetEntity();
+		final String remoteFieldColumn = ctx.getRemoteFieldColumn();
+		final CascadeMode cascadeDelete = ctx.getCascadeDelete();
 		for (final Object obj : previousDataThatIsDeleted) {
 			final Object childKeys = prop.getValue(obj);
 			if (childKeys == null) {
@@ -266,15 +271,15 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			if (childKeys instanceof final Collection childCollection) {
 				for (final Object childKey : childCollection) {
-					switch (decorators.cascadeDelete()) {
+					switch (cascadeDelete) {
 						case CascadeMode.DELETE:
 							actions.add((final List<LazyGetter> actionsAsync) -> {
-								ioDb.deleteById(decorators.targetEntity(), childKey);
+								ioDb.deleteById(targetEntity, childKey);
 							});
 							break;
 						case CascadeMode.SET_NULL:
 							actions.add((final List<LazyGetter> actionsAsync) -> {
-								MongoLinkManager.setField(ioDb, decorators.targetEntity(), childKey, remoteFieldColumn,
+								MongoLinkManager.setField(ioDb, targetEntity, childKey, remoteFieldColumn,
 										null);
 							});
 							break;
@@ -286,17 +291,5 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 				throw new FailException("can not remove a remote kes stored in other than a Collection<T>");
 			}
 		}
-	}
-
-	// ========== Private helpers ==========
-
-	private static String resolveRemoteFieldColumn(final OneToManyDoc oneToManyDoc) throws Exception {
-		final DbClassModel targetModel = DbClassModel.of(oneToManyDoc.targetEntity());
-		final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(oneToManyDoc.remoteField());
-		if (remoteDesc == null) {
-			throw new DataAccessException("Cannot find remote field '" + oneToManyDoc.remoteField() + "' in "
-					+ oneToManyDoc.targetEntity().getSimpleName());
-		}
-		return remoteDesc.getFieldName(null).inTable();
 	}
 }

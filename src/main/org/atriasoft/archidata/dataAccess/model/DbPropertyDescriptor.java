@@ -12,6 +12,7 @@ import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
+import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
@@ -51,6 +52,7 @@ public final class DbPropertyDescriptor {
 	private boolean canInsert;
 	private boolean canRetrieve;
 	private boolean hasDeleteAction;
+	private AddOnFieldContext addonContext;
 
 	// Pre-compiled codec for zero-overhead MongoDB read/write
 	private MongoFieldCodec codec;
@@ -135,6 +137,16 @@ public final class DbPropertyDescriptor {
 		}
 	}
 
+	/**
+	 * Build the pre-computed AddOn context after all models are in the cache.
+	 * Called from DbClassModel in a separate pass after resolveAddOn().
+	 */
+	void buildAddonContext() throws IntrospectionException {
+		if (this.action == DbFieldAction.ADDON) {
+			this.addonContext = AddOnFieldContext.buildFor(this);
+		}
+	}
+
 	// ========== Getters ==========
 
 	public PropertyDescriptor getProperty() {
@@ -203,6 +215,11 @@ public final class DbPropertyDescriptor {
 
 	public boolean hasDeleteAction() {
 		return this.hasDeleteAction;
+	}
+
+	/** Pre-computed metadata for AddOn-managed fields (relation annotations). May be null for non-addon fields. */
+	public AddOnFieldContext getAddonContext() {
+		return this.addonContext;
 	}
 
 	/** Pre-compiled codec for zero-overhead MongoDB read/write. May be null if property is not readable. */
