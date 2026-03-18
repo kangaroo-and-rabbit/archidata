@@ -82,6 +82,16 @@ public class OpenApiGenerateApi {
 		// Components
 		final Map<String, Object> components = new LinkedHashMap<>();
 		components.put("schemas", buildSchemas(api));
+		// Security schemes (bearer auth for RolesAllowed endpoints)
+		if (hasSecuredEndpoints(api)) {
+			final Map<String, Object> securitySchemes = new LinkedHashMap<>();
+			final Map<String, Object> bearerAuth = new LinkedHashMap<>();
+			bearerAuth.put("type", "http");
+			bearerAuth.put("scheme", "bearer");
+			bearerAuth.put("bearerFormat", "JWT");
+			securitySchemes.put("bearerAuth", bearerAuth);
+			components.put("securitySchemes", securitySchemes);
+		}
 		spec.put("components", components);
 
 		return spec;
@@ -152,6 +162,21 @@ public class OpenApiGenerateApi {
 		// Responses
 		operation.put("responses", buildResponses(endpoint));
 
+		// Security
+		if (endpoint.securityRoles != null) {
+			if (endpoint.securityRoles.isEmpty()) {
+				// @PermitAll — no security required
+				operation.put("security", new ArrayList<>());
+			} else {
+				// @RolesAllowed — require bearer auth with specific roles
+				final List<Map<String, Object>> security = new ArrayList<>();
+				final Map<String, Object> bearerAuth = new LinkedHashMap<>();
+				bearerAuth.put("bearerAuth", endpoint.securityRoles);
+				security.add(bearerAuth);
+				operation.put("security", security);
+			}
+		}
+
 		return operation;
 	}
 
@@ -175,15 +200,17 @@ public class OpenApiGenerateApi {
 		requestBody.put("required", true);
 
 		final Map<String, Object> content = new LinkedHashMap<>();
-		for (final String mediaType : endpoint.consumes) {
-			final Map<String, Object> mediaContent = new LinkedHashMap<>();
-			if (!endpoint.unnamedElement.isEmpty()) {
-				final ParameterClassModelList body = endpoint.unnamedElement.get(0);
-				if (!body.models().isEmpty()) {
-					mediaContent.put("schema", buildSchemaRef(body.models().get(0)));
+		if (endpoint.consumes != null) {
+			for (final String mediaType : endpoint.consumes) {
+				final Map<String, Object> mediaContent = new LinkedHashMap<>();
+				if (!endpoint.unnamedElement.isEmpty()) {
+					final ParameterClassModelList body = endpoint.unnamedElement.get(0);
+					if (!body.models().isEmpty()) {
+						mediaContent.put("schema", buildSchemaRef(body.models().get(0)));
+					}
 				}
+				content.put(mediaType, mediaContent);
 			}
-			content.put(mediaType, mediaContent);
 		}
 		if (content.isEmpty()) {
 			final Map<String, Object> mediaContent = new LinkedHashMap<>();
@@ -274,7 +301,7 @@ public class OpenApiGenerateApi {
 		for (final ClassModel model : api.getAllModel()) {
 			if (model instanceof ClassObjectModel) {
 				final ClassObjectModel objModel = (ClassObjectModel) model;
-				if (objModel.isPrimitive()) {
+				if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
 					continue;
 				}
 				final String name = getSchemaName(objModel);
@@ -433,7 +460,7 @@ public class OpenApiGenerateApi {
 	private static Map<String, Object> buildSchemaRef(final ClassModel model) {
 		if (model instanceof ClassObjectModel) {
 			final ClassObjectModel objModel = (ClassObjectModel) model;
-			if (objModel.isPrimitive()) {
+			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
 				return buildPrimitiveSchema(objModel.getOriginClasses());
 			}
 			final String name = getSchemaName(objModel);
@@ -469,7 +496,7 @@ public class OpenApiGenerateApi {
 	private static Map<String, Object> buildSchemaForModel(final ClassModel model) {
 		if (model instanceof ClassObjectModel) {
 			final ClassObjectModel objModel = (ClassObjectModel) model;
-			if (objModel.isPrimitive()) {
+			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
 				return buildPrimitiveSchema(objModel.getOriginClasses());
 			}
 			final String name = getSchemaName(objModel);
@@ -529,21 +556,32 @@ public class OpenApiGenerateApi {
 		} else if (type == UUID.class) {
 			schema.put("type", "string");
 			schema.put("format", "uuid");
+			schema.put("example", "550e8400-e29b-41d4-a716-446655440000");
 		} else if (type == ObjectId.class) {
 			schema.put("type", "string");
-			schema.put("description", "MongoDB ObjectId");
+			schema.put("format", "objectid");
+			schema.put("description", "MongoDB ObjectId (24 hex characters)");
+			schema.put("pattern", "^[a-fA-F0-9]{24}$");
+			schema.put("example", "507f1f77bcf86cd799439011");
 		} else if (type == Date.class || type == Instant.class) {
 			schema.put("type", "string");
 			schema.put("format", "date-time");
+			schema.put("description", "ISO 8601 date-time (e.g. 2024-01-15T10:30:00.000Z)");
+			schema.put("example", "2024-01-15T10:30:00.000Z");
 		} else if (type == LocalDate.class) {
 			schema.put("type", "string");
 			schema.put("format", "date");
+			schema.put("description", "ISO 8601 date (e.g. 2024-01-15)");
+			schema.put("example", "2024-01-15");
 		} else if (type == LocalTime.class) {
 			schema.put("type", "string");
 			schema.put("format", "time");
+			schema.put("description", "ISO 8601 time (e.g. 10:30:00)");
+			schema.put("example", "10:30:00");
 		} else if (type == byte[].class) {
 			schema.put("type", "string");
 			schema.put("format", "byte");
+			schema.put("description", "Base64-encoded binary data");
 		} else if (type == InputStream.class) {
 			schema.put("type", "string");
 			schema.put("format", "binary");
@@ -620,6 +658,17 @@ public class OpenApiGenerateApi {
 			normalized = normalized.substring(0, normalized.length() - 1);
 		}
 		return normalized;
+	}
+
+	private static boolean hasSecuredEndpoints(final AnalyzeApi api) {
+		for (final ApiGroupModel group : api.getAllApi()) {
+			for (final ApiModel endpoint : group.interfaces) {
+				if (endpoint.securityRoles != null && !endpoint.securityRoles.isEmpty()) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private static boolean isFileType(final ClassModel model) {

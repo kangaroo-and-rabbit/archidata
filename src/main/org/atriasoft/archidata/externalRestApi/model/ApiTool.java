@@ -18,6 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.annotation.security.DenyAll;
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -274,6 +277,40 @@ public class ApiTool {
 
 	public static boolean apiAnnotationIsContext(Method method, int parameterId) throws Exception {
 		return AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId, Context.class).size() != 0;
+	}
+
+	/**
+	 * Extract security roles from a method. Checks method-level then class-level annotations.
+	 * @return list of role names, empty list for @PermitAll, null for @DenyAll or no annotation
+	 */
+	public static List<String> apiAnnotationGetSecurityRoles(final Class<?> clazz, final Method method) throws Exception {
+		// Method-level annotations take priority
+		final List<PermitAll> permitAll = AnnotationTools.getAnnotationsIncludingInterfaces(method, PermitAll.class);
+		if (!permitAll.isEmpty()) {
+			return new ArrayList<>();
+		}
+		final List<DenyAll> denyAll = AnnotationTools.getAnnotationsIncludingInterfaces(method, DenyAll.class);
+		if (!denyAll.isEmpty()) {
+			return null;
+		}
+		final List<RolesAllowed> rolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(method, RolesAllowed.class);
+		if (!rolesAllowed.isEmpty()) {
+			return new ArrayList<>(Arrays.asList(rolesAllowed.get(0).value()));
+		}
+		// Fallback to class-level annotations
+		final List<PermitAll> classPermitAll = AnnotationTools.getAnnotationsIncludingInterfaces(clazz, PermitAll.class);
+		if (!classPermitAll.isEmpty()) {
+			return new ArrayList<>();
+		}
+		final List<DenyAll> classDenyAll = AnnotationTools.getAnnotationsIncludingInterfaces(clazz, DenyAll.class);
+		if (!classDenyAll.isEmpty()) {
+			return null;
+		}
+		final List<RolesAllowed> classRolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(clazz, RolesAllowed.class);
+		if (!classRolesAllowed.isEmpty()) {
+			return new ArrayList<>(Arrays.asList(classRolesAllowed.get(0).value()));
+		}
+		return null;
 	}
 
 }

@@ -54,6 +54,8 @@ public class ApiModel {
 	public List<String> consumes = new ArrayList<>();
 	// Possible output type of the REST API
 	public List<String> produces = new ArrayList<>();
+	// Security roles: empty list = @PermitAll, non-empty = @RolesAllowed, null = no annotation or @DenyAll
+	public List<String> securityRoles;
 
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
@@ -151,6 +153,7 @@ public class ApiModel {
 		this.produces = ApiTool.apiAnnotationProduces2(produce, method);
 		LOGGER.trace("    [{}] {} => {}/{}", baseRestEndPoint, this.name, this.restEndPoint);
 		this.needGenerateProgress = ApiTool.apiAnnotationTypeScriptProgress(method);
+		this.securityRoles = ApiTool.apiAnnotationGetSecurityRoles(clazz, method);
 
 		updateReturnTypes(method, previousModel);
 		LOGGER.trace("         return: {}", this.returnTypes.size());

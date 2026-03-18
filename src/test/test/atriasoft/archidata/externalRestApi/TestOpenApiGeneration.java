@@ -1,11 +1,13 @@
 package test.atriasoft.archidata.externalRestApi;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -13,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -110,12 +114,45 @@ public class TestOpenApiGeneration {
 		}
 	}
 
+	public static class TypedModel {
+		public ObjectId oid;
+		public Date createdAt;
+		public String name;
+	}
+
 	@Path("/search")
 	@Produces({ MediaType.APPLICATION_JSON })
 	public static class SearchResource {
 		@GET
 		@ApiDoc(description = "Search items by query")
 		public List<Item> search(@QueryParam("q") final String query, @QueryParam("limit") final Integer limit) {
+			return null;
+		}
+	}
+
+	@Path("/secured")
+	@Produces({ MediaType.APPLICATION_JSON })
+	@Consumes({ MediaType.APPLICATION_JSON })
+	public static class SecuredResource {
+		@GET
+		@PermitAll
+		@ApiDoc(description = "Public endpoint")
+		public List<Item> getPublic() {
+			return null;
+		}
+
+		@POST
+		@RolesAllowed("ADMIN")
+		@ApiDoc(description = "Admin only endpoint")
+		public Item createAdmin(final ItemInput data) {
+			return null;
+		}
+
+		@PUT
+		@Path("/{id}")
+		@RolesAllowed({ "ADMIN", "USER" })
+		@ApiDoc(description = "Admin or user endpoint")
+		public Item updateMultiRole(@PathParam("id") final Long id, final ItemInput data) {
 			return null;
 		}
 	}
@@ -407,5 +444,118 @@ public class TestOpenApiGeneration {
 		Assertions.assertEquals("3.0.3", parsed.get("openapi"));
 
 		LOGGER.info("Generated OpenAPI JSON:\n{}", json);
+	}
+
+	@Test
+	public void testPrimitiveTypeDisplay() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(TypedModel.class);
+
+		final Map<String, Object> spec = OpenApiGenerateApi.generate(api, "Test", "1.0");
+
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> components = (Map<String, Object>) spec.get("components");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> schemas = (Map<String, Object>) components.get("schemas");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> typedSchema = (Map<String, Object>) schemas.get("TypedModel");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> properties = (Map<String, Object>) typedSchema.get("properties");
+
+		// ObjectId should have format, pattern and example
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> oidProp = (Map<String, Object>) properties.get("oid");
+		Assertions.assertEquals("string", oidProp.get("type"));
+		Assertions.assertEquals("objectid", oidProp.get("format"));
+		Assertions.assertNotNull(oidProp.get("pattern"), "ObjectId should have regex pattern");
+		Assertions.assertNotNull(oidProp.get("example"), "ObjectId should have example");
+
+		// Date should have format date-time with description and example
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> dateProp = (Map<String, Object>) properties.get("createdAt");
+		Assertions.assertEquals("string", dateProp.get("type"));
+		Assertions.assertEquals("date-time", dateProp.get("format"));
+		Assertions.assertNotNull(dateProp.get("description"), "Date should have ISO 8601 description");
+		Assertions.assertTrue(dateProp.get("description").toString().contains("ISO 8601"));
+		Assertions.assertNotNull(dateProp.get("example"), "Date should have example");
+
+		// String should remain a simple string
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> nameProp = (Map<String, Object>) properties.get("name");
+		Assertions.assertEquals("string", nameProp.get("type"));
+		Assertions.assertNull(nameProp.get("format"), "String should not have a format");
+	}
+
+	@Test
+	public void testSecurityAnnotations() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SecuredResource.class));
+
+		final Map<String, Object> spec = OpenApiGenerateApi.generate(api, "Test", "1.0");
+
+		// Should have securitySchemes in components (because there are RolesAllowed endpoints)
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> components = (Map<String, Object>) spec.get("components");
+		Assertions.assertNotNull(components.get("securitySchemes"), "Should have securitySchemes");
+
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> securitySchemes = (Map<String, Object>) components.get("securitySchemes");
+		Assertions.assertTrue(securitySchemes.containsKey("bearerAuth"));
+
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> bearerAuth = (Map<String, Object>) securitySchemes.get("bearerAuth");
+		Assertions.assertEquals("http", bearerAuth.get("type"));
+		Assertions.assertEquals("bearer", bearerAuth.get("scheme"));
+
+		// Check paths
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> paths = (Map<String, Object>) spec.get("paths");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> securedPath = (Map<String, Object>) paths.get("/secured");
+
+		// GET (PermitAll) should have empty security array
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getOp = (Map<String, Object>) securedPath.get("get");
+		@SuppressWarnings("unchecked")
+		final List<Object> getSecurity = (List<Object>) getOp.get("security");
+		Assertions.assertNotNull(getSecurity, "PermitAll should have security field");
+		Assertions.assertTrue(getSecurity.isEmpty(), "PermitAll should have empty security array");
+
+		// POST (RolesAllowed ADMIN) should require bearerAuth with ADMIN role
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postOp = (Map<String, Object>) securedPath.get("post");
+		@SuppressWarnings("unchecked")
+		final List<Map<String, Object>> postSecurity = (List<Map<String, Object>>) postOp.get("security");
+		Assertions.assertNotNull(postSecurity, "RolesAllowed should have security field");
+		Assertions.assertEquals(1, postSecurity.size());
+		@SuppressWarnings("unchecked")
+		final List<String> adminRoles = (List<String>) postSecurity.get(0).get("bearerAuth");
+		Assertions.assertTrue(adminRoles.contains("ADMIN"));
+
+		// PUT (RolesAllowed ADMIN, USER) should require bearerAuth with both roles
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> securedIdPath = (Map<String, Object>) paths.get("/secured/{id}");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putOp = (Map<String, Object>) securedIdPath.get("put");
+		@SuppressWarnings("unchecked")
+		final List<Map<String, Object>> putSecurity = (List<Map<String, Object>>) putOp.get("security");
+		Assertions.assertNotNull(putSecurity);
+		@SuppressWarnings("unchecked")
+		final List<String> multiRoles = (List<String>) putSecurity.get(0).get("bearerAuth");
+		Assertions.assertTrue(multiRoles.contains("ADMIN"));
+		Assertions.assertTrue(multiRoles.contains("USER"));
+	}
+
+	@Test
+	public void testNoSecuritySchemeWhenNoSecuredEndpoints() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SearchResource.class));
+
+		final Map<String, Object> spec = OpenApiGenerateApi.generate(api, "Test", "1.0");
+
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> components = (Map<String, Object>) spec.get("components");
+		Assertions.assertNull(components.get("securitySchemes"),
+				"Should not have securitySchemes when no secured endpoints");
 	}
 }
