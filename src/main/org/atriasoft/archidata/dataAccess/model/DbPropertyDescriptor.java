@@ -48,6 +48,9 @@ public final class DbPropertyDescriptor {
 	private boolean asyncInsert;
 	private boolean asyncUpdate;
 	private boolean previousDataNeeded;
+	private boolean canInsert;
+	private boolean canRetrieve;
+	private boolean hasDeleteAction;
 
 	// Pre-compiled codec for zero-overhead MongoDB read/write
 	private MongoFieldCodec codec;
@@ -88,6 +91,9 @@ public final class DbPropertyDescriptor {
 		this.asyncInsert = false;
 		this.asyncUpdate = false;
 		this.previousDataNeeded = false;
+		this.canInsert = false;
+		this.canRetrieve = false;
+		this.hasDeleteAction = false;
 	}
 
 	/**
@@ -106,6 +112,9 @@ public final class DbPropertyDescriptor {
 					this.asyncInsert = candidate.isInsertAsync(this);
 					this.asyncUpdate = candidate.isUpdateAsync(this);
 					this.previousDataNeeded = candidate.isPreviousDataNeeded(this);
+					this.canInsert = candidate.canInsert(this);
+					this.canRetrieve = candidate.canRetrieve(this);
+					this.hasDeleteAction = candidate.asDeleteAction(this);
 				} catch (final Exception e) {
 					// Keep defaults
 				}
@@ -182,6 +191,18 @@ public final class DbPropertyDescriptor {
 
 	public boolean isPreviousDataNeeded() {
 		return this.previousDataNeeded;
+	}
+
+	public boolean canInsert() {
+		return this.canInsert;
+	}
+
+	public boolean canRetrieve() {
+		return this.canRetrieve;
+	}
+
+	public boolean hasDeleteAction() {
+		return this.hasDeleteAction;
 	}
 
 	/** Pre-compiled codec for zero-overhead MongoDB read/write. May be null if property is not readable. */

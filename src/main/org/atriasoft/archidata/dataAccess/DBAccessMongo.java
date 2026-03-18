@@ -1263,14 +1263,13 @@ public class DBAccessMongo implements Closeable {
 						break;
 					}
 					case ADDON: {
-						final DataAccessAddOn fieldAddOn = desc.getAddOn();
-						if (fieldAddOn.isInsertAsync(desc)) {
+						if (desc.isAsyncInsert()) {
 							asyncFieldUpdate.add(desc);
 						}
-						if (!fieldAddOn.canInsert(desc)) {
+						if (!desc.canInsert()) {
 							break;
 						}
-						fieldAddOn.insertData(this, desc, data, options, docSet, docUnSet);
+						desc.getAddOn().insertData(this, desc, data, options, docSet, docUnSet);
 						break;
 					}
 					case NOT_READ:
@@ -1414,20 +1413,19 @@ public class DBAccessMongo implements Closeable {
 				if (!forceReadOnlyField && desc.isApiReadOnly()) {
 					continue;
 				}
-				final DataAccessAddOn fieldAddOn = desc.getAddOn();
 				if (desc.isAsyncUpdate()) {
 					final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
 					if (transmitKey.size() != 1) {
 						throw new DataAccessException(
 								"Fail to transmit Key to update the async update... (must have only 1)");
 					}
-					fieldAddOn.asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
+					desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
 							desc.getProperty().getValue(data), asyncActions, options);
 				}
-				if (!fieldAddOn.canInsert(desc)) {
+				if (!desc.canInsert()) {
 					continue;
 				}
-				fieldAddOn.insertData(this, desc, data, options, docSet, docUnSet);
+				desc.getAddOn().insertData(this, desc, data, options, docSet, docUnSet);
 			}
 
 			// --- Handle regular fields (via pre-compiled codecs) ---
@@ -1619,12 +1617,11 @@ public class DBAccessMongo implements Closeable {
 			if (!readAllfields && desc.isNotRead()) {
 				continue;
 			}
-			final DataAccessAddOn fieldAddOn = desc.getAddOn();
-			if (fieldAddOn != null && !fieldAddOn.canRetrieve(desc)) {
-				continue;
-			}
-			if (fieldAddOn != null) {
-				fieldAddOn.fillFromDoc(this, documentModel, desc, data, options, lazyCall);
+			if (desc.getAction() == DbFieldAction.ADDON) {
+				if (!desc.canRetrieve()) {
+					continue;
+				}
+				desc.getAddOn().fillFromDoc(this, documentModel, desc, data, options, lazyCall);
 			} else {
 				final MongoFieldCodec codec = desc.getCodec();
 				if (codec == null) {
@@ -1718,25 +1715,16 @@ public class DBAccessMongo implements Closeable {
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final DbClassModel model = DbClassModel.of(clazz);
-		// Find addon fields that have delete actions
-		boolean needPreviousValues = false;
-		final List<DbPropertyDescriptor> hasDeletedActionFields = new ArrayList<>();
-		for (final DbPropertyDescriptor desc : model.getAddonFields()) {
-			if (desc.getAddOn().asDeleteAction(desc)) {
-				hasDeletedActionFields.add(desc);
-				if (desc.isPreviousDataNeeded()) {
-					needPreviousValues = true;
-				}
-			}
-		}
+		// Use pre-computed delete action fields
+		final List<DbPropertyDescriptor> deleteActionFields = model.getDeleteActionFields();
 		List<Object> previousData = null;
-		if (needPreviousValues) {
+		if (model.needsPreviousDataForDelete()) {
 			final QueryOptions options = new QueryOptions(option);
 			options.add(new AccessDeletedItems());
 			options.add(new ReadAllColumn());
 			previousData = this.getsRaw(clazz, options);
 		}
-		for (final DbPropertyDescriptor desc : hasDeletedActionFields) {
+		for (final DbPropertyDescriptor desc : deleteActionFields) {
 			desc.getAddOn().onDelete(this, clazz, desc, previousData, lazyCall);
 		}
 		List<LazyGetter> actionsAsync = lazyCall;

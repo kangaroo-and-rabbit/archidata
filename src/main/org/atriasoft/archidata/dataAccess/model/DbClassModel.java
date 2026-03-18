@@ -46,6 +46,8 @@ public final class DbClassModel {
 	private final List<DbPropertyDescriptor> addonFields;
 	private final List<DbPropertyDescriptor> asyncInsertFields;
 	private final List<DbPropertyDescriptor> asyncUpdateFields;
+	private final List<DbPropertyDescriptor> deleteActionFields;
+	private final boolean needsPreviousDataForDelete;
 	private final String deletedFieldName;
 	private final DbPropertyDescriptor asyncHardDeletedField;
 	private final String asyncHardDeletedFieldName;
@@ -165,6 +167,16 @@ public final class DbClassModel {
 		return this.asyncUpdateFields;
 	}
 
+	/** Addon fields that have delete actions. */
+	public List<DbPropertyDescriptor> getDeleteActionFields() {
+		return this.deleteActionFields;
+	}
+
+	/** Whether any addon field with delete action needs previous data. */
+	public boolean needsPreviousDataForDelete() {
+		return this.needsPreviousDataForDelete;
+	}
+
 	/**
 	 * Find a DbPropertyDescriptor by its DB field name.
 	 */
@@ -210,7 +222,7 @@ public final class DbClassModel {
 			if (!readAllColumns && desc.isNotRead()) {
 				continue;
 			}
-			if (desc.getAddOn() != null && !desc.getAddOn().canRetrieve(desc)) {
+			if (desc.getAction() == DbFieldAction.ADDON && !desc.canRetrieve()) {
 				continue;
 			}
 			fields.add(desc.getFieldName(options).inTable());
@@ -230,6 +242,8 @@ public final class DbClassModel {
 		final List<DbPropertyDescriptor> addon = new ArrayList<>();
 		final List<DbPropertyDescriptor> asyncInsert = new ArrayList<>();
 		final List<DbPropertyDescriptor> asyncUpdate = new ArrayList<>();
+		final List<DbPropertyDescriptor> deleteAction = new ArrayList<>();
+		boolean needsPrevDataForDelete = false;
 		DbPropertyDescriptor pk = null;
 		DbPropertyDescriptor createTs = null;
 		DbPropertyDescriptor updateTs = null;
@@ -288,6 +302,12 @@ public final class DbClassModel {
 			if (dbProp.isAsyncUpdate()) {
 				asyncUpdate.add(dbProp);
 			}
+			if (dbProp.hasDeleteAction()) {
+				deleteAction.add(dbProp);
+				if (dbProp.isPreviousDataNeeded()) {
+					needsPrevDataForDelete = true;
+				}
+			}
 		}
 
 		this.primaryKey = pk;
@@ -302,6 +322,8 @@ public final class DbClassModel {
 		this.addonFields = Collections.unmodifiableList(addon);
 		this.asyncInsertFields = Collections.unmodifiableList(asyncInsert);
 		this.asyncUpdateFields = Collections.unmodifiableList(asyncUpdate);
+		this.deleteActionFields = Collections.unmodifiableList(deleteAction);
+		this.needsPreviousDataForDelete = needsPrevDataForDelete;
 
 		LOGGER.trace("DbClassModel '{}': table='{}', pk={}, fields={}, addons={}", clazz.getSimpleName(),
 				this.tableName, pk != null ? pk.getDbFieldName() : "none", regular.size(), addon.size());
