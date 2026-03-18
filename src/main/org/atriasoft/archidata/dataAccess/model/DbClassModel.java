@@ -48,6 +48,7 @@ public final class DbClassModel {
 	private final List<DbPropertyDescriptor> asyncUpdateFields;
 	private final List<DbPropertyDescriptor> deleteActionFields;
 	private final boolean needsPreviousDataForDelete;
+	private final boolean needsPreviousDataForUpdate;
 	private final String deletedFieldName;
 	private final DbPropertyDescriptor asyncHardDeletedField;
 	private final String asyncHardDeletedFieldName;
@@ -215,16 +216,9 @@ public final class DbClassModel {
 		return null;
 	}
 
-	/**
-	 * Check if any addon field needs previous data for update operations.
-	 */
+	/** Whether any addon field needs previous data for update operations. */
 	public boolean needsPreviousDataForUpdate() {
-		for (final DbPropertyDescriptor desc : this.addonFields) {
-			if (desc.isPreviousDataNeeded()) {
-				return true;
-			}
-		}
-		return false;
+		return this.needsPreviousDataForUpdate;
 	}
 
 	/**
@@ -292,6 +286,7 @@ public final class DbClassModel {
 		final List<DbPropertyDescriptor> asyncUpdate = new ArrayList<>();
 		final List<DbPropertyDescriptor> deleteAction = new ArrayList<>();
 		boolean needsPrevDataForDelete = false;
+		boolean needsPrevDataForUpdate = false;
 		DbPropertyDescriptor pk = null;
 		DbPropertyDescriptor createTs = null;
 		DbPropertyDescriptor updateTs = null;
@@ -349,6 +344,9 @@ public final class DbClassModel {
 			}
 			if (dbProp.isAsyncUpdate()) {
 				asyncUpdate.add(dbProp);
+				if (dbProp.isPreviousDataNeeded()) {
+					needsPrevDataForUpdate = true;
+				}
 			}
 			if (dbProp.hasDeleteAction()) {
 				deleteAction.add(dbProp);
@@ -372,6 +370,7 @@ public final class DbClassModel {
 		this.asyncUpdateFields = Collections.unmodifiableList(asyncUpdate);
 		this.deleteActionFields = Collections.unmodifiableList(deleteAction);
 		this.needsPreviousDataForDelete = needsPrevDataForDelete;
+		this.needsPreviousDataForUpdate = needsPrevDataForUpdate;
 
 		LOGGER.trace("DbClassModel '{}': table='{}', pk={}, fields={}, addons={}", clazz.getSimpleName(),
 				this.tableName, pk != null ? pk.getDbFieldName() : "none", regular.size(), addon.size());

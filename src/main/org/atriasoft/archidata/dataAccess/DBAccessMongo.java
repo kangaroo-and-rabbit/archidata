@@ -1196,7 +1196,6 @@ public class DBAccessMongo implements Closeable {
 		final boolean directPrimaryKey = options.exist(DirectPrimaryKey.class);
 		final DbClassModel model = DbClassModel.of(clazz);
 
-		final List<DbPropertyDescriptor> asyncFieldUpdate = new ArrayList<>();
 		final String collectionName = model.getTableName(options);
 		Object uniqueId = null;
 		// real add in the BDD:
@@ -1263,9 +1262,6 @@ public class DBAccessMongo implements Closeable {
 						break;
 					}
 					case ADDON: {
-						if (desc.isAsyncInsert()) {
-							asyncFieldUpdate.add(desc);
-						}
 						if (!desc.canInsert()) {
 							break;
 						}
@@ -1312,16 +1308,9 @@ public class DBAccessMongo implements Closeable {
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage(), ex);
 		}
 		final List<LazyGetter> asyncActions = new ArrayList<>();
-		for (final DbPropertyDescriptor desc : asyncFieldUpdate) {
-			final DataAccessAddOn fieldAddOn = desc.getAddOn();
+		for (final DbPropertyDescriptor desc : model.getAsyncInsertFields()) {
 			final Object fieldValue = desc.getProperty().getValue(data);
-			if (uniqueId instanceof final Long id) {
-				fieldAddOn.asyncInsert(this, data.getClass(), id, desc, fieldValue, asyncActions, options);
-			} else if (uniqueId instanceof final UUID uuid) {
-				fieldAddOn.asyncInsert(this, data.getClass(), uuid, desc, fieldValue, asyncActions, options);
-			} else if (uniqueId instanceof final ObjectId oid) {
-				fieldAddOn.asyncInsert(this, data.getClass(), oid, desc, fieldValue, asyncActions, options);
-			}
+			desc.getAddOn().asyncInsert(this, clazz, uniqueId, desc, fieldValue, asyncActions, options);
 		}
 		List<LazyGetter> actionsAsync = asyncActions;
 		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
