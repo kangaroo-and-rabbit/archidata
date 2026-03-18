@@ -7,12 +7,15 @@ import java.util.List;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
 import org.atriasoft.archidata.annotation.method.ARCHIVE;
 import org.atriasoft.archidata.annotation.method.CALL;
 import org.atriasoft.archidata.annotation.method.RESTORE;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.ws.rs.Consumes;
@@ -28,6 +31,8 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
 public class ApiTool {
+	static final Logger LOGGER = LoggerFactory.getLogger(ApiTool.class);
+
 	private ApiTool() {
 		// Utility class
 	}
@@ -83,11 +88,40 @@ public class ApiTool {
 	}
 
 	public static String apiAnnotationGetOperationDescription(final Method element) throws Exception {
+		// Check @ApiDoc first
+		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingInterfaces(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.description().isEmpty()) {
+			return apiDoc.description();
+		}
+		// Fallback to @Operation (deprecated)
 		final List<Operation> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Operation.class);
 		if (annotation.size() == 0) {
 			return null;
 		}
-		return annotation.get(0).description();
+		final String desc = annotation.get(0).description();
+		if (desc != null && !desc.isEmpty()) {
+			LOGGER.warn("@Operation(description=...) on method '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getName());
+		}
+		return desc;
+	}
+
+	public static String apiAnnotationGetOperationGroup(final Method element) throws Exception {
+		// Check @ApiDoc first
+		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingInterfaces(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.group().isEmpty()) {
+			return apiDoc.group();
+		}
+		// Fallback to @Operation.tags (deprecated)
+		final List<Operation> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(element, Operation.class);
+		if (annotation.size() == 0) {
+			return null;
+		}
+		final String[] tags = annotation.get(0).tags();
+		if (tags != null && tags.length > 0 && !tags[0].isEmpty()) {
+			LOGGER.warn("@Operation(tags=...) on method '{}' is deprecated. Use @ApiDoc(group=...) instead.", element.getName());
+			return tags[0];
+		}
+		return null;
 	}
 
 	public static String apiAnnotationGetPath(final Method element) throws Exception {

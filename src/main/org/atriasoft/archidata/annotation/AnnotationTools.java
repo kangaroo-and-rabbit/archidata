@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.CollectionItemNotNull;
 import org.atriasoft.archidata.annotation.checker.CollectionItemUnique;
@@ -250,27 +251,71 @@ public class AnnotationTools {
 	}
 
 	public static String getSchemaExample(final Class<?> element) {
+		final ApiDoc apiDoc = get(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.example().isEmpty()) {
+			return apiDoc.example();
+		}
+		// Fallback to @Schema (deprecated)
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Schema) annotation[0]).example();
+		final String example = ((Schema) annotation[0]).example();
+		if (example != null && !example.isEmpty()) {
+			LOGGER.warn("@Schema(example=...) on class '{}' is deprecated. Use @ApiDoc(example=...) instead.", element.getSimpleName());
+		}
+		return example;
+	}
+
+	public static String getSchemaExample(final Field element) {
+		final ApiDoc apiDoc = get(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.example().isEmpty()) {
+			return apiDoc.example();
+		}
+		// Fallback to @Schema (deprecated)
+		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
+		if (annotation.length == 0) {
+			return null;
+		}
+		final String example = ((Schema) annotation[0]).example();
+		if (example != null && !example.isEmpty()) {
+			LOGGER.warn("@Schema(example=...) on field '{}' is deprecated. Use @ApiDoc(example=...) instead.", element.getName());
+		}
+		return example;
 	}
 
 	public static String getSchemaDescription(final Class<?> element) {
+		final ApiDoc apiDoc = get(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.description().isEmpty()) {
+			return apiDoc.description();
+		}
+		// Fallback to @Schema (deprecated)
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Schema) annotation[0]).description();
+		final String desc = ((Schema) annotation[0]).description();
+		if (desc != null && !desc.isEmpty()) {
+			LOGGER.warn("@Schema(description=...) on class '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getSimpleName());
+		}
+		return desc;
 	}
 
 	public static String getSchemaDescription(final Field element) {
+		final ApiDoc apiDoc = get(element, ApiDoc.class);
+		if (apiDoc != null && !apiDoc.description().isEmpty()) {
+			return apiDoc.description();
+		}
+		// Fallback to @Schema (deprecated)
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Schema.class);
 		if (annotation.length == 0) {
 			return null;
 		}
-		return ((Schema) annotation[0]).description();
+		final String desc = ((Schema) annotation[0]).description();
+		if (desc != null && !desc.isEmpty()) {
+			LOGGER.warn("@Schema(description=...) on field '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getName());
+		}
+		return desc;
 	}
 
 	public static String getDefault(final Field element) {

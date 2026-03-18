@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
+import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiNotNull;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiOptionalIsNullable;
@@ -84,6 +85,7 @@ public class ClassObjectModel extends ClassModel {
 			ClassModel model,
 			ClassModel linkClass, // link class when use remote ID (ex: list<UUID>)
 			String comment,
+			String example,
 			Size stringSize, // String Size
 			Min min, // number min value
 			Max max, // number max value
@@ -103,6 +105,7 @@ public class ClassObjectModel extends ClassModel {
 				final ClassModel model, //
 				final ClassModel linkClass, //
 				final String comment, //
+				final String example, //
 				final Size stringSize, //
 				final Min min, //
 				final Max max, //
@@ -120,6 +123,11 @@ public class ClassObjectModel extends ClassModel {
 			this.model = model;
 			this.linkClass = linkClass;
 			this.comment = comment;
+			if (example != null) {
+				this.example = example;
+			} else {
+				this.example = ExampleGenerator.generate(name, model, stringSize, min, max, decimalMin, decimalMax, pattern, email);
+			}
 			this.stringSize = stringSize;
 			this.decimalMin = decimalMin;
 			this.decimalMax = decimalMax;
@@ -143,6 +151,11 @@ public class ClassObjectModel extends ClassModel {
 		// -- PropertyDescriptor-based helpers (bean introspection) --
 
 		private static String getSchemaDescription(final PropertyDescriptor property) {
+			final ApiDoc apiDoc = property.getAnnotation(ApiDoc.class);
+			if (apiDoc != null && !apiDoc.description().isEmpty()) {
+				return apiDoc.description();
+			}
+			// Fallback to @Schema (deprecated)
 			final Schema schema = property.getAnnotation(Schema.class);
 			if (schema == null) {
 				return null;
@@ -151,7 +164,26 @@ public class ClassObjectModel extends ClassModel {
 			if (desc == null || desc.isEmpty()) {
 				return null;
 			}
+			LOGGER.warn("@Schema(description=...) on property '{}' is deprecated. Use @ApiDoc(description=...) instead.", property.getName());
 			return desc;
+		}
+
+		private static String getSchemaExample(final PropertyDescriptor property) {
+			final ApiDoc apiDoc = property.getAnnotation(ApiDoc.class);
+			if (apiDoc != null && !apiDoc.example().isEmpty()) {
+				return apiDoc.example();
+			}
+			// Fallback to @Schema (deprecated)
+			final Schema schema = property.getAnnotation(Schema.class);
+			if (schema == null) {
+				return null;
+			}
+			final String example = schema.example();
+			if (example == null || example.isEmpty()) {
+				return null;
+			}
+			LOGGER.warn("@Schema(example=...) on property '{}' is deprecated. Use @ApiDoc(example=...) instead.", property.getName());
+			return example;
 		}
 
 		private static Class<?> getSubModelIfExist2(final PropertyDescriptor property) {
@@ -195,6 +227,7 @@ public class ClassObjectModel extends ClassModel {
 					ClassModel.getModel(property.getTypeInfo().genericType(), previous), //
 					getSubModelIfExist(property, previous), //
 					getSchemaDescription(property), //
+					getSchemaExample(property), //
 					property.getAnnotation(Size.class), //
 					property.getAnnotation(Min.class), //
 					property.getAnnotation(Max.class), //
@@ -253,6 +286,7 @@ public class ClassObjectModel extends ClassModel {
 					ClassModel.getModel(field.getGenericType(), previous), //
 					getSubModelIfExist(field, previous), //
 					AnnotationTools.getSchemaDescription(field), //
+					AnnotationTools.getSchemaExample(field), //
 					AnnotationTools.getConstraintsSize(field), //
 					AnnotationTools.getConstraintsMin(field), //
 					AnnotationTools.getConstraintsMax(field), //
