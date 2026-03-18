@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.externalRestApi;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -998,7 +999,12 @@ public class DrawioGenerateApi {
 	}
 
 	private static void writeFile(final String path, final String content) throws Exception {
-		try (final FileWriter writer = new FileWriter(path)) {
+		final File file = new File(path);
+		final File parentDir = file.getParentFile();
+		if (parentDir != null && !parentDir.exists()) {
+			parentDir.mkdirs();
+		}
+		try (final FileWriter writer = new FileWriter(file)) {
 			writer.write(content);
 		}
 		LOGGER.info("Draw.io diagram written to: {}", path);
