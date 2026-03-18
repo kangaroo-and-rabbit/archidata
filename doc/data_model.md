@@ -208,7 +208,52 @@ Use the `AccessDeletedItems` query option to include soft-deleted documents.
 API Annotations
 ===============
 
-These annotations control how fields appear in the generated REST API and TypeScript client.
+These annotations control how fields appear in the generated REST API and client code (TypeScript, Python, OpenAPI).
+
+### @ApiDoc
+
+Unified documentation annotation for all archidata API generators. Replaces the use of Swagger's `@Schema` (on classes and fields) and `@Operation` (on methods).
+
+Can be applied to:
+- **Classes**: describes the model
+- **Fields**: describes a field with optional example
+- **Methods**: describes an API endpoint with optional group
+
+```java
+@ApiDoc(description = "A user in the system", example = "{\"login\":\"john\"}")
+public class User extends OIDGenericDataSoftDelete {
+
+	@ApiDoc(description = "Unique login", example = "john_doe")
+	@Size(min = 3, max = 128)
+	public String login;
+
+	@ApiDoc(description = "Email address")
+	@Email
+	public String email;
+
+	@ApiDoc(hidden = true)
+	public String internalCode;  // excluded from generated API docs
+}
+```
+
+On REST endpoints:
+
+```java
+@GET
+@ApiDoc(description = "List all users", group = "USERS")
+public List<User> getAll() { ... }
+```
+
+| Parameter     | Default | Description |
+|---------------|---------|-------------|
+| `description` | `""`    | Description of the class, field, or API method |
+| `example`     | `""`    | Example value (classes and fields) |
+| `group`       | `""`    | Logical group / tag for API methods |
+| `hidden`      | `false` | Hide from generated documentation |
+
+> **Backward compatibility:** When `@ApiDoc` is absent, the generators fall back to Swagger's `@Schema` and `@Operation` with a deprecation warning. This fallback will be removed in a future version.
+
+> **Auto-generated examples:** When no explicit `example` is provided, archidata generates one automatically based on validation constraints (`@Size`, `@Min`, `@Max`, `@Email`...), field name heuristics (e.g. `email` → `"user@example.com"`, `createdAt` → `"2000-01-23T01:23:45.678Z"`), and type defaults. See [OpenAPI Generation](openapi_generation.md) for details.
 
 ### @ApiReadOnly
 

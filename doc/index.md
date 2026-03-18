@@ -25,4 +25,5 @@ Advanced Topics
 - [Connection Management](connectionManagement.md) — Persistent connections, transactions, and virtual threads
 - [ChangeStream Quick Start](ChangeStream_QuickStart.md) — Real-time database change notifications
 - [ChangeStream Advanced](ChangeStream_Advanced.md) — Filtering, monitoring, and performance
+- [OpenAPI Generation](openapi_generation.md) — Generate an OpenAPI 3.0.3 specification from your API
 - [TypeScript API Generation](typescript_api_generation.md) — Generate TypeScript client code from your API

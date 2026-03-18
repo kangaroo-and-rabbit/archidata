@@ -5,9 +5,9 @@ Archi-data is a Java framework for building REST servers backed by MongoDB. It p
 
 - **REST server** with Jakarta JAX-RS (Grizzly/Jersey):
   - Role-based access control (JWT + API keys)
-  - Swagger-compatible API
+  - Built-in OpenAPI 3.0.3 specification generation
   - Normalized error responses
-  - TypeScript client generation
+  - TypeScript / Python client generation
 - **MongoDB data access** layer:
   - Object introspection and automatic CRUD operations
   - Support for ObjectId, Long, and UUID primary keys
