@@ -3,9 +3,12 @@ package org.atriasoft.archidata.externalRestApi;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
@@ -344,67 +347,400 @@ public class DrawioGenerateApi {
 
 	// ========== LAYOUT ==========
 
+	/**
+	 * Main layout algorithm. Places elements using a relationship-aware strategy:
+	 * <ol>
+	 *   <li>Build inheritance trees and place them as tree sub-layouts (parent centered above children)</li>
+	 *   <li>Order trees/standalone models by connectivity (most-connected first = central)</li>
+	 *   <li>Place REST groups on the left, near the models they reference most</li>
+	 *   <li>Place enums near the models that use them</li>
+	 * </ol>
+	 */
 	private static void layoutElements(final List<ApiGroupModel> restGroups,
 			final List<ClassObjectModel> objectModels, final List<ClassEnumModel> enumModels,
 			final Map<Object, int[]> dimensions, final Map<Object, int[]> positions) {
 
-		int currentX = INITIAL_X;
+		// Step 1: Build inheritance forest (trees of parent→children)
+		final List<InheritanceTree> forest = buildInheritanceForest(objectModels);
 
-		// Column 1: REST groups
+		// Step 2: Compute connectivity score for each tree (how many references from/to other models + REST)
+		final Map<InheritanceTree, Integer> treeConnectivity = new HashMap<>();
+		for (final InheritanceTree tree : forest) {
+			int score = 0;
+			for (final ClassObjectModel model : tree.allModels()) {
+				score += countModelReferences(model, objectModels, restGroups);
+			}
+			treeConnectivity.put(tree, score);
+		}
+		// Sort: most connected trees first (they go in the center area)
+		forest.sort((final InheritanceTree a, final InheritanceTree b) -> treeConnectivity.getOrDefault(b, 0)
+				- treeConnectivity.getOrDefault(a, 0));
+
+		// Step 3: Place inheritance trees in the models area
+		final int modelsStartX = restGroups.isEmpty() ? INITIAL_X : INITIAL_X + computeMaxWidth(restGroups, dimensions) + COLUMN_SPACING;
+		int treeX = modelsStartX;
+		int globalMaxY = INITIAL_Y;
+
+		for (final InheritanceTree tree : forest) {
+			final int treeMaxY = placeInheritanceTree(tree, tree.root, treeX, INITIAL_Y, dimensions, positions);
+			if (treeMaxY > globalMaxY) {
+				globalMaxY = treeMaxY;
+			}
+			treeX += computeTreeWidth(tree, tree.root, dimensions) + COLUMN_SPACING;
+		}
+
+		// Step 4: Place enums near the models that reference them
+		placeEnumsNearModels(enumModels, objectModels, dimensions, positions, treeX, modelsStartX);
+
+		// Step 5: Place REST groups on the left, ordered by vertical position of their primary model
 		if (!restGroups.isEmpty()) {
-			int maxWidth = 0;
-			currentX = placeColumn(restGroups, dimensions, positions, currentX, INITIAL_Y);
-			for (final ApiGroupModel group : restGroups) {
-				final int[] dim = dimensions.get(group);
-				if (dim[0] > maxWidth) {
-					maxWidth = dim[0];
-				}
-			}
-			currentX = currentX + maxWidth + COLUMN_SPACING;
-		}
-
-		// Central columns: object models (parents above children)
-		if (!objectModels.isEmpty()) {
-			int maxWidth = 0;
-			currentX = placeColumn(objectModels, dimensions, positions, currentX, INITIAL_Y);
-			for (final ClassObjectModel model : objectModels) {
-				final int[] dim = dimensions.get(model);
-				if (dim[0] > maxWidth) {
-					maxWidth = dim[0];
-				}
-			}
-			currentX = currentX + maxWidth + COLUMN_SPACING;
-		}
-
-		// Last column: enums
-		if (!enumModels.isEmpty()) {
-			placeColumn(enumModels, dimensions, positions, currentX, INITIAL_Y);
+			placeRestGroups(restGroups, objectModels, dimensions, positions, INITIAL_X);
 		}
 	}
 
-	private static <T> int placeColumn(final List<T> elements, final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> positions, final int startX, final int startY) {
-		int currentY = startY;
-		int currentX = startX;
-		int columnMaxWidth = 0;
-		for (final T element : elements) {
-			final int[] dim = dimensions.get(element);
-			if (dim == null) {
-				continue;
+	// ---------- Inheritance tree data structure ----------
+
+	private static class InheritanceTree {
+		final ClassObjectModel root;
+		final Map<ClassObjectModel, List<ClassObjectModel>> childrenMap = new LinkedHashMap<>();
+
+		InheritanceTree(final ClassObjectModel root) {
+			this.root = root;
+		}
+
+		void addChild(final ClassObjectModel parent, final ClassObjectModel child) {
+			this.childrenMap.computeIfAbsent(parent, (final ClassObjectModel k) -> new ArrayList<>()).add(child);
+		}
+
+		List<ClassObjectModel> getChildren(final ClassObjectModel model) {
+			return this.childrenMap.getOrDefault(model, List.of());
+		}
+
+		/** Returns all models in this tree via BFS. */
+		List<ClassObjectModel> allModels() {
+			final List<ClassObjectModel> result = new ArrayList<>();
+			final LinkedList<ClassObjectModel> queue = new LinkedList<>();
+			queue.add(this.root);
+			while (!queue.isEmpty()) {
+				final ClassObjectModel model = queue.poll();
+				result.add(model);
+				queue.addAll(getChildren(model));
 			}
-			// If this column is getting too tall, start a new one
-			if (currentY + dim[1] > MAX_COLUMN_HEIGHT && currentY > startY) {
-				currentX += columnMaxWidth + COLUMN_SPACING;
-				currentY = startY;
-				columnMaxWidth = 0;
-			}
-			positions.put(element, new int[] { currentX, currentY });
-			currentY += dim[1] + ROW_SPACING;
-			if (dim[0] > columnMaxWidth) {
-				columnMaxWidth = dim[0];
+			return result;
+		}
+	}
+
+	/**
+	 * Build a forest of inheritance trees from the flat list of models.
+	 * Models without a parent (or whose parent is not in the list) become tree roots.
+	 */
+	private static List<InheritanceTree> buildInheritanceForest(final List<ClassObjectModel> models) {
+		final Set<ClassObjectModel> modelSet = new HashSet<>(models);
+		final Map<ClassObjectModel, ClassObjectModel> parentMap = new HashMap<>();
+		final Map<ClassObjectModel, InheritanceTree> rootToTree = new LinkedHashMap<>();
+
+		// Build parent-child relationships
+		for (final ClassObjectModel model : models) {
+			final ClassModel extendsClass = model.getExtendsClass();
+			if (extendsClass instanceof ClassObjectModel) {
+				final ClassObjectModel parent = (ClassObjectModel) extendsClass;
+				if (modelSet.contains(parent)) {
+					parentMap.put(model, parent);
+				}
 			}
 		}
-		return currentX;
+
+		// Find roots (models with no parent in the set)
+		for (final ClassObjectModel model : models) {
+			if (!parentMap.containsKey(model)) {
+				rootToTree.put(model, new InheritanceTree(model));
+			}
+		}
+
+		// Build trees
+		for (final Map.Entry<ClassObjectModel, ClassObjectModel> entry : parentMap.entrySet()) {
+			final ClassObjectModel child = entry.getKey();
+			final ClassObjectModel parent = entry.getValue();
+			// Find the root of this parent
+			ClassObjectModel root = parent;
+			while (parentMap.containsKey(root)) {
+				root = parentMap.get(root);
+			}
+			final InheritanceTree tree = rootToTree.get(root);
+			if (tree != null) {
+				tree.addChild(parent, child);
+			}
+		}
+
+		return new ArrayList<>(rootToTree.values());
+	}
+
+	// ---------- Tree layout ----------
+
+	/**
+	 * Place an inheritance tree: parent centered above its children.
+	 * Returns the max Y used by this subtree.
+	 */
+	private static int placeInheritanceTree(final InheritanceTree tree, final ClassObjectModel model,
+			final int subtreeX, final int y, final Map<Object, int[]> dimensions,
+			final Map<Object, int[]> positions) {
+		final int[] dim = dimensions.get(model);
+		if (dim == null) {
+			return y;
+		}
+		final List<ClassObjectModel> children = tree.getChildren(model);
+
+		if (children.isEmpty()) {
+			// Leaf node: just place it
+			positions.put(model, new int[] { subtreeX, y });
+			return y + dim[1];
+		}
+
+		// Recursively place children side-by-side below
+		final int childrenY = y + dim[1] + ROW_SPACING;
+		int childX = subtreeX;
+		int maxChildY = childrenY;
+		final List<int[]> childPositions = new ArrayList<>();
+
+		for (final ClassObjectModel child : children) {
+			final int childMaxY = placeInheritanceTree(tree, child, childX, childrenY, dimensions, positions);
+			final int childTreeWidth = computeTreeWidth(tree, child, dimensions);
+			childPositions.add(new int[] { childX, childTreeWidth });
+			childX += childTreeWidth + ROW_SPACING;
+			if (childMaxY > maxChildY) {
+				maxChildY = childMaxY;
+			}
+		}
+
+		// Center parent above children span
+		final int childrenSpanStart = childPositions.get(0)[0];
+		final int lastChild = childPositions.get(childPositions.size() - 1)[0];
+		final int lastChildWidth = childPositions.get(childPositions.size() - 1)[1];
+		final int childrenSpanEnd = lastChild + lastChildWidth;
+		final int parentX = childrenSpanStart + (childrenSpanEnd - childrenSpanStart - dim[0]) / 2;
+
+		positions.put(model, new int[] { Math.max(subtreeX, parentX), y });
+		return maxChildY;
+	}
+
+	/**
+	 * Compute the total width of a subtree rooted at the given model.
+	 */
+	private static int computeTreeWidth(final InheritanceTree tree, final ClassObjectModel model,
+			final Map<Object, int[]> dimensions) {
+		final int[] dim = dimensions.get(model);
+		if (dim == null) {
+			return 0;
+		}
+		final List<ClassObjectModel> children = tree.getChildren(model);
+		if (children.isEmpty()) {
+			return dim[0];
+		}
+		int childrenWidth = 0;
+		for (int i = 0; i < children.size(); i++) {
+			if (i > 0) {
+				childrenWidth += ROW_SPACING;
+			}
+			childrenWidth += computeTreeWidth(tree, children.get(i), dimensions);
+		}
+		return Math.max(dim[0], childrenWidth);
+	}
+
+	// ---------- Enum placement ----------
+
+	/**
+	 * Place enums near the models that reference them.
+	 * If an enum is referenced by a model, place it to the right of that model.
+	 * Unreferenced enums go in a column at the far right.
+	 */
+	private static void placeEnumsNearModels(final List<ClassEnumModel> enumModels,
+			final List<ClassObjectModel> objectModels, final Map<Object, int[]> dimensions,
+			final Map<Object, int[]> positions, final int fallbackX, final int modelsStartX) {
+		final Set<ClassEnumModel> placed = new HashSet<>();
+
+		// For each enum, find the first model that references it
+		for (final ClassEnumModel enumModel : enumModels) {
+			ClassObjectModel bestReferencer = null;
+			for (final ClassObjectModel objModel : objectModels) {
+				for (final FieldProperty field : objModel.getFields()) {
+					final ClassModel leaf = resolveLeafModel(field.model());
+					if (leaf == enumModel) {
+						bestReferencer = objModel;
+						break;
+					}
+				}
+				if (bestReferencer != null) {
+					break;
+				}
+			}
+			if (bestReferencer != null && positions.containsKey(bestReferencer)) {
+				// Place enum to the right of the referencing model
+				final int[] refPos = positions.get(bestReferencer);
+				final int[] refDim = dimensions.get(bestReferencer);
+				final int[] enumDim = dimensions.get(enumModel);
+				final int enumX = refPos[0] + refDim[0] + COLUMN_SPACING / 2;
+				final int enumY = refPos[1];
+				// Check for overlap with existing positions and shift down if needed
+				final int adjustedY = findNonOverlappingY(enumX, enumY, enumDim, positions, dimensions);
+				positions.put(enumModel, new int[] { enumX, adjustedY });
+				placed.add(enumModel);
+			}
+		}
+
+		// Place remaining enums in a fallback column
+		int fallbackY = INITIAL_Y;
+		for (final ClassEnumModel enumModel : enumModels) {
+			if (!placed.contains(enumModel)) {
+				final int[] dim = dimensions.get(enumModel);
+				positions.put(enumModel, new int[] { fallbackX, fallbackY });
+				fallbackY += dim[1] + ROW_SPACING;
+			}
+		}
+	}
+
+	/**
+	 * Find a Y position that doesn't overlap with existing positioned elements.
+	 */
+	private static int findNonOverlappingY(final int x, final int startY, final int[] dim,
+			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions) {
+		int y = startY;
+		boolean collision = true;
+		while (collision) {
+			collision = false;
+			for (final Map.Entry<Object, int[]> entry : positions.entrySet()) {
+				final int[] existingPos = entry.getValue();
+				final int[] existingDim = dimensions.get(entry.getKey());
+				if (existingDim == null) {
+					continue;
+				}
+				// Check horizontal overlap
+				if (x < existingPos[0] + existingDim[0] && x + dim[0] > existingPos[0]) {
+					// Check vertical overlap
+					if (y < existingPos[1] + existingDim[1] + ROW_SPACING / 2
+							&& y + dim[1] > existingPos[1] - ROW_SPACING / 2) {
+						y = existingPos[1] + existingDim[1] + ROW_SPACING;
+						collision = true;
+						break;
+					}
+				}
+			}
+		}
+		return y;
+	}
+
+	// ---------- REST placement ----------
+
+	/**
+	 * Place REST groups on the left column, each vertically aligned with
+	 * the model it references the most.
+	 */
+	private static void placeRestGroups(final List<ApiGroupModel> restGroups,
+			final List<ClassObjectModel> objectModels, final Map<Object, int[]> dimensions,
+			final Map<Object, int[]> positions, final int restX) {
+		final Set<ApiGroupModel> placed = new HashSet<>();
+
+		// For each REST group, find the model it uses most and align vertically
+		for (final ApiGroupModel group : restGroups) {
+			final ClassObjectModel primaryModel = findPrimaryModel(group, objectModels);
+			int targetY = INITIAL_Y;
+			if (primaryModel != null && positions.containsKey(primaryModel)) {
+				targetY = positions.get(primaryModel)[1];
+			}
+			final int[] dim = dimensions.get(group);
+			final int adjustedY = findNonOverlappingY(restX, targetY, dim, positions, dimensions);
+			positions.put(group, new int[] { restX, adjustedY });
+			placed.add(group);
+		}
+	}
+
+	/**
+	 * Find the model most referenced by a REST group (via return types and request bodies).
+	 */
+	private static ClassObjectModel findPrimaryModel(final ApiGroupModel group,
+			final List<ClassObjectModel> objectModels) {
+		final Map<ClassObjectModel, Integer> refCount = new HashMap<>();
+		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
+
+		for (final ApiModel endpoint : group.interfaces) {
+			for (final ClassModel returnModel : endpoint.returnTypes) {
+				final ClassModel leaf = resolveLeafModel(returnModel);
+				if (leaf instanceof ClassObjectModel && objectModelSet.contains(leaf)) {
+					refCount.merge((ClassObjectModel) leaf, 1, Integer::sum);
+				}
+			}
+			for (final ParameterClassModelList param : endpoint.unnamedElement) {
+				for (final ClassModel bodyModel : param.models()) {
+					final ClassModel leaf = resolveLeafModel(bodyModel);
+					if (leaf instanceof ClassObjectModel && objectModelSet.contains(leaf)) {
+						refCount.merge((ClassObjectModel) leaf, 1, Integer::sum);
+					}
+				}
+			}
+		}
+
+		ClassObjectModel best = null;
+		int bestCount = 0;
+		for (final Map.Entry<ClassObjectModel, Integer> entry : refCount.entrySet()) {
+			if (entry.getValue() > bestCount) {
+				bestCount = entry.getValue();
+				best = entry.getKey();
+			}
+		}
+		return best;
+	}
+
+	// ---------- Helper for connectivity scoring ----------
+
+	/**
+	 * Count how many times a model is referenced by other models and REST endpoints.
+	 */
+	private static int countModelReferences(final ClassObjectModel model,
+			final List<ClassObjectModel> allModels, final List<ApiGroupModel> restGroups) {
+		int count = 0;
+		// Count references from other models' fields
+		for (final ClassObjectModel other : allModels) {
+			if (other == model) {
+				continue;
+			}
+			for (final FieldProperty field : other.getFields()) {
+				final ClassModel leaf = resolveLeafModel(field.model());
+				if (leaf == model) {
+					count++;
+				}
+				if (field.linkClass() == model) {
+					count++;
+				}
+			}
+		}
+		// Count references from REST endpoints
+		for (final ApiGroupModel group : restGroups) {
+			for (final ApiModel endpoint : group.interfaces) {
+				for (final ClassModel returnModel : endpoint.returnTypes) {
+					if (resolveLeafModel(returnModel) == model) {
+						count++;
+					}
+				}
+				for (final ParameterClassModelList param : endpoint.unnamedElement) {
+					for (final ClassModel bodyModel : param.models()) {
+						if (resolveLeafModel(bodyModel) == model) {
+							count++;
+						}
+					}
+				}
+			}
+		}
+		return count;
+	}
+
+	private static int computeMaxWidth(final List<ApiGroupModel> groups, final Map<Object, int[]> dimensions) {
+		int max = 0;
+		for (final ApiGroupModel group : groups) {
+			final int[] dim = dimensions.get(group);
+			if (dim != null && dim[0] > max) {
+				max = dim[0];
+			}
+		}
+		return max;
 	}
 
 	// ========== DIMENSIONS ==========
