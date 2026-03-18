@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
+import org.atriasoft.archidata.annotation.checker.GroupCreate;
+import org.atriasoft.archidata.annotation.checker.GroupRead;
+import org.atriasoft.archidata.annotation.checker.GroupUpdate;
+import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
 import org.bson.types.ObjectId;
@@ -17,9 +21,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -229,7 +235,7 @@ public class TestOpenApiGeneration {
 		@SuppressWarnings("unchecked")
 		final List<String> tags = (List<String>) getOp.get("tags");
 		Assertions.assertNotNull(tags);
-		Assertions.assertTrue(tags.contains("ItemResource"));
+		Assertions.assertTrue(tags.contains("ITEMS"), "Tag should be from @ApiDoc(group='ITEMS')");
 
 		// Check operationId
 		Assertions.assertEquals("getAll", getOp.get("operationId"));
@@ -544,6 +550,161 @@ public class TestOpenApiGeneration {
 		final List<String> multiRoles = (List<String>) putSecurity.get(0).get("bearerAuth");
 		Assertions.assertTrue(multiRoles.contains("ADMIN"));
 		Assertions.assertTrue(multiRoles.contains("USER"));
+	}
+
+	// -- ValidGroup test model/resource --
+
+	/**
+	 * Model simulating OIDGenericData/GenericTiming patterns:
+	 * - oid: readable only (NotNull for GroupRead, Null for GroupCreate/GroupUpdate)
+	 * - createdAt: readable only (Null for GroupCreate/GroupUpdate)
+	 * - name: always present (NotNull for all groups)
+	 * - description: optional (no constraints)
+	 */
+	public static class GroupedModel {
+		@NotNull(groups = { GroupRead.class })
+		@Null(groups = { GroupCreate.class, GroupUpdate.class })
+		public ObjectId oid;
+
+		@Null(groups = { GroupCreate.class, GroupUpdate.class })
+		public Date createdAt;
+
+		@NotNull
+		public String name;
+
+		public String description;
+	}
+
+	@Path("/grouped")
+	@Produces({ MediaType.APPLICATION_JSON })
+	@Consumes({ MediaType.APPLICATION_JSON })
+	public static class GroupedResource {
+		@GET
+		@ApiDoc(description = "Get all grouped models")
+		public List<GroupedModel> getAll() {
+			return null;
+		}
+
+		@POST
+		@ApiDoc(description = "Create a grouped model")
+		public GroupedModel create(@Valid @ValidGroup(GroupCreate.class) final GroupedModel data) {
+			return null;
+		}
+
+		@PUT
+		@Path("/{id}")
+		@ApiDoc(description = "Update a grouped model")
+		public GroupedModel update(
+				@PathParam("id") final String id,
+				@Valid @ValidGroup(GroupUpdate.class) final GroupedModel data) {
+			return null;
+		}
+	}
+
+	@Test
+	public void testValidGroupFiltering() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(GroupedResource.class));
+
+		final Map<String, Object> spec = OpenApiGenerateApi.generate(api, "Test", "1.0");
+
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> paths = (Map<String, Object>) spec.get("paths");
+
+		// -- POST /grouped (GroupCreate) --
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> groupedPath = (Map<String, Object>) paths.get("/grouped");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postOp = (Map<String, Object>) groupedPath.get("post");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postRequestBody = (Map<String, Object>) postOp.get("requestBody");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postContent = (Map<String, Object>) postRequestBody.get("content");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postJson = (Map<String, Object>) postContent.get("application/json");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postSchema = (Map<String, Object>) postJson.get("schema");
+
+		// GroupCreate: oid and createdAt have @Null(groups=GroupCreate) => excluded
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> postProperties = (Map<String, Object>) postSchema.get("properties");
+		Assertions.assertNotNull(postProperties, "POST schema should have properties");
+		Assertions.assertFalse(postProperties.containsKey("oid"),
+				"POST (GroupCreate) should NOT contain 'oid' (has @Null for GroupCreate)");
+		Assertions.assertFalse(postProperties.containsKey("createdAt"),
+				"POST (GroupCreate) should NOT contain 'createdAt' (has @Null for GroupCreate)");
+		Assertions.assertTrue(postProperties.containsKey("name"),
+				"POST (GroupCreate) should contain 'name'");
+		Assertions.assertTrue(postProperties.containsKey("description"),
+				"POST (GroupCreate) should contain 'description'");
+
+		// name should be required (has @NotNull without groups)
+		@SuppressWarnings("unchecked")
+		final List<String> postRequired = (List<String>) postSchema.get("required");
+		Assertions.assertNotNull(postRequired, "POST schema should have required fields");
+		Assertions.assertTrue(postRequired.contains("name"), "name should be required in POST");
+		Assertions.assertFalse(postRequired.contains("oid"), "oid should not be required in POST");
+
+		// -- PUT /grouped/{id} (GroupUpdate) --
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> groupedIdPath = (Map<String, Object>) paths.get("/grouped/{id}");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putOp = (Map<String, Object>) groupedIdPath.get("put");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putRequestBody = (Map<String, Object>) putOp.get("requestBody");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putContent = (Map<String, Object>) putRequestBody.get("content");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putJson = (Map<String, Object>) putContent.get("application/json");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putSchema = (Map<String, Object>) putJson.get("schema");
+
+		// GroupUpdate: oid and createdAt have @Null(groups=GroupUpdate) => excluded
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> putProperties = (Map<String, Object>) putSchema.get("properties");
+		Assertions.assertNotNull(putProperties, "PUT schema should have properties");
+		Assertions.assertFalse(putProperties.containsKey("oid"),
+				"PUT (GroupUpdate) should NOT contain 'oid'");
+		Assertions.assertFalse(putProperties.containsKey("createdAt"),
+				"PUT (GroupUpdate) should NOT contain 'createdAt'");
+		Assertions.assertTrue(putProperties.containsKey("name"),
+				"PUT (GroupUpdate) should contain 'name'");
+		Assertions.assertTrue(putProperties.containsKey("description"),
+				"PUT (GroupUpdate) should contain 'description'");
+
+		// -- GET /grouped (no group filter, returns full model via $ref) --
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getOp = (Map<String, Object>) groupedPath.get("get");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getResponses = (Map<String, Object>) getOp.get("responses");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> get200 = (Map<String, Object>) getResponses.get("200");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getContent = (Map<String, Object>) get200.get("content");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getJson = (Map<String, Object>) getContent.get("application/json");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> getResponseSchema = (Map<String, Object>) getJson.get("schema");
+
+		// GET returns List<GroupedModel> => array with items $ref to GroupedModel
+		Assertions.assertEquals("array", getResponseSchema.get("type"));
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> itemsRef = (Map<String, Object>) getResponseSchema.get("items");
+		Assertions.assertNotNull(itemsRef.get("$ref"), "GET response items should be a $ref to full schema");
+
+		// Full schema should include all fields (oid, createdAt, name, description)
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> components = (Map<String, Object>) spec.get("components");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> schemas = (Map<String, Object>) components.get("schemas");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> fullSchema = (Map<String, Object>) schemas.get("GroupedModel");
+		@SuppressWarnings("unchecked")
+		final Map<String, Object> fullProps = (Map<String, Object>) fullSchema.get("properties");
+		Assertions.assertTrue(fullProps.containsKey("oid"), "Full schema should contain 'oid'");
+		Assertions.assertTrue(fullProps.containsKey("createdAt"), "Full schema should contain 'createdAt'");
+		Assertions.assertTrue(fullProps.containsKey("name"), "Full schema should contain 'name'");
+		Assertions.assertTrue(fullProps.containsKey("description"), "Full schema should contain 'description'");
 	}
 
 	@Test

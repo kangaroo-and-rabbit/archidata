@@ -32,6 +32,8 @@ public class ApiModel {
 	public RestTypeRequest restTypeRequest;
 	// Description of the API
 	public String description;
+	// Group/tag of the API (from @ApiDoc(group = ...))
+	public String group;
 	// need to generate the progression of stream (if possible)
 	public boolean needGenerateProgress;
 
@@ -149,6 +151,7 @@ public class ApiModel {
 		this.name = method.getName();
 
 		this.description = ApiTool.apiAnnotationGetOperationDescription(method);
+		this.group = ApiTool.apiAnnotationGetOperationGroup(method);
 		this.consumes = ApiTool.apiAnnotationGetConsumes2(consume, method);
 		this.produces = ApiTool.apiAnnotationProduces2(produce, method);
 		LOGGER.trace("    [{}] {} => {}/{}", baseRestEndPoint, this.name, this.restEndPoint);

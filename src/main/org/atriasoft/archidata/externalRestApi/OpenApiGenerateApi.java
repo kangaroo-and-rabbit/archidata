@@ -124,9 +124,13 @@ public class OpenApiGenerateApi {
 	private static Map<String, Object> buildOperation(final ApiModel endpoint, final String groupName) {
 		final Map<String, Object> operation = new LinkedHashMap<>();
 
-		// Tags
+		// Tags — use @ApiDoc(group=...) if available, otherwise class name
 		final List<String> tags = new ArrayList<>();
-		tags.add(groupName);
+		if (endpoint.group != null && !endpoint.group.isEmpty()) {
+			tags.add(endpoint.group);
+		} else {
+			tags.add(groupName);
+		}
 		operation.put("tags", tags);
 
 		// Operation ID
@@ -135,6 +139,26 @@ public class OpenApiGenerateApi {
 		// Summary / description
 		if (endpoint.description != null && !endpoint.description.isEmpty()) {
 			operation.put("summary", endpoint.description);
+		}
+
+		// Build description with security roles info
+		final StringBuilder descriptionBuilder = new StringBuilder();
+		if (endpoint.description != null && !endpoint.description.isEmpty()) {
+			descriptionBuilder.append(endpoint.description);
+		}
+		if (endpoint.securityRoles != null) {
+			if (descriptionBuilder.length() > 0) {
+				descriptionBuilder.append("\n\n");
+			}
+			if (endpoint.securityRoles.isEmpty()) {
+				descriptionBuilder.append("**Access:** Public (no authentication required)");
+			} else {
+				descriptionBuilder.append("**Access:** Requires role(s): ");
+				descriptionBuilder.append(String.join(", ", endpoint.securityRoles));
+			}
+		}
+		if (descriptionBuilder.length() > 0) {
+			operation.put("description", descriptionBuilder.toString());
 		}
 
 		// Parameters (path, query, header)
@@ -206,7 +230,7 @@ public class OpenApiGenerateApi {
 				if (!endpoint.unnamedElement.isEmpty()) {
 					final ParameterClassModelList body = endpoint.unnamedElement.get(0);
 					if (!body.models().isEmpty()) {
-						mediaContent.put("schema", buildSchemaRef(body.models().get(0)));
+						mediaContent.put("schema", buildSchemaRefWithGroups(body));
 					}
 				}
 				content.put(mediaType, mediaContent);
@@ -217,7 +241,7 @@ public class OpenApiGenerateApi {
 			if (!endpoint.unnamedElement.isEmpty()) {
 				final ParameterClassModelList body = endpoint.unnamedElement.get(0);
 				if (!body.models().isEmpty()) {
-					mediaContent.put("schema", buildSchemaRef(body.models().get(0)));
+					mediaContent.put("schema", buildSchemaRefWithGroups(body));
 				}
 			}
 			content.put("application/json", mediaContent);
@@ -277,10 +301,12 @@ public class OpenApiGenerateApi {
 			final Class<?> returnClass = returnModel.getOriginClasses();
 			if (returnClass != Void.class && returnClass != void.class) {
 				final Map<String, Object> content = new LinkedHashMap<>();
-				for (final String mediaType : endpoint.produces) {
-					final Map<String, Object> mediaContent = new LinkedHashMap<>();
-					mediaContent.put("schema", buildSchemaRef(returnModel));
-					content.put(mediaType, mediaContent);
+				if (endpoint.produces != null) {
+					for (final String mediaType : endpoint.produces) {
+						final Map<String, Object> mediaContent = new LinkedHashMap<>();
+						mediaContent.put("schema", buildSchemaRef(returnModel));
+						content.put(mediaType, mediaContent);
+					}
 				}
 				if (content.isEmpty()) {
 					final Map<String, Object> mediaContent = new LinkedHashMap<>();
@@ -456,6 +482,151 @@ public class OpenApiGenerateApi {
 	}
 
 	// ========== SCHEMA REFERENCES ==========
+
+	/**
+	 * Build a schema ref that respects @ValidGroup annotations.
+	 * If the body has valid=true and groups are set, generates an inline schema
+	 * with only the fields compatible with the group (filtering out @Null fields).
+	 */
+	private static Map<String, Object> buildSchemaRefWithGroups(final ParameterClassModelList body) {
+		final ClassModel model = body.models().get(0);
+		if (!body.valid() || body.groups() == null || body.groups().length == 0) {
+			return buildSchemaRef(model);
+		}
+		// For group-aware schemas, generate inline filtered schema
+		if (model instanceof ClassObjectModel) {
+			final ClassObjectModel objModel = (ClassObjectModel) model;
+			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
+				return buildPrimitiveSchema(objModel.getOriginClasses());
+			}
+			return buildGroupAwareObjectSchema(objModel, body.valid(), body.groups());
+		}
+		return buildSchemaRef(model);
+	}
+
+	/**
+	 * Build an object schema filtered by validation groups.
+	 * Fields with @Null for the target group are excluded.
+	 * Fields with @NotNull for the target group are marked required.
+	 */
+	private static Map<String, Object> buildGroupAwareObjectSchema(
+			final ClassObjectModel model,
+			final boolean valid,
+			final Class<?>[] groups) {
+		final Map<String, Object> schema = new LinkedHashMap<>();
+		schema.put("type", "object");
+
+		if (model.getDescription() != null) {
+			schema.put("description", model.getDescription());
+		}
+
+		final Map<String, Object> properties = new LinkedHashMap<>();
+		final List<String> required = new ArrayList<>();
+
+		// Collect fields from this model and all parents
+		collectGroupAwareFields(model, valid, groups, properties, required);
+
+		if (!properties.isEmpty()) {
+			schema.put("properties", properties);
+		}
+		if (!required.isEmpty()) {
+			schema.put("required", required);
+		}
+
+		return schema;
+	}
+
+	/**
+	 * Recursively collect fields from a model and its parent, filtered by validation group.
+	 */
+	private static void collectGroupAwareFields(
+			final ClassObjectModel model,
+			final boolean valid,
+			final Class<?>[] groups,
+			final Map<String, Object> properties,
+			final List<String> required) {
+		// First collect parent fields
+		if (model.getExtendsClass() != null && model.getExtendsClass() instanceof ClassObjectModel) {
+			collectGroupAwareFields((ClassObjectModel) model.getExtendsClass(), valid, groups, properties, required);
+		}
+
+		for (final FieldProperty field : model.getFields()) {
+			if (!isFieldCompatibleWithGroup(field, valid, groups)) {
+				continue;
+			}
+			final Map<String, Object> prop = buildFieldSchema(field);
+			properties.put(field.name(), prop);
+
+			if (isFieldRequiredForGroup(field, valid, groups)) {
+				required.add(field.name());
+			}
+		}
+	}
+
+	/**
+	 * Check if a field should be included for a specific validation group.
+	 * A field with @Null(groups={targetGroup}) is excluded.
+	 */
+	private static boolean isFieldCompatibleWithGroup(
+			final FieldProperty field,
+			final boolean valid,
+			final Class<?>[] groups) {
+		if (field.annotationNotNull() != null) {
+			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
+				return true;
+			}
+			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) && valid) {
+				return true;
+			}
+		}
+		if (field.annotationNull() != null) {
+			if (hasMatchingGroup(field.annotationNull().groups(), groups)) {
+				return false;
+			}
+			if ((field.annotationNull().groups() == null || field.annotationNull().groups().length == 0) && valid) {
+				return false;
+			}
+		}
+		return valid;
+	}
+
+	/**
+	 * Check if a field is required for a specific validation group.
+	 */
+	private static boolean isFieldRequiredForGroup(
+			final FieldProperty field,
+			final boolean valid,
+			final Class<?>[] groups) {
+		if (field.apiNotNull() != null && field.apiNotNull().value()) {
+			return true;
+		}
+		if (field.annotationNotNull() != null) {
+			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
+				return true;
+			}
+			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) && valid) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Check if any group in groupsA matches any group in groupsB.
+	 */
+	private static boolean hasMatchingGroup(final Class<?>[] groupsA, final Class<?>[] groupsB) {
+		if (groupsA == null || groupsB == null) {
+			return false;
+		}
+		for (final Class<?> a : groupsA) {
+			for (final Class<?> b : groupsB) {
+				if (a == b) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 	private static Map<String, Object> buildSchemaRef(final ClassModel model) {
 		if (model instanceof ClassObjectModel) {
