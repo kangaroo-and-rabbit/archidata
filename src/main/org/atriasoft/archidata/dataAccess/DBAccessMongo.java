@@ -1552,14 +1552,19 @@ public class DBAccessMongo implements Closeable {
 			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
 
 			LOGGER.trace("GetsWhere ...");
+			final LazyGetterCollector batchCollector = new LazyGetterCollector();
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
 					LOGGER.trace(" - receive data from DB: {}",
 							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
-					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall);
+					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
 					outs.add(data);
+				}
+				// Add batched lazy getters (entity-reference fields grouped by target entity)
+				if (!batchCollector.isEmpty()) {
+					lazyCall.addAll(batchCollector.buildLazyGetters(this));
 				}
 				// LOGGER.trace("Async calls: {}", lazyCall.size());
 				List<LazyGetter> actionsAsync = lazyCall;
@@ -1582,7 +1587,8 @@ public class DBAccessMongo implements Closeable {
 			final Object doc,
 			final Type type,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception {
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception {
 		if (doc == null) {
 			return null;
 		}
@@ -1610,7 +1616,7 @@ public class DBAccessMongo implements Closeable {
 				if (!desc.canRetrieve()) {
 					continue;
 				}
-				desc.getAddOn().fillFromDoc(this, documentModel, desc, data, options, lazyCall);
+				desc.getAddOn().fillFromDoc(this, documentModel, desc, data, options, lazyCall, batchCollector);
 			} else {
 				final MongoFieldCodec codec = desc.getCodec();
 				if (codec == null) {

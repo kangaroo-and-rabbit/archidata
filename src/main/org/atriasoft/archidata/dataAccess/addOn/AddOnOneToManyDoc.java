@@ -11,6 +11,7 @@ import org.atriasoft.archidata.annotation.OneToManyDoc.CascadeMode;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
+import org.atriasoft.archidata.dataAccess.LazyGetterCollector;
 import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.AddOnFieldContext;
@@ -205,7 +206,8 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final DbPropertyDescriptor desc,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception {
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception {
 		final PropertyDescriptor prop = desc.getProperty();
 		final String fieldName = desc.getFieldName(options).inTable();
 		if (!doc.containsKey(fieldName)) {
@@ -224,9 +226,14 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			if (ctx.isEntityReference()) {
 				final List<Object> idList = (List<Object>) dataCollection;
-				if (idList != null && !idList.isEmpty()) {
-					final Class<?> targetEntity = ctx.getTargetEntity();
-					final String idFieldColumn = ctx.getTargetPkColumn();
+				if (idList == null || idList.isEmpty()) {
+					return;
+				}
+				final Class<?> targetEntity = ctx.getTargetEntity();
+				final String idFieldColumn = ctx.getTargetPkColumn();
+				if (batchCollector != null) {
+					batchCollector.registerMultiple(targetEntity, idFieldColumn, idList, prop, data);
+				} else {
 					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
 						final Object foreignData = ioDb.getsRaw(targetEntity,
 								new Condition(Filters.in(idFieldColumn, idList)));

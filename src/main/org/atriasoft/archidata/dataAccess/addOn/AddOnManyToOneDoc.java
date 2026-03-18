@@ -10,6 +10,7 @@ import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
+import org.atriasoft.archidata.dataAccess.LazyGetterCollector;
 import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.AddOnFieldContext;
@@ -158,7 +159,8 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final DbPropertyDescriptor desc,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception {
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception {
 		final PropertyDescriptor prop = desc.getProperty();
 		final String fieldName = desc.getFieldName(options).inTable();
 		if (!doc.containsKey(fieldName)) {
@@ -170,19 +172,24 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		if (ctx.isEntityReference()) {
 			final Class<?> targetEntity = ctx.getTargetEntity();
 			final Class<?> targetPkType = ctx.getTargetPkType();
-			final String idFieldName = ctx.getTargetPkColumn();
+			final String idFieldColumn = ctx.getTargetPkColumn();
 			final Object dataRetrieve = doc.get(fieldName, targetPkType);
-			// In the lazy mode, the request is done in asynchronous mode, they will be done
-			// after...
-			final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-				final Object foreignData = ioDb.getRaw(targetEntity,
-						new Condition(Filters.eq(idFieldName, dataRetrieve)));
-				if (foreignData == null) {
-					return;
-				}
-				prop.setValue(data, foreignData);
-			};
-			lazyCall.add(lambda);
+			if (dataRetrieve == null) {
+				return;
+			}
+			if (batchCollector != null) {
+				batchCollector.registerSingle(targetEntity, idFieldColumn, dataRetrieve, prop, data);
+			} else {
+				final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
+					final Object foreignData = ioDb.getRaw(targetEntity,
+							new Condition(Filters.eq(idFieldColumn, dataRetrieve)));
+					if (foreignData == null) {
+						return;
+					}
+					prop.setValue(data, foreignData);
+				};
+				lazyCall.add(lambda);
+			}
 			return;
 		}
 		final Object dataRetrieve = doc.get(fieldName, prop.getType());

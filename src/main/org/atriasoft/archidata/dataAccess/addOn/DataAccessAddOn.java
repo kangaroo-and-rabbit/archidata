@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
+import org.atriasoft.archidata.dataAccess.LazyGetterCollector;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.bson.Document;
@@ -47,7 +48,8 @@ public interface DataAccessAddOn {
 			DbPropertyDescriptor desc,
 			Object data,
 			QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception;
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception;
 
 	/** Some action must be done asynchronously for update or remove element
 	 * @param desc

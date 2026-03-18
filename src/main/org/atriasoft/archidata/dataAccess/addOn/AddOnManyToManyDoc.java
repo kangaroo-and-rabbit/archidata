@@ -10,6 +10,7 @@ import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.LazyGetter;
+import org.atriasoft.archidata.dataAccess.LazyGetterCollector;
 import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.AddOnFieldContext;
@@ -179,7 +180,8 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final DbPropertyDescriptor desc,
 			final Object data,
 			final QueryOptions options,
-			final List<LazyGetter> lazyCall) throws Exception {
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception {
 		final PropertyDescriptor prop = desc.getProperty();
 
 		if (prop.getType() != List.class) {
@@ -197,19 +199,8 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				return;
 			}
 			final Class<?> objectClass = prop.getElementType();
-			if (objectClass == Long.class) {
-				final List<Long> dataParsed = (List<Long>) dataCollection;
-				prop.setValue(data, dataParsed);
-				return;
-			}
-			if (objectClass == UUID.class) {
-				final List<UUID> dataParsed = (List<UUID>) dataCollection;
-				prop.setValue(data, dataParsed);
-				return;
-			}
-			if (objectClass == ObjectId.class) {
-				final List<ObjectId> dataParsed = (List<ObjectId>) dataCollection;
-				prop.setValue(data, dataParsed);
+			if (objectClass == Long.class || objectClass == UUID.class || objectClass == ObjectId.class) {
+				prop.setValue(data, dataCollection);
 				return;
 			}
 			final AddOnFieldContext ctx = desc.getAddonContext();
@@ -217,50 +208,23 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 				return;
 			}
 			final Class<?> targetEntity = ctx.getTargetEntity();
-			final Class<?> foreignKeyType = ctx.getTargetPkType();
 			final String idFieldColumn = ctx.getTargetPkColumn();
-
-			if (foreignKeyType == Long.class) {
-				final List<Long> idList = (List<Long>) dataCollection;
-				if (idList != null && !idList.isEmpty()) {
-					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-						final Object foreignData = ioDb.gets(targetEntity,
-								new Condition(Filters.in(idFieldColumn, idList)));
-						if (foreignData == null) {
-							return;
-						}
-						prop.setValue(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				}
-			} else if (foreignKeyType == UUID.class) {
-				final List<UUID> idList = (List<UUID>) dataCollection;
-				if (idList != null && !idList.isEmpty()) {
-					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-						final List<UUID> childs = new ArrayList<>(idList);
-						final Object foreignData = ioDb.gets(targetEntity,
-								new Condition(Filters.in(idFieldColumn, childs)));
-						if (foreignData == null) {
-							return;
-						}
-						prop.setValue(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				}
-			} else if (foreignKeyType == ObjectId.class) {
-				final List<ObjectId> idList = (List<ObjectId>) dataCollection;
-				if (idList != null && !idList.isEmpty()) {
-					final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-						final List<ObjectId> childs = new ArrayList<>(idList);
-						final Object foreignData = ioDb.gets(targetEntity,
-								new Condition(Filters.in(idFieldColumn, childs)));
-						if (foreignData == null) {
-							return;
-						}
-						prop.setValue(data, foreignData);
-					};
-					lazyCall.add(lambda);
-				}
+			final List<Object> idList = (List<Object>) dataCollection;
+			if (idList == null || idList.isEmpty()) {
+				return;
+			}
+			if (batchCollector != null) {
+				batchCollector.registerMultiple(targetEntity, idFieldColumn, idList, prop, data);
+			} else {
+				final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
+					final Object foreignData = ioDb.getsRaw(targetEntity,
+							new Condition(Filters.in(idFieldColumn, idList)));
+					if (foreignData == null) {
+						return;
+					}
+					prop.setValue(data, foreignData);
+				};
+				lazyCall.add(lambda);
 			}
 		}
 	}
