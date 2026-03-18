@@ -31,12 +31,12 @@ import jakarta.ws.rs.core.Response;
 @Path("/openapi")
 public class openApiResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(openApiResource.class);
-
+	
 	private static AnalyzeApi analyzeApi;
 	private static String apiTitle = "API";
 	private static String apiVersion = "1.0.0";
 	private static String cachedSpec;
-
+	
 	/**
 	 * Configure the OpenAPI resource with analyzed API data.
 	 *
@@ -50,19 +50,17 @@ public class openApiResource {
 		apiVersion = version;
 		cachedSpec = null; // invalidate cache
 	}
-
+	
 	@GET
 	@Path("swagger.json")
 	@Produces({ MediaType.APPLICATION_JSON })
 	@PermitAll
-	@ApiDoc(description = "Get the OpenAPI specification", group = "SYSTEM")
+	@ApiDoc(description = "Get the OpenAPI specification", group = "DEVELOPEMENT")
 	public Response getDescription() throws Exception {
 		if (analyzeApi == null) {
 			LOGGER.error("OpenAPI resource not configured. Call openApiResource.configure() at startup.");
 			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
-					.entity("{\"error\": \"OpenAPI not configured\"}")
-					.type(MediaType.APPLICATION_JSON)
-					.build();
+					.entity("{\"error\": \"OpenAPI not configured\"}").type(MediaType.APPLICATION_JSON).build();
 		}
 		if (cachedSpec == null) {
 			cachedSpec = OpenApiGenerateApi.generateJson(analyzeApi, apiTitle, apiVersion);
