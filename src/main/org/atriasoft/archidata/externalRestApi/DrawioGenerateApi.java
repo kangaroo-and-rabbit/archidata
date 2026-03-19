@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.atriasoft.archidata.annotation.checker.CheckForeignKey;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
@@ -57,10 +58,11 @@ public class DrawioGenerateApi {
 	private static final String STYLE_REST = "swimlane;fontStyle=1;align=center;startSize=26;fillColor=#f8cecc;strokeColor=#b85450;html=1;collapsible=0;";
 	private static final String STYLE_FIELD = "text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0;html=1;";
 	private static final String STYLE_SEPARATOR = "line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=10;rotatable=0;labelPosition=left;points=[];portConstraint=eastwest;strokeColor=inherit;html=1;";
-	private static final String STYLE_INHERITANCE = "endArrow=block;endFill=0;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;";
-	private static final String STYLE_RELATION = "endArrow=diamondThin;endFill=1;edgeStyle=orthogonalEdgeStyle;";
-	private static final String STYLE_ASSOCIATION = "endArrow=open;endFill=1;dashed=1;edgeStyle=orthogonalEdgeStyle;";
-	private static final String STYLE_REST_LINK = "endArrow=open;dashed=1;strokeColor=#b85450;edgeStyle=orthogonalEdgeStyle;";
+	private static final String STYLE_INHERITANCE = "endArrow=block;endFill=0;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;";
+	private static final String STYLE_RELATION = "endArrow=diamondThin;endFill=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;";
+	private static final String STYLE_ASSOCIATION = "endArrow=open;endFill=1;dashed=1;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;";
+	private static final String STYLE_REST_LINK = "endArrow=open;dashed=1;strokeWidth=2;strokeColor=#b85450;edgeStyle=orthogonalEdgeStyle;";
+	private static final String STYLE_FOREIGN_KEY = "endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#9673a6;edgeStyle=orthogonalEdgeStyle;";
 
 	private DrawioGenerateApi() {
 		// Utility class
@@ -207,7 +209,11 @@ public class DrawioGenerateApi {
 		int fieldY = HEADER_HEIGHT + 8;
 		for (final FieldProperty field : model.getFields()) {
 			final String fieldId = idCounter.next();
-			final String fieldText = "+ " + field.name() + ": " + resolveTypeName(field.model());
+			String fieldText = "+ " + field.name() + ": " + resolveTypeName(field.model());
+			// Annotate FK target when no linkClass (standalone @CheckForeignKey)
+			if (field.checkForeignKey() != null && field.linkClass() == null) {
+				fieldText += " \u2192 " + field.checkForeignKey().target().getSimpleName();
+			}
 			cells.append(mxCellChild(fieldId, parentId, escapeXml(fieldText), STYLE_FIELD, 0, fieldY, width,
 					FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
@@ -278,7 +284,7 @@ public class DrawioGenerateApi {
 				final String sourceId = modelNodeIds.get(model);
 				final String targetId = modelNodeIds.get(parent);
 				final String edgeId = idCounter.next();
-				cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_INHERITANCE));
+				cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_INHERITANCE, null));
 			}
 		}
 
@@ -290,8 +296,28 @@ public class DrawioGenerateApi {
 					final String targetId = modelNodeIds.get(field.linkClass());
 					if (!sourceId.equals(targetId)) {
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_RELATION));
+						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_RELATION, field.name()));
 					}
+				}
+			}
+		}
+
+		// @CheckForeignKey edges (standalone FK without linkClass)
+		for (final ClassObjectModel model : models) {
+			final String sourceId = modelNodeIds.get(model);
+			for (final FieldProperty field : model.getFields()) {
+				if (field.linkClass() != null) {
+					continue;
+				}
+				final CheckForeignKey fk = field.checkForeignKey();
+				if (fk == null) {
+					continue;
+				}
+				// Find the target model by class
+				final String targetId = findModelNodeIdByClass(fk.target(), modelNodeIds);
+				if (targetId != null && !sourceId.equals(targetId)) {
+					final String edgeId = idCounter.next();
+					cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_FOREIGN_KEY, field.name()));
 				}
 			}
 		}
@@ -300,8 +326,11 @@ public class DrawioGenerateApi {
 		for (final ClassObjectModel model : models) {
 			final String sourceId = modelNodeIds.get(model);
 			for (final FieldProperty field : model.getFields()) {
-				// Skip if already handled by linkClass
+				// Skip if already handled by linkClass or checkForeignKey
 				if (field.linkClass() != null) {
+					continue;
+				}
+				if (field.checkForeignKey() != null) {
 					continue;
 				}
 				final ClassModel referencedModel = resolveLeafModel(field.model());
@@ -309,7 +338,7 @@ public class DrawioGenerateApi {
 					final String targetId = modelNodeIds.get(referencedModel);
 					if (!sourceId.equals(targetId)) {
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_ASSOCIATION));
+						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_ASSOCIATION, field.name()));
 					}
 				}
 			}
@@ -328,7 +357,7 @@ public class DrawioGenerateApi {
 					if (leaf != null && modelNodeIds.containsKey(leaf)) {
 						final String targetId = modelNodeIds.get(leaf);
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK));
+						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK, null));
 					}
 				}
 				// Request body (unnamed element)
@@ -338,7 +367,7 @@ public class DrawioGenerateApi {
 						if (leaf != null && modelNodeIds.containsKey(leaf)) {
 							final String targetId = modelNodeIds.get(leaf);
 							final String edgeId = idCounter.next();
-							cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK));
+							cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK, null));
 						}
 					}
 				}
@@ -346,14 +375,27 @@ public class DrawioGenerateApi {
 		}
 	}
 
+	/**
+	 * Find a model node ID by its origin Java class.
+	 */
+	private static String findModelNodeIdByClass(final Class<?> targetClass,
+			final Map<ClassModel, String> modelNodeIds) {
+		for (final Map.Entry<ClassModel, String> entry : modelNodeIds.entrySet()) {
+			if (entry.getKey().getOriginClasses() == targetClass) {
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
+
 	// ========== LAYOUT ==========
 
 	/**
-	 * Main layout algorithm. Places elements using a relationship-aware strategy:
+	 * Main layout algorithm. Places elements as clusters (model tree + associated REST).
 	 * <ol>
-	 *   <li>Build inheritance trees and place them as tree sub-layouts (parent centered above children)</li>
-	 *   <li>Order trees/standalone models by connectivity (most-connected first = central)</li>
-	 *   <li>Place REST groups on the left, near the models they reference most</li>
+	 *   <li>Build inheritance trees and place them as tree sub-layouts</li>
+	 *   <li>Order trees by connectivity (most-connected first)</li>
+	 *   <li>Place REST groups below their associated model tree (same cluster)</li>
 	 *   <li>Place enums near the models that use them</li>
 	 * </ol>
 	 */
@@ -364,7 +406,7 @@ public class DrawioGenerateApi {
 		// Step 1: Build inheritance forest (trees of parent→children)
 		final List<InheritanceTree> forest = buildInheritanceForest(objectModels);
 
-		// Step 2: Compute connectivity score for each tree (how many references from/to other models + REST)
+		// Step 2: Compute connectivity score for each tree
 		final Map<InheritanceTree, Integer> treeConnectivity = new HashMap<>();
 		for (final InheritanceTree tree : forest) {
 			int score = 0;
@@ -373,30 +415,76 @@ public class DrawioGenerateApi {
 			}
 			treeConnectivity.put(tree, score);
 		}
-		// Sort: most connected trees first (they go in the center area)
 		forest.sort((final InheritanceTree a, final InheritanceTree b) -> treeConnectivity.getOrDefault(b, 0)
 				- treeConnectivity.getOrDefault(a, 0));
 
-		// Step 3: Place inheritance trees in the models area
-		final int modelsStartX = restGroups.isEmpty() ? INITIAL_X : INITIAL_X + computeMaxWidth(restGroups, dimensions) + COLUMN_SPACING;
-		int treeX = modelsStartX;
-		int globalMaxY = INITIAL_Y;
+		// Step 3: Associate REST groups with their primary model's tree
+		final Map<InheritanceTree, List<ApiGroupModel>> treeRestGroups = new LinkedHashMap<>();
+		final List<ApiGroupModel> unassociatedRest = new ArrayList<>();
+		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
+		for (final InheritanceTree tree : forest) {
+			treeRestGroups.put(tree, new ArrayList<>());
+		}
+		for (final ApiGroupModel group : restGroups) {
+			final ClassObjectModel primaryModel = findPrimaryModel(group, objectModels);
+			boolean associated = false;
+			if (primaryModel != null) {
+				for (final InheritanceTree tree : forest) {
+					if (tree.allModels().contains(primaryModel)) {
+						treeRestGroups.get(tree).add(group);
+						associated = true;
+						break;
+					}
+				}
+			}
+			if (!associated) {
+				unassociatedRest.add(group);
+			}
+		}
+
+		// Step 4: Place clusters (tree + REST below it)
+		int clusterX = INITIAL_X;
+		int maxEndX = INITIAL_X;
 
 		for (final InheritanceTree tree : forest) {
-			final int treeMaxY = placeInheritanceTree(tree, tree.root, treeX, INITIAL_Y, dimensions, positions);
-			if (treeMaxY > globalMaxY) {
-				globalMaxY = treeMaxY;
+			// Place the inheritance tree
+			final int treeMaxY = placeInheritanceTree(tree, tree.root, clusterX, INITIAL_Y, dimensions, positions);
+
+			// Place associated REST groups below the tree
+			int restY = treeMaxY + ROW_SPACING;
+			final List<ApiGroupModel> associatedRest = treeRestGroups.get(tree);
+			for (final ApiGroupModel group : associatedRest) {
+				final int[] dim = dimensions.get(group);
+				positions.put(group, new int[] { clusterX, restY });
+				restY += dim[1] + ROW_SPACING;
 			}
-			treeX += computeTreeWidth(tree, tree.root, dimensions) + COLUMN_SPACING;
+
+			final int treeWidth = computeTreeWidth(tree, tree.root, dimensions);
+			// Account for REST width too
+			int clusterWidth = treeWidth;
+			for (final ApiGroupModel group : associatedRest) {
+				final int[] dim = dimensions.get(group);
+				if (dim[0] > clusterWidth) {
+					clusterWidth = dim[0];
+				}
+			}
+			if (clusterX + clusterWidth > maxEndX) {
+				maxEndX = clusterX + clusterWidth;
+			}
+			clusterX += clusterWidth + COLUMN_SPACING;
 		}
 
-		// Step 4: Place enums near the models that reference them
-		placeEnumsNearModels(enumModels, objectModels, dimensions, positions, treeX, modelsStartX);
-
-		// Step 5: Place REST groups on the left, ordered by vertical position of their primary model
-		if (!restGroups.isEmpty()) {
-			placeRestGroups(restGroups, objectModels, dimensions, positions, INITIAL_X);
+		// Step 5: Place unassociated REST groups at the end
+		int unassocRestY = INITIAL_Y;
+		for (final ApiGroupModel group : unassociatedRest) {
+			final int[] dim = dimensions.get(group);
+			positions.put(group, new int[] { clusterX, unassocRestY });
+			unassocRestY += dim[1] + ROW_SPACING;
 		}
+
+		// Step 6: Place enums near the models that reference them
+		final int enumFallbackX = unassociatedRest.isEmpty() ? clusterX : clusterX + COLUMN_SPACING;
+		placeEnumsNearModels(enumModels, objectModels, dimensions, positions, enumFallbackX, INITIAL_X);
 	}
 
 	// ---------- Inheritance tree data structure ----------
@@ -629,31 +717,6 @@ public class DrawioGenerateApi {
 		return y;
 	}
 
-	// ---------- REST placement ----------
-
-	/**
-	 * Place REST groups on the left column, each vertically aligned with
-	 * the model it references the most.
-	 */
-	private static void placeRestGroups(final List<ApiGroupModel> restGroups,
-			final List<ClassObjectModel> objectModels, final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> positions, final int restX) {
-		final Set<ApiGroupModel> placed = new HashSet<>();
-
-		// For each REST group, find the model it uses most and align vertically
-		for (final ApiGroupModel group : restGroups) {
-			final ClassObjectModel primaryModel = findPrimaryModel(group, objectModels);
-			int targetY = INITIAL_Y;
-			if (primaryModel != null && positions.containsKey(primaryModel)) {
-				targetY = positions.get(primaryModel)[1];
-			}
-			final int[] dim = dimensions.get(group);
-			final int adjustedY = findNonOverlappingY(restX, targetY, dim, positions, dimensions);
-			positions.put(group, new int[] { restX, adjustedY });
-			placed.add(group);
-		}
-	}
-
 	/**
 	 * Find the model most referenced by a REST group (via return types and request bodies).
 	 */
@@ -733,17 +796,6 @@ public class DrawioGenerateApi {
 		return count;
 	}
 
-	private static int computeMaxWidth(final List<ApiGroupModel> groups, final Map<Object, int[]> dimensions) {
-		int max = 0;
-		for (final ApiGroupModel group : groups) {
-			final int[] dim = dimensions.get(group);
-			if (dim != null && dim[0] > max) {
-				max = dim[0];
-			}
-		}
-		return max;
-	}
-
 	// ========== DIMENSIONS ==========
 
 	private static int[] computeModelDimensions(final ClassObjectModel model) {
@@ -751,7 +803,10 @@ public class DrawioGenerateApi {
 		final int height = HEADER_HEIGHT + 8 + Math.max(fieldCount, 1) * FIELD_HEIGHT + 8;
 		int maxTextLen = getSimpleName(model).length();
 		for (final FieldProperty field : model.getFields()) {
-			final String line = "+ " + field.name() + ": " + resolveTypeName(field.model());
+			String line = "+ " + field.name() + ": " + resolveTypeName(field.model());
+			if (field.checkForeignKey() != null && field.linkClass() == null) {
+				line += " \u2192 " + field.checkForeignKey().target().getSimpleName();
+			}
 			if (line.length() > maxTextLen) {
 				maxTextLen = line.length();
 			}
@@ -850,8 +905,10 @@ public class DrawioGenerateApi {
 				+ "\t\t\t\t</mxCell>\n";
 	}
 
-	private static String mxEdge(final String id, final String sourceId, final String targetId, final String style) {
-		return "\t\t\t\t<mxCell id=\"" + id + "\" style=\"" + style
+	private static String mxEdge(final String id, final String sourceId, final String targetId, final String style,
+			final String label) {
+		final String value = (label != null && !label.isEmpty()) ? escapeXml(label) : "";
+		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
 				+ "\" edge=\"1\" parent=\"1\" source=\"" + sourceId + "\" target=\"" + targetId + "\">\n"
 				+ "\t\t\t\t\t<mxGeometry relative=\"1\" as=\"geometry\"/>\n"
 				+ "\t\t\t\t</mxCell>\n";

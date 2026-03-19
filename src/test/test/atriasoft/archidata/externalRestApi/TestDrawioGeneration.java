@@ -3,8 +3,10 @@ package test.atriasoft.archidata.externalRestApi;
 import java.util.List;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
+import org.atriasoft.archidata.annotation.checker.CheckForeignKey;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.DrawioGenerateApi;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -51,6 +53,18 @@ public class TestDrawioGeneration {
 
 	public static class ExtendedEntity extends BaseEntity {
 		public String label;
+	}
+
+	public static class FkTarget {
+		public ObjectId oid;
+		public String label;
+	}
+
+	public static class FkSource {
+		public ObjectId oid;
+		@CheckForeignKey(target = FkTarget.class)
+		public ObjectId parentId;
+		public String name;
 	}
 
 	// -- Test API --
@@ -237,6 +251,30 @@ public class TestDrawioGeneration {
 		Assertions.assertFalse(xml.contains("value=\"<"), "Values should be XML-escaped");
 
 		LOGGER.info("Generated Draw.io XML:\n{}", xml);
+	}
+
+	@Test
+	public void testCheckForeignKeyEdge() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(FkSource.class);
+		api.addModel(FkTarget.class);
+
+		final String xml = DrawioGenerateApi.generateApiString(api);
+
+		// Both models present
+		Assertions.assertTrue(xml.contains("FkSource"), "Should contain FkSource model");
+		Assertions.assertTrue(xml.contains("FkTarget"), "Should contain FkTarget model");
+		// FK annotation text on field
+		Assertions.assertTrue(xml.contains("FkTarget"),
+				"FK field should show target class name");
+		// FK edge style (purple dashed)
+		Assertions.assertTrue(xml.contains("strokeColor=#9673a6"),
+				"Should have FK edge style (purple)");
+		// Edge label should contain the field name
+		Assertions.assertTrue(xml.contains("value=\"parentId\""),
+				"FK edge should have field name as label");
+
+		LOGGER.info("FK Draw.io XML:\n{}", xml);
 	}
 
 	private static int countOccurrences(final String text, final String search) {

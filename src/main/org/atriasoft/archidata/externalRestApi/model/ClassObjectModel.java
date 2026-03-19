@@ -12,6 +12,7 @@ import java.util.Set;
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
+import org.atriasoft.archidata.annotation.checker.CheckForeignKey;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiNotNull;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiOptionalIsNullable;
@@ -84,6 +85,7 @@ public class ClassObjectModel extends ClassModel {
 			String name,
 			ClassModel model,
 			ClassModel linkClass, // link class when use remote ID (ex: list<UUID>)
+			CheckForeignKey checkForeignKey, // foreign key annotation (target entity)
 			String comment,
 			String example,
 			Size stringSize, // String Size
@@ -104,6 +106,7 @@ public class ClassObjectModel extends ClassModel {
 				final String name, //
 				final ClassModel model, //
 				final ClassModel linkClass, //
+				final CheckForeignKey checkForeignKey, //
 				final String comment, //
 				final String example, //
 				final Size stringSize, //
@@ -122,6 +125,7 @@ public class ClassObjectModel extends ClassModel {
 			this.name = name;
 			this.model = model;
 			this.linkClass = linkClass;
+			this.checkForeignKey = checkForeignKey;
 			this.comment = comment;
 			if (example != null) {
 				this.example = example;
@@ -226,6 +230,7 @@ public class ClassObjectModel extends ClassModel {
 			this(property.getName(), //
 					ClassModel.getModel(property.getTypeInfo().genericType(), previous), //
 					getSubModelIfExist(property, previous), //
+					property.getAnnotation(CheckForeignKey.class), //
 					getSchemaDescription(property), //
 					getSchemaExample(property), //
 					property.getAnnotation(Size.class), //
@@ -285,6 +290,7 @@ public class ClassObjectModel extends ClassModel {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
 					getSubModelIfExist(field, previous), //
+					AnnotationTools.get(field, CheckForeignKey.class), //
 					AnnotationTools.getSchemaDescription(field), //
 					AnnotationTools.getSchemaExample(field), //
 					AnnotationTools.getConstraintsSize(field), //
