@@ -748,7 +748,7 @@ public class DrawioGenerateApi {
 		}
 
 		// Ideal gap between block edges — leave room for orthogonal edge routing
-		final double idealGap = 120.0;
+		final double idealGap = 180.0;
 		double temperature = 200.0;
 		final int iterations = 150;
 
@@ -941,8 +941,8 @@ public class DrawioGenerateApi {
 		}
 
 		// Layout children first to determine total children width
-		final int childSpacing = 30;
-		final int verticalGap = 50;
+		final int childSpacing = 60;
+		final int verticalGap = 80;
 		int totalChildrenWidth = 0;
 		final List<int[]> childDims = new ArrayList<>();
 		final List<Map<Object, int[]>> childPositions = new ArrayList<>();
@@ -1003,7 +1003,7 @@ public class DrawioGenerateApi {
 			final int[] bw,
 			final int[] bh,
 			final int count) {
-		final int padding = 80;
+		final int padding = 120;
 		for (int pass = 0; pass < 50; pass++) {
 			boolean moved = false;
 			for (int i = 0; i < count; i++) {
