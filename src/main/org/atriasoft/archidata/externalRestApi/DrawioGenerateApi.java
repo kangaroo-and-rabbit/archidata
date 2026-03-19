@@ -173,8 +173,9 @@ public class DrawioGenerateApi {
 			restNodeIds.put(group, nodeId);
 		}
 
-		// 8. Generate edges
-		generateEdges(cells, idCounter, sortedModels, restGroups, modelNodeIds, restNodeIds, api);
+		// 8. Generate edges (with position-aware port routing)
+		generateEdges(cells, idCounter, sortedModels, restGroups, modelNodeIds, restNodeIds, api, positions,
+				dimensions);
 
 		// 9. Compute total diagram size
 		int maxX = 0;
@@ -298,6 +299,7 @@ public class DrawioGenerateApi {
 			final AnalyzeApi api) {
 
 		// Inheritance edges (child → parent, arrow points UP to parent)
+		// These use fixed top/bottom ports defined in STYLE_INHERITANCE
 		for (final ClassObjectModel model : models) {
 			final ClassModel parent = model.getExtendsClass();
 			if (parent != null && modelNodeIds.containsKey(parent)) {
@@ -316,7 +318,9 @@ public class DrawioGenerateApi {
 					final String targetId = modelNodeIds.get(field.linkClass());
 					if (!sourceId.equals(targetId)) {
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_RELATION, field.name()));
+						final String style = appendPortStyle(STYLE_RELATION, model, field.linkClass(), positions,
+								dimensions);
+						cells.append(mxEdge(edgeId, sourceId, targetId, style, field.name()));
 					}
 				}
 			}
@@ -333,11 +337,12 @@ public class DrawioGenerateApi {
 				if (fk == null) {
 					continue;
 				}
-				// Find the target model by class
 				final String targetId = findModelNodeIdByClass(fk.target(), modelNodeIds);
 				if (targetId != null && !sourceId.equals(targetId)) {
 					final String edgeId = idCounter.next();
-					cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_FOREIGN_KEY, field.name()));
+					final ClassModel fkTarget = findModelByClass(fk.target(), models);
+					final String style = appendPortStyle(STYLE_FOREIGN_KEY, model, fkTarget, positions, dimensions);
+					cells.append(mxEdge(edgeId, sourceId, targetId, style, field.name()));
 				}
 			}
 		}
@@ -346,7 +351,6 @@ public class DrawioGenerateApi {
 		for (final ClassObjectModel model : models) {
 			final String sourceId = modelNodeIds.get(model);
 			for (final FieldProperty field : model.getFields()) {
-				// Skip if already handled by linkClass or checkForeignKey
 				if (field.linkClass() != null) {
 					continue;
 				}
@@ -358,7 +362,9 @@ public class DrawioGenerateApi {
 					final String targetId = modelNodeIds.get(referencedModel);
 					if (!sourceId.equals(targetId)) {
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_ASSOCIATION, field.name()));
+						final String style = appendPortStyle(STYLE_ASSOCIATION, model, referencedModel, positions,
+								dimensions);
+						cells.append(mxEdge(edgeId, sourceId, targetId, style, field.name()));
 					}
 				}
 			}
@@ -371,28 +377,100 @@ public class DrawioGenerateApi {
 				continue;
 			}
 			for (final ApiModel endpoint : group.interfaces) {
-				// Return types
 				for (final ClassModel returnModel : endpoint.returnTypes) {
 					final ClassModel leaf = resolveLeafModel(returnModel);
 					if (leaf != null && modelNodeIds.containsKey(leaf)) {
 						final String targetId = modelNodeIds.get(leaf);
 						final String edgeId = idCounter.next();
-						cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK, null));
+						final String style = appendPortStyle(STYLE_REST_LINK, group, leaf, positions, dimensions);
+						cells.append(mxEdge(edgeId, sourceId, targetId, style, null));
 					}
 				}
-				// Request body (unnamed element)
 				for (final ParameterClassModelList param : endpoint.unnamedElement) {
 					for (final ClassModel bodyModel : param.models()) {
 						final ClassModel leaf = resolveLeafModel(bodyModel);
 						if (leaf != null && modelNodeIds.containsKey(leaf)) {
 							final String targetId = modelNodeIds.get(leaf);
 							final String edgeId = idCounter.next();
-							cells.append(mxEdge(edgeId, sourceId, targetId, STYLE_REST_LINK, null));
+							final String style = appendPortStyle(STYLE_REST_LINK, group, leaf, positions, dimensions);
+							cells.append(mxEdge(edgeId, sourceId, targetId, style, null));
 						}
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Compute exit/entry port positions based on relative placement of source and target,
+	 * and append them to the base style string.
+	 * <ul>
+	 *   <li>If target is mostly to the right → exit right side, enter left side</li>
+	 *   <li>If target is mostly to the left → exit left side, enter right side</li>
+	 *   <li>If target is mostly above → exit top, enter bottom</li>
+	 *   <li>If target is mostly below → exit bottom, enter top</li>
+	 * </ul>
+	 */
+	private static String appendPortStyle(final String baseStyle, final Object source, final Object target,
+			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions) {
+		final int[] srcPos = positions.get(source);
+		final int[] srcDim = dimensions.get(source);
+		final int[] tgtPos = positions.get(target);
+		final int[] tgtDim = dimensions.get(target);
+		if (srcPos == null || srcDim == null || tgtPos == null || tgtDim == null) {
+			return baseStyle;
+		}
+		// Centers
+		final double srcCx = srcPos[0] + srcDim[0] * 0.5;
+		final double srcCy = srcPos[1] + srcDim[1] * 0.5;
+		final double tgtCx = tgtPos[0] + tgtDim[0] * 0.5;
+		final double tgtCy = tgtPos[1] + tgtDim[1] * 0.5;
+		final double dx = tgtCx - srcCx;
+		final double dy = tgtCy - srcCy;
+
+		// Determine dominant direction (account for box aspect ratios)
+		final double absDx = Math.abs(dx);
+		final double absDy = Math.abs(dy);
+
+		double exitX;
+		double exitY;
+		double entryX;
+		double entryY;
+
+		if (absDx > absDy) {
+			// Horizontal dominant
+			if (dx > 0) {
+				// Target is to the right
+				exitX = 1.0;
+				exitY = 0.5;
+				entryX = 0.0;
+				entryY = 0.5;
+			} else {
+				// Target is to the left
+				exitX = 0.0;
+				exitY = 0.5;
+				entryX = 1.0;
+				entryY = 0.5;
+			}
+		} else {
+			// Vertical dominant
+			if (dy > 0) {
+				// Target is below
+				exitX = 0.5;
+				exitY = 1.0;
+				entryX = 0.5;
+				entryY = 0.0;
+			} else {
+				// Target is above
+				exitX = 0.5;
+				exitY = 0.0;
+				entryX = 0.5;
+				entryY = 1.0;
+			}
+		}
+
+		return baseStyle + "exitX=" + exitX + ";exitY=" + exitY + ";exitDx=0;exitDy=0;"
+				+ "entryX=" + entryX + ";entryY=" + entryY + ";entryDx=0;entryDy=0;";
 	}
 
 	/**
@@ -636,7 +714,7 @@ public class DrawioGenerateApi {
 			}
 		}
 
-		// Phase 4: Fruchterman-Reingold force-directed placement for blocks
+		// Phase 4: Force-directed placement for blocks
 		final int blockCount = blockKeys.size();
 		final double[] bx = new double[blockCount];
 		final double[] by = new double[blockCount];
@@ -649,16 +727,16 @@ public class DrawioGenerateApi {
 			bh[i] = dim[1];
 		}
 
-		// Initial placement: grid layout to start from a reasonable position
+		// Initial placement: compact grid
 		final int cols = Math.max(1, (int) Math.ceil(Math.sqrt(blockCount)));
-		int gridX = INITIAL_X;
-		int gridY = INITIAL_Y;
+		int gridX = 0;
+		int gridY = 0;
 		int rowMaxH = 0;
 		for (int i = 0; i < blockCount; i++) {
 			final int col = i % cols;
 			if (col == 0 && i > 0) {
-				gridY += rowMaxH + ROW_SPACING * 3;
-				gridX = INITIAL_X;
+				gridY += rowMaxH + ROW_SPACING;
+				gridX = 0;
 				rowMaxH = 0;
 			}
 			bx[i] = gridX;
@@ -669,39 +747,43 @@ public class DrawioGenerateApi {
 			}
 		}
 
-		// Force-directed iterations
-		final double area = (double) (gridX + 500) * (gridY + 500);
-		final double k = Math.sqrt(area / Math.max(blockCount, 1)) * 0.8;
-		double temperature = Math.max(gridX, gridY) * 0.3;
-		final int iterations = 120;
+		// Ideal gap between block edges — leave room for orthogonal edge routing
+		final double idealGap = 120.0;
+		double temperature = 200.0;
+		final int iterations = 150;
 
 		for (int iter = 0; iter < iterations; iter++) {
 			final double[] dispX = new double[blockCount];
 			final double[] dispY = new double[blockCount];
 
-			// Repulsive forces between all pairs
+			// Repulsive forces — based on gap between box edges, not center distance
 			for (int i = 0; i < blockCount; i++) {
 				for (int j = i + 1; j < blockCount; j++) {
-					// Use center-to-center distance
 					final double cx1 = bx[i] + bw[i] * 0.5;
 					final double cy1 = by[i] + bh[i] * 0.5;
 					final double cx2 = bx[j] + bw[j] * 0.5;
 					final double cy2 = by[j] + bh[j] * 0.5;
 					double dx = cx1 - cx2;
 					double dy = cy1 - cy2;
-					final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
-					// Repulsive force: k^2 / dist
-					final double force = (k * k) / dist;
-					dx = (dx / dist) * force;
-					dy = (dy / dist) * force;
-					dispX[i] += dx;
-					dispY[i] += dy;
-					dispX[j] -= dx;
-					dispY[j] -= dy;
+					// Gap = distance between edges (negative = overlap)
+					final double gapX = Math.abs(dx) - (bw[i] + bw[j]) * 0.5;
+					final double gapY = Math.abs(dy) - (bh[i] + bh[j]) * 0.5;
+					final double gap = Math.max(gapX, gapY);
+					// Only repel if boxes are closer than 2x ideal gap
+					if (gap < idealGap * 2) {
+						final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
+						// Stronger repulsion when overlapping, fades quickly with distance
+						final double effectiveGap = Math.max(gap, 1.0);
+						final double force = (idealGap * idealGap) / (effectiveGap * effectiveGap) * 2.0;
+						dispX[i] += (dx / dist) * force;
+						dispY[i] += (dy / dist) * force;
+						dispX[j] -= (dx / dist) * force;
+						dispY[j] -= (dy / dist) * force;
+					}
 				}
 			}
 
-			// Attractive forces along edges
+			// Attractive forces along edges — spring toward ideal gap
 			for (final int[] edge : blockEdges) {
 				final int i = edge[0];
 				final int j = edge[1];
@@ -713,14 +795,31 @@ public class DrawioGenerateApi {
 				double dx = cx1 - cx2;
 				double dy = cy1 - cy2;
 				final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
-				// Attractive force: dist^2 / k, scaled by weight
-				final double force = (dist * dist) / k * w * 0.5;
-				dx = (dx / dist) * force;
-				dy = (dy / dist) * force;
-				dispX[i] -= dx;
-				dispY[i] -= dy;
-				dispX[j] += dx;
-				dispY[j] += dy;
+				// Ideal center distance = half-widths + ideal gap
+				final double idealDist = (bw[i] + bw[j]) * 0.5 + idealGap;
+				// Spring force: proportional to (dist - ideal), scaled by weight
+				final double force = (dist - idealDist) / dist * w * 1.5;
+				dispX[i] -= (dx / dist) * force;
+				dispY[i] -= (dy / dist) * force;
+				dispX[j] += (dx / dist) * force;
+				dispY[j] += (dy / dist) * force;
+			}
+
+			// Gravity toward center — prevents circular explosion
+			double centerX = 0;
+			double centerY = 0;
+			for (int i = 0; i < blockCount; i++) {
+				centerX += bx[i] + bw[i] * 0.5;
+				centerY += by[i] + bh[i] * 0.5;
+			}
+			centerX /= blockCount;
+			centerY /= blockCount;
+			final double gravity = 0.3;
+			for (int i = 0; i < blockCount; i++) {
+				final double cx = bx[i] + bw[i] * 0.5;
+				final double cy = by[i] + bh[i] * 0.5;
+				dispX[i] -= (cx - centerX) * gravity;
+				dispY[i] -= (cy - centerY) * gravity;
 			}
 
 			// Apply displacements with temperature limiting
@@ -732,7 +831,7 @@ public class DrawioGenerateApi {
 			}
 
 			// Cool down
-			temperature *= 0.95;
+			temperature *= 0.97;
 		}
 
 		// Phase 5: Remove overlaps with sweep-based adjustment
@@ -904,7 +1003,7 @@ public class DrawioGenerateApi {
 			final int[] bw,
 			final int[] bh,
 			final int count) {
-		final int padding = 40;
+		final int padding = 80;
 		for (int pass = 0; pass < 50; pass++) {
 			boolean moved = false;
 			for (int i = 0; i < count; i++) {
