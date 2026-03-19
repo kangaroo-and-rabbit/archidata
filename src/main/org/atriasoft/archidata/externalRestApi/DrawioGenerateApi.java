@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -388,9 +389,9 @@ public class DrawioGenerateApi {
 		return null;
 	}
 
-	// ========== LAYOUT ==========
+	// ========== LAYOUT (Sugiyama algorithm) ==========
 
-	// ---------- Layout data structures ----------
+	// ---------- Data structures ----------
 
 	private static class LayoutEdge {
 		final Object source;
@@ -404,17 +405,27 @@ public class DrawioGenerateApi {
 		}
 	}
 
-	private static class PlacementUnit {
-		final InheritanceTree tree;
-		final List<ClassEnumModel> attachedEnums = new ArrayList<>();
-		final List<ApiGroupModel> attachedRest = new ArrayList<>();
+	private static class SugiyamaNode {
+		final Object element;
+		int layer = -1;
+		int orderInLayer = 0;
 
-		PlacementUnit(final InheritanceTree tree) {
-			this.tree = tree;
+		SugiyamaNode(final Object element) {
+			this.element = element;
 		}
 	}
 
-	// ---------- Phase 0: Collect weighted edges ----------
+	private static class DirectedEdge {
+		final SugiyamaNode from;
+		final SugiyamaNode to;
+
+		DirectedEdge(final SugiyamaNode from, final SugiyamaNode to) {
+			this.from = from;
+			this.to = to;
+		}
+	}
+
+	// ---------- Edge collection ----------
 
 	private static List<LayoutEdge> collectLayoutEdges(final List<ClassObjectModel> objectModels,
 			final List<ClassEnumModel> enumModels, final List<ApiGroupModel> restGroups) {
@@ -423,12 +434,11 @@ public class DrawioGenerateApi {
 		final Set<ClassEnumModel> enumModelSet = new HashSet<>(enumModels);
 
 		for (final ClassObjectModel model : objectModels) {
-			// Inheritance edges (weight=3)
+			// Inheritance edges (weight=3): child → parent
 			final ClassModel parent = model.getExtendsClass();
 			if (parent instanceof ClassObjectModel && objectModelSet.contains(parent)) {
 				edges.add(new LayoutEdge(model, parent, 3));
 			}
-			// Field edges
 			for (final FieldProperty field : model.getFields()) {
 				// linkClass/Relation (weight=2)
 				if (field.linkClass() != null && objectModelSet.contains(field.linkClass())) {
@@ -443,7 +453,7 @@ public class DrawioGenerateApi {
 						edges.add(new LayoutEdge(model, fkTarget, 2));
 					}
 				}
-				// Association - field type references (weight=1)
+				// Association (weight=1)
 				if (field.linkClass() == null && field.checkForeignKey() == null) {
 					final ClassModel leaf = resolveLeafModel(field.model());
 					if (leaf != null && leaf != model) {
@@ -490,502 +500,385 @@ public class DrawioGenerateApi {
 		return null;
 	}
 
-	// ---------- Main layout algorithm ----------
+	// ---------- Main layout algorithm (Sugiyama) ----------
 
 	/**
-	 * Main layout algorithm. Minimizes total edge distance using weighted adjacency BFS.
+	 * Sugiyama layered layout algorithm:
 	 * <ol>
-	 *   <li>Collect all weighted edges between elements</li>
-	 *   <li>Build placement units from inheritance trees</li>
-	 *   <li>Build weighted adjacency graph between units</li>
-	 *   <li>Attach enums and REST groups to their best unit</li>
-	 *   <li>Order columns via greedy BFS to minimize edge distances</li>
-	 *   <li>Place elements vertically with Y-alignment optimization</li>
+	 *   <li>Build directed graph and break cycles</li>
+	 *   <li>Assign layers (longest-path from sources)</li>
+	 *   <li>Reduce crossings (barycenter heuristic, 4 sweeps)</li>
+	 *   <li>Assign X/Y coordinates</li>
 	 * </ol>
 	 */
 	private static void layoutElements(final List<ApiGroupModel> restGroups,
 			final List<ClassObjectModel> objectModels, final List<ClassEnumModel> enumModels,
 			final Map<Object, int[]> dimensions, final Map<Object, int[]> positions) {
 
-		// Phase 0: Collect weighted edges
+		// Collect all elements and edges
 		final List<LayoutEdge> edges = collectLayoutEdges(objectModels, enumModels, restGroups);
 
-		// Phase 1: Build placement units from inheritance forest
-		final List<InheritanceTree> forest = buildInheritanceForest(objectModels);
-		final List<PlacementUnit> units = new ArrayList<>();
-		final Map<Object, PlacementUnit> elementToUnit = new HashMap<>();
-		for (final InheritanceTree tree : forest) {
-			final PlacementUnit unit = new PlacementUnit(tree);
-			units.add(unit);
-			for (final ClassObjectModel model : tree.allModels()) {
-				elementToUnit.put(model, unit);
+		// Create Sugiyama nodes for all elements
+		final Map<Object, SugiyamaNode> nodeMap = new LinkedHashMap<>();
+		for (final ClassObjectModel model : objectModels) {
+			nodeMap.put(model, new SugiyamaNode(model));
+		}
+		for (final ClassEnumModel model : enumModels) {
+			nodeMap.put(model, new SugiyamaNode(model));
+		}
+		for (final ApiGroupModel group : restGroups) {
+			nodeMap.put(group, new SugiyamaNode(group));
+		}
+
+		if (nodeMap.isEmpty()) {
+			return;
+		}
+
+		// Step 1: Build directed edges and break cycles
+		final List<DirectedEdge> dagEdges = buildDag(edges, nodeMap);
+
+		// Step 2: Assign layers (longest-path layering)
+		assignLayers(nodeMap, dagEdges);
+
+		// Step 3: Build layer structure
+		int maxLayer = 0;
+		for (final SugiyamaNode node : nodeMap.values()) {
+			if (node.layer > maxLayer) {
+				maxLayer = node.layer;
+			}
+		}
+		final List<List<SugiyamaNode>> layers = new ArrayList<>();
+		for (int i = 0; i <= maxLayer; i++) {
+			layers.add(new ArrayList<>());
+		}
+		for (final SugiyamaNode node : nodeMap.values()) {
+			layers.get(node.layer).add(node);
+		}
+		// Initial ordering within layers: sorted by name for determinism
+		for (final List<SugiyamaNode> layer : layers) {
+			layer.sort((final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a).compareTo(getNodeName(b)));
+			for (int i = 0; i < layer.size(); i++) {
+				layer.get(i).orderInLayer = i;
 			}
 		}
 
-		// Phase 2: Build weighted adjacency graph between units
-		final Map<PlacementUnit, Map<PlacementUnit, Integer>> unitAdjacency = new HashMap<>();
-		final Map<ApiGroupModel, Map<PlacementUnit, Integer>> restToUnitWeights = new HashMap<>();
-		final Map<ClassEnumModel, Map<PlacementUnit, Integer>> enumToUnitWeights = new HashMap<>();
+		// Build adjacency lists for crossing reduction
+		final Map<SugiyamaNode, List<SugiyamaNode>> successors = new HashMap<>();
+		final Map<SugiyamaNode, List<SugiyamaNode>> predecessors = new HashMap<>();
+		for (final DirectedEdge edge : dagEdges) {
+			successors.computeIfAbsent(edge.from, (final SugiyamaNode k) -> new ArrayList<>()).add(edge.to);
+			predecessors.computeIfAbsent(edge.to, (final SugiyamaNode k) -> new ArrayList<>()).add(edge.from);
+		}
+		// Also add undirected connections for edges that were NOT in the DAG (back-edges)
+		// to improve crossing reduction with all relationships
+		for (final LayoutEdge edge : edges) {
+			final SugiyamaNode from = nodeMap.get(edge.source);
+			final SugiyamaNode to = nodeMap.get(edge.target);
+			if (from != null && to != null && from != to) {
+				if (from.layer < to.layer) {
+					if (!successors.getOrDefault(from, List.of()).contains(to)) {
+						successors.computeIfAbsent(from, (final SugiyamaNode k) -> new ArrayList<>()).add(to);
+					}
+					if (!predecessors.getOrDefault(to, List.of()).contains(from)) {
+						predecessors.computeIfAbsent(to, (final SugiyamaNode k) -> new ArrayList<>()).add(from);
+					}
+				} else if (to.layer < from.layer) {
+					if (!successors.getOrDefault(to, List.of()).contains(from)) {
+						successors.computeIfAbsent(to, (final SugiyamaNode k) -> new ArrayList<>()).add(from);
+					}
+					if (!predecessors.getOrDefault(from, List.of()).contains(to)) {
+						predecessors.computeIfAbsent(from, (final SugiyamaNode k) -> new ArrayList<>()).add(to);
+					}
+				}
+			}
+		}
+
+		// Step 4: Crossing reduction (barycenter heuristic, 4 sweeps)
+		for (int sweep = 0; sweep < 4; sweep++) {
+			if (sweep % 2 == 0) {
+				// Top-down sweep
+				for (int l = 1; l < layers.size(); l++) {
+					barycentricOrder(layers.get(l), predecessors, true);
+				}
+			} else {
+				// Bottom-up sweep
+				for (int l = layers.size() - 2; l >= 0; l--) {
+					barycentricOrder(layers.get(l), successors, false);
+				}
+			}
+		}
+
+		// Step 5: Assign coordinates
+		assignCoordinates(layers, dimensions, positions);
+	}
+
+	// ---------- Step 1: Build DAG (break cycles via DFS) ----------
+
+	private static List<DirectedEdge> buildDag(final List<LayoutEdge> edges,
+			final Map<Object, SugiyamaNode> nodeMap) {
+		// Build adjacency list for cycle detection
+		final Map<SugiyamaNode, List<SugiyamaNode>> adj = new LinkedHashMap<>();
+		final Map<SugiyamaNode, Map<SugiyamaNode, Boolean>> edgeExists = new HashMap<>();
+
+		final List<DirectedEdge> result = new ArrayList<>();
 
 		for (final LayoutEdge edge : edges) {
-			final PlacementUnit sourceUnit = elementToUnit.get(edge.source);
-			final PlacementUnit targetUnit = elementToUnit.get(edge.target);
+			final SugiyamaNode from = nodeMap.get(edge.source);
+			final SugiyamaNode to = nodeMap.get(edge.target);
+			if (from == null || to == null || from == to) {
+				continue;
+			}
+			// Avoid duplicate directed edges
+			if (edgeExists.computeIfAbsent(from, (final SugiyamaNode k) -> new HashMap<>()).containsKey(to)) {
+				continue;
+			}
+			edgeExists.get(from).put(to, Boolean.TRUE);
+			adj.computeIfAbsent(from, (final SugiyamaNode k) -> new ArrayList<>()).add(to);
+		}
 
-			if (sourceUnit != null && targetUnit != null && sourceUnit != targetUnit) {
-				// Unit-to-unit edge
-				unitAdjacency.computeIfAbsent(sourceUnit, (final PlacementUnit k) -> new HashMap<>())
-						.merge(targetUnit, edge.weight, Integer::sum);
-				unitAdjacency.computeIfAbsent(targetUnit, (final PlacementUnit k) -> new HashMap<>())
-						.merge(sourceUnit, edge.weight, Integer::sum);
-			} else if (sourceUnit == null && edge.source instanceof ApiGroupModel) {
-				// REST → unit edge
-				if (targetUnit != null) {
-					restToUnitWeights.computeIfAbsent((ApiGroupModel) edge.source,
-							(final ApiGroupModel k) -> new HashMap<>()).merge(targetUnit, edge.weight, Integer::sum);
-				}
-			} else if (sourceUnit != null && edge.target instanceof ClassEnumModel) {
-				// Model → enum edge
-				enumToUnitWeights.computeIfAbsent((ClassEnumModel) edge.target,
-						(final ClassEnumModel k) -> new HashMap<>()).merge(sourceUnit, edge.weight, Integer::sum);
+		// DFS to detect and remove back-edges (cycle breaking)
+		final int white = 0;
+		final int gray = 1;
+		final int black = 2;
+		final Map<SugiyamaNode, Integer> color = new HashMap<>();
+		for (final SugiyamaNode node : nodeMap.values()) {
+			color.put(node, white);
+		}
+
+		// Sort nodes for deterministic DFS order
+		final List<SugiyamaNode> sortedNodes = new ArrayList<>(nodeMap.values());
+		sortedNodes.sort((final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a).compareTo(getNodeName(b)));
+
+		final Set<SugiyamaNode> backEdgeTargets = new HashSet<>();
+		for (final SugiyamaNode node : sortedNodes) {
+			if (color.get(node) == white) {
+				dfsCycleDetect(node, adj, color, backEdgeTargets, white, gray, black);
 			}
 		}
 
-		// Phase 3: Attach REST groups and enums to their best unit
-		final List<ApiGroupModel> unattachedRest = new ArrayList<>();
-		for (final ApiGroupModel group : restGroups) {
-			final PlacementUnit bestUnit = findBestUnit(restToUnitWeights.get(group));
-			if (bestUnit != null) {
-				bestUnit.attachedRest.add(group);
-			} else {
-				unattachedRest.add(group);
+		// Rebuild edges, skipping back-edges
+		for (final Map.Entry<SugiyamaNode, List<SugiyamaNode>> entry : adj.entrySet()) {
+			final SugiyamaNode from = entry.getKey();
+			for (final SugiyamaNode to : entry.getValue()) {
+				// A back-edge is from→to where 'to' was gray during DFS visit of 'from'
+				// We approximate: skip edge if it would create a cycle
+				// Simple heuristic: include all edges, then verify acyclicity
+				result.add(new DirectedEdge(from, to));
 			}
 		}
 
-		final List<ClassEnumModel> unattachedEnums = new ArrayList<>();
-		for (final ClassEnumModel enumModel : enumModels) {
-			final PlacementUnit bestUnit = findBestUnit(enumToUnitWeights.get(enumModel));
-			if (bestUnit != null) {
-				bestUnit.attachedEnums.add(enumModel);
-			} else {
-				unattachedEnums.add(enumModel);
-			}
-		}
-
-		// Phase 4: Order columns via greedy neighbor placement (BFS)
-		final List<PlacementUnit> columnOrder = orderColumnsByAdjacency(units, unitAdjacency);
-
-		// Phase 5: Place elements with Y-alignment optimization
-		int clusterX = INITIAL_X;
-
-		for (final PlacementUnit unit : columnOrder) {
-			// Compute ideal Y offset based on connected elements already placed
-			final int idealY = computeIdealY(unit, unitAdjacency, positions, dimensions, columnOrder);
-
-			// Place the inheritance tree
-			final int startY = Math.max(INITIAL_Y, idealY);
-			final int treeMaxY = placeInheritanceTree(unit.tree, unit.tree.root, clusterX, startY, dimensions,
-					positions);
-
-			// Place attached REST groups below the tree
-			int restY = treeMaxY + ROW_SPACING;
-			for (final ApiGroupModel group : unit.attachedRest) {
-				final int[] dim = dimensions.get(group);
-				positions.put(group, new int[] { clusterX, restY });
-				restY += dim[1] + ROW_SPACING;
-			}
-
-			// Place attached enums to the right of their best referencing model
-			for (final ClassEnumModel enumModel : unit.attachedEnums) {
-				final ClassObjectModel bestRef = findBestEnumReferencer(enumModel, unit.tree.allModels());
-				final int[] enumDim = dimensions.get(enumModel);
-				if (bestRef != null && positions.containsKey(bestRef)) {
-					final int[] refPos = positions.get(bestRef);
-					final int[] refDim = dimensions.get(bestRef);
-					final int enumX = refPos[0] + refDim[0] + COLUMN_SPACING / 2;
-					final int adjustedY = findNonOverlappingY(enumX, refPos[1], enumDim, positions, dimensions);
-					positions.put(enumModel, new int[] { enumX, adjustedY });
-				} else {
-					final int adjustedY = findNonOverlappingY(clusterX, startY, enumDim, positions, dimensions);
-					positions.put(enumModel, new int[] { clusterX, adjustedY });
-				}
-			}
-
-			// Compute cluster width (tree + REST + enums)
-			int clusterWidth = computeTreeWidth(unit.tree, unit.tree.root, dimensions);
-			for (final ApiGroupModel group : unit.attachedRest) {
-				final int[] dim = dimensions.get(group);
-				if (dim[0] > clusterWidth) {
-					clusterWidth = dim[0];
-				}
-			}
-			clusterX += clusterWidth + COLUMN_SPACING;
-		}
-
-		// Phase 6: Place unattached REST groups and enums
-		int orphanY = INITIAL_Y;
-		for (final ApiGroupModel group : unattachedRest) {
-			final int[] dim = dimensions.get(group);
-			positions.put(group, new int[] { clusterX, orphanY });
-			orphanY += dim[1] + ROW_SPACING;
-		}
-		for (final ClassEnumModel enumModel : unattachedEnums) {
-			final int[] dim = dimensions.get(enumModel);
-			positions.put(enumModel, new int[] { clusterX, orphanY });
-			orphanY += dim[1] + ROW_SPACING;
-		}
+		// Remove back-edges by verifying with topological sort
+		return removeBackEdges(result, nodeMap);
 	}
 
-	// ---------- Layout helpers ----------
-
-	/**
-	 * Find the unit with the highest total weight in a weight map.
-	 */
-	private static PlacementUnit findBestUnit(final Map<PlacementUnit, Integer> weights) {
-		if (weights == null || weights.isEmpty()) {
-			return null;
-		}
-		PlacementUnit best = null;
-		int bestWeight = 0;
-		for (final Map.Entry<PlacementUnit, Integer> entry : weights.entrySet()) {
-			if (entry.getValue() > bestWeight) {
-				bestWeight = entry.getValue();
-				best = entry.getKey();
+	private static void dfsCycleDetect(final SugiyamaNode node, final Map<SugiyamaNode, List<SugiyamaNode>> adj,
+			final Map<SugiyamaNode, Integer> color, final Set<SugiyamaNode> backEdgeTargets,
+			final int white, final int gray, final int black) {
+		color.put(node, gray);
+		final List<SugiyamaNode> neighbors = adj.getOrDefault(node, List.of());
+		for (final SugiyamaNode neighbor : neighbors) {
+			final int c = color.get(neighbor);
+			if (c == white) {
+				dfsCycleDetect(neighbor, adj, color, backEdgeTargets, white, gray, black);
 			}
 		}
-		return best;
+		color.put(node, black);
 	}
 
 	/**
-	 * Order placement units so that highly connected units are adjacent.
-	 * Uses greedy neighbor insertion: start with the most-connected unit,
-	 * then insert each remaining unit at the position minimizing total weighted distance.
+	 * Remove back-edges to make the graph acyclic using Kahn's algorithm.
 	 */
-	private static List<PlacementUnit> orderColumnsByAdjacency(final List<PlacementUnit> units,
-			final Map<PlacementUnit, Map<PlacementUnit, Integer>> adjacency) {
-		if (units.isEmpty()) {
-			return new ArrayList<>();
+	private static List<DirectedEdge> removeBackEdges(final List<DirectedEdge> edges,
+			final Map<Object, SugiyamaNode> nodeMap) {
+		// Compute in-degrees
+		final Map<SugiyamaNode, Integer> inDegree = new HashMap<>();
+		final Map<SugiyamaNode, List<DirectedEdge>> outEdges = new HashMap<>();
+		for (final SugiyamaNode node : nodeMap.values()) {
+			inDegree.put(node, 0);
 		}
-		if (units.size() == 1) {
-			return new ArrayList<>(units);
+		for (final DirectedEdge edge : edges) {
+			inDegree.merge(edge.to, 1, Integer::sum);
+			outEdges.computeIfAbsent(edge.from, (final SugiyamaNode k) -> new ArrayList<>()).add(edge);
 		}
 
-		// Find seed: unit with highest total adjacency weight
-		PlacementUnit seed = units.get(0);
-		int seedScore = 0;
-		for (final PlacementUnit unit : units) {
-			int totalWeight = 0;
-			final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
-			if (neighbors != null) {
-				for (final Integer w : neighbors.values()) {
-					totalWeight += w;
-				}
-			}
-			if (totalWeight > seedScore
-					|| (totalWeight == seedScore && getUnitName(unit).compareTo(getUnitName(seed)) < 0)) {
-				seedScore = totalWeight;
-				seed = unit;
+		// Kahn's topological sort
+		final LinkedList<SugiyamaNode> queue = new LinkedList<>();
+		for (final Map.Entry<SugiyamaNode, Integer> entry : inDegree.entrySet()) {
+			if (entry.getValue() == 0) {
+				queue.add(entry.getKey());
 			}
 		}
+		// Sort queue for determinism
+		queue.sort((final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a).compareTo(getNodeName(b)));
 
-		final LinkedList<PlacementUnit> ordered = new LinkedList<>();
-		ordered.add(seed);
-		final Set<PlacementUnit> placed = new HashSet<>();
-		placed.add(seed);
+		final Set<SugiyamaNode> visited = new LinkedHashSet<>();
+		final List<DirectedEdge> acyclicEdges = new ArrayList<>();
 
-		// Build a priority queue of candidates sorted by connection weight to placed units
-		while (placed.size() < units.size()) {
-			// Find the unplaced unit with the highest connection to placed units
-			PlacementUnit bestCandidate = null;
-			int bestCandidateWeight = -1;
-			for (final PlacementUnit unit : units) {
-				if (placed.contains(unit)) {
-					continue;
-				}
-				int connectionWeight = 0;
-				final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
-				if (neighbors != null) {
-					for (final PlacementUnit p : placed) {
-						final Integer w = neighbors.get(p);
-						if (w != null) {
-							connectionWeight += w;
-						}
+		while (!queue.isEmpty()) {
+			final SugiyamaNode node = queue.poll();
+			visited.add(node);
+			final List<DirectedEdge> outs = outEdges.getOrDefault(node, List.of());
+			for (final DirectedEdge edge : outs) {
+				if (!visited.contains(edge.to)) {
+					acyclicEdges.add(edge);
+					final int newDeg = inDegree.get(edge.to) - 1;
+					inDegree.put(edge.to, newDeg);
+					if (newDeg == 0) {
+						queue.add(edge.to);
+						// Re-sort for determinism
+						queue.sort((final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a)
+								.compareTo(getNodeName(b)));
 					}
 				}
-				if (connectionWeight > bestCandidateWeight
-						|| (connectionWeight == bestCandidateWeight && bestCandidate != null
-								&& getUnitName(unit).compareTo(getUnitName(bestCandidate)) < 0)) {
-					bestCandidateWeight = connectionWeight;
-					bestCandidate = unit;
-				}
 			}
-
-			if (bestCandidate == null) {
-				break;
-			}
-
-			// Find the best insertion position for this candidate
-			int bestPosition = ordered.size(); // default: append at end
-			double bestScore = Double.MAX_VALUE;
-
-			for (int pos = 0; pos <= ordered.size(); pos++) {
-				double score = 0.0;
-				final Map<PlacementUnit, Integer> neighbors = adjacency.get(bestCandidate);
-				if (neighbors != null) {
-					for (int j = 0; j < ordered.size(); j++) {
-						final Integer w = neighbors.get(ordered.get(j));
-						if (w != null) {
-							// Distance: difference in column indices after insertion
-							final int colJ = (j >= pos) ? j + 1 : j;
-							final int dist = Math.abs(pos - colJ);
-							score += w * dist;
-						}
-					}
-				}
-				if (score < bestScore) {
-					bestScore = score;
-					bestPosition = pos;
-				}
-			}
-
-			ordered.add(bestPosition, bestCandidate);
-			placed.add(bestCandidate);
 		}
 
-		return new ArrayList<>(ordered);
+		// Nodes not visited are in cycles — their edges are dropped
+		// Add edges between visited nodes only
+		return acyclicEdges;
 	}
 
-	private static String getUnitName(final PlacementUnit unit) {
-		return getSimpleName(unit.tree.root);
-	}
+	// ---------- Step 2: Layer assignment (longest path) ----------
 
-	/**
-	 * Compute an ideal Y offset for a unit based on connected elements already placed.
-	 */
-	private static int computeIdealY(final PlacementUnit unit,
-			final Map<PlacementUnit, Map<PlacementUnit, Integer>> adjacency,
-			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions,
-			final List<PlacementUnit> columnOrder) {
-		final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
-		if (neighbors == null || neighbors.isEmpty()) {
-			return INITIAL_Y;
+	private static void assignLayers(final Map<Object, SugiyamaNode> nodeMap, final List<DirectedEdge> dagEdges) {
+		// Build predecessor map
+		final Map<SugiyamaNode, List<SugiyamaNode>> preds = new HashMap<>();
+		final Map<SugiyamaNode, List<SugiyamaNode>> succs = new HashMap<>();
+		for (final DirectedEdge edge : dagEdges) {
+			preds.computeIfAbsent(edge.to, (final SugiyamaNode k) -> new ArrayList<>()).add(edge.from);
+			succs.computeIfAbsent(edge.from, (final SugiyamaNode k) -> new ArrayList<>()).add(edge.to);
 		}
-		int weightedSumY = 0;
-		int totalWeight = 0;
-		for (final Map.Entry<PlacementUnit, Integer> entry : neighbors.entrySet()) {
-			final PlacementUnit neighbor = entry.getKey();
-			// Only consider neighbors that have already been placed
-			final int[] rootPos = positions.get(neighbor.tree.root);
-			if (rootPos != null) {
-				final int w = entry.getValue();
-				weightedSumY += rootPos[1] * w;
-				totalWeight += w;
+
+		// Topological order via Kahn's algorithm
+		final Map<SugiyamaNode, Integer> inDegree = new HashMap<>();
+		for (final SugiyamaNode node : nodeMap.values()) {
+			inDegree.put(node, 0);
+		}
+		for (final DirectedEdge edge : dagEdges) {
+			inDegree.merge(edge.to, 1, Integer::sum);
+		}
+
+		final LinkedList<SugiyamaNode> queue = new LinkedList<>();
+		for (final SugiyamaNode node : nodeMap.values()) {
+			if (inDegree.getOrDefault(node, 0) == 0) {
+				node.layer = 0;
+				queue.add(node);
 			}
 		}
-		if (totalWeight == 0) {
-			return INITIAL_Y;
+		queue.sort((final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a).compareTo(getNodeName(b)));
+
+		while (!queue.isEmpty()) {
+			final SugiyamaNode node = queue.poll();
+			final List<SugiyamaNode> successors = succs.getOrDefault(node, List.of());
+			for (final SugiyamaNode succ : successors) {
+				// Successor's layer = max(current layer, predecessor layer + 1)
+				final int candidateLayer = node.layer + 1;
+				if (candidateLayer > succ.layer) {
+					succ.layer = candidateLayer;
+				}
+				final int newDeg = inDegree.get(succ) - 1;
+				inDegree.put(succ, newDeg);
+				if (newDeg == 0) {
+					queue.add(succ);
+					queue.sort(
+							(final SugiyamaNode a, final SugiyamaNode b) -> getNodeName(a).compareTo(getNodeName(b)));
+				}
+			}
 		}
-		return weightedSumY / totalWeight;
+
+		// Any unvisited nodes (in cycles that were completely removed) → layer 0
+		for (final SugiyamaNode node : nodeMap.values()) {
+			if (node.layer < 0) {
+				node.layer = 0;
+			}
+		}
 	}
 
-	/**
-	 * Find the model in a list that references the given enum the most.
-	 */
-	private static ClassObjectModel findBestEnumReferencer(final ClassEnumModel enumModel,
-			final List<ClassObjectModel> models) {
-		ClassObjectModel best = null;
-		int bestCount = 0;
-		for (final ClassObjectModel model : models) {
-			int count = 0;
-			for (final FieldProperty field : model.getFields()) {
-				final ClassModel leaf = resolveLeafModel(field.model());
-				if (leaf == enumModel) {
+	// ---------- Step 3: Crossing reduction (barycenter) ----------
+
+	private static void barycentricOrder(final List<SugiyamaNode> layer,
+			final Map<SugiyamaNode, List<SugiyamaNode>> neighbors, final boolean usePredecessors) {
+		// Compute barycenter for each node
+		final Map<SugiyamaNode, Double> barycenter = new HashMap<>();
+		for (final SugiyamaNode node : layer) {
+			final List<SugiyamaNode> connected = neighbors.getOrDefault(node, List.of());
+			if (connected.isEmpty()) {
+				barycenter.put(node, (double) node.orderInLayer);
+			} else {
+				double sum = 0.0;
+				int count = 0;
+				for (final SugiyamaNode neighbor : connected) {
+					sum += neighbor.orderInLayer;
 					count++;
 				}
-			}
-			if (count > bestCount) {
-				bestCount = count;
-				best = model;
+				barycenter.put(node, sum / count);
 			}
 		}
-		return best;
-	}
 
-	// ---------- Inheritance tree data structure ----------
-
-	private static class InheritanceTree {
-		final ClassObjectModel root;
-		final Map<ClassObjectModel, List<ClassObjectModel>> childrenMap = new LinkedHashMap<>();
-
-		InheritanceTree(final ClassObjectModel root) {
-			this.root = root;
-		}
-
-		void addChild(final ClassObjectModel parent, final ClassObjectModel child) {
-			this.childrenMap.computeIfAbsent(parent, (final ClassObjectModel k) -> new ArrayList<>()).add(child);
-		}
-
-		List<ClassObjectModel> getChildren(final ClassObjectModel model) {
-			return this.childrenMap.getOrDefault(model, List.of());
-		}
-
-		/** Returns all models in this tree via BFS. */
-		List<ClassObjectModel> allModels() {
-			final List<ClassObjectModel> result = new ArrayList<>();
-			final LinkedList<ClassObjectModel> queue = new LinkedList<>();
-			queue.add(this.root);
-			while (!queue.isEmpty()) {
-				final ClassObjectModel model = queue.poll();
-				result.add(model);
-				queue.addAll(getChildren(model));
+		// Sort by barycenter, tie-break by name
+		layer.sort((final SugiyamaNode a, final SugiyamaNode b) -> {
+			final int cmp = Double.compare(barycenter.getOrDefault(a, 0.0), barycenter.getOrDefault(b, 0.0));
+			if (cmp != 0) {
+				return cmp;
 			}
-			return result;
+			return getNodeName(a).compareTo(getNodeName(b));
+		});
+
+		// Update orderInLayer
+		for (int i = 0; i < layer.size(); i++) {
+			layer.get(i).orderInLayer = i;
 		}
 	}
 
-	/**
-	 * Build a forest of inheritance trees from the flat list of models.
-	 * Models without a parent (or whose parent is not in the list) become tree roots.
-	 */
-	private static List<InheritanceTree> buildInheritanceForest(final List<ClassObjectModel> models) {
-		final Set<ClassObjectModel> modelSet = new HashSet<>(models);
-		final Map<ClassObjectModel, ClassObjectModel> parentMap = new HashMap<>();
-		final Map<ClassObjectModel, InheritanceTree> rootToTree = new LinkedHashMap<>();
+	// ---------- Step 4: Coordinate assignment ----------
 
-		// Build parent-child relationships
-		for (final ClassObjectModel model : models) {
-			final ClassModel extendsClass = model.getExtendsClass();
-			if (extendsClass instanceof ClassObjectModel) {
-				final ClassObjectModel parent = (ClassObjectModel) extendsClass;
-				if (modelSet.contains(parent)) {
-					parentMap.put(model, parent);
+	private static void assignCoordinates(final List<List<SugiyamaNode>> layers,
+			final Map<Object, int[]> dimensions, final Map<Object, int[]> positions) {
+		// Compute Y for each layer band
+		final int[] layerY = new int[layers.size()];
+		final int[] layerHeight = new int[layers.size()];
+		int currentY = INITIAL_Y;
+		for (int l = 0; l < layers.size(); l++) {
+			layerY[l] = currentY;
+			int maxHeight = 0;
+			for (final SugiyamaNode node : layers.get(l)) {
+				final int[] dim = dimensions.get(node.element);
+				if (dim != null && dim[1] > maxHeight) {
+					maxHeight = dim[1];
 				}
 			}
+			layerHeight[l] = maxHeight;
+			currentY += maxHeight + ROW_SPACING;
 		}
 
-		// Find roots (models with no parent in the set)
-		for (final ClassObjectModel model : models) {
-			if (!parentMap.containsKey(model)) {
-				rootToTree.put(model, new InheritanceTree(model));
-			}
-		}
-
-		// Build trees
-		for (final Map.Entry<ClassObjectModel, ClassObjectModel> entry : parentMap.entrySet()) {
-			final ClassObjectModel child = entry.getKey();
-			final ClassObjectModel parent = entry.getValue();
-			// Find the root of this parent
-			ClassObjectModel root = parent;
-			while (parentMap.containsKey(root)) {
-				root = parentMap.get(root);
-			}
-			final InheritanceTree tree = rootToTree.get(root);
-			if (tree != null) {
-				tree.addChild(parent, child);
-			}
-		}
-
-		return new ArrayList<>(rootToTree.values());
-	}
-
-	// ---------- Tree layout ----------
-
-	/**
-	 * Place an inheritance tree: parent centered above its children.
-	 * Returns the max Y used by this subtree.
-	 */
-	private static int placeInheritanceTree(final InheritanceTree tree, final ClassObjectModel model,
-			final int subtreeX, final int y, final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> positions) {
-		final int[] dim = dimensions.get(model);
-		if (dim == null) {
-			return y;
-		}
-		final List<ClassObjectModel> children = tree.getChildren(model);
-
-		if (children.isEmpty()) {
-			// Leaf node: just place it
-			positions.put(model, new int[] { subtreeX, y });
-			return y + dim[1];
-		}
-
-		// Recursively place children side-by-side below
-		final int childrenY = y + dim[1] + ROW_SPACING;
-		int childX = subtreeX;
-		int maxChildY = childrenY;
-		final List<int[]> childPositions = new ArrayList<>();
-
-		for (final ClassObjectModel child : children) {
-			final int childMaxY = placeInheritanceTree(tree, child, childX, childrenY, dimensions, positions);
-			final int childTreeWidth = computeTreeWidth(tree, child, dimensions);
-			childPositions.add(new int[] { childX, childTreeWidth });
-			childX += childTreeWidth + ROW_SPACING;
-			if (childMaxY > maxChildY) {
-				maxChildY = childMaxY;
-			}
-		}
-
-		// Center parent above children span
-		final int childrenSpanStart = childPositions.get(0)[0];
-		final int lastChild = childPositions.get(childPositions.size() - 1)[0];
-		final int lastChildWidth = childPositions.get(childPositions.size() - 1)[1];
-		final int childrenSpanEnd = lastChild + lastChildWidth;
-		final int parentX = childrenSpanStart + (childrenSpanEnd - childrenSpanStart - dim[0]) / 2;
-
-		positions.put(model, new int[] { Math.max(subtreeX, parentX), y });
-		return maxChildY;
-	}
-
-	/**
-	 * Compute the total width of a subtree rooted at the given model.
-	 */
-	private static int computeTreeWidth(final InheritanceTree tree, final ClassObjectModel model,
-			final Map<Object, int[]> dimensions) {
-		final int[] dim = dimensions.get(model);
-		if (dim == null) {
-			return 0;
-		}
-		final List<ClassObjectModel> children = tree.getChildren(model);
-		if (children.isEmpty()) {
-			return dim[0];
-		}
-		int childrenWidth = 0;
-		for (int i = 0; i < children.size(); i++) {
-			if (i > 0) {
-				childrenWidth += ROW_SPACING;
-			}
-			childrenWidth += computeTreeWidth(tree, children.get(i), dimensions);
-		}
-		return Math.max(dim[0], childrenWidth);
-	}
-
-	/**
-	 * Find a Y position that doesn't overlap with existing positioned elements.
-	 */
-	private static int findNonOverlappingY(final int x, final int startY, final int[] dim,
-			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions) {
-		int y = startY;
-		boolean collision = true;
-		while (collision) {
-			collision = false;
-			for (final Map.Entry<Object, int[]> entry : positions.entrySet()) {
-				final int[] existingPos = entry.getValue();
-				final int[] existingDim = dimensions.get(entry.getKey());
-				if (existingDim == null) {
+		// Assign X within each layer
+		for (int l = 0; l < layers.size(); l++) {
+			int currentX = INITIAL_X;
+			for (final SugiyamaNode node : layers.get(l)) {
+				final int[] dim = dimensions.get(node.element);
+				if (dim == null) {
 					continue;
 				}
-				// Check horizontal overlap
-				if (x < existingPos[0] + existingDim[0] && x + dim[0] > existingPos[0]) {
-					// Check vertical overlap
-					if (y < existingPos[1] + existingDim[1] + ROW_SPACING / 2
-							&& y + dim[1] > existingPos[1] - ROW_SPACING / 2) {
-						y = existingPos[1] + existingDim[1] + ROW_SPACING;
-						collision = true;
-						break;
-					}
-				}
+				positions.put(node.element, new int[] { currentX, layerY[l] });
+				currentX += dim[0] + COLUMN_SPACING;
 			}
 		}
-		return y;
+	}
+
+	// ---------- Helpers ----------
+
+	private static String getNodeName(final SugiyamaNode node) {
+		final Object elem = node.element;
+		if (elem instanceof ClassObjectModel) {
+			return getSimpleName((ClassModel) elem);
+		}
+		if (elem instanceof ClassEnumModel) {
+			return getSimpleName((ClassModel) elem);
+		}
+		if (elem instanceof ApiGroupModel) {
+			return ((ApiGroupModel) elem).name;
+		}
+		return elem.toString();
 	}
 
 	// ========== DIMENSIONS ==========
@@ -1111,7 +1004,7 @@ public class DrawioGenerateApi {
 				+ "<mxfile host=\"archidata\">\n"
 				+ "\t<diagram id=\"archidata-diagram\" name=\"Page-1\">\n"
 				+ "\t\t<mxGraphModel dx=\"" + dx + "\" dy=\"" + dy
-				+ "\" grid=\"1\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" pageWidth=\""
+				+ "\" grid=\"0\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"0\" pageScale=\"1\" background=\"#FFFFFF\" pageWidth=\""
 				+ Math.max(1100, dx + 100) + "\" pageHeight=\"" + Math.max(850, dy + 100)
 				+ "\" math=\"0\" shadow=\"0\">\n"
 				+ "\t\t\t<root>\n"
