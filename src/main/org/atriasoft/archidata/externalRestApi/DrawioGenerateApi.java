@@ -390,101 +390,424 @@ public class DrawioGenerateApi {
 
 	// ========== LAYOUT ==========
 
+	// ---------- Layout data structures ----------
+
+	private static class LayoutEdge {
+		final Object source;
+		final Object target;
+		final int weight;
+
+		LayoutEdge(final Object source, final Object target, final int weight) {
+			this.source = source;
+			this.target = target;
+			this.weight = weight;
+		}
+	}
+
+	private static class PlacementUnit {
+		final InheritanceTree tree;
+		final List<ClassEnumModel> attachedEnums = new ArrayList<>();
+		final List<ApiGroupModel> attachedRest = new ArrayList<>();
+
+		PlacementUnit(final InheritanceTree tree) {
+			this.tree = tree;
+		}
+	}
+
+	// ---------- Phase 0: Collect weighted edges ----------
+
+	private static List<LayoutEdge> collectLayoutEdges(final List<ClassObjectModel> objectModels,
+			final List<ClassEnumModel> enumModels, final List<ApiGroupModel> restGroups) {
+		final List<LayoutEdge> edges = new ArrayList<>();
+		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
+		final Set<ClassEnumModel> enumModelSet = new HashSet<>(enumModels);
+
+		for (final ClassObjectModel model : objectModels) {
+			// Inheritance edges (weight=3)
+			final ClassModel parent = model.getExtendsClass();
+			if (parent instanceof ClassObjectModel && objectModelSet.contains(parent)) {
+				edges.add(new LayoutEdge(model, parent, 3));
+			}
+			// Field edges
+			for (final FieldProperty field : model.getFields()) {
+				// linkClass/Relation (weight=2)
+				if (field.linkClass() != null && objectModelSet.contains(field.linkClass())) {
+					if (field.linkClass() != model) {
+						edges.add(new LayoutEdge(model, field.linkClass(), 2));
+					}
+				}
+				// CheckForeignKey (weight=2)
+				if (field.linkClass() == null && field.checkForeignKey() != null) {
+					final ClassModel fkTarget = findModelByClass(field.checkForeignKey().target(), objectModels);
+					if (fkTarget != null && fkTarget != model) {
+						edges.add(new LayoutEdge(model, fkTarget, 2));
+					}
+				}
+				// Association - field type references (weight=1)
+				if (field.linkClass() == null && field.checkForeignKey() == null) {
+					final ClassModel leaf = resolveLeafModel(field.model());
+					if (leaf != null && leaf != model) {
+						if (leaf instanceof ClassObjectModel && objectModelSet.contains(leaf)) {
+							edges.add(new LayoutEdge(model, leaf, 1));
+						} else if (leaf instanceof ClassEnumModel && enumModelSet.contains(leaf)) {
+							edges.add(new LayoutEdge(model, leaf, 1));
+						}
+					}
+				}
+			}
+		}
+
+		// REST → model edges (weight=2)
+		for (final ApiGroupModel group : restGroups) {
+			for (final ApiModel endpoint : group.interfaces) {
+				for (final ClassModel returnModel : endpoint.returnTypes) {
+					final ClassModel leaf = resolveLeafModel(returnModel);
+					if (leaf != null && (objectModelSet.contains(leaf) || enumModelSet.contains(leaf))) {
+						edges.add(new LayoutEdge(group, leaf, 2));
+					}
+				}
+				for (final ParameterClassModelList param : endpoint.unnamedElement) {
+					for (final ClassModel bodyModel : param.models()) {
+						final ClassModel leaf = resolveLeafModel(bodyModel);
+						if (leaf != null && (objectModelSet.contains(leaf) || enumModelSet.contains(leaf))) {
+							edges.add(new LayoutEdge(group, leaf, 2));
+						}
+					}
+				}
+			}
+		}
+
+		return edges;
+	}
+
+	private static ClassModel findModelByClass(final Class<?> targetClass,
+			final List<ClassObjectModel> objectModels) {
+		for (final ClassObjectModel model : objectModels) {
+			if (model.getOriginClasses() == targetClass) {
+				return model;
+			}
+		}
+		return null;
+	}
+
+	// ---------- Main layout algorithm ----------
+
 	/**
-	 * Main layout algorithm. Places elements as clusters (model tree + associated REST).
+	 * Main layout algorithm. Minimizes total edge distance using weighted adjacency BFS.
 	 * <ol>
-	 *   <li>Build inheritance trees and place them as tree sub-layouts</li>
-	 *   <li>Order trees by connectivity (most-connected first)</li>
-	 *   <li>Place REST groups below their associated model tree (same cluster)</li>
-	 *   <li>Place enums near the models that use them</li>
+	 *   <li>Collect all weighted edges between elements</li>
+	 *   <li>Build placement units from inheritance trees</li>
+	 *   <li>Build weighted adjacency graph between units</li>
+	 *   <li>Attach enums and REST groups to their best unit</li>
+	 *   <li>Order columns via greedy BFS to minimize edge distances</li>
+	 *   <li>Place elements vertically with Y-alignment optimization</li>
 	 * </ol>
 	 */
 	private static void layoutElements(final List<ApiGroupModel> restGroups,
 			final List<ClassObjectModel> objectModels, final List<ClassEnumModel> enumModels,
 			final Map<Object, int[]> dimensions, final Map<Object, int[]> positions) {
 
-		// Step 1: Build inheritance forest (trees of parent→children)
+		// Phase 0: Collect weighted edges
+		final List<LayoutEdge> edges = collectLayoutEdges(objectModels, enumModels, restGroups);
+
+		// Phase 1: Build placement units from inheritance forest
 		final List<InheritanceTree> forest = buildInheritanceForest(objectModels);
-
-		// Step 2: Compute connectivity score for each tree
-		final Map<InheritanceTree, Integer> treeConnectivity = new HashMap<>();
+		final List<PlacementUnit> units = new ArrayList<>();
+		final Map<Object, PlacementUnit> elementToUnit = new HashMap<>();
 		for (final InheritanceTree tree : forest) {
-			int score = 0;
+			final PlacementUnit unit = new PlacementUnit(tree);
+			units.add(unit);
 			for (final ClassObjectModel model : tree.allModels()) {
-				score += countModelReferences(model, objectModels, restGroups);
+				elementToUnit.put(model, unit);
 			}
-			treeConnectivity.put(tree, score);
 		}
-		forest.sort((final InheritanceTree a, final InheritanceTree b) -> treeConnectivity.getOrDefault(b, 0)
-				- treeConnectivity.getOrDefault(a, 0));
 
-		// Step 3: Associate REST groups with their primary model's tree
-		final Map<InheritanceTree, List<ApiGroupModel>> treeRestGroups = new LinkedHashMap<>();
-		final List<ApiGroupModel> unassociatedRest = new ArrayList<>();
-		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
-		for (final InheritanceTree tree : forest) {
-			treeRestGroups.put(tree, new ArrayList<>());
-		}
-		for (final ApiGroupModel group : restGroups) {
-			final ClassObjectModel primaryModel = findPrimaryModel(group, objectModels);
-			boolean associated = false;
-			if (primaryModel != null) {
-				for (final InheritanceTree tree : forest) {
-					if (tree.allModels().contains(primaryModel)) {
-						treeRestGroups.get(tree).add(group);
-						associated = true;
-						break;
-					}
+		// Phase 2: Build weighted adjacency graph between units
+		final Map<PlacementUnit, Map<PlacementUnit, Integer>> unitAdjacency = new HashMap<>();
+		final Map<ApiGroupModel, Map<PlacementUnit, Integer>> restToUnitWeights = new HashMap<>();
+		final Map<ClassEnumModel, Map<PlacementUnit, Integer>> enumToUnitWeights = new HashMap<>();
+
+		for (final LayoutEdge edge : edges) {
+			final PlacementUnit sourceUnit = elementToUnit.get(edge.source);
+			final PlacementUnit targetUnit = elementToUnit.get(edge.target);
+
+			if (sourceUnit != null && targetUnit != null && sourceUnit != targetUnit) {
+				// Unit-to-unit edge
+				unitAdjacency.computeIfAbsent(sourceUnit, (final PlacementUnit k) -> new HashMap<>())
+						.merge(targetUnit, edge.weight, Integer::sum);
+				unitAdjacency.computeIfAbsent(targetUnit, (final PlacementUnit k) -> new HashMap<>())
+						.merge(sourceUnit, edge.weight, Integer::sum);
+			} else if (sourceUnit == null && edge.source instanceof ApiGroupModel) {
+				// REST → unit edge
+				if (targetUnit != null) {
+					restToUnitWeights.computeIfAbsent((ApiGroupModel) edge.source,
+							(final ApiGroupModel k) -> new HashMap<>()).merge(targetUnit, edge.weight, Integer::sum);
 				}
-			}
-			if (!associated) {
-				unassociatedRest.add(group);
+			} else if (sourceUnit != null && edge.target instanceof ClassEnumModel) {
+				// Model → enum edge
+				enumToUnitWeights.computeIfAbsent((ClassEnumModel) edge.target,
+						(final ClassEnumModel k) -> new HashMap<>()).merge(sourceUnit, edge.weight, Integer::sum);
 			}
 		}
 
-		// Step 4: Place clusters (tree + REST below it)
+		// Phase 3: Attach REST groups and enums to their best unit
+		final List<ApiGroupModel> unattachedRest = new ArrayList<>();
+		for (final ApiGroupModel group : restGroups) {
+			final PlacementUnit bestUnit = findBestUnit(restToUnitWeights.get(group));
+			if (bestUnit != null) {
+				bestUnit.attachedRest.add(group);
+			} else {
+				unattachedRest.add(group);
+			}
+		}
+
+		final List<ClassEnumModel> unattachedEnums = new ArrayList<>();
+		for (final ClassEnumModel enumModel : enumModels) {
+			final PlacementUnit bestUnit = findBestUnit(enumToUnitWeights.get(enumModel));
+			if (bestUnit != null) {
+				bestUnit.attachedEnums.add(enumModel);
+			} else {
+				unattachedEnums.add(enumModel);
+			}
+		}
+
+		// Phase 4: Order columns via greedy neighbor placement (BFS)
+		final List<PlacementUnit> columnOrder = orderColumnsByAdjacency(units, unitAdjacency);
+
+		// Phase 5: Place elements with Y-alignment optimization
 		int clusterX = INITIAL_X;
-		int maxEndX = INITIAL_X;
 
-		for (final InheritanceTree tree : forest) {
+		for (final PlacementUnit unit : columnOrder) {
+			// Compute ideal Y offset based on connected elements already placed
+			final int idealY = computeIdealY(unit, unitAdjacency, positions, dimensions, columnOrder);
+
 			// Place the inheritance tree
-			final int treeMaxY = placeInheritanceTree(tree, tree.root, clusterX, INITIAL_Y, dimensions, positions);
+			final int startY = Math.max(INITIAL_Y, idealY);
+			final int treeMaxY = placeInheritanceTree(unit.tree, unit.tree.root, clusterX, startY, dimensions,
+					positions);
 
-			// Place associated REST groups below the tree
+			// Place attached REST groups below the tree
 			int restY = treeMaxY + ROW_SPACING;
-			final List<ApiGroupModel> associatedRest = treeRestGroups.get(tree);
-			for (final ApiGroupModel group : associatedRest) {
+			for (final ApiGroupModel group : unit.attachedRest) {
 				final int[] dim = dimensions.get(group);
 				positions.put(group, new int[] { clusterX, restY });
 				restY += dim[1] + ROW_SPACING;
 			}
 
-			final int treeWidth = computeTreeWidth(tree, tree.root, dimensions);
-			// Account for REST width too
-			int clusterWidth = treeWidth;
-			for (final ApiGroupModel group : associatedRest) {
+			// Place attached enums to the right of their best referencing model
+			for (final ClassEnumModel enumModel : unit.attachedEnums) {
+				final ClassObjectModel bestRef = findBestEnumReferencer(enumModel, unit.tree.allModels());
+				final int[] enumDim = dimensions.get(enumModel);
+				if (bestRef != null && positions.containsKey(bestRef)) {
+					final int[] refPos = positions.get(bestRef);
+					final int[] refDim = dimensions.get(bestRef);
+					final int enumX = refPos[0] + refDim[0] + COLUMN_SPACING / 2;
+					final int adjustedY = findNonOverlappingY(enumX, refPos[1], enumDim, positions, dimensions);
+					positions.put(enumModel, new int[] { enumX, adjustedY });
+				} else {
+					final int adjustedY = findNonOverlappingY(clusterX, startY, enumDim, positions, dimensions);
+					positions.put(enumModel, new int[] { clusterX, adjustedY });
+				}
+			}
+
+			// Compute cluster width (tree + REST + enums)
+			int clusterWidth = computeTreeWidth(unit.tree, unit.tree.root, dimensions);
+			for (final ApiGroupModel group : unit.attachedRest) {
 				final int[] dim = dimensions.get(group);
 				if (dim[0] > clusterWidth) {
 					clusterWidth = dim[0];
 				}
 			}
-			if (clusterX + clusterWidth > maxEndX) {
-				maxEndX = clusterX + clusterWidth;
-			}
 			clusterX += clusterWidth + COLUMN_SPACING;
 		}
 
-		// Step 5: Place unassociated REST groups at the end
-		int unassocRestY = INITIAL_Y;
-		for (final ApiGroupModel group : unassociatedRest) {
+		// Phase 6: Place unattached REST groups and enums
+		int orphanY = INITIAL_Y;
+		for (final ApiGroupModel group : unattachedRest) {
 			final int[] dim = dimensions.get(group);
-			positions.put(group, new int[] { clusterX, unassocRestY });
-			unassocRestY += dim[1] + ROW_SPACING;
+			positions.put(group, new int[] { clusterX, orphanY });
+			orphanY += dim[1] + ROW_SPACING;
+		}
+		for (final ClassEnumModel enumModel : unattachedEnums) {
+			final int[] dim = dimensions.get(enumModel);
+			positions.put(enumModel, new int[] { clusterX, orphanY });
+			orphanY += dim[1] + ROW_SPACING;
+		}
+	}
+
+	// ---------- Layout helpers ----------
+
+	/**
+	 * Find the unit with the highest total weight in a weight map.
+	 */
+	private static PlacementUnit findBestUnit(final Map<PlacementUnit, Integer> weights) {
+		if (weights == null || weights.isEmpty()) {
+			return null;
+		}
+		PlacementUnit best = null;
+		int bestWeight = 0;
+		for (final Map.Entry<PlacementUnit, Integer> entry : weights.entrySet()) {
+			if (entry.getValue() > bestWeight) {
+				bestWeight = entry.getValue();
+				best = entry.getKey();
+			}
+		}
+		return best;
+	}
+
+	/**
+	 * Order placement units so that highly connected units are adjacent.
+	 * Uses greedy neighbor insertion: start with the most-connected unit,
+	 * then insert each remaining unit at the position minimizing total weighted distance.
+	 */
+	private static List<PlacementUnit> orderColumnsByAdjacency(final List<PlacementUnit> units,
+			final Map<PlacementUnit, Map<PlacementUnit, Integer>> adjacency) {
+		if (units.isEmpty()) {
+			return new ArrayList<>();
+		}
+		if (units.size() == 1) {
+			return new ArrayList<>(units);
 		}
 
-		// Step 6: Place enums near the models that reference them
-		final int enumFallbackX = unassociatedRest.isEmpty() ? clusterX : clusterX + COLUMN_SPACING;
-		placeEnumsNearModels(enumModels, objectModels, dimensions, positions, enumFallbackX, INITIAL_X);
+		// Find seed: unit with highest total adjacency weight
+		PlacementUnit seed = units.get(0);
+		int seedScore = 0;
+		for (final PlacementUnit unit : units) {
+			int totalWeight = 0;
+			final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
+			if (neighbors != null) {
+				for (final Integer w : neighbors.values()) {
+					totalWeight += w;
+				}
+			}
+			if (totalWeight > seedScore
+					|| (totalWeight == seedScore && getUnitName(unit).compareTo(getUnitName(seed)) < 0)) {
+				seedScore = totalWeight;
+				seed = unit;
+			}
+		}
+
+		final LinkedList<PlacementUnit> ordered = new LinkedList<>();
+		ordered.add(seed);
+		final Set<PlacementUnit> placed = new HashSet<>();
+		placed.add(seed);
+
+		// Build a priority queue of candidates sorted by connection weight to placed units
+		while (placed.size() < units.size()) {
+			// Find the unplaced unit with the highest connection to placed units
+			PlacementUnit bestCandidate = null;
+			int bestCandidateWeight = -1;
+			for (final PlacementUnit unit : units) {
+				if (placed.contains(unit)) {
+					continue;
+				}
+				int connectionWeight = 0;
+				final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
+				if (neighbors != null) {
+					for (final PlacementUnit p : placed) {
+						final Integer w = neighbors.get(p);
+						if (w != null) {
+							connectionWeight += w;
+						}
+					}
+				}
+				if (connectionWeight > bestCandidateWeight
+						|| (connectionWeight == bestCandidateWeight && bestCandidate != null
+								&& getUnitName(unit).compareTo(getUnitName(bestCandidate)) < 0)) {
+					bestCandidateWeight = connectionWeight;
+					bestCandidate = unit;
+				}
+			}
+
+			if (bestCandidate == null) {
+				break;
+			}
+
+			// Find the best insertion position for this candidate
+			int bestPosition = ordered.size(); // default: append at end
+			double bestScore = Double.MAX_VALUE;
+
+			for (int pos = 0; pos <= ordered.size(); pos++) {
+				double score = 0.0;
+				final Map<PlacementUnit, Integer> neighbors = adjacency.get(bestCandidate);
+				if (neighbors != null) {
+					for (int j = 0; j < ordered.size(); j++) {
+						final Integer w = neighbors.get(ordered.get(j));
+						if (w != null) {
+							// Distance: difference in column indices after insertion
+							final int colJ = (j >= pos) ? j + 1 : j;
+							final int dist = Math.abs(pos - colJ);
+							score += w * dist;
+						}
+					}
+				}
+				if (score < bestScore) {
+					bestScore = score;
+					bestPosition = pos;
+				}
+			}
+
+			ordered.add(bestPosition, bestCandidate);
+			placed.add(bestCandidate);
+		}
+
+		return new ArrayList<>(ordered);
+	}
+
+	private static String getUnitName(final PlacementUnit unit) {
+		return getSimpleName(unit.tree.root);
+	}
+
+	/**
+	 * Compute an ideal Y offset for a unit based on connected elements already placed.
+	 */
+	private static int computeIdealY(final PlacementUnit unit,
+			final Map<PlacementUnit, Map<PlacementUnit, Integer>> adjacency,
+			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions,
+			final List<PlacementUnit> columnOrder) {
+		final Map<PlacementUnit, Integer> neighbors = adjacency.get(unit);
+		if (neighbors == null || neighbors.isEmpty()) {
+			return INITIAL_Y;
+		}
+		int weightedSumY = 0;
+		int totalWeight = 0;
+		for (final Map.Entry<PlacementUnit, Integer> entry : neighbors.entrySet()) {
+			final PlacementUnit neighbor = entry.getKey();
+			// Only consider neighbors that have already been placed
+			final int[] rootPos = positions.get(neighbor.tree.root);
+			if (rootPos != null) {
+				final int w = entry.getValue();
+				weightedSumY += rootPos[1] * w;
+				totalWeight += w;
+			}
+		}
+		if (totalWeight == 0) {
+			return INITIAL_Y;
+		}
+		return weightedSumY / totalWeight;
+	}
+
+	/**
+	 * Find the model in a list that references the given enum the most.
+	 */
+	private static ClassObjectModel findBestEnumReferencer(final ClassEnumModel enumModel,
+			final List<ClassObjectModel> models) {
+		ClassObjectModel best = null;
+		int bestCount = 0;
+		for (final ClassObjectModel model : models) {
+			int count = 0;
+			for (final FieldProperty field : model.getFields()) {
+				final ClassModel leaf = resolveLeafModel(field.model());
+				if (leaf == enumModel) {
+					count++;
+				}
+			}
+			if (count > bestCount) {
+				bestCount = count;
+				best = model;
+			}
+		}
+		return best;
 	}
 
 	// ---------- Inheritance tree data structure ----------
@@ -635,58 +958,6 @@ public class DrawioGenerateApi {
 		return Math.max(dim[0], childrenWidth);
 	}
 
-	// ---------- Enum placement ----------
-
-	/**
-	 * Place enums near the models that reference them.
-	 * If an enum is referenced by a model, place it to the right of that model.
-	 * Unreferenced enums go in a column at the far right.
-	 */
-	private static void placeEnumsNearModels(final List<ClassEnumModel> enumModels,
-			final List<ClassObjectModel> objectModels, final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> positions, final int fallbackX, final int modelsStartX) {
-		final Set<ClassEnumModel> placed = new HashSet<>();
-
-		// For each enum, find the first model that references it
-		for (final ClassEnumModel enumModel : enumModels) {
-			ClassObjectModel bestReferencer = null;
-			for (final ClassObjectModel objModel : objectModels) {
-				for (final FieldProperty field : objModel.getFields()) {
-					final ClassModel leaf = resolveLeafModel(field.model());
-					if (leaf == enumModel) {
-						bestReferencer = objModel;
-						break;
-					}
-				}
-				if (bestReferencer != null) {
-					break;
-				}
-			}
-			if (bestReferencer != null && positions.containsKey(bestReferencer)) {
-				// Place enum to the right of the referencing model
-				final int[] refPos = positions.get(bestReferencer);
-				final int[] refDim = dimensions.get(bestReferencer);
-				final int[] enumDim = dimensions.get(enumModel);
-				final int enumX = refPos[0] + refDim[0] + COLUMN_SPACING / 2;
-				final int enumY = refPos[1];
-				// Check for overlap with existing positions and shift down if needed
-				final int adjustedY = findNonOverlappingY(enumX, enumY, enumDim, positions, dimensions);
-				positions.put(enumModel, new int[] { enumX, adjustedY });
-				placed.add(enumModel);
-			}
-		}
-
-		// Place remaining enums in a fallback column
-		int fallbackY = INITIAL_Y;
-		for (final ClassEnumModel enumModel : enumModels) {
-			if (!placed.contains(enumModel)) {
-				final int[] dim = dimensions.get(enumModel);
-				positions.put(enumModel, new int[] { fallbackX, fallbackY });
-				fallbackY += dim[1] + ROW_SPACING;
-			}
-		}
-	}
-
 	/**
 	 * Find a Y position that doesn't overlap with existing positioned elements.
 	 */
@@ -715,85 +986,6 @@ public class DrawioGenerateApi {
 			}
 		}
 		return y;
-	}
-
-	/**
-	 * Find the model most referenced by a REST group (via return types and request bodies).
-	 */
-	private static ClassObjectModel findPrimaryModel(final ApiGroupModel group,
-			final List<ClassObjectModel> objectModels) {
-		final Map<ClassObjectModel, Integer> refCount = new HashMap<>();
-		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
-
-		for (final ApiModel endpoint : group.interfaces) {
-			for (final ClassModel returnModel : endpoint.returnTypes) {
-				final ClassModel leaf = resolveLeafModel(returnModel);
-				if (leaf instanceof ClassObjectModel && objectModelSet.contains(leaf)) {
-					refCount.merge((ClassObjectModel) leaf, 1, Integer::sum);
-				}
-			}
-			for (final ParameterClassModelList param : endpoint.unnamedElement) {
-				for (final ClassModel bodyModel : param.models()) {
-					final ClassModel leaf = resolveLeafModel(bodyModel);
-					if (leaf instanceof ClassObjectModel && objectModelSet.contains(leaf)) {
-						refCount.merge((ClassObjectModel) leaf, 1, Integer::sum);
-					}
-				}
-			}
-		}
-
-		ClassObjectModel best = null;
-		int bestCount = 0;
-		for (final Map.Entry<ClassObjectModel, Integer> entry : refCount.entrySet()) {
-			if (entry.getValue() > bestCount) {
-				bestCount = entry.getValue();
-				best = entry.getKey();
-			}
-		}
-		return best;
-	}
-
-	// ---------- Helper for connectivity scoring ----------
-
-	/**
-	 * Count how many times a model is referenced by other models and REST endpoints.
-	 */
-	private static int countModelReferences(final ClassObjectModel model,
-			final List<ClassObjectModel> allModels, final List<ApiGroupModel> restGroups) {
-		int count = 0;
-		// Count references from other models' fields
-		for (final ClassObjectModel other : allModels) {
-			if (other == model) {
-				continue;
-			}
-			for (final FieldProperty field : other.getFields()) {
-				final ClassModel leaf = resolveLeafModel(field.model());
-				if (leaf == model) {
-					count++;
-				}
-				if (field.linkClass() == model) {
-					count++;
-				}
-			}
-		}
-		// Count references from REST endpoints
-		for (final ApiGroupModel group : restGroups) {
-			for (final ApiModel endpoint : group.interfaces) {
-				for (final ClassModel returnModel : endpoint.returnTypes) {
-					if (resolveLeafModel(returnModel) == model) {
-						count++;
-					}
-				}
-				for (final ParameterClassModelList param : endpoint.unnamedElement) {
-					for (final ClassModel bodyModel : param.models()) {
-						if (resolveLeafModel(bodyModel) == model) {
-							count++;
-						}
-					}
-				}
-			}
-		}
-		return count;
 	}
 
 	// ========== DIMENSIONS ==========
@@ -1011,6 +1203,12 @@ public class DrawioGenerateApi {
 				|| clazz == Float.class || clazz == float.class || clazz == Double.class || clazz == double.class
 				|| clazz == Short.class || clazz == short.class || clazz == Character.class || clazz == char.class
 				|| clazz == byte[].class) {
+			return false;
+		}
+		// Filter out common value types that don't need their own box
+		if (clazz == java.util.Date.class || clazz == org.bson.types.ObjectId.class
+				|| clazz == org.bson.Document.class || clazz == CharSequence.class
+				|| clazz == java.io.InputStream.class) {
 			return false;
 		}
 		return true;
