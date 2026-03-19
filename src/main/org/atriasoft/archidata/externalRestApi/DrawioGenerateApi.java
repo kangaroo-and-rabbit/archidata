@@ -296,7 +296,9 @@ public class DrawioGenerateApi {
 			final List<ApiGroupModel> restGroups,
 			final Map<ClassModel, String> modelNodeIds,
 			final Map<ApiGroupModel, String> restNodeIds,
-			final AnalyzeApi api) {
+			final AnalyzeApi api,
+			final Map<Object, int[]> positions,
+			final Map<Object, int[]> dimensions) {
 
 		// Inheritance edges (child → parent, arrow points UP to parent)
 		// These use fixed top/bottom ports defined in STYLE_INHERITANCE
@@ -411,8 +413,12 @@ public class DrawioGenerateApi {
 	 *   <li>If target is mostly below → exit bottom, enter top</li>
 	 * </ul>
 	 */
-	private static String appendPortStyle(final String baseStyle, final Object source, final Object target,
-			final Map<Object, int[]> positions, final Map<Object, int[]> dimensions) {
+	private static String appendPortStyle(
+			final String baseStyle,
+			final Object source,
+			final Object target,
+			final Map<Object, int[]> positions,
+			final Map<Object, int[]> dimensions) {
 		final int[] srcPos = positions.get(source);
 		final int[] srcDim = dimensions.get(source);
 		final int[] tgtPos = positions.get(target);
@@ -469,8 +475,8 @@ public class DrawioGenerateApi {
 			}
 		}
 
-		return baseStyle + "exitX=" + exitX + ";exitY=" + exitY + ";exitDx=0;exitDy=0;"
-				+ "entryX=" + entryX + ";entryY=" + entryY + ";entryDx=0;entryDy=0;";
+		return baseStyle + "exitX=" + exitX + ";exitY=" + exitY + ";exitDx=0;exitDy=0;" + "entryX=" + entryX
+				+ ";entryY=" + entryY + ";entryDx=0;entryDy=0;";
 	}
 
 	/**
