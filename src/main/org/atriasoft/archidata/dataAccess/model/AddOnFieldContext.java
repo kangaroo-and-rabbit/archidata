@@ -177,8 +177,8 @@ public final class AddOnFieldContext {
 		if (b.remoteField != null && !b.remoteField.isEmpty()) {
 			final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(b.remoteField);
 			if (remoteDesc == null) {
-				throw new IntrospectionException("Cannot find remote field '" + b.remoteField + "' in "
-						+ b.targetEntity.getSimpleName());
+				throw new IntrospectionException(
+						"Cannot find remote field '" + b.remoteField + "' in " + b.targetEntity.getSimpleName());
 			}
 			b.remoteFieldColumn = remoteDesc.getFieldName(null).inTable();
 		}

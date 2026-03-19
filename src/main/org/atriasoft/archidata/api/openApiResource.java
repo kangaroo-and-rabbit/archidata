@@ -31,12 +31,12 @@ import jakarta.ws.rs.core.Response;
 @Path("/openapi")
 public class openApiResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(openApiResource.class);
-	
+
 	private static AnalyzeApi analyzeApi;
 	private static String apiTitle = "API";
 	private static String apiVersion = "1.0.0";
 	private static String cachedSpec;
-	
+
 	/**
 	 * Configure the OpenAPI resource with analyzed API data.
 	 *
@@ -50,7 +50,7 @@ public class openApiResource {
 		apiVersion = version;
 		cachedSpec = null; // invalidate cache
 	}
-	
+
 	@GET
 	@Path("swagger.json")
 	@Produces({ MediaType.APPLICATION_JSON })

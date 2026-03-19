@@ -101,12 +101,17 @@ public final class LambdaAccessorFactory {
 
 	@SuppressWarnings("unchecked")
 	private static PropertyGetter createLambdaGetter(final Method getter) throws Throwable {
+		final Class<?> returnType = getter.getReturnType();
+		if (returnType.isPrimitive()) {
+			// LambdaMetafactory cannot bridge primitive return types to Object — use MethodHandle directly
+			return createMethodHandleGetter(getter);
+		}
 		final MethodHandles.Lookup lookup = MethodHandles.lookup();
 		final MethodHandle handle = lookup.unreflect(getter);
 
 		final CallSite site = LambdaMetafactory.metafactory(lookup, "apply", MethodType.methodType(Function.class),
 				MethodType.methodType(Object.class, Object.class), // Function<Object, Object>
-				handle, MethodType.methodType(getter.getReturnType(), getter.getDeclaringClass()));
+				handle, MethodType.methodType(returnType, getter.getDeclaringClass()));
 
 		final Function<Object, Object> fn = (Function<Object, Object>) site.getTarget().invokeExact();
 		return fn::apply;
@@ -114,12 +119,17 @@ public final class LambdaAccessorFactory {
 
 	@SuppressWarnings("unchecked")
 	private static PropertySetter createLambdaSetter(final Method setter) throws Throwable {
+		final Class<?> paramType = setter.getParameterTypes()[0];
+		if (paramType.isPrimitive()) {
+			// LambdaMetafactory cannot bridge primitive types to Object — use MethodHandle directly
+			return createMethodHandleSetter(setter);
+		}
 		final MethodHandles.Lookup lookup = MethodHandles.lookup();
 		final MethodHandle handle = lookup.unreflect(setter);
 
 		final CallSite site = LambdaMetafactory.metafactory(lookup, "accept", MethodType.methodType(BiConsumer.class),
 				MethodType.methodType(void.class, Object.class, Object.class), // BiConsumer<Object, Object>
-				handle, MethodType.methodType(void.class, setter.getDeclaringClass(), setter.getParameterTypes()[0]));
+				handle, MethodType.methodType(void.class, setter.getDeclaringClass(), paramType));
 
 		final BiConsumer<Object, Object> fn = (BiConsumer<Object, Object>) site.getTarget().invokeExact();
 		return fn::accept;
@@ -171,12 +181,16 @@ public final class LambdaAccessorFactory {
 			final Class<T> beanType,
 			final Class<V> valueType) {
 		try {
+			final Class<?> returnType = getter.getReturnType();
+			if (returnType.isPrimitive()) {
+				return createMethodHandleTypedGetter(getter);
+			}
 			final MethodHandles.Lookup lookup = MethodHandles.lookup();
 			final MethodHandle handle = lookup.unreflect(getter);
 
 			final CallSite site = LambdaMetafactory.metafactory(lookup, "apply", MethodType.methodType(Function.class),
 					MethodType.methodType(Object.class, Object.class), handle,
-					MethodType.methodType(getter.getReturnType(), getter.getDeclaringClass()));
+					MethodType.methodType(returnType, getter.getDeclaringClass()));
 
 			final Function<Object, Object> fn = (Function<Object, Object>) site.getTarget().invokeExact();
 			return instance -> (V) fn.apply(instance);
@@ -205,13 +219,17 @@ public final class LambdaAccessorFactory {
 			final Class<T> beanType,
 			final Class<V> valueType) {
 		try {
+			final Class<?> paramType = setter.getParameterTypes()[0];
+			if (paramType.isPrimitive()) {
+				return createMethodHandleTypedSetter(setter);
+			}
 			final MethodHandles.Lookup lookup = MethodHandles.lookup();
 			final MethodHandle handle = lookup.unreflect(setter);
 
 			final CallSite site = LambdaMetafactory.metafactory(lookup, "accept",
 					MethodType.methodType(BiConsumer.class),
 					MethodType.methodType(void.class, Object.class, Object.class), handle,
-					MethodType.methodType(void.class, setter.getDeclaringClass(), setter.getParameterTypes()[0]));
+					MethodType.methodType(void.class, setter.getDeclaringClass(), paramType));
 
 			final BiConsumer<Object, Object> fn = (BiConsumer<Object, Object>) site.getTarget().invokeExact();
 			return (instance, value) -> fn.accept(instance, value);

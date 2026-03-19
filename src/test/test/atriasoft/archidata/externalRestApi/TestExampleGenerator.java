@@ -177,11 +177,13 @@ public class TestExampleGenerator {
 		return null;
 	}
 
-	private static void assertFieldExample(final ClassObjectModel model, final String fieldName, final String expectedExample) {
+	private static void assertFieldExample(
+			final ClassObjectModel model,
+			final String fieldName,
+			final String expectedExample) {
 		final FieldProperty field = findField(model, fieldName);
 		Assertions.assertNotNull(field, "Field '" + fieldName + "' should exist");
 		Assertions.assertNotNull(field.example(), "Field '" + fieldName + "' should have an example");
-		Assertions.assertEquals(expectedExample, field.example(),
-				"Field '" + fieldName + "' example mismatch");
+		Assertions.assertEquals(expectedExample, field.example(), "Field '" + fieldName + "' example mismatch");
 	}
 }

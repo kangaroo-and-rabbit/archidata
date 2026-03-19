@@ -66,7 +66,8 @@ public class OpenApiGenerateApi {
 	 * @return the OpenAPI spec as a nested Map
 	 * @throws Exception on generation error
 	 */
-	public static Map<String, Object> generate(final AnalyzeApi api, final String title, final String version) throws Exception {
+	public static Map<String, Object> generate(final AnalyzeApi api, final String title, final String version)
+			throws Exception {
 		final Map<String, Object> spec = new LinkedHashMap<>();
 		spec.put("openapi", "3.0.3");
 
@@ -575,7 +576,8 @@ public class OpenApiGenerateApi {
 			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
 				return true;
 			}
-			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) && valid) {
+			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0)
+					&& valid) {
 				return true;
 			}
 		}
@@ -604,7 +606,8 @@ public class OpenApiGenerateApi {
 			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
 				return true;
 			}
-			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) && valid) {
+			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0)
+					&& valid) {
 				return true;
 			}
 		}
@@ -807,17 +810,13 @@ public class OpenApiGenerateApi {
 	}
 
 	private static boolean isBasicType(final Class<?> type) {
-		return type == Void.class || type == void.class || type == String.class
-				|| type == Boolean.class || type == boolean.class
-				|| type == Integer.class || type == int.class
-				|| type == Long.class || type == long.class
-				|| type == Float.class || type == float.class
-				|| type == Double.class || type == double.class
-				|| type == Short.class || type == short.class
-				|| type == Character.class || type == char.class
-				|| type == Date.class || type == LocalDate.class || type == LocalTime.class || type == Instant.class
-				|| type == UUID.class || type == ObjectId.class
-				|| type == byte[].class || type == Object.class;
+		return type == Void.class || type == void.class || type == String.class || type == Boolean.class
+				|| type == boolean.class || type == Integer.class || type == int.class || type == Long.class
+				|| type == long.class || type == Float.class || type == float.class || type == Double.class
+				|| type == double.class || type == Short.class || type == short.class || type == Character.class
+				|| type == char.class || type == Date.class || type == LocalDate.class || type == LocalTime.class
+				|| type == Instant.class || type == UUID.class || type == ObjectId.class || type == byte[].class
+				|| type == Object.class;
 	}
 
 	/**
@@ -844,7 +843,6 @@ public class OpenApiGenerateApi {
 
 	private static boolean isFileType(final ClassModel model) {
 		final Class<?> type = model.getOriginClasses();
-		return type == InputStream.class
-				|| (type != null && type.getName().contains("FormDataContentDisposition"));
+		return type == InputStream.class || (type != null && type.getName().contains("FormDataContentDisposition"));
 	}
 }

@@ -116,8 +116,7 @@ public class TestOpenApiGeneration {
 		@DELETE
 		@Path("/{id}")
 		@ApiDoc(description = "Delete an item", group = "ITEMS")
-		public void delete(@PathParam("id") final Long id) {
-		}
+		public void delete(@PathParam("id") final Long id) {}
 	}
 
 	public static class TypedModel {
@@ -633,8 +632,7 @@ public class TestOpenApiGeneration {
 				"POST (GroupCreate) should NOT contain 'oid' (has @Null for GroupCreate)");
 		Assertions.assertFalse(postProperties.containsKey("createdAt"),
 				"POST (GroupCreate) should NOT contain 'createdAt' (has @Null for GroupCreate)");
-		Assertions.assertTrue(postProperties.containsKey("name"),
-				"POST (GroupCreate) should contain 'name'");
+		Assertions.assertTrue(postProperties.containsKey("name"), "POST (GroupCreate) should contain 'name'");
 		Assertions.assertTrue(postProperties.containsKey("description"),
 				"POST (GroupCreate) should contain 'description'");
 
@@ -663,12 +661,10 @@ public class TestOpenApiGeneration {
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> putProperties = (Map<String, Object>) putSchema.get("properties");
 		Assertions.assertNotNull(putProperties, "PUT schema should have properties");
-		Assertions.assertFalse(putProperties.containsKey("oid"),
-				"PUT (GroupUpdate) should NOT contain 'oid'");
+		Assertions.assertFalse(putProperties.containsKey("oid"), "PUT (GroupUpdate) should NOT contain 'oid'");
 		Assertions.assertFalse(putProperties.containsKey("createdAt"),
 				"PUT (GroupUpdate) should NOT contain 'createdAt'");
-		Assertions.assertTrue(putProperties.containsKey("name"),
-				"PUT (GroupUpdate) should contain 'name'");
+		Assertions.assertTrue(putProperties.containsKey("name"), "PUT (GroupUpdate) should contain 'name'");
 		Assertions.assertTrue(putProperties.containsKey("description"),
 				"PUT (GroupUpdate) should contain 'description'");
 

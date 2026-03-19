@@ -195,8 +195,14 @@ public class DrawioGenerateApi {
 
 	// ========== NODE GENERATION ==========
 
-	private static String generateModelNode(final StringBuilder cells, final IdCounter idCounter,
-			final ClassObjectModel model, final int x, final int y, final int width, final int height) {
+	private static String generateModelNode(
+			final StringBuilder cells,
+			final IdCounter idCounter,
+			final ClassObjectModel model,
+			final int x,
+			final int y,
+			final int width,
+			final int height) {
 		final String parentId = idCounter.next();
 		final String name = getSimpleName(model);
 		cells.append(mxCell(parentId, escapeXml(name), STYLE_MODEL, "1", x, y, width, height));
@@ -214,16 +220,22 @@ public class DrawioGenerateApi {
 			if (field.checkForeignKey() != null && field.linkClass() == null) {
 				fieldText += " \u2192 " + field.checkForeignKey().target().getSimpleName();
 			}
-			cells.append(mxCellChild(fieldId, parentId, escapeXml(fieldText), STYLE_FIELD, 0, fieldY, width,
-					FIELD_HEIGHT));
+			cells.append(
+					mxCellChild(fieldId, parentId, escapeXml(fieldText), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
 		}
 
 		return parentId;
 	}
 
-	private static String generateEnumNode(final StringBuilder cells, final IdCounter idCounter,
-			final ClassEnumModel model, final int x, final int y, final int width, final int height) {
+	private static String generateEnumNode(
+			final StringBuilder cells,
+			final IdCounter idCounter,
+			final ClassEnumModel model,
+			final int x,
+			final int y,
+			final int width,
+			final int height) {
 		final String parentId = idCounter.next();
 		final String name = "\u00ABenum\u00BB " + getSimpleName(model);
 		cells.append(mxCell(parentId, escapeXml(name), STYLE_ENUM, "1", x, y, width, height));
@@ -236,16 +248,21 @@ public class DrawioGenerateApi {
 		int fieldY = HEADER_HEIGHT + 8;
 		for (final String value : model.getListOfValues().keySet()) {
 			final String fieldId = idCounter.next();
-			cells.append(mxCellChild(fieldId, parentId, escapeXml(value), STYLE_FIELD, 0, fieldY, width,
-					FIELD_HEIGHT));
+			cells.append(mxCellChild(fieldId, parentId, escapeXml(value), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
 		}
 
 		return parentId;
 	}
 
-	private static String generateRestNode(final StringBuilder cells, final IdCounter idCounter,
-			final ApiGroupModel group, final int x, final int y, final int width, final int height) {
+	private static String generateRestNode(
+			final StringBuilder cells,
+			final IdCounter idCounter,
+			final ApiGroupModel group,
+			final int x,
+			final int y,
+			final int width,
+			final int height) {
 		final String parentId = idCounter.next();
 		final String name = "\u00ABREST\u00BB " + group.name;
 		cells.append(mxCell(parentId, escapeXml(name), STYLE_REST, "1", x, y, width, height));
@@ -262,8 +279,7 @@ public class DrawioGenerateApi {
 			final String path = normalizePath(endpoint.restEndPoint);
 			final String returnType = resolveReturnType(endpoint);
 			final String line = method + " " + path + " \u2192 " + returnType;
-			cells.append(mxCellChild(fieldId, parentId, escapeXml(line), STYLE_FIELD, 0, fieldY, width,
-					FIELD_HEIGHT));
+			cells.append(mxCellChild(fieldId, parentId, escapeXml(line), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
 		}
 
@@ -272,9 +288,13 @@ public class DrawioGenerateApi {
 
 	// ========== EDGE GENERATION ==========
 
-	private static void generateEdges(final StringBuilder cells, final IdCounter idCounter,
-			final List<ClassObjectModel> models, final List<ApiGroupModel> restGroups,
-			final Map<ClassModel, String> modelNodeIds, final Map<ApiGroupModel, String> restNodeIds,
+	private static void generateEdges(
+			final StringBuilder cells,
+			final IdCounter idCounter,
+			final List<ClassObjectModel> models,
+			final List<ApiGroupModel> restGroups,
+			final Map<ClassModel, String> modelNodeIds,
+			final Map<ApiGroupModel, String> restNodeIds,
 			final AnalyzeApi api) {
 
 		// Inheritance edges (child → parent, arrow points UP to parent)
@@ -378,7 +398,8 @@ public class DrawioGenerateApi {
 	/**
 	 * Find a model node ID by its origin Java class.
 	 */
-	private static String findModelNodeIdByClass(final Class<?> targetClass,
+	private static String findModelNodeIdByClass(
+			final Class<?> targetClass,
 			final Map<ClassModel, String> modelNodeIds) {
 		for (final Map.Entry<ClassModel, String> entry : modelNodeIds.entrySet()) {
 			if (entry.getKey().getOriginClasses() == targetClass) {
@@ -418,8 +439,10 @@ public class DrawioGenerateApi {
 
 	// ---------- Edge collection ----------
 
-	private static List<LayoutEdge> collectLayoutEdges(final List<ClassObjectModel> objectModels,
-			final List<ClassEnumModel> enumModels, final List<ApiGroupModel> restGroups) {
+	private static List<LayoutEdge> collectLayoutEdges(
+			final List<ClassObjectModel> objectModels,
+			final List<ClassEnumModel> enumModels,
+			final List<ApiGroupModel> restGroups) {
 		final List<LayoutEdge> edges = new ArrayList<>();
 		final Set<ClassObjectModel> objectModelSet = new HashSet<>(objectModels);
 		final Set<ClassEnumModel> enumModelSet = new HashSet<>(enumModels);
@@ -481,8 +504,7 @@ public class DrawioGenerateApi {
 		return edges;
 	}
 
-	private static ClassModel findModelByClass(final Class<?> targetClass,
-			final List<ClassObjectModel> objectModels) {
+	private static ClassModel findModelByClass(final Class<?> targetClass, final List<ClassObjectModel> objectModels) {
 		for (final ClassObjectModel model : objectModels) {
 			if (model.getOriginClasses() == targetClass) {
 				return model;
@@ -501,9 +523,12 @@ public class DrawioGenerateApi {
 	 *   <li>Use Fruchterman-Reingold force-directed placement for blocks</li>
 	 * </ol>
 	 */
-	private static void layoutElements(final List<ApiGroupModel> restGroups,
-			final List<ClassObjectModel> objectModels, final List<ClassEnumModel> enumModels,
-			final Map<Object, int[]> dimensions, final Map<Object, int[]> positions) {
+	private static void layoutElements(
+			final List<ApiGroupModel> restGroups,
+			final List<ClassObjectModel> objectModels,
+			final List<ClassEnumModel> enumModels,
+			final Map<Object, int[]> dimensions,
+			final Map<Object, int[]> positions) {
 
 		if (objectModels.isEmpty() && enumModels.isEmpty() && restGroups.isEmpty()) {
 			return;
@@ -801,8 +826,12 @@ public class DrawioGenerateApi {
 	 * Layout an inheritance tree: parent centered on top, children spread below.
 	 * Returns [totalWidth, totalHeight] of the tree block.
 	 */
-	private static int[] layoutTree(final InheritanceTree tree, final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> treePos, final int offsetX, final int offsetY) {
+	private static int[] layoutTree(
+			final InheritanceTree tree,
+			final Map<Object, int[]> dimensions,
+			final Map<Object, int[]> treePos,
+			final int offsetX,
+			final int offsetY) {
 		final int[] rootDim = dimensions.get(tree.root);
 		final int rootW = rootDim[0];
 		final int rootH = rootDim[1];
@@ -869,7 +898,11 @@ public class DrawioGenerateApi {
 	/**
 	 * Remove overlaps between blocks using iterative push-apart.
 	 */
-	private static void removeOverlaps(final double[] bx, final double[] by, final int[] bw, final int[] bh,
+	private static void removeOverlaps(
+			final double[] bx,
+			final double[] by,
+			final int[] bw,
+			final int[] bh,
 			final int count) {
 		final int padding = 40;
 		for (int pass = 0; pass < 50; pass++) {
@@ -1002,8 +1035,11 @@ public class DrawioGenerateApi {
 		return sorted;
 	}
 
-	private static void topoVisit(final ClassObjectModel model, final Map<ClassObjectModel, Boolean> visited,
-			final List<ClassObjectModel> sorted, final Map<ClassModel, ClassObjectModel> modelMap) {
+	private static void topoVisit(
+			final ClassObjectModel model,
+			final Map<ClassObjectModel, Boolean> visited,
+			final List<ClassObjectModel> sorted,
+			final Map<ClassModel, ClassObjectModel> modelMap) {
 		if (visited.containsKey(model)) {
 			return;
 		}
@@ -1021,49 +1057,55 @@ public class DrawioGenerateApi {
 
 	// ========== XML BUILDING ==========
 
-	private static String mxCell(final String id, final String value, final String style, final String parent,
-			final int x, final int y, final int width, final int height) {
+	private static String mxCell(
+			final String id,
+			final String value,
+			final String style,
+			final String parent,
+			final int x,
+			final int y,
+			final int width,
+			final int height) {
 		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
-				+ "\" vertex=\"1\" parent=\"" + parent + "\">\n"
-				+ "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + width + "\" height=\"" + height
-				+ "\" as=\"geometry\"/>\n"
-				+ "\t\t\t\t</mxCell>\n";
+				+ "\" vertex=\"1\" parent=\"" + parent + "\">\n" + "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y
+				+ "\" width=\"" + width + "\" height=\"" + height + "\" as=\"geometry\"/>\n" + "\t\t\t\t</mxCell>\n";
 	}
 
-	private static String mxCellChild(final String id, final String parentId, final String value, final String style,
-			final int x, final int y, final int width, final int height) {
+	private static String mxCellChild(
+			final String id,
+			final String parentId,
+			final String value,
+			final String style,
+			final int x,
+			final int y,
+			final int width,
+			final int height) {
 		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
-				+ "\" vertex=\"1\" parent=\"" + parentId + "\">\n"
-				+ "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y + "\" width=\"" + width + "\" height=\"" + height
-				+ "\" as=\"geometry\"/>\n"
-				+ "\t\t\t\t</mxCell>\n";
+				+ "\" vertex=\"1\" parent=\"" + parentId + "\">\n" + "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y
+				+ "\" width=\"" + width + "\" height=\"" + height + "\" as=\"geometry\"/>\n" + "\t\t\t\t</mxCell>\n";
 	}
 
-	private static String mxEdge(final String id, final String sourceId, final String targetId, final String style,
+	private static String mxEdge(
+			final String id,
+			final String sourceId,
+			final String targetId,
+			final String style,
 			final String label) {
 		final String value = (label != null && !label.isEmpty()) ? escapeXml(label) : "";
 		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
 				+ "\" edge=\"1\" parent=\"1\" source=\"" + sourceId + "\" target=\"" + targetId + "\">\n"
-				+ "\t\t\t\t\t<mxGeometry relative=\"1\" as=\"geometry\"/>\n"
-				+ "\t\t\t\t</mxCell>\n";
+				+ "\t\t\t\t\t<mxGeometry relative=\"1\" as=\"geometry\"/>\n" + "\t\t\t\t</mxCell>\n";
 	}
 
 	private static String wrapInDrawio(final String cellsContent, final int dx, final int dy) {
-		return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-				+ "<mxfile host=\"archidata\">\n"
-				+ "\t<diagram id=\"archidata-diagram\" name=\"Page-1\">\n"
-				+ "\t\t<mxGraphModel dx=\"" + dx + "\" dy=\"" + dy
+		return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<mxfile host=\"archidata\">\n"
+				+ "\t<diagram id=\"archidata-diagram\" name=\"Page-1\">\n" + "\t\t<mxGraphModel dx=\"" + dx + "\" dy=\""
+				+ dy
 				+ "\" grid=\"0\" gridSize=\"10\" guides=\"1\" tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"0\" pageScale=\"1\" background=\"#FFFFFF\" pageWidth=\""
 				+ Math.max(1100, dx + 100) + "\" pageHeight=\"" + Math.max(850, dy + 100)
-				+ "\" math=\"0\" shadow=\"0\">\n"
-				+ "\t\t\t<root>\n"
-				+ "\t\t\t\t<mxCell id=\"0\"/>\n"
-				+ "\t\t\t\t<mxCell id=\"1\" parent=\"0\"/>\n"
-				+ cellsContent
-				+ "\t\t\t</root>\n"
-				+ "\t\t</mxGraphModel>\n"
-				+ "\t</diagram>\n"
-				+ "</mxfile>\n";
+				+ "\" math=\"0\" shadow=\"0\">\n" + "\t\t\t<root>\n" + "\t\t\t\t<mxCell id=\"0\"/>\n"
+				+ "\t\t\t\t<mxCell id=\"1\" parent=\"0\"/>\n" + cellsContent + "\t\t\t</root>\n"
+				+ "\t\t</mxGraphModel>\n" + "\t</diagram>\n" + "</mxfile>\n";
 	}
 
 	// ========== HELPERS ==========
@@ -1140,17 +1182,15 @@ public class DrawioGenerateApi {
 			return false;
 		}
 		// Filter out basic wrapper types
-		if (clazz == String.class || clazz == Boolean.class || clazz == boolean.class
-				|| clazz == Integer.class || clazz == int.class || clazz == Long.class || clazz == long.class
-				|| clazz == Float.class || clazz == float.class || clazz == Double.class || clazz == double.class
-				|| clazz == Short.class || clazz == short.class || clazz == Character.class || clazz == char.class
-				|| clazz == byte[].class) {
+		if (clazz == String.class || clazz == Boolean.class || clazz == boolean.class || clazz == Integer.class
+				|| clazz == int.class || clazz == Long.class || clazz == long.class || clazz == Float.class
+				|| clazz == float.class || clazz == Double.class || clazz == double.class || clazz == Short.class
+				|| clazz == short.class || clazz == Character.class || clazz == char.class || clazz == byte[].class) {
 			return false;
 		}
 		// Filter out common value types that don't need their own box
-		if (clazz == java.util.Date.class || clazz == org.bson.types.ObjectId.class
-				|| clazz == org.bson.Document.class || clazz == CharSequence.class
-				|| clazz == java.io.InputStream.class) {
+		if (clazz == java.util.Date.class || clazz == org.bson.types.ObjectId.class || clazz == org.bson.Document.class
+				|| clazz == CharSequence.class || clazz == java.io.InputStream.class) {
 			return false;
 		}
 		return true;
@@ -1188,11 +1228,8 @@ public class DrawioGenerateApi {
 	}
 
 	private static String escapeXml(final String text) {
-		return text.replace("&", "&amp;")
-				.replace("<", "&lt;")
-				.replace(">", "&gt;")
-				.replace("\"", "&quot;")
-				.replace("'", "&apos;");
+		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'",
+				"&apos;");
 	}
 
 	private static void writeFile(final String path, final String content) throws Exception {

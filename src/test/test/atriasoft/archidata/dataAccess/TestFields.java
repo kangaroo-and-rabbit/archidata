@@ -106,13 +106,15 @@ public class TestFields {
 
 	@Test
 	public void testOf_columnRename() {
-		final String fieldName = Fields.of((SerializableFunction<ColumnRenameModel, String>) ColumnRenameModel::getFullName);
+		final String fieldName = Fields
+				.of((SerializableFunction<ColumnRenameModel, String>) ColumnRenameModel::getFullName);
 		Assertions.assertEquals("full_name", fieldName);
 	}
 
 	@Test
 	public void testOf_normalFieldWithoutColumnAnnotation() {
-		final String fieldName = Fields.of((SerializableFunction<ColumnRenameModel, String>) ColumnRenameModel::getNormalField);
+		final String fieldName = Fields
+				.of((SerializableFunction<ColumnRenameModel, String>) ColumnRenameModel::getNormalField);
 		Assertions.assertEquals("normalField", fieldName);
 	}
 
@@ -128,7 +130,8 @@ public class TestFields {
 
 	@Test
 	public void testOf_setterColumnRename() {
-		final String fieldName = Fields.of((SerializableBiConsumer<ColumnRenameModel, String>) ColumnRenameModel::setFullName);
+		final String fieldName = Fields
+				.of((SerializableBiConsumer<ColumnRenameModel, String>) ColumnRenameModel::setFullName);
 		Assertions.assertEquals("full_name", fieldName);
 	}
 
@@ -139,8 +142,7 @@ public class TestFields {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testList_getters() {
-		final List<String> names = Fields.list(
-				(SerializableFunction<SimpleModel, String>) SimpleModel::getName,
+		final List<String> names = Fields.list((SerializableFunction<SimpleModel, String>) SimpleModel::getName,
 				(SerializableFunction<SimpleModel, Integer>) SimpleModel::getAge);
 		Assertions.assertEquals(List.of("name", "age"), names);
 	}
@@ -161,8 +163,7 @@ public class TestFields {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testList_setters() {
-		final List<String> names = Fields.list(
-				(SerializableBiConsumer<SimpleModel, String>) SimpleModel::setName,
+		final List<String> names = Fields.list((SerializableBiConsumer<SimpleModel, String>) SimpleModel::setName,
 				(SerializableBiConsumer<SimpleModel, Integer>) SimpleModel::setAge);
 		Assertions.assertEquals(List.of("name", "age"), names);
 	}
@@ -175,8 +176,7 @@ public class TestFields {
 	@Test
 	public void testConsistency_ofAndList() {
 		final String single = Fields.of((SerializableFunction<SimpleModel, String>) SimpleModel::getName);
-		final List<String> list = Fields.list(
-				(SerializableFunction<SimpleModel, String>) SimpleModel::getName);
+		final List<String> list = Fields.list((SerializableFunction<SimpleModel, String>) SimpleModel::getName);
 		Assertions.assertEquals(single, list.get(0));
 	}
 

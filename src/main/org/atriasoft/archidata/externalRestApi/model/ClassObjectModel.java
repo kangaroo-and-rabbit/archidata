@@ -130,7 +130,8 @@ public class ClassObjectModel extends ClassModel {
 			if (example != null) {
 				this.example = example;
 			} else {
-				this.example = ExampleGenerator.generate(name, model, stringSize, min, max, decimalMin, decimalMax, pattern, email);
+				this.example = ExampleGenerator.generate(name, model, stringSize, min, max, decimalMin, decimalMax,
+						pattern, email);
 			}
 			this.stringSize = stringSize;
 			this.decimalMin = decimalMin;
@@ -168,7 +169,9 @@ public class ClassObjectModel extends ClassModel {
 			if (desc == null || desc.isEmpty()) {
 				return null;
 			}
-			LOGGER.warn("@Schema(description=...) on property '{}' is deprecated. Use @ApiDoc(description=...) instead.", property.getName());
+			LOGGER.warn(
+					"@Schema(description=...) on property '{}' is deprecated. Use @ApiDoc(description=...) instead.",
+					property.getName());
 			return desc;
 		}
 
@@ -186,7 +189,8 @@ public class ClassObjectModel extends ClassModel {
 			if (example == null || example.isEmpty()) {
 				return null;
 			}
-			LOGGER.warn("@Schema(example=...) on property '{}' is deprecated. Use @ApiDoc(example=...) instead.", property.getName());
+			LOGGER.warn("@Schema(example=...) on property '{}' is deprecated. Use @ApiDoc(example=...) instead.",
+					property.getName());
 			return example;
 		}
 

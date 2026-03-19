@@ -163,8 +163,7 @@ class TestExpandMultiRow {
 	@Order(4)
 	@Test
 	void testManyToManyMultiRowExpand() throws Exception {
-		final List<TypeManyToManyDocLongRootExpand> roots = ConfigureDb.da
-				.gets(TypeManyToManyDocLongRootExpand.class);
+		final List<TypeManyToManyDocLongRootExpand> roots = ConfigureDb.da.gets(TypeManyToManyDocLongRootExpand.class);
 		Assertions.assertNotNull(roots);
 		Assertions.assertTrue(roots.size() >= 2, "Expected at least 2 roots, got " + roots.size());
 
@@ -208,8 +207,8 @@ class TestExpandMultiRow {
 		// Create parents with remote IDs — addLinkWhenCreate=true sets parentId on remotes
 		o2mParent1 = ConfigureDb.da.insert(new TypeOneToManyDocLongParentIgnore("mr_o2m_parent1",
 				List.of(o2mRemote1.getId(), o2mRemote2.getId())));
-		o2mParent2 = ConfigureDb.da.insert(new TypeOneToManyDocLongParentIgnore("mr_o2m_parent2",
-				List.of(o2mRemote3.getId())));
+		o2mParent2 = ConfigureDb.da
+				.insert(new TypeOneToManyDocLongParentIgnore("mr_o2m_parent2", List.of(o2mRemote3.getId())));
 	}
 
 	@Order(6)

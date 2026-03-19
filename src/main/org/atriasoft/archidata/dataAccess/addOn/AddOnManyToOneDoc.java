@@ -102,8 +102,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 		}
 		if (insertedDataValue != null) {
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, targetEntity, insertedDataValue, remoteFieldColumn,
-						primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, targetEntity, insertedDataValue, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 	}
@@ -131,8 +130,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Class<?> targetEntity = ctx.getTargetEntity();
 			final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, targetEntity, insertedData, remoteFieldColumn,
-						primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, targetEntity, insertedData, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 	}

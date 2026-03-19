@@ -103,7 +103,9 @@ public class ApiTool {
 		}
 		final String desc = annotation.get(0).description();
 		if (desc != null && !desc.isEmpty()) {
-			LOGGER.warn("@Operation(description=...) on method '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getName());
+			LOGGER.warn(
+					"@Operation(description=...) on method '{}' is deprecated. Use @ApiDoc(description=...) instead.",
+					element.getName());
 		}
 		return desc;
 	}
@@ -121,7 +123,8 @@ public class ApiTool {
 		}
 		final String[] tags = annotation.get(0).tags();
 		if (tags != null && tags.length > 0 && !tags[0].isEmpty()) {
-			LOGGER.warn("@Operation(tags=...) on method '{}' is deprecated. Use @ApiDoc(group=...) instead.", element.getName());
+			LOGGER.warn("@Operation(tags=...) on method '{}' is deprecated. Use @ApiDoc(group=...) instead.",
+					element.getName());
 			return tags[0];
 		}
 		return null;
@@ -283,7 +286,8 @@ public class ApiTool {
 	 * Extract security roles from a method. Checks method-level then class-level annotations.
 	 * @return list of role names, empty list for @PermitAll, null for @DenyAll or no annotation
 	 */
-	public static List<String> apiAnnotationGetSecurityRoles(final Class<?> clazz, final Method method) throws Exception {
+	public static List<String> apiAnnotationGetSecurityRoles(final Class<?> clazz, final Method method)
+			throws Exception {
 		// Method-level annotations take priority
 		final List<PermitAll> permitAll = AnnotationTools.getAnnotationsIncludingInterfaces(method, PermitAll.class);
 		if (!permitAll.isEmpty()) {
@@ -293,12 +297,14 @@ public class ApiTool {
 		if (!denyAll.isEmpty()) {
 			return null;
 		}
-		final List<RolesAllowed> rolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(method, RolesAllowed.class);
+		final List<RolesAllowed> rolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(method,
+				RolesAllowed.class);
 		if (!rolesAllowed.isEmpty()) {
 			return new ArrayList<>(Arrays.asList(rolesAllowed.get(0).value()));
 		}
 		// Fallback to class-level annotations
-		final List<PermitAll> classPermitAll = AnnotationTools.getAnnotationsIncludingInterfaces(clazz, PermitAll.class);
+		final List<PermitAll> classPermitAll = AnnotationTools.getAnnotationsIncludingInterfaces(clazz,
+				PermitAll.class);
 		if (!classPermitAll.isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -306,7 +312,8 @@ public class ApiTool {
 		if (!classDenyAll.isEmpty()) {
 			return null;
 		}
-		final List<RolesAllowed> classRolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(clazz, RolesAllowed.class);
+		final List<RolesAllowed> classRolesAllowed = AnnotationTools.getAnnotationsIncludingInterfaces(clazz,
+				RolesAllowed.class);
 		if (!classRolesAllowed.isEmpty()) {
 			return new ArrayList<>(Arrays.asList(classRolesAllowed.get(0).value()));
 		}

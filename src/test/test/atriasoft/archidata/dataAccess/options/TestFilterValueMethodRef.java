@@ -68,8 +68,7 @@ public class TestFilterValueMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_getterRefs() {
-		final FilterValue fv = new FilterValue(
-				(SerializableFunction<Model, String>) Model::getName,
+		final FilterValue fv = new FilterValue((SerializableFunction<Model, String>) Model::getName,
 				(SerializableFunction<Model, Integer>) Model::getAge);
 		Assertions.assertEquals(List.of("name", "age"), fv.getValues());
 	}
@@ -77,8 +76,7 @@ public class TestFilterValueMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_getterRefs_withColumnRename() {
-		final FilterValue fv = new FilterValue(
-				(SerializableFunction<Model, String>) Model::getFullName);
+		final FilterValue fv = new FilterValue((SerializableFunction<Model, String>) Model::getFullName);
 		Assertions.assertEquals(List.of("full_name"), fv.getValues());
 	}
 
@@ -89,8 +87,7 @@ public class TestFilterValueMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_setterRefs() {
-		final FilterValue fv = new FilterValue(
-				(SerializableBiConsumer<Model, String>) Model::setName,
+		final FilterValue fv = new FilterValue((SerializableBiConsumer<Model, String>) Model::setName,
 				(SerializableBiConsumer<Model, Integer>) Model::setAge);
 		Assertions.assertEquals(List.of("name", "age"), fv.getValues());
 	}
@@ -98,8 +95,7 @@ public class TestFilterValueMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_setterRefs_withColumnRename() {
-		final FilterValue fv = new FilterValue(
-				(SerializableBiConsumer<Model, String>) Model::setFullName);
+		final FilterValue fv = new FilterValue((SerializableBiConsumer<Model, String>) Model::setFullName);
 		Assertions.assertEquals(List.of("full_name"), fv.getValues());
 	}
 
@@ -111,8 +107,7 @@ public class TestFilterValueMethodRef {
 	@Test
 	public void testGetValues_matchesStringConstructor() {
 		final FilterValue fromStrings = new FilterValue("name", "age");
-		final FilterValue fromGetters = new FilterValue(
-				(SerializableFunction<Model, String>) Model::getName,
+		final FilterValue fromGetters = new FilterValue((SerializableFunction<Model, String>) Model::getName,
 				(SerializableFunction<Model, Integer>) Model::getAge);
 		Assertions.assertEquals(fromStrings.getValues(), fromGetters.getValues());
 	}

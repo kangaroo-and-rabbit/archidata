@@ -262,7 +262,8 @@ public class AnnotationTools {
 		}
 		final String example = ((Schema) annotation[0]).example();
 		if (example != null && !example.isEmpty()) {
-			LOGGER.warn("@Schema(example=...) on class '{}' is deprecated. Use @ApiDoc(example=...) instead.", element.getSimpleName());
+			LOGGER.warn("@Schema(example=...) on class '{}' is deprecated. Use @ApiDoc(example=...) instead.",
+					element.getSimpleName());
 		}
 		return example;
 	}
@@ -279,7 +280,8 @@ public class AnnotationTools {
 		}
 		final String example = ((Schema) annotation[0]).example();
 		if (example != null && !example.isEmpty()) {
-			LOGGER.warn("@Schema(example=...) on field '{}' is deprecated. Use @ApiDoc(example=...) instead.", element.getName());
+			LOGGER.warn("@Schema(example=...) on field '{}' is deprecated. Use @ApiDoc(example=...) instead.",
+					element.getName());
 		}
 		return example;
 	}
@@ -296,7 +298,8 @@ public class AnnotationTools {
 		}
 		final String desc = ((Schema) annotation[0]).description();
 		if (desc != null && !desc.isEmpty()) {
-			LOGGER.warn("@Schema(description=...) on class '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getSimpleName());
+			LOGGER.warn("@Schema(description=...) on class '{}' is deprecated. Use @ApiDoc(description=...) instead.",
+					element.getSimpleName());
 		}
 		return desc;
 	}
@@ -313,7 +316,8 @@ public class AnnotationTools {
 		}
 		final String desc = ((Schema) annotation[0]).description();
 		if (desc != null && !desc.isEmpty()) {
-			LOGGER.warn("@Schema(description=...) on field '{}' is deprecated. Use @ApiDoc(description=...) instead.", element.getName());
+			LOGGER.warn("@Schema(description=...) on field '{}' is deprecated. Use @ApiDoc(description=...) instead.",
+					element.getName());
 		}
 		return desc;
 	}

@@ -107,8 +107,8 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			actions.add((final List<LazyGetter> actionsAsync) -> {
 				// Atomically set the remote field and get the previous value
-				final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb, targetEntity,
-						value, remoteFieldColumn, primaryKeyValue);
+				final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb, targetEntity, value,
+						remoteFieldColumn, primaryKeyValue);
 				// If the child was previously owned by another parent, remove the child from
 				// that parent's list
 				if (previousValue != null) {
@@ -169,8 +169,8 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 				for (final Object value : insertedDataCollection) {
 					actions.add((final List<LazyGetter> actionsAsync) -> {
 						// Atomically set the remote field and get the previous owner
-						final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb,
-								targetEntity, value, remoteFieldColumn, primaryKeyValue);
+						final Object previousValue = MongoLinkManager.setFieldAndGetPrevious(ioDb, targetEntity, value,
+								remoteFieldColumn, primaryKeyValue);
 						// If was owned by another parent, clean up that parent's list
 						if (previousValue != null) {
 							actionsAsync.add((final List<LazyGetter> actionsAsync2) -> {
@@ -286,8 +286,7 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 							break;
 						case CascadeMode.SET_NULL:
 							actions.add((final List<LazyGetter> actionsAsync) -> {
-								MongoLinkManager.setField(ioDb, targetEntity, childKey, remoteFieldColumn,
-										null);
+								MongoLinkManager.setField(ioDb, targetEntity, childKey, remoteFieldColumn, null);
 							});
 							break;
 						case CascadeMode.IGNORE:

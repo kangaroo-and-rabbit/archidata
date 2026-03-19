@@ -23,16 +23,21 @@ import com.mongodb.client.model.Filters;
 public final class LazyGetterCollector {
 
 	/** Grouping key: target entity class + the PK column used for lookup. */
-	private record BatchKey(Class<?> targetEntity, String idFieldColumn) {
-	}
+	private record BatchKey(
+			Class<?> targetEntity,
+			String idFieldColumn) {}
 
 	/** A single-value registration (ManyToOne: one ID -> one object). */
-	private record SingleRegistration(Object idValue, PropertyDescriptor prop, Object targetObject) {
-	}
+	private record SingleRegistration(
+			Object idValue,
+			PropertyDescriptor prop,
+			Object targetObject) {}
 
 	/** A multi-value registration (ManyToMany/OneToMany: list of IDs -> list of objects). */
-	private record MultiRegistration(List<Object> idValues, PropertyDescriptor prop, Object targetObject) {
-	}
+	private record MultiRegistration(
+			List<Object> idValues,
+			PropertyDescriptor prop,
+			Object targetObject) {}
 
 	private final Map<BatchKey, List<SingleRegistration>> singleRegs = new HashMap<>();
 	private final Map<BatchKey, List<MultiRegistration>> multiRegs = new HashMap<>();

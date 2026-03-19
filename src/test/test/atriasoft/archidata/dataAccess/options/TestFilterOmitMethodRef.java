@@ -68,8 +68,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_getterRefs() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableFunction<Model, String>) Model::getName,
+		final FilterOmit fo = new FilterOmit((SerializableFunction<Model, String>) Model::getName,
 				(SerializableFunction<Model, Integer>) Model::getAge);
 		Assertions.assertEquals(List.of("name", "age"), fo.getValues());
 	}
@@ -77,8 +76,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_getterRefs_withColumnRename() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableFunction<Model, String>) Model::getFullName);
+		final FilterOmit fo = new FilterOmit((SerializableFunction<Model, String>) Model::getFullName);
 		Assertions.assertEquals(List.of("full_name"), fo.getValues());
 	}
 
@@ -89,8 +87,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_setterRefs() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableBiConsumer<Model, String>) Model::setName,
+		final FilterOmit fo = new FilterOmit((SerializableBiConsumer<Model, String>) Model::setName,
 				(SerializableBiConsumer<Model, Integer>) Model::setAge);
 		Assertions.assertEquals(List.of("name", "age"), fo.getValues());
 	}
@@ -98,8 +95,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_setterRefs_withColumnRename() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableBiConsumer<Model, String>) Model::setFullName);
+		final FilterOmit fo = new FilterOmit((SerializableBiConsumer<Model, String>) Model::setFullName);
 		Assertions.assertEquals(List.of("full_name"), fo.getValues());
 	}
 
@@ -111,8 +107,7 @@ public class TestFilterOmitMethodRef {
 	@Test
 	public void testGetValues_matchesStringConstructor() {
 		final FilterOmit fromStrings = new FilterOmit("name", "age");
-		final FilterOmit fromGetters = new FilterOmit(
-				(SerializableFunction<Model, String>) Model::getName,
+		final FilterOmit fromGetters = new FilterOmit((SerializableFunction<Model, String>) Model::getName,
 				(SerializableFunction<Model, Integer>) Model::getAge);
 		Assertions.assertEquals(fromStrings.getValues(), fromGetters.getValues());
 	}

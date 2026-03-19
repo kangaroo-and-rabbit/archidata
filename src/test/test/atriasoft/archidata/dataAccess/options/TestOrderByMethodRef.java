@@ -68,24 +68,21 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderItem_getter() {
-		final OrderItem item = new OrderItem(
-				(SerializableFunction<Model, String>) Model::getName, Order.ASC);
+		final OrderItem item = new OrderItem((SerializableFunction<Model, String>) Model::getName, Order.ASC);
 		Assertions.assertEquals("name", item.value);
 		Assertions.assertEquals(Order.ASC, item.order);
 	}
 
 	@Test
 	public void testOrderItem_getter_desc() {
-		final OrderItem item = new OrderItem(
-				(SerializableFunction<Model, Integer>) Model::getAge, Order.DESC);
+		final OrderItem item = new OrderItem((SerializableFunction<Model, Integer>) Model::getAge, Order.DESC);
 		Assertions.assertEquals("age", item.value);
 		Assertions.assertEquals(Order.DESC, item.order);
 	}
 
 	@Test
 	public void testOrderItem_columnRename() {
-		final OrderItem item = new OrderItem(
-				(SerializableFunction<Model, String>) Model::getFullName, Order.ASC);
+		final OrderItem item = new OrderItem((SerializableFunction<Model, String>) Model::getFullName, Order.ASC);
 		Assertions.assertEquals("full_name", item.value);
 	}
 
@@ -95,16 +92,14 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderItem_setter() {
-		final OrderItem item = new OrderItem(
-				(SerializableBiConsumer<Model, String>) Model::setName, Order.DESC);
+		final OrderItem item = new OrderItem((SerializableBiConsumer<Model, String>) Model::setName, Order.DESC);
 		Assertions.assertEquals("name", item.value);
 		Assertions.assertEquals(Order.DESC, item.order);
 	}
 
 	@Test
 	public void testOrderItem_setter_columnRename() {
-		final OrderItem item = new OrderItem(
-				(SerializableBiConsumer<Model, String>) Model::setFullName, Order.ASC);
+		final OrderItem item = new OrderItem((SerializableBiConsumer<Model, String>) Model::setFullName, Order.ASC);
 		Assertions.assertEquals("full_name", item.value);
 	}
 
@@ -114,8 +109,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_ascFactory_getter() {
-		final OrderBy orderBy = OrderBy.asc(
-				(SerializableFunction<Model, String>) Model::getName);
+		final OrderBy orderBy = OrderBy.asc((SerializableFunction<Model, String>) Model::getName);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(1, sort.getInteger("name"));
@@ -123,8 +117,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_descFactory_getter() {
-		final OrderBy orderBy = OrderBy.desc(
-				(SerializableFunction<Model, Integer>) Model::getAge);
+		final OrderBy orderBy = OrderBy.desc((SerializableFunction<Model, Integer>) Model::getAge);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(-1, sort.getInteger("age"));
@@ -132,8 +125,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_ascFactory_setter() {
-		final OrderBy orderBy = OrderBy.asc(
-				(SerializableBiConsumer<Model, String>) Model::setName);
+		final OrderBy orderBy = OrderBy.asc((SerializableBiConsumer<Model, String>) Model::setName);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(1, sort.getInteger("name"));
@@ -141,8 +133,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_descFactory_setter() {
-		final OrderBy orderBy = OrderBy.desc(
-				(SerializableBiConsumer<Model, Integer>) Model::setAge);
+		final OrderBy orderBy = OrderBy.desc((SerializableBiConsumer<Model, Integer>) Model::setAge);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(-1, sort.getInteger("age"));
@@ -150,8 +141,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_ascFactory_columnRename() {
-		final OrderBy orderBy = OrderBy.asc(
-				(SerializableFunction<Model, String>) Model::getFullName);
+		final OrderBy orderBy = OrderBy.asc((SerializableFunction<Model, String>) Model::getFullName);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(1, sort.getInteger("full_name"));
@@ -163,8 +153,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_factoryMatchesManual() {
-		final OrderBy fromFactory = OrderBy.asc(
-				(SerializableFunction<Model, String>) Model::getName);
+		final OrderBy fromFactory = OrderBy.asc((SerializableFunction<Model, String>) Model::getName);
 		final OrderBy fromManual = new OrderBy(new OrderItem("name", Order.ASC));
 
 		final Document factorySort = new Document();

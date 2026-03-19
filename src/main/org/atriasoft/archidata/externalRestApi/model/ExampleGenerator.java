@@ -67,7 +67,8 @@ public class ExampleGenerator {
 			return null;
 		}
 		// 1. Constraint-based generation
-		final String constraintExample = generateFromConstraints(fieldName, type, stringSize, min, max, decimalMin, decimalMax, email);
+		final String constraintExample = generateFromConstraints(fieldName, type, stringSize, min, max, decimalMin,
+				decimalMax, email);
 		if (constraintExample != null) {
 			return constraintExample;
 		}
@@ -161,7 +162,8 @@ public class ExampleGenerator {
 			return "abc123xyz789";
 		}
 		// MIME type patterns
-		if (lower.contains("mime") || lower.equals("type") || lower.equals("contenttype") || lower.equals("mediatype")) {
+		if (lower.contains("mime") || lower.equals("type") || lower.equals("contenttype")
+				|| lower.equals("mediatype")) {
 			return "application/json";
 		}
 		// Hash patterns
@@ -188,9 +190,9 @@ public class ExampleGenerator {
 			}
 		}
 		// Date/time fields
-		if (lower.endsWith("at") || lower.endsWith("time") || lower.endsWith("date")
-				|| lower.startsWith("created") || lower.startsWith("updated") || lower.startsWith("last")
-				|| lower.startsWith("start") || lower.startsWith("end")) {
+		if (lower.endsWith("at") || lower.endsWith("time") || lower.endsWith("date") || lower.startsWith("created")
+				|| lower.startsWith("updated") || lower.startsWith("last") || lower.startsWith("start")
+				|| lower.startsWith("end")) {
 			if (type == Date.class) {
 				return "2000-01-23T01:23:45.678Z";
 			}
@@ -357,13 +359,11 @@ public class ExampleGenerator {
 	}
 
 	private static boolean isIntegerType(final Class<?> type) {
-		return type == Long.class || type == long.class
-				|| type == Integer.class || type == int.class
+		return type == Long.class || type == long.class || type == Integer.class || type == int.class
 				|| type == Short.class || type == short.class;
 	}
 
 	private static boolean isFloatingType(final Class<?> type) {
-		return type == Double.class || type == double.class
-				|| type == Float.class || type == float.class;
+		return type == Double.class || type == double.class || type == Float.class || type == float.class;
 	}
 }

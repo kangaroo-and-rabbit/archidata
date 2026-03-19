@@ -111,8 +111,8 @@ class TestExpandLong {
 	@Order(4)
 	@Test
 	void testManyToManyExpand() throws Exception {
-		final TypeManyToManyDocLongRootExpand rootExpand = ConfigureDb.da
-				.getById(TypeManyToManyDocLongRootExpand.class, m2mRoot.getId());
+		final TypeManyToManyDocLongRootExpand rootExpand = ConfigureDb.da.getById(TypeManyToManyDocLongRootExpand.class,
+				m2mRoot.getId());
 		Assertions.assertNotNull(rootExpand);
 		Assertions.assertEquals(m2mRoot.otherData, rootExpand.otherData);
 		Assertions.assertNotNull(rootExpand.remote);

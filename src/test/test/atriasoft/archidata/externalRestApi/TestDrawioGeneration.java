@@ -101,8 +101,7 @@ public class TestDrawioGeneration {
 		@DELETE
 		@Path("/{id}")
 		@ApiDoc(description = "Delete a product")
-		public void delete(@PathParam("id") final Long id) {
-		}
+		public void delete(@PathParam("id") final Long id) {}
 	}
 
 	// -- Tests --
@@ -242,7 +241,8 @@ public class TestDrawioGeneration {
 		// All other mxCell elements have matching </mxCell>
 		final int openMxCell = countOccurrences(xml, "<mxCell ");
 		final int closeMxCell = countOccurrences(xml, "</mxCell>");
-		final int selfClosingMxCell = countOccurrences(xml, "<mxCell id=\"0\"") + countOccurrences(xml, "<mxCell id=\"1\"");
+		final int selfClosingMxCell = countOccurrences(xml, "<mxCell id=\"0\"")
+				+ countOccurrences(xml, "<mxCell id=\"1\"");
 		Assertions.assertEquals(openMxCell, closeMxCell + selfClosingMxCell,
 				"Each <mxCell> should have a matching </mxCell> or be self-closing");
 
@@ -265,14 +265,11 @@ public class TestDrawioGeneration {
 		Assertions.assertTrue(xml.contains("FkSource"), "Should contain FkSource model");
 		Assertions.assertTrue(xml.contains("FkTarget"), "Should contain FkTarget model");
 		// FK annotation text on field
-		Assertions.assertTrue(xml.contains("FkTarget"),
-				"FK field should show target class name");
+		Assertions.assertTrue(xml.contains("FkTarget"), "FK field should show target class name");
 		// FK edge style (purple dashed)
-		Assertions.assertTrue(xml.contains("strokeColor=#9673a6"),
-				"Should have FK edge style (purple)");
+		Assertions.assertTrue(xml.contains("strokeColor=#9673a6"), "Should have FK edge style (purple)");
 		// Edge label should contain the field name
-		Assertions.assertTrue(xml.contains("value=\"parentId\""),
-				"FK edge should have field name as label");
+		Assertions.assertTrue(xml.contains("value=\"parentId\""), "FK edge should have field name as label");
 
 		LOGGER.info("FK Draw.io XML:\n{}", xml);
 	}

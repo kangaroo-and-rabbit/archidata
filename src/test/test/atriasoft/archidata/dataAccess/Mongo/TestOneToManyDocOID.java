@@ -100,8 +100,8 @@ class TestOneToManyDocOID {
 	@Test
 	void testRetrieveExpand() throws Exception {
 		// Root1 expand: should have 2 full remote entities
-		final TypeOneToManyDocOIDRootExpand root1Expand = ConfigureDb.da
-				.getById(TypeOneToManyDocOIDRootExpand.class, insertedRoot1.getOid());
+		final TypeOneToManyDocOIDRootExpand root1Expand = ConfigureDb.da.getById(TypeOneToManyDocOIDRootExpand.class,
+				insertedRoot1.getOid());
 		Assertions.assertNotNull(root1Expand);
 		Assertions.assertEquals(insertedRoot1.otherData, root1Expand.otherData);
 		Assertions.assertNotNull(root1Expand.remotes);
@@ -113,8 +113,8 @@ class TestOneToManyDocOID {
 		Assertions.assertEquals(insertedRemote11.data, root1Expand.remotes.get(1).data);
 
 		// Root2 expand: should have 1 full remote entity
-		final TypeOneToManyDocOIDRootExpand root2Expand = ConfigureDb.da
-				.getById(TypeOneToManyDocOIDRootExpand.class, insertedRoot2.getOid());
+		final TypeOneToManyDocOIDRootExpand root2Expand = ConfigureDb.da.getById(TypeOneToManyDocOIDRootExpand.class,
+				insertedRoot2.getOid());
 		Assertions.assertNotNull(root2Expand);
 		Assertions.assertNotNull(root2Expand.remotes);
 		Assertions.assertEquals(1, root2Expand.remotes.size());
