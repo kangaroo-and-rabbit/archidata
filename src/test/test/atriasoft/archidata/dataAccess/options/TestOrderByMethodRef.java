@@ -3,6 +3,7 @@ package test.atriasoft.archidata.dataAccess.options;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
+import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
@@ -163,5 +164,86 @@ public class TestOrderByMethodRef {
 		fromManual.generateSort(manualSort);
 
 		Assertions.assertEquals(manualSort, factorySort);
+	}
+
+	// ====================================================================
+	// Fluent setter model
+	// ====================================================================
+
+	public static class FluentModel {
+		@Id
+		public String _id;
+		public String name;
+		public int age;
+		@Column(name = "full_name")
+		public String fullName;
+
+		public String getName() {
+			return this.name;
+		}
+
+		public FluentModel setName(final String name) {
+			this.name = name;
+			return this;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public FluentModel setAge(final int age) {
+			this.age = age;
+			return this;
+		}
+
+		public String getFullName() {
+			return this.fullName;
+		}
+
+		public FluentModel setFullName(final String fullName) {
+			this.fullName = fullName;
+			return this;
+		}
+	}
+
+	// ====================================================================
+	// OrderItem with fluent setter reference
+	// ====================================================================
+
+	@Test
+	public void testOrderItem_fluentSetter() {
+		final OrderItem item = new OrderItem(
+				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName, Order.DESC);
+		Assertions.assertEquals("name", item.value);
+		Assertions.assertEquals(Order.DESC, item.order);
+	}
+
+	@Test
+	public void testOrderItem_fluentSetter_columnRename() {
+		final OrderItem item = new OrderItem(
+				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName, Order.ASC);
+		Assertions.assertEquals("full_name", item.value);
+	}
+
+	// ====================================================================
+	// OrderBy factory with fluent setter reference
+	// ====================================================================
+
+	@Test
+	public void testOrderBy_ascFactory_fluentSetter() {
+		final OrderBy orderBy = OrderBy.asc(
+				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
+		final Document sort = new Document();
+		orderBy.generateSort(sort);
+		Assertions.assertEquals(1, sort.getInteger("name"));
+	}
+
+	@Test
+	public void testOrderBy_descFactory_fluentSetter() {
+		final OrderBy orderBy = OrderBy.desc(
+				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
+		final Document sort = new Document();
+		orderBy.generateSort(sort);
+		Assertions.assertEquals(-1, sort.getInteger("age"));
 	}
 }

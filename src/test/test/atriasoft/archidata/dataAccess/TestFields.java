@@ -6,6 +6,8 @@ import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.Fields;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
+import org.atriasoft.archidata.dataAccess.FieldRef;
+import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.junit.jupiter.api.Assertions;
@@ -189,5 +191,96 @@ public class TestFields {
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			Fields.of((SerializableFunction<String, Integer>) String::length);
 		});
+	}
+
+	// ====================================================================
+	// Fluent setter model
+	// ====================================================================
+
+	public static class FluentModel {
+		@Id
+		public String _id;
+		public String name;
+		public int age;
+		@Column(name = "full_name")
+		public String fullName;
+
+		public String getName() {
+			return this.name;
+		}
+
+		public FluentModel setName(final String name) {
+			this.name = name;
+			return this;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public FluentModel setAge(final int age) {
+			this.age = age;
+			return this;
+		}
+
+		public String getFullName() {
+			return this.fullName;
+		}
+
+		public FluentModel setFullName(final String fullName) {
+			this.fullName = fullName;
+			return this;
+		}
+	}
+
+	// ====================================================================
+	// Fields.of() with fluent setter
+	// ====================================================================
+
+	@Test
+	public void testOf_fluentSetter() {
+		final String fieldName = Fields
+				.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
+		Assertions.assertEquals("name", fieldName);
+	}
+
+	@Test
+	public void testOf_fluentSetter_columnRename() {
+		final String fieldName = Fields
+				.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName);
+		Assertions.assertEquals("full_name", fieldName);
+	}
+
+	// ====================================================================
+	// Fields.list() with fluent setters
+	// ====================================================================
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testList_fluentSetters() {
+		final List<String> names = Fields.list(
+				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
+		Assertions.assertEquals(List.of("name", "age"), names);
+	}
+
+	// ====================================================================
+	// Fields.of() / Fields.list() with FieldRef (mixed types)
+	// ====================================================================
+
+	@Test
+	public void testOf_fieldRef() {
+		final String fieldName = Fields.of(FieldRef.of(
+				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName));
+		Assertions.assertEquals("name", fieldName);
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testList_fieldRef_mixed() {
+		final List<String> names = Fields.list(
+				FieldRef.of((SerializableFunction<FluentModel, String>) FluentModel::getName),
+				FieldRef.of((SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge));
+		Assertions.assertEquals(List.of("name", "age"), names);
 	}
 }

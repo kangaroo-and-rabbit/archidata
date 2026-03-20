@@ -763,4 +763,133 @@ public class TestFilters {
 	/** Alias for SerializableBiConsumer to improve test readability. */
 	private interface SerializableSetter<T, V>
 			extends org.atriasoft.archidata.dataAccess.SerializableBiConsumer<T, V> {}
+
+	/** Alias for SerializableBiFunction to improve test readability. */
+	private interface SerializableFluentSetter<T, V>
+			extends org.atriasoft.archidata.dataAccess.SerializableBiFunction<T, V, Object> {}
+
+	// ====================================================================
+	// Model with fluent setters
+	// ====================================================================
+
+	/** Model with fluent setters (return this for chaining). */
+	public static class FluentModel {
+		@Id
+		public String _id;
+		public String name;
+		public int age;
+		@Column(name = "full_name")
+		public String fullName;
+
+		public String getName() {
+			return this.name;
+		}
+
+		public FluentModel setName(final String name) {
+			this.name = name;
+			return this;
+		}
+
+		public int getAge() {
+			return this.age;
+		}
+
+		public FluentModel setAge(final int age) {
+			this.age = age;
+			return this;
+		}
+
+		public String getFullName() {
+			return this.fullName;
+		}
+
+		public FluentModel setFullName(final String fullName) {
+			this.fullName = fullName;
+			return this;
+		}
+	}
+
+	// ====================================================================
+	// Fluent setter method reference overloads
+	// ====================================================================
+
+	@Test
+	public void testFluentSetter_eq() {
+		final Bson expected = Filters.eq("name", "John");
+		final Bson result = Filters.eq(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+				"John");
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_ne() {
+		final Bson expected = Filters.ne("name", "John");
+		final Bson result = Filters.ne(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+				"John");
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_gt() {
+		final Bson expected = Filters.gt("age", 18);
+		final Bson result = Filters.gt(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge,
+				18);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_gte() {
+		final Bson expected = Filters.gte("age", 18);
+		final Bson result = Filters.gte(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge,
+				18);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_lt() {
+		final Bson expected = Filters.lt("age", 18);
+		final Bson result = Filters.lt(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge,
+				18);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_lte() {
+		final Bson expected = Filters.lte("age", 18);
+		final Bson result = Filters.lte(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge,
+				18);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_exists() {
+		final Bson expected = Filters.exists("name");
+		final Bson result = Filters.exists(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_existsWithBoolean() {
+		final Bson expected = Filters.exists("name", false);
+		final Bson result = Filters.exists(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+				false);
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
+
+	@Test
+	public void testFluentSetter_columnRename() {
+		final Bson expected = Filters.eq("full_name", "John Doe");
+		final Bson result = Filters.eq(
+				(org.atriasoft.archidata.dataAccess.SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName,
+				"John Doe");
+		Assertions.assertEquals(expected.toString(), result.toString());
+	}
 }
