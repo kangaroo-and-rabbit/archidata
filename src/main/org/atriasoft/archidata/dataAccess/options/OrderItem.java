@@ -2,6 +2,7 @@ package org.atriasoft.archidata.dataAccess.options;
 
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
+import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 
 /**
@@ -64,6 +65,23 @@ public class OrderItem {
 	 * @param order the sort direction
 	 */
 	public <T, V> OrderItem(final SerializableBiConsumer<T, V> setter, final Order order) {
+		this.value = MethodReferenceResolver.resolveFieldName(setter);
+		this.order = order;
+	}
+
+	/**
+	 * Create an OrderItem from a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * new OrderItem(User::setName, Order.DESC)  // fluent setter
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the property type
+	 * @param setter a serializable fluent setter reference
+	 * @param order the sort direction
+	 */
+	public <T, V> OrderItem(final SerializableBiFunction<T, V, ?> setter, final Order order) {
 		this.value = MethodReferenceResolver.resolveFieldName(setter);
 		this.order = order;
 	}

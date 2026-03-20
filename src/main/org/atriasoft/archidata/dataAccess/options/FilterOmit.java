@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
+import org.atriasoft.archidata.dataAccess.FieldRef;
+import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 
 /**
@@ -69,6 +71,36 @@ public class FilterOmit extends QueryOption {
 		final List<String> resolved = new ArrayList<>(setters.length);
 		for (final SerializableBiConsumer<T, ?> setter : setters) {
 			resolved.add(MethodReferenceResolver.resolveFieldName(setter));
+		}
+		this.filterValue = resolved;
+	}
+
+	/**
+	 * Create a FilterOmit from fluent setter method references.
+	 *
+	 * @param <T> the entity type
+	 * @param setters fluent setter method references
+	 */
+	@SafeVarargs
+	public <T> FilterOmit(final SerializableBiFunction<T, ?, ?>... setters) {
+		final List<String> resolved = new ArrayList<>(setters.length);
+		for (final SerializableBiFunction<T, ?, ?> setter : setters) {
+			resolved.add(MethodReferenceResolver.resolveFieldName(setter));
+		}
+		this.filterValue = resolved;
+	}
+
+	/**
+	 * Create a FilterOmit from mixed field references (getter, void setter, fluent setter).
+	 *
+	 * @param <T> the entity type
+	 * @param refs field references
+	 */
+	@SafeVarargs
+	public <T> FilterOmit(final FieldRef<T>... refs) {
+		final List<String> resolved = new ArrayList<>(refs.length);
+		for (final FieldRef<T> ref : refs) {
+			resolved.add(ref.getFieldName());
 		}
 		this.filterValue = resolved;
 	}

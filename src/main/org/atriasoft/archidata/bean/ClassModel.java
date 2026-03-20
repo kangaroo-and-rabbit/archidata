@@ -469,6 +469,43 @@ public final class ClassModel {
 				b.setter(method).lambdaSetter(setter).readOnly(false);
 			}
 		}
+
+		// Second pass: fluent setters (return type assignable from clazz, 1 param).
+		// Only register if the property already exists (has field or getter) but has no void setter.
+		for (final Method method : methods) {
+			if (!Modifier.isPublic(method.getModifiers())) {
+				continue;
+			}
+			if (Modifier.isStatic(method.getModifiers())) {
+				continue;
+			}
+			if (method.getDeclaringClass() == Object.class) {
+				continue;
+			}
+
+			final String methodName = method.getName();
+
+			// Fluent setXxx(value) — non-void return assignable from clazz, 1 param
+			if (!this.isRecord && methodName.startsWith("set") && methodName.length() > 3
+					&& Character.isUpperCase(methodName.charAt(3)) && method.getReturnType() != void.class
+					&& method.getParameterCount() == 1
+					&& method.getReturnType().isAssignableFrom(clazz)) {
+
+				final String propName = decapitalize(methodName.substring(3));
+				final PropertyDescriptor.Builder b = builders.get(propName);
+
+				// Only use fluent setter if property exists but has no setter yet
+				if (b != null && b.getSetter() == null) {
+					final TypeInfo typeInfo = TypeInfo.fromFirstParameter(method);
+					final PropertySetter setter = LambdaAccessorFactory.createSetter(method);
+
+					if (b.getTypeInfo() == null) {
+						b.typeInfo(typeInfo);
+					}
+					b.setter(method).lambdaSetter(setter).readOnly(false);
+				}
+			}
+		}
 	}
 
 	private static Map<Class<? extends Annotation>, Annotation> buildClassAnnotationCache(final Class<?> clazz) {

@@ -1224,4 +1224,149 @@ public final class Filters {
 	public static <T, V> Bson exists(final SerializableBiConsumer<T, V> setter, final boolean exists) {
 		return com.mongodb.client.model.Filters.exists(MethodReferenceResolver.resolveFieldName(setter), exists);
 	}
+
+	// ====================================================================
+	// Comparison operators — Fluent setter method reference overloads
+	// ====================================================================
+
+	/**
+	 * Creates an equality filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * // Match documents where "name" equals "John" (fluent setter)
+	 * Bson filter = Filters.eq(User::setName, "John");
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference (returns entity for chaining)
+	 * @param value the value to match
+	 * @return the equality filter
+	 */
+	public static <T, V> Bson eq(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.eq(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	/**
+	 * Creates a not-equal filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.ne(User::setStatus, "deleted");
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param value the value to exclude
+	 * @return the not-equal filter
+	 */
+	public static <T, V> Bson ne(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.ne(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	/**
+	 * Creates a greater-than filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.gt(User::setAge, 18);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param value the lower bound (exclusive)
+	 * @return the greater-than filter
+	 */
+	public static <T, V> Bson gt(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.gt(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	/**
+	 * Creates a greater-than-or-equal filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.gte(User::setScore, 50);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param value the lower bound (inclusive)
+	 * @return the greater-than-or-equal filter
+	 */
+	public static <T, V> Bson gte(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.gte(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	/**
+	 * Creates a less-than filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.lt(Product::setPrice, 100.0);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param value the upper bound (exclusive)
+	 * @return the less-than filter
+	 */
+	public static <T, V> Bson lt(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.lt(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	/**
+	 * Creates a less-than-or-equal filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.lte(Product::setQuantity, 10);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param value the upper bound (inclusive)
+	 * @return the less-than-or-equal filter
+	 */
+	public static <T, V> Bson lte(final SerializableBiFunction<T, V, ?> setter, final V value) {
+		return com.mongodb.client.model.Filters.lte(MethodReferenceResolver.resolveFieldName(setter), value);
+	}
+
+	// ====================================================================
+	// Element operators — Fluent setter method reference overloads
+	// ====================================================================
+
+	/**
+	 * Creates an exists filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.exists(User::setEmail);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @return the exists filter
+	 */
+	public static <T, V> Bson exists(final SerializableBiFunction<T, V, ?> setter) {
+		return com.mongodb.client.model.Filters.exists(MethodReferenceResolver.resolveFieldName(setter));
+	}
+
+	/**
+	 * Creates an exists filter using a fluent setter method reference.
+	 *
+	 * <pre>{@code
+	 * Bson filter = Filters.exists(User::setPhone, true);
+	 * Bson filter = Filters.exists(User::setDeletedAt, false);
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the field value type
+	 * @param setter the fluent setter method reference
+	 * @param exists true to match documents with the field, false without
+	 * @return the exists filter
+	 */
+	public static <T, V> Bson exists(final SerializableBiFunction<T, V, ?> setter, final boolean exists) {
+		return com.mongodb.client.model.Filters.exists(MethodReferenceResolver.resolveFieldName(setter), exists);
+	}
 }

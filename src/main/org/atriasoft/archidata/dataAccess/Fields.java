@@ -100,4 +100,68 @@ public final class Fields {
 		}
 		return result;
 	}
+
+	/**
+	 * Resolve a fluent setter method reference to its database field name.
+	 *
+	 * <pre>{@code
+	 * String name = Fields.of(User::setName);  // -> "name" (fluent setter)
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the property type
+	 * @param setter a serializable fluent setter reference
+	 * @return the database field name
+	 */
+	public static <T, V> String of(final SerializableBiFunction<T, V, ?> setter) {
+		return MethodReferenceResolver.resolveFieldName(setter);
+	}
+
+	/**
+	 * Resolve multiple fluent setter method references to a list of database field names.
+	 *
+	 * @param <T> the entity type
+	 * @param setters serializable fluent setter references
+	 * @return list of database field names
+	 */
+	@SafeVarargs
+	public static <T> List<String> list(final SerializableBiFunction<T, ?, ?>... setters) {
+		final List<String> result = new ArrayList<>(setters.length);
+		for (final SerializableBiFunction<T, ?, ?> setter : setters) {
+			result.add(MethodReferenceResolver.resolveFieldName(setter));
+		}
+		return result;
+	}
+
+	/**
+	 * Resolve a {@link FieldRef} to its database field name.
+	 *
+	 * @param <T> the entity type
+	 * @param ref a field reference
+	 * @return the database field name
+	 */
+	public static <T> String of(final FieldRef<T> ref) {
+		return ref.getFieldName();
+	}
+
+	/**
+	 * Resolve multiple {@link FieldRef} instances to a list of database field names.
+	 * Allows mixing getter, void setter, and fluent setter references.
+	 *
+	 * <pre>{@code
+	 * List<String> names = Fields.list(FieldRef.of(User::getName), FieldRef.of(User::setAge));
+	 * }</pre>
+	 *
+	 * @param <T> the entity type
+	 * @param refs field references
+	 * @return list of database field names
+	 */
+	@SafeVarargs
+	public static <T> List<String> list(final FieldRef<T>... refs) {
+		final List<String> result = new ArrayList<>(refs.length);
+		for (final FieldRef<T> ref : refs) {
+			result.add(ref.getFieldName());
+		}
+		return result;
+	}
 }

@@ -46,6 +46,19 @@ public final class MethodReferenceResolver {
 		return resolveFromSerializable(setter);
 	}
 
+	/**
+	 * Resolve a fluent setter method reference to its database field name.
+	 *
+	 * <p>Fluent setters return the entity instance (for chaining) instead of void.
+	 *
+	 * @param setter a serializable fluent setter reference (e.g. User::setName where setName returns User)
+	 * @return the database field name
+	 * @throws IllegalArgumentException if the method reference cannot be resolved
+	 */
+	public static <T, V, R> String resolveFieldName(final SerializableBiFunction<T, V, R> setter) {
+		return resolveFromSerializable(setter);
+	}
+
 	private static String resolveFromSerializable(final Serializable lambda) {
 		final SerializedLambda serialized = extractSerializedLambda(lambda);
 		final String cacheKey = serialized.getImplClass() + "::" + serialized.getImplMethodName();

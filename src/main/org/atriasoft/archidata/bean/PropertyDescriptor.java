@@ -285,6 +285,10 @@ public final class PropertyDescriptor {
 			return this.typeInfo;
 		}
 
+		Method getSetter() {
+			return this.setter;
+		}
+
 		Builder typeInfo(final TypeInfo typeInfo) {
 			this.typeInfo = typeInfo;
 			return this;

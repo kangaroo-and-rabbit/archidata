@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
+import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 import org.atriasoft.archidata.dataAccess.options.OrderItem.Order;
 import org.bson.Document;
@@ -90,6 +91,30 @@ public class OrderBy extends QueryOption {
 	 * @return an OrderBy with descending sort on the resolved field
 	 */
 	public static <T, V> OrderBy desc(final SerializableBiConsumer<T, V> setter) {
+		return new OrderBy(new OrderItem(MethodReferenceResolver.resolveFieldName(setter), Order.DESC));
+	}
+
+	/**
+	 * Create an ascending OrderBy from a fluent setter method reference.
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the property type
+	 * @param setter a serializable fluent setter reference
+	 * @return an OrderBy with ascending sort on the resolved field
+	 */
+	public static <T, V> OrderBy asc(final SerializableBiFunction<T, V, ?> setter) {
+		return new OrderBy(new OrderItem(MethodReferenceResolver.resolveFieldName(setter), Order.ASC));
+	}
+
+	/**
+	 * Create a descending OrderBy from a fluent setter method reference.
+	 *
+	 * @param <T> the entity type
+	 * @param <V> the property type
+	 * @param setter a serializable fluent setter reference
+	 * @return an OrderBy with descending sort on the resolved field
+	 */
+	public static <T, V> OrderBy desc(final SerializableBiFunction<T, V, ?> setter) {
 		return new OrderBy(new OrderItem(MethodReferenceResolver.resolveFieldName(setter), Order.DESC));
 	}
 

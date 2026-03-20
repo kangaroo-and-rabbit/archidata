@@ -120,8 +120,10 @@ public final class LambdaAccessorFactory {
 	@SuppressWarnings("unchecked")
 	private static PropertySetter createLambdaSetter(final Method setter) throws Throwable {
 		final Class<?> paramType = setter.getParameterTypes()[0];
-		if (paramType.isPrimitive()) {
-			// LambdaMetafactory cannot bridge primitive types to Object — use MethodHandle directly
+		final Class<?> returnType = setter.getReturnType();
+		if (paramType.isPrimitive() || returnType != void.class) {
+			// LambdaMetafactory with BiConsumer requires void return and non-primitive params.
+			// Fluent setters (non-void return) and primitive params use MethodHandle directly.
 			return createMethodHandleSetter(setter);
 		}
 		final MethodHandles.Lookup lookup = MethodHandles.lookup();
@@ -220,7 +222,9 @@ public final class LambdaAccessorFactory {
 			final Class<V> valueType) {
 		try {
 			final Class<?> paramType = setter.getParameterTypes()[0];
-			if (paramType.isPrimitive()) {
+			final Class<?> returnType = setter.getReturnType();
+			if (paramType.isPrimitive() || returnType != void.class) {
+				// LambdaMetafactory with BiConsumer requires void return and non-primitive params.
 				return createMethodHandleTypedSetter(setter);
 			}
 			final MethodHandles.Lookup lookup = MethodHandles.lookup();
