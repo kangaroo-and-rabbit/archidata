@@ -57,7 +57,7 @@ public class TestAPI {
 		final SimpleArchiveTable data = new SimpleArchiveTable();
 		data.name = "Test name";
 
-		final SimpleArchiveTable inserted = api.request(TestAPI.ENDPOINT_NAME).showIOStrean().formatBody().post()
+		final SimpleArchiveTable inserted = api.request(TestAPI.ENDPOINT_NAME).showIOStream().formatBody().post()
 				.bodyJson(data).fetch(SimpleArchiveTable.class);
 		Assertions.assertNotNull(inserted);
 		Assertions.assertNotNull(inserted.getId());
