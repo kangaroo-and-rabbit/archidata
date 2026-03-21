@@ -27,6 +27,7 @@ import java.util.Map;
  */
 public final class UnifiedAnnotationLookup {
 
+	/** Private constructor to prevent instantiation. */
 	private UnifiedAnnotationLookup() {}
 
 	/**
@@ -81,6 +82,7 @@ public final class UnifiedAnnotationLookup {
 	/**
 	 * Get a specific annotation from the unified cache.
 	 *
+	 * @param <A> the annotation type
 	 * @param cache           the annotation cache built by {@link #buildAnnotationCache}
 	 * @param annotationClass the annotation type to look for
 	 * @return the annotation instance, or null if not present
@@ -94,6 +96,10 @@ public final class UnifiedAnnotationLookup {
 
 	/**
 	 * Check if an annotation is present in the unified cache.
+	 *
+	 * @param cache the annotation cache built by {@link #buildAnnotationCache}
+	 * @param annotationClass the annotation type to check for
+	 * @return {@code true} if the annotation is present in the cache
 	 */
 	public static boolean has(
 			final Map<Class<? extends Annotation>, Annotation> cache,
@@ -104,6 +110,13 @@ public final class UnifiedAnnotationLookup {
 	/**
 	 * Collect all annotations of a specific type across all sources (field, getter, setter,
 	 * interfaces). Unlike {@link #get}, this returns ALL instances, not just the first.
+	 *
+	 * @param <A> the annotation type
+	 * @param field the field (may be null)
+	 * @param getter the getter method (may be null)
+	 * @param setter the setter method (may be null)
+	 * @param annotationClass the annotation class to collect
+	 * @return list of all annotation instances found across all sources
 	 */
 	public static <A extends Annotation> List<A> getAll(
 			final Field field,

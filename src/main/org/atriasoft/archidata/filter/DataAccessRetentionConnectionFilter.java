@@ -80,6 +80,12 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 		}
 	}
 
+	/**
+	 * Opens a database connection and optionally starts a transaction for the incoming request.
+	 *
+	 * @param requestContext the container request context
+	 * @throws IOException if the database connection or transaction cannot be established
+	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		lock();
@@ -98,6 +104,13 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 		}
 	}
 
+	/**
+	 * Commits or aborts the active transaction (if any) and closes the database connection after the response.
+	 *
+	 * @param requestContext the container request context
+	 * @param responseContext the container response context
+	 * @throws IOException if closing the connection fails
+	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext, final ContainerResponseContext responseContext)
 			throws IOException {

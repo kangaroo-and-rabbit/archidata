@@ -18,6 +18,9 @@ import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
+/**
+ * Base model providing automatic creation and update timestamps. All data models that need time tracking should extend this class.
+ */
 //@ApiGenerationMode(create = true, update = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericTiming {
@@ -41,18 +44,34 @@ public class GenericTiming {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Date updatedAt = null;
 
+	/**
+	 * Gets the creation timestamp of this object.
+	 * @return the creation date
+	 */
 	public Date getCreatedAt() {
 		return this.createdAt;
 	}
 
+	/**
+	 * Sets the creation timestamp of this object.
+	 * @param createdAt the creation date to set
+	 */
 	public void setCreatedAt(final Date createdAt) {
 		this.createdAt = createdAt;
 	}
 
+	/**
+	 * Gets the last update timestamp of this object.
+	 * @return the last update date
+	 */
 	public Date getUpdatedAt() {
 		return this.updatedAt;
 	}
 
+	/**
+	 * Sets the last update timestamp of this object.
+	 * @param updatedAt the last update date to set
+	 */
 	public void setUpdatedAt(final Date updatedAt) {
 		this.updatedAt = updatedAt;
 	}

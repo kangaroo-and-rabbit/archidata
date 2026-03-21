@@ -15,9 +15,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link ConstraintViolationException} instances
+ * and converts them into standardized JSON error responses with detailed input validation errors.
+ */
 public class ConstraintViolationExceptionCatcher implements ExceptionMapper<ConstraintViolationException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConstraintViolationExceptionCatcher.class);
 
+	/**
+	 * Maps a {@link ConstraintViolationException} to a BAD_REQUEST JSON error response with details about each constraint violation.
+	 * @param exception the ConstraintViolationException that was thrown
+	 * @return a {@link Response} containing the error details as JSON with HTTP 400 status
+	 */
 	@Override
 	public Response toResponse(final ConstraintViolationException exception) {
 		LOGGER.warn("Catch ConstraintViolationException: {}", exception.getLocalizedMessage());

@@ -15,17 +15,16 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
 /**
- * This class catches InputException and maps it to a HTTP response.
+ * JAX-RS exception mapper that catches {@link InputException} instances
+ * and converts them into standardized JSON error responses with input validation details.
  */
 public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputExceptionCatcher.class);
 
 	/**
-	 * This method is called when an InputException is thrown.
-	 * It logs the exception and builds a response with the error details.
-	 *
+	 * Maps an {@link InputException} to a BAD_REQUEST JSON error response with details about the invalid input.
 	 * @param exception the InputException that was thrown
-	 * @return a Response object containing the error details
+	 * @return a {@link Response} containing the error details as JSON
 	 */
 	@Override
 	public Response toResponse(final InputException exception) {

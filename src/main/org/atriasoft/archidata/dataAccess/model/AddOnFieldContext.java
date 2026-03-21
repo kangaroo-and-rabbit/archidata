@@ -51,55 +51,110 @@ public final class AddOnFieldContext {
 
 	// ========== Getters ==========
 
+	/**
+	 * Returns the target entity class for the relation.
+	 *
+	 * @return the target entity class
+	 */
 	public Class<?> getTargetEntity() {
 		return this.targetEntity;
 	}
 
+	/**
+	 * Returns the name of the remote field on the target entity used for the relation mapping.
+	 *
+	 * @return the remote field name
+	 */
 	public String getRemoteField() {
 		return this.remoteField;
 	}
 
-	/** The DB column name of the remote field (pre-resolved). */
+	/**
+	 * Returns the DB column name of the remote field (pre-resolved).
+	 *
+	 * @return the remote field column name
+	 */
 	public String getRemoteFieldColumn() {
 		return this.remoteFieldColumn;
 	}
 
-	/** The primary key descriptor of the target entity. */
+	/**
+	 * Returns the primary key descriptor of the target entity.
+	 *
+	 * @return the target entity primary key descriptor
+	 */
 	public DbPropertyDescriptor getTargetPk() {
 		return this.targetPk;
 	}
 
-	/** The DB column name of the target entity's primary key (without QueryOptions rename). */
+	/**
+	 * Returns the DB column name of the target entity's primary key (without QueryOptions rename).
+	 *
+	 * @return the target primary key column name
+	 */
 	public String getTargetPkColumn() {
 		return this.targetPkColumn;
 	}
 
-	/** The Java type of the target entity's primary key (Long, UUID, ObjectId). */
+	/**
+	 * Returns the Java type of the target entity's primary key (e.g. Long, UUID, ObjectId).
+	 *
+	 * @return the target primary key type
+	 */
 	public Class<?> getTargetPkType() {
 		return this.targetPkType;
 	}
 
-	/** True if the field stores full entity objects, false if it stores raw IDs. */
+	/**
+	 * Checks whether the field stores full entity objects rather than raw IDs.
+	 *
+	 * @return {@code true} if the field stores entity objects, {@code false} if it stores raw IDs
+	 */
 	public boolean isEntityReference() {
 		return this.entityReference;
 	}
 
+	/**
+	 * Checks whether a link should be added when the owning entity is created.
+	 *
+	 * @return {@code true} if a link should be created on insert
+	 */
 	public boolean isAddLinkWhenCreate() {
 		return this.addLinkWhenCreate;
 	}
 
+	/**
+	 * Checks whether a link should be removed when the owning entity is deleted.
+	 *
+	 * @return {@code true} if the link should be removed on delete
+	 */
 	public boolean isRemoveLinkWhenDelete() {
 		return this.removeLinkWhenDelete;
 	}
 
+	/**
+	 * Checks whether a link should be updated when the owning entity is updated.
+	 *
+	 * @return {@code true} if the link should be updated on update
+	 */
 	public boolean isUpdateLinkWhenUpdate() {
 		return this.updateLinkWhenUpdate;
 	}
 
+	/**
+	 * Returns the cascade mode for update operations (OneToMany specific).
+	 *
+	 * @return the cascade update mode
+	 */
 	public CascadeMode getCascadeUpdate() {
 		return this.cascadeUpdate;
 	}
 
+	/**
+	 * Returns the cascade mode for delete operations (OneToMany specific).
+	 *
+	 * @return the cascade delete mode
+	 */
 	public CascadeMode getCascadeDelete() {
 		return this.cascadeDelete;
 	}

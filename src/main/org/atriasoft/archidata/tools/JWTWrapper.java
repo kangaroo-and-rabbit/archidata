@@ -83,11 +83,16 @@ public class JWTWrapper {
 
 	/** DTO for exchanging the RSA public key via REST. */
 	public static class PublicKey {
+		/** The RSA public key in JSON string format. */
 		public String key;
 
 		/** Default constructor for Jackson deserialization. */
 		public PublicKey() {}
 
+		/**
+		 * Creates a new PublicKey with the given key string.
+		 * @param key The RSA public key in JSON string format.
+		 */
 		public PublicKey(final String key) {
 			this.key = key;
 		}

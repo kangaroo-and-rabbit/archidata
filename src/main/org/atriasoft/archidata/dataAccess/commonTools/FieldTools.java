@@ -7,6 +7,12 @@ import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.exception.DataAccessException;
 
+/**
+ * Utility for resetting field values on MongoDB documents.
+ *
+ * <p>Uses atomic {@code updateMany} with {@code $unset} via {@link MongoLinkManager}
+ * to set a field to null on all documents of a given class.
+ */
 public class FieldTools {
 	private FieldTools() {
 		// Utility class
@@ -16,8 +22,10 @@ public class FieldTools {
 	 * Set a specific field to null on ALL documents of the given class.
 	 * Uses a single atomic {@code updateMany} with {@code $unset}.
 	 *
-	 * @param clazz Class to update in the DB.
+	 * @param <T>       The entity type
+	 * @param clazz     Class to update in the DB.
 	 * @param fieldName Name of the Java property to reset.
+	 * @throws Exception if the update operation fails
 	 */
 	public static <T> void setFieldAtNull(final Class<T> clazz, final String fieldName) throws Exception {
 		final DbClassModel model = DbClassModel.of(clazz);

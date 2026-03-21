@@ -28,12 +28,23 @@ import org.bson.Document;
  * @see OrderItem
  */
 public class OrderBy extends QueryOption {
+	/** The list of sort criteria. */
 	protected final List<OrderItem> childs;
 
+	/**
+	 * Constructs an OrderBy from a list of sort criteria.
+	 *
+	 * @param childs the list of {@link OrderItem} sort criteria
+	 */
 	public OrderBy(final List<OrderItem> childs) {
 		this.childs = childs;
 	}
 
+	/**
+	 * Constructs an OrderBy from sort criteria varargs.
+	 *
+	 * @param childs the {@link OrderItem} sort criteria
+	 */
 	public OrderBy(final OrderItem... childs) {
 		this.childs = List.of(childs);
 	}
@@ -118,6 +129,11 @@ public class OrderBy extends QueryOption {
 		return new OrderBy(new OrderItem(MethodReferenceResolver.resolveFieldName(setter), Order.DESC));
 	}
 
+	/**
+	 * Populates a MongoDB sort document with the sort criteria.
+	 *
+	 * @param data the MongoDB {@link Document} to populate with sort fields
+	 */
 	public void generateSort(final Document data) {
 		for (final OrderItem elem : this.childs) {
 			data.append(elem.value, elem.order == Order.ASC ? 1 : -1);

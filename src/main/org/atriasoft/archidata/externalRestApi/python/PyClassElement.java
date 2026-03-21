@@ -26,33 +26,48 @@ import org.slf4j.LoggerFactory;
  * Similar to TsClassElement but generates Pydantic models.
  */
 public class PyClassElement {
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(PyClassElement.class);
 
+	/** Defines where a type is positioned in the generation hierarchy. */
 	public enum DefinedPosition {
-		NATIVE, // Native Python type (str, int, etc.)
-		BASIC, // Basic wrapper types (UUID, ObjectId, etc.)
-		NORMAL // Complex objects to generate
+		/** Native Python type (str, int, etc.). */
+		NATIVE,
+		/** Basic wrapper types (UUID, ObjectId, etc.). */
+		BASIC,
+		/** Complex objects to generate. */
+		NORMAL
 	}
 
+	/** The list of class models associated with this element. */
 	public List<ClassModel> models;
+	/** The Python type name for this element. */
 	public String pyTypeName;
+	/** The validator name for Pydantic validation. */
 	public String validatorName;
+	/** The file name (snake_case) for the generated Python file. */
 	public String fileName = null;
+	/** The position category of this type (native, basic, or normal). */
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
+	/** The set of requested parameter class models for this element. */
 	public Set<ParameterClassModel> requestedModels = new HashSet<>();
 
 	// Field constraints from Pydantic
 	private final String fieldConstraints;
 
 	/**
-	 * Convert CamelCase to snake_case for Python file names.
+	 * Converts CamelCase to snake_case for Python file names.
+	 * @param className the CamelCase class name to convert
+	 * @return the snake_case version of the class name
 	 */
 	public static String toSnakeCase(final String className) {
 		return className.replaceAll("([a-z])([A-Z])", "$1_$2").replaceAll("([A-Z])([A-Z][a-z])", "$1_$2").toLowerCase();
 	}
 
 	/**
-	 * Convert camelCase to snake_case for Python field names.
+	 * Converts camelCase to snake_case for Python field names.
+	 * @param fieldName the camelCase field name to convert
+	 * @return the snake_case version of the field name
 	 */
 	public static String fieldToSnakeCase(final String fieldName) {
 		return fieldName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
@@ -60,6 +75,11 @@ public class PyClassElement {
 
 	/**
 	 * Constructor for native/basic types.
+	 * @param model the list of class models associated with this element
+	 * @param pyTypeName the Python type name
+	 * @param validatorName the Pydantic validator name
+	 * @param fieldConstraints the field constraint string for Pydantic
+	 * @param nativeType the position category of this type
 	 */
 	public PyClassElement(final List<ClassModel> model, final String pyTypeName, final String validatorName,
 			final String fieldConstraints, final DefinedPosition nativeType) {
@@ -73,6 +93,7 @@ public class PyClassElement {
 
 	/**
 	 * Constructor for complex object models.
+	 * @param model the class model to wrap
 	 */
 	public PyClassElement(final ClassModel model) {
 		this.models = List.of(model);
@@ -82,6 +103,10 @@ public class PyClassElement {
 		this.fileName = toSnakeCase(this.pyTypeName);
 	}
 
+	/**
+	 * Gets the Python type name for this element.
+	 * @return the Python type name, or the simple class name if not set
+	 */
 	public String getTypeName() {
 		if (this.pyTypeName != null) {
 			return this.pyTypeName;
@@ -89,6 +114,11 @@ public class PyClassElement {
 		return this.models.get(0).getOriginClasses().getSimpleName();
 	}
 
+	/**
+	 * Gets the Python type name and registers the parameter model as requested.
+	 * @param model the parameter class model to register
+	 * @return the Python type name
+	 */
 	public String getTypeName(final ParameterClassModel model) {
 		this.requestedModels.add(model);
 		if (this.pyTypeName != null) {
@@ -97,12 +127,18 @@ public class PyClassElement {
 		return model.getType();
 	}
 
+	/**
+	 * Checks if the given class model is compatible with this element.
+	 * @param model the class model to check
+	 * @return true if the model is contained in this element's models
+	 */
 	public boolean isCompatible(final ClassModel model) {
 		return this.models.contains(model);
 	}
 
 	/**
-	 * Generate the file header with imports.
+	 * Generates the file header with standard Python imports.
+	 * @return the header string including future annotations and Pydantic imports
 	 */
 	public String getBaseHeader() {
 		return """
@@ -118,7 +154,10 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate Python code for an enum.
+	 * Generates Python code for an enum class definition.
+	 * @param model the enum model to generate code for
+	 * @param pyGroup the group registry for resolving type references
+	 * @return the generated Python enum source code
 	 */
 	public String generateEnum(final ClassEnumModel model, final PyClassElementGroup pyGroup) {
 		final StringBuilder out = new StringBuilder();
@@ -150,7 +189,10 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate imports section based on dependencies.
+	 * Generates the imports section based on model dependencies.
+	 * @param imports the import model tracking required imports
+	 * @param pyGroup the group registry for resolving type references
+	 * @return the generated Python import statements
 	 */
 	public String generateImports(final PyImportModel imports, final PyClassElementGroup pyGroup) {
 		final StringBuilder out = new StringBuilder();
@@ -183,7 +225,11 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Check if field is optional based on validation constraints.
+	 * Checks if a field is optional based on validation constraints.
+	 * @param field the field property to check
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return true if the field should be optional in generated code
 	 */
 	public boolean isOptionalField(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (field.apiNotNull() != null) {
@@ -208,7 +254,10 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate Pydantic Field constraints.
+	 * Generates Pydantic Field constraints for a given field.
+	 * @param field the field property containing constraint annotations
+	 * @param originalName the original Java field name (for alias generation)
+	 * @return the Pydantic Field() constraint string, or empty string if no constraints
 	 */
 	public String generateFieldConstraints(final FieldProperty field, final String originalName) {
 		final StringBuilder constraints = new StringBuilder();
@@ -272,8 +321,10 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate Python code for an object model with all variants (Read, Create,
-	 * Update).
+	 * Generates Python code for an object model with all variants (Read, Create, Update).
+	 * @param model the object model to generate code for
+	 * @param pyGroup the group registry for resolving type references
+	 * @return the complete generated Python source code including imports and all variants
 	 */
 	public String generateObject(final ClassObjectModel model, final PyClassElementGroup pyGroup) {
 		final PyImportModel imports = new PyImportModel();
@@ -427,7 +478,11 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate Python type string for a ClassModel.
+	 * Generates the Python type string for a ClassModel.
+	 * @param model the class model to generate a type for
+	 * @param pyGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @return the Python type annotation string
 	 */
 	public String generateTypeForModel(
 			final ClassModel model,
@@ -473,7 +528,9 @@ public class PyClassElement {
 	}
 
 	/**
-	 * Generate the Python file for this element.
+	 * Generates the Python file for this element and adds it to the generation map.
+	 * @param pyGroup the group registry for resolving type references
+	 * @param generation the map of file paths to generated content
 	 */
 	public void generateFile(final PyClassElementGroup pyGroup, final Map<Path, String> generation) {
 		if (this.nativeType == DefinedPosition.NATIVE) {

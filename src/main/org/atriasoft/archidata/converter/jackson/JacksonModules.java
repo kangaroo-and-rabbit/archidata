@@ -8,11 +8,20 @@ import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+/**
+ * Utility class providing Jackson module configuration for custom serializers and deserializers.
+ * Registers converters for {@link ObjectId}, {@link Date}, {@link OffsetDateTime}, and {@link Document}.
+ */
 public class JacksonModules {
 	private JacksonModules() {
 		// Utility class
 	}
 
+	/**
+	 * Creates a Jackson {@link SimpleModule} with all custom serializers and deserializers registered.
+	 * This includes converters for {@link ObjectId}, {@link Date}, {@link OffsetDateTime}, and {@link Document}.
+	 * @return a configured {@link SimpleModule} containing all custom converters.
+	 */
 	public static SimpleModule getAllModules() {
 		final SimpleModule module = new SimpleModule();
 		module.addSerializer(ObjectId.class, new ObjectIdSerializer());

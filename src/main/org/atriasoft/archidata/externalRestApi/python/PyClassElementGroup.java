@@ -12,12 +12,18 @@ public class PyClassElementGroup {
 
 	private final List<PyClassElement> elements;
 
+	/**
+	 * Constructs a new group with the given list of Python class elements.
+	 * @param elements the list of Python class elements to register
+	 */
 	public PyClassElementGroup(final List<PyClassElement> elements) {
 		this.elements = elements;
 	}
 
 	/**
-	 * Find the PyClassElement for a given ClassModel.
+	 * Finds the PyClassElement for a given ClassModel.
+	 * @param model the class model to look up
+	 * @return the matching PyClassElement, or null if not found
 	 */
 	public PyClassElement find(final ClassModel model) {
 		for (final PyClassElement element : this.elements) {
@@ -29,7 +35,8 @@ public class PyClassElementGroup {
 	}
 
 	/**
-	 * Get all registered elements.
+	 * Gets all registered Python class elements.
+	 * @return the list of all registered elements
 	 */
 	public List<PyClassElement> getPyElements() {
 		return this.elements;

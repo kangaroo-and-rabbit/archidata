@@ -8,9 +8,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link SystemException} instances
+ * and converts them into standardized JSON error responses.
+ */
 public class SystemExceptionCatcher implements ExceptionMapper<SystemException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SystemExceptionCatcher.class);
 
+	/**
+	 * Maps a {@link SystemException} to a JSON error response using the exception's HTTP status.
+	 * @param exception the SystemException that was thrown
+	 * @return a {@link Response} containing the error details as JSON
+	 */
 	@Override
 	public Response toResponse(final SystemException exception) {
 		LOGGER.warn("Catch SystemException:");

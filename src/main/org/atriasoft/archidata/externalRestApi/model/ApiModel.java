@@ -20,43 +20,52 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.core.Context;
 
+/**
+ * Represents a single REST API endpoint extracted from a JAX-RS method.
+ *
+ * <p>Contains all metadata about the endpoint: HTTP method, path, parameters,
+ * return types, consumed/produced media types, and security roles.
+ */
 public class ApiModel {
+	/** Logger instance. */
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
 
+	/** The class that declares this API endpoint. */
 	Class<?> originClass;
+	/** The method that implements this API endpoint. */
 	Method orignMethod;
 
-	// Name of the REST end-point name
+	/** The REST endpoint path (e.g., "/users/{id}"). */
 	public String restEndPoint;
-	// Type of the request:
+	/** The HTTP method type (GET, POST, PUT, etc.). */
 	public RestTypeRequest restTypeRequest;
-	// Description of the API
+	/** The description of this API endpoint. */
 	public String description;
-	// Group/tag of the API (from @ApiDoc(group = ...))
+	/** The group/tag of this API endpoint (from {@code @ApiDoc(group = ...)}). */
 	public String group;
-	// need to generate the progression of stream (if possible)
+	/** Whether TypeScript progress tracking should be generated for this endpoint. */
 	public boolean needGenerateProgress;
 
-	// List of types returned by the API
-	public List<ClassModel> returnTypes = new ArrayList<>();;
-	// Name of the API (function name)
+	/** The list of class models representing the return types. */
+	public List<ClassModel> returnTypes = new ArrayList<>();
+	/** The API method name. */
 	public String name;
-	// list of all parameters (/{key}/...
+	/** Path parameters mapped by name (e.g., {@code {key}}). */
 	public final Map<String, ParameterClassModelList> parameters = new HashMap<>();
-	// list of all headers of the request (/{key}/...
+	/** Header parameters mapped by name. */
 	public final Map<String, ParameterClassModelList> headers = new HashMap<>();
-	// list of all query (?key...)
+	/** Query parameters mapped by name (e.g., {@code ?key=...}). */
 	public final Map<String, ParameterClassModelList> queries = new HashMap<>();
-	// when request multi-part, need to separate it.
+	/** Multi-part form data parameters mapped by name. */
 	public final Map<String, ParameterClassModelList> multiPartParameters = new HashMap<>();
-	// model of data available
+	/** Unnamed request body elements. */
 	public final List<ParameterClassModelList> unnamedElement = new ArrayList<>();
 
-	// Possible input type of the REST API
+	/** The list of consumed media types for this endpoint. */
 	public List<String> consumes = new ArrayList<>();
-	// Possible output type of the REST API
+	/** The list of produced media types for this endpoint. */
 	public List<String> produces = new ArrayList<>();
-	// Security roles: empty list = @PermitAll, non-empty = @RolesAllowed, null = no annotation or @DenyAll
+	/** Security roles: empty list means {@code @PermitAll}, non-empty means {@code @RolesAllowed}, {@code null} means no annotation or {@code @DenyAll}. */
 	public List<String> securityRoles;
 
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
@@ -137,6 +146,16 @@ public class ApiModel {
 		return endsWithSlash && !cleaned.endsWith("/") ? cleaned + "/" : cleaned;
 	}
 
+	/**
+	 * Constructs an API model by introspecting the given method and its annotations.
+	 * @param clazz the JAX-RS resource class
+	 * @param method the method representing the endpoint
+	 * @param baseRestEndPoint the base REST path from the class-level {@code @Path}
+	 * @param consume the default consumed media types from the class
+	 * @param produce the default produced media types from the class
+	 * @param previousModel the model group for resolving parameter and return types
+	 * @throws Exception if introspection or type resolution fails
+	 */
 	public ApiModel(final Class<?> clazz, final Method method, final String baseRestEndPoint,
 			final List<String> consume, final List<String> produce, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;

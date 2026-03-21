@@ -21,11 +21,24 @@ import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
+/**
+ * Generates Graphviz DOT diagrams from {@link AnalyzeApi} introspection data.
+ *
+ * <p>Produces UML-style class diagrams in DOT format that can be rendered
+ * with Graphviz tools (e.g., {@code dot}, {@code neato}).
+ */
 public class DotGenerateApi {
+	/** Private constructor to prevent instantiation of this utility class. */
 	private DotGenerateApi() {
 		// Utility class
 	}
 
+	/**
+	 * Generates a Graphviz DOT file representing the API models and endpoints.
+	 * @param api the analyzed API model to generate from
+	 * @param pathDotFile the file path where the DOT file will be written
+	 * @throws Exception if generation or file writing fails
+	 */
 	public static void generateApi(final AnalyzeApi api, final String pathDotFile) throws Exception {
 		final List<DotClassElement> localModel = generateApiModel(api);
 		final DotClassElementGroup dotGroup = new DotClassElementGroup(localModel);

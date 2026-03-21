@@ -5,14 +5,21 @@ import org.atriasoft.archidata.tools.JWTWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Daemon thread that periodically refreshes the JWT public key from a remote SSO server.
+ *
+ * <p>If no SSO address is configured, the thread exits immediately.</p>
+ */
 public class UpdateJwtPublicKey extends Thread {
 	private static final Logger LOGGER = LoggerFactory.getLogger(UpdateJwtPublicKey.class);
 	private volatile boolean kill = false;
 
+	/** Creates a new daemon thread for JWT public key updates. */
 	public UpdateJwtPublicKey() {
 		setDaemon(true);
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public void run() {
 		if (ConfigBaseVariable.getSSOAddress() == null) {
@@ -39,6 +46,7 @@ public class UpdateJwtPublicKey extends Thread {
 		}
 	}
 
+	/** Signals this thread to stop and interrupts it. */
 	public void kill() {
 		this.kill = true;
 		this.interrupt();

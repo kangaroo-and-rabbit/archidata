@@ -9,6 +9,15 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.SecurityContext;
 
+/**
+ * Custom {@link SecurityContext} implementation that provides role-based access control
+ * using {@link UserByToken} information extracted from authentication tokens.
+ *
+ * <p>
+ * Supports role checking with optional read/write permission suffixes (e.g., {@code "role:r"},
+ * {@code "role:w"}, {@code "role:rw"}) and group-based role resolution.
+ * </p>
+ */
 // https://simplapi.wordpress.com/2015/09/19/jersey-jax-rs-securitycontext-in-action/
 public class MySecurityContext implements SecurityContext {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MySecurityContext.class);
@@ -16,16 +25,34 @@ public class MySecurityContext implements SecurityContext {
 	private final GenericContext contextPrincipale;
 	private final String sheme;
 
+	/**
+	 * Constructs a security context from the authenticated user token and request scheme.
+	 *
+	 * @param userByToken the authenticated user's token data
+	 * @param sheme the URI scheme of the request (e.g., "https")
+	 */
 	public MySecurityContext(final UserByToken userByToken, final String sheme) {
 		this.contextPrincipale = new GenericContext(userByToken);
 		this.sheme = sheme;
 	}
 
+	/**
+	 * Returns the principal associated with this security context.
+	 *
+	 * @return the {@link GenericContext} principal
+	 */
 	@Override
 	public Principal getUserPrincipal() {
 		return this.contextPrincipale;
 	}
 
+	/**
+	 * Returns the access right for a specific role within a group.
+	 *
+	 * @param group the group name
+	 * @param role the role name within the group
+	 * @return the {@link PartRight} for the role, or {@code null} if the user has no rights
+	 */
 	public PartRight getRightOfRoleInGroup(final String group, final String role) {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.getRightForKey(group, role);
@@ -33,6 +60,11 @@ public class MySecurityContext implements SecurityContext {
 		return null;
 	}
 
+	/**
+	 * Returns the set of groups the authenticated user belongs to.
+	 *
+	 * @return the set of group names, or an empty set if no user is available
+	 */
 	public Set<String> getGroups() {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.getGroups();
@@ -40,6 +72,12 @@ public class MySecurityContext implements SecurityContext {
 		return Set.of();
 	}
 
+	/**
+	 * Checks whether a specific group exists for the authenticated user.
+	 *
+	 * @param group the group name to check
+	 * @return {@code true} if the group exists for the user
+	 */
 	public boolean groupExist(final String group) {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.groupExist(group);
@@ -47,6 +85,11 @@ public class MySecurityContext implements SecurityContext {
 		return false;
 	}
 
+	/**
+	 * Returns the unique identifier of the authenticated user.
+	 *
+	 * @return the user ID, or {@code null} if no user is available
+	 */
 	// Not sure the Long type is definitive.
 	public Object getUserID() {
 		if (this.contextPrincipale.userByToken != null) {
@@ -55,6 +98,15 @@ public class MySecurityContext implements SecurityContext {
 		return null;
 	}
 
+	/**
+	 * Checks whether the user has the required read/write permissions for a role within a group.
+	 *
+	 * @param group the group name
+	 * @param role the role name
+	 * @param needRead whether read permission is required
+	 * @param needWrite whether write permission is required
+	 * @return {@code true} if the user has the required permissions
+	 */
 	public boolean checkRightInGroup(
 			final String group,
 			final String role,
@@ -80,6 +132,17 @@ public class MySecurityContext implements SecurityContext {
 		return false;
 	}
 
+	/**
+	 * Checks whether the authenticated user has the specified role.
+	 *
+	 * <p>
+	 * The role string can include permission suffixes ({@code :r}, {@code :w}, {@code :rw})
+	 * and group prefixes separated by {@code /} (e.g., {@code "group/role:rw"}).
+	 * </p>
+	 *
+	 * @param role the role string to check
+	 * @return {@code true} if the user has the specified role with required permissions
+	 */
 	@Override
 	public boolean isUserInRole(final String role) {
 		String roleEdit = role;
@@ -128,6 +191,12 @@ public class MySecurityContext implements SecurityContext {
 		return checkRightInGroup("?system?", roleEdit, needRead, needWrite);
 	}
 
+	/**
+	 * Returns the right value associated with the given role name.
+	 *
+	 * @param role the role name to look up
+	 * @return the right value object, or {@code null} if no user or right is available
+	 */
 	public Object getRole(final String role) {
 		LOGGER.info("contextPrincipale={}", this.contextPrincipale);
 		if (this.contextPrincipale.userByToken != null) {
@@ -138,11 +207,21 @@ public class MySecurityContext implements SecurityContext {
 		return null;
 	}
 
+	/**
+	 * Returns whether the request was made using a secure channel (HTTPS).
+	 *
+	 * @return {@code true} if the request scheme is HTTPS
+	 */
 	@Override
 	public boolean isSecure() {
 		return "https".equalsIgnoreCase(this.sheme);
 	}
 
+	/**
+	 * Returns the authentication scheme used for this request.
+	 *
+	 * @return "Bearer" if a user is authenticated, or {@code null} otherwise
+	 */
 	@Override
 	public String getAuthenticationScheme() {
 		if (this.contextPrincipale.userByToken != null) {

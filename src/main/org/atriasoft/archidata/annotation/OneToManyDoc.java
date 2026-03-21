@@ -37,35 +37,47 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })
 public @interface OneToManyDoc {
+	/**
+	 * Defines the cascade behavior applied to remote objects when the parent entity
+	 * is updated or deleted.
+	 */
 	public enum CascadeMode {
-		DELETE, // The remote object is deleted
-		SET_NULL, // The remote object parent field is set to `null`
-		IGNORE // The remote object is unchanged
+		/** The remote object is deleted. */
+		DELETE,
+		/** The remote object parent field is set to {@code null}. */
+		SET_NULL,
+		/** The remote object is left unchanged. */
+		IGNORE
 	}
 
 	/**
 	 * The entity class that is the target of the association.
+	 * @return the target entity class
 	 */
 	Class<?> targetEntity();
 
 	/**
-	 * The field remote name that owns the revert value. empty if the relationship
-	 * is unidirectional.
+	 * The field name in the remote entity that holds the reverse reference.
+	 * Empty if the relationship is unidirectional.
+	 * @return the remote field name
 	 */
 	String remoteField();
 
 	/**
-	 * When create the object, the system add the link on the children
+	 * Whether the system automatically adds the link on children when the parent is created.
+	 * @return true if the link should be added on creation, true by default
 	 */
 	boolean addLinkWhenCreate() default true;
 
 	/**
-	 * When object is update, apply some update on child.
+	 * The cascade behavior to apply on child entities when the parent is updated.
+	 * @return the cascade mode for updates, defaults to {@link CascadeMode#IGNORE}
 	 */
 	CascadeMode cascadeUpdate() default CascadeMode.IGNORE;
 
 	/**
-	 * When object is removed, apply some update on child.
+	 * The cascade behavior to apply on child entities when the parent is deleted.
+	 * @return the cascade mode for deletions, defaults to {@link CascadeMode#IGNORE}
 	 */
 	CascadeMode cascadeDelete() default CascadeMode.IGNORE;
 

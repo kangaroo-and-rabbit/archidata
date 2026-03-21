@@ -8,6 +8,14 @@ import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Database configuration holder for MongoDB connections.
+ *
+ * <p>
+ * Stores connection parameters such as hostname, port, credentials, database name,
+ * and registered data classes. Provides a connection URL builder for MongoDB.
+ * </p>
+ */
 public class DbConfig {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
 	private final String hostname;
@@ -18,12 +26,29 @@ public class DbConfig {
 	private final boolean keepConnected;
 	private final List<Class<?>> classes;
 
+	/**
+	 * Constructs a DbConfig using values from {@link ConfigBaseVariable}.
+	 *
+	 * @throws DataAccessException if the configuration cannot be loaded
+	 */
 	public DbConfig() throws DataAccessException {
 		this(ConfigBaseVariable.getDBHost(), ConfigBaseVariable.getDBPort(), ConfigBaseVariable.getDBLogin(),
 				ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
 				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getBbInterfacesClasses()));
 	}
 
+	/**
+	 * Constructs a DbConfig with explicit connection parameters.
+	 *
+	 * @param hostname the database server hostname (defaults to "localhost" if null)
+	 * @param port the database server port (defaults to 27017 if null)
+	 * @param login the database login username
+	 * @param password the database login password
+	 * @param dbName the name of the database
+	 * @param keepConnected whether to keep the connection open for reuse
+	 * @param classes the list of data model classes registered with this configuration
+	 * @throws DataAccessException if the configuration is invalid
+	 */
 	public DbConfig(final String hostname, final Short port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
 
@@ -45,44 +70,90 @@ public class DbConfig {
 
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public String toString() {
 		return "DBConfig{hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\''
 				+ ", password='" + this.password + '\'' + ", dbName='" + this.dbName + "' }";
 	}
 
+	/**
+	 * Returns the database server hostname.
+	 *
+	 * @return the hostname
+	 */
 	public String getHostname() {
 		return this.hostname;
 	}
 
+	/**
+	 * Returns the database server port.
+	 *
+	 * @return the port number
+	 */
 	public int getPort() {
 		return this.port;
 	}
 
+	/**
+	 * Returns the database login username.
+	 *
+	 * @return the login
+	 */
 	public String getLogin() {
 		return this.login;
 	}
 
+	/**
+	 * Returns the database login password.
+	 *
+	 * @return the password
+	 */
 	public String getPassword() {
 		return this.password;
 	}
 
+	/**
+	 * Returns the database name.
+	 *
+	 * @return the database name
+	 */
 	public String getDbName() {
 		return this.dbName;
 	}
 
+	/**
+	 * Sets the database name.
+	 *
+	 * @param dbName the new database name
+	 */
 	public void setDbName(final String dbName) {
 		this.dbName = dbName;
 	}
 
+	/**
+	 * Returns whether connections should be kept open for reuse.
+	 *
+	 * @return {@code true} if connections should be kept connected
+	 */
 	public boolean getKeepConnected() {
 		return this.keepConnected;
 	}
 
+	/**
+	 * Returns the list of data model classes registered with this configuration.
+	 *
+	 * @return the list of classes
+	 */
 	public List<Class<?>> getClasses() {
 		return this.classes;
 	}
 
+	/**
+	 * Builds and returns the MongoDB connection URL from the configuration parameters.
+	 *
+	 * @return the MongoDB connection URL string
+	 */
 	public String getUrl() {
 		final String tmpPassword = getPassword().replace("@", "%40");
 		final StringBuilder tmp = new StringBuilder("mongodb://");
@@ -102,6 +173,12 @@ public class DbConfig {
 		return tmp.toString();
 	}
 
+	/**
+	 * Checks equality based on all configuration fields.
+	 *
+	 * @param other the object to compare with
+	 * @return {@code true} if the configurations are equal
+	 */
 	@Override
 	public boolean equals(final Object other) {
 		if (this == other) {
@@ -122,12 +199,18 @@ public class DbConfig {
 		return false;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public int hashCode() {
 		return Objects.hash(this.hostname, this.port, this.login, this.password, this.dbName, this.keepConnected,
 				this.classes);
 	}
 
+	/**
+	 * Creates a copy of this configuration.
+	 *
+	 * @return a new DbConfig with the same parameters, or {@code null} if cloning fails
+	 */
 	@Override
 	public DbConfig clone() {
 		try {

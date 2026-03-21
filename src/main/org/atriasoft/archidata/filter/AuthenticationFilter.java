@@ -37,6 +37,14 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
+/**
+ * JAX-RS request filter that handles authentication and authorization.
+ *
+ * <p>
+ * This filter intercepts incoming requests, validates JWT or API key tokens,
+ * and checks role-based access permissions before allowing access to secured resources.
+ * </p>
+ */
 //@PreMatching
 @Provider
 @Priority(Priorities.AUTHENTICATION)
@@ -44,21 +52,42 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 	@Context
 	private ResourceInfo resourceInfo;
+	/** The application name used as a prefix for role-based access control. */
 	protected final String applicationName;
+	/** The JWT issuer used for token validation. */
 	protected final String issuer;
 
+	/** The Bearer authentication scheme identifier. */
 	public static final String AUTHENTICATION_SCHEME = "Bearer";
+	/** The API key header name. */
 	public static final String APIKEY = "ApiKey";
 
+	/**
+	 * Constructs an authentication filter with the given application name and default issuer "KarAuth".
+	 *
+	 * @param applicationName the application name used for role-based access control
+	 */
 	public AuthenticationFilter(final String applicationName) {
 		this(applicationName, "KarAuth");
 	}
 
+	/**
+	 * Constructs an authentication filter with the given application name and issuer.
+	 *
+	 * @param applicationName the application name used for role-based access control
+	 * @param issuer the JWT issuer identifier for token validation
+	 */
 	public AuthenticationFilter(final String applicationName, final String issuer) {
 		this.applicationName = applicationName;
 		this.issuer = issuer;
 	}
 
+	/**
+	 * Retrieves the full resource path of the current request by combining class and method path annotations.
+	 *
+	 * @param requestContext the container request context
+	 * @return the full resource path
+	 */
 	public String getRequestedPath(final ContainerRequestContext requestContext) {
 		final Class<?> resourceClass = this.resourceInfo.getResourceClass();
 		final Method resourceMethod = this.resourceInfo.getResourceMethod();
@@ -73,6 +102,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		return fullPath;
 	}
 
+	/**
+	 * Filters incoming requests to enforce authentication and authorization.
+	 *
+	 * <p>
+	 * Validates tokens (JWT or API key), checks role-based access, and sets the security context.
+	 * </p>
+	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
@@ -190,6 +226,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// logger.debug("Get local user : {} / {}", user, userByToken);
 	}
 
+	/**
+	 * Checks whether the authenticated user has at least one of the required roles.
+	 *
+	 * @param requestContext the container request context
+	 * @param userContext the security context containing user information
+	 * @param roles the list of allowed roles
+	 * @return {@code true} if the user has at least one required role
+	 * @throws SystemException if an error occurs during rights verification
+	 */
 	protected boolean checkRight(
 			final ContainerRequestContext requestContext,
 			final MySecurityContext userContext,
@@ -237,12 +282,33 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				.type(MediaType.APPLICATION_JSON).build());
 	}
 
+	/**
+	 * Validates an API key token and returns the associated user.
+	 *
+	 * <p>
+	 * This method should be overridden by application implementations.
+	 * </p>
+	 *
+	 * @param authorization the API key token string
+	 * @return the user associated with the token, or {@code null} if invalid
+	 * @throws Exception if token validation fails
+	 */
 	protected UserByToken validateToken(final String authorization) throws Exception {
 		LOGGER.info("Must be Override by the application implmentation, otherwise it dose not work");
 		return null;
 	}
 
-	// must be override to be good implementation
+	/**
+	 * Validates a JWT token and returns the associated user.
+	 *
+	 * <p>
+	 * Can be overridden by subclasses to customize JWT validation logic.
+	 * </p>
+	 *
+	 * @param authorization the JWT token string (without the "Bearer " prefix)
+	 * @return the user extracted from the JWT claims, or {@code null} if invalid
+	 * @throws Exception if token validation or parsing fails
+	 */
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
 		// logger.debug(" validate token : " + authorization);
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, null);

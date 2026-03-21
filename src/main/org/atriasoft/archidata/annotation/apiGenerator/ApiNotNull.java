@@ -37,9 +37,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiNotNull {
 	/**
-	 * (Optional) Specifies whether the API element can be null.
-	 * If set to `true`, the element is required (non-null).
-	 * If set to `false`, the element is optional (nullable).
+	 * Specifies whether the API element can be null.
+	 * If set to {@code true}, the element is required (non-null).
+	 * If set to {@code false}, the element is optional (nullable).
+	 * @return true if the element is non-null, true by default
 	 */
 	boolean value() default true;
 }

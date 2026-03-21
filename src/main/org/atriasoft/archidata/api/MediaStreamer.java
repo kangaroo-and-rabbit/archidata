@@ -11,6 +11,11 @@ import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.StreamingOutput;
 
+/**
+ * {@link StreamingOutput} implementation that streams a range of bytes from a {@link RandomAccessFile}.
+ *
+ * <p>Used by {@link DataResource} to serve partial content (HTTP 206) responses for media streaming.</p>
+ */
 public class MediaStreamer implements StreamingOutput {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaStreamer.class);
 	private final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
@@ -18,6 +23,12 @@ public class MediaStreamer implements StreamingOutput {
 	private long length;
 	private final RandomAccessFile raf;
 
+	/**
+	 * Creates a new media streamer for the given byte range.
+	 * @param length The number of bytes to stream.
+	 * @param raf The random access file positioned at the start of the range.
+	 * @throws IOException If the specified length is negative.
+	 */
 	public MediaStreamer(final long length, final RandomAccessFile raf) throws IOException {
 		// logger.info("request stream of {} data", length / 1024);
 		if (length < 0) {
@@ -27,6 +38,7 @@ public class MediaStreamer implements StreamingOutput {
 		this.raf = raf;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public void write(final OutputStream outputStream) {
 		try {
@@ -55,6 +67,10 @@ public class MediaStreamer implements StreamingOutput {
 		}
 	}
 
+	/**
+	 * Returns the remaining number of bytes to stream.
+	 * @return The remaining byte count.
+	 */
 	public long getLenth() {
 		return this.length;
 	}

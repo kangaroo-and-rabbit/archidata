@@ -11,16 +11,24 @@ import org.bson.types.ObjectId;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
+/**
+ * Validator for the {@link UniqueInBaseId} constraint.
+ *
+ * <p>Verifies that the given string value is unique in the database for the specified
+ * target entity and field, excluding the current entity from the check.
+ */
 public class UniqueInBaseIdValidator implements ConstraintValidator<UniqueInBaseId, String> {
 	String nameOfField;
 	Class<?> target;
 
+	/** {@inheritDoc} */
 	@Override
 	public void initialize(final UniqueInBaseId annotation) {
 		this.nameOfField = annotation.nameOfField();
 		this.target = annotation.target();
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public boolean isValid(final String value, final ConstraintValidatorContext context) {
 		if (value == null) {

@@ -41,9 +41,20 @@ import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Represents an object (class/record) model extracted from a Java class for API generation.
+ *
+ * <p>Handles field introspection, inheritance resolution, validation constraints,
+ * and access limitation annotations for each property of the modeled class.
+ */
 public class ClassObjectModel extends ClassModel {
+	/** Logger instance. */
 	static final Logger LOGGER = LoggerFactory.getLogger(ClassObjectModel.class);
 
+	/**
+	 * Constructs a new object model for the given class.
+	 * @param clazz the Java class to model
+	 */
 	public ClassObjectModel(final Class<?> clazz) {
 		this.originClasses = clazz;
 		final ApiGenerationMode tmp = AnnotationTools.get(clazz, ApiGenerationMode.class);
@@ -81,16 +92,40 @@ public class ClassObjectModel extends ClassModel {
 		}
 	}
 
+	/**
+	 * Describes a single field/property of a modeled class, including its type,
+	 * validation constraints, and access limitations.
+	 *
+	 * @param name the field name
+	 * @param model the class model representing the field type
+	 * @param linkClass the linked entity class model for remote ID references (e.g., {@code List<UUID>})
+	 * @param checkForeignKey the foreign key annotation specifying the target entity
+	 * @param comment the description from {@code @ApiDoc} or {@code @Schema}
+	 * @param example the example value from {@code @ApiDoc} or {@code @Schema}
+	 * @param stringSize the {@code @Size} constraint for strings
+	 * @param min the {@code @Min} constraint for numeric values
+	 * @param max the {@code @Max} constraint for numeric values
+	 * @param decimalMin the {@code @DecimalMin} constraint
+	 * @param decimalMax the {@code @DecimalMax} constraint
+	 * @param pattern the {@code @Pattern} constraint
+	 * @param email the {@code @Email} constraint
+	 * @param accessLimitation the API access limitation annotation
+	 * @param apiReadOnly the API read-only annotation
+	 * @param apiNotNull the API not-null annotation
+	 * @param annotationNotNull the Jakarta {@code @NotNull} annotation
+	 * @param annotationNull the Jakarta {@code @Null} annotation
+	 * @param nullable whether the field is annotated as nullable
+	 */
 	public record FieldProperty(
 			String name,
 			ClassModel model,
-			ClassModel linkClass, // link class when use remote ID (ex: list<UUID>)
-			CheckForeignKey checkForeignKey, // foreign key annotation (target entity)
+			ClassModel linkClass,
+			CheckForeignKey checkForeignKey,
 			String comment,
 			String example,
-			Size stringSize, // String Size
-			Min min, // number min value
-			Max max, // number max value
+			Size stringSize,
+			Min min,
+			Max max,
 			DecimalMin decimalMin,
 			DecimalMax decimalMax,
 			Pattern pattern,
@@ -102,6 +137,28 @@ public class ClassObjectModel extends ClassModel {
 			Null annotationNull,
 			Boolean nullable) {
 
+		/**
+		 * Constructs a FieldProperty with all parameters, applying defaults for access limitation and example.
+		 * @param name the field name
+		 * @param model the class model representing the field type
+		 * @param linkClass the linked entity class model
+		 * @param checkForeignKey the foreign key annotation
+		 * @param comment the field description
+		 * @param example the example value (auto-generated if {@code null})
+		 * @param stringSize the size constraint
+		 * @param min the minimum value constraint
+		 * @param max the maximum value constraint
+		 * @param decimalMin the decimal minimum constraint
+		 * @param decimalMax the decimal maximum constraint
+		 * @param pattern the pattern constraint
+		 * @param email the email constraint
+		 * @param accessLimitation the access limitation (defaults to all-access if {@code null})
+		 * @param apiReadOnly the read-only annotation
+		 * @param apiNotNull the API not-null annotation
+		 * @param annotationNotNull the Jakarta not-null annotation
+		 * @param annotationNull the Jakarta null annotation
+		 * @param nullable whether the field is nullable
+		 */
 		public FieldProperty(//
 				final String name, //
 				final ClassModel model, //
@@ -228,7 +285,13 @@ public class ClassObjectModel extends ClassModel {
 			return ClassModel.getModel(tmp, previous);
 		}
 
-		/** Construct a FieldProperty from a bean PropertyDescriptor (supports POJO, Record, Bean). */
+		/**
+		 * Constructs a FieldProperty from a bean PropertyDescriptor (supports POJO, Record, Bean).
+		 * @param property the bean property descriptor
+		 * @param previous the model group for resolving referenced types
+		 * @throws DataAccessException if data access fails during introspection
+		 * @throws IOException if type resolution fails
+		 */
 		public FieldProperty(final PropertyDescriptor property, final ModelGroup previous)
 				throws DataAccessException, IOException {
 			this(property.getName(), //
@@ -289,6 +352,14 @@ public class ClassObjectModel extends ClassModel {
 			return ClassModel.getModel(tmp, previous);
 		}
 
+		/**
+		 * Constructs a FieldProperty from a legacy Field (kept for backward compatibility).
+		 * @param field the Java field to extract metadata from
+		 * @param previous the model group for resolving referenced types
+		 * @throws DataAccessException if data access fails during introspection
+		 * @throws IOException if type resolution fails
+		 * @deprecated use {@link #FieldProperty(PropertyDescriptor, ModelGroup)} instead
+		 */
 		@Deprecated
 		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
@@ -323,34 +394,66 @@ public class ClassObjectModel extends ClassModel {
 	ClassModel extendsClass = null;
 	List<FieldProperty> fields = new ArrayList<>();
 
+	/**
+	 * Returns the fully qualified name of this model.
+	 * @return the model name
+	 */
 	public String getName() {
 		return this.name;
 	}
 
+	/**
+	 * Returns whether this model represents a Java primitive type.
+	 * @return {@code true} if the modeled class is a primitive
+	 */
 	public boolean isPrimitive() {
 		return this.isPrimitive;
 	}
 
+	/**
+	 * Returns whether the modeled class is annotated with {@code @JsonInclude(NON_NULL)}.
+	 * @return {@code true} if non-null JSON inclusion is enabled
+	 */
 	public boolean isJsonIncludeNonNull() {
 		return this.jsonIncludeNonNull;
 	}
 
+	/**
+	 * Returns the groups for which optional fields should be treated as nullable.
+	 * @return the array of group classes, or {@code null} if not specified
+	 */
 	public Class<?>[] getOptionalIsNullableGroups() {
 		return this.optionalIsNullableGroups;
 	}
 
+	/**
+	 * Returns the description of this model from schema annotations.
+	 * @return the description, or {@code null} if not specified
+	 */
 	public String getDescription() {
 		return this.description;
 	}
 
+	/**
+	 * Returns the example value of this model from schema annotations.
+	 * @return the example, or {@code null} if not specified
+	 */
 	public String getExample() {
 		return this.example;
 	}
 
+	/**
+	 * Returns the model representing the parent class, if any.
+	 * @return the parent class model, or {@code null} if no inheritance
+	 */
 	public ClassModel getExtendsClass() {
 		return this.extendsClass;
 	}
 
+	/**
+	 * Returns the list of field properties for this model.
+	 * @return the field properties
+	 */
 	public List<FieldProperty> getFields() {
 		return this.fields;
 	}

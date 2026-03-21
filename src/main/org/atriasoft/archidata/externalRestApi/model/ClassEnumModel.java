@@ -9,7 +9,17 @@ import java.util.TreeMap;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.tools.AnnotationCreator;
 
+/**
+ * Represents an enum type model extracted from a Java enum class for API generation.
+ *
+ * <p>Stores the enum constant names and their associated values (either from
+ * a {@code getValue()} method or the constant name itself).
+ */
 public class ClassEnumModel extends ClassModel {
+	/**
+	 * Constructs an enum model for the given enum class.
+	 * @param clazz the Java enum class to model
+	 */
 	protected ClassEnumModel(final Class<?> clazz) {
 		this.originClasses = clazz;
 		this.apiGenerationMode = AnnotationCreator.createAnnotation(ApiGenerationMode.class, "readable", true,
@@ -54,6 +64,10 @@ public class ClassEnumModel extends ClassModel {
 		}
 	}
 
+	/**
+	 * Returns the map of enum constant names to their serialized values.
+	 * @return the enum values map
+	 */
 	public Map<String, Object> getListOfValues() {
 		return this.listOfValues;
 	}

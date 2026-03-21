@@ -21,6 +21,15 @@ public class ListInDbTools {
 		// Utility class
 	}
 
+	/**
+	 * Atomically adds a value to an array field on a document identified by primary key.
+	 *
+	 * @param clazz      The entity class
+	 * @param primaryKey The primary key of the document to update
+	 * @param fieldName  The Java property name (or DB column name) of the array field
+	 * @param foreignKey The value to add to the array
+	 * @throws Exception if the operation fails
+	 */
 	public static void addLink(
 			final Class<?> clazz,
 			final Object primaryKey,
@@ -33,6 +42,15 @@ public class ListInDbTools {
 		}
 	}
 
+	/**
+	 * Atomically removes a value from an array field on a document identified by primary key.
+	 *
+	 * @param clazz      The entity class
+	 * @param primaryKey The primary key of the document to update
+	 * @param fieldName  The Java property name (or DB column name) of the array field
+	 * @param foreignKey The value to remove from the array
+	 * @throws Exception if the operation fails
+	 */
 	public static void removeLink(
 			final Class<?> clazz,
 			final Object primaryKey,

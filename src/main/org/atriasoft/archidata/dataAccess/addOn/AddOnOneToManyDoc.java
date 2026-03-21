@@ -26,8 +26,18 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Add-on for handling {@link OneToManyDoc} annotated fields in MongoDB.
+ *
+ * <p>Manages one-to-many relationships where the parent entity stores a list of child IDs
+ * and each child stores a scalar reference back to its parent. Supports cascade delete and
+ * cascade set-null behaviors.
+ */
 public class AddOnOneToManyDoc implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnOneToManyDoc.class);
+
+	/** Creates a new AddOnOneToManyDoc instance. */
+	public AddOnOneToManyDoc() {}
 
 	@Override
 	public Class<?> getAnnotationClass() {

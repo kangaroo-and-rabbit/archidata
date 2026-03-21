@@ -5,10 +5,20 @@ package org.atriasoft.archidata.dataAccess.options;
 public class OverrideTableName extends QueryOption {
 	private final String name;
 
+	/**
+	 * Constructs an option to override the table name.
+	 *
+	 * @param name the alternative table name to use
+	 */
 	public OverrideTableName(final String name) {
 		this.name = name;
 	}
 
+	/**
+	 * Returns the overridden table name.
+	 *
+	 * @return the alternative table name
+	 */
 	public String getName() {
 		return this.name;
 	}

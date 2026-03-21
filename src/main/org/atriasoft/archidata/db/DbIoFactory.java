@@ -8,17 +8,40 @@ import org.atriasoft.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Factory for creating and managing {@link DbIo} database connection instances.
+ *
+ * <p>
+ * Maintains a pool of existing connections and reuses compatible ones
+ * when the configuration matches.
+ * </p>
+ */
 public class DbIoFactory {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbIoFactory.class);
 	private static List<DbIo> dbIoStored = new ArrayList<>();
 
 	private DbIoFactory() throws IOException {}
 
+	/**
+	 * Creates a new {@link DbIo} instance using the default global configuration.
+	 *
+	 * @return a new or reused database connection
+	 * @throws IOException if the connection cannot be opened
+	 * @throws DataAccessException if the default configuration is invalid
+	 */
 	public static DbIo create() throws IOException, DataAccessException {
 		// Find the global configuration of the system.
 		return create(new DbConfig());
 	}
 
+	/**
+	 * Creates a new {@link DbIo} instance for the given configuration, reusing an existing
+	 * compatible connection if available.
+	 *
+	 * @param config the database configuration
+	 * @return a new or reused database connection
+	 * @throws IOException if the connection cannot be opened
+	 */
 	public static DbIo create(final DbConfig config) throws IOException {
 		for (final DbIo dbIo : dbIoStored) {
 			if (dbIo == null) {
@@ -42,12 +65,22 @@ public class DbIoFactory {
 
 	}
 
+	/**
+	 * Closes all stored database connections.
+	 *
+	 * @throws IOException if closing any connection fails
+	 */
 	public static void close() throws IOException {
 		for (final DbIo dbIo : dbIoStored) {
 			dbIo.close();
 		}
 	}
 
+	/**
+	 * Forcefully closes all stored database connections and clears the connection pool.
+	 *
+	 * @throws IOException if closing any connection fails
+	 */
 	public static void closeAllForceMode() throws IOException {
 		for (final DbIo entry : dbIoStored) {
 			entry.closeForce();

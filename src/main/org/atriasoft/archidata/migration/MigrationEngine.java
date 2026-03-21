@@ -15,6 +15,14 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.InternalServerErrorException;
 
+/**
+ * Engine that manages and executes database migrations in order.
+ *
+ * <p>
+ * Supports initial database setup, sequential migration application, and revert operations.
+ * Tracks migration progress and logs in the database via {@link Migration} records.
+ * </p>
+ */
 public class MigrationEngine {
 	static final Logger LOGGER = LoggerFactory.getLogger(MigrationEngine.class);
 
@@ -49,8 +57,9 @@ public class MigrationEngine {
 	}
 
 	/** Get the current version/migration name
+	 * @param da the database access interface
 	 * @return Model represent the last migration. If null then no migration has been done.
-	 * @throws MigrationException */
+	 * @throws MigrationException if the migration table cannot be retrieved */
 	public Migration getCurrentVersion(final DBAccessMongo da) throws MigrationException {
 		try {
 			List<Migration> data = null;
@@ -205,6 +214,15 @@ public class MigrationEngine {
 		}
 	}
 
+	/**
+	 * Executes a single migration step and updates the migration log in the database.
+	 *
+	 * @param da the database access interface
+	 * @param elem the migration to apply
+	 * @param id the current migration index
+	 * @param count the total number of migrations to apply
+	 * @throws MigrationException if the migration step fails
+	 */
 	public void migrateSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count)
 			throws MigrationException {
 		LOGGER.info("---------------------------------------------------------");
@@ -264,6 +282,13 @@ public class MigrationEngine {
 		LOGGER.info("Migrate: [{}/{}] {} [ END ]", id, count, elem.getName());
 	}
 
+	/**
+	 * Reverts migrations from the current version back to the specified migration name.
+	 *
+	 * @param da the database access interface
+	 * @param migrationName the target migration name to revert to (exclusive)
+	 * @throws MigrationException if retrieving the current version fails
+	 */
 	public void revertTo(final DBAccessMongo da, final String migrationName) throws MigrationException {
 		final Migration currentVersion = getCurrentVersion(da);
 		final List<MigrationInterface> toApply = new ArrayList<>();
@@ -287,6 +312,14 @@ public class MigrationEngine {
 		}
 	}
 
+	/**
+	 * Reverts a single migration step.
+	 *
+	 * @param da the database access interface
+	 * @param elem the migration to revert
+	 * @param id the current revert index
+	 * @param count the total number of migrations to revert
+	 */
 	public void revertSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count) {
 		LOGGER.info("Revert migration: {} [BEGIN]", elem.getName());
 

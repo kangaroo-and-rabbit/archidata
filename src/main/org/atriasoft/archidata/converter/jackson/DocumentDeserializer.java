@@ -15,7 +15,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+/**
+ * Jackson deserializer for BSON {@link Document} values.
+ * Parses a JSON object into a {@link Document}, recursively converting nested objects and arrays.
+ */
 public class DocumentDeserializer extends JsonDeserializer<Document> {
+
+	/** Default constructor. */
+	public DocumentDeserializer() {
+		// default constructor
+	}
+
+	/**
+	 * Deserializes a JSON object into a BSON {@link Document}.
+	 * @param p the JSON parser providing the token stream.
+	 * @param ctxt the deserialization context.
+	 * @return the deserialized {@link Document} instance.
+	 * @throws IOException if an I/O error occurs or the input is not a JSON object.
+	 */
 	@Override
 	public Document deserialize(final JsonParser p, final DeserializationContext ctxt) throws IOException {
 		final JsonNode node = p.readValueAsTree();

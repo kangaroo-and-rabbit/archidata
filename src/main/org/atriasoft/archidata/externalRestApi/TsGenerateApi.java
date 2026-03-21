@@ -32,8 +32,15 @@ import org.bson.types.ObjectId;
 import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
+/**
+ * Generates TypeScript API client code from {@link AnalyzeApi} introspection data.
+ *
+ * <p>Produces a folder structure with Zod-based model definitions and API client
+ * files that can be compiled with strict TypeScript settings.
+ */
 public class TsGenerateApi {
 
+	/** Private constructor to prevent instantiation of this utility class. */
 	private TsGenerateApi() {
 		// Utility class
 	}
@@ -43,9 +50,9 @@ public class TsGenerateApi {
 	 * generate a folder containing a full API with "model" folder and "api"
 	 * folder. The generation depend of Zod and can be strict compile.
 	 *
-	 * @param api Data model to generate the api
-	 * @param pathPackage Path to store the api.
-	 * @throws Exception
+	 * @param api the analyzed API model to generate from
+	 * @param pathPackage the directory path to write the generated files into
+	 * @throws Exception if generation or file writing fails
 	 */
 	public static void generateApi(final AnalyzeApi api, final Path pathPackage) throws Exception {
 		final Map<Path, String> generation = generateApi(api);
@@ -64,6 +71,12 @@ public class TsGenerateApi {
 		}
 	}
 
+	/**
+	 * Generates TypeScript API client code as an in-memory map of file paths to content.
+	 * @param api the analyzed API model to generate from
+	 * @return a map of relative file paths to their generated TypeScript content
+	 * @throws Exception if generation fails
+	 */
 	public static final Map<Path, String> generateApi(final AnalyzeApi api) throws Exception {
 		final Map<Path, String> generation = new HashMap<>();
 		final List<TsClassElement> localModel = generateApiModel(api);
@@ -269,6 +282,13 @@ public class TsGenerateApi {
 
 	}
 
+	/**
+	 * Copies a classpath resource file into the generation map.
+	 * @param name the resource name on the classpath
+	 * @param destinationPath the relative path to use as the key in the generation map
+	 * @param generation the map to store the resource content into
+	 * @throws IOException if the resource cannot be found or read
+	 */
 	public static void copyResourceFile(
 			final String name,
 			final Path destinationPath,

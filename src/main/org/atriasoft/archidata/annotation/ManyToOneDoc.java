@@ -39,27 +39,32 @@ import java.lang.annotation.Target;
 public @interface ManyToOneDoc {
 	/**
 	 * The entity class that is the target of the association.
+	 * @return the target entity class
 	 */
 	Class<?> targetEntity();
 
 	/**
-	 * The field remote name that owns the revert value. empty if the relationship
-	 * is unidirectional.
+	 * The field name in the remote entity that holds the reverse reference.
+	 * Empty if the relationship is unidirectional.
+	 * @return the remote field name
 	 */
 	String remoteField();
 
 	/**
-	 * When create the object, the system add the link on the parent
+	 * Whether the system automatically adds the link on the parent when the child is created.
+	 * @return true if the link should be added on creation, true by default
 	 */
 	boolean addLinkWhenCreate() default true;
 
 	/**
-	 * When delete the object, the system remove the link from the parent
+	 * Whether the system automatically removes the link from the parent when the child is deleted.
+	 * @return true if the link should be removed on deletion, true by default
 	 */
 	boolean removeLinkWhenDelete() default true;
 
 	/**
-	 * When delete the object, the system remove the link from the parent
+	 * Whether the system automatically updates the link on the parent when the child is updated.
+	 * @return true if the link should be updated, true by default
 	 */
 	boolean updateLinkWhenUpdate() default true;
 

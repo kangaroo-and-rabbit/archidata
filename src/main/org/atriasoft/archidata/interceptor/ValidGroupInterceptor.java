@@ -30,6 +30,11 @@ import jakarta.ws.rs.ext.ReaderInterceptorContext;
  */
 @Provider
 public class ValidGroupInterceptor implements ReaderInterceptor {
+	/** Constructs a new ValidGroupInterceptor. */
+	public ValidGroupInterceptor() {
+		// default constructor for JAX-RS provider injection
+	}
+
 	/**
 	 * The Bean Validation validator used to perform constraint checks.
 	 */

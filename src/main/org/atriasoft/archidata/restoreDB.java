@@ -12,6 +12,11 @@ import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Command-line utility for restoring a MongoDB database from a backup file.
+ *
+ * <p>Usage: {@code restoreDB fileName [dbDestination] [collection]}</p>
+ */
 public class restoreDB {
 	private restoreDB() {
 		// Utility class
@@ -19,6 +24,12 @@ public class restoreDB {
 
 	static final Logger LOGGER = LoggerFactory.getLogger(restoreDB.class);
 
+	/**
+	 * Entry point for the database restore utility.
+	 * @param args Command-line arguments: fileName [dbDestination] [collection].
+	 * @throws IOException If the backup file cannot be read.
+	 * @throws DataAccessException If the database restore operation fails.
+	 */
 	public static void main(final String[] args) throws IOException, DataAccessException {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		LOGGER.info("program arguments length={}", args.length);

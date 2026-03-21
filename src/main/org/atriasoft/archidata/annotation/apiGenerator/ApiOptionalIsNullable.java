@@ -32,6 +32,7 @@ public @interface ApiOptionalIsNullable {
 	/**
 	 * The validation groups for which optional fields should also be nullable.
 	 * For example, {@code { GroupCreate.class, GroupUpdate.class }}.
+	 * @return an array of validation group classes, empty by default
 	 */
 	Class<?>[] groups() default {};
 }

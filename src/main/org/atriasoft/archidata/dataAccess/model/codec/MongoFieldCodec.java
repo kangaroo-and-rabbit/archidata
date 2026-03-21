@@ -24,6 +24,16 @@ public final class MongoFieldCodec {
 	private final MongoTypeReader reader;
 	private final boolean primitive;
 
+	/**
+	 * Constructs a new MongoFieldCodec with all required components.
+	 *
+	 * @param getter the lambda getter for reading the field value from Java objects
+	 * @param setter the lambda setter for writing the field value to Java objects, may be {@code null}
+	 * @param dbFieldName the MongoDB document field name
+	 * @param writer the converter from Java to MongoDB representation
+	 * @param reader the converter from MongoDB to Java representation
+	 * @param primitive {@code true} if the field is a Java primitive type
+	 */
 	public MongoFieldCodec(final PropertyGetter getter, final PropertySetter setter, final String dbFieldName,
 			final MongoTypeWriter writer, final MongoTypeReader reader, final boolean primitive) {
 		this.getter = getter;
@@ -142,19 +152,38 @@ public final class MongoFieldCodec {
 
 	// ========== Getters ==========
 
-	/** Whether this codec can populate a field value (i.e. has a setter). */
+	/**
+	 * Checks whether this codec can populate a field value (i.e. has a setter).
+	 *
+	 * @return {@code true} if a setter is available
+	 */
 	public boolean canSetValue() {
 		return this.setter != null;
 	}
 
+	/**
+	 * Returns the MongoDB document field name.
+	 *
+	 * @return the database field name
+	 */
 	public String getDbFieldName() {
 		return this.dbFieldName;
 	}
 
+	/**
+	 * Returns the writer that converts Java values to MongoDB representation.
+	 *
+	 * @return the type writer
+	 */
 	public MongoTypeWriter getWriter() {
 		return this.writer;
 	}
 
+	/**
+	 * Returns the reader that converts MongoDB values to Java representation.
+	 *
+	 * @return the type reader
+	 */
 	public MongoTypeReader getReader() {
 		return this.reader;
 	}

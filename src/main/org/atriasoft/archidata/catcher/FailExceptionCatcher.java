@@ -8,9 +8,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link FailException} instances
+ * and converts them into standardized JSON error responses.
+ */
 public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FailExceptionCatcher.class);
 
+	/**
+	 * Maps a {@link FailException} to a JSON error response using the exception's HTTP status.
+	 * @param exception the FailException that was thrown
+	 * @return a {@link Response} containing the error details as JSON
+	 */
 	@Override
 	public Response toResponse(final FailException exception) {
 		LOGGER.warn("Catch FailException: {}", exception.getLocalizedMessage());

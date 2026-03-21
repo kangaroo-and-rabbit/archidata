@@ -18,9 +18,15 @@ import jakarta.ws.rs.core.PathSegment;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.ResponseBuilder;
 
+/**
+ * JAX-RS resource that serves static front-end files (HTML, JS, CSS, images, etc.) from a configurable folder.
+ *
+ * <p>Subclass this resource and set {@link #baseFrontFolder} to point to your front-end build output directory.</p>
+ */
 public class FrontGeneric {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FrontGeneric.class);
 
+	/** Base directory path from which front-end static files are served. */
 	protected String baseFrontFolder = "/data/front";
 
 	private String getExtension(final String filename) {
@@ -87,6 +93,11 @@ public class FrontGeneric {
 		return response.build();
 	}
 
+	/**
+	 * Serves the index.html page for root GET requests.
+	 * @return A response containing the index.html file.
+	 * @throws Exception If the file cannot be read or the MIME type is unsupported.
+	 */
 	@GET
 	@PermitAll()
 	@Operation(description = "Retrieve native element (index)", tags = "SYSTEM")
@@ -96,6 +107,12 @@ public class FrontGeneric {
 		return retrive("index.html");
 	}
 
+	/**
+	 * Serves a specific file from the front-end directory based on the URL path segments.
+	 * @param segments The URL path segments identifying the file to serve.
+	 * @return A response containing the requested file.
+	 * @throws Exception If the file is not found or the MIME type is unsupported.
+	 */
 	@GET
 	@Path("{any: .*}")
 	@PermitAll()

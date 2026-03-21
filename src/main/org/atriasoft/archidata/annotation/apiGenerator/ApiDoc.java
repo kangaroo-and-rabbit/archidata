@@ -34,15 +34,27 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target({ TYPE, FIELD, METHOD })
 public @interface ApiDoc {
-	/** Description of the class, field, or API method. */
+	/**
+	 * Description of the class, field, or API method.
+	 * @return the description text, empty by default
+	 */
 	String description() default "";
 
-	/** Example value (applicable to classes and fields). */
+	/**
+	 * Example value (applicable to classes and fields).
+	 * @return the example text, empty by default
+	 */
 	String example() default "";
 
-	/** Logical group / tag for API methods. */
+	/**
+	 * Logical group or tag for API methods.
+	 * @return the group name, empty by default
+	 */
 	String group() default "";
 
-	/** If true, the element is hidden from generated API documentation. */
+	/**
+	 * If true, the element is hidden from generated API documentation.
+	 * @return whether the element should be hidden, false by default
+	 */
 	boolean hidden() default false;
 }

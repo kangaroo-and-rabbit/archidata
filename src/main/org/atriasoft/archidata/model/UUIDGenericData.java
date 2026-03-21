@@ -16,6 +16,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.ws.rs.DefaultValue;
 
+/**
+ * Base data model with a {@link UUID} primary key. Extends {@link GenericTiming} to include creation and update timestamps.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UUIDGenericData extends GenericTiming {
 
@@ -28,10 +31,18 @@ public class UUIDGenericData extends GenericTiming {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private UUID uuid = null;
 
+	/**
+	 * Gets the UUID of this object.
+	 * @return the UUID
+	 */
 	public UUID getUuid() {
 		return this.uuid;
 	}
 
+	/**
+	 * Sets the UUID of this object.
+	 * @param uuid the UUID to set
+	 */
 	public void setUuid(final UUID uuid) {
 		this.uuid = uuid;
 	}

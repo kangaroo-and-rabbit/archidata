@@ -18,6 +18,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Represents a stored data/media file with its metadata including SHA-512 hash, MIME type, size, and analyzed media streams.
+ */
 @Table(name = "data")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends OIDGenericDataSoftDelete {
@@ -50,42 +53,82 @@ public class Data extends OIDGenericDataSoftDelete {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Date streamsAnalyzedAt;
 
+	/**
+	 * Gets the SHA-512 hash of the data.
+	 * @return the SHA-512 hash string
+	 */
 	public String getSha512() {
 		return this.sha512;
 	}
 
+	/**
+	 * Sets the SHA-512 hash of the data.
+	 * @param sha512 the SHA-512 hash string to set
+	 */
 	public void setSha512(final String sha512) {
 		this.sha512 = sha512;
 	}
 
+	/**
+	 * Gets the MIME type of the media.
+	 * @return the MIME type string
+	 */
 	public String getMimeType() {
 		return this.mimeType;
 	}
 
+	/**
+	 * Sets the MIME type of the media.
+	 * @param mimeType the MIME type string to set
+	 */
 	public void setMimeType(final String mimeType) {
 		this.mimeType = mimeType;
 	}
 
+	/**
+	 * Gets the size of the data in bytes.
+	 * @return the size in bytes
+	 */
 	public Long getSize() {
 		return this.size;
 	}
 
+	/**
+	 * Sets the size of the data in bytes.
+	 * @param size the size in bytes to set
+	 */
 	public void setSize(final Long size) {
 		this.size = size;
 	}
 
+	/**
+	 * Gets the analyzed media streams (video, audio, subtitle tracks).
+	 * @return the list of data streams
+	 */
 	public List<DataStream> getStreams() {
 		return this.streams;
 	}
 
+	/**
+	 * Sets the analyzed media streams.
+	 * @param streams the list of data streams to set
+	 */
 	public void setStreams(final List<DataStream> streams) {
 		this.streams = streams;
 	}
 
+	/**
+	 * Gets the timestamp when streams were last analyzed.
+	 * @return the analysis timestamp
+	 */
 	public Date getStreamsAnalyzedAt() {
 		return this.streamsAnalyzedAt;
 	}
 
+	/**
+	 * Sets the timestamp when streams were last analyzed.
+	 * @param streamsAnalyzedAt the analysis timestamp to set
+	 */
 	public void setStreamsAnalyzedAt(final Date streamsAnalyzedAt) {
 		this.streamsAnalyzedAt = streamsAnalyzedAt;
 	}

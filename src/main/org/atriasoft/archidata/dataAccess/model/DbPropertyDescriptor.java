@@ -149,80 +149,173 @@ public final class DbPropertyDescriptor {
 
 	// ========== Getters ==========
 
+	/**
+	 * Returns the underlying property descriptor with type and accessor information.
+	 *
+	 * @return the property descriptor
+	 */
 	public PropertyDescriptor getProperty() {
 		return this.property;
 	}
 
+	/**
+	 * Returns the MongoDB field name derived from {@code @Column(name)} or the property name.
+	 *
+	 * @return the database field name
+	 */
 	public String getDbFieldName() {
 		return this.dbFieldName;
 	}
 
+	/**
+	 * Returns the categorized action for this field (e.g. PRIMARY_KEY, ADDON, NORMAL).
+	 *
+	 * @return the field action category
+	 */
 	public DbFieldAction getAction() {
 		return this.action;
 	}
 
+	/**
+	 * Checks whether this field allows null values.
+	 *
+	 * @return {@code true} if the field is nullable
+	 */
 	public boolean isNullable() {
 		return this.nullable;
 	}
 
+	/**
+	 * Checks whether this field has a unique constraint.
+	 *
+	 * @return {@code true} if the field must be unique
+	 */
 	public boolean isUnique() {
 		return this.unique;
 	}
 
+	/**
+	 * Checks whether this field is marked as API read-only via {@code @ApiReadOnly}.
+	 *
+	 * @return {@code true} if the field is read-only in the API
+	 */
 	public boolean isApiReadOnly() {
 		return this.apiReadOnly;
 	}
 
+	/**
+	 * Checks whether this field is excluded from default reads via {@code @DataNotRead}.
+	 *
+	 * @return {@code true} if the field is not read by default
+	 */
 	public boolean isNotRead() {
 		return this.notRead;
 	}
 
+	/**
+	 * Returns the default value string from {@code @DefaultValue}, or {@code null} if none.
+	 *
+	 * @return the default value, or {@code null}
+	 */
 	public String getDefaultValue() {
 		return this.defaultValue;
 	}
 
+	/**
+	 * Returns the maximum column length from {@code @Column(length)}, defaulting to 255.
+	 *
+	 * @return the column length limit
+	 */
 	public int getColumnLength() {
 		return this.columnLength;
 	}
 
+	/**
+	 * Returns the ID generation strategy from {@code @GeneratedValue}, or {@code null} if none.
+	 *
+	 * @return the generation strategy, or {@code null}
+	 */
 	public GenerationType getGenerationStrategy() {
 		return this.generationStrategy;
 	}
 
+	/**
+	 * Returns the resolved {@link DataAccessAddOn} for this field, or {@code null} for non-addon fields.
+	 *
+	 * @return the add-on handler, or {@code null}
+	 */
 	public DataAccessAddOn getAddOn() {
 		return this.addOn;
 	}
 
+	/**
+	 * Checks whether this field requires asynchronous processing on insert.
+	 *
+	 * @return {@code true} if insert is async
+	 */
 	public boolean isAsyncInsert() {
 		return this.asyncInsert;
 	}
 
+	/**
+	 * Checks whether this field requires asynchronous processing on update.
+	 *
+	 * @return {@code true} if update is async
+	 */
 	public boolean isAsyncUpdate() {
 		return this.asyncUpdate;
 	}
 
+	/**
+	 * Checks whether this add-on field requires previous data for its operations.
+	 *
+	 * @return {@code true} if previous data is needed
+	 */
 	public boolean isPreviousDataNeeded() {
 		return this.previousDataNeeded;
 	}
 
+	/**
+	 * Checks whether this add-on field supports insert operations.
+	 *
+	 * @return {@code true} if the field can be inserted
+	 */
 	public boolean canInsert() {
 		return this.canInsert;
 	}
 
+	/**
+	 * Checks whether this add-on field supports retrieve operations.
+	 *
+	 * @return {@code true} if the field can be retrieved
+	 */
 	public boolean canRetrieve() {
 		return this.canRetrieve;
 	}
 
+	/**
+	 * Checks whether this add-on field has a delete action configured.
+	 *
+	 * @return {@code true} if a delete action is defined
+	 */
 	public boolean hasDeleteAction() {
 		return this.hasDeleteAction;
 	}
 
-	/** Pre-computed metadata for AddOn-managed fields (relation annotations). May be null for non-addon fields. */
+	/**
+	 * Returns the pre-computed metadata for add-on-managed fields (relation annotations).
+	 *
+	 * @return the add-on field context, or {@code null} for non-addon fields
+	 */
 	public AddOnFieldContext getAddonContext() {
 		return this.addonContext;
 	}
 
-	/** Pre-compiled codec for zero-overhead MongoDB read/write. May be null if property is not readable. */
+	/**
+	 * Returns the pre-compiled codec for zero-overhead MongoDB read/write.
+	 *
+	 * @return the field codec, or {@code null} if the property is not readable
+	 */
 	public MongoFieldCodec getCodec() {
 		return this.codec;
 	}
@@ -230,6 +323,9 @@ public final class DbPropertyDescriptor {
 	/**
 	 * Resolve the FieldName (inStruct + inTable) considering QueryOptions rename overrides.
 	 * If no OptionRenameColumn matches, inTable == inStruct == dbFieldName.
+	 *
+	 * @param options the query options containing potential column renames, may be {@code null}
+	 * @return the resolved field name pair
 	 */
 	public FieldName getFieldName(final QueryOptions options) {
 		String inTable = this.dbFieldName;
@@ -245,7 +341,12 @@ public final class DbPropertyDescriptor {
 		return new FieldName(this.dbFieldName, inTable);
 	}
 
-	/** Quick check: is this a "generic" field that shouldn't be updated by users? */
+	/**
+	 * Checks whether this is a "generic" field that should not be updated by users
+	 * (primary key, timestamps, deleted markers).
+	 *
+	 * @return {@code true} if the field is a system-managed generic field
+	 */
 	public boolean isGenericField() {
 		return this.action == DbFieldAction.PRIMARY_KEY || this.action == DbFieldAction.CREATION_TIMESTAMP
 				|| this.action == DbFieldAction.UPDATE_TIMESTAMP || this.action == DbFieldAction.DELETED

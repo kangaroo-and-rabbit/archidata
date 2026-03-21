@@ -17,10 +17,20 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 
+/**
+ * JAX-RS resource that proxies HTTP GET requests to external URLs, with SSRF protections.
+ *
+ * <p>Validates that the target URL uses HTTP/HTTPS and does not point to internal network addresses.</p>
+ */
 @Path("/proxy")
 public class ProxyResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyResource.class);
 
+	/**
+	 * Fetches content from the given external URL and returns it to the client.
+	 * @param url The external URL to fetch content from.
+	 * @return A response containing the fetched content with appropriate headers.
+	 */
 	@GET
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response getImageFromUrl(@QueryParam("url") final String url) {

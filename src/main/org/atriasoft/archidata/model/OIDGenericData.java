@@ -16,6 +16,9 @@ import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
+/**
+ * Base data model with a MongoDB {@link ObjectId} primary key. Extends {@link GenericTiming} to include creation and update timestamps.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericData extends GenericTiming {
 
@@ -28,10 +31,18 @@ public class OIDGenericData extends GenericTiming {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private ObjectId oid = null;
 
+	/**
+	 * Gets the MongoDB ObjectId of this object.
+	 * @return the ObjectId
+	 */
 	public ObjectId getOid() {
 		return this.oid;
 	}
 
+	/**
+	 * Sets the MongoDB ObjectId of this object.
+	 * @param oid the ObjectId to set
+	 */
 	public void setOid(final ObjectId oid) {
 		this.oid = oid;
 	}

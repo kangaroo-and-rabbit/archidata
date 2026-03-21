@@ -64,12 +64,16 @@ public class DrawioGenerateApi {
 	private static final String STYLE_REST_LINK = "endArrow=open;dashed=1;strokeWidth=2;strokeColor=#b85450;edgeStyle=orthogonalEdgeStyle;rounded=1;";
 	private static final String STYLE_FOREIGN_KEY = "endArrow=open;endFill=0;dashed=1;strokeWidth=2;strokeColor=#9673a6;edgeStyle=orthogonalEdgeStyle;rounded=1;";
 
+	/** Private constructor to prevent instantiation of this utility class. */
 	private DrawioGenerateApi() {
 		// Utility class
 	}
 
 	/**
-	 * Generate a Draw.io diagram with both data models and REST endpoints.
+	 * Generates a Draw.io diagram containing both data models and REST endpoints.
+	 * @param api the analyzed API to generate the diagram from
+	 * @param pathDrawioFile the file path where the .drawio file will be written
+	 * @throws Exception if generation or file writing fails
 	 */
 	public static void generateApi(final AnalyzeApi api, final String pathDrawioFile) throws Exception {
 		final String xml = buildDrawio(api, true, true);
@@ -77,7 +81,10 @@ public class DrawioGenerateApi {
 	}
 
 	/**
-	 * Generate a Draw.io diagram with data models only.
+	 * Generates a Draw.io diagram containing data models only (no REST endpoints).
+	 * @param api the analyzed API to extract models from
+	 * @param pathDrawioFile the file path where the .drawio file will be written
+	 * @throws Exception if generation or file writing fails
 	 */
 	public static void generateModels(final AnalyzeApi api, final String pathDrawioFile) throws Exception {
 		final String xml = buildDrawio(api, true, false);
@@ -85,7 +92,10 @@ public class DrawioGenerateApi {
 	}
 
 	/**
-	 * Generate a Draw.io diagram with REST endpoints only.
+	 * Generates a Draw.io diagram containing REST endpoints only (no data models).
+	 * @param api the analyzed API to extract endpoints from
+	 * @param pathDrawioFile the file path where the .drawio file will be written
+	 * @throws Exception if generation or file writing fails
 	 */
 	public static void generateRestApi(final AnalyzeApi api, final String pathDrawioFile) throws Exception {
 		final String xml = buildDrawio(api, false, true);
@@ -93,7 +103,10 @@ public class DrawioGenerateApi {
 	}
 
 	/**
-	 * Generate a Draw.io diagram as a string (for testing).
+	 * Generates a Draw.io diagram as an XML string (useful for testing).
+	 * @param api the analyzed API to generate the diagram from
+	 * @return the complete .drawio XML content as a string
+	 * @throws Exception if generation fails
 	 */
 	public static String generateApiString(final AnalyzeApi api) throws Exception {
 		return buildDrawio(api, true, true);

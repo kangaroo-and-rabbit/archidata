@@ -15,6 +15,9 @@ import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
+/**
+ * Base data model with a Long auto-generated primary key. Extends {@link GenericTiming} to include creation and update timestamps.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericData extends GenericTiming {
 
@@ -27,10 +30,18 @@ public class GenericData extends GenericTiming {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Long id = null;
 
+	/**
+	 * Gets the unique identifier of this object.
+	 * @return the unique identifier
+	 */
 	public Long getId() {
 		return this.id;
 	}
 
+	/**
+	 * Sets the unique identifier of this object.
+	 * @param id the unique identifier to set
+	 */
 	public void setId(final Long id) {
 		this.id = id;
 	}

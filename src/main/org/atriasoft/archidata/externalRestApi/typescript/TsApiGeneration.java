@@ -30,13 +30,22 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.MediaType;
 
+/**
+ * Generates TypeScript API client files with REST endpoint bindings.
+ */
 public class TsApiGeneration {
+	/** Private constructor to prevent instantiation of this utility class. */
 	private TsApiGeneration() {
 		// Utility class
 	}
 
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(TsApiGeneration.class);
 
+	/**
+	 * Gets the base header comment for generated TypeScript API files.
+	 * @return the header string
+	 */
 	public static String getBaseHeader() {
 		return """
 				/**
@@ -45,6 +54,16 @@ public class TsApiGeneration {
 				""";
 	}
 
+	/**
+	 * Generates a TypeScript type reference for an enum model.
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param model the enum model
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to generate as partial type
+	 * @return the TypeScript type name string
+	 */
 	public static String generateClassEnumModelTypescript(
 			final boolean valid,
 			final Class<?>[] groups,
@@ -58,6 +77,16 @@ public class TsApiGeneration {
 		return tsModel.getTypeName();
 	}
 
+	/**
+	 * Generates a TypeScript type reference for an object model.
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param model the object model
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to wrap in Partial type
+	 * @return the TypeScript type name string
+	 */
 	public static String generateClassObjectModelTypescript(
 			final boolean valid,
 			final Class<?>[] groups,
@@ -78,6 +107,16 @@ public class TsApiGeneration {
 		return out;
 	}
 
+	/**
+	 * Generates a TypeScript type reference for a map model.
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param model the map model
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to generate as partial type
+	 * @return the TypeScript map type string
+	 */
 	public static String generateClassMapModelTypescript(
 			final boolean valid,
 			final Class<?>[] groups,
@@ -94,6 +133,16 @@ public class TsApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Generates a TypeScript type reference for a list model.
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param model the list model
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to generate as partial type
+	 * @return the TypeScript array type string
+	 */
 	public static String generateClassListModelTypescript(
 			final boolean valid,
 			final Class<?>[] groups,
@@ -107,6 +156,16 @@ public class TsApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Generates a TypeScript type reference for any class model by dispatching to the appropriate handler.
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param model the class model to generate a type for
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to generate as partial type
+	 * @return the TypeScript type string
+	 */
 	public static String generateClassModelTypescript(
 			final boolean valid,
 			final Class<?>[] groups,
@@ -129,6 +188,14 @@ public class TsApiGeneration {
 		throw new RuntimeException("Impossible model:" + model);
 	}
 
+	/**
+	 * Generates a TypeScript type reference for a list of models as a union type.
+	 * @param models the parameter class model list
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @param partialObject whether to generate as partial type
+	 * @return the TypeScript union type string, or "void" if empty
+	 */
 	public static String generateClassModelsTypescript(
 			final ParameterClassModelList models,
 			final TsClassElementGroup tsGroup,
@@ -152,6 +219,11 @@ public class TsApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Capitalizes the first letter of a string.
+	 * @param str the string to capitalize
+	 * @return the string with its first letter capitalized, or the original if null/empty
+	 */
 	public static String capitalizeFirstLetter(final String str) {
 		if (str == null || str.isEmpty()) {
 			return str;
@@ -159,6 +231,12 @@ public class TsApiGeneration {
 		return str.substring(0, 1).toUpperCase() + str.substring(1);
 	}
 
+	/**
+	 * Generates a TypeScript API client file for a resource group.
+	 * @param element the API group model containing endpoint definitions
+	 * @param tsGroup the group registry for resolving type references
+	 * @param generation the map of file paths to generated content
+	 */
 	public static void generateApiFile(
 			final ApiGroupModel element,
 			final TsClassElementGroup tsGroup,

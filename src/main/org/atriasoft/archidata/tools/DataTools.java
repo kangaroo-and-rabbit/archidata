@@ -56,8 +56,11 @@ public class DataTools {
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
+	/** Supported image MIME types for upload validation. */
 	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
+	/** Supported audio MIME types for upload validation. */
 	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
+	/** Supported video MIME types for upload validation. */
 	public static final String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
 
 	/**

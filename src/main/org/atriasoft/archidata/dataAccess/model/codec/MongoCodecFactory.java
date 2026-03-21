@@ -71,6 +71,9 @@ public final class MongoCodecFactory {
 	/**
 	 * Build a standalone writer for a given type.
 	 * Used for collection element conversion and sub-object recursion.
+	 *
+	 * @param typeInfo the resolved type information for the value to convert
+	 * @return a pre-compiled writer lambda
 	 */
 	public static MongoTypeWriter buildWriter(final TypeInfo typeInfo) {
 		final Class<?> raw = typeInfo.rawType();
@@ -179,6 +182,9 @@ public final class MongoCodecFactory {
 	/**
 	 * Build a standalone reader for a given type.
 	 * Used for collection element conversion and sub-object recursion.
+	 *
+	 * @param typeInfo the resolved type information for the value to convert
+	 * @return a pre-compiled reader lambda
 	 */
 	public static MongoTypeReader buildReader(final TypeInfo typeInfo) {
 		final Class<?> raw = typeInfo.rawType();
@@ -507,6 +513,9 @@ public final class MongoCodecFactory {
 
 	/**
 	 * Build a pre-compiled map key converter for the given key type.
+	 *
+	 * @param keyType the Java type of the map keys (e.g. String, Integer, Long, enum)
+	 * @return a converter for serializing/deserializing map keys to/from strings
 	 */
 	public static MapKeyConverter buildMapKeyConverter(final Class<?> keyType) {
 		if (keyType == null || keyType == String.class) {

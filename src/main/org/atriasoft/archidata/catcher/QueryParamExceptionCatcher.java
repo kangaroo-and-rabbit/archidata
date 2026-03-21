@@ -12,9 +12,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link QueryParamException} instances
+ * and converts them into standardized JSON error responses with input error details.
+ */
 public class QueryParamExceptionCatcher implements ExceptionMapper<QueryParamException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryParamExceptionCatcher.class);
 
+	/**
+	 * Maps a {@link QueryParamException} to a BAD_REQUEST JSON error response with details about the invalid query parameter.
+	 * @param exception the QueryParamException that was thrown
+	 * @return a {@link Response} containing the error details as JSON with HTTP 400 status
+	 */
 	@Override
 	public Response toResponse(final QueryParamException exception) {
 		LOGGER.trace("Catch IllegalArgumentException: {}", exception.getLocalizedMessage());

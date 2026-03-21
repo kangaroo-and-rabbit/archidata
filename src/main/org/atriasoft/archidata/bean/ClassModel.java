@@ -58,6 +58,10 @@ public final class ClassModel {
 
 	/**
 	 * Get or create the ClassModel for a given class (thread-safe, cached).
+	 *
+	 * @param clazz the class to introspect
+	 * @return the cached or newly created ClassModel
+	 * @throws IntrospectionException if introspection fails
 	 */
 	public static ClassModel of(final Class<?> clazz) throws IntrospectionException {
 		final ClassModel existing = CACHE.get(clazz);
@@ -88,52 +92,108 @@ public final class ClassModel {
 		CACHE.clear();
 	}
 
+	/**
+	 * Get the class that this model describes.
+	 *
+	 * @return the introspected class
+	 */
 	public Class<?> getClassType() {
 		return this.clazz;
 	}
 
+	/**
+	 * Get the simple name of the introspected class.
+	 *
+	 * @return the simple class name
+	 */
 	public String getSimpleName() {
 		return this.simpleName;
 	}
 
+	/**
+	 * Check if the introspected class is a record type.
+	 *
+	 * @return {@code true} if the class is a record
+	 */
 	public boolean isRecord() {
 		return this.isRecord;
 	}
 
+	/**
+	 * Check if the introspected class is an enum type.
+	 *
+	 * @return {@code true} if the class is an enum
+	 */
 	public boolean isEnum() {
 		return this.isEnum;
 	}
 
+	/**
+	 * Check if the introspected class is a non-static inner class.
+	 *
+	 * @return {@code true} if the class is a non-static inner class
+	 */
 	public boolean isInnerClass() {
 		return this.isInnerClass;
 	}
 
-	/** All discovered properties, sorted by name. */
+	/**
+	 * All discovered properties, in declaration order.
+	 *
+	 * @return unmodifiable list of property descriptors
+	 */
 	public List<PropertyDescriptor> getProperties() {
 		return this.properties;
 	}
 
-	/** O(1) property lookup by name. Returns null if not found. */
+	/**
+	 * O(1) property lookup by name.
+	 *
+	 * @param name the property name to look up
+	 * @return the property descriptor, or null if not found
+	 */
 	public PropertyDescriptor getProperty(final String name) {
 		return this.propertiesByName.get(name);
 	}
 
-	/** All constructors, sorted by parameter count descending. */
+	/**
+	 * All constructors, sorted by parameter count descending.
+	 *
+	 * @return unmodifiable list of constructor descriptors
+	 */
 	public List<ConstructorDescriptor> getConstructors() {
 		return this.constructors;
 	}
 
-	/** The no-arg constructor, or null if none exists. */
+	/**
+	 * The no-arg constructor, or null if none exists.
+	 *
+	 * @return the default constructor descriptor, or null
+	 */
 	public ConstructorDescriptor getDefaultConstructor() {
 		return this.defaultConstructor;
 	}
 
 	// --- Class-level annotation API ---
 
+	/**
+	 * Check if a class-level annotation is present on the introspected class or its interfaces.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to check for
+	 * @return {@code true} if the annotation is present
+	 */
 	public <A extends Annotation> boolean hasClassAnnotation(final Class<A> annotationClass) {
 		return this.classAnnotationCache.containsKey(annotationClass);
 	}
 
+	/**
+	 * Get a class-level annotation from the introspected class or its interfaces.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to retrieve
+	 * @return the annotation instance, or null if not present
+	 */
 	@SuppressWarnings("unchecked")
 	public <A extends Annotation> A getClassAnnotation(final Class<A> annotationClass) {
 		return (A) this.classAnnotationCache.get(annotationClass);
@@ -143,6 +203,10 @@ public final class ClassModel {
 
 	/**
 	 * Find the first property that has the given annotation.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to search for
+	 * @return the first matching property descriptor, or null if none found
 	 */
 	public <A extends Annotation> PropertyDescriptor findPropertyWithAnnotation(final Class<A> annotationClass) {
 		for (final PropertyDescriptor p : this.properties) {
@@ -155,6 +219,10 @@ public final class ClassModel {
 
 	/**
 	 * Find all properties that have the given annotation.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to search for
+	 * @return list of property descriptors that have the annotation (may be empty)
 	 */
 	public <A extends Annotation> List<PropertyDescriptor> findPropertiesWithAnnotation(
 			final Class<A> annotationClass) {
@@ -172,6 +240,7 @@ public final class ClassModel {
 	/**
 	 * Create a new instance using the default (no-arg) constructor.
 	 *
+	 * @return the newly created instance
 	 * @throws IntrospectionException if no default constructor or instantiation fails
 	 */
 	public Object newInstance() throws IntrospectionException {
@@ -534,6 +603,9 @@ public final class ClassModel {
 		return Character.toLowerCase(name.charAt(0)) + name.substring(1);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String toString() {
 		return "ClassModel{" + this.clazz.getSimpleName() + ", properties=" + this.properties.size() + ", constructors="

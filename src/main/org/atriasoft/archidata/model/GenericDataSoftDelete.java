@@ -15,6 +15,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.ws.rs.DefaultValue;
 
+/**
+ * Extends {@link GenericData} with soft-delete support. Records are marked as deleted rather than being physically removed from the database.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericDataSoftDelete extends GenericData {
 
@@ -28,10 +31,18 @@ public class GenericDataSoftDelete extends GenericData {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Boolean deleted = null;
 
+	/**
+	 * Gets the soft-delete state of this object.
+	 * @return {@code true} if the object is marked as deleted, {@code null} if not set
+	 */
 	public Boolean getDeleted() {
 		return this.deleted;
 	}
 
+	/**
+	 * Sets the soft-delete state of this object.
+	 * @param deleted {@code true} to mark as deleted, {@code false} otherwise
+	 */
 	public void setDeleted(final Boolean deleted) {
 		this.deleted = deleted;
 	}
