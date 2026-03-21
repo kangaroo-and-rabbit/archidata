@@ -1,5 +1,12 @@
 package org.atriasoft.archidata.tools;
 
+/**
+ * Central configuration holder initialized from environment variables.
+ *
+ * <p>All fields are populated from the corresponding environment variables at class loading
+ * and can be reset via {@link #clearAllValue()}. Getter methods provide default values
+ * when the environment variable is not set.</p>
+ */
 public class ConfigBaseVariable {
 	private ConfigBaseVariable() {
 		// Utility class
@@ -83,9 +90,6 @@ public class ConfigBaseVariable {
 	public static Short getDBPort() {
 		if (dbPort == null) {
 			return 27017;
-		}
-		if (dbPort == null) {
-			return null;
 		}
 		return Short.parseShort(dbPort);
 	}
