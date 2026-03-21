@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Archi-data Framework</h1>
+
+<p>Archi-data is a Java framework for building REST servers backed by MongoDB. It provides a complete
+stack for rapid API development: data access, authentication, validation, and client code generation.</p>
+
+<h2>Features</h2>
+
+<ul>
+	<li><strong>REST server</strong> with Jakarta JAX-RS (Grizzly/Jersey):
+		<ul>
+			<li>Role-based access control (JWT + API keys)</li>
+			<li>Built-in OpenAPI 3.0.3 specification generation</li>
+			<li>Normalized error responses</li>
+			<li>TypeScript / Python client generation</li>
+		</ul>
+	</li>
+	<li><strong>MongoDB data access</strong> layer:
+		<ul>
+			<li>Object introspection and automatic CRUD operations</li>
+			<li>Support for ObjectId, Long, and UUID primary keys</li>
+			<li>Soft delete, timestamps, and relationship management</li>
+			<li>Database migration engine</li>
+		</ul>
+	</li>
+	<li><strong>JPA-style annotations</strong> for model definition and validation</li>
+	<li><strong>Test utilities</strong> for integration testing</li>
+</ul>
+
+<h2>Package Organization</h2>
+
+<table class="summary-table" style="border-collapse: collapse; border: 1px solid #ccc;">
+	<caption style="text-align: left; font-weight: bold; padding: 4px;">Package overview</caption>
+	<tr><th style="padding: 4px;">Package</th><th style="padding: 4px;">Description</th></tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.annotation}</td>
+		<td>Annotations for data model definition, validation, and API generation</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.api}</td>
+		<td>Reusable JAX-RS resource classes for common REST operations</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.backup}</td>
+		<td>Database backup and restore with retention policies</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.bean}</td>
+		<td>High-performance bean introspection with caching</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.catcher}</td>
+		<td>JAX-RS exception mappers for normalized JSON error responses</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.checker}</td>
+		<td>Database connection lifecycle management</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.converter}</td>
+		<td>Type converters for Jackson, Jakarta, and MongoDB BSON</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.cron}</td>
+		<td>Cron-based task scheduling</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.dataAccess}</td>
+		<td>MongoDB data access layer (CRUD, queries, transactions)</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.dataStreamEvent}</td>
+		<td>Real-time MongoDB change stream support</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.db}</td>
+		<td>Database connection configuration and factory</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.exception}</td>
+		<td>Exception hierarchy mapped to HTTP status codes</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.externalRestApi}</td>
+		<td>API analysis and client code generation (TypeScript, Python, Graphviz)</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.filter}</td>
+		<td>JAX-RS filters for JWT authentication, CORS, and connection management</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.interceptor}</td>
+		<td>JAX-RS interceptors for validation group selection</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.migration}</td>
+		<td>Database schema migration engine</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.model}</td>
+		<td>Base entity classes for database-backed models</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.tools}</td>
+		<td>Utility classes (configuration, JWT, REST client, UUID, etc.)</td>
+	</tr>
+</table>
+
+<h2>Prerequisites</h2>
+
+<ul>
+	<li><strong>Java 21+</strong> (tested with Java 25)</li>
+	<li><strong>Maven 3.8+</strong></li>
+	<li><strong>MongoDB 6+</strong> (replica set required for transactions and change streams)</li>
+</ul>
+
+<h2>Documentation</h2>
+
+<p>For complete documentation including tutorials and advanced topics, see the
+<a href="https://gitea.atria-soft.org/kangaroo-and-music/archidata/src/branch/master/doc/index.md">documentation index</a>.</p>
+
+</body>
+</html>
