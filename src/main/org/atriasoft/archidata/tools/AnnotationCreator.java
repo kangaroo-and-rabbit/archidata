@@ -5,13 +5,24 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
-
+/**
+ * Factory for creating annotation instances at runtime using dynamic proxies.
+ *
+ * <p>Values are passed as key-value pairs; any unspecified method falls back to its default value.</p>
+ */
 public class AnnotationCreator {
 	private AnnotationCreator() {
 		// Utility class
 	}
 
+	/**
+	 * Creates a runtime annotation instance backed by a dynamic proxy.
+	 *
+	 * @param <A> The annotation type.
+	 * @param annotationClass The annotation class to instantiate.
+	 * @param values Alternating method-name / value pairs (e.g. "readable", true, "creatable", false).
+	 * @return A proxy instance implementing the given annotation type.
+	 */
 	@SuppressWarnings("unchecked")
 	public static <A extends Annotation> A createAnnotation(final Class<A> annotationClass, final Object... values) {
 		return (A) Proxy.newProxyInstance(annotationClass.getClassLoader(), new Class<?>[] { annotationClass },
@@ -35,17 +46,4 @@ public class AnnotationCreator {
 				});
 	}
 
-	public static void main(final String[] args) {
-		final ApiGenerationMode myAnnotation = AnnotationCreator.createAnnotation(ApiGenerationMode.class, "readable",
-				true, "creatable", false, "updatable", false);
-
-		System.out.println("readable: " + myAnnotation.read()); // Output: example
-		System.out.println("creatable: " + myAnnotation.create()); // Output: 100
-		System.out.println("updatable: " + myAnnotation.update()); // Output: 100
-		final ApiGenerationMode myAnnotation2 = AnnotationCreator.createAnnotation(ApiGenerationMode.class);
-
-		System.out.println("readable: " + myAnnotation2.read()); // Output: example
-		System.out.println("creatable: " + myAnnotation2.create()); // Output: 100
-		System.out.println("updatable: " + myAnnotation2.update()); // Output: 100
-	}
 }

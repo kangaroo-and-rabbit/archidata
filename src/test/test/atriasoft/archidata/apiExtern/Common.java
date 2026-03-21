@@ -13,7 +13,7 @@ public class Common {
 	public static final String ADMIN_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_admin_login", "KarAuth",
 			"test.atriasoft", Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)));
 
-	public static String RandGeneratedStr(final int length) {
+	public static String randGeneratedStr(final int length) {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";
 		final StringBuilder out = new StringBuilder(length);
 		for (int iii = 0; iii < length; iii++) {

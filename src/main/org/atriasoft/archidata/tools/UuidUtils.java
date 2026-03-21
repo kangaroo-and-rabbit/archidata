@@ -10,17 +10,34 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.exception.DataAccessException;
 
+/**
+ * Utility class for UUID generation and conversion.
+ *
+ * <p>Provides conversions between {@link UUID}, {@code byte[]}, and {@link BigInteger},
+ * as well as a monotonically increasing UUID generator based on system time.</p>
+ */
 public class UuidUtils {
 	private UuidUtils() {
 		// Utility class
 	}
 
+	/**
+	 * Converts a {@link BigInteger} to a {@link UUID}.
+	 * @param bigInteger The BigInteger to convert.
+	 * @return The corresponding UUID.
+	 */
 	public static UUID asUuid(final BigInteger bigInteger) {
 		final long mostSignificantBits = bigInteger.longValue();
 		final long leastSignificantBits = bigInteger.shiftRight(64).longValue();
 		return new UUID(mostSignificantBits, leastSignificantBits);
 	}
 
+	/**
+	 * Converts a 16-byte array to a {@link UUID}.
+	 * @param bytes The byte array (must be exactly 16 bytes).
+	 * @return The corresponding UUID.
+	 * @throws DataAccessException If the byte array is not 16 bytes long.
+	 */
 	public static UUID asUuid(final byte[] bytes) throws DataAccessException {
 		if (bytes.length != 16) {
 			throw new DataAccessException("Try to convert wrong size of UUID: " + bytes.length + " expected 16.");
@@ -31,6 +48,11 @@ public class UuidUtils {
 		return new UUID(firstLong, secondLong);
 	}
 
+	/**
+	 * Converts a {@link UUID} to a 16-byte array.
+	 * @param uuid The UUID to convert.
+	 * @return A 16-byte array representing the UUID.
+	 */
 	public static byte[] asBytes(final UUID uuid) {
 		final ByteBuffer bb = ByteBuffer.allocate(16);
 		bb.putLong(uuid.getMostSignificantBits());
@@ -71,6 +93,13 @@ public class UuidUtils {
 
 	private static Generator generator = new Generator();
 
+	/**
+	 * Returns the next monotonically increasing UUID from the internal generator.
+	 *
+	 * <p>The generated UUIDs are time-based and guaranteed to be unique and ordered
+	 * within the same JVM instance.</p>
+	 * @return A new unique UUID.
+	 */
 	public static UUID nextUUID() {
 		return generator.next();
 	}
