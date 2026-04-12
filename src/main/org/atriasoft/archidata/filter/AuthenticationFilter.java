@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
+import org.atriasoft.archidata.annotation.security.RightAllowed;
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.model.UserByToken;
@@ -129,8 +130,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			return;
 		}
 		// this is a security guard, all the API must define their access level:
-		if (!AnnotationTools.methodHasAnnotation(method, RolesAllowed.class)) {
-			LOGGER.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
+		final boolean hasRolesAllowed = AnnotationTools.methodHasAnnotation(method, RolesAllowed.class);
+		final boolean hasRightAllowed = AnnotationTools.methodHasAnnotation(method, RightAllowed.class);
+		if (!hasRolesAllowed && !hasRightAllowed) {
+			LOGGER.error("   ==> missing @RolesAllowed or @RightAllowed {}", requestContext.getUriInfo().getPath());
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
@@ -202,23 +205,32 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
 		final MySecurityContext userContext = new MySecurityContext(userByToken, scheme);
-		// retrieve the allowed right:
-		final RolesAllowed rolesAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
-				RolesAllowed.class);
-		final List<String> roles = Arrays.asList(rolesAnnotation.value());
-		// check if the user have the right:
-		boolean haveRight = false;
-		try {
-			haveRight = checkRight(requestContext, userContext, roles);
-		} catch (final SystemException e) {
-			LOGGER.error("Failed to check rights: {}", e.getMessage(), e);
+		// check roles if @RolesAllowed is present:
+		boolean roleOk = true;
+		if (hasRolesAllowed) {
+			final RolesAllowed rolesAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
+					RolesAllowed.class);
+			final List<String> roles = Arrays.asList(rolesAnnotation.value());
+			try {
+				roleOk = checkRole(requestContext, userContext, roles);
+			} catch (final SystemException e) {
+				LOGGER.error("Failed to check roles: {}", e.getMessage(), e);
+				roleOk = false;
+			}
+		}
+		// check rights if @RightAllowed is present:
+		boolean rightOk = true;
+		if (hasRightAllowed) {
+			final RightAllowed rightAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
+					RightAllowed.class);
+			rightOk = checkResourceRight(userContext, rightAnnotation.right(), rightAnnotation.access());
 		}
 
-		// Is user valid?
-		if (!haveRight) {
-			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
+		// Both must pass (AND logic):
+		if (!roleOk || !rightOk) {
+			LOGGER.error("REJECTED not enough rights : {}", requestContext.getUriInfo().getPath());
 			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enought RIGHT !!!"))
+					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enough RIGHT !!!"))
 					.build());
 			return;
 		}
@@ -227,15 +239,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	}
 
 	/**
-	 * Checks whether the authenticated user has at least one of the required roles.
+	 * Checks whether the authenticated user has at least one of the required roles (OR logic).
 	 *
 	 * @param requestContext the container request context
 	 * @param userContext the security context containing user information
 	 * @param roles the list of allowed roles
 	 * @return {@code true} if the user has at least one required role
-	 * @throws SystemException if an error occurs during rights verification
+	 * @throws SystemException if an error occurs during role verification
 	 */
-	protected boolean checkRight(
+	protected boolean checkRole(
 			final ContainerRequestContext requestContext,
 			final MySecurityContext userContext,
 			final List<String> roles) throws SystemException {
@@ -245,6 +257,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Checks whether the authenticated user has the required access level for a fine-grained right.
+	 *
+	 * @param userContext the security context containing user information
+	 * @param rightName the right name to check (e.g., "articles")
+	 * @param requiredAccess the required access level
+	 * @return {@code true} if the user has the required access level
+	 */
+	protected boolean checkResourceRight(
+			final MySecurityContext userContext,
+			final String rightName,
+			final PartRight requiredAccess) {
+		return userContext.hasResourceRight(this.applicationName, rightName, requiredAccess);
 	}
 
 	private boolean isTokenBasedAuthenticationBearer(final String authorizationHeader) {
@@ -324,18 +351,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		user.setOid(oid);
 		user.setName((String) ret.getClaim("login"));
 		user.setType(UserByToken.TYPE_USER);
+		final Object rowRoles = ret.getClaim("roles");
+		if (rowRoles != null) {
+			LOGGER.trace("Detect roles in Authentication Filter: {}", rowRoles);
+			user.setRoles(RightSafeCaster.safeCastAndTransform(rowRoles));
+		}
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
 			LOGGER.trace("Detect right in Authentication Filter: {}", rowRight);
-			user.setRight(RightSafeCaster.safeCastAndTransform(ret.getClaim("right")));
-			/*
-			if (rights.containsKey(this.applicationName)) {
-				user.right = rights.get(this.applicationName);
-			} else {
-				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName,
-						rights);
-			}
-			*/
+			user.setRight(RightSafeCaster.safeCastAndTransform(rowRight));
 		}
 		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
 		return user;

@@ -26,7 +26,9 @@ public class UserByToken {
 	// For application, this is the id of the application, and of user token, this is the USERID
 	private ObjectId parentId = null;
 	private String name = null;
-	// Right map
+	// Roles map (high-level roles: ADMIN, USER, etc.)
+	private Map<String, Map<String, PartRight>> roles = new HashMap<>();
+	// Rights map (fine-grained resource rights: articles, users, etc.)
 	private Map<String, Map<String, PartRight>> right = new HashMap<>();
 
 	/**
@@ -94,7 +96,23 @@ public class UserByToken {
 	}
 
 	/**
-	 * Gets the rights map. The outer map key is the group name, the inner map key is the right key.
+	 * Gets the roles map. The outer map key is the group name, the inner map key is the role name.
+	 * @return the roles map
+	 */
+	public Map<String, Map<String, PartRight>> getRoles() {
+		return this.roles;
+	}
+
+	/**
+	 * Sets the roles map.
+	 * @param roles the roles map to set
+	 */
+	public void setRoles(final Map<String, Map<String, PartRight>> roles) {
+		this.roles = roles;
+	}
+
+	/**
+	 * Gets the fine-grained rights map. The outer map key is the group name, the inner map key is the right name.
 	 * @return the rights map
 	 */
 	public Map<String, Map<String, PartRight>> getRight() {
@@ -102,7 +120,7 @@ public class UserByToken {
 	}
 
 	/**
-	 * Sets the rights map.
+	 * Sets the fine-grained rights map.
 	 * @param right the rights map to set
 	 */
 	public void setRight(final Map<String, Map<String, PartRight>> right) {
@@ -110,29 +128,43 @@ public class UserByToken {
 	}
 
 	/**
-	 * Gets the set of all group names that this entity has rights in.
+	 * Gets the set of all group names that this entity has roles in.
 	 * @return the set of group names
 	 */
 	public Set<String> getGroups() {
-		return this.right.keySet();
+		return this.roles.keySet();
 	}
 
 	/**
-	 * Checks whether a given group exists in the rights map.
+	 * Checks whether a given group exists in the roles map.
 	 * @param group the group name to check
 	 * @return {@code true} if the group exists, {@code false} otherwise
 	 */
 	public boolean groupExist(final String group) {
-		if (!this.right.containsKey(group)) {
-			return false;
-		}
-		return this.right.containsKey(group);
+		return this.roles.containsKey(group);
 	}
 
 	/**
-	 * Retrieves the right value for a specific group and key combination.
+	 * Retrieves the role value for a specific group and role name combination.
 	 * @param group the group name
-	 * @param key the right key within the group
+	 * @param key the role name within the group
+	 * @return the {@link PartRight} value, or {@code null} if the group or key does not exist
+	 */
+	public PartRight getRoleForKey(final String group, final String key) {
+		if (!this.roles.containsKey(group)) {
+			return null;
+		}
+		final Map<String, PartRight> roleGroup = this.roles.get(group);
+		if (!roleGroup.containsKey(key)) {
+			return null;
+		}
+		return roleGroup.get(key);
+	}
+
+	/**
+	 * Retrieves the fine-grained right value for a specific group and right name combination.
+	 * @param group the group name
+	 * @param key the right name within the group
 	 * @return the {@link PartRight} value, or {@code null} if the group or key does not exist
 	 */
 	public PartRight getRightForKey(final String group, final String key) {
@@ -147,15 +179,15 @@ public class UserByToken {
 	}
 
 	/**
-	 * Checks whether the entity has a specific right value for a given group and key.
+	 * Checks whether the entity has a specific role value for a given group and key.
 	 * Supports Boolean, String, Long, and Double value types.
 	 * @param group the group name
-	 * @param key the right key within the group
+	 * @param key the role key within the group
 	 * @param value the expected value to compare against
-	 * @return {@code true} if the right exists and matches the given value, {@code false} otherwise
+	 * @return {@code true} if the role exists and matches the given value, {@code false} otherwise
 	 */
 	public boolean hasRight(final String group, final String key, final Object value) {
-		final Object data = getRightForKey(group, key);
+		final Object data = getRoleForKey(group, key);
 		if (data == null) {
 			return false;
 		}

@@ -211,7 +211,8 @@ public class JWTWrapper {
 	 * @param userLogin Login of the user (never change).
 	 * @param issuer The one who provides the token.
 	 * @param application The target application name.
-	 * @param rights Optional map of rights/claims to include.
+	 * @param roles Optional map of roles to include (high-level: ADMIN, USER).
+	 * @param rights Optional map of fine-grained rights to include (articles, users).
 	 * @param timeoutInMinutes Expiration delay in minutes.
 	 * @return The encoded JWT token, or {@code null} on failure. */
 	public static String generateJWToken(
@@ -219,6 +220,7 @@ public class JWTWrapper {
 			final String userLogin,
 			final String issuer,
 			final String application,
+			final Map<String, Object> roles,
 			final Map<String, Object> rights,
 			final int timeoutInMinutes) {
 		if (rsaJWK == null) {
@@ -247,7 +249,11 @@ public class JWTWrapper {
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(serializeUserId)
 					.claim("login", userLogin).claim("application", application).issuer(issuer).issueTime(now)
 					.expirationTime(expiration);
-			// add right if needed:
+			// add roles if needed:
+			if (roles != null) {
+				builder.claim("roles", roles);
+			}
+			// add rights if needed:
 			if (rights != null) {
 				builder.claim("right", rights);
 			}
@@ -333,7 +339,8 @@ public class JWTWrapper {
 	 * @param userLogin The user login name.
 	 * @param issuer The token issuer.
 	 * @param application The target application name.
-	 * @param rights Optional rights map to include as claims.
+	 * @param roles Optional roles map to include as claims.
+	 * @param rights Optional fine-grained rights map to include as claims.
 	 * @return The serialized test JWT token, or {@code null} if test mode is disabled.
 	 */
 	public static String createJwtTestToken(
@@ -341,6 +348,7 @@ public class JWTWrapper {
 			final String userLogin,
 			final String issuer,
 			final String application,
+			final Map<String, Map<String, Object>> roles,
 			final Map<String, Map<String, Object>> rights) {
 		if (!ConfigBaseVariable.getTestMode()) {
 			LOGGER.error("Test mode disable !!!!!");
@@ -356,7 +364,11 @@ public class JWTWrapper {
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
 					.claim("login", userLogin).claim("application", application).issuer(issuer).issueTime(now)
 					.expirationTime(expiration);
-			// add right if needed:
+			// add roles if needed:
+			if (roles != null && !roles.isEmpty()) {
+				builder.claim("roles", roles);
+			}
+			// add rights if needed:
 			if (rights != null && !rights.isEmpty()) {
 				builder.claim("right", rights);
 			}

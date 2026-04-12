@@ -51,11 +51,11 @@ public class MySecurityContext implements SecurityContext {
 	 *
 	 * @param group the group name
 	 * @param role the role name within the group
-	 * @return the {@link PartRight} for the role, or {@code null} if the user has no rights
+	 * @return the {@link PartRight} for the role, or {@code null} if the user has no roles
 	 */
 	public PartRight getRightOfRoleInGroup(final String group, final String role) {
 		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getRightForKey(group, role);
+			return this.contextPrincipale.userByToken.getRoleForKey(group, role);
 		}
 		return null;
 	}
@@ -192,17 +192,51 @@ public class MySecurityContext implements SecurityContext {
 	}
 
 	/**
-	 * Returns the right value associated with the given role name.
+	 * Returns the roles map associated with the given group name.
 	 *
-	 * @param role the role name to look up
-	 * @return the right value object, or {@code null} if no user or right is available
+	 * @param group the group name to look up
+	 * @return the roles map for the group, or {@code null} if no user or roles are available
 	 */
-	public Object getRole(final String role) {
+	public Object getRole(final String group) {
 		LOGGER.info("contextPrincipale={}", this.contextPrincipale);
 		if (this.contextPrincipale.userByToken != null) {
 			LOGGER.info("contextPrincipale.userByToken={}", this.contextPrincipale.userByToken);
-			LOGGER.info("contextPrincipale.userByToken.right={}", this.contextPrincipale.userByToken.getRight());
-			return this.contextPrincipale.userByToken.getRight().get(role);
+			LOGGER.info("contextPrincipale.userByToken.roles={}", this.contextPrincipale.userByToken.getRoles());
+			return this.contextPrincipale.userByToken.getRoles().get(group);
+		}
+		return null;
+	}
+
+	/**
+	 * Checks whether the authenticated user has the required access level for a fine-grained right.
+	 * Uses bitmask logic: {@code (userRight &amp; required) == required}.
+	 *
+	 * @param applicationName the application name (group)
+	 * @param rightName the right name to check (e.g., "articles", "users")
+	 * @param requiredAccess the required {@link PartRight} access level
+	 * @return {@code true} if the user has the required access level
+	 */
+	public boolean hasResourceRight(final String applicationName, final String rightName, final PartRight requiredAccess) {
+		if (this.contextPrincipale.userByToken == null) {
+			return false;
+		}
+		final PartRight userRight = this.contextPrincipale.userByToken.getRightForKey(applicationName, rightName);
+		if (userRight == null) {
+			return false;
+		}
+		return (userRight.getValue() & requiredAccess.getValue()) == requiredAccess.getValue();
+	}
+
+	/**
+	 * Returns the fine-grained right value for a specific application and right name.
+	 *
+	 * @param applicationName the application name (group)
+	 * @param rightName the right name to look up
+	 * @return the {@link PartRight} for the right, or {@code null} if not found
+	 */
+	public PartRight getResourceRight(final String applicationName, final String rightName) {
+		if (this.contextPrincipale.userByToken != null) {
+			return this.contextPrincipale.userByToken.getRightForKey(applicationName, rightName);
 		}
 		return null;
 	}
