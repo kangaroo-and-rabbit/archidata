@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import jakarta.ws.rs.container.ContainerRequestContext;
 
 /**
- * Test suite for {@link AuthenticationFilter#checkRight(ContainerRequestContext, MySecurityContext, List)} method.
+ * Test suite for {@link AuthenticationFilter#checkRole(ContainerRequestContext, MySecurityContext, List)} method.
  *
  * <h2>Purpose</h2>
  * This class verifies that the default {@code AuthenticationFilter} implementation correctly:
@@ -31,7 +31,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
  * </ul>
  *
  * <h2>Default Behavior</h2>
- * The base {@code AuthenticationFilter.checkRight()} implementation automatically prefixes
+ * The base {@code AuthenticationFilter.checkRole()} implementation automatically prefixes
  * all roles from {@code @RolesAllowed} with the application name:
  *
  * <pre>
@@ -56,7 +56,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
  * </pre>
  *
  * <h2>Note for Custom Implementations</h2>
- * Applications can override {@code checkRight()} to implement custom logic
+ * Applications can override {@code checkRole()} to implement custom logic
  * (e.g., handling {@code {entity}/ROLE} patterns). See {@code NeoAuthenticationFilter}
  * in farm.neo.back for an example.
  */
@@ -69,7 +69,7 @@ public class TestAuthenticationFilterCheckRight {
 	private UserByToken user;
 
 	/**
-	 * Testable subclass that exposes checkRight() as public
+	 * Testable subclass that exposes checkRole() as public
 	 */
 	private static class TestableAuthenticationFilter extends AuthenticationFilter {
 		public TestableAuthenticationFilter(final String applicationName) {
@@ -77,18 +77,18 @@ public class TestAuthenticationFilterCheckRight {
 		}
 
 		@Override
-		public boolean checkRight(
+		public boolean checkRole(
 				final ContainerRequestContext requestContext,
 				final MySecurityContext userContext,
 				final List<String> roles) throws SystemException {
-			return super.checkRight(requestContext, userContext, roles);
+			return super.checkRole(requestContext, userContext, roles);
 		}
 	}
 
 	@BeforeEach
 	public void setup() {
 		authFilter = new TestableAuthenticationFilter(APPLICATION_NAME);
-		requestContext = null; // Not used in base implementation of checkRight()
+		requestContext = null; // Not used in base implementation of checkRole()
 
 		user = new UserByToken();
 		user.setOid(new ObjectId());
@@ -107,7 +107,7 @@ public class TestAuthenticationFilterCheckRight {
 		myappRights.put("VIEWER", PartRight.READ);
 		rights.put(APPLICATION_NAME, myappRights);
 
-		user.setRight(rights);
+		user.setRoles(rights);
 		securityContext = new MySecurityContext(user, "https");
 	}
 
@@ -119,21 +119,21 @@ public class TestAuthenticationFilterCheckRight {
 	public void testCheckRight_SingleRole_Match() throws SystemException {
 		// @RolesAllowed("ADMIN") → checks "myapp/ADMIN"
 		final List<String> roles = Arrays.asList("ADMIN");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
 	public void testCheckRight_SingleRole_NoMatch() throws SystemException {
 		// @RolesAllowed("UNKNOWN") → checks "myapp/UNKNOWN"
 		final List<String> roles = Arrays.asList("UNKNOWN");
-		assertFalse(authFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
 	public void testCheckRight_SingleRole_WithSuffix() throws SystemException {
 		// @RolesAllowed("EDITOR:w") → checks "myapp/EDITOR:w"
 		final List<String> roles = Arrays.asList("EDITOR:w");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -141,7 +141,7 @@ public class TestAuthenticationFilterCheckRight {
 		// @RolesAllowed("VIEWER:w") → checks "myapp/VIEWER:w"
 		// User has VIEWER:READ, not WRITE
 		final List<String> roles = Arrays.asList("VIEWER:w");
-		assertFalse(authFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	// ========================================================================
@@ -152,21 +152,21 @@ public class TestAuthenticationFilterCheckRight {
 	public void testCheckRight_MultipleRoles_FirstMatches() throws SystemException {
 		// @RolesAllowed({"ADMIN", "UNKNOWN"}) → checks "myapp/ADMIN" OR "myapp/UNKNOWN"
 		final List<String> roles = Arrays.asList("ADMIN", "UNKNOWN");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
 	public void testCheckRight_MultipleRoles_SecondMatches() throws SystemException {
 		// @RolesAllowed({"UNKNOWN", "ADMIN"}) → checks "myapp/UNKNOWN" OR "myapp/ADMIN"
 		final List<String> roles = Arrays.asList("UNKNOWN", "ADMIN");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
 	public void testCheckRight_MultipleRoles_NoneMatch() throws SystemException {
 		// @RolesAllowed({"UNKNOWN1", "UNKNOWN2"}) → checks "myapp/UNKNOWN1" OR "myapp/UNKNOWN2"
 		final List<String> roles = Arrays.asList("UNKNOWN1", "UNKNOWN2");
-		assertFalse(authFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -174,7 +174,7 @@ public class TestAuthenticationFilterCheckRight {
 		// @RolesAllowed({"ADMIN", "EDITOR"}) → checks "myapp/ADMIN" OR "myapp/EDITOR"
 		// Both exist, should return true on first match
 		final List<String> roles = Arrays.asList("ADMIN", "EDITOR");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	// ========================================================================
@@ -188,7 +188,7 @@ public class TestAuthenticationFilterCheckRight {
 
 		// User has "myapp/ADMIN" → should match
 		final List<String> roles = Arrays.asList("ADMIN");
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -206,7 +206,7 @@ public class TestAuthenticationFilterCheckRight {
 		// User has rights in "myapp" group, not "myapp/myapp"
 		// @RolesAllowed("myapp/ADMIN") → checks "myapp/myapp/ADMIN"
 		final List<String> roles = Arrays.asList("myapp/ADMIN");
-		assertFalse(authFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	// ========================================================================
@@ -221,7 +221,7 @@ public class TestAuthenticationFilterCheckRight {
 		// User has rights for "myapp", not "otherapp"
 		// @RolesAllowed("ADMIN") → checks "otherapp/ADMIN"
 		final List<String> roles = Arrays.asList("ADMIN");
-		assertFalse(otherAuthFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(otherAuthFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -229,13 +229,13 @@ public class TestAuthenticationFilterCheckRight {
 		// Add rights for "otherapp"
 		final Map<String, PartRight> otherAppRights = new HashMap<>();
 		otherAppRights.put("ADMIN", PartRight.READ_WRITE);
-		user.getRight().put("otherapp", otherAppRights);
+		user.getRoles().put("otherapp", otherAppRights);
 
 		final TestableAuthenticationFilter otherAuthFilter = new TestableAuthenticationFilter("otherapp");
 
 		// @RolesAllowed("ADMIN") → checks "otherapp/ADMIN"
 		final List<String> roles = Arrays.asList("ADMIN");
-		assertTrue(otherAuthFilter.checkRight(requestContext, securityContext, roles));
+		assertTrue(otherAuthFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	// ========================================================================
@@ -246,7 +246,7 @@ public class TestAuthenticationFilterCheckRight {
 	public void testCheckRight_EmptyRoleList() throws SystemException {
 		// Edge case: no roles specified
 		final List<String> roles = Arrays.asList();
-		assertFalse(authFilter.checkRight(requestContext, securityContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -255,10 +255,10 @@ public class TestAuthenticationFilterCheckRight {
 		// "USER" → "myapp/USER" but MySecurityContext handles "USER" specially
 		final List<String> roles = Arrays.asList("USER");
 
-		// The default checkRight adds "myapp/" prefix, making it "myapp/USER"
+		// The default checkRole adds "myapp/" prefix, making it "myapp/USER"
 		// MySecurityContext.isUserInRole("myapp/USER") will check group "myapp" for role "USER"
-		// Since role "USER" is special in checkRightInGroup, it returns true if group exists
-		assertTrue(authFilter.checkRight(requestContext, securityContext, roles));
+		// Since role "USER" is special in checkRoleInGroup, it returns true if group exists
+		assertTrue(authFilter.checkRole(requestContext, securityContext, roles));
 	}
 
 	@Test
@@ -268,12 +268,12 @@ public class TestAuthenticationFilterCheckRight {
 		emptyUser.setOid(new ObjectId());
 		emptyUser.setName("emptyuser");
 		emptyUser.setType(UserByToken.TYPE_USER);
-		emptyUser.setRight(new HashMap<>());
+		emptyUser.setRoles(new HashMap<>());
 
 		final MySecurityContext emptyContext = new MySecurityContext(emptyUser, "https");
 
 		// @RolesAllowed("ADMIN") → checks "myapp/ADMIN"
 		final List<String> roles = Arrays.asList("ADMIN");
-		assertFalse(authFilter.checkRight(requestContext, emptyContext, roles));
+		assertFalse(authFilter.checkRole(requestContext, emptyContext, roles));
 	}
 }
