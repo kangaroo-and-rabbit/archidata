@@ -1,12 +1,9 @@
 package org.atriasoft.archidata.externalRestApi;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -49,26 +46,29 @@ public class TsGenerateApi {
 	 * Generate a full API tree for Typescript in a specific folder. This
 	 * generate a folder containing a full API with "model" folder and "api"
 	 * folder. The generation depend of Zod and can be strict compile.
+	 * Unchanged files are not rewritten. Obsolete .ts files trigger a warning.
 	 *
 	 * @param api the analyzed API model to generate from
 	 * @param pathPackage the directory path to write the generated files into
 	 * @throws Exception if generation or file writing fails
 	 */
 	public static void generateApi(final AnalyzeApi api, final Path pathPackage) throws Exception {
+		generateApi(api, pathPackage, false);
+	}
+
+	/**
+	 * Generate a full API tree for Typescript in a specific folder.
+	 * Unchanged files are not rewritten.
+	 *
+	 * @param api the analyzed API model to generate from
+	 * @param pathPackage the directory path to write the generated files into
+	 * @param deleteObsoleteFiles if true, delete obsolete .ts files; if false, log a warning
+	 * @throws Exception if generation or file writing fails
+	 */
+	public static void generateApi(final AnalyzeApi api, final Path pathPackage, final boolean deleteObsoleteFiles)
+			throws Exception {
 		final Map<Path, String> generation = generateApi(api);
-		if (Files.notExists(pathPackage)) {
-			Files.createDirectories(pathPackage);
-		}
-		for (final Map.Entry<Path, String> entry : generation.entrySet()) {
-			final Path path = pathPackage.resolve(entry.getKey());
-			final Path pathParent = path.getParent();
-			if (Files.notExists(pathParent)) {
-				Files.createDirectories(pathParent);
-			}
-			final FileWriter myWriter = new FileWriter(pathPackage + File.separator + entry.getKey());
-			myWriter.write(entry.getValue());
-			myWriter.close();
-		}
+		GenerationWriter.writeGeneratedFiles(generation, pathPackage, ".ts", deleteObsoleteFiles);
 	}
 
 	/**
