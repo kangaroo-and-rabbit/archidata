@@ -202,7 +202,7 @@ The JWT token contains two separate permission maps:
   "sub": "68e6d5bfbc9e2533fd0763a9",
   "login": "john.doe",
   "application": "myapp",
-  "iss": "KarAuth",
+  "iss": "Karso",
   "roles": {
     "myapp": {
       "ADMIN": 3,
@@ -560,13 +560,13 @@ Update all `createJwtTestToken()` calls to add the `rights` parameter (pass `nul
 
 **Before:**
 ```java
-JWTWrapper.createJwtTestToken(16512, "test_user", "KarAuth", "myapp",
+JWTWrapper.createJwtTestToken(16512, "test_user", "Karso", "myapp",
     Map.of("myapp", Map.of("USER", PartRight.READ)));
 ```
 
 **After:**
 ```java
-JWTWrapper.createJwtTestToken(16512, "test_user", "KarAuth", "myapp",
+JWTWrapper.createJwtTestToken(16512, "test_user", "Karso", "myapp",
     Map.of("myapp", Map.of("USER", PartRight.READ)), null);
 ```
 

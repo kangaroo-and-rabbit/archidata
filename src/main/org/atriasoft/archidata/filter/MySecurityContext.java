@@ -216,7 +216,10 @@ public class MySecurityContext implements SecurityContext {
 	 * @param requiredAccess the required {@link PartRight} access level
 	 * @return {@code true} if the user has the required access level
 	 */
-	public boolean hasResourceRight(final String applicationName, final String rightName, final PartRight requiredAccess) {
+	public boolean hasResourceRight(
+			final String applicationName,
+			final String rightName,
+			final PartRight requiredAccess) {
 		if (this.contextPrincipale.userByToken == null) {
 			return false;
 		}

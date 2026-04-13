@@ -42,7 +42,9 @@ public class RightRoleMapper {
 	 * @param right the right name (e.g., "articles", "users")
 	 * @param access the access level granted by this definition
 	 */
-	public record RightDefinition(String right, PartRight access) {}
+	public record RightDefinition(
+			String right,
+			PartRight access) {}
 
 	private final Map<String, List<RightDefinition>> roleToRights;
 

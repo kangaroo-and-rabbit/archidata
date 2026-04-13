@@ -64,12 +64,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	public static final String APIKEY = "ApiKey";
 
 	/**
-	 * Constructs an authentication filter with the given application name and default issuer "KarAuth".
+	 * Constructs an authentication filter with the given application name and default issuer "Karso".
 	 *
 	 * @param applicationName the application name used for role-based access control
 	 */
 	public AuthenticationFilter(final String applicationName) {
-		this(applicationName, "KarAuth");
+		this(applicationName, "Karso");
 	}
 
 	/**

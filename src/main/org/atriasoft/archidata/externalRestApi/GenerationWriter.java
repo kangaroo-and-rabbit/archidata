@@ -28,8 +28,8 @@ public class GenerationWriter {
 	/** Forbidden root directories (Linux, macOS, Windows). */
 	private static final List<String> FORBIDDEN_ROOTS = List.of(
 			// Linux / macOS system directories
-			"/", "/bin", "/boot", "/dev", "/etc", "/lib", "/lib64", "/opt",
-			"/proc", "/root", "/run", "/sbin", "/sys", "/usr", "/var",
+			"/", "/bin", "/boot", "/dev", "/etc", "/lib", "/lib64", "/opt", "/proc", "/root", "/run", "/sbin", "/sys",
+			"/usr", "/var",
 			// macOS specific
 			"/System", "/Library", "/Applications",
 			// Windows common roots (normalized with forward slashes)
@@ -68,9 +68,8 @@ public class GenerationWriter {
 		// Minimum depth safety: path must have at least MINIMUM_PATH_DEPTH components
 		final int nameCount = absolutePath.getNameCount();
 		if (nameCount < MINIMUM_PATH_DEPTH) {
-			throw new IOException(
-					"Output directory path is too shallow (" + nameCount + " components, minimum "
-							+ MINIMUM_PATH_DEPTH + "): " + absolutePath);
+			throw new IOException("Output directory path is too shallow (" + nameCount + " components, minimum "
+					+ MINIMUM_PATH_DEPTH + "): " + absolutePath);
 		}
 	}
 

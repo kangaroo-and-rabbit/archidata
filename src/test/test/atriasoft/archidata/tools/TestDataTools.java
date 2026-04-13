@@ -28,8 +28,8 @@ class TestDataTools {
 
 	@Test
 	void testBytesToHexMultipleBytes() {
-		final String result = DataTools.bytesToHex(new byte[] { 0x01, 0x23, 0x45, 0x67, (byte) 0x89, (byte) 0xAB,
-				(byte) 0xCD, (byte) 0xEF });
+		final String result = DataTools
+				.bytesToHex(new byte[] { 0x01, 0x23, 0x45, 0x67, (byte) 0x89, (byte) 0xAB, (byte) 0xCD, (byte) 0xEF });
 		Assertions.assertEquals("0123456789abcdef", result);
 	}
 

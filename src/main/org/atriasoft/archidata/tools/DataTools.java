@@ -481,8 +481,8 @@ public class DataTools {
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
 			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
-				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not acceptable: "
-						+ mimeType + "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not acceptable: " + mimeType
+						+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 			}
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");

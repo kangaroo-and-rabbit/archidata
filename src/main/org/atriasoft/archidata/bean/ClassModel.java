@@ -557,8 +557,7 @@ public final class ClassModel {
 			// Fluent setXxx(value) — non-void return assignable from clazz, 1 param
 			if (!this.isRecord && methodName.startsWith("set") && methodName.length() > 3
 					&& Character.isUpperCase(methodName.charAt(3)) && method.getReturnType() != void.class
-					&& method.getParameterCount() == 1
-					&& method.getReturnType().isAssignableFrom(clazz)) {
+					&& method.getParameterCount() == 1 && method.getReturnType().isAssignableFrom(clazz)) {
 
 				final String propName = decapitalize(methodName.substring(3));
 				final PropertyDescriptor.Builder b = builders.get(propName);

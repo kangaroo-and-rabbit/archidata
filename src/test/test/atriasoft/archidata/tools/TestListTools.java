@@ -26,8 +26,7 @@ class TestListTools {
 		// Actually the code checks: if (list1 == list2) => false, if (list1 == null) => false,
 		// then list1.size() != list2.size() where list2 is null => NPE
 		// This documents existing behavior
-		Assertions.assertThrows(NullPointerException.class,
-				() -> ListTools.checkListIdentical(List.of("a"), null));
+		Assertions.assertThrows(NullPointerException.class, () -> ListTools.checkListIdentical(List.of("a"), null));
 	}
 
 	@Test

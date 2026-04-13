@@ -2,6 +2,7 @@ package org.atriasoft.archidata.model.token;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 
@@ -17,6 +18,7 @@ import jakarta.validation.constraints.NotNull;
  * @param exp the expiration timestamp (seconds since epoch)
  * @param iat the issued-at timestamp (seconds since epoch)
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record JwtPayload(
 		// User identification
 		@NotNull String sub,

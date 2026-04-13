@@ -161,8 +161,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_fluentSetterRefs() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+		final FilterOmit fo = new FilterOmit((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
 				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
 		Assertions.assertEquals(List.of("name", "age"), fo.getValues());
 	}
@@ -170,8 +169,7 @@ public class TestFilterOmitMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_fluentSetterRefs_withColumnRename() {
-		final FilterOmit fo = new FilterOmit(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName);
+		final FilterOmit fo = new FilterOmit((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName);
 		Assertions.assertEquals(List.of("full_name"), fo.getValues());
 	}
 

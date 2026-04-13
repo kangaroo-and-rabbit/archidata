@@ -314,8 +314,7 @@ public class JWTWrapper {
 				return null;
 			}
 			if (!issuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
-				LOGGER.error("JWT issuer is wrong: '{}' != '{}'", issuer,
-						signedJWT.getJWTClaimsSet().getIssuer());
+				LOGGER.error("JWT issuer is wrong: '{}' != '{}'", issuer, signedJWT.getJWTClaimsSet().getIssuer());
 				return null;
 			}
 			if (application != null) {

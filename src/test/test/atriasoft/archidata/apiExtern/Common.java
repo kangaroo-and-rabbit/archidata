@@ -7,10 +7,10 @@ import org.atriasoft.archidata.tools.JWTWrapper;
 import org.junit.jupiter.api.Assertions;
 
 public class Common {
-	public static final String USER_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_user_login", "KarAuth",
+	public static final String USER_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_user_login", "Karso",
 			"test.atriasoft", //
 			Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE)), null);
-	public static final String ADMIN_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_admin_login", "KarAuth",
+	public static final String ADMIN_TOKEN = JWTWrapper.createJwtTestToken(16512, "test_admin_login", "Karso",
 			"test.atriasoft", Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)), null);
 
 	public static String randGeneratedStr(final int length) {

@@ -239,15 +239,13 @@ public class TestFields {
 
 	@Test
 	public void testOf_fluentSetter() {
-		final String fieldName = Fields
-				.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
+		final String fieldName = Fields.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
 		Assertions.assertEquals("name", fieldName);
 	}
 
 	@Test
 	public void testOf_fluentSetter_columnRename() {
-		final String fieldName = Fields
-				.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName);
+		final String fieldName = Fields.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName);
 		Assertions.assertEquals("full_name", fieldName);
 	}
 
@@ -258,8 +256,7 @@ public class TestFields {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testList_fluentSetters() {
-		final List<String> names = Fields.list(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+		final List<String> names = Fields.list((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
 				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
 		Assertions.assertEquals(List.of("name", "age"), names);
 	}
@@ -270,8 +267,8 @@ public class TestFields {
 
 	@Test
 	public void testOf_fieldRef() {
-		final String fieldName = Fields.of(FieldRef.of(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName));
+		final String fieldName = Fields
+				.of(FieldRef.of((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName));
 		Assertions.assertEquals("name", fieldName);
 	}
 

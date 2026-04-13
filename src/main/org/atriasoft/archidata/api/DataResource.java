@@ -589,8 +589,17 @@ public class DataResource {
 	 * @return Streaming output
 	 * @throws FileNotFoundException
 	 * @throws Exception IOException if an error occurs in streaming. */
-	private Response buildStream(final String filename, final String range, final String mimeType)
+	private Response buildStream(final String filename, final String range, final String inputMimeType)
 			throws FailException {
+		// Browsers don't support video/x-matroska or audio/x-matroska, serve as webm instead
+		final String mimeType;
+		if ("video/x-matroska".equals(inputMimeType)) {
+			mimeType = "video/webm";
+		} else if ("audio/x-matroska".equals(inputMimeType)) {
+			mimeType = "audio/webm";
+		} else {
+			mimeType = inputMimeType;
+		}
 		final File file = new File(filename);
 		// logger.info("request range : {}", range);
 		// range not requested : Firefox does not send range headers
@@ -616,7 +625,8 @@ public class DataResource {
 					}
 				}
 			};
-			final Response.ResponseBuilder out = Response.ok(output).header(HttpHeaders.CONTENT_LENGTH, file.length());
+			final Response.ResponseBuilder out = Response.ok(output).header(HttpHeaders.CONTENT_LENGTH, file.length())
+					.header("Accept-Ranges", "bytes");
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
@@ -627,12 +637,16 @@ public class DataResource {
 		final String[] ranges = range.split("=")[1].split("-");
 		final long from = Long.parseLong(ranges[0]);
 
-		// logger.info("request range : {}", ranges.length);
-		// Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
-		long to = CHUNK_SIZE + from;
-		if (ranges.length == 1) {
+		// Determine the end byte position
+		long to;
+		if (ranges.length == 2 && !ranges[1].isEmpty()) {
+			// Explicit end specified: "bytes=start-end"
+			to = Long.parseLong(ranges[1]);
+		} else {
+			// Open-ended: "bytes=start-" — serve the rest of the file
 			to = file.length() - 1;
-		} else if (to >= file.length()) {
+		}
+		if (to >= file.length()) {
 			to = file.length() - 1;
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
