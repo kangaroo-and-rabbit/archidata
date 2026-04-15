@@ -62,12 +62,12 @@ public class TestBackupMedia {
 	public void setUpMediaFolder() throws IOException {
 		tempMediaDir = Files.createTempDirectory("test_media_");
 		tempBackupDir = Files.createTempDirectory("test_backup_media_");
-		ConfigBaseVariable.dataFolder = tempMediaDir.toString();
+		ConfigBaseVariable.setDataFolder(tempMediaDir.toString());
 	}
 
 	@AfterEach
 	public void tearDownMediaFolder() throws IOException {
-		ConfigBaseVariable.dataFolder = null;
+		ConfigBaseVariable.setDataFolder(null);
 		// Cleanup temp directories
 		deleteRecursive(tempMediaDir);
 		deleteRecursive(tempBackupDir);

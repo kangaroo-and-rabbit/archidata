@@ -1,60 +1,225 @@
 package org.atriasoft.archidata.tools;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Central configuration holder initialized from environment variables.
  *
  * <p>All fields are populated from the corresponding environment variables at class loading
- * and can be reset via {@link #clearAllValue()}. Getter methods provide default values
- * when the environment variable is not set.</p>
+ * and can be set via setters before the configuration is locked. Once {@link #lock()} is called,
+ * no further modifications are allowed unless {@link #allowReconfiguration(boolean)} was called
+ * with {@code true} beforehand (typically only in test environments).</p>
+ *
+ * <p>Attempting to unlock a locked configuration without reconfiguration permission will log the
+ * full stack trace, flush logs, and terminate the JVM immediately — this is treated as a security
+ * violation.</p>
  */
 public class ConfigBaseVariable {
 	private ConfigBaseVariable() {
 		// Utility class
 	}
 
-	/** Temporary data folder path (from {@code DATA_TMP_FOLDER} env var). */
-	public static String tmpDataFolder;
-	/** Media data folder path (from {@code DATA_FOLDER} env var). */
-	public static String dataFolder;
-	/** Whether the database can be created automatically (from {@code DB_ABLE_TO_CREATE} env var). */
-	public static String dbAbleToCreate;
-	/** Database host address (from {@code DB_HOST} env var). */
-	public static String dbHost;
-	/** Database port number as string (from {@code DB_PORT} env var). */
-	public static String dbPort;
-	/** Database user name (from {@code DB_USER} env var). */
-	public static String dbUser;
-	/** Whether to keep the database connection alive (from {@code DB_KEEP_CONNECTED} env var). */
-	public static String dbKeepConnected;
-	/** Database password (from {@code DB_PASSWORD} env var). */
-	public static String dbPassword;
-	/** Database name (from {@code DB_DATABASE} env var). */
-	public static String bdDatabase;
-	/** Local API address (from {@code API_ADDRESS} env var). */
-	public static String apiAdress;
-	/** SSO server address (from {@code SSO_ADDRESS} env var). */
-	public static String ssoAdress;
-	/** SSO authentication token (from {@code SSO_TOKEN} env var). */
-	public static String ssoToken;
-	/** Test mode flag (from {@code TEST_MODE} env var). */
-	public static String testMode;
-	/** E-mail sender address (from {@code EMAIL_FROM} env var). */
-	public static String eMailFrom;
-	/** E-mail login user name (from {@code EMAIL_LOGIN} env var). */
-	public static String eMailLogin;
-	/** E-mail login password (from {@code EMAIL_PASSWORD} env var). */
-	public static String eMailPassword;
-	/** Thumbnail image format (from {@code THUMBNAIL_FORMAT} env var). */
-	public static String thumbnailFormat;
-	/** Thumbnail width in pixels as string (from {@code THUMBNAIL_WIDTH} env var). */
-	public static String thumbnailWidth;
-	/** Database interface classes for data access registration. */
-	public static Class<?>[] dbInterfacesClasses;
+	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigBaseVariable.class);
+
+	private static boolean locked = false;
+	private static boolean reconfigurationAllowed = false;
+
+	private static String tmpDataFolder;
+	private static String dataFolder;
+	private static String dbAbleToCreate;
+	private static String dbHost;
+	private static String dbPort;
+	private static String dbUser;
+	private static String dbKeepConnected;
+	private static String dbPassword;
+	private static String bdDatabase;
+	private static String apiAdress;
+	private static String ssoAdress;
+	private static String ssoToken;
+	private static String testMode;
+	private static String eMailFrom;
+	private static String eMailLogin;
+	private static String eMailPassword;
+	private static String thumbnailFormat;
+	private static String thumbnailWidth;
+	private static Class<?>[] dbInterfacesClasses;
 
 	/**
-	 * Reloads all configuration values from environment variables. Primarily used for testing.
+	 * Checks that the configuration is not locked before allowing a set operation.
+	 * @param fieldName The name of the field being set (for error messages).
+	 * @throws IllegalStateException If the configuration is locked.
+	 */
+	private static void checkNotLocked(final String fieldName) {
+		if (locked) {
+			throw new IllegalStateException(
+					"Configuration is locked. Cannot modify '" + fieldName + "'. Call unlock() first.");
+		}
+	}
+
+	/**
+	 * Enables or disables the ability to unlock a locked configuration.
+	 * This must be called BEFORE {@link #lock()} and is intended for test environments only.
+	 *
+	 * <p>In production, this should never be called — leaving reconfiguration disabled means
+	 * {@link #lock()} is permanent and any attempt to {@link #unlock()} will crash the JVM.</p>
+	 *
+	 * @param allowed {@code true} to allow future unlock() calls, {@code false} to forbid them.
+	 */
+	public static void allowReconfiguration(final boolean allowed) {
+		reconfigurationAllowed = allowed;
+	}
+
+	/**
+	 * Locks the configuration, preventing any further modifications via setters.
+	 * Typically called after server startup.
+	 *
+	 * <p>If {@link #allowReconfiguration(boolean)} was not called with {@code true},
+	 * this lock is permanent — any call to {@link #unlock()} will terminate the JVM.</p>
+	 */
+	public static void lock() {
+		locked = true;
+		LOGGER.info("Configuration locked (reconfiguration {})", reconfigurationAllowed ? "allowed" : "FORBIDDEN");
+	}
+
+	/**
+	 * Unlocks the configuration, allowing modifications via setters.
+	 * Only works if {@link #allowReconfiguration(boolean)} was called with {@code true}.
+	 *
+	 * <p>If reconfiguration is not allowed, this method logs the full stack trace of the caller,
+	 * flushes logs, and terminates the JVM with exit code 1. This is treated as a security violation.</p>
+	 */
+	public static void unlock() {
+		if (!reconfigurationAllowed) {
+			final RuntimeException violation = new RuntimeException(
+					"SECURITY VIOLATION: unauthorized attempt to unlock configuration");
+			LOGGER.error("==========================================================");
+			LOGGER.error("SECURITY VIOLATION: unauthorized attempt to unlock configuration.");
+			LOGGER.error("Caller stack trace:", violation);
+			LOGGER.error("The JVM will now terminate.");
+			LOGGER.error("==========================================================");
+			// Also print to stderr to ensure visibility even if logging is misconfigured
+			System.err.println("SECURITY VIOLATION: unauthorized attempt to unlock configuration.");
+			violation.printStackTrace(System.err);
+			System.err.flush();
+			// Terminate immediately — Runtime.halt bypasses shutdown hooks
+			Runtime.getRuntime().halt(1);
+		}
+		locked = false;
+		LOGGER.info("Configuration unlocked");
+	}
+
+	/**
+	 * Returns whether the configuration is currently locked.
+	 * @return {@code true} if locked.
+	 */
+	public static boolean isLocked() {
+		return locked;
+	}
+
+	// ========== Setters ==========
+
+	public static void setTmpDataFolder(final String value) {
+		checkNotLocked("tmpDataFolder");
+		tmpDataFolder = value;
+	}
+
+	public static void setDataFolder(final String value) {
+		checkNotLocked("dataFolder");
+		dataFolder = value;
+	}
+
+	public static void setDbAbleToCreate(final String value) {
+		checkNotLocked("dbAbleToCreate");
+		dbAbleToCreate = value;
+	}
+
+	public static void setDbHost(final String value) {
+		checkNotLocked("dbHost");
+		dbHost = value;
+	}
+
+	public static void setDbPort(final String value) {
+		checkNotLocked("dbPort");
+		dbPort = value;
+	}
+
+	public static void setDbUser(final String value) {
+		checkNotLocked("dbUser");
+		dbUser = value;
+	}
+
+	public static void setDbKeepConnected(final String value) {
+		checkNotLocked("dbKeepConnected");
+		dbKeepConnected = value;
+	}
+
+	public static void setDbPassword(final String value) {
+		checkNotLocked("dbPassword");
+		dbPassword = value;
+	}
+
+	public static void setBdDatabase(final String value) {
+		checkNotLocked("bdDatabase");
+		bdDatabase = value;
+	}
+
+	public static void setApiAddress(final String value) {
+		checkNotLocked("apiAdress");
+		apiAdress = value;
+	}
+
+	public static void setSsoAddress(final String value) {
+		checkNotLocked("ssoAdress");
+		ssoAdress = value;
+	}
+
+	public static void setSsoToken(final String value) {
+		checkNotLocked("ssoToken");
+		ssoToken = value;
+	}
+
+	public static void setTestMode(final String value) {
+		checkNotLocked("testMode");
+		testMode = value;
+	}
+
+	public static void setEMailFrom(final String value) {
+		checkNotLocked("eMailFrom");
+		eMailFrom = value;
+	}
+
+	public static void setEMailLogin(final String value) {
+		checkNotLocked("eMailLogin");
+		eMailLogin = value;
+	}
+
+	public static void setEMailPassword(final String value) {
+		checkNotLocked("eMailPassword");
+		eMailPassword = value;
+	}
+
+	public static void setThumbnailFormat(final String value) {
+		checkNotLocked("thumbnailFormat");
+		thumbnailFormat = value;
+	}
+
+	public static void setThumbnailWidth(final String value) {
+		checkNotLocked("thumbnailWidth");
+		thumbnailWidth = value;
+	}
+
+	/**
+	 * Reloads all configuration values from environment variables and unlocks the configuration.
+	 * Only works if reconfiguration is allowed. Primarily used for testing.
+	 *
+	 * <p>If reconfiguration is not allowed and the configuration is locked,
+	 * this will trigger the same security violation as {@link #unlock()}.</p>
 	 */
 	public static void clearAllValue() {
+		if (locked) {
+			unlock();
+		}
 		tmpDataFolder = System.getenv("DATA_TMP_FOLDER");
 		dataFolder = System.getenv("DATA_FOLDER");
 		dbAbleToCreate = System.getenv("DB_ABLE_TO_CREATE");
@@ -79,6 +244,8 @@ public class ConfigBaseVariable {
 	static {
 		clearAllValue();
 	}
+
+	// ========== Getters ==========
 
 	/**
 	 * Returns the temporary data folder path, defaulting to {@code "./data/tmp"}.
@@ -249,6 +416,7 @@ public class ConfigBaseVariable {
 	 * @param data The array of database interface classes to register.
 	 */
 	public static void setBbInterfacesClasses(final Class<?>[] data) {
+		checkNotLocked("dbInterfacesClasses");
 		dbInterfacesClasses = data;
 	}
 

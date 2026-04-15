@@ -47,7 +47,7 @@ public class restoreDB {
 		final String fileName = args[0];
 		final String dbName = args.length >= 2 ? args[1] : ConfigBaseVariable.getDBName();
 		// overwrite the dbAccess to access to the correct DB
-		ConfigBaseVariable.bdDatabase = dbName;
+		ConfigBaseVariable.setBdDatabase(dbName);
 		final String collection = args.length >= 3 ? args[2] : null;
 		final BackupEngine engine = new BackupEngine(Paths.get("./"), dbName, EngineBackupType.JSON_EXTENDED);
 		if (!engine.restoreFile(Paths.get(fileName), collection)) {

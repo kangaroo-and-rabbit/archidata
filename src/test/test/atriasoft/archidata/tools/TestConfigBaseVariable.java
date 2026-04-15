@@ -24,175 +24,175 @@ class TestConfigBaseVariable {
 
 	@Test
 	void testGetTmpDataFolderDefault() {
-		ConfigBaseVariable.tmpDataFolder = null;
+		ConfigBaseVariable.setTmpDataFolder(null);
 		Assertions.assertEquals("./data/tmp", ConfigBaseVariable.getTmpDataFolder());
 	}
 
 	@Test
 	void testGetTmpDataFolderCustom() {
-		ConfigBaseVariable.tmpDataFolder = "/custom/tmp";
+		ConfigBaseVariable.setTmpDataFolder("/custom/tmp");
 		Assertions.assertEquals("/custom/tmp", ConfigBaseVariable.getTmpDataFolder());
 	}
 
 	@Test
 	void testGetMediaDataFolderDefault() {
-		ConfigBaseVariable.dataFolder = null;
+		ConfigBaseVariable.setDataFolder(null);
 		Assertions.assertEquals("./data/media", ConfigBaseVariable.getMediaDataFolder());
 	}
 
 	@Test
 	void testGetMediaDataFolderCustom() {
-		ConfigBaseVariable.dataFolder = "/custom/media";
+		ConfigBaseVariable.setDataFolder("/custom/media");
 		Assertions.assertEquals("/custom/media", ConfigBaseVariable.getMediaDataFolder());
 	}
 
 	@Test
 	void testGetDBHostDefault() {
-		ConfigBaseVariable.dbHost = null;
+		ConfigBaseVariable.setDbHost(null);
 		Assertions.assertEquals("localhost", ConfigBaseVariable.getDBHost());
 	}
 
 	@Test
 	void testGetDBHostCustom() {
-		ConfigBaseVariable.dbHost = "db.example.com";
+		ConfigBaseVariable.setDbHost("db.example.com");
 		Assertions.assertEquals("db.example.com", ConfigBaseVariable.getDBHost());
 	}
 
 	@Test
 	void testGetDBPortDefault() {
-		ConfigBaseVariable.dbPort = null;
+		ConfigBaseVariable.setDbPort(null);
 		Assertions.assertEquals((short) 27017, ConfigBaseVariable.getDBPort());
 	}
 
 	@Test
 	void testGetDBPortCustom() {
-		ConfigBaseVariable.dbPort = "5432";
+		ConfigBaseVariable.setDbPort("5432");
 		Assertions.assertEquals((short) 5432, ConfigBaseVariable.getDBPort());
 	}
 
 	@Test
 	void testGetDBLoginDefault() {
-		ConfigBaseVariable.dbUser = null;
+		ConfigBaseVariable.setDbUser(null);
 		Assertions.assertEquals("root", ConfigBaseVariable.getDBLogin());
 	}
 
 	@Test
 	void testGetDBPasswordDefault() {
-		ConfigBaseVariable.dbPassword = null;
+		ConfigBaseVariable.setDbPassword(null);
 		Assertions.assertEquals("base_db_password", ConfigBaseVariable.getDBPassword());
 	}
 
 	@Test
 	void testGetDBNameReturnsField() {
-		ConfigBaseVariable.bdDatabase = "mydb";
+		ConfigBaseVariable.setBdDatabase("mydb");
 		Assertions.assertEquals("mydb", ConfigBaseVariable.getDBName());
 	}
 
 	@Test
 	void testGetDBNameNull() {
-		ConfigBaseVariable.bdDatabase = null;
+		ConfigBaseVariable.setBdDatabase(null);
 		Assertions.assertNull(ConfigBaseVariable.getDBName());
 	}
 
 	@Test
 	void testGetDBKeepConnectedDefault() {
-		ConfigBaseVariable.dbKeepConnected = null;
+		ConfigBaseVariable.setDbKeepConnected(null);
 		Assertions.assertFalse(ConfigBaseVariable.getDBKeepConnected());
 	}
 
 	@Test
 	void testGetDBKeepConnectedTrue() {
-		ConfigBaseVariable.dbKeepConnected = "true";
+		ConfigBaseVariable.setDbKeepConnected("true");
 		Assertions.assertTrue(ConfigBaseVariable.getDBKeepConnected());
 	}
 
 	@Test
 	void testGetTestModeDefault() {
-		ConfigBaseVariable.testMode = null;
+		ConfigBaseVariable.setTestMode(null);
 		Assertions.assertFalse(ConfigBaseVariable.getTestMode());
 	}
 
 	@Test
 	void testGetTestModeTrue() {
-		ConfigBaseVariable.testMode = "true";
+		ConfigBaseVariable.setTestMode("true");
 		Assertions.assertTrue(ConfigBaseVariable.getTestMode());
 	}
 
 	@Test
 	void testGetLocalAddressDefault() {
-		ConfigBaseVariable.apiAdress = null;
+		ConfigBaseVariable.setApiAddress(null);
 		Assertions.assertEquals("http://0.0.0.0:80/api/", ConfigBaseVariable.getlocalAddress());
 	}
 
 	@Test
 	void testGetLocalAddressCustom() {
-		ConfigBaseVariable.apiAdress = "http://api.example.com/v1/";
+		ConfigBaseVariable.setApiAddress("http://api.example.com/v1/");
 		Assertions.assertEquals("http://api.example.com/v1/", ConfigBaseVariable.getlocalAddress());
 	}
 
 	@Test
 	void testGetSSOAddressNull() {
-		ConfigBaseVariable.ssoAdress = null;
+		ConfigBaseVariable.setSsoAddress(null);
 		Assertions.assertNull(ConfigBaseVariable.getSSOAddress());
 	}
 
 	@Test
 	void testGetThumbnailFormatDefault() {
-		ConfigBaseVariable.thumbnailFormat = null;
+		ConfigBaseVariable.setThumbnailFormat(null);
 		Assertions.assertEquals("png", ConfigBaseVariable.getThumbnailFormat());
 	}
 
 	@Test
 	void testGetThumbnailFormatEmpty() {
-		ConfigBaseVariable.thumbnailFormat = "";
+		ConfigBaseVariable.setThumbnailFormat("");
 		Assertions.assertEquals("png", ConfigBaseVariable.getThumbnailFormat());
 	}
 
 	@Test
 	void testGetThumbnailFormatCustom() {
-		ConfigBaseVariable.thumbnailFormat = "webp";
+		ConfigBaseVariable.setThumbnailFormat("webp");
 		Assertions.assertEquals("webp", ConfigBaseVariable.getThumbnailFormat());
 	}
 
 	@Test
 	void testGetThumbnailWidthDefault() {
-		ConfigBaseVariable.thumbnailWidth = null;
+		ConfigBaseVariable.setThumbnailWidth(null);
 		Assertions.assertEquals(256, ConfigBaseVariable.getThumbnailWidth());
 	}
 
 	@Test
 	void testGetThumbnailWidthEmpty() {
-		ConfigBaseVariable.thumbnailWidth = "";
+		ConfigBaseVariable.setThumbnailWidth("");
 		Assertions.assertEquals(256, ConfigBaseVariable.getThumbnailWidth());
 	}
 
 	@Test
 	void testGetThumbnailWidthCustom() {
-		ConfigBaseVariable.thumbnailWidth = "512";
+		ConfigBaseVariable.setThumbnailWidth("512");
 		Assertions.assertEquals(512, ConfigBaseVariable.getThumbnailWidth());
 	}
 
 	@Test
 	void testGetEMailConfigNull() {
-		ConfigBaseVariable.eMailFrom = null;
-		ConfigBaseVariable.eMailLogin = null;
-		ConfigBaseVariable.eMailPassword = null;
+		ConfigBaseVariable.setEMailFrom(null);
+		ConfigBaseVariable.setEMailLogin(null);
+		ConfigBaseVariable.setEMailPassword(null);
 		Assertions.assertNull(ConfigBaseVariable.getEMailConfig());
 	}
 
 	@Test
 	void testGetEMailConfigPartiallyNull() {
-		ConfigBaseVariable.eMailFrom = "test@example.com";
-		ConfigBaseVariable.eMailLogin = null;
-		ConfigBaseVariable.eMailPassword = "pass";
+		ConfigBaseVariable.setEMailFrom("test@example.com");
+		ConfigBaseVariable.setEMailLogin(null);
+		ConfigBaseVariable.setEMailPassword("pass");
 		Assertions.assertNull(ConfigBaseVariable.getEMailConfig());
 	}
 
 	@Test
 	void testGetEMailConfigComplete() {
-		ConfigBaseVariable.eMailFrom = "test@example.com";
-		ConfigBaseVariable.eMailLogin = "login";
-		ConfigBaseVariable.eMailPassword = "pass";
+		ConfigBaseVariable.setEMailFrom("test@example.com");
+		ConfigBaseVariable.setEMailLogin("login");
+		ConfigBaseVariable.setEMailPassword("pass");
 		final ConfigBaseVariable.EMailConfig config = ConfigBaseVariable.getEMailConfig();
 		Assertions.assertNotNull(config);
 		Assertions.assertEquals("test@example.com", config.from());

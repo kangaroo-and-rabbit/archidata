@@ -35,7 +35,7 @@ public class TestDataAccessTest {
 		LOGGER.info("Start REST (BEGIN)");
 		webInterface.process();
 		LOGGER.info("Start REST (DONE)");
-		api = new RESTApi(ConfigBaseVariable.apiAdress);
+		api = new RESTApi(ConfigBaseVariable.getlocalAddress());
 		api.setToken(Common.ADMIN_TOKEN);
 		api.showIOStream();
 	}
