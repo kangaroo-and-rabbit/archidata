@@ -27,5 +27,5 @@
 - [ ] #18 - Swagger UI exposé en prod - openApiResource.java
 - [ ] #19 - API par défaut en HTTP sur 0.0.0.0:80 - ConfigBaseVariable.java:186
 
-### Dépendances à vérifier
-- [ ] webp-imageio:0.2.2 - vérifier version libwebp embarquée (CVE-2023-4863)
+### Dépendances
+- [x] webp-imageio:0.2.2 - SUPPRIMÉ (libwebp native de 2021, vulnérable CVE-2023-4863). Lecture WebP couverte par TwelveMonkeys. Écriture WebP (thumbnails) à réintégrer quand une alternative safe existe.

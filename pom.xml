@@ -65,12 +65,9 @@
 			<artifactId>imageio-jpeg</artifactId>
 			<version>3.13.1</version>
 		</dependency>
-		<!-- Encode file in webp -->
-		<dependency>
-			<groupId>com.github.gotson</groupId>
-			<artifactId>webp-imageio</artifactId>
-			<version>0.2.2</version>
-		</dependency>
+		<!-- webp-imageio removed: bundled native libwebp vulnerable to CVE-2023-4863.
+		     WebP reading is covered by TwelveMonkeys. WebP writing (thumbnails) to be
+		     re-added when a safe alternative is available. -->
 		<!-- Detect type of a file with mime type -->
 		<dependency>
 			<groupId>org.apache.tika</groupId>
