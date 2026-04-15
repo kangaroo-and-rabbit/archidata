@@ -5,13 +5,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.atriasoft.archidata.filter.AuthenticationFilter;
@@ -24,47 +22,14 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jca.JCAContext;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
-import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-
-class TestSigner implements JWSSigner {
-	public static final String TEST_SIGNATURE = "TEST_SIGNATURE_FOR_LOCAL_TEST_AND_TEST_E2E";
-
-	/** Signs the specified {@link JWSObject#getSigningInput input} of a {@link JWSObject JWS object}.
-	 *
-	 * @param header The JSON Web Signature (JWS) header. Must specify a supported JWS algorithm and must not be {@code null}.
-	 * @param signingInput The input to sign. Must not be {@code null}.
-	 *
-	 * @return The resulting signature part (third part) of the JWS object.
-	 *
-	 * @throws JOSEException If the JWS algorithm is not supported, if a critical header parameter is not supported or marked for deferral to the application, or if signing failed for some other
-	 *             internal reason. */
-	@Override
-	public Base64URL sign(final JWSHeader header, final byte[] signingInput) throws JOSEException {
-		return new Base64URL(TEST_SIGNATURE);
-	}
-
-	@Override
-	public Set<JWSAlgorithm> supportedJWSAlgorithms() {
-		// TODO Auto-generated method stub
-		return Set.of(JWSAlgorithm.RS256);
-	}
-
-	@Override
-	public JCAContext getJCAContext() {
-		// TODO Auto-generated method stub
-		return new JCAContext();
-	}
-}
 
 /**
  * Utility class for JWT (JSON Web Token) generation and validation using RSA keys.
@@ -287,28 +252,16 @@ public class JWTWrapper {
 				LOGGER.error("FAIL to parse signing");
 				return null;
 			}
-			if (ConfigBaseVariable.getTestMode() && signedToken.endsWith(TestSigner.TEST_SIGNATURE)) {
-				LOGGER.warn("Someone use a test token: {}", signedToken);
-			} else if (rsaPublicJWK == null) {
-				LOGGER.warn("JWT public key is not present !!!");
-				if (!ConfigBaseVariable.getTestMode()) {
-					return null;
-				}
-				final String rawSignature = new String(signedJWT.getSigningInput(), StandardCharsets.UTF_8);
-				if (rawSignature.equals(TestSigner.TEST_SIGNATURE)) {
-					// Test token : .application..
-				} else {
-					return null;
-				}
-			} else {
-				final JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
-				if (!signedJWT.verify(verifier)) {
-					LOGGER.error("JWT token is NOT verified ");
-					return null;
-				}
+			if (rsaPublicJWK == null) {
+				LOGGER.error("JWT public key is not present !!!");
+				return null;
 			}
-			if (!ConfigBaseVariable.getTestMode()
-					&& !new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
+			final JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
+			if (!signedJWT.verify(verifier)) {
+				LOGGER.error("JWT token is NOT verified");
+				return null;
+			}
+			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
 				LOGGER.error("JWT token is expired now = {} with={}", new Date(),
 						signedJWT.getJWTClaimsSet().getExpirationTime());
 				return null;
@@ -318,7 +271,11 @@ public class JWTWrapper {
 				return null;
 			}
 			if (application != null) {
-				// TODO: verify the token is used for the correct application.
+				final String tokenApplication = (String) signedJWT.getJWTClaimsSet().getClaim("application");
+				if (!application.equals(tokenApplication)) {
+					LOGGER.error("JWT application mismatch: expected='{}' got='{}'", application, tokenApplication);
+					return null;
+				}
 			}
 			// the element must be validated outside ...
 			// LOGGER.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
@@ -330,60 +287,4 @@ public class JWTWrapper {
 		return null;
 	}
 
-	/**
-	 * Creates a JWT token for testing purposes using a dummy signer.
-	 *
-	 * <p>Only works when test mode is enabled via {@link ConfigBaseVariable#getTestMode()}.</p>
-	 * @param userID The user identifier.
-	 * @param userLogin The user login name.
-	 * @param issuer The token issuer.
-	 * @param application The target application name.
-	 * @param roles Optional roles map to include as claims.
-	 * @param rights Optional fine-grained rights map to include as claims.
-	 * @return The serialized test JWT token, or {@code null} if test mode is disabled.
-	 */
-	public static String createJwtTestToken(
-			final long userID,
-			final String userLogin,
-			final String issuer,
-			final String application,
-			final Map<String, Map<String, Object>> roles,
-			final Map<String, Map<String, Object>> rights) {
-		if (!ConfigBaseVariable.getTestMode()) {
-			LOGGER.error("Test mode disable !!!!!");
-			return null;
-		}
-		try {
-			final int timeOutInMinutes = 3600;
-
-			final Instant nowInstant = Instant.now();
-			final Date now = Date.from(nowInstant);
-			final Date expiration = Date.from(nowInstant.plus(Duration.ofMinutes(timeOutInMinutes)));
-
-			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(Long.toString(userID))
-					.claim("login", userLogin).claim("application", application).issuer(issuer).issueTime(now)
-					.expirationTime(expiration);
-			// add roles if needed:
-			if (roles != null && !roles.isEmpty()) {
-				builder.claim("roles", roles);
-			}
-			// add rights if needed:
-			if (rights != null && !rights.isEmpty()) {
-				builder.claim("right", rights);
-			}
-			// Prepare JWT with claims set
-			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
-					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
-
-			// Compute the RSA signature
-			signedJWT.sign(new TestSigner());
-
-			// serialize the output...
-			return signedJWT.serialize();
-		} catch (final Exception ex) {
-			LOGGER.error("Can not generate Test Token: {}", ex.getMessage(), ex);
-		}
-		return null;
-	}
 }
