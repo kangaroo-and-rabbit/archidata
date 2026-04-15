@@ -133,3 +133,58 @@ static void cleanup() {
     ConfigBaseVariable.clearAllValue(); // unlock implicite + reset
 }
 ```
+
+---
+
+## v0.43.1 - Suppression du mot de passe DB par défaut (BREAKING CHANGE)
+
+### Ce qui change
+
+`ConfigBaseVariable.getDBPassword()` ne retourne plus `"base_db_password"` par défaut.
+Si `DB_PASSWORD` n'est pas configuré (variable d'environnement ou `setDbPassword()`), une
+`IllegalStateException` est levée au démarrage.
+
+### Comment migrer
+
+**Production :** s'assurer que la variable d'environnement `DB_PASSWORD` est définie.
+
+**Tests :** ajouter `ConfigBaseVariable.setDbPassword("base_db_password")` dans le `ConfigureDb.configure()`.
+
+---
+
+## v0.43.1 - Suppression de webp-imageio (CVE-2023-4863)
+
+### Ce qui change
+
+La dépendance `com.github.gotson:webp-imageio:0.2.2` a été supprimée. Elle embarquait une
+version native de libwebp datant de 2021, vulnérable au heap buffer overflow CVE-2023-4863.
+
+### Impact
+
+- **Lecture WebP** : toujours fonctionnelle via TwelveMonkeys (`imageio-webp`)
+- **Écriture WebP** : plus disponible. Si `THUMBNAIL_FORMAT=webp` était configuré, les thumbnails
+  échoueront. Le format par défaut `png` n'est pas affecté.
+
+### Comment migrer
+
+Si vous utilisiez `THUMBNAIL_FORMAT=webp`, passez à `png` ou `jpg`.
+
+---
+
+## v0.43.1 - Adresse API par défaut changée à localhost
+
+### Ce qui change
+
+L'adresse API par défaut passe de `http://0.0.0.0:80/api/` à `http://localhost:80/api/`.
+
+### Impact
+
+`0.0.0.0` écoutait sur toutes les interfaces réseau (y compris l'extérieur).
+`localhost` n'écoute que sur l'interface locale. En production, c'est le reverse proxy
+(nginx/traefik) qui expose le service vers l'extérieur.
+
+### Comment migrer
+
+Si vous avez besoin d'écouter sur toutes les interfaces, définissez explicitement
+`API_ADDRESS=http://0.0.0.0:80/api/` dans vos variables d'environnement ou via
+`ConfigBaseVariable.setApiAddress("http://0.0.0.0:80/api/")`.
