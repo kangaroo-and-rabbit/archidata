@@ -1,8 +1,7 @@
 package org.atriasoft.archidata.api;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
+import org.atriasoft.archidata.exception.InputException;
+import org.atriasoft.archidata.tools.SsrfGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,27 +33,11 @@ public class ProxyResource {
 	@GET
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public Response getImageFromUrl(@QueryParam("url") final String url) {
-		if (url == null || url.isEmpty()) {
-			return Response.status(Status.BAD_REQUEST).entity("URL manquante").build();
-		}
-		// Validate URL to prevent SSRF attacks
+		// Validate URL to prevent SSRF attacks (resolves DNS and checks against private IP ranges)
 		try {
-			final URI uri = new URI(url);
-			final String scheme = uri.getScheme();
-			if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
-				return Response.status(Status.BAD_REQUEST).entity("Only HTTP and HTTPS URLs are allowed").build();
-			}
-			final String host = uri.getHost();
-			if (host == null || host.equals("localhost") || host.equals("127.0.0.1") || host.equals("0.0.0.0")
-					|| host.startsWith("10.") || host.startsWith("192.168.") || host.equals("[::1]")
-					|| host.startsWith("169.254.") || host.startsWith("172.16.") || host.startsWith("172.17.")
-					|| host.startsWith("172.18.") || host.startsWith("172.19.") || host.startsWith("172.2")
-					|| host.startsWith("172.30.") || host.startsWith("172.31.")) {
-				return Response.status(Status.FORBIDDEN).entity("Access to internal network addresses is forbidden")
-						.build();
-			}
-		} catch (final URISyntaxException e) {
-			return Response.status(Status.BAD_REQUEST).entity("Invalid URL format").build();
+			SsrfGuard.validateUrl(url);
+		} catch (final InputException e) {
+			return Response.status(Status.FORBIDDEN).entity(e.getMessage()).build();
 		}
 		final Client client = ClientBuilder.newClient();
 		try {

@@ -1,5 +1,7 @@
 package org.atriasoft.archidata.tools;
 
+import java.security.SecureRandom;
+
 /**
  * Utility class for random string generation.
  */
@@ -7,6 +9,8 @@ public class StringTools {
 	private StringTools() {
 		// Utility class
 	}
+
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 	/**
 	 * Generates a random string of the given length using alphanumeric and special characters.
@@ -17,7 +21,7 @@ public class StringTools {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";
 		final StringBuilder out = new StringBuilder(length);
 		for (int iii = 0; iii < length; iii++) {
-			final int chId = (int) (base.length() * Math.random());
+			final int chId = SECURE_RANDOM.nextInt(base.length());
 			out.append(base.charAt(chId));
 		}
 		return out.toString();
@@ -32,7 +36,7 @@ public class StringTools {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789_-";
 		final StringBuilder out = new StringBuilder(length);
 		for (int iii = 0; iii < length; iii++) {
-			final int chId = (int) (base.length() * Math.random());
+			final int chId = SECURE_RANDOM.nextInt(base.length());
 			out.append(base.charAt(chId));
 		}
 		return out.toString();

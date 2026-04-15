@@ -1,6 +1,8 @@
 package org.atriasoft.archidata.tools;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -371,6 +373,26 @@ public class DataTools {
 	}
 
 	/**
+	 * Detects the MIME type of a file by reading its first bytes using Apache Tika.
+	 * This is suitable for large files as it only reads the header.
+	 * @param filePath The path to the file to analyze.
+	 * @return The detected MIME type string.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static String getMimeTypeFromFile(final String filePath) throws IOException {
+		final Tika tika = new Tika();
+		try (final InputStream is = new BufferedInputStream(new FileInputStream(filePath))) {
+			return tika.detect(is);
+		}
+	}
+
+	/** All MIME types accepted for generic file upload. */
+	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = {
+			"image/jpeg", "image/png", "image/webp",
+			"audio/x-matroska", "video/x-matroska", "video/webm"
+	};
+
+	/**
 	 * Downloads an image from a URI and attaches it as a cover to a database entity.
 	 * @param <CLASS_TYPE> The entity class type.
 	 * @param <ID_TYPE> The entity identifier type.
@@ -388,6 +410,8 @@ public class DataTools {
 
 		LOGGER.info("    - id: {}", id);
 		LOGGER.info("    - url: {} ", url);
+		// Validate URL against SSRF attacks before fetching
+		SsrfGuard.validateUrl(url);
 		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
 			throw new InputException(clazz.getCanonicalName(),
@@ -454,6 +478,8 @@ public class DataTools {
 	 * @throws Exception If the download fails or the MIME type is unsupported.
 	 */
 	public static ObjectId uploadDataFromUri(final String url) throws Exception {
+		// Validate URL against SSRF attacks before fetching
+		SsrfGuard.validateUrl(url);
 		// Download data:
 		final Client client = ClientBuilder.newClient();
 		byte[] dataResponse = null;
@@ -524,6 +550,14 @@ public class DataTools {
 
 			final long tmpUID = getTmpDataId();
 			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+			// Validate MIME type from actual file content (not just extension)
+			final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
+			if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_ACCEPTABLE,
+						"File content type is not acceptable: " + detectedMimeType
+								+ " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
+			}
 			Data data = getWithSha512(ioDb, sha512);
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");

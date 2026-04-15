@@ -74,7 +74,7 @@ public class DbConfig {
 	@Override
 	public String toString() {
 		return "DBConfig{hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\''
-				+ ", password='" + this.password + '\'' + ", dbName='" + this.dbName + "' }";
+				+ ", password='****'" + ", dbName='" + this.dbName + "' }";
 	}
 
 	/**

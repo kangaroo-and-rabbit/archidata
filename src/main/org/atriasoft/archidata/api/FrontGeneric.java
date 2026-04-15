@@ -38,6 +38,13 @@ public class FrontGeneric {
 
 	private Response retrive(final String fileName) throws Exception {
 		String filePathName = this.baseFrontFolder + File.separator + fileName;
+		// Prevent path traversal: ensure resolved path stays within baseFrontFolder
+		final File baseDir = new File(this.baseFrontFolder).getCanonicalFile();
+		final File requestedFile = new File(filePathName).getCanonicalFile();
+		if (!requestedFile.getPath().startsWith(baseDir.getPath())) {
+			throw new NotFoundException("Access denied: path traversal detected");
+		}
+		filePathName = requestedFile.getPath();
 		final String extention = getExtension(filePathName);
 		String mineType = null;
 		LOGGER.debug("try retrive : '{}' '{}'", filePathName, extention);
