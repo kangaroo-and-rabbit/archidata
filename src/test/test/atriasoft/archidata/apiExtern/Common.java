@@ -20,8 +20,8 @@ public class Common {
 			"test.atriasoft", //
 			Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE)), null, 3600);
 	public static final String ADMIN_TOKEN = JWTWrapper.generateJWToken(16512L, "test_admin_login", "Karso",
-			"test.atriasoft",
-			Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)), null, 3600);
+			"test.atriasoft", Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)), null,
+			3600);
 
 	public static String randGeneratedStr(final int length) {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";

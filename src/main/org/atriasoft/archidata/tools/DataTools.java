@@ -387,10 +387,8 @@ public class DataTools {
 	}
 
 	/** All MIME types accepted for generic file upload. */
-	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = {
-			"image/jpeg", "image/png", "image/webp",
-			"audio/x-matroska", "video/x-matroska", "video/webm"
-	};
+	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp",
+			"audio/x-matroska", "video/x-matroska", "video/webm" };
 
 	/**
 	 * Downloads an image from a URI and attaches it as a cover to a database entity.
@@ -554,9 +552,8 @@ public class DataTools {
 			final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
 			if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
 				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_ACCEPTABLE,
-						"File content type is not acceptable: " + detectedMimeType
-								+ " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
+						+ detectedMimeType + " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
 			}
 			Data data = getWithSha512(ioDb, sha512);
 			if (data == null) {

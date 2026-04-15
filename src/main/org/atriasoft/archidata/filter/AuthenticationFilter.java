@@ -341,7 +341,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, null);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
-			LOGGER.error("The token is not valid: '{}...'", authorization.substring(0, Math.min(authorization.length(), 20)));
+			LOGGER.error("The token is not valid: '{}...'",
+					authorization.substring(0, Math.min(authorization.length(), 20)));
 			return null;
 		}
 		// check userID
