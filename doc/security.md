@@ -496,17 +496,21 @@ JWTWrapper.generateJWToken(userId, login, issuer, app, roles, rights, timeout);
 // roles and rights can each be null if not needed
 ```
 
-`createJwtTestToken()` also takes an additional `rights` parameter:
+`createJwtTestToken()` has been removed. Tests now use real RSA keys:
 
-**Before:**
 ```java
-JWTWrapper.createJwtTestToken(userId, login, issuer, app, roles);
-```
+// In your test Common class:
+static {
+    try {
+        JWTWrapper.initLocalToken(null); // Ephemeral RSA key pair
+    } catch (final Exception e) {
+        throw new RuntimeException("Failed to init JWT keys for tests", e);
+    }
+}
 
-**After:**
-```java
-JWTWrapper.createJwtTestToken(userId, login, issuer, app, roles, rights);
-// rights can be null if not needed
+static final String TOKEN = JWTWrapper.generateJWToken(
+    16512L, "test_user", "Karso", "myapp",
+    Map.of("myapp", Map.of("USER", PartRight.READ)), null, 3600);
 ```
 
 ### 3. UserByToken API
@@ -556,18 +560,23 @@ final PartRight level = ctx.getResourceRight("myapp", "articles");
 
 ### 7. Test tokens
 
-Update all `createJwtTestToken()` calls to add the `rights` parameter (pass `null` if not needed):
+`createJwtTestToken()` has been removed. Replace with real RSA-signed tokens:
 
 **Before:**
 ```java
+ConfigBaseVariable.testMode = "true";
 JWTWrapper.createJwtTestToken(16512, "test_user", "Karso", "myapp",
-    Map.of("myapp", Map.of("USER", PartRight.READ)));
+    Map.of("myapp", Map.of("USER", PartRight.READ)), null);
 ```
 
 **After:**
 ```java
-JWTWrapper.createJwtTestToken(16512, "test_user", "Karso", "myapp",
-    Map.of("myapp", Map.of("USER", PartRight.READ)), null);
+// In a static block (before token creation):
+JWTWrapper.initLocalToken(null);
+
+// Then generate tokens with real RSA signatures:
+JWTWrapper.generateJWToken(16512L, "test_user", "Karso", "myapp",
+    Map.of("myapp", Map.of("USER", PartRight.READ)), null, 3600);
 ```
 
 ### 8. Force re-login
