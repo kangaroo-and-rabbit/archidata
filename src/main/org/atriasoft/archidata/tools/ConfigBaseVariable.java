@@ -314,12 +314,14 @@ public class ConfigBaseVariable {
 	}
 
 	/**
-	 * Returns the database password, defaulting to {@code "base_db_password"}.
+	 * Returns the database password.
 	 * @return The database password.
+	 * @throws IllegalStateException If the database password is not configured.
 	 */
 	public static String getDBPassword() {
 		if (dbPassword == null) {
-			return "base_db_password";
+			throw new IllegalStateException(
+					"DB_PASSWORD is not configured. Set the DB_PASSWORD environment variable or call setDbPassword().");
 		}
 		return dbPassword;
 	}
@@ -344,12 +346,12 @@ public class ConfigBaseVariable {
 	}
 
 	/**
-	 * Returns the local API address, defaulting to {@code "http://0.0.0.0:80/api/"}.
+	 * Returns the local API address, defaulting to {@code "http://localhost:80/api/"}.
 	 * @return The local API address.
 	 */
 	public static String getlocalAddress() {
 		if (apiAdress == null) {
-			return "http://0.0.0.0:80/api/";
+			return "http://localhost:80/api/";
 		}
 		return apiAdress;
 	}

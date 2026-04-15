@@ -516,7 +516,7 @@ public class DataResource {
 				ImageIO.write(outputImage, ConfigBaseVariable.getThumbnailFormat(), baos);
 			} catch (final IOException e) {
 				LOGGER.error("Failed to write thumbnail image: {}", e.getMessage(), e);
-				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain")
+				return Response.status(500).entity("Internal Error: thumbnail generation failed").type("text/plain")
 						.build();
 			}
 			final byte[] imageData = baos.toByteArray();

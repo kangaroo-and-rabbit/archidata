@@ -29,8 +29,8 @@ public class ExceptionCatcher implements ExceptionMapper<Exception> {
 	}
 
 	private RestErrorResponse build(final Exception exception) {
-		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR,
-				"Catch Unknown Exception: " + exception.getClass().getCanonicalName(), exception.getMessage());
+		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Internal Server Error",
+				exception.getMessage());
 	}
 
 }

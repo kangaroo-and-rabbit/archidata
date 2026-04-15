@@ -79,7 +79,7 @@ class TestConfigBaseVariable {
 	@Test
 	void testGetDBPasswordDefault() {
 		ConfigBaseVariable.setDbPassword(null);
-		Assertions.assertEquals("base_db_password", ConfigBaseVariable.getDBPassword());
+		Assertions.assertThrows(IllegalStateException.class, ConfigBaseVariable::getDBPassword);
 	}
 
 	@Test
@@ -121,7 +121,7 @@ class TestConfigBaseVariable {
 	@Test
 	void testGetLocalAddressDefault() {
 		ConfigBaseVariable.setApiAddress(null);
-		Assertions.assertEquals("http://0.0.0.0:80/api/", ConfigBaseVariable.getlocalAddress());
+		Assertions.assertEquals("http://localhost:80/api/", ConfigBaseVariable.getlocalAddress());
 	}
 
 	@Test

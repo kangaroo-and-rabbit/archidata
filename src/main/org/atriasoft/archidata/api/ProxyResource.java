@@ -50,8 +50,8 @@ public class ProxyResource {
 			return Response.ok(response.readEntity(byte[].class)).header("Access-Control-Allow-Origin", "*")
 					.header("Content-Type", response.getHeaderString("Content-Type")).build();
 		} catch (final Exception e) {
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("SERVER internal error : " + e.getMessage())
-					.build();
+			LOGGER.error("Proxy request failed for url: {}", url, e);
+			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Internal server error").build();
 		} finally {
 			client.close();
 		}
