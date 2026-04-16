@@ -28,12 +28,23 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterValue extends QueryOption {
+	/** The list of field names to include in update operations. */
 	public final List<String> filterValue;
 
+	/**
+	 * Creates a FilterValue from a list of field names.
+	 *
+	 * @param filterValue the list of field names to include
+	 */
 	public FilterValue(final List<String> filterValue) {
 		this.filterValue = filterValue;
 	}
 
+	/**
+	 * Creates a FilterValue from field name varargs.
+	 *
+	 * @param filterValue the field names to include
+	 */
 	public FilterValue(final String... filterValue) {
 		this.filterValue = List.of(filterValue);
 	}
@@ -114,14 +125,31 @@ public class FilterValue extends QueryOption {
 		this.filterValue = resolved;
 	}
 
+	/**
+	 * Returns the list of field names to include.
+	 *
+	 * @return the list of included field names
+	 */
 	public List<String> getValues() {
 		return this.filterValue;
 	}
 
+	/**
+	 * Creates a FilterValue containing only the editable (non-read-only) field names of the given class.
+	 *
+	 * @param clazz the entity class to inspect
+	 * @return a FilterValue with the editable field names
+	 */
 	public static FilterValue getEditableFieldsNames(final Class<?> clazz) {
 		return new FilterValue(AnnotationTools.getFieldsNamesFilter(clazz, false));
 	}
 
+	/**
+	 * Creates a FilterValue containing all field names of the given class.
+	 *
+	 * @param clazz the entity class to inspect
+	 * @return a FilterValue with all field names
+	 */
 	public static FilterValue getAllFieldsNames(final Class<?> clazz) {
 		return new FilterValue(AnnotationTools.getFieldsNamesFilter(clazz, true));
 	}

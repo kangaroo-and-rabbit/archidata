@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 public final class LambdaAccessorFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LambdaAccessorFactory.class);
 
+	/** Private constructor to prevent instantiation. */
 	private LambdaAccessorFactory() {}
 
 	// ========== GETTER from Method ==========
@@ -35,6 +36,9 @@ public final class LambdaAccessorFactory {
 	/**
 	 * Create a PropertyGetter from a getter Method (getXxx() or isXxx()).
 	 * Tries LambdaMetafactory first, falls back to MethodHandle.
+	 *
+	 * @param getter the getter method
+	 * @return a property getter for the method
 	 */
 	public static PropertyGetter createGetter(final Method getter) {
 		try {
@@ -48,6 +52,9 @@ public final class LambdaAccessorFactory {
 	/**
 	 * Create a PropertySetter from a setter Method (setXxx(value)).
 	 * Tries LambdaMetafactory first, falls back to MethodHandle.
+	 *
+	 * @param setter the setter method
+	 * @return a property setter for the method
 	 */
 	public static PropertySetter createSetter(final Method setter) {
 		try {
@@ -63,6 +70,9 @@ public final class LambdaAccessorFactory {
 	/**
 	 * Create a PropertyGetter for a Field (direct field read).
 	 * Uses MethodHandle for field access (LambdaMetafactory doesn't support fields directly).
+	 *
+	 * @param field the field to create a getter for
+	 * @return a property getter for the field
 	 */
 	public static PropertyGetter createFieldGetter(final Field field) {
 		try {
@@ -80,6 +90,9 @@ public final class LambdaAccessorFactory {
 	/**
 	 * Create a PropertySetter for a Field (direct field write).
 	 * Returns null if the field is final.
+	 *
+	 * @param field the field to create a setter for
+	 * @return a property setter for the field, or null if the field is final
 	 */
 	public static PropertySetter createFieldSetter(final Field field) {
 		if (Modifier.isFinal(field.getModifiers())) {
@@ -248,6 +261,13 @@ public final class LambdaAccessorFactory {
 
 	/**
 	 * Create a TypedPropertyGetter for a Field (direct field read).
+	 *
+	 * @param <T> the bean type
+	 * @param <V> the property value type
+	 * @param field the field to create a typed getter for
+	 * @param beanType the bean class
+	 * @param valueType the property value class
+	 * @return a typed property getter for the field
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T, V> TypedPropertyGetter<T, V> createTypedFieldGetter(
@@ -270,6 +290,13 @@ public final class LambdaAccessorFactory {
 	/**
 	 * Create a TypedPropertySetter for a Field (direct field write).
 	 * Returns null if the field is final.
+	 *
+	 * @param <T> the bean type
+	 * @param <V> the property value type
+	 * @param field the field to create a typed setter for
+	 * @param beanType the bean class
+	 * @param valueType the property value class
+	 * @return a typed property setter for the field, or null if the field is final
 	 */
 	public static <T, V> TypedPropertySetter<T, V> createTypedFieldSetter(
 			final Field field,

@@ -40,6 +40,7 @@ public class LinkRepairTools {
 	/**
 	 * Repair bidirectional links for a given class and field.
 	 *
+	 * @param <T>                  The entity type
 	 * @param clazz                The source class containing the annotated field
 	 * @param fieldName            The Java property name of the relationship field
 	 * @param includeDeletedSource If true, also scan soft-deleted source documents

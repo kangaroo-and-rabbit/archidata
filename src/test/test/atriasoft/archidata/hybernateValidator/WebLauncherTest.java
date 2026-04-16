@@ -11,9 +11,7 @@ public class WebLauncherTest extends WebLauncher {
 	public WebLauncherTest() {
 		LOGGER.debug("Configure REST system");
 		// for local test:
-		ConfigBaseVariable.apiAdress = "http://127.0.0.1:12345/test/api/";
-		// Enable the test mode permit to access to the test token (never use it in production).
-		ConfigBaseVariable.testMode = "true";
+		ConfigBaseVariable.setApiAddress("http://127.0.0.1:12345/test/api/");
 		// ConfigBaseVariable.dbPort = "3306";
 	}
 }

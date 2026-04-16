@@ -6,6 +6,15 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Abstract base class for database I/O connections with reference counting.
+ *
+ * <p>
+ * Manages the lifecycle of a database connection through reference counting.
+ * The connection is opened on the first {@link #open()} call and closed when
+ * the last reference is released via {@link #close()}.
+ * </p>
+ */
 public abstract class DbIo implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DbIo.class);
 
@@ -14,15 +23,28 @@ public abstract class DbIo implements Closeable {
 	private int count = 0;
 
 	private static int idCount = 0;
+	/** The unique identifier for this connection instance. */
 	protected final int id;
+	/** The database configuration associated with this connection. */
 	protected final DbConfig config;
 
+	/**
+	 * Constructs a DbIo with the given configuration and assigns a unique identifier.
+	 *
+	 * @param config the database configuration
+	 * @throws IOException if initialization fails
+	 */
 	protected DbIo(final DbConfig config) throws IOException {
 		this.id = idCount;
 		idCount += 10;
 		this.config = config;
 	}
 
+	/**
+	 * Decrements the reference count and closes the underlying connection when the count reaches zero.
+	 *
+	 * @throws IOException if closing the connection fails
+	 */
 	@Override
 	public synchronized final void close() throws IOException {
 		if (this.count <= 0) {
@@ -34,6 +56,11 @@ public abstract class DbIo implements Closeable {
 		}
 	}
 
+	/**
+	 * Forcefully closes the connection regardless of the reference count.
+	 *
+	 * @throws IOException if closing the connection fails
+	 */
 	public synchronized final void closeForce() throws IOException {
 		if (this.count == 0) {
 			return;
@@ -49,6 +76,11 @@ public abstract class DbIo implements Closeable {
 		closeImplement();
 	}
 
+	/**
+	 * Increments the reference count and opens the underlying connection if not already open.
+	 *
+	 * @throws IOException if opening the connection fails
+	 */
 	public synchronized final void open() throws IOException {
 		if (this.count == 0) {
 			openImplement();
@@ -57,14 +89,35 @@ public abstract class DbIo implements Closeable {
 
 	}
 
+	/**
+	 * Implementation-specific close logic. Called when the reference count reaches zero.
+	 *
+	 * @throws IOException if closing the underlying resource fails
+	 */
 	protected abstract void closeImplement() throws IOException;
 
+	/**
+	 * Implementation-specific open logic. Called when the first reference is acquired.
+	 *
+	 * @throws IOException if opening the underlying resource fails
+	 */
 	protected abstract void openImplement() throws IOException;
 
+	/**
+	 * Checks whether this connection is compatible with the given configuration.
+	 *
+	 * @param config the configuration to compare against
+	 * @return {@code true} if the configurations are equal
+	 */
 	public boolean compatible(final DbConfig config) {
 		return this.config.equals(config);
 	}
 
+	/**
+	 * Returns the database configuration associated with this connection.
+	 *
+	 * @return the database configuration
+	 */
 	public DbConfig getConfig() {
 		return this.config;
 	}

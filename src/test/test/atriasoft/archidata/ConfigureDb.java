@@ -17,7 +17,8 @@ public class ConfigureDb {
 	public static DBAccessMongo da = null;
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
-		ConfigBaseVariable.bdDatabase = "test_db";
+		ConfigBaseVariable.setBdDatabase("test_db");
+		ConfigBaseVariable.setDbPassword("base_db_password");
 		removeDB();
 		da = DBAccessMongo.createInterface();
 	}
@@ -33,7 +34,7 @@ public class ConfigureDb {
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
 		try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
-			daRoot.deleteDatabase(ConfigBaseVariable.bdDatabase);
+			daRoot.deleteDatabase(ConfigBaseVariable.getDBName());
 		} catch (final InternalServerErrorException e) {
 			e.printStackTrace();
 			LOGGER.error("Fail to clean the DB");

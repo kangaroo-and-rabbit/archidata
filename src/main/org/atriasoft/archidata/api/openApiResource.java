@@ -51,6 +51,11 @@ public class openApiResource {
 		cachedSpec = null; // invalidate cache
 	}
 
+	/**
+	 * Returns the OpenAPI 3.0.3 specification as a JSON response.
+	 * @return A JSON response containing the OpenAPI specification, or a 503 error if not configured.
+	 * @throws Exception If the spec generation fails.
+	 */
 	@GET
 	@Path("swagger.json")
 	@Produces({ MediaType.APPLICATION_JSON })

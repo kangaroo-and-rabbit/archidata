@@ -9,15 +9,17 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link JacksonException} instances
+ * and converts them into standardized JSON error responses.
+ */
 public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JacksonExceptionCatcher.class);
 
 	/**
-	 * This method is called when a JacksonException is thrown.
-	 * It logs the exception, builds a response with the error details, and returns it.
-	 *
-	 * @param exception the JacksonException that was thrown
-	 * @return a Response object containing the error details
+	 * Maps a {@link JacksonException} to an INTERNAL_SERVER_ERROR JSON error response.
+	 * @param exception the JacksonException that was thrown during JSON processing
+	 * @return a {@link Response} containing the error details as JSON with HTTP 500 status
 	 */
 	@Override
 	public Response toResponse(final JacksonException exception) {

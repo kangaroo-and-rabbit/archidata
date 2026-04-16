@@ -161,8 +161,7 @@ public class TestFilterValueMethodRef {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testConstructor_fluentSetterRefs() {
-		final FilterValue fv = new FilterValue(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+		final FilterValue fv = new FilterValue((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
 				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
 		Assertions.assertEquals(List.of("name", "age"), fv.getValues());
 	}

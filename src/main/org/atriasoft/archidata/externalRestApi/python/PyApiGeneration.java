@@ -30,17 +30,25 @@ import jakarta.ws.rs.core.MediaType;
  * Generates Python API client classes.
  */
 public class PyApiGeneration {
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(PyApiGeneration.class);
 
 	/**
-	 * Convert CamelCase method name to snake_case.
+	 * Converts a CamelCase method name to snake_case.
+	 * @param name the CamelCase name to convert
+	 * @return the snake_case version of the name
 	 */
 	public static String toSnakeCase(final String name) {
 		return name.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
 	}
 
 	/**
-	 * Generate Python type annotation for a model.
+	 * Generates the Python type annotation for a single model.
+	 * @param model the class model to generate a type annotation for
+	 * @param pyGroup the group registry for resolving type references
+	 * @param imports the set of model import names to populate
+	 * @param isPartial whether to generate the Update (partial) variant
+	 * @return the Python type annotation string
 	 */
 	public static String generateTypeAnnotation(
 			final ClassModel model,
@@ -91,7 +99,12 @@ public class PyApiGeneration {
 	}
 
 	/**
-	 * Generate type annotation for a list of models (union type).
+	 * Generates the type annotation for a list of models as a union type.
+	 * @param models the list of parameter class models
+	 * @param pyGroup the group registry for resolving type references
+	 * @param imports the set of model import names to populate
+	 * @param isPartial whether to generate the Update (partial) variant
+	 * @return the Python type annotation string, possibly a union type
 	 */
 	public static String generateTypeAnnotations(
 			final ParameterClassModelList models,
@@ -116,7 +129,10 @@ public class PyApiGeneration {
 	}
 
 	/**
-	 * Generate the API file for a resource group.
+	 * Generates the Python API client file for a resource group.
+	 * @param element the API group model containing endpoint definitions
+	 * @param pyGroup the group registry for resolving type references
+	 * @param generation the map of file paths to generated content
 	 */
 	public static void generateApiFile(
 			final ApiGroupModel element,

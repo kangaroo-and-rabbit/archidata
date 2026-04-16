@@ -24,8 +24,17 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Add-on for handling {@link ManyToManyDoc} annotated fields in MongoDB.
+ *
+ * <p>Manages bidirectional many-to-many relationships stored as embedded ID arrays
+ * in both the local and remote documents, using atomic {@code $addToSet} and {@code $pull} operations.
+ */
 public class AddOnManyToManyDoc implements DataAccessAddOn {
 	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyDoc.class);
+
+	/** Creates a new AddOnManyToManyDoc instance. */
+	public AddOnManyToManyDoc() {}
 
 	@Override
 	public Class<?> getAnnotationClass() {
@@ -38,6 +47,12 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 		return prop.hasAnnotation(ManyToManyDoc.class);
 	}
 
+	/**
+	 * Checks whether the field is a writable and retrievable ManyToMany list of IDs or entities.
+	 *
+	 * @param desc The property descriptor to check
+	 * @return true if the field can be both retrieved and written
+	 */
 	public boolean canRetreiveAnWrite(final DbPropertyDescriptor desc) {
 		final PropertyDescriptor prop = desc.getProperty();
 		if (prop.getType() != List.class) {

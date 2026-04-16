@@ -76,7 +76,7 @@ public class TestMySecurityContext {
 		systemRights.put("SUPER_ADMIN", PartRight.READ_WRITE);
 		rights.put("?system?", systemRights);
 
-		user.setRight(rights);
+		user.setRoles(rights);
 
 		securityContext = new MySecurityContext(user, "https");
 	}
@@ -252,7 +252,7 @@ public class TestMySecurityContext {
 		emptyUser.setOid(new ObjectId());
 		emptyUser.setName("emptyuser");
 		emptyUser.setType(UserByToken.TYPE_USER);
-		emptyUser.setRight(new HashMap<>());
+		emptyUser.setRoles(new HashMap<>());
 
 		final MySecurityContext emptyContext = new MySecurityContext(emptyUser, "https");
 

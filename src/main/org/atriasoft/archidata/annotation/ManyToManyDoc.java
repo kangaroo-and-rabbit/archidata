@@ -39,12 +39,14 @@ import java.lang.annotation.Target;
 public @interface ManyToManyDoc {
 	/**
 	 * The entity class that is the target of the association.
+	 * @return the target entity class
 	 */
 	Class<?> targetEntity();
 
 	/**
-	 * The field remote name that owns the revert value. empty if the relationship
-	 * is unidirectional.
+	 * The field name in the remote entity that holds the reverse reference.
+	 * Empty if the relationship is unidirectional.
+	 * @return the remote field name
 	 */
 	String remoteField();
 }

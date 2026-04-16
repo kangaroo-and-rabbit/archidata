@@ -2,11 +2,27 @@ package org.atriasoft.archidata.filter;
 
 import java.util.Map;
 
+/**
+ * Utility class for safely casting and transforming untyped right maps into strongly-typed
+ * {@code Map<String, Map<String, PartRight>>} structures.
+ */
 public class RightSafeCaster {
 	private RightSafeCaster() {
 		// Utility class
 	}
 
+	/**
+	 * Safely casts and transforms an untyped object into a nested map of rights.
+	 *
+	 * <p>
+	 * The input object must be a {@code Map<String, Map<String, ?>>} where inner values are
+	 * {@link PartRight}, {@link Integer}, {@link Long}, or {@link String} instances.
+	 * </p>
+	 *
+	 * @param obj the untyped object to cast and transform
+	 * @return a strongly-typed nested map of group names to role-right mappings
+	 * @throws IllegalArgumentException if the object structure does not match the expected format
+	 */
 	public static Map<String, Map<String, PartRight>> safeCastAndTransform(final Object obj) {
 		if (!(obj instanceof Map)) {
 			throw new IllegalArgumentException("L'objet n'est pas un Map");

@@ -11,11 +11,22 @@ import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
+/**
+ * JAX-RS pre-matching filter that handles HTTP OPTIONS requests by returning a 204 No Content response.
+ *
+ * <p>
+ * This filter short-circuits OPTIONS requests before they reach resource methods,
+ * which is typically used in conjunction with CORS preflight handling.
+ * </p>
+ */
 @Provider
 @PreMatching
 public class OptionFilter implements ContainerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(OptionFilter.class);
 
+	/**
+	 * Filters incoming requests and aborts OPTIONS requests with a 204 No Content response.
+	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		// Not in production: LOGGER.warn("Receive message from: [{}] '{}'", requestContext.getMethod(), requestContext.getUriInfo().getPath());

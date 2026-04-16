@@ -10,4 +10,9 @@ package org.atriasoft.archidata.dataAccess.options;
  *
  * <p>With this option, the entity is physically removed from the database immediately.
  */
-public class ForceHardDelete extends QueryOption {}
+public class ForceHardDelete extends QueryOption {
+	/** Constructs an option to force physical removal from the database. */
+	public ForceHardDelete() {
+		// default constructor
+	}
+}

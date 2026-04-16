@@ -40,6 +40,7 @@ public class RESTApi {
 
 	/**
 	 * Enables detailed HTTP request/response logging for all subsequent requests.
+	 * @return This API client instance for chaining.
 	 */
 	public RESTApi showIOStream() {
 		this.showIOStream = true;
@@ -49,6 +50,7 @@ public class RESTApi {
 	/**
 	 * Sets a Bearer authentication token for all subsequent requests.
 	 * @param token The JWT or Bearer token value.
+	 * @return This API client instance for chaining.
 	 */
 	public RESTApi setToken(final String token) {
 		this.token = token;
@@ -60,6 +62,7 @@ public class RESTApi {
 	 * Sets an authentication token with a custom scheme for all subsequent requests.
 	 * @param token The token value.
 	 * @param tokenKey The authentication scheme (e.g. "Bearer", "Basic").
+	 * @return This API client instance for chaining.
 	 */
 	public RESTApi setToken(final String token, final String tokenKey) {
 		this.token = token;

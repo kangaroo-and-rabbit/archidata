@@ -11,16 +11,35 @@ import org.atriasoft.archidata.migration.model.MigrationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Base implementation of {@link MigrationInterface} that executes migration as a sequence
+ * of {@link AsyncCall} actions.
+ *
+ * <p>
+ * Subclasses should override {@link #generateStep()} to define the migration steps
+ * by calling {@link #addAction(AsyncCall)}.
+ * </p>
+ */
 public class MigrationStep implements MigrationInterface {
 	static final Logger LOGGER = LoggerFactory.getLogger(MigrationStep.class);
 	private final List<AsyncCall> actions = new ArrayList<>();
 	private boolean isGenerated = false;
 
+	/**
+	 * Returns the canonical class name as the migration name.
+	 *
+	 * @return the migration name
+	 */
 	@Override
 	public String getName() {
 		return getClass().getCanonicalName();
 	}
 
+	/**
+	 * Displays the migration steps by logging each action index.
+	 *
+	 * @throws Exception if step generation fails
+	 */
 	public void display() throws Exception {
 		if (!this.isGenerated) {
 			this.isGenerated = true;
@@ -31,10 +50,27 @@ public class MigrationStep implements MigrationInterface {
 		}
 	}
 
+	/**
+	 * Generates the migration steps by adding actions via {@link #addAction(AsyncCall)}.
+	 *
+	 * <p>
+	 * Subclasses must override this method to define migration logic.
+	 * </p>
+	 *
+	 * @throws Exception if step generation fails
+	 */
 	public void generateStep() throws Exception {
 		throw new Exception("Forward is not implemented");
 	}
 
+	/**
+	 * Applies all migration actions sequentially, updating the migration model after each step.
+	 *
+	 * @param da the database access interface
+	 * @param model the migration record to update with progress
+	 * @return {@code true} if all actions completed successfully
+	 * @throws Exception if any action fails
+	 */
 	@Override
 	public boolean applyMigration(final DBAccessMongo da, final Migration model) throws Exception {
 		if (!this.isGenerated) {
@@ -76,10 +112,21 @@ public class MigrationStep implements MigrationInterface {
 		return true;
 	}
 
+	/**
+	 * Adds an asynchronous action to the migration step sequence.
+	 *
+	 * @param async the action to add
+	 */
 	public void addAction(final AsyncCall async) {
 		this.actions.add(async);
 	}
 
+	/**
+	 * Returns the total number of migration actions.
+	 *
+	 * @return the number of steps
+	 * @throws Exception if step generation fails
+	 */
 	@Override
 	public int getNumberOfStep() throws Exception {
 		if (!this.isGenerated) {

@@ -9,11 +9,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+/**
+ * Utility class for configuring Jackson ObjectMapper and JAX-RS resource serialization.
+ *
+ * <p>Provides a pre-configured ObjectMapper with Java 8+ date/time support and custom archidata modules.</p>
+ */
 public class ContextGenericTools {
 	private ContextGenericTools() {
 		// Utility class
 	}
 
+	/**
+	 * Creates and configures a new Jackson ObjectMapper with archidata custom modules and Java 8+ date/time support.
+	 * @return A configured ObjectMapper instance.
+	 */
 	public static ObjectMapper createObjectMapper() {
 		final ObjectMapper objectMapper = new ObjectMapper();
 		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

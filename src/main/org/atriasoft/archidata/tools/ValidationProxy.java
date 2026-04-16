@@ -33,8 +33,11 @@ public class ValidationProxy implements InvocationHandler {
 	/**
 	 * Creates a proxy instance that automatically applies validation.
 	 *
-	 * @param target the target object implementing an interface
-	 * @return a proxied instance
+	 * @param <TYPE_OBJECT> The type of the target object.
+	 * @param <TYPE_INTERFACE> The interface type to proxy.
+	 * @param interfaceClass The interface class to create the proxy for.
+	 * @param target The target object implementing the interface.
+	 * @return A proxied instance that validates method arguments.
 	 */
 	@SuppressWarnings("unchecked")
 	public static <TYPE_OBJECT, TYPE_INTERFACE> TYPE_INTERFACE create(
@@ -44,6 +47,7 @@ public class ValidationProxy implements InvocationHandler {
 				new Class<?>[] { interfaceClass }, new ValidationProxy(target));
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
 		if (args != null) {

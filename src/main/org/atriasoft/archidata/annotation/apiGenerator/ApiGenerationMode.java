@@ -38,20 +38,20 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ApiGenerationMode {
 	/**
-	 * (Optional) Enable the generation of specific code for read access
-	 * (generate object: MyClass).
+	 * Enable the generation of specific code for read access (generates object: MyClass).
+	 * @return true if a read data structure should be generated, true by default
 	 */
 	boolean read() default true;
 
 	/**
-	 * (Optional) Enable the generation of specific code for create access
-	 * (generate object: MyClassCreate).
+	 * Enable the generation of specific code for create access (generates object: MyClassCreate).
+	 * @return true if a create data structure should be generated, false by default
 	 */
 	boolean create() default false;
 
 	/**
-	 * (Optional) Enable the generation of specific code for update access
-	 * (generate object: MyClassUpdate).
+	 * Enable the generation of specific code for update access (generates object: MyClassUpdate).
+	 * @return true if an update data structure should be generated, false by default
 	 */
 	boolean update() default false;
 

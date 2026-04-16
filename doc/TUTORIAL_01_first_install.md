@@ -287,8 +287,9 @@ public class WebLauncher {
 
 	public WebLauncher() {
 		// Configure database connection
-		ConfigBaseVariable.bdDatabase = "my_app";
-		ConfigBaseVariable.apiAdress = "http://0.0.0.0:9000/api/";
+		ConfigBaseVariable.setBdDatabase("my_app");
+		ConfigBaseVariable.setDbPassword("base_db_password");
+		ConfigBaseVariable.setApiAddress("http://0.0.0.0:9000/api/");
 	}
 
 	public void migrateDB() throws Exception {

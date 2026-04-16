@@ -22,6 +22,9 @@ import com.mongodb.client.model.Filters;
  */
 public final class LazyGetterCollector {
 
+	/** Creates a new empty LazyGetterCollector. */
+	public LazyGetterCollector() {}
+
 	/** Grouping key: target entity class + the PK column used for lookup. */
 	private record BatchKey(
 			Class<?> targetEntity,
@@ -45,6 +48,12 @@ public final class LazyGetterCollector {
 	/**
 	 * Register a single-value entity reference (ManyToOne).
 	 * When the batch executes, the resolved entity will be set via prop.setValue(targetObject, entity).
+	 *
+	 * @param targetEntity  The entity class to look up
+	 * @param idFieldColumn The database column name of the primary key field
+	 * @param idValue       The ID value to look up
+	 * @param prop          The property descriptor used to set the resolved entity on the target object
+	 * @param targetObject  The object whose property will be populated with the resolved entity
 	 */
 	public void registerSingle(
 			final Class<?> targetEntity,
@@ -60,6 +69,12 @@ public final class LazyGetterCollector {
 	/**
 	 * Register a multi-value entity reference (ManyToMany / OneToMany).
 	 * When the batch executes, the resolved entity list will be set via prop.setValue(targetObject, list).
+	 *
+	 * @param targetEntity  The entity class to look up
+	 * @param idFieldColumn The database column name of the primary key field
+	 * @param idValues      The list of ID values to look up
+	 * @param prop          The property descriptor used to set the resolved entity list on the target object
+	 * @param targetObject  The object whose property will be populated with the resolved entity list
 	 */
 	public void registerMultiple(
 			final Class<?> targetEntity,
@@ -81,6 +96,7 @@ public final class LazyGetterCollector {
 	 * 4. Distributes to each registration's target object
 	 *
 	 * @param ioDb The database accessor used to execute the batched queries.
+	 * @return List of batched lazy getters, one per (targetEntity, idFieldColumn) pair
 	 */
 	@SuppressWarnings("unchecked")
 	public List<LazyGetter> buildLazyGetters(final DBAccessMongo ioDb) {
@@ -161,7 +177,11 @@ public final class LazyGetterCollector {
 		return result;
 	}
 
-	/** Check if any registrations have been accumulated. */
+	/**
+	 * Check if any registrations have been accumulated.
+	 *
+	 * @return true if no single or multi registrations exist
+	 */
 	public boolean isEmpty() {
 		return this.singleRegs.isEmpty() && this.multiRegs.isEmpty();
 	}

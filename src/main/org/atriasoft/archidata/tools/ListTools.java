@@ -2,11 +2,25 @@ package org.atriasoft.archidata.tools;
 
 import java.util.List;
 
+/**
+ * Utility class for list comparison operations.
+ */
 public class ListTools {
 	private ListTools() {
 		// Utility class
 	}
 
+	/**
+	 * Checks whether two lists are identical element-by-element using {@link Object#equals(Object)}.
+	 *
+	 * <p>Returns {@code true} if both lists have the same size and all elements at
+	 * corresponding positions are equal. Two {@code null} references at the same position
+	 * are considered equal.</p>
+	 *
+	 * @param list1 The first list (may be {@code null}).
+	 * @param list2 The second list (may be {@code null}).
+	 * @return {@code true} if the lists are identical, {@code false} otherwise.
+	 */
 	public static boolean checkListIdentical(final List<?> list1, final List<?> list2) {
 		if (list1 == list2) {
 			return true;

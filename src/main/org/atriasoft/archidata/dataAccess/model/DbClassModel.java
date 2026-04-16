@@ -65,6 +65,8 @@ public final class DbClassModel {
 	/**
 	 * Register add-ons that will be used when building DbClassModels.
 	 * Must be called before any {@link #of} calls, typically at application startup.
+	 *
+	 * @param addOns the list of data access add-ons to register
 	 */
 	public static void setAddOns(final List<DataAccessAddOn> addOns) {
 		registeredAddOns = new ArrayList<>(addOns);
@@ -76,6 +78,10 @@ public final class DbClassModel {
 	 *
 	 * <p>AddOn contexts are built lazily after the model is in the cache to avoid
 	 * circular reference issues (e.g. class A references class B which references A).
+	 *
+	 * @param clazz the entity class to model
+	 * @return the cached or newly created DbClassModel for the class
+	 * @throws IntrospectionException if the class cannot be introspected
 	 */
 	public static DbClassModel of(final Class<?> clazz) throws IntrospectionException {
 		final DbClassModel existing = CACHE.get(clazz);
@@ -114,86 +120,166 @@ public final class DbClassModel {
 
 	// ========== Public API ==========
 
+	/**
+	 * Returns the underlying {@link ClassModel} with introspected property descriptors.
+	 *
+	 * @return the class model
+	 */
 	public ClassModel getClassModel() {
 		return this.classModel;
 	}
 
+	/**
+	 * Returns the MongoDB collection name for this entity.
+	 *
+	 * @return the table (collection) name
+	 */
 	public String getTableName() {
 		return this.tableName;
 	}
 
 	/**
 	 * Get table name considering QueryOptions overrides.
+	 *
+	 * @param options the query options that may override the table name
+	 * @return the resolved table (collection) name
+	 * @throws DataAccessException if the table name cannot be resolved
 	 */
 	public String getTableName(final QueryOptions options) throws DataAccessException {
 		return AnnotationTools.getTableName(this.classModel.getClassType(), options);
 	}
 
+	/**
+	 * Returns the descriptor for the primary key field, or {@code null} if none exists.
+	 *
+	 * @return the primary key descriptor, or {@code null}
+	 */
 	public DbPropertyDescriptor getPrimaryKey() {
 		return this.primaryKey;
 	}
 
+	/**
+	 * Returns the descriptor for the creation timestamp field, or {@code null} if none exists.
+	 *
+	 * @return the creation timestamp descriptor, or {@code null}
+	 */
 	public DbPropertyDescriptor getCreationTimestamp() {
 		return this.creationTimestamp;
 	}
 
+	/**
+	 * Returns the descriptor for the update timestamp field, or {@code null} if none exists.
+	 *
+	 * @return the update timestamp descriptor, or {@code null}
+	 */
 	public DbPropertyDescriptor getUpdateTimestamp() {
 		return this.updateTimestamp;
 	}
 
+	/**
+	 * Returns the descriptor for the soft-delete marker field, or {@code null} if none exists.
+	 *
+	 * @return the deleted field descriptor, or {@code null}
+	 */
 	public DbPropertyDescriptor getDeletedField() {
 		return this.deletedField;
 	}
 
+	/**
+	 * Returns the DB column name of the soft-delete marker field, or {@code null} if none exists.
+	 *
+	 * @return the deleted field column name, or {@code null}
+	 */
 	public String getDeletedFieldName() {
 		return this.deletedFieldName;
 	}
 
+	/**
+	 * Returns the descriptor for the async hard-delete marker field, or {@code null} if none exists.
+	 *
+	 * @return the async hard-deleted field descriptor, or {@code null}
+	 */
 	public DbPropertyDescriptor getAsyncHardDeletedField() {
 		return this.asyncHardDeletedField;
 	}
 
+	/**
+	 * Returns the DB column name of the async hard-delete marker field, or {@code null} if none exists.
+	 *
+	 * @return the async hard-deleted field column name, or {@code null}
+	 */
 	public String getAsyncHardDeletedFieldName() {
 		return this.asyncHardDeletedFieldName;
 	}
 
-	/** All fields (including special ones). */
+	/**
+	 * Returns all fields (including special ones such as primary key, timestamps, and add-ons).
+	 *
+	 * @return an unmodifiable list of all field descriptors
+	 */
 	public List<DbPropertyDescriptor> getAllFields() {
 		return this.allFields;
 	}
 
-	/** Regular fields (not primary key, not timestamps, not deleted, not addons). */
+	/**
+	 * Returns regular fields (not primary key, not timestamps, not deleted, not add-ons).
+	 *
+	 * @return an unmodifiable list of regular field descriptors
+	 */
 	public List<DbPropertyDescriptor> getRegularFields() {
 		return this.regularFields;
 	}
 
-	/** Fields managed by DataAccessAddOns. */
+	/**
+	 * Returns fields managed by {@link DataAccessAddOn} implementations.
+	 *
+	 * @return an unmodifiable list of add-on field descriptors
+	 */
 	public List<DbPropertyDescriptor> getAddonFields() {
 		return this.addonFields;
 	}
 
-	/** Fields that require async processing on insert. */
+	/**
+	 * Returns fields that require asynchronous processing on insert.
+	 *
+	 * @return an unmodifiable list of async insert field descriptors
+	 */
 	public List<DbPropertyDescriptor> getAsyncInsertFields() {
 		return this.asyncInsertFields;
 	}
 
-	/** Fields that require async processing on update. */
+	/**
+	 * Returns fields that require asynchronous processing on update.
+	 *
+	 * @return an unmodifiable list of async update field descriptors
+	 */
 	public List<DbPropertyDescriptor> getAsyncUpdateFields() {
 		return this.asyncUpdateFields;
 	}
 
-	/** Addon fields that have delete actions. */
+	/**
+	 * Returns add-on fields that have delete actions configured.
+	 *
+	 * @return an unmodifiable list of delete action field descriptors
+	 */
 	public List<DbPropertyDescriptor> getDeleteActionFields() {
 		return this.deleteActionFields;
 	}
 
-	/** Whether any addon field with delete action needs previous data. */
+	/**
+	 * Checks whether any add-on field with a delete action needs previous data.
+	 *
+	 * @return {@code true} if previous data is needed for delete operations
+	 */
 	public boolean needsPreviousDataForDelete() {
 		return this.needsPreviousDataForDelete;
 	}
 
 	/**
-	 * Find a DbPropertyDescriptor by its DB field name.
+	 * Find a {@link DbPropertyDescriptor} by its DB field name.
+	 *
+	 * @param dbFieldName the database column name to search for
+	 * @return the matching descriptor, or {@code null} if not found
 	 */
 	public DbPropertyDescriptor findByDbFieldName(final String dbFieldName) {
 		for (final DbPropertyDescriptor desc : this.allFields) {
@@ -205,7 +291,10 @@ public final class DbClassModel {
 	}
 
 	/**
-	 * Find a DbPropertyDescriptor by its property name.
+	 * Find a {@link DbPropertyDescriptor} by its Java property name.
+	 *
+	 * @param propertyName the Java property name to search for
+	 * @return the matching descriptor, or {@code null} if not found
 	 */
 	public DbPropertyDescriptor findByPropertyName(final String propertyName) {
 		for (final DbPropertyDescriptor desc : this.allFields) {
@@ -216,13 +305,21 @@ public final class DbClassModel {
 		return null;
 	}
 
-	/** Whether any addon field needs previous data for update operations. */
+	/**
+	 * Checks whether any add-on field needs previous data for update operations.
+	 *
+	 * @return {@code true} if previous data is needed for update operations
+	 */
 	public boolean needsPreviousDataForUpdate() {
 		return this.needsPreviousDataForUpdate;
 	}
 
 	/**
 	 * Generate the list of field names for SELECT/projection.
+	 *
+	 * @param readAllColumns if {@code true}, include all columns regardless of {@code @DataNotRead}
+	 * @param options the query options for column renaming
+	 * @return a list of resolved field names for the projection
 	 */
 	public List<String> generateSelectFields(final boolean readAllColumns, final QueryOptions options) {
 		final List<String> fields = new ArrayList<>();

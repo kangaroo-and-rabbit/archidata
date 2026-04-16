@@ -83,17 +83,31 @@ import jakarta.ws.rs.InternalServerErrorException;
 public class DBAccessMongo implements Closeable {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 
-	// Some element for statistic:
+	/**
+	 * Tracks MongoDB operation statistics for monitoring and debugging purposes.
+	 */
 	public static class MongoDbStatistic {
+		/** Creates a new MongoDbStatistic with all counters initialized to zero. */
+		public MongoDbStatistic() {}
+
+		/** Number of countDocuments operations executed. */
 		public long countCountDocuments = 0L;
+		/** Number of deleteMany operations executed. */
 		public long countDeleteMany = 0L;
+		/** Number of drop operations executed. */
 		public long countDrop = 0L;
+		/** Number of find operations executed. */
 		public long countFind = 0L;
+		/** Number of findOneAndUpdate operations executed. */
 		public long countFindOneAndUpdate = 0L;
+		/** Number of insertOne operations executed. */
 		public long countInsertOne = 0L;
+		/** Number of updateMany operations executed. */
 		public long countUpdateMany = 0L;
+		/** Number of runCommand operations executed. */
 		public long countRunCommand = 0L;
 
+		/** Logs all accumulated statistics at INFO level. */
 		public void display() {
 			LOGGER.info("""
 					statistic on access on DB:
@@ -117,6 +131,7 @@ public class DBAccessMongo implements Closeable {
 		}
 	};
 
+	/** Global statistics for all MongoDB operations performed through this class. */
 	public static MongoDbStatistic statistic = new MongoDbStatistic();
 
 	// by default we manage some add-on that permit to manage non-native model (like
@@ -708,6 +723,8 @@ public class DBAccessMongo implements Closeable {
 	 * @param clazz   The class of the entity
 	 * @param options Query options including conditions, filters, limits, etc.
 	 * @return List of matching entities (empty list if none found)
+	 * @throws DataAccessException if a data access error occurs
+	 * @throws IOException         if an I/O error occurs
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> List<T> gets(final Class<T> clazz, final QueryOptions options) throws DataAccessException, IOException {
@@ -1045,6 +1062,14 @@ public class DBAccessMongo implements Closeable {
 		this.db.getDatabase().runCommand(command);
 	}
 
+	/**
+	 * Converts a Java object into a MongoDB-compatible BSON representation.
+	 *
+	 * @param <T>  The type of the object to convert
+	 * @param data The object to convert (may be null)
+	 * @return The BSON representation of the object, or null if the input is null
+	 * @throws Exception if conversion fails
+	 */
 	public <T> Object convertInDocument(final T data) throws Exception {
 		if (data == null) {
 			return null;
@@ -1066,6 +1091,14 @@ public class DBAccessMongo implements Closeable {
 
 	}
 
+	/**
+	 * Converts a string default value to the appropriate Java type based on the field's type.
+	 *
+	 * @param data  The string representation of the default value
+	 * @param field The target field whose type determines the conversion
+	 * @return The converted value matching the field's type
+	 * @throws Exception if the conversion fails or the type is unsupported
+	 */
 	protected Object convertDefaultField(String data, final Field field) throws Exception {
 		if (data.startsWith("'") && data.endsWith("'")) {
 			data = data.substring(1, data.length() - 1);
@@ -1108,6 +1141,15 @@ public class DBAccessMongo implements Closeable {
 				"Request default of unknow native type " + type.getCanonicalName() + " => " + data);
 	}
 
+	/**
+	 * Retrieves and atomically increments a sequence counter for generating unique Long IDs.
+	 *
+	 * <p>Uses a dedicated "counters" collection to store sequences per collection/field.
+	 *
+	 * @param collectionName The collection name used as the counter key
+	 * @param fieldName      The field name for the sequence (defaults to "sequence_id" if null or empty)
+	 * @return The next sequence value
+	 */
 	public long getNextSequenceLongValue(final String collectionName, String fieldName) {
 		if (fieldName == null || fieldName.isEmpty()) {
 			fieldName = "sequence_id";
@@ -1135,6 +1177,15 @@ public class DBAccessMongo implements Closeable {
 		return updatedCounter.getLong(fieldName);
 	}
 
+	/**
+	 * Test variant of insertPrimaryKey that inserts data using the MongoDB codec registry directly.
+	 *
+	 * @param <T>    The type of the entity
+	 * @param data   The entity to insert
+	 * @param option Optional query options
+	 * @return The generated primary key (ObjectId or Long)
+	 * @throws Exception if insertion fails
+	 */
 	@SuppressWarnings("unchecked")
 	public <T extends Object> Object insertPrimaryKey_test(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
@@ -1188,6 +1239,18 @@ public class DBAccessMongo implements Closeable {
 		}
 	}
 
+	/**
+	 * Inserts an entity into the database and returns its generated primary key.
+	 *
+	 * <p>Handles auto-generation of primary keys (ObjectId, UUID, or Long), creation and
+	 * update timestamps, default values for deleted fields, and add-on field processing.
+	 *
+	 * @param <T>    The type of the entity
+	 * @param data   The entity to insert
+	 * @param option Optional query options (e.g., DirectData, DirectPrimaryKey)
+	 * @return The generated primary key
+	 * @throws Exception if insertion fails
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
@@ -1472,12 +1535,31 @@ public class DBAccessMongo implements Closeable {
 		}
 	}
 
+	/**
+	 * Generates the list of field names to include in a MongoDB projection.
+	 *
+	 * @param clazz   The entity class
+	 * @param options Query options that may affect field selection
+	 * @return List of database field names to include in the query projection
+	 * @throws Exception if class introspection fails
+	 */
 	public List<String> generateSelectField(final Class<?> clazz, final QueryOptions options) throws Exception {
 		final boolean readAllFields = QueryOptions.readAllColumn(options);
 		final DbClassModel dbModel = DbClassModel.of(clazz);
 		return dbModel.generateSelectFields(readAllFields, options);
 	}
 
+	/**
+	 * Merges all {@link Condition} options into a single condition using logical AND.
+	 *
+	 * <p>If no conditions are present and {@code throwIfEmpty} is true, throws an exception.
+	 * Otherwise returns an empty condition.
+	 *
+	 * @param options      The query options containing zero or more conditions
+	 * @param throwIfEmpty If true, throws a {@link DataAccessException} when no conditions are provided
+	 * @return The merged condition
+	 * @throws DataAccessException if throwIfEmpty is true and no conditions are present
+	 */
 	public Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException {
 		if (options == null) {
@@ -1500,6 +1582,15 @@ public class DBAccessMongo implements Closeable {
 		return condition;
 	}
 
+	/**
+	 * Retrieves all entities of the specified type matching the conditions (raw QueryOptions variant).
+	 *
+	 * @param clazz   The class of the entity
+	 * @param options Query options including conditions, filters, limits, etc.
+	 * @return List of matching entities as Objects
+	 * @throws DataAccessException if a data access error occurs
+	 * @throws IOException         if an I/O error occurs
+	 */
 	public List<Object> getsRaw(final Class<?> clazz, final QueryOptions options)
 			throws DataAccessException, IOException {
 		final Condition condition = conditionFusionOrEmpty(options, false);
@@ -1583,6 +1674,19 @@ public class DBAccessMongo implements Closeable {
 		return outs;
 	}
 
+	/**
+	 * Creates a Java object from a MongoDB document using the entity class model and codecs.
+	 *
+	 * <p>Handles POJO construction, add-on fields (ManyToOne, OneToMany, etc.), and type overrides.
+	 *
+	 * @param doc            The MongoDB document (or scalar value) to convert
+	 * @param type           The target Java type (Class or ParameterizedType)
+	 * @param options        Query options affecting field selection and type overrides
+	 * @param lazyCall       List to collect deferred entity-reference loading actions
+	 * @param batchCollector Collector for batching entity-reference loads across rows
+	 * @return The constructed Java object, or null if the document is null
+	 * @throws Exception if object construction fails
+	 */
 	public Object createObjectFromDocument(
 			final Object doc,
 			final Type type,
@@ -1707,6 +1811,13 @@ public class DBAccessMongo implements Closeable {
 		return deleteHard(clazz, options.getAllArray());
 	}
 
+	/**
+	 * Executes pre-delete actions for add-on fields (e.g., cascade deletes, link cleanup).
+	 *
+	 * @param clazz  The entity class being deleted
+	 * @param option Query options used to locate the entities being deleted
+	 * @throws Exception if any pre-delete action fails
+	 */
 	public void actionOnDelete(final Class<?> clazz, final QueryOption... option) throws Exception {
 		final List<LazyGetter> lazyCall = new ArrayList<>();
 		final DbClassModel model = DbClassModel.of(clazz);

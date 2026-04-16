@@ -27,12 +27,23 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterOmit extends QueryOption {
+	/** The list of field names to exclude from update operations. */
 	public final List<String> filterValue;
 
+	/**
+	 * Creates a FilterOmit from a list of field names.
+	 *
+	 * @param filterValue the list of field names to exclude
+	 */
 	public FilterOmit(final List<String> filterValue) {
 		this.filterValue = filterValue;
 	}
 
+	/**
+	 * Creates a FilterOmit from field name varargs.
+	 *
+	 * @param filterValue the field names to exclude
+	 */
 	public FilterOmit(final String... filterValue) {
 		this.filterValue = List.of(filterValue);
 	}
@@ -105,6 +116,11 @@ public class FilterOmit extends QueryOption {
 		this.filterValue = resolved;
 	}
 
+	/**
+	 * Returns the list of field names to exclude.
+	 *
+	 * @return the list of excluded field names
+	 */
 	public List<String> getValues() {
 		return this.filterValue;
 	}

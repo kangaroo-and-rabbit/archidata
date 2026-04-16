@@ -63,13 +63,18 @@ import jakarta.ws.rs.core.StreamingOutput;
 // https://stackoverflow.com/questions/35367113/jersey-webservice-scalable-approach-to-download-file-and-reply-to-client
 // https://gist.github.com/aitoroses/4f7a2b197b732a6a691d
 
+/**
+ * JAX-RS resource for uploading, retrieving, and streaming binary data (files, images, audio, video).
+ *
+ * <p>Data is stored on disk with SHA-512 deduplication and registered in a MongoDB collection.</p>
+ */
 @Path("/data")
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
 	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	private static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
-	/** Upload some datas */
+	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
 
 	private static void createFolder(final String path) throws IOException {
@@ -79,10 +84,19 @@ public class DataResource {
 		}
 	}
 
+	/**
+	 * Returns the next unique temporary data identifier.
+	 * @return A unique long identifier for temporary file storage.
+	 */
 	public static long getTmpDataId() {
 		return tmpFolderId++;
 	}
 
+	/**
+	 * Returns the file path for a temporary data file, creating the temporary directory if needed.
+	 * @param tmpFolderId The unique identifier for the temporary file.
+	 * @return The absolute path to the temporary file.
+	 */
 	public static String getTmpFileInData(final long tmpFolderId) {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
 		try {
@@ -93,6 +107,11 @@ public class DataResource {
 		return filePath;
 	}
 
+	/**
+	 * Returns the file path for data stored under the old UUID-based layout.
+	 * @param uuid The UUID identifying the data.
+	 * @return The absolute path to the data file.
+	 */
 	public static String getFileDataOld(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
@@ -110,6 +129,11 @@ public class DataResource {
 		return filePath;
 	}
 
+	/**
+	 * Returns the file path for data stored under the ObjectId-based layout, using SHA-256 hashing for directory distribution.
+	 * @param oid The ObjectId identifying the data.
+	 * @return The absolute path to the data file.
+	 */
 	public static String getFileData(final ObjectId oid) {
 		final String stringOid = oid.toHexString();
 		String dir1 = stringOid.substring(0, 2);
@@ -135,10 +159,20 @@ public class DataResource {
 		return filePath;
 	}
 
+	/**
+	 * Returns the file path for the JSON metadata associated with the given ObjectId.
+	 * @param oid The ObjectId identifying the data.
+	 * @return The absolute path to the metadata JSON file.
+	 */
 	public static String getFileMetaData(final ObjectId oid) {
 		return getFileData(oid) + ".json";
 	}
 
+	/**
+	 * Retrieves a {@link Data} record matching the given SHA-512 hash.
+	 * @param sha512 The SHA-512 hash to search for.
+	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 */
 	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
@@ -149,6 +183,11 @@ public class DataResource {
 		return null;
 	}
 
+	/**
+	 * Retrieves a {@link Data} record by its numeric identifier.
+	 * @param id The numeric identifier to search for.
+	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 */
 	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
@@ -159,6 +198,12 @@ public class DataResource {
 		return null;
 	}
 
+	/**
+	 * Resolves a file extension to its corresponding MIME type.
+	 * @param extension The file extension (e.g. "jpg", "png").
+	 * @return The MIME type string.
+	 * @throws IOException If the extension is not recognized.
+	 */
 	protected String getMimeType(final String extension) throws IOException {
 		return switch (extension.toLowerCase()) {
 			case "jpg", "jpeg" -> "image/jpeg";
@@ -171,6 +216,14 @@ public class DataResource {
 		};
 	}
 
+	/**
+	 * Creates a new {@link Data} record in the database and moves the temporary file to permanent storage.
+	 * @param tmpUID The temporary file identifier.
+	 * @param originalFileName The original file name (used to determine MIME type).
+	 * @param sha512 The SHA-512 hash of the file content.
+	 * @return The newly created {@link Data} record, or {@code null} on insertion failure.
+	 * @throws IOException If the MIME type cannot be determined or the file cannot be moved.
+	 */
 	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
 			throws IOException {
 		// determine mime type:
@@ -201,6 +254,12 @@ public class DataResource {
 		return injectedData;
 	}
 
+	/**
+	 * Moves a data file from the old UUID-based storage layout to the new ObjectId-based layout, including metadata.
+	 * @param uuid The UUID of the data in the old layout.
+	 * @param oid The ObjectId of the data in the new layout.
+	 * @throws IOException If the file move fails.
+	 */
 	public static void modeFileOldModelToNewModel(final UUID uuid, final ObjectId oid) throws IOException {
 		String mediaCurentPath = getFileDataOld(uuid);
 		String mediaDestPath = getFileData(oid);
@@ -232,11 +291,22 @@ public class DataResource {
 		LOGGER.info("Move done");
 	}
 
+	/**
+	 * Saves an input stream to a temporary file and returns its SHA-512 hash.
+	 * @param uploadedInputStream The input stream to save.
+	 * @param idData The temporary file identifier.
+	 * @return The SHA-512 hex string of the saved data.
+	 * @throws FailException If the file cannot be written.
+	 */
 	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData)
 			throws FailException {
 		return saveFile(uploadedInputStream, DataResource.getTmpFileInData(idData));
 	}
 
+	/**
+	 * Deletes a temporary file if it exists.
+	 * @param idData The temporary file identifier.
+	 */
 	public static void removeTemporaryFile(final long idData) {
 		final String filepath = DataResource.getTmpFileInData(idData);
 		if (Files.exists(Paths.get(filepath))) {
@@ -282,6 +352,11 @@ public class DataResource {
 		return out;
 	}
 
+	/**
+	 * Converts a byte array to its lowercase hexadecimal string representation.
+	 * @param bytes The byte array to convert.
+	 * @return The hexadecimal string.
+	 */
 	public static String bytesToHex(final byte[] bytes) {
 		final StringBuilder sb = new StringBuilder();
 		for (final byte b : bytes) {
@@ -290,6 +365,11 @@ public class DataResource {
 		return sb.toString();
 	}
 
+	/**
+	 * Retrieves a {@link Data} record by its ObjectId.
+	 * @param oid The ObjectId to look up.
+	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 */
 	public Data getSmall(final ObjectId oid) {
 		try {
 			return DataAccess.getById(Data.class, oid);
@@ -299,6 +379,13 @@ public class DataResource {
 		return null;
 	}
 
+	/**
+	 * Uploads a file via multipart form data and stores it in the system.
+	 * @param fileInputStream The uploaded file input stream.
+	 * @param fileMetaData The multipart form metadata (file name, etc.).
+	 * @return The ObjectId of the stored data record.
+	 * @throws Exception If the upload or database insertion fails.
+	 */
 	@POST
 	@Path("upload")
 	@RolesAllowed({ "USER" })
@@ -312,6 +399,12 @@ public class DataResource {
 		return DataTools.uploadData(fileInputStream, fileMetaData);
 	}
 
+	/**
+	 * Downloads data from an external URI and stores it in the system.
+	 * @param uri The external URI to download from.
+	 * @return The ObjectId of the stored data record.
+	 * @throws Exception If the download or database insertion fails.
+	 */
 	@POST
 	@Path("uploadUri")
 	@RolesAllowed({ "USER" })
@@ -323,6 +416,15 @@ public class DataResource {
 		return DataTools.uploadDataFromUri(uri);
 	}
 
+	/**
+	 * Retrieves data by its ObjectId, supporting HTTP range requests for streaming.
+	 * @param sc The security context.
+	 * @param token Optional authorization token from query parameter.
+	 * @param range The HTTP Range header value for partial content requests.
+	 * @param oid The ObjectId of the data to retrieve.
+	 * @return A streaming response with the data content.
+	 * @throws FailException If the data is not found or the stream cannot be built.
+	 */
 	@GET
 	@Path("{oid}")
 	@PermitTokenInURI
@@ -350,6 +452,15 @@ public class DataResource {
 		}
 	}
 
+	/**
+	 * Retrieves a thumbnail of the data identified by the given ObjectId, resizing images if possible.
+	 * @param sc The security context.
+	 * @param token Optional authorization token from query parameter.
+	 * @param range The HTTP Range header value for partial content requests.
+	 * @param oid The ObjectId of the data to thumbnail.
+	 * @return A response containing the thumbnail image or the original stream.
+	 * @throws FailException If the data is not found or processing fails.
+	 */
 	@GET
 	@Path("thumbnail/{oid}")
 	@RolesAllowed("USER")
@@ -405,7 +516,7 @@ public class DataResource {
 				ImageIO.write(outputImage, ConfigBaseVariable.getThumbnailFormat(), baos);
 			} catch (final IOException e) {
 				LOGGER.error("Failed to write thumbnail image: {}", e.getMessage(), e);
-				return Response.status(500).entity("Internal Error: resize fail: " + e.getMessage()).type("text/plain")
+				return Response.status(500).entity("Internal Error: thumbnail generation failed").type("text/plain")
 						.build();
 			}
 			final byte[] imageData = baos.toByteArray();
@@ -438,6 +549,16 @@ public class DataResource {
 		}
 	}
 
+	/**
+	 * Retrieves data by its ObjectId with a user-friendly file name in the URL path (for browser downloads).
+	 * @param sc The security context.
+	 * @param token Optional authorization token from query parameter.
+	 * @param range The HTTP Range header value for partial content requests.
+	 * @param oid The ObjectId of the data to retrieve.
+	 * @param name The display name for the downloaded file.
+	 * @return A streaming response with the data content.
+	 * @throws Exception If the data is not found or the stream cannot be built.
+	 */
 	@GET
 	@Path("{oid}/{name}")
 	@PermitTokenInURI
@@ -468,8 +589,17 @@ public class DataResource {
 	 * @return Streaming output
 	 * @throws FileNotFoundException
 	 * @throws Exception IOException if an error occurs in streaming. */
-	private Response buildStream(final String filename, final String range, final String mimeType)
+	private Response buildStream(final String filename, final String range, final String inputMimeType)
 			throws FailException {
+		// Browsers don't support video/x-matroska or audio/x-matroska, serve as webm instead
+		final String mimeType;
+		if ("video/x-matroska".equals(inputMimeType)) {
+			mimeType = "video/webm";
+		} else if ("audio/x-matroska".equals(inputMimeType)) {
+			mimeType = "audio/webm";
+		} else {
+			mimeType = inputMimeType;
+		}
 		final File file = new File(filename);
 		// logger.info("request range : {}", range);
 		// range not requested : Firefox does not send range headers
@@ -495,7 +625,8 @@ public class DataResource {
 					}
 				}
 			};
-			final Response.ResponseBuilder out = Response.ok(output).header(HttpHeaders.CONTENT_LENGTH, file.length());
+			final Response.ResponseBuilder out = Response.ok(output).header(HttpHeaders.CONTENT_LENGTH, file.length())
+					.header("Accept-Ranges", "bytes");
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
@@ -506,12 +637,16 @@ public class DataResource {
 		final String[] ranges = range.split("=")[1].split("-");
 		final long from = Long.parseLong(ranges[0]);
 
-		// logger.info("request range : {}", ranges.length);
-		// Chunk media if the range upper bound is unspecified. Chrome, Opera sends "bytes=0-"
-		long to = CHUNK_SIZE + from;
-		if (ranges.length == 1) {
+		// Determine the end byte position
+		long to;
+		if (ranges.length == 2 && !ranges[1].isEmpty()) {
+			// Explicit end specified: "bytes=start-end"
+			to = Long.parseLong(ranges[1]);
+		} else {
+			// Open-ended: "bytes=start-" — serve the rest of the file
 			to = file.length() - 1;
-		} else if (to >= file.length()) {
+		}
+		if (to >= file.length()) {
 			to = file.length() - 1;
 		}
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
@@ -537,6 +672,11 @@ public class DataResource {
 		}
 	}
 
+	/**
+	 * Restores a soft-deleted {@link Data} record by its numeric identifier.
+	 * @param id The numeric identifier of the record to restore.
+	 * @throws Exception If the restore operation fails.
+	 */
 	public void undelete(final Long id) throws Exception {
 		DataAccess.restoreById(Data.class, id);
 	}

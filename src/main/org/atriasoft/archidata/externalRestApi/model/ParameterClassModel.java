@@ -14,10 +14,23 @@ import org.atriasoft.archidata.tools.TypeUtils;
 
 import jakarta.validation.Valid;
 
+/**
+ * Represents a single API parameter with its validation state, validation groups, and class model.
+ *
+ * @param valid whether the parameter should be validated
+ * @param groups the validation groups to apply
+ * @param model the class model representing the parameter type
+ */
 public record ParameterClassModel(
 		boolean valid,
 		Class<?>[] groups,
 		ClassModel model) {
+	/**
+	 * Constructs a parameter class model with explicit validation settings.
+	 * @param valid whether the parameter should be validated
+	 * @param groups the validation groups (defaults to {@code GroupRead} if {@code null})
+	 * @param model the class model representing the parameter type
+	 */
 	public ParameterClassModel(final boolean valid, final Class<?>[] groups, final ClassModel model) {
 		this.valid = valid;
 		if (groups == null) {
@@ -29,15 +42,29 @@ public record ParameterClassModel(
 		this.model = model;
 	}
 
+	/**
+	 * Constructs a parameter class model with validation enabled and default groups.
+	 * @param model the class model representing the parameter type
+	 */
 	public ParameterClassModel(final ClassModel model) {
 		this(true, new Class<?>[] { GroupRead.class }, model);
 	}
 
+	/**
+	 * Constructs a parameter class model from Jakarta validation annotations.
+	 * @param validParam the {@code @Valid} annotation, or {@code null} if not present
+	 * @param validGroupParam the {@code @ValidGroup} annotation, or {@code null} if not present
+	 * @param parameterModel the class model representing the parameter type
+	 */
 	public ParameterClassModel(final Valid validParam, final ValidGroup validGroupParam,
 			final ClassModel parameterModel) {
 		this(validParam != null, validGroupParam == null ? null : validGroupParam.value(), parameterModel);
 	}
 
+	/**
+	 * Generates a type name string based on the model, validation state, and groups.
+	 * @return the computed type name
+	 */
 	public String getType() {
 		final StringBuilder out = new StringBuilder();
 		out.append(this.model.getOriginClasses().getSimpleName());

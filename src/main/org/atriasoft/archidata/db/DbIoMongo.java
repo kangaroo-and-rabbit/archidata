@@ -17,23 +17,53 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
+/**
+ * MongoDB-specific implementation of {@link DbIo} that manages a {@link MongoClient}
+ * and its associated {@link MongoDatabase}.
+ *
+ * <p>
+ * Configures codec registries for POJO mapping, UUID representation,
+ * and custom {@link OffsetDateTimeCodec} support.
+ * </p>
+ */
 public class DbIoMongo extends DbIo implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DbIoMongo.class);
 	private MongoClient mongoClient = null;
 	private MongoDatabase dataBase = null;
 
+	/**
+	 * Constructs a DbIoMongo with the given database configuration.
+	 *
+	 * @param config the database configuration
+	 * @throws IOException if initialization fails
+	 */
 	public DbIoMongo(final DbConfig config) throws IOException {
 		super(config);
 	}
 
+	/**
+	 * Returns the MongoDB database instance.
+	 *
+	 * @return the {@link MongoDatabase} instance
+	 */
 	public MongoDatabase getDatabase() {
 		return this.dataBase;
 	}
 
+	/**
+	 * Returns the underlying MongoDB client.
+	 *
+	 * @return the {@link MongoClient} instance
+	 */
 	public MongoClient getClient() {
 		return this.mongoClient;
 	}
 
+	/**
+	 * Closes the MongoDB client and releases resources.
+	 *
+	 * @throws IOException if closing the client fails
+	 */
 	@Override
 	synchronized public void closeImplement() throws IOException {
 		this.mongoClient.close();
@@ -41,6 +71,11 @@ public class DbIoMongo extends DbIo implements Closeable {
 		this.dataBase = null;
 	}
 
+	/**
+	 * Opens a MongoDB connection with configured codec registries and connection pool settings.
+	 *
+	 * @throws IOException if the connection cannot be established
+	 */
 	@Override
 	synchronized public void openImplement() throws IOException {
 		final String dbUrl = this.config.getUrl();

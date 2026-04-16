@@ -7,9 +7,24 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.ext.Provider;
 
+/**
+ * JAX-RS response filter that adds Cross-Origin Resource Sharing (CORS) headers to all responses.
+ *
+ * <p>
+ * This filter allows all origins, common HTTP methods, and standard headers
+ * required for REST API communication.
+ * </p>
+ */
 @Provider
 public class CORSFilter implements ContainerResponseFilter {
 
+	/**
+	 * Adds CORS headers to the response.
+	 *
+	 * @param request the container request context
+	 * @param response the container response context to which CORS headers are added
+	 * @throws IOException if an I/O error occurs during filtering
+	 */
 	@Override
 	public void filter(final ContainerRequestContext request, final ContainerResponseContext response)
 			throws IOException {

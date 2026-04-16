@@ -27,6 +27,8 @@ public final class MethodReferenceResolver {
 	/**
 	 * Resolve a getter method reference to its database field name.
 	 *
+	 * @param <T>    the entity type
+	 * @param <R>    the return type of the getter
 	 * @param getter a serializable getter reference (e.g. User::getName)
 	 * @return the database field name (e.g. "name" or "custom_name" if @Column(name) is set)
 	 * @throws IllegalArgumentException if the method reference cannot be resolved
@@ -38,6 +40,8 @@ public final class MethodReferenceResolver {
 	/**
 	 * Resolve a setter method reference to its database field name.
 	 *
+	 * @param <T>    the entity type
+	 * @param <V>    the parameter type of the setter
 	 * @param setter a serializable setter reference (e.g. User::setName)
 	 * @return the database field name
 	 * @throws IllegalArgumentException if the method reference cannot be resolved
@@ -51,6 +55,9 @@ public final class MethodReferenceResolver {
 	 *
 	 * <p>Fluent setters return the entity instance (for chaining) instead of void.
 	 *
+	 * @param <T>    the entity type
+	 * @param <V>    the parameter type of the setter
+	 * @param <R>    the return type of the fluent setter
 	 * @param setter a serializable fluent setter reference (e.g. User::setName where setName returns User)
 	 * @return the database field name
 	 * @throws IllegalArgumentException if the method reference cannot be resolved
@@ -119,6 +126,9 @@ public final class MethodReferenceResolver {
 	 *
 	 * <p>The decapitalization logic matches {@code ClassModel.decapitalize()}:
 	 * "URL" stays as "URL" (consecutive uppercase), "Name" becomes "name".
+	 *
+	 * @param methodName The method name to extract the property name from
+	 * @return The extracted property name
 	 */
 	public static String extractPropertyName(final String methodName) {
 		String stripped;
@@ -148,7 +158,9 @@ public final class MethodReferenceResolver {
 		return Character.toLowerCase(name.charAt(0)) + name.substring(1);
 	}
 
-	/** Clear the cache. Useful for testing. */
+	/**
+	 * Clears the internal resolution cache. Useful for testing.
+	 */
 	public static void clearCache() {
 		CACHE.clear();
 	}

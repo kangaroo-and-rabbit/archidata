@@ -27,29 +27,58 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
 
+/**
+ * Represents a TypeScript class/type element for Zod-based code generation.
+ * Handles generation of Zod schemas, TypeScript types, and type-check functions.
+ */
 public class TsClassElement {
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(TsClassElement.class);
 
+	/** Defines where a type is positioned in the generation hierarchy. */
 	public enum DefinedPosition {
-		NATIVE, // Native element of TS language.
-		BASIC, // basic wrapping for JAVA type.
-		NORMAL // Normal Object to interpret.
+		/** Native element of the TypeScript language. */
+		NATIVE,
+		/** Basic wrapping for a Java type. */
+		BASIC,
+		/** Normal object to interpret and generate. */
+		NORMAL
 	}
 
+	/** The list of class models associated with this element. */
 	public List<ClassModel> models;
+	/** The Zod schema variable name. */
 	public String zodName;
 	private final String tsTypeName;
 	private final String tsCheckType;
 	private final String declaration;
+	/** The file name (kebab-case) for the generated TypeScript file. */
 	public String fileName = null;
+	/** An optional comment/description for this element. */
 	public String comment = null;
+	/** The position category of this type (native, basic, or normal). */
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
+	/** The set of requested parameter class models for this element. */
 	public Set<ParameterClassModel> requestedModels = new HashSet<>();
 
+	/**
+	 * Determines the kebab-case file name for a given class name.
+	 * @param className the CamelCase class name
+	 * @return the kebab-case file name
+	 */
 	public static String determineFileName(final String className) {
 		return className.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2").toLowerCase();
 	}
 
+	/**
+	 * Constructs a TsClassElement for native or basic types with explicit names.
+	 * @param model the list of class models
+	 * @param zodName the Zod schema name
+	 * @param tsTypeName the TypeScript type name
+	 * @param tsCheckType the type-check function name
+	 * @param declaration the Zod declaration string
+	 * @param nativeType the position category of this type
+	 */
 	public TsClassElement(final List<ClassModel> model, final String zodName, final String tsTypeName,
 			final String tsCheckType, final String declaration, final DefinedPosition nativeType) {
 		if (model.get(0).getOriginClasses().getSimpleName().equals("TestObject")) {
@@ -64,6 +93,11 @@ public class TsClassElement {
 		this.fileName = determineFileName(tsTypeName);
 	}
 
+	/**
+	 * Constructs a TsClassElement from a class model with optional forced naming.
+	 * @param model the class model to wrap
+	 * @param forceMode if true, generates standard Zod/type/check names; if false, leaves them null
+	 */
 	public TsClassElement(final ClassModel model, final boolean forceMode) {
 		this.models = List.of(model);
 		if (forceMode) {
@@ -79,6 +113,10 @@ public class TsClassElement {
 		this.fileName = determineFileName(model.getOriginClasses().getSimpleName());
 	}
 
+	/**
+	 * Constructs a TsClassElement from a class model with standard naming.
+	 * @param model the class model to wrap
+	 */
 	public TsClassElement(final ClassModel model) {
 		this.models = List.of(model);
 		this.zodName = "Zod" + model.getOriginClasses().getSimpleName();
@@ -88,6 +126,10 @@ public class TsClassElement {
 		this.fileName = determineFileName(this.tsTypeName);
 	}
 
+	/**
+	 * Gets the Zod schema name using default model resolution.
+	 * @return the Zod schema name
+	 */
 	public String getZodName() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
 		if (this.zodName != null) {
@@ -96,6 +138,12 @@ public class TsClassElement {
 		return "Zod" + model.getType();
 	}
 
+	/**
+	 * Gets the Zod schema name for a specific validation context.
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return the Zod schema name
+	 */
 	public String getZodName(final boolean isValid, final Class<?>[] groups) {
 		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
 		if (this.zodName != null) {
@@ -104,6 +152,11 @@ public class TsClassElement {
 		return "Zod" + model.getType();
 	}
 
+	/**
+	 * Gets the Zod schema name for a given parameter class model.
+	 * @param model the parameter class model
+	 * @return the Zod schema name
+	 */
 	public String getZodName(final ParameterClassModel model) {
 		getParameterClassModel(model.valid(), model.groups(), model.model());
 		if (this.zodName != null) {
@@ -112,6 +165,10 @@ public class TsClassElement {
 		return "Zod" + model.getType();
 	}
 
+	/**
+	 * Gets the TypeScript type name using default model resolution.
+	 * @return the TypeScript type name
+	 */
 	public String getTypeName() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
 		if (this.tsTypeName != null) {
@@ -120,6 +177,12 @@ public class TsClassElement {
 		return model.getType();
 	}
 
+	/**
+	 * Gets the TypeScript type name for a specific validation context.
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return the TypeScript type name
+	 */
 	public String getTypeName(final boolean isValid, final Class<?>[] groups) {
 		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
 		if (this.tsTypeName != null) {
@@ -128,6 +191,11 @@ public class TsClassElement {
 		return model.getType();
 	}
 
+	/**
+	 * Gets the TypeScript type name and registers the parameter model as requested.
+	 * @param model the parameter class model to register
+	 * @return the TypeScript type name
+	 */
 	public String getTypeName(final ParameterClassModel model) {
 		this.requestedModels.add(model);
 		if (this.tsTypeName != null) {
@@ -136,6 +204,12 @@ public class TsClassElement {
 		return model.getType();
 	}
 
+	/**
+	 * Gets the type-check function name for a specific validation context.
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return the type-check function name
+	 */
 	public String getCheckType(final boolean isValid, final Class<?>[] groups) {
 		final ParameterClassModel model = getParameterClassModel(isValid, groups, this.models.get(0));
 		if (this.tsCheckType != null) {
@@ -144,6 +218,10 @@ public class TsClassElement {
 		return "is" + model.getType();
 	}
 
+	/**
+	 * Gets the type-check function name using default model resolution.
+	 * @return the type-check function name
+	 */
 	public String getCheckType() {
 		final ParameterClassModel model = getParameterClassModel(this.models.get(0));
 		if (this.tsCheckType != null) {
@@ -152,6 +230,11 @@ public class TsClassElement {
 		return "is" + model.getType();
 	}
 
+	/**
+	 * Gets the type-check function name and registers the parameter model as requested.
+	 * @param model the parameter class model to register (may be null)
+	 * @return the type-check function name
+	 */
 	public String getCheckType(final ParameterClassModel model) {
 		if (model != null) {
 			this.requestedModels.add(model);
@@ -162,10 +245,19 @@ public class TsClassElement {
 		return "is" + model.getType();
 	}
 
+	/**
+	 * Checks if the given class model is compatible with this element.
+	 * @param model the class model to check
+	 * @return true if the model is contained in this element's models
+	 */
 	public boolean isCompatible(final ClassModel model) {
 		return this.models.contains(model);
 	}
 
+	/**
+	 * Gets the base header comment and Zod import for generated TypeScript files.
+	 * @return the header string
+	 */
 	public String getBaseHeader() {
 		return """
 				/**
@@ -175,6 +267,12 @@ public class TsClassElement {
 				""";
 	}
 
+	/**
+	 * Generates TypeScript code for an enum type with Zod schema.
+	 * @param model the enum model to generate code for
+	 * @param tsGroup the group registry for resolving type references
+	 * @return the generated TypeScript source code
+	 */
 	public String generateEnum(final ClassEnumModel model, final TsClassElementGroup tsGroup) {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
@@ -270,6 +368,12 @@ public class TsClassElement {
 				this.getZodName(parameterClassModel) + appendString);
 	}
 
+	/**
+	 * Generates TypeScript import statements based on model dependencies.
+	 * @param imports the import model tracking required imports
+	 * @param tsGroup the group registry for resolving type references
+	 * @return the generated import statements
+	 */
 	public String generateImports(final ImportModel imports, final TsClassElementGroup tsGroup) {
 		final Map<String, String> mapOutput = new TreeMap<>();
 		// TODO: order alphabetical order...
@@ -372,6 +476,13 @@ public class TsClassElement {
 		return false;
 	}
 
+	/**
+	 * Checks if a field is compatible (should be included) for a given validation context.
+	 * @param field the field property to check
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return true if the field should be included in the generated output
+	 */
 	public boolean isCompatibleField(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (field.annotationNotNull() != null) {
 			// if it is not null in the specific group, this mean the element MUST be
@@ -400,6 +511,13 @@ public class TsClassElement {
 		return isValid;
 	}
 
+	/**
+	 * Determines if a field's Zod type should be optional.
+	 * @param field the field property to check
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return true if the field should be optional in the Zod schema
+	 */
 	public boolean isOptionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		if (field.apiNotNull() != null) {
 			return !field.apiNotNull().value();
@@ -428,10 +546,26 @@ public class TsClassElement {
 		return true;
 	}
 
+	/**
+	 * Generates the Zod optional/nullable suffix for a field.
+	 * @param field the field property to check
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @return the Zod suffix string (e.g. ".nullable()"), or empty string if not optional
+	 */
 	public String optionalTypeZod(final FieldProperty field, final boolean isValid, final Class<?>[] groups) {
 		return optionalTypeZod(field, isValid, groups, false, null);
 	}
 
+	/**
+	 * Generates the Zod optional/nullable suffix for a field with additional options.
+	 * @param field the field property to check
+	 * @param isValid whether validation is active
+	 * @param groups the validation groups to consider
+	 * @param jsonIncludeNonNull whether JSON serialization uses NON_NULL inclusion
+	 * @param optionalIsNullableGroups groups for which optional fields should also be nullable
+	 * @return the Zod suffix string, or empty string if not optional
+	 */
 	public String optionalTypeZod(
 			final FieldProperty field,
 			final boolean isValid,
@@ -464,6 +598,11 @@ public class TsClassElement {
 		return false;
 	}
 
+	/**
+	 * Generates Zod size/range constraint methods for a field.
+	 * @param field the field property containing constraint annotations
+	 * @return the Zod constraint chain string (e.g. ".min(1).max(100)")
+	 */
 	public String maxSizeZod(final FieldProperty field) {
 		final StringBuilder builder = new StringBuilder();
 		final Class<?> clazz = field.model().getOriginClasses();
@@ -527,6 +666,11 @@ public class TsClassElement {
 		return builder.toString();
 	}
 
+	/**
+	 * Generates the Zod readonly modifier for a field if applicable.
+	 * @param field the field property to check
+	 * @return ".readonly()" if the field is read-only, otherwise an empty string
+	 */
 	public String readOnlyZod(final FieldProperty field) {
 		if (field.apiReadOnly() != null) {
 			return ".readonly()";
@@ -534,6 +678,10 @@ public class TsClassElement {
 		return "";
 	}
 
+	/**
+	 * Generates TypeScript code for a basic (non-complex) object type.
+	 * @return the generated TypeScript source code with Zod schema and type inference
+	 */
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
@@ -549,6 +697,12 @@ public class TsClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates TypeScript code for a complex object model with all requested variants.
+	 * @param model the object model to generate code for
+	 * @param tsGroup the group registry for resolving type references
+	 * @return the generated TypeScript source code including imports
+	 */
 	public String generateObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 
 		// the key is the fileName
@@ -576,6 +730,15 @@ public class TsClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates a limited/specific variant of an object model's Zod schema.
+	 * @param model the object model to generate
+	 * @param tsGroup the group registry for resolving type references
+	 * @param parameterClassModel the parameter model specifying validation context
+	 * @param imports the import model to track dependencies
+	 * @param displayHelp whether to include JSDoc comments
+	 * @return the generated Zod schema and type inference code
+	 */
 	public String generateObjectLimited(
 			final ClassObjectModel model,
 			final TsClassElementGroup tsGroup,
@@ -754,6 +917,11 @@ public class TsClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates the TypeScript file for this element and adds it to the generation map.
+	 * @param tsGroup the group registry for resolving type references
+	 * @param generation the map of file paths to generated content
+	 */
 	public void generateFile(final TsClassElementGroup tsGroup, final Map<Path, String> generation) {
 		if (this.nativeType == DefinedPosition.NATIVE) {
 			return;
@@ -789,6 +957,14 @@ public class TsClassElement {
 		return "";
 	}
 
+	/**
+	 * Generates a local Zod model definition for use within API files.
+	 * @param modelName the name to use for the generated model
+	 * @param models the list of class models to generate from
+	 * @param tsGroup the group registry for resolving type references
+	 * @param imports the import model to track dependencies
+	 * @return the generated local model code, or null if the model is a simple object/enum
+	 */
 	public static String generateLocalModel(
 			final String modelName,
 			final List<ClassModel> models,
@@ -832,6 +1008,13 @@ public class TsClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Gets or creates a ParameterClassModel for the given validation context and model.
+	 * @param valid whether validation is active
+	 * @param validGroup the validation groups
+	 * @param parameterModel the class model to wrap
+	 * @return the existing or newly created ParameterClassModel
+	 */
 	public ParameterClassModel getParameterClassModel(
 			final boolean valid,
 			final Class<?>[] validGroup,
@@ -847,6 +1030,13 @@ public class TsClassElement {
 		return tmp;
 	}
 
+	/**
+	 * Gets or creates a ParameterClassModel from Jakarta validation annotations.
+	 * @param validParam the Valid annotation (may be null)
+	 * @param validGroupParam the ValidGroup annotation (may be null)
+	 * @param parameterModel the class model to wrap
+	 * @return the existing or newly created ParameterClassModel
+	 */
 	public ParameterClassModel getParameterClassModel(
 			final Valid validParam,
 			final ValidGroup validGroupParam,
@@ -862,6 +1052,11 @@ public class TsClassElement {
 		return tmp;
 	}
 
+	/**
+	 * Gets or creates a default ParameterClassModel for the given class model.
+	 * @param parameterModel the class model to wrap
+	 * @return the existing or newly created ParameterClassModel
+	 */
 	public ParameterClassModel getParameterClassModel(final ClassModel parameterModel) {
 		// TODO: je viens de cree un cycle ...
 		final ParameterClassModel tmp = new ParameterClassModel(parameterModel);

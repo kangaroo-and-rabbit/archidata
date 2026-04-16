@@ -10,6 +10,10 @@ import org.atriasoft.archidata.bean.exception.IntrospectionException;
  *
  * <p>Stores the constructor reference, parameter names, and type information
  * for intelligent object instantiation from partial data.
+ *
+ * @param constructor the actual constructor
+ * @param parameterNames parameter names (extracted from bytecode or Record component names)
+ * @param parameterTypes type information for each parameter
  */
 public record ConstructorDescriptor(
 		/** The actual constructor. */
@@ -21,6 +25,8 @@ public record ConstructorDescriptor(
 
 	/**
 	 * The number of parameters.
+	 *
+	 * @return the parameter count
 	 */
 	public int parameterCount() {
 		return this.parameterNames.length;
@@ -28,6 +34,8 @@ public record ConstructorDescriptor(
 
 	/**
 	 * Check if this constructor has no parameters.
+	 *
+	 * @return {@code true} if the constructor takes no arguments
 	 */
 	public boolean isNoArg() {
 		return this.parameterNames.length == 0;
@@ -56,7 +64,8 @@ public record ConstructorDescriptor(
 	/**
 	 * Find the index of a parameter by name.
 	 *
-	 * @return the index, or -1 if not found
+	 * @param name the parameter name to search for
+	 * @return the zero-based index, or -1 if not found
 	 */
 	public int indexOfParameter(final String name) {
 		for (int i = 0; i < this.parameterNames.length; i++) {

@@ -53,57 +53,101 @@ public final class PropertyDescriptor {
 		this.annotationCache = UnifiedAnnotationLookup.buildAnnotationCache(field, getter, setter);
 	}
 
-	/** The canonical property name (e.g. "firstName" from getFirstName() or field firstName). */
+	/**
+	 * The canonical property name (e.g. "firstName" from getFirstName() or field firstName).
+	 *
+	 * @return the property name
+	 */
 	public String getName() {
 		return this.name;
 	}
 
-	/** Full type information including generics. */
+	/**
+	 * Full type information including generics.
+	 *
+	 * @return the type information for this property
+	 */
 	public TypeInfo getTypeInfo() {
 		return this.typeInfo;
 	}
 
-	/** The raw type shortcut (equivalent to getTypeInfo().rawType()). */
+	/**
+	 * The raw type shortcut (equivalent to getTypeInfo().rawType()).
+	 *
+	 * @return the raw class of this property
+	 */
 	public Class<?> getType() {
 		return this.typeInfo.rawType();
 	}
 
-	/** The element/sub type shortcut (equivalent to getTypeInfo().elementType()). May be null. */
+	/**
+	 * The element/sub type shortcut (equivalent to getTypeInfo().elementType()). May be null.
+	 *
+	 * @return the element type, or null if not applicable
+	 */
 	public Class<?> getElementType() {
 		return this.typeInfo.elementType();
 	}
 
-	/** The underlying Field, or null if this property is method-only. */
+	/**
+	 * The underlying Field, or null if this property is method-only.
+	 *
+	 * @return the field, or null
+	 */
 	public Field getField() {
 		return this.field;
 	}
 
-	/** The getter Method, or null if no getter exists. */
+	/**
+	 * The getter Method, or null if no getter exists.
+	 *
+	 * @return the getter method, or null
+	 */
 	public Method getGetter() {
 		return this.getter;
 	}
 
-	/** The setter Method, or null if no setter exists. */
+	/**
+	 * The setter Method, or null if no setter exists.
+	 *
+	 * @return the setter method, or null
+	 */
 	public Method getSetter() {
 		return this.setter;
 	}
 
-	/** Whether this property can be set via a constructor parameter. */
+	/**
+	 * Whether this property can be set via a constructor parameter.
+	 *
+	 * @return {@code true} if settable via constructor
+	 */
 	public boolean isConstructorSettable() {
 		return this.constructorSettable;
 	}
 
-	/** Whether this property is read-only (final field with no setter). */
+	/**
+	 * Whether this property is read-only (final field with no setter).
+	 *
+	 * @return {@code true} if the property is read-only
+	 */
 	public boolean isReadOnly() {
 		return this.readOnly;
 	}
 
-	/** Whether a value can be read from this property. */
+	/**
+	 * Whether a value can be read from this property.
+	 *
+	 * @return {@code true} if a getter or field accessor is available
+	 */
 	public boolean canRead() {
 		return this.lambdaGetter != null;
 	}
 
-	/** Whether a value can be written to this property. */
+	/**
+	 * Whether a value can be written to this property.
+	 *
+	 * @return {@code true} if a setter, field accessor, or constructor parameter is available
+	 */
 	public boolean canWrite() {
 		return this.lambdaSetter != null || this.constructorSettable;
 	}
@@ -113,6 +157,8 @@ public final class PropertyDescriptor {
 	/**
 	 * Get a specific annotation, looking across field, getter, setter, and interfaces.
 	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to look for
 	 * @return the annotation instance, or null if not found anywhere
 	 */
 	public <A extends Annotation> A getAnnotation(final Class<A> annotationClass) {
@@ -121,6 +167,10 @@ public final class PropertyDescriptor {
 
 	/**
 	 * Check if an annotation is present on field, getter, setter, or their interfaces.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to check for
+	 * @return {@code true} if the annotation is present on any source
 	 */
 	public <A extends Annotation> boolean hasAnnotation(final Class<A> annotationClass) {
 		return UnifiedAnnotationLookup.has(this.annotationCache, annotationClass);
@@ -130,6 +180,10 @@ public final class PropertyDescriptor {
 	 * Get ALL instances of a repeatable annotation across all sources.
 	 * Unlike {@link #getAnnotation}, this collects from every source rather than
 	 * returning only the first match.
+	 *
+	 * @param <A> the annotation type
+	 * @param annotationClass the annotation class to collect
+	 * @return list of all annotation instances found across all sources
 	 */
 	public <A extends Annotation> List<A> getAnnotations(final Class<A> annotationClass) {
 		return UnifiedAnnotationLookup.getAll(this.field, this.getter, this.setter, annotationClass);
@@ -137,6 +191,8 @@ public final class PropertyDescriptor {
 
 	/**
 	 * Get all annotations (unmodifiable map).
+	 *
+	 * @return unmodifiable map of annotation class to annotation instance
 	 */
 	public Map<Class<? extends Annotation>, Annotation> getAllAnnotations() {
 		return this.annotationCache;
@@ -147,6 +203,8 @@ public final class PropertyDescriptor {
 	/**
 	 * Read the property value from an object instance using the pre-built lambda accessor.
 	 *
+	 * @param instance the object to read the property value from
+	 * @return the property value
 	 * @throws IntrospectionException if no getter is available or if the read fails
 	 */
 	public Object getValue(final Object instance) throws IntrospectionException {
@@ -163,6 +221,8 @@ public final class PropertyDescriptor {
 	/**
 	 * Write a value to the property on an object instance using the pre-built lambda accessor.
 	 *
+	 * @param instance the object to write the property value to
+	 * @param value the value to set
 	 * @throws IntrospectionException if no setter is available or if the write fails
 	 */
 	public void setValue(final Object instance, final Object value) throws IntrospectionException {
@@ -254,6 +314,9 @@ public final class PropertyDescriptor {
 		throw new IntrospectionException("Property '" + this.name + "' has no setter or field");
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String toString() {
 		return "PropertyDescriptor{name='" + this.name + "', type=" + this.typeInfo.rawType().getSimpleName()

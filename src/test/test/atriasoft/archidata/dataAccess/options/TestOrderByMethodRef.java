@@ -212,16 +212,16 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderItem_fluentSetter() {
-		final OrderItem item = new OrderItem(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName, Order.DESC);
+		final OrderItem item = new OrderItem((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName,
+				Order.DESC);
 		Assertions.assertEquals("name", item.value);
 		Assertions.assertEquals(Order.DESC, item.order);
 	}
 
 	@Test
 	public void testOrderItem_fluentSetter_columnRename() {
-		final OrderItem item = new OrderItem(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName, Order.ASC);
+		final OrderItem item = new OrderItem((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setFullName,
+				Order.ASC);
 		Assertions.assertEquals("full_name", item.value);
 	}
 
@@ -231,8 +231,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_ascFactory_fluentSetter() {
-		final OrderBy orderBy = OrderBy.asc(
-				(SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
+		final OrderBy orderBy = OrderBy.asc((SerializableBiFunction<FluentModel, String, ?>) FluentModel::setName);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(1, sort.getInteger("name"));
@@ -240,8 +239,7 @@ public class TestOrderByMethodRef {
 
 	@Test
 	public void testOrderBy_descFactory_fluentSetter() {
-		final OrderBy orderBy = OrderBy.desc(
-				(SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
+		final OrderBy orderBy = OrderBy.desc((SerializableBiFunction<FluentModel, Integer, ?>) FluentModel::setAge);
 		final Document sort = new Document();
 		orderBy.generateSort(sort);
 		Assertions.assertEquals(-1, sort.getInteger("age"));

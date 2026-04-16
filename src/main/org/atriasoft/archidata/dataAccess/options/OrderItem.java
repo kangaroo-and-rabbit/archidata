@@ -23,13 +23,25 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see OrderBy
  */
 public class OrderItem {
+	/** Sort direction for query results. */
 	public enum Order {
-		ASC, DESC
+		/** Ascending sort order. */
+		ASC,
+		/** Descending sort order. */
+		DESC
 	}
 
+	/** The field name to sort by. */
 	public final String value;
+	/** The sort direction. */
 	public final Order order;
 
+	/**
+	 * Constructs an OrderItem with the specified field name and sort direction.
+	 *
+	 * @param value the field name to sort by
+	 * @param order the sort direction
+	 */
 	public OrderItem(final String value, final Order order) {
 		this.value = value;
 		this.order = order;

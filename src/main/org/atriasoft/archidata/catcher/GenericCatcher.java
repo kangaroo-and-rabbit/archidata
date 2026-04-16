@@ -2,14 +2,17 @@ package org.atriasoft.archidata.catcher;
 
 import org.glassfish.jersey.server.ResourceConfig;
 
+/**
+ * Utility class that registers all standard exception catchers for consistent REST error handling.
+ */
 public class GenericCatcher {
 	private GenericCatcher() {
 		// Utility class
 	}
 
 	/**
-	 * Add All the the generic catcher to standardize returns.
-	 * @param rc Resource exception model.
+	 * Registers all standard exception catchers on the given resource configuration to standardize error responses.
+	 * @param rc the Jersey resource configuration to register catchers on
 	 */
 	public static void addAll(final ResourceConfig rc) {
 		// Generic Json parsing error

@@ -26,6 +26,13 @@ public class ManyToManyTools {
 	 * Add a bidirectional ManyToMany link.
 	 * Atomically adds valueToAdd to the local field's array AND adds
 	 * clazzPrimaryKeyValue to the remote field's array.
+	 *
+	 * @param ioDb                 The database access instance
+	 * @param clazz                The source entity class
+	 * @param clazzPrimaryKeyValue The primary key of the source entity
+	 * @param fieldNameToUpdate    The Java property name of the ManyToMany field
+	 * @param valueToAdd           The ID to add to the relationship
+	 * @throws Exception if the link addition fails
 	 */
 	public static void addLink(
 			final DBAccessMongo ioDb,
@@ -64,6 +71,13 @@ public class ManyToManyTools {
 	 * Remove a bidirectional ManyToMany link.
 	 * Atomically removes valueToRemove from the local field's array AND removes
 	 * clazzPrimaryKeyValue from the remote field's array.
+	 *
+	 * @param ioDb                 The database access instance
+	 * @param clazz                The source entity class
+	 * @param clazzPrimaryKeyValue The primary key of the source entity
+	 * @param fieldNameToUpdate    The Java property name of the ManyToMany field
+	 * @param valueToRemove        The ID to remove from the relationship
+	 * @throws Exception if the link removal fails
 	 */
 	public static void removeLink(
 			final DBAccessMongo ioDb,
@@ -101,6 +115,12 @@ public class ManyToManyTools {
 	/**
 	 * Rebuild all remote links for a ManyToMany field.
 	 * Useful after adding the annotation or correcting data.
+	 *
+	 * @param <T>         The entity type
+	 * @param clazz       The source entity class
+	 * @param fieldName   The Java property name of the ManyToMany field
+	 * @param resetRemote If true, clears the remote field on all target entities before rebuilding
+	 * @throws Exception if the rebuild operation fails
 	 */
 	public static <T> void updateRemoteLinks(final Class<T> clazz, final String fieldName, final boolean resetRemote)
 			throws Exception {

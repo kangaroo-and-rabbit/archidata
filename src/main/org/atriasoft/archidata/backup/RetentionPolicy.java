@@ -8,6 +8,10 @@ package org.atriasoft.archidata.backup;
  *   <li><b>keepWeeklyMonths</b>: Keep 1 backup per week for the last N months</li>
  * </ul>
  * Backups older than keepWeeklyMonths are deleted.
+ *
+ * @param keepAllDays number of days to keep all backups (must be non-negative)
+ * @param keepDailyMonths number of months to keep one daily backup (must be non-negative)
+ * @param keepWeeklyMonths number of months to keep one weekly backup (must be non-negative and &gt;= keepDailyMonths)
  */
 public record RetentionPolicy(
 		int keepAllDays,
@@ -19,6 +23,11 @@ public record RetentionPolicy(
 		this(7, 3, 24);
 	}
 
+	/**
+	 * Validates the retention policy parameters.
+	 *
+	 * @throws IllegalArgumentException if any parameter is negative or if keepWeeklyMonths is less than keepDailyMonths
+	 */
 	public RetentionPolicy {
 		if (keepAllDays < 0) {
 			throw new IllegalArgumentException("keepAllDays must be >= 0, got: " + keepAllDays);

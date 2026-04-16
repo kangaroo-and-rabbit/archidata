@@ -43,6 +43,7 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the array field
 	 * @param valueToAdd the value to add to the array
+	 * @throws Exception if the update operation fails
 	 */
 	public static void addToList(
 			final DBAccessMongo ioDb,
@@ -85,6 +86,7 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the array field
 	 * @param valueToRemove the value to remove from the array
+	 * @throws Exception if the update operation fails
 	 */
 	public static void removeFromList(
 			final DBAccessMongo ioDb,
@@ -129,6 +131,7 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the field
 	 * @param value the value to set (null will use $unset)
+	 * @throws Exception if the update operation fails
 	 */
 	public static void setField(
 			final DBAccessMongo ioDb,
@@ -173,7 +176,8 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the field
 	 * @param newValue the new value to set
-	 * @return the previous value, or null if not set
+	 * @return the previous value, or null if not set or unchanged
+	 * @throws Exception if the update operation fails
 	 */
 	public static Object setFieldAndGetPrevious(
 			final DBAccessMongo ioDb,
@@ -223,9 +227,10 @@ public final class MongoLinkManager {
 	 *
 	 * @param ioDb the DB access instance
 	 * @param clazz the target entity class
-	 * @param filterFieldName the DB column name to filter on
+	 * @param filterFieldName the DB column name to filter on (null for no filter)
 	 * @param filterValue the value to match
 	 * @param fieldToNullify the DB column name of the field to set to null
+	 * @throws Exception if the update operation fails
 	 */
 	public static void setFieldToNullWhere(
 			final DBAccessMongo ioDb,
@@ -268,6 +273,7 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the array field
 	 * @param valuesToAdd the values to add to the array
+	 * @throws Exception if the update operation fails
 	 */
 	public static void addAllToList(
 			final DBAccessMongo ioDb,
@@ -311,6 +317,7 @@ public final class MongoLinkManager {
 	 * @param primaryKeyValue the primary key of the document to update
 	 * @param fieldColumnName the DB column name of the array field
 	 * @param valuesToRemove the values to remove from the array
+	 * @throws Exception if the update operation fails
 	 */
 	public static void removeAllFromList(
 			final DBAccessMongo ioDb,

@@ -13,6 +13,12 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Utility class for parsing and serializing dates using ISO 8601 and related formats.
+ *
+ * <p>Supports flexible date/time parsing with optional timezone, and serialization to
+ * millisecond or nanosecond precision in UTC or original timezone.</p>
+ */
 public class DateTools {
 	private DateTools() {
 		// Utility class
@@ -91,7 +97,7 @@ public class DateTools {
 	}
 
 	/**
-	 *  Formatter for date-time with milliseconds and original timezone offset (e.g., 2025-04-06T15:00:00.123+02:00)
+	 * Formatter for date-time with milliseconds and original timezone offset (e.g., 2025-04-06T15:00:00.123+02:00).
 	 */
 	public static final DateTimeFormatter PATTERN_MS_TIME_WITH_ZONE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd'T'HH:mm:ss'.'SSSXXX");
@@ -99,6 +105,8 @@ public class DateTools {
 	/**
 	 * Serializes an OffsetDateTime to a string including milliseconds and the original timezone offset.
 	 * Example output: 2025-04-06T15:00:00.123+02:00
+	 * @param offsetDateTime The date-time to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeMilliWithOriginalTimeZone(final OffsetDateTime offsetDateTime) {
 		if (offsetDateTime == null) {
@@ -110,6 +118,8 @@ public class DateTools {
 	/**
 	 * Converts a java.util.Date to OffsetDateTime using the system's default timezone,
 	 * then serializes it to a string with milliseconds and original timezone offset.
+	 * @param date The date to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeMilliWithOriginalTimeZone(final Date date) {
 		if (date == null) {
@@ -126,6 +136,8 @@ public class DateTools {
 	/**
 	 * Serializes an OffsetDateTime to a string with milliseconds in UTC.
 	 * The offset is explicitly changed to UTC before formatting.
+	 * @param offsetDateTime The date-time to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeMilliWithUTCTimeZone(final OffsetDateTime offsetDateTime) {
 		if (offsetDateTime == null) {
@@ -137,6 +149,8 @@ public class DateTools {
 	/**
 	 * Converts a java.util.Date to OffsetDateTime in the system's default timezone,
 	 * then serializes it with milliseconds in UTC.
+	 * @param date The date to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeMilliWithUTCTimeZone(final Date date) {
 		if (date == null) {
@@ -153,6 +167,8 @@ public class DateTools {
 
 	/**
 	 * Serializes an OffsetDateTime to a string with nanosecond precision in UTC.
+	 * @param offsetDateTime The date-time to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeNanoWithUTCTimeZone(final OffsetDateTime offsetDateTime) {
 		if (offsetDateTime == null) {
@@ -164,6 +180,8 @@ public class DateTools {
 	/**
 	 * Converts a java.util.Date to OffsetDateTime in the system's default timezone,
 	 * then serializes it with nanoseconds in UTC.
+	 * @param date The date to serialize.
+	 * @return The formatted string, or {@code null} if the input is {@code null}.
 	 */
 	public static String serializeNanoWithUTCTimeZone(final Date date) {
 		if (date == null) {

@@ -8,9 +8,18 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 
+/**
+ * JAX-RS exception mapper that catches {@link WebApplicationException} instances
+ * and converts them into standardized JSON error responses.
+ */
 public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplicationException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WebApplicationExceptionCatcher.class);
 
+	/**
+	 * Maps a {@link WebApplicationException} to a JSON error response, preserving the original HTTP status code.
+	 * @param exception the WebApplicationException that was thrown
+	 * @return a {@link Response} containing the error details as JSON
+	 */
 	@Override
 	public Response toResponse(final WebApplicationException exception) {
 		final RestErrorResponse ret = build(exception);

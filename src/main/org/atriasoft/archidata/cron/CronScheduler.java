@@ -16,6 +16,11 @@ import org.slf4j.LoggerFactory;
  * Cron scheduler with producer/consumer threads.
  */
 public class CronScheduler {
+	/** Constructs a new CronScheduler with empty task maps and queue. */
+	public CronScheduler() {
+		// default constructor
+	}
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(CronScheduler.class);
 	private final Map<String, CronTask> cronTasks = new ConcurrentHashMap<>();
 	private final Map<String, ScheduledTask> scheduledTasks = new ConcurrentHashMap<>();
@@ -26,7 +31,9 @@ public class CronScheduler {
 	private Integer gracePeriodMinutes = null;
 
 	/**
-	 * Set a grace period (in minutes) to ignore tasks after start.
+	 * Sets a grace period (in minutes) to delay task execution after scheduler start.
+	 *
+	 * @param minutes the number of minutes to wait before processing tasks, or {@code null} to disable
 	 */
 	public void setGracePeriodMinutes(final Integer minutes) {
 		if (minutes == null || minutes <= 0) {
@@ -44,7 +51,8 @@ public class CronScheduler {
 	}
 
 	/**
-	 * Start scheduler: producer scans every 5s, consumer executes.
+	 * Starts the scheduler with a producer thread that scans for due tasks
+	 * and a consumer thread that executes them.
 	 */
 	public synchronized void start() {
 		if (this.producerThread != null && !this.producerThread.isShutdown()) {
@@ -142,7 +150,8 @@ public class CronScheduler {
 	}
 
 	/**
-	 * Stop scheduler threads.
+	 * Stops the scheduler by shutting down both the producer and consumer threads
+	 * and clearing the task queue.
 	 */
 	public synchronized void stop() {
 		LOGGER.debug("Request STOP CRON");
@@ -156,18 +165,16 @@ public class CronScheduler {
 	}
 
 	/**
-	 * Add a task.
-	 * @param name task name
-	 * @param cronExpression cron expression ("minute hour dayofMonth month dayOfWeek")
-	 *        minute(0-59) hour(0 - 23) dayofMonth(1 - 31) month(1 - 12) dayOfWeek(0 - 6)
-	 *        With value format:
-	 *          - "*": All the values.
-	 *          - "*\/5": all the 5 unit"
-	 *          - "1-5" Values include between 1 and 5 units.
-	 *          - "1,5,6": Values equal at 1, 5 and 6.
-	 *          - "1-5,10,20-22": 1 à 5 or 10 or 20 à 22.
-	 * @param action lambda to execute
-	 * @param uniqueInQueue if true, only one pending instance in queue
+	 * Adds a recurring cron task with a cron expression schedule.
+	 *
+	 * @param name task name (generated if null or empty)
+	 * @param cronExpression cron expression ("minute hour dayOfMonth month dayOfWeek")
+	 *        minute(0-59) hour(0-23) dayOfMonth(1-31) month(1-12) dayOfWeek(1-7).
+	 *        Value formats: "*" (all), "*\/5" (every 5), "1-5" (range), "1,5,6" (list),
+	 *        "1-5,10,20-22" (combined)
+	 * @param action the action to execute
+	 * @param uniqueInQueue if {@code true}, only one pending instance in queue
+	 * @throws IllegalArgumentException if the cron expression is invalid
 	 */
 	public void addTask(String name, final String cronExpression, final Runnable action, final boolean uniqueInQueue)
 			throws IllegalArgumentException {
@@ -179,10 +186,25 @@ public class CronScheduler {
 		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
 	}
 
+	/**
+	 * Adds a cron task with the default unique-in-queue behavior (unique).
+	 *
+	 * @param name the task name (generated if null or empty)
+	 * @param cronExpression the cron expression defining the schedule
+	 * @param action the action to execute
+	 */
 	public void addTask(final String name, final String cronExpression, final Runnable action) {
 		addTask(name, cronExpression, action, true);
 	}
 
+	/**
+	 * Adds a one-time scheduled task to execute at the specified date and time.
+	 *
+	 * @param name the task name (generated if null or empty)
+	 * @param executeAt the date and time at which the task should execute (must be in the future)
+	 * @param action the action to execute
+	 * @throws IllegalArgumentException if executeAt is in the past
+	 */
 	public void addTask(String name, final LocalDateTime executeAt, final Runnable action) {
 		if (executeAt == null || executeAt.isBefore(LocalDateTime.now().minusMinutes(1))) {
 			throw new IllegalArgumentException("Execution time must be in the future (1 minute delta)");
@@ -194,6 +216,11 @@ public class CronScheduler {
 		LOGGER.info("Add scheduled task '{}' at {}", name, executeAt);
 	}
 
+	/**
+	 * Adds an immediate one-time task that executes as soon as possible.
+	 *
+	 * @param action the action to execute
+	 */
 	public void addTask(final Runnable action) {
 		final String name = new ObjectId().toString();
 		final LocalDateTime date = LocalDateTime.now();
@@ -202,7 +229,9 @@ public class CronScheduler {
 	}
 
 	/**
-	 * Remove a task.
+	 * Removes a cron task by name.
+	 *
+	 * @param name the name of the task to remove
 	 */
 	public void removeTask(final String name) {
 		LOGGER.debug("remove task name '{}'", name);

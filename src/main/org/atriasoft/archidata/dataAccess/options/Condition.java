@@ -58,10 +58,23 @@ public class Condition extends QueryOption {
 		this.bsonFilter = null;
 	}
 
+	/**
+	 * Returns the raw BSON filter.
+	 *
+	 * @return the BSON filter, or {@code null} if no filter was set
+	 */
 	public Bson getFilter() {
 		return this.bsonFilter;
 	}
 
+	/**
+	 * Builds a composite BSON filter that combines this condition with deletion exclusion logic.
+	 *
+	 * @param collectionName the name of the collection being queried
+	 * @param options the query options to check for {@link AccessDeletedItems}
+	 * @param deletedFieldName the name of the soft-delete field, or {@code null} if none
+	 * @return the combined BSON filter, or {@code null} if no filtering is needed
+	 */
 	public Bson getFilter(final String collectionName, final QueryOptions options, final String deletedFieldName) {
 		boolean exclude_deleted = true;
 		if (options != null) {

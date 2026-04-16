@@ -1,6 +1,8 @@
 package org.atriasoft.archidata.tools;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +19,6 @@ import org.apache.tika.Tika;
 import org.atriasoft.archidata.api.DataResource;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
-import com.mongodb.client.model.Filters;
 import org.atriasoft.archidata.dataAccess.commonTools.ListInDbTools;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
@@ -36,6 +37,13 @@ import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 
+/**
+ * Utility class for managing binary data (files, images, audio, video) storage.
+ *
+ * <p>Provides methods for uploading, saving, and retrieving binary data with SHA-512 checksum
+ * deduplication. Files are first saved to a temporary location, then moved to their permanent
+ * storage path once registered in the database.</p>
+ */
 public class DataTools {
 
 	private DataTools() {
@@ -44,27 +52,44 @@ public class DataTools {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataTools.class);
 
+	/** Read/write chunk size for streaming operations (1 MB). */
 	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
-	/**
-	 * Upload some data
-	 */
+	/** Input buffer size for file uploads (50 MB). */
+	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
+	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
+	/** Supported image MIME types for upload validation. */
 	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
+	/** Supported audio MIME types for upload validation. */
 	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
+	/** Supported video MIME types for upload validation. */
 	public static final String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
 
+	/**
+	 * Creates a directory (and parent directories) if it does not already exist.
+	 * @param path The directory path to create.
+	 * @throws IOException If the directory cannot be created.
+	 */
 	public static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
-			LOGGER.info("Create folder: " + path);
+			LOGGER.info("Create folder: {}", path);
 			Files.createDirectories(java.nio.file.Path.of(path));
 		}
 	}
 
+	/**
+	 * Returns the next unique temporary data identifier.
+	 * @return A unique long identifier for temporary file storage.
+	 */
 	public static long getTmpDataId() {
 		return tmpFolderId++;
 	}
 
+	/**
+	 * Returns the file path for a temporary data file, creating the temporary directory if needed.
+	 * @param tmpFolderId The unique identifier for the temporary file.
+	 * @return The absolute path to the temporary file.
+	 */
 	public static String getTmpFileInData(final long tmpFolderId) {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
 		try {
@@ -75,6 +100,10 @@ public class DataTools {
 		return filePath;
 	}
 
+	/**
+	 * Returns a unique temporary folder path and creates the parent directory if needed.
+	 * @return The absolute path to a new temporary folder.
+	 */
 	public static String getTmpFolder() {
 		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
 		try {
@@ -85,6 +114,12 @@ public class DataTools {
 		return filePath;
 	}
 
+	/**
+	 * Retrieves a {@link Data} record matching the given SHA-512 hash.
+	 * @param ioDb The database access instance.
+	 * @param sha512 The SHA-512 hash to search for.
+	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 */
 	public static Data getWithSha512(final DBAccessMongo ioDb, final String sha512) {
 		try {
 			return ioDb.get(Data.class, new Condition(Filters.eq("sha512", sha512)), new ReadAllColumn());
@@ -94,6 +129,12 @@ public class DataTools {
 		return null;
 	}
 
+	/**
+	 * Retrieves a non-deleted {@link Data} record by its numeric identifier.
+	 * @param ioDb The database access instance.
+	 * @param id The numeric identifier to search for.
+	 * @return The matching {@link Data} record, or {@code null} if not found or deleted.
+	 */
 	public static Data getWithId(final DBAccessMongo ioDb, final long id) {
 		try {
 			return ioDb.get(Data.class, new Condition(Filters.and(Filters.eq("deleted", false), Filters.eq("id", id))));
@@ -103,6 +144,16 @@ public class DataTools {
 		return null;
 	}
 
+	/**
+	 * Creates a new {@link Data} record in the database and moves the temporary file to permanent storage.
+	 * @param ioDb The database access instance.
+	 * @param tmpUID The temporary file identifier.
+	 * @param originalFileName The original file name.
+	 * @param sha512 The SHA-512 hash of the file content.
+	 * @param mimeType The MIME type of the file.
+	 * @return The newly created {@link Data} record, or {@code null} on insertion failure.
+	 * @throws IOException If the file cannot be moved.
+	 */
 	public static Data createNewData(
 			final DBAccessMongo ioDb,
 			final long tmpUID,
@@ -138,6 +189,15 @@ public class DataTools {
 		return out;
 	}
 
+	/**
+	 * Creates a new {@link Data} record, determining the MIME type from the file extension.
+	 * @param ioDb The database access instance.
+	 * @param tmpUID The temporary file identifier.
+	 * @param originalFileName The original file name (used to determine MIME type).
+	 * @param sha512 The SHA-512 hash of the file content.
+	 * @return The newly created {@link Data} record.
+	 * @throws IOException If the MIME type cannot be determined or the file cannot be moved.
+	 */
 	public static Data createNewData(
 			final DBAccessMongo ioDb,
 			final long tmpUID,
@@ -158,6 +218,11 @@ public class DataTools {
 		return createNewData(ioDb, tmpUID, originalFileName, sha512, mimeType);
 	}
 
+	/**
+	 * Restores a soft-deleted {@link Data} record by its ObjectId.
+	 * @param ioDb The database access instance.
+	 * @param oid The ObjectId of the record to restore.
+	 */
 	public static void undelete(final DBAccessMongo ioDb, final ObjectId oid) {
 		try {
 			ioDb.restoreById(Data.class, oid);
@@ -166,14 +231,30 @@ public class DataTools {
 		}
 	}
 
+	/**
+	 * Saves an input stream to a temporary file and returns its SHA-512 hash.
+	 * @param uploadedInputStream The input stream to save.
+	 * @param idData The temporary file identifier.
+	 * @return The SHA-512 hex string of the saved data.
+	 */
 	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData) {
 		return saveFile(uploadedInputStream, getTmpFileInData(idData));
 	}
 
+	/**
+	 * Saves a byte array to a temporary file and returns its SHA-512 hash.
+	 * @param uploadedInputStream The byte array to save.
+	 * @param idData The temporary file identifier.
+	 * @return The SHA-512 hex string of the saved data.
+	 */
 	public static String saveTemporaryFile(final byte[] uploadedInputStream, final long idData) {
 		return saveFile(uploadedInputStream, getTmpFileInData(idData));
 	}
 
+	/**
+	 * Deletes a temporary file if it exists.
+	 * @param idData The temporary file identifier.
+	 */
 	public static void removeTemporaryFile(final long idData) {
 		final String filepath = getTmpFileInData(idData);
 		if (Files.exists(Paths.get(filepath))) {
@@ -185,22 +266,26 @@ public class DataTools {
 		}
 	}
 
-	// save uploaded file to a defined location on the server
+	/**
+	 * Saves an input stream to a file and computes its SHA-512 hash.
+	 * @param uploadedInputStream The input stream to save.
+	 * @param serverLocation The destination file path.
+	 * @return The SHA-512 hex string of the saved data, or an empty string on error.
+	 */
 	public static String saveFile(final InputStream uploadedInputStream, final String serverLocation) {
 		String out = "";
 		try {
 			int read = 0;
 			final byte[] bytes = new byte[CHUNK_SIZE_IN];
 			final MessageDigest md = MessageDigest.getInstance("SHA-512");
-			final OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
-			while ((read = uploadedInputStream.read(bytes)) != -1) {
-				// logger.debug("write {}", read);
-				md.update(bytes, 0, read);
-				outpuStream.write(bytes, 0, read);
+			try (final OutputStream outputStream = new FileOutputStream(new File(serverLocation))) {
+				while ((read = uploadedInputStream.read(bytes)) != -1) {
+					md.update(bytes, 0, read);
+					outputStream.write(bytes, 0, read);
+				}
+				LOGGER.info("Flush input stream ... {}", serverLocation);
+				outputStream.flush();
 			}
-			LOGGER.info("Flush input stream ... {}", serverLocation);
-			outpuStream.flush();
-			outpuStream.close();
 			// create the end of sha512
 			final byte[] sha512Digest = md.digest();
 			// convert in hexadecimal
@@ -214,17 +299,22 @@ public class DataTools {
 		return out;
 	}
 
+	/**
+	 * Saves a byte array to a file and computes its SHA-512 hash.
+	 * @param bytes The byte array to save.
+	 * @param serverLocation The destination file path.
+	 * @return The SHA-512 hex string of the saved data, or an empty string on error.
+	 */
 	public static String saveFile(final byte[] bytes, final String serverLocation) {
 		String out = "";
 		try {
-			final OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			final MessageDigest md = MessageDigest.getInstance("SHA-512");
-			md.update(bytes, 0, bytes.length);
-			outpuStream.write(bytes, 0, bytes.length);
-
-			LOGGER.info("Flush input stream ... {}", serverLocation);
-			outpuStream.flush();
-			outpuStream.close();
+			try (final OutputStream outputStream = new FileOutputStream(new File(serverLocation))) {
+				md.update(bytes, 0, bytes.length);
+				outputStream.write(bytes, 0, bytes.length);
+				LOGGER.info("Flush input stream ... {}", serverLocation);
+				outputStream.flush();
+			}
 			// create the end of sha512
 			final byte[] sha512Digest = md.digest();
 			// convert in hexadecimal
@@ -237,12 +327,11 @@ public class DataTools {
 		return out;
 	}
 
-	// curl http://localhost:9993/api/users/3
-	// @Secured
-	/* @GET
-	 * @Path("{id}") //@RolesAllowed("GUEST")
-	 * @Produces(MediaType.APPLICATION_OCTET_STREAM) public Response retriveData(@HeaderParam("Range") String range, @PathParam("id") Long id) throws Exception { return retriveDataFull(range, id,
-	 * "no-name"); } */
+	/**
+	 * Converts a byte array to its lowercase hexadecimal string representation.
+	 * @param bytes The byte array to convert.
+	 * @return The hexadecimal string.
+	 */
 	public static String bytesToHex(final byte[] bytes) {
 		final StringBuilder sb = new StringBuilder();
 		for (final byte b : bytes) {
@@ -251,6 +340,11 @@ public class DataTools {
 		return sb.toString();
 	}
 
+	/**
+	 * Normalizes multipart form data values by converting empty, "null", and "undefined" strings to {@code null}.
+	 * @param data The raw multipart form value.
+	 * @return The original value, or {@code null} if the value is empty or represents a null/undefined value.
+	 */
 	public static String multipartCorrection(final String data) {
 		if (data == null) {
 			return null;
@@ -267,12 +361,45 @@ public class DataTools {
 		return data;
 	}
 
+	/**
+	 * Detects the MIME type of binary data using Apache Tika.
+	 * @param data The binary content to analyze.
+	 * @return The detected MIME type string.
+	 */
 	public static String getMimeType(final byte[] data) {
 		final Tika tika = new Tika();
 		final String mimeType = tika.detect(data);
 		return mimeType;
 	}
 
+	/**
+	 * Detects the MIME type of a file by reading its first bytes using Apache Tika.
+	 * This is suitable for large files as it only reads the header.
+	 * @param filePath The path to the file to analyze.
+	 * @return The detected MIME type string.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static String getMimeTypeFromFile(final String filePath) throws IOException {
+		final Tika tika = new Tika();
+		try (final InputStream is = new BufferedInputStream(new FileInputStream(filePath))) {
+			return tika.detect(is);
+		}
+	}
+
+	/** All MIME types accepted for generic file upload. */
+	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp",
+			"audio/x-matroska", "video/x-matroska", "video/webm" };
+
+	/**
+	 * Downloads an image from a URI and attaches it as a cover to a database entity.
+	 * @param <CLASS_TYPE> The entity class type.
+	 * @param <ID_TYPE> The entity identifier type.
+	 * @param ioDb The database access instance.
+	 * @param clazz The entity class.
+	 * @param id The entity identifier.
+	 * @param url The URL to download the image from.
+	 * @throws Exception If the download fails, the entity is not found, or the MIME type is unsupported.
+	 */
 	public static <CLASS_TYPE, ID_TYPE> void uploadCoverFromUri(
 			final DBAccessMongo ioDb,
 			final Class<CLASS_TYPE> clazz,
@@ -281,6 +408,8 @@ public class DataTools {
 
 		LOGGER.info("    - id: {}", id);
 		LOGGER.info("    - url: {} ", url);
+		// Validate URL against SSRF attacks before fetching
+		SsrfGuard.validateUrl(url);
 		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
 			throw new InputException(clazz.getCanonicalName(),
@@ -317,7 +446,7 @@ public class DataTools {
 		final String mimeType = getMimeType(dataResponse);
 		if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
 			throw new FailException(Response.Status.NOT_ACCEPTABLE,
-					clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not accesptable: " + mimeType
+					clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not acceptable: " + mimeType
 							+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 
 		}
@@ -340,7 +469,15 @@ public class DataTools {
 		ListInDbTools.addLink(clazz, id, null, data.getOid());
 	}
 
+	/**
+	 * Downloads data from a URI and stores it in the database.
+	 * @param url The URL to download from.
+	 * @return The ObjectId of the stored {@link Data} record.
+	 * @throws Exception If the download fails or the MIME type is unsupported.
+	 */
 	public static ObjectId uploadDataFromUri(final String url) throws Exception {
+		// Validate URL against SSRF attacks before fetching
+		SsrfGuard.validateUrl(url);
 		// Download data:
 		final Client client = ClientBuilder.newClient();
 		byte[] dataResponse = null;
@@ -368,8 +505,8 @@ public class DataTools {
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
 			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
-				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not accesptable: "
-						+ mimeType + "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not acceptable: " + mimeType
+						+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 			}
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");
@@ -390,6 +527,15 @@ public class DataTools {
 		}
 	}
 
+	/**
+	 * Uploads a file from a multipart form submission and stores it in the database.
+	 * @param <CLASS_TYPE> The entity class type.
+	 * @param <ID_TYPE> The entity identifier type.
+	 * @param fileInputStream The uploaded file input stream.
+	 * @param fileMetaData The multipart form metadata (file name, etc.).
+	 * @return The ObjectId of the stored {@link Data} record.
+	 * @throws Exception If the upload or database insertion fails.
+	 */
 	public static <CLASS_TYPE, ID_TYPE> ObjectId uploadData(
 			final InputStream fileInputStream,
 			final FormDataContentDisposition fileMetaData) throws Exception {
@@ -402,6 +548,13 @@ public class DataTools {
 
 			final long tmpUID = getTmpDataId();
 			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
+			// Validate MIME type from actual file content (not just extension)
+			final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
+			if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
+				removeTemporaryFile(tmpUID);
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
+						+ detectedMimeType + " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
+			}
 			Data data = getWithSha512(ioDb, sha512);
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");
@@ -422,6 +575,16 @@ public class DataTools {
 		}
 	}
 
+	/**
+	 * Uploads a cover image from a multipart form submission and attaches it to a database entity.
+	 * @param <CLASS_TYPE> The entity class type.
+	 * @param <ID_TYPE> The entity identifier type.
+	 * @param clazz The entity class.
+	 * @param id The entity identifier.
+	 * @param fileInputStream The uploaded file input stream.
+	 * @param fileMetaData The multipart form metadata.
+	 * @throws Exception If the entity is not found or the upload fails.
+	 */
 	public static <CLASS_TYPE, ID_TYPE> void uploadCover(
 			final Class<CLASS_TYPE> clazz,
 			final ID_TYPE id,

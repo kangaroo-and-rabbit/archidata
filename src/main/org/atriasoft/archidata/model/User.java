@@ -24,6 +24,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import jakarta.ws.rs.DefaultValue;
 
+/**
+ * Represents a user entity with login credentials, connection tracking, blocking capabilities, and cover images.
+ */
 @Table(name = "user")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
@@ -54,42 +57,82 @@ public class User extends OIDGenericDataSoftDelete {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private List<ObjectId> covers;
 
+	/**
+	 * Gets the login name of this user.
+	 * @return the login name
+	 */
 	public String getLogin() {
 		return this.login;
 	}
 
+	/**
+	 * Sets the login name of this user.
+	 * @param login the login name to set
+	 */
 	public void setLogin(final String login) {
 		this.login = login;
 	}
 
+	/**
+	 * Gets the timestamp of the user's last connection.
+	 * @return the last connection date
+	 */
 	public Date getLastConnection() {
 		return this.lastConnection;
 	}
 
+	/**
+	 * Sets the timestamp of the user's last connection.
+	 * @param lastConnection the last connection date to set
+	 */
 	public void setLastConnection(final Date lastConnection) {
 		this.lastConnection = lastConnection;
 	}
 
+	/**
+	 * Gets the blocked state of this user.
+	 * @return {@code true} if the user is blocked, {@code false} otherwise
+	 */
 	public Boolean getBlocked() {
 		return this.blocked;
 	}
 
+	/**
+	 * Sets the blocked state of this user.
+	 * @param blocked {@code true} to block the user, {@code false} to unblock
+	 */
 	public void setBlocked(final Boolean blocked) {
 		this.blocked = blocked;
 	}
 
+	/**
+	 * Gets the reason why this user is blocked.
+	 * @return the blocked reason, or {@code null} if not blocked
+	 */
 	public String getBlockedReason() {
 		return this.blockedReason;
 	}
 
+	/**
+	 * Sets the reason why this user is blocked.
+	 * @param blockedReason the blocked reason to set
+	 */
 	public void setBlockedReason(final String blockedReason) {
 		this.blockedReason = blockedReason;
 	}
 
+	/**
+	 * Gets the list of cover image identifiers for this user.
+	 * @return the list of cover ObjectIds
+	 */
 	public List<ObjectId> getCovers() {
 		return this.covers;
 	}
 
+	/**
+	 * Sets the list of cover image identifiers for this user.
+	 * @param covers the list of cover ObjectIds to set
+	 */
 	public void setCovers(final List<ObjectId> covers) {
 		this.covers = covers;
 	}

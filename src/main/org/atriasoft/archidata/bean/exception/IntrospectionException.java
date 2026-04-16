@@ -8,10 +8,19 @@ public class IntrospectionException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Constructs a new IntrospectionException with the specified detail message.
+	 * @param message the detail message describing the introspection error
+	 */
 	public IntrospectionException(final String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructs a new IntrospectionException with the specified detail message and cause.
+	 * @param message the detail message describing the introspection error
+	 * @param cause the underlying cause of this exception
+	 */
 	public IntrospectionException(final String message, final Throwable cause) {
 		super(message, cause);
 	}

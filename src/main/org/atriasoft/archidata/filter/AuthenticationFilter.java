@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
+import org.atriasoft.archidata.annotation.security.RightAllowed;
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.model.UserByToken;
@@ -37,6 +38,14 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
+/**
+ * JAX-RS request filter that handles authentication and authorization.
+ *
+ * <p>
+ * This filter intercepts incoming requests, validates JWT or API key tokens,
+ * and checks role-based access permissions before allowing access to secured resources.
+ * </p>
+ */
 //@PreMatching
 @Provider
 @Priority(Priorities.AUTHENTICATION)
@@ -44,21 +53,42 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 	@Context
 	private ResourceInfo resourceInfo;
+	/** The application name used as a prefix for role-based access control. */
 	protected final String applicationName;
+	/** The JWT issuer used for token validation. */
 	protected final String issuer;
 
+	/** The Bearer authentication scheme identifier. */
 	public static final String AUTHENTICATION_SCHEME = "Bearer";
+	/** The API key header name. */
 	public static final String APIKEY = "ApiKey";
 
+	/**
+	 * Constructs an authentication filter with the given application name and default issuer "Karso".
+	 *
+	 * @param applicationName the application name used for role-based access control
+	 */
 	public AuthenticationFilter(final String applicationName) {
-		this(applicationName, "KarAuth");
+		this(applicationName, "Karso");
 	}
 
+	/**
+	 * Constructs an authentication filter with the given application name and issuer.
+	 *
+	 * @param applicationName the application name used for role-based access control
+	 * @param issuer the JWT issuer identifier for token validation
+	 */
 	public AuthenticationFilter(final String applicationName, final String issuer) {
 		this.applicationName = applicationName;
 		this.issuer = issuer;
 	}
 
+	/**
+	 * Retrieves the full resource path of the current request by combining class and method path annotations.
+	 *
+	 * @param requestContext the container request context
+	 * @return the full resource path
+	 */
 	public String getRequestedPath(final ContainerRequestContext requestContext) {
 		final Class<?> resourceClass = this.resourceInfo.getResourceClass();
 		final Method resourceMethod = this.resourceInfo.getResourceMethod();
@@ -73,6 +103,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		return fullPath;
 	}
 
+	/**
+	 * Filters incoming requests to enforce authentication and authorization.
+	 *
+	 * <p>
+	 * Validates tokens (JWT or API key), checks role-based access, and sets the security context.
+	 * </p>
+	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
@@ -93,8 +130,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			return;
 		}
 		// this is a security guard, all the API must define their access level:
-		if (!AnnotationTools.methodHasAnnotation(method, RolesAllowed.class)) {
-			LOGGER.error("   ==> missing @RolesAllowed {}", requestContext.getUriInfo().getPath());
+		final boolean hasRolesAllowed = AnnotationTools.methodHasAnnotation(method, RolesAllowed.class);
+		final boolean hasRightAllowed = AnnotationTools.methodHasAnnotation(method, RightAllowed.class);
+		if (!hasRolesAllowed && !hasRightAllowed) {
+			LOGGER.error("   ==> missing @RolesAllowed or @RightAllowed {}", requestContext.getUriInfo().getPath());
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
@@ -166,23 +205,32 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
 		final MySecurityContext userContext = new MySecurityContext(userByToken, scheme);
-		// retrieve the allowed right:
-		final RolesAllowed rolesAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
-				RolesAllowed.class);
-		final List<String> roles = Arrays.asList(rolesAnnotation.value());
-		// check if the user have the right:
-		boolean haveRight = false;
-		try {
-			haveRight = checkRight(requestContext, userContext, roles);
-		} catch (final SystemException e) {
-			LOGGER.error("Failed to check rights: {}", e.getMessage(), e);
+		// check roles if @RolesAllowed is present:
+		boolean roleOk = true;
+		if (hasRolesAllowed) {
+			final RolesAllowed rolesAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
+					RolesAllowed.class);
+			final List<String> roles = Arrays.asList(rolesAnnotation.value());
+			try {
+				roleOk = checkRole(requestContext, userContext, roles);
+			} catch (final SystemException e) {
+				LOGGER.error("Failed to check roles: {}", e.getMessage(), e);
+				roleOk = false;
+			}
+		}
+		// check rights if @RightAllowed is present:
+		boolean rightOk = true;
+		if (hasRightAllowed) {
+			final RightAllowed rightAnnotation = AnnotationTools.getAnnotationIncludingInterfaces(method,
+					RightAllowed.class);
+			rightOk = checkResourceRight(userContext, rightAnnotation.right(), rightAnnotation.access());
 		}
 
-		// Is user valid?
-		if (!haveRight) {
-			LOGGER.error("REJECTED not enought right : {} require: {}", requestContext.getUriInfo().getPath(), roles);
+		// Both must pass (AND logic):
+		if (!roleOk || !rightOk) {
+			LOGGER.error("REJECTED not enough rights : {}", requestContext.getUriInfo().getPath());
 			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enought RIGHT !!!"))
+					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enough RIGHT !!!"))
 					.build());
 			return;
 		}
@@ -190,7 +238,16 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// logger.debug("Get local user : {} / {}", user, userByToken);
 	}
 
-	protected boolean checkRight(
+	/**
+	 * Checks whether the authenticated user has at least one of the required roles (OR logic).
+	 *
+	 * @param requestContext the container request context
+	 * @param userContext the security context containing user information
+	 * @param roles the list of allowed roles
+	 * @return {@code true} if the user has at least one required role
+	 * @throws SystemException if an error occurs during role verification
+	 */
+	protected boolean checkRole(
 			final ContainerRequestContext requestContext,
 			final MySecurityContext userContext,
 			final List<String> roles) throws SystemException {
@@ -200,6 +257,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Checks whether the authenticated user has the required access level for a fine-grained right.
+	 *
+	 * @param userContext the security context containing user information
+	 * @param rightName the right name to check (e.g., "articles")
+	 * @param requiredAccess the required access level
+	 * @return {@code true} if the user has the required access level
+	 */
+	protected boolean checkResourceRight(
+			final MySecurityContext userContext,
+			final String rightName,
+			final PartRight requiredAccess) {
+		return userContext.hasResourceRight(this.applicationName, rightName, requiredAccess);
 	}
 
 	private boolean isTokenBasedAuthenticationBearer(final String authorizationHeader) {
@@ -237,18 +309,40 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				.type(MediaType.APPLICATION_JSON).build());
 	}
 
+	/**
+	 * Validates an API key token and returns the associated user.
+	 *
+	 * <p>
+	 * This method should be overridden by application implementations.
+	 * </p>
+	 *
+	 * @param authorization the API key token string
+	 * @return the user associated with the token, or {@code null} if invalid
+	 * @throws Exception if token validation fails
+	 */
 	protected UserByToken validateToken(final String authorization) throws Exception {
 		LOGGER.info("Must be Override by the application implmentation, otherwise it dose not work");
 		return null;
 	}
 
-	// must be override to be good implementation
+	/**
+	 * Validates a JWT token and returns the associated user.
+	 *
+	 * <p>
+	 * Can be overridden by subclasses to customize JWT validation logic.
+	 * </p>
+	 *
+	 * @param authorization the JWT token string (without the "Bearer " prefix)
+	 * @return the user extracted from the JWT claims, or {@code null} if invalid
+	 * @throws Exception if token validation or parsing fails
+	 */
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
 		// logger.debug(" validate token : " + authorization);
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, null);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
-			LOGGER.error("The token is not valid: '{}'", authorization);
+			LOGGER.error("The token is not valid: '{}...'",
+					authorization.substring(0, Math.min(authorization.length(), 20)));
 			return null;
 		}
 		// check userID
@@ -258,18 +352,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		user.setOid(oid);
 		user.setName((String) ret.getClaim("login"));
 		user.setType(UserByToken.TYPE_USER);
+		final Object rowRoles = ret.getClaim("roles");
+		if (rowRoles != null) {
+			LOGGER.trace("Detect roles in Authentication Filter: {}", rowRoles);
+			user.setRoles(RightSafeCaster.safeCastAndTransform(rowRoles));
+		}
 		final Object rowRight = ret.getClaim("right");
 		if (rowRight != null) {
 			LOGGER.trace("Detect right in Authentication Filter: {}", rowRight);
-			user.setRight(RightSafeCaster.safeCastAndTransform(ret.getClaim("right")));
-			/*
-			if (rights.containsKey(this.applicationName)) {
-				user.right = rights.get(this.applicationName);
-			} else {
-				LOGGER.error("Connect with no right for this application='{}' full Right='{}'", this.applicationName,
-						rights);
-			}
-			*/
+			user.setRight(RightSafeCaster.safeCastAndTransform(rowRight));
 		}
 		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
 		return user;

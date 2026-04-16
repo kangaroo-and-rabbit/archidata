@@ -79,10 +79,16 @@ public class ChangeStreamWorker implements Runnable {
 		this.pipeline = pipeline;
 	}
 
+	/**
+	 * Sets the resume token to use when reconnecting to the change stream.
+	 *
+	 * @param token the BSON resume token, or {@code null} to start from the beginning
+	 */
 	public void setResumeToken(final BsonDocument token) {
 		this.resumeToken = token;
 	}
 
+	/** {@inheritDoc} */
 	@Override
 	public void run() {
 		LOGGER.info("ChangeStreamWorker started for collection: {}", this.collectionName);

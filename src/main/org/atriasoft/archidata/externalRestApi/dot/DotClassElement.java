@@ -13,28 +13,59 @@ import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldPrope
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Represents a Graphviz DOT class/type element for diagram generation.
+ * Handles generation of DOT nodes and edges for data model visualization.
+ */
 public class DotClassElement {
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(DotClassElement.class);
 
+	/** Defines where a type is positioned in the generation hierarchy. */
 	public enum DefinedPosition {
-		NATIVE, // Native element of  dot language.
-		BASIC, // basic wrapping for JAVA type.
-		NORMAL // Normal Object to interpret.
+		/** Native element of the DOT language. */
+		NATIVE,
+		/** Basic wrapping for a Java type. */
+		BASIC,
+		/** Normal object to interpret and generate. */
+		NORMAL
 	}
 
+	/** The list of class models associated with this element. */
 	public List<ClassModel> models;
+	/** The Zod schema variable name (used for cross-references). */
 	public String zodName;
+	/** The DOT type name used in diagram labels. */
 	public String dotTypeName;
+	/** The type-check function name. */
 	public String dotCheckType;
+	/** The declaration string. */
 	public String declaration;
+	/** The file name for the generated output. */
 	public String fileName = null;
+	/** An optional comment/description for this element. */
 	public String comment = null;
+	/** The position category of this type (native, basic, or normal). */
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
 
+	/**
+	 * Determines the kebab-case file name for a given class name.
+	 * @param className the CamelCase class name
+	 * @return the kebab-case file name
+	 */
 	public static String determineFileName(final String className) {
 		return className.replaceAll("([a-z])([A-Z])", "$1-$2").replaceAll("([A-Z])([A-Z][a-z])", "$1-$2").toLowerCase();
 	}
 
+	/**
+	 * Constructs a DotClassElement for native or basic types with explicit names.
+	 * @param model the list of class models
+	 * @param zodName the Zod schema name (for cross-references)
+	 * @param dotTypeName the DOT type name
+	 * @param dotCheckType the type-check function name
+	 * @param declaration the declaration string
+	 * @param nativeType the position category of this type
+	 */
 	public DotClassElement(final List<ClassModel> model, final String zodName, final String dotTypeName,
 			final String dotCheckType, final String declaration, final DefinedPosition nativeType) {
 		this.models = model;
@@ -44,16 +75,32 @@ public class DotClassElement {
 		this.nativeType = nativeType;
 	}
 
+	/**
+	 * Constructs a DotClassElement from a class model with standard naming.
+	 * @param model the class model to wrap
+	 */
 	public DotClassElement(final ClassModel model) {
 		this.models = List.of(model);
 		this.dotTypeName = model.getOriginClasses().getSimpleName();
 		this.declaration = null;
 	}
 
+	/**
+	 * Checks if the given class model is compatible with this element.
+	 * @param model the class model to check
+	 * @return true if the model is contained in this element's models
+	 */
 	public boolean isCompatible(final ClassModel model) {
 		return this.models.contains(model);
 	}
 
+	/**
+	 * Generates DOT code for an enum node with all enum values.
+	 * @param model the enum model to generate code for
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated DOT node definition
+	 * @throws IOException if generation fails
+	 */
 	public String generateEnum(final ClassEnumModel model, final DotClassElementGroup dotGroup) throws IOException {
 		final StringBuilder out = new StringBuilder();
 		out.append("""
@@ -90,6 +137,13 @@ public class DotClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates DOT import statements for dependent models.
+	 * @param depModels the list of dependent class models
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated import statements
+	 * @throws IOException if generation fails
+	 */
 	public String generateImporDot(final List<ClassModel> depModels, final DotClassElementGroup dotGroup)
 			throws IOException {
 		final StringBuilder out = new StringBuilder();
@@ -132,15 +186,31 @@ public class DotClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates DOT code for a basic (non-complex) object type.
+	 * @return the generated DOT source code (currently empty)
+	 */
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
 		return out.toString();
 	}
 
+	/**
+	 * Escapes HTML special characters in a string for use in DOT labels.
+	 * @param data the string to escape
+	 * @return the HTML-escaped string
+	 */
 	public String convertHtml(final String data) {
 		return data.replace("<", "&lt;").replace(">", "&gt;");
 	}
 
+	/**
+	 * Generates the DOT type name for a class model.
+	 * @param model the class model to generate a type for
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the DOT type name string
+	 * @throws IOException if the model type is not supported
+	 */
 	public static String generateClassModelTypescript(final ClassModel model, final DotClassElementGroup dotGroup)
 			throws IOException {
 		if (model instanceof ClassEnumModel) {
@@ -157,6 +227,13 @@ public class DotClassElement {
 		throw new IOException("Impossible model:" + model);
 	}
 
+	/**
+	 * Generates a DOT link target name for a class model, if applicable.
+	 * @param model the class model to generate a link for
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the link target name, or null if no link should be generated
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassModelTypescriptLink(final ClassModel model, final DotClassElementGroup dotGroup)
 			throws IOException {
 		if (model instanceof ClassEnumModel) {
@@ -181,6 +258,13 @@ public class DotClassElement {
 		return null;
 	}
 
+	/**
+	 * Generates DOT code for an object node with fields, inheritance, and relationship edges.
+	 * @param model the object model to generate code for
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated DOT node and edge definitions
+	 * @throws IOException if generation fails
+	 */
 	public String generateObject(final ClassObjectModel model, final DotClassElementGroup dotGroup) throws IOException {
 		final StringBuilder out = new StringBuilder();
 		final StringBuilder outLinks = new StringBuilder();
@@ -364,6 +448,12 @@ public class DotClassElement {
 		return out.toString();
 	}
 
+	/**
+	 * Generates the DOT content for this element.
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated DOT source code, or empty string for native types
+	 * @throws IOException if generation fails
+	 */
 	public String generateFile(final DotClassElementGroup dotGroup) throws IOException {
 		if (this.nativeType == DefinedPosition.NATIVE) {
 			return "";
@@ -397,6 +487,14 @@ public class DotClassElement {
 		return "";
 	}
 
+	/**
+	 * Generates a local DOT model definition for use within API diagrams.
+	 * @param ModelName the name to use for the generated model
+	 * @param models the list of class models to generate from
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated local model code, or null if the model is a simple object/enum
+	 * @throws IOException if generation fails
+	 */
 	public static String generateLocalModel(
 			final String ModelName,
 			final List<ClassModel> models,

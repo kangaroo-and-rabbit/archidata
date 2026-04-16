@@ -17,13 +17,26 @@ import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Generates Graphviz DOT API diagram nodes representing REST endpoint groups.
+ */
 public class DotApiGeneration {
+	/** Private constructor to prevent instantiation of this utility class. */
 	private DotApiGeneration() {
 		// Utility class
 	}
 
+	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(DotApiGeneration.class);
 
+	/**
+	 * Generates the DOT type name for an enum model and registers its import.
+	 * @param model the enum model
+	 * @param dotGroup the group registry for resolving type references
+	 * @param imports the set of imported class models to populate
+	 * @return the DOT type name string
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassEnumModelTypescript(
 			final ClassEnumModel model,
 			final DotClassElementGroup dotGroup,
@@ -33,6 +46,14 @@ public class DotApiGeneration {
 		return dotModel.dotTypeName;
 	}
 
+	/**
+	 * Generates the DOT type name for an object model and registers its import.
+	 * @param model the object model
+	 * @param dotGroup the group registry for resolving type references
+	 * @param imports the set of imported class models to populate
+	 * @return the DOT type name string
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassObjectModelTypescript(
 			final ClassObjectModel model,
 			final DotClassElementGroup dotGroup,
@@ -47,6 +68,14 @@ public class DotApiGeneration {
 		return dotModel.dotTypeName;
 	}
 
+	/**
+	 * Generates the DOT type representation for a map model.
+	 * @param model the map model
+	 * @param dotGroup the group registry for resolving type references
+	 * @param imports the set of imported class models to populate
+	 * @return the DOT map type string with HTML-escaped angle brackets
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassMapModelTypescript(
 			final ClassMapModel model,
 			final DotClassElementGroup dotGroup,
@@ -60,6 +89,14 @@ public class DotApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Generates the DOT type representation for a list model.
+	 * @param model the list model
+	 * @param dotGroup the group registry for resolving type references
+	 * @param imports the set of imported class models to populate
+	 * @return the DOT list type string with HTML-escaped angle brackets
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassListModelTypescript(
 			final ClassListModel model,
 			final DotClassElementGroup dotGroup,
@@ -71,6 +108,14 @@ public class DotApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Generates the DOT type representation for any class model by dispatching to the appropriate handler.
+	 * @param model the class model to generate a type for
+	 * @param dotGroup the group registry for resolving type references
+	 * @param imports the set of imported class models to populate
+	 * @return the DOT type string
+	 * @throws IOException if the model type is not supported
+	 */
 	public static String generateClassModelTypescript(
 			final ClassModel model,
 			final DotClassElementGroup dotGroup,
@@ -90,6 +135,13 @@ public class DotApiGeneration {
 		throw new IOException("Impossible model:" + model);
 	}
 
+	/**
+	 * Generates the DOT type representation for a list of models, possibly as a union.
+	 * @param models the list of class models
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the DOT type string, or "void" if empty
+	 * @throws IOException if generation fails
+	 */
 	public static String generateClassModelsTypescript(
 			final List<ClassModel> models,
 			final DotClassElementGroup dotGroup) throws IOException {
@@ -116,6 +168,13 @@ public class DotApiGeneration {
 		return out.toString();
 	}
 
+	/**
+	 * Generates DOT link target names for a list of class models.
+	 * @param models the list of class models
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the list of link target names (excluding null entries)
+	 * @throws IOException if generation fails
+	 */
 	public static List<String> generateClassModelsLinks(
 			final List<ClassModel> models,
 			final DotClassElementGroup dotGroup) throws IOException {
@@ -132,6 +191,11 @@ public class DotApiGeneration {
 		return out;
 	}
 
+	/**
+	 * Capitalizes the first letter of a string.
+	 * @param str the string to capitalize
+	 * @return the string with its first letter capitalized, or the original if null/empty
+	 */
 	public static String capitalizeFirstLetter(final String str) {
 		if (str == null || str.isEmpty()) {
 			return str;
@@ -139,6 +203,13 @@ public class DotApiGeneration {
 		return str.substring(0, 1).toUpperCase() + str.substring(1);
 	}
 
+	/**
+	 * Generates a DOT API diagram node for a resource group with its endpoint methods.
+	 * @param element the API group model containing endpoint definitions
+	 * @param dotGroup the group registry for resolving type references
+	 * @return the generated DOT node and edge definitions
+	 * @throws IOException if generation fails
+	 */
 	public static String generateApiFile(final ApiGroupModel element, final DotClassElementGroup dotGroup)
 			throws IOException {
 		final StringBuilder data = new StringBuilder();

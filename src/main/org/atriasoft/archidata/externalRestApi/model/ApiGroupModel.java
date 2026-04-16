@@ -14,18 +14,30 @@ record OrderedElement(
 		String methodName,
 		Method method) {}
 
+/**
+ * Represents a group of REST API endpoints derived from a single JAX-RS resource class.
+ *
+ * <p>Collects all annotated methods from the class and creates {@link ApiModel}
+ * instances for each endpoint, sorted alphabetically by method name.
+ */
 public class ApiGroupModel {
+	/** Logger instance. */
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiGroupModel.class);
 
-	// Name of the REST end-point name
+	/** The base REST endpoint path for this group. */
 	public String restEndPoint;
-	// Name of the Class
+	/** The simple name of the JAX-RS resource class. */
 	public String name;
-	// Origin class reference
+	/** The original JAX-RS resource class. */
 	public Class<?> originClass;
-	// List of all API
+	/** The list of API endpoint models in this group. */
 	public List<ApiModel> interfaces = new ArrayList<>();
 
+	/**
+	 * Finds an API endpoint by its method name.
+	 * @param name the method name to search for
+	 * @return the matching {@link ApiModel}, or {@code null} if not found
+	 */
 	public ApiModel getInterfaceNamed(final String name) {
 		for (final ApiModel model : this.interfaces) {
 			if (name.equals(model.name)) {
@@ -35,6 +47,12 @@ public class ApiGroupModel {
 		return null;
 	}
 
+	/**
+	 * Constructs an API group model by introspecting all methods of the given class.
+	 * @param clazz the JAX-RS resource class to introspect
+	 * @param previousModel the model group for resolving parameter and return types
+	 * @throws Exception if introspection fails
+	 */
 	public ApiGroupModel(final Class<?> clazz, final ModelGroup previousModel) throws Exception {
 		this.originClass = clazz;
 		// the basic path has no specific elements...

@@ -107,49 +107,73 @@ public class RESTApiRequest {
 		return this;
 	}
 
-	/** Sets the HTTP verb to GET. */
+	/**
+	 * Sets the HTTP verb to GET.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest get() {
 		this.verb = "GET";
 		return this;
 	}
 
-	/** Sets the HTTP verb to POST. */
+	/**
+	 * Sets the HTTP verb to POST.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest post() {
 		this.verb = "POST";
 		return this;
 	}
 
-	/** Sets the HTTP verb to PUT. */
+	/**
+	 * Sets the HTTP verb to PUT.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest put() {
 		this.verb = "PUT";
 		return this;
 	}
 
-	/** Sets the HTTP verb to PATCH. */
+	/**
+	 * Sets the HTTP verb to PATCH.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest patch() {
 		this.verb = "PATCH";
 		return this;
 	}
 
-	/** Sets the HTTP verb to DELETE. */
+	/**
+	 * Sets the HTTP verb to DELETE.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest delete() {
 		this.verb = "DELETE";
 		return this;
 	}
 
-	/** Sets the HTTP verb to ARCHIVE. */
+	/**
+	 * Sets the HTTP verb to ARCHIVE.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest archive() {
 		this.verb = "ARCHIVE";
 		return this;
 	}
 
-	/** Sets the HTTP verb to RESTORE. */
+	/**
+	 * Sets the HTTP verb to RESTORE.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest restore() {
 		this.verb = "RESTORE";
 		return this;
 	}
 
-	/** Sets the HTTP verb to CALL. */
+	/**
+	 * Sets the HTTP verb to CALL.
+	 * @return This request instance for chaining.
+	 */
 	public RESTApiRequest call() {
 		this.verb = "CALL";
 		return this;
