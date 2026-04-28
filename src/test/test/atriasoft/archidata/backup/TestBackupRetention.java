@@ -221,6 +221,16 @@ public class TestBackupRetention {
 		Assertions.assertEquals(LocalDate.of(2025, 6, 20), BackupEngine.parseDateFromSequence("2025-06-20"));
 		Assertions.assertEquals(LocalDate.of(2025, 6, 20), BackupEngine.parseDateFromSequence("2025-06-20T14-30-00"));
 		Assertions.assertEquals(LocalDate.of(2025, 6, 20), BackupEngine.parseDateFromSequence("2025-06-20_14-30-00"));
+		// Formats with colons and milliseconds (as produced by farm.neo.back)
+		Assertions.assertEquals(LocalDate.of(2026, 3, 16),
+				BackupEngine.parseDateFromSequence("2026-03-16_03:15:00.000_full"));
+		Assertions.assertEquals(LocalDate.of(2026, 3, 16),
+				BackupEngine.parseDateFromSequence("2026-03-16_03:15:00.000"));
+		Assertions.assertEquals(LocalDate.of(2026, 3, 16), BackupEngine.parseDateFromSequence("2026-03-16_03:15:00"));
+		// Trailing suffix stripping
+		Assertions.assertEquals(LocalDate.of(2025, 6, 20), BackupEngine.parseDateFromSequence("2025-06-20_full"));
+		Assertions.assertEquals(LocalDate.of(2025, 6, 20),
+				BackupEngine.parseDateFromSequence("2025-06-20_14-30-00_full"));
 		Assertions.assertNull(BackupEngine.parseDateFromSequence("manual"));
 		Assertions.assertNull(BackupEngine.parseDateFromSequence("v1.0"));
 		Assertions.assertNull(BackupEngine.parseDateFromSequence(""));

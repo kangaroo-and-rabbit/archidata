@@ -15,9 +15,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 
-import org.bson.conversions.Bson;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -827,8 +827,8 @@ public class ChangeNotificationManager {
 			this.totalEventsProcessed.incrementAndGet();
 
 			final String collectionName = event.getCollectionName();
-			LOGGER.info("ChangeNotificationManager received event: collection={}, operation={}, oid={}", collectionName,
-					event.getOperationType(), event.getOid());
+			LOGGER.debug("ChangeNotificationManager received event: collection={}, operation={}, oid={}",
+					collectionName, event.getOperationType(), event.getOid());
 
 			// 1. Notify global listeners
 			for (final ListenerRegistration reg : this.globalListeners) {

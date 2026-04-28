@@ -687,11 +687,14 @@ public class BackupEngine {
 
 	private static final List<DateTimeFormatter> SEQUENCE_DATE_FORMATTERS = List.of(
 			DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss"), DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"),
+			DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS"), DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"),
 			DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
 	/**
 	 * Parse a date from a backup sequence string.
-	 * Supports formats: yyyy-MM-dd, yyyy-MM-ddTHH-mm-ss, yyyy-MM-dd_HH-mm-ss.
+	 * The sequence may contain trailing suffixes (e.g. "_full", "_partial") which are
+	 * stripped before parsing. Supports formats: yyyy-MM-dd, yyyy-MM-ddTHH-mm-ss,
+	 * yyyy-MM-dd_HH-mm-ss, yyyy-MM-dd_HH:mm:ss.SSS, yyyy-MM-dd_HH:mm:ss.
 	 * @param sequence the sequence string to parse
 	 * @return the parsed LocalDate, or null if unparseable
 	 */
@@ -699,11 +702,30 @@ public class BackupEngine {
 		if (sequence == null || sequence.isEmpty()) {
 			return null;
 		}
+		// Strip known trailing suffixes like "_full", "_partial", "_incremental"
+		String cleaned = sequence;
+		final int lastUnderscore = cleaned.lastIndexOf('_');
+		if (lastUnderscore > 0) {
+			final String suffix = cleaned.substring(lastUnderscore + 1);
+			if (!suffix.isEmpty() && suffix.chars().allMatch(Character::isLetter)) {
+				cleaned = cleaned.substring(0, lastUnderscore);
+			}
+		}
 		for (final DateTimeFormatter formatter : SEQUENCE_DATE_FORMATTERS) {
 			try {
-				return LocalDate.parse(sequence, formatter);
+				return LocalDate.parse(cleaned, formatter);
 			} catch (final DateTimeParseException e) {
 				// try next format
+			}
+		}
+		// Fallback: try with the original sequence in case stripping was wrong
+		if (!cleaned.equals(sequence)) {
+			for (final DateTimeFormatter formatter : SEQUENCE_DATE_FORMATTERS) {
+				try {
+					return LocalDate.parse(sequence, formatter);
+				} catch (final DateTimeParseException e) {
+					// try next format
+				}
 			}
 		}
 		return null;
