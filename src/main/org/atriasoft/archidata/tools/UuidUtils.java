@@ -23,12 +23,16 @@ public class UuidUtils {
 
 	/**
 	 * Converts a {@link BigInteger} to a {@link UUID}.
+	 *
+	 * <p>The BigInteger is interpreted as an unsigned 128-bit value where the most
+	 * significant 64 bits map to {@link UUID#getMostSignificantBits()} and the least
+	 * significant 64 bits map to {@link UUID#getLeastSignificantBits()}.</p>
 	 * @param bigInteger The BigInteger to convert.
 	 * @return The corresponding UUID.
 	 */
 	public static UUID asUuid(final BigInteger bigInteger) {
-		final long mostSignificantBits = bigInteger.longValue();
-		final long leastSignificantBits = bigInteger.shiftRight(64).longValue();
+		final long mostSignificantBits = bigInteger.shiftRight(64).longValue();
+		final long leastSignificantBits = bigInteger.longValue();
 		return new UUID(mostSignificantBits, leastSignificantBits);
 	}
 

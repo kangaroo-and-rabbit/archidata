@@ -46,10 +46,11 @@ class TestUuidUtils {
 	@Test
 	void testAsUuidFromBigInteger() {
 		final UUID original = UUID.randomUUID();
-		// Convert UUID to BigInteger via bytes
 		final long msb = original.getMostSignificantBits();
 		final long lsb = original.getLeastSignificantBits();
-		final BigInteger bigInt = BigInteger.valueOf(msb).add(BigInteger.valueOf(lsb).shiftLeft(64));
+		final BigInteger unsignedMask = BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE);
+		final BigInteger bigInt = BigInteger.valueOf(msb).and(unsignedMask).shiftLeft(64)
+				.or(BigInteger.valueOf(lsb).and(unsignedMask));
 		final UUID restored = UuidUtils.asUuid(bigInt);
 		Assertions.assertEquals(original, restored);
 	}
