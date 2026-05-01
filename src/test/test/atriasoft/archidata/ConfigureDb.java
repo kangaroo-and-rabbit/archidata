@@ -28,21 +28,31 @@ public class ConfigureDb {
 		try {
 			config = new DbConfig();
 		} catch (final DataAccessException e) {
-			e.printStackTrace();
-			LOGGER.error("Fail to clean the DB");
+			LOGGER.error("Fail to clean the DB", e);
 			return;
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
-		try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
-			daRoot.deleteDatabase(ConfigBaseVariable.getDBName());
-		} catch (final InternalServerErrorException e) {
-			e.printStackTrace();
-			LOGGER.error("Fail to clean the DB");
-			return;
-		} catch (final IOException e) {
-			e.printStackTrace();
-			LOGGER.error("Fail to clean the DB");
-			return;
+		final int maxAttempts = 3;
+		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+			try (final DBAccessMongo daRoot = DBAccessMongo.createInterface(config)) {
+				daRoot.deleteDatabase(ConfigBaseVariable.getDBName());
+				return;
+			} catch (final RuntimeException e) {
+				if (attempt == maxAttempts) {
+					LOGGER.error("Fail to clean the DB after {} attempts", maxAttempts, e);
+					return;
+				}
+				LOGGER.warn("DB cleanup attempt {} failed: {} -- retrying", attempt, e.getMessage());
+				try {
+					Thread.sleep(100L * attempt);
+				} catch (final InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					return;
+				}
+			} catch (final IOException e) {
+				LOGGER.error("Fail to clean the DB", e);
+				return;
+			}
 		}
 	}
 
