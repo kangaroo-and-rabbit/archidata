@@ -22,6 +22,6 @@ public class UnAuthorizedException extends FailException {
 	 * Constructs a new UnAuthorizedException with a default message indicating insufficient rights.
 	 */
 	public UnAuthorizedException() {
-		super(Response.Status.UNAUTHORIZED, "Not enought Right");
+		super(Response.Status.UNAUTHORIZED, "Not enough Right");
 	}
 }
