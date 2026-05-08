@@ -349,7 +349,7 @@ public class ConfigBaseVariable {
 	 * Returns the local API address, defaulting to {@code "http://localhost:80/api/"}.
 	 * @return The local API address.
 	 */
-	public static String getlocalAddress() {
+	public static String getLocalAddress() {
 		if (apiAdress == null) {
 			return "http://localhost:80/api/";
 		}

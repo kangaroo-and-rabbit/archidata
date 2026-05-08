@@ -324,7 +324,7 @@ public class WebLauncher {
 
 		// Start the HTTP server
 		final URI baseUri = UriBuilder
-			.fromUri(ConfigBaseVariable.getlocalAddress())
+			.fromUri(ConfigBaseVariable.getLocalAddress())
 			.build();
 		this.server = GrizzlyHttpServerFactory.createHttpServer(baseUri, rc);
 

@@ -100,7 +100,7 @@ modifier la configuration à runtime, y compris des valeurs sensibles comme `dbP
 
 | Ancien code | Nouveau code |
 |---|---|
-| `ConfigBaseVariable.apiAdress` | `ConfigBaseVariable.getlocalAddress()` |
+| `ConfigBaseVariable.apiAdress` | `ConfigBaseVariable.getLocalAddress()` |
 | `ConfigBaseVariable.bdDatabase` | `ConfigBaseVariable.getDBName()` |
 
 ### Verrouillage de la configuration

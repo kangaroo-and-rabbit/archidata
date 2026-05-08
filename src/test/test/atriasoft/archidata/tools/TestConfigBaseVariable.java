@@ -119,15 +119,15 @@ class TestConfigBaseVariable {
 	}
 
 	@Test
-	void testGetLocalAddressDefault() {
+	void testgetLocalAddressDefault() {
 		ConfigBaseVariable.setApiAddress(null);
-		Assertions.assertEquals("http://localhost:80/api/", ConfigBaseVariable.getlocalAddress());
+		Assertions.assertEquals("http://localhost:80/api/", ConfigBaseVariable.getLocalAddress());
 	}
 
 	@Test
-	void testGetLocalAddressCustom() {
+	void testgetLocalAddressCustom() {
 		ConfigBaseVariable.setApiAddress("http://api.example.com/v1/");
-		Assertions.assertEquals("http://api.example.com/v1/", ConfigBaseVariable.getlocalAddress());
+		Assertions.assertEquals("http://api.example.com/v1/", ConfigBaseVariable.getLocalAddress());
 	}
 
 	@Test

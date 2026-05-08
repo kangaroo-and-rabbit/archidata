@@ -37,7 +37,7 @@ public class WebLauncher {
 	public WebLauncher() {}
 
 	private static URI getBaseURI() {
-		return UriBuilder.fromUri(ConfigBaseVariable.getlocalAddress()).build();
+		return UriBuilder.fromUri(ConfigBaseVariable.getLocalAddress()).build();
 	}
 
 	public void migrateDB() throws Exception {

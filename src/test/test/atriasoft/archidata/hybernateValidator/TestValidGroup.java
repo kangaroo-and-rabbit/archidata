@@ -33,7 +33,7 @@ public class TestValidGroup {
 		ConfigureDb.configure();
 		webInterface = new WebLauncherTest();
 		webInterface.process();
-		api = new RESTApi(ConfigBaseVariable.getlocalAddress());
+		api = new RESTApi(ConfigBaseVariable.getLocalAddress());
 		api.setToken(Common.ADMIN_TOKEN);
 	}
 
