@@ -58,8 +58,12 @@ public class DataTools {
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
+	/** SVG MIME type. Allowed because we only render uploaded covers via &lt;img src&gt;
+	 * in the front, which does not execute embedded scripts. Do not serve SVGs via
+	 * direct download or &lt;embed&gt; / &lt;object&gt; without sanitisation. */
+	public static final String MIME_SVG = "image/svg+xml";
 	/** Supported image MIME types for upload validation. */
-	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp" };
+	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp", MIME_SVG };
 	/** Supported audio MIME types for upload validation. */
 	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
 	/** Supported video MIME types for upload validation. */
@@ -210,6 +214,7 @@ public class DataTools {
 			case "jpg", "jpeg" -> "image/jpeg";
 			case "png" -> "image/png";
 			case "webp" -> "image/webp";
+			case "svg" -> MIME_SVG;
 			case "mka" -> "audio/x-matroska";
 			case "mkv" -> "video/x-matroska";
 			case "webm" -> "video/webm";
@@ -387,7 +392,7 @@ public class DataTools {
 	}
 
 	/** All MIME types accepted for generic file upload. */
-	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp",
+	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp", MIME_SVG,
 			"audio/x-matroska", "video/x-matroska", "video/webm" };
 
 	/**
