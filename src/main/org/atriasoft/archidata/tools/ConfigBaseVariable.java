@@ -392,7 +392,7 @@ public class ConfigBaseVariable {
 	public record EMailConfig(
 			String from,
 			String login,
-			String password) {};
+			String password) {}
 
 	/**
 	 * Returns the e-mail configuration, or {@code null} if any required field is missing.

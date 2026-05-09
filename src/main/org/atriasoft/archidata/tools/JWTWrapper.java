@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.atriasoft.archidata.filter.AuthenticationFilter;
 import org.bson.types.ObjectId;
@@ -45,6 +46,31 @@ public class JWTWrapper {
 
 	private static RSAKey rsaJWK = null;
 	private static RSAKey rsaPublicJWK = null;
+	/**
+	 * Optional hook invoked when {@link #validateToken} detects an invalid signature.
+	 * Set by {@code UpdateJwtPublicKey} to trigger an immediate re-fetch of the SSO public key
+	 * (the SSO may have been restarted and rotated its key).
+	 */
+	private static final AtomicReference<Runnable> REFRESH_TRIGGER = new AtomicReference<>();
+
+	/**
+	 * Registers a hook called when a JWT signature fails validation.
+	 * @param trigger A no-arg callback (typically interrupts the refresh thread). May be {@code null} to clear.
+	 */
+	public static void setRefreshTrigger(final Runnable trigger) {
+		REFRESH_TRIGGER.set(trigger);
+	}
+
+	private static void requestPublicKeyRefresh() {
+		final Runnable trigger = REFRESH_TRIGGER.get();
+		if (trigger != null) {
+			try {
+				trigger.run();
+			} catch (final RuntimeException e) {
+				LOGGER.warn("Refresh trigger threw: {}", e.getMessage(), e);
+			}
+		}
+	}
 
 	/** DTO for exchanging the RSA public key via REST. */
 	public static class PublicKey {
@@ -254,11 +280,15 @@ public class JWTWrapper {
 			}
 			if (rsaPublicJWK == null) {
 				LOGGER.error("JWT public key is not present !!!");
+				requestPublicKeyRefresh();
 				return null;
 			}
 			final JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
 			if (!signedJWT.verify(verifier)) {
 				LOGGER.error("JWT token is NOT verified");
+				// SSO may have rotated its key (typically after a restart). Ask the refresh
+				// thread to fetch the new public key now instead of waiting for the next tick.
+				requestPublicKeyRefresh();
 				return null;
 			}
 			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
