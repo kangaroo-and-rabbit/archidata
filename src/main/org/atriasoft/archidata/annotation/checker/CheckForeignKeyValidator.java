@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.annotation.checker;
 
 import org.atriasoft.archidata.dataAccess.DataAccess;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,7 @@ public class CheckForeignKeyValidator implements ConstraintValidator<CheckForeig
 			return true;
 		}
 		try {
-			final boolean exists = DataAccess.existsById(this.target, value);
+			final boolean exists = DataAccess.existsById(this.target, value, new AccessDeletedItems());
 			if (!exists) {
 				return false;
 			}
