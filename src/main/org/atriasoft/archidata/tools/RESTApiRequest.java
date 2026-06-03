@@ -26,13 +26,10 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import jakarta.ws.rs.core.HttpHeaders;
 
@@ -533,22 +530,32 @@ public class RESTApiRequest {
 		}
 		LOGGER.trace("Receive Error: {}", httpResponse.body());
 		try {
-			final RESTErrorResponseException out = this.mapper.readValue(httpResponse.body(),
-					RESTErrorResponseException.class);
-			throw out;
-		} catch (final InvalidDefinitionException ex) {
-			LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
-			throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
-					+ httpResponse.statusCode() + "] " + httpResponse.body());
-		} catch (final MismatchedInputException ex) {
-			LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
-			throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
-					+ httpResponse.statusCode() + "] " + httpResponse.body());
-		} catch (final JsonParseException ex) {
-			LOGGER.error("RestAPI fail to parse error response, body: {}", httpResponse.body(), ex);
+			throw this.mapper.readValue(httpResponse.body(), RESTErrorResponseException.class);
+		} catch (final JsonProcessingException ex) {
+			// The error body is not parseable JSON: this is almost never an archidata problem.
+			// The remote returned a non-JSON error page — typically a proxy/gateway HTML page for a
+			// 502/503/504 (maintenance, capacity). It is a transient, expected condition for a caller
+			// that retries, so log a single WARN without a stack trace; keep the full body and the
+			// parsing cause at DEBUG. The raised IOException still carries the status code and body.
+			LOGGER.warn(
+					"RestAPI received a non-JSON error body [HTTP {}] — likely a proxy/gateway error page "
+							+ "(maintenance/capacity), not a structured API error: {}",
+					httpResponse.statusCode(), firstLineForLog(httpResponse.body()));
+			LOGGER.debug("Full non-JSON error body [HTTP {}]:\n{}", httpResponse.statusCode(), httpResponse.body(), ex);
 			throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
 					+ httpResponse.statusCode() + "] " + httpResponse.body());
 		}
+	}
+
+	/** Returns the first non-blank line of {@code body}, truncated, for a concise log line. */
+	private static String firstLineForLog(final String body) {
+		if (body == null) {
+			return "<null>";
+		}
+		final String trimmed = body.strip();
+		final int newlineIndex = trimmed.indexOf('\n');
+		final String firstLine = newlineIndex < 0 ? trimmed : trimmed.substring(0, newlineIndex);
+		return firstLine.length() > 200 ? firstLine.substring(0, 200) + "…" : firstLine;
 	}
 
 	/**
