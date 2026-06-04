@@ -157,6 +157,61 @@ public class TestTypeScriptApiGeneration {
 		}
 	}
 
+	// -- Nested generic nullability test model --
+	// Checks that the *value* of a generic container (List element, Map value) is nullable by
+	// default and can be forced non-null with a type-use @NotNull annotation. The Map key stays
+	// non-null (a record key can not be null).
+	public static class TestGenericNullableObject {
+		// List element nullable by default + field nullable by default.
+		public List<Integer> listDefault;
+		// List element forced non-null with type-use @NotNull + field non-null with @NotNull.
+		@NotNull
+		public List<@NotNull Integer> listNotNull;
+		// Map value (List) and its element (Integer) nullable by default + field nullable.
+		public Map<String, List<Integer>> mapListDefault;
+		// Field forced non-null, but inner List value and Integer element stay nullable by default.
+		@NotNull
+		public Map<String, List<Integer>> mapListNotNullField;
+		// Everything forced non-null with type-use @NotNull (except the Map key, never nullable).
+		@NotNull
+		public Map<String, @NotNull List<@NotNull Integer>> mapListAllNotNull;
+	}
+
+	@Path("genericNullablePath")
+	public class SampleResourceGenericNullableGet {
+		@GET
+		@Path("{oid}")
+		public TestGenericNullableObject get(@PathParam("oid") final ObjectId oid) {
+			return null;
+		}
+	}
+
+	// -- Deep / independent generic nullability test model --
+	// Checks that a type-use @NotNull applies independently at each nesting level, and that nested
+	// same-kind containers (List of List) recurse correctly.
+	public static class TestGenericNullableDeepObject {
+		// Only the Map value (the List) is forced non-null; the inner Integer stays nullable.
+		@NotNull
+		public Map<String, @NotNull List<Integer>> mapValueNotNull;
+		// Only the inner Integer is forced non-null; the Map value (the List) stays nullable.
+		@NotNull
+		public Map<String, List<@NotNull Integer>> mapElementNotNull;
+		// Nested list of list: both levels nullable by default + field nullable by default.
+		public List<List<Integer>> listOfList;
+		// Nested list of list with only the innermost Integer forced non-null.
+		@NotNull
+		public List<List<@NotNull Integer>> listOfListElementNotNull;
+	}
+
+	@Path("genericNullableDeepPath")
+	public class SampleResourceGenericNullableDeepGet {
+		@GET
+		@Path("{oid}")
+		public TestGenericNullableDeepObject get(@PathParam("oid") final ObjectId oid) {
+			return null;
+		}
+	}
+
 	// -- @JsonInclude(NON_NULL) test models --
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -1038,5 +1093,86 @@ public class TestTypeScriptApiGeneration {
 					}
 				}
 				""", generation.get(Paths.get("model/test-record-object.ts")));
+	}
+
+	@Test
+	public void testGenerateNestedGenericNullable() throws Exception {
+
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceGenericNullableGet.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		for (final java.nio.file.Path elem : generation.keySet()) {
+			LOGGER.info("path= {}", elem);
+		}
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodInteger } from "./integer";
+
+				export const ZodTestGenericNullableObject = zod.object({
+					listDefault: zod.array(ZodInteger.nullable()).nullable(),
+					listNotNull: zod.array(ZodInteger),
+					mapListDefault: zod.record(zod.string(), zod.array(ZodInteger.nullable()).nullable()).nullable(),
+					mapListNotNullField: zod.record(zod.string(), zod.array(ZodInteger.nullable()).nullable()),
+					mapListAllNotNull: zod.record(zod.string(), zod.array(ZodInteger)),
+
+				});
+
+				export type TestGenericNullableObject = zod.infer<typeof ZodTestGenericNullableObject>;
+
+				export function isTestGenericNullableObject(data: any): data is TestGenericNullableObject {
+					try {
+						ZodTestGenericNullableObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestGenericNullableObject' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-generic-nullable-object.ts")));
+	}
+
+	@Test
+	public void testGenerateDeepGenericNullable() throws Exception {
+
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceGenericNullableDeepGet.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		for (final java.nio.file.Path elem : generation.keySet()) {
+			LOGGER.info("path= {}", elem);
+		}
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodInteger } from "./integer";
+
+				export const ZodTestGenericNullableDeepObject = zod.object({
+					mapValueNotNull: zod.record(zod.string(), zod.array(ZodInteger.nullable())),
+					mapElementNotNull: zod.record(zod.string(), zod.array(ZodInteger).nullable()),
+					listOfList: zod.array(zod.array(ZodInteger.nullable()).nullable()).nullable(),
+					listOfListElementNotNull: zod.array(zod.array(ZodInteger).nullable()),
+
+				});
+
+				export type TestGenericNullableDeepObject = zod.infer<typeof ZodTestGenericNullableDeepObject>;
+
+				export function isTestGenericNullableDeepObject(data: any): data is TestGenericNullableDeepObject {
+					try {
+						ZodTestGenericNullableDeepObject.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestGenericNullableDeepObject' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-generic-nullable-deep-object.ts")));
 	}
 }

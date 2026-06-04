@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Set;
@@ -13,6 +14,11 @@ import java.util.Set;
 public class ClassListModel extends ClassModel {
 	/** The class model for the list element type. */
 	public ClassModel valueModel;
+	/**
+	 * Whether the list element may be {@code null}. Defaults to {@code true} (Java lists may
+	 * contain {@code null} values); a type-use {@code @NotNull} on the element forces it false.
+	 */
+	public boolean valueNullable = true;
 
 	/**
 	 * Constructs a list model from a pre-resolved element model.
@@ -20,6 +26,18 @@ public class ClassListModel extends ClassModel {
 	 */
 	public ClassListModel(final ClassModel valueModel) {
 		this.valueModel = valueModel;
+	}
+
+	/**
+	 * Constructs a list model from the annotated element type, capturing the element's type-use
+	 * nullability (e.g. {@code List<@NotNull Integer>}).
+	 * @param annotatedValue the annotated element type
+	 * @param previousModel the model group for resolving types
+	 * @throws IOException if type resolution fails
+	 */
+	public ClassListModel(final AnnotatedType annotatedValue, final ModelGroup previousModel) throws IOException {
+		this.valueModel = getModel(annotatedValue, previousModel);
+		this.valueNullable = !isTypeArgumentNotNull(annotatedValue);
 	}
 
 	/**

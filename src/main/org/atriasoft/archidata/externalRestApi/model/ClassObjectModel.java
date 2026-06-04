@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -286,6 +287,22 @@ public class ClassObjectModel extends ClassModel {
 		}
 
 		/**
+		 * Returns the annotated type of the property (from its backing field, or its getter as a
+		 * fallback). Used to read type-use annotations on generic arguments (e.g. nullability).
+		 * @param property the bean property descriptor
+		 * @return the annotated type, or {@code null} if neither a field nor a getter is available
+		 */
+		private static AnnotatedType getAnnotatedType(final PropertyDescriptor property) {
+			if (property.getField() != null) {
+				return property.getField().getAnnotatedType();
+			}
+			if (property.getGetter() != null) {
+				return property.getGetter().getAnnotatedReturnType();
+			}
+			return null;
+		}
+
+		/**
 		 * Constructs a FieldProperty from a bean PropertyDescriptor (supports POJO, Record, Bean).
 		 * @param property the bean property descriptor
 		 * @param previous the model group for resolving referenced types
@@ -295,7 +312,7 @@ public class ClassObjectModel extends ClassModel {
 		public FieldProperty(final PropertyDescriptor property, final ModelGroup previous)
 				throws DataAccessException, IOException {
 			this(property.getName(), //
-					ClassModel.getModel(property.getTypeInfo().genericType(), previous), //
+					ClassModel.getModel(getAnnotatedType(property), property.getTypeInfo().genericType(), previous), //
 					getSubModelIfExist(property, previous), //
 					property.getAnnotation(CheckForeignKey.class), //
 					getSchemaDescription(property), //
