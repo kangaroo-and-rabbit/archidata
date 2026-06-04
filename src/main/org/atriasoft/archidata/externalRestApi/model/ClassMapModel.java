@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashSet;
@@ -16,6 +17,12 @@ public class ClassMapModel extends ClassModel {
 	public ClassModel keyModel;
 	/** The class model for the map value type. */
 	public ClassModel valueModel;
+	/**
+	 * Whether the map value may be {@code null}. Defaults to {@code true} (Java maps may hold
+	 * {@code null} values); a type-use {@code @NotNull} on the value forces it false. The key is
+	 * never nullable (a record key can not be {@code null}).
+	 */
+	public boolean valueNullable = true;
 
 	/**
 	 * Constructs a map model from pre-resolved key and value models.
@@ -25,6 +32,21 @@ public class ClassMapModel extends ClassModel {
 	public ClassMapModel(final ClassModel keyModel, final ClassModel valueModel) {
 		this.keyModel = keyModel;
 		this.valueModel = valueModel;
+	}
+
+	/**
+	 * Constructs a map model from the annotated key and value types, capturing the value's type-use
+	 * nullability (e.g. {@code Map<String, @NotNull List<Integer>>}). The key is never nullable.
+	 * @param annotatedKey the annotated key type
+	 * @param annotatedValue the annotated value type
+	 * @param previousModel the model group for resolving types
+	 * @throws IOException if type resolution fails
+	 */
+	public ClassMapModel(final AnnotatedType annotatedKey, final AnnotatedType annotatedValue,
+			final ModelGroup previousModel) throws IOException {
+		this.keyModel = getModel(annotatedKey, previousModel);
+		this.valueModel = getModel(annotatedValue, previousModel);
+		this.valueNullable = !isTypeArgumentNotNull(annotatedValue);
 	}
 
 	/**

@@ -1,6 +1,8 @@
 package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashSet;
@@ -12,6 +14,8 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.tools.AnnotationCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Abstract base class representing a data model extracted from a Java class for API generation.
@@ -89,6 +93,71 @@ public abstract class ClassModel {
 			throw new IOException("Fail to manage parametrized type... '" + rawType + "'");
 		}
 		return previousModel.add((Class<?>) type);
+	}
+
+	/**
+	 * Resolves a {@link ClassModel} for the given type, preferring the annotated type when it
+	 * carries type-use information for a generic container (List/Map), otherwise falling back to
+	 * the resolved (generic-variable aware) type.
+	 *
+	 * <p>The annotated path is only taken for {@code List}/{@code Map} parameterized types so that
+	 * type-use nullability annotations (e.g. {@code List<@NotNull Integer>}) are captured, while
+	 * every other case keeps the well-tested {@link #getModel(Type, ModelGroup)} resolution.
+	 * @param annotatedType the annotated type of the property, or {@code null} if unavailable
+	 * @param fallbackType the resolved generic type to use when the annotated type is not usable
+	 * @param previousModel the model group for looking up or creating models
+	 * @return the resolved class model
+	 * @throws IOException if the type cannot be resolved
+	 */
+	public static ClassModel getModel(
+			final AnnotatedType annotatedType,
+			final Type fallbackType,
+			final ModelGroup previousModel) throws IOException {
+		if (annotatedType instanceof AnnotatedParameterizedType
+				&& annotatedType.getType() instanceof final ParameterizedType paramType
+				&& paramType.getRawType() instanceof final Class<?> rawClass
+				&& (List.class.isAssignableFrom(rawClass) || Map.class.isAssignableFrom(rawClass))) {
+			return getModel(annotatedType, previousModel);
+		}
+		return getModel(fallbackType, previousModel);
+	}
+
+	/**
+	 * Resolves a {@link ClassModel} for the given annotated type, handling parameterized types
+	 * (List, Map) and propagating type-use nullability of their arguments.
+	 * @param annotatedType the annotated Java type to resolve
+	 * @param previousModel the model group for looking up or creating models
+	 * @return the resolved class model
+	 * @throws IOException if the type cannot be resolved
+	 */
+	public static ClassModel getModel(final AnnotatedType annotatedType, final ModelGroup previousModel)
+			throws IOException {
+		if (annotatedType instanceof final AnnotatedParameterizedType annotatedParamType
+				&& annotatedType.getType() instanceof final ParameterizedType paramType
+				&& paramType.getRawType() instanceof final Class<?> rawClass) {
+			final AnnotatedType[] annotatedArguments = annotatedParamType.getAnnotatedActualTypeArguments();
+			if (List.class.isAssignableFrom(rawClass)) {
+				return new ClassListModel(annotatedArguments[0], previousModel);
+			}
+			if (Map.class.isAssignableFrom(rawClass)) {
+				return new ClassMapModel(annotatedArguments[0], annotatedArguments[1], previousModel);
+			}
+			throw new IOException("Fail to manage parametrized type... '" + rawClass + "'");
+		}
+		return previousModel.add((Class<?>) annotatedType.getType());
+	}
+
+	/**
+	 * Determines whether a generic type argument is explicitly marked as non-null via a type-use
+	 * {@code @NotNull} annotation (e.g. the {@code Integer} in {@code List<@NotNull Integer>}).
+	 *
+	 * <p>By default a generic container value is considered nullable (Java collections may contain
+	 * {@code null} values); a type-use {@code @NotNull} forces it to be non-null.
+	 * @param annotatedType the annotated type argument to inspect
+	 * @return {@code true} if the argument carries a type-use {@code @NotNull} annotation
+	 */
+	public static boolean isTypeArgumentNotNull(final AnnotatedType annotatedType) {
+		return annotatedType.getAnnotation(NotNull.class) != null;
 	}
 
 	/**

@@ -867,6 +867,10 @@ public class TsClassElement {
 			final String tmp = generateTsEnum(fieldEnumModel, tsGroup, imports);
 			out.append(tmp);
 		}
+		// A Map value may be null by default (Java semantics); a type-use @NotNull forces it non-null.
+		if (model.valueNullable) {
+			out.append(".nullable()");
+		}
 		out.append(")");
 		return out.toString();
 	}
@@ -912,6 +916,10 @@ public class TsClassElement {
 		} else if (model.valueModel instanceof final ClassEnumModel fieldEnumModel) {
 			final String tmp = generateTsEnum(fieldEnumModel, tsGroup, imports);
 			out.append(tmp);
+		}
+		// A List element may be null by default (Java semantics); a type-use @NotNull forces it non-null.
+		if (model.valueNullable) {
+			out.append(".nullable()");
 		}
 		out.append(")");
 		return out.toString();
