@@ -44,7 +44,7 @@ public class RestErrorResponse {
 
 	/** Optional list of input validation errors providing details about specific field failures. */
 	@Nullable
-	final public List<RestInputError> inputError;
+	final public List<@NotNull RestInputError> inputError;
 
 	/**
 	 * Constructs a REST error response with input validation errors.

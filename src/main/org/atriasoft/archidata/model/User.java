@@ -55,7 +55,7 @@ public class User extends OIDGenericDataSoftDelete {
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
-	private List<ObjectId> covers;
+	private List<@NotNull ObjectId> covers;
 
 	/**
 	 * Gets the login name of this user.

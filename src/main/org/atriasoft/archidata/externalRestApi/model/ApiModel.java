@@ -97,15 +97,17 @@ public class ApiModel {
 		LOGGER.trace("Get return Type RAW = {}", returnTypeModelRaw.getCanonicalName());
 		if (returnTypeModelRaw == Map.class) {
 			LOGGER.trace("Model Map");
-			final Type listType = method.getGenericReturnType();
-			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
+			// The annotated return type carries the type-use annotations (e.g. Map<K, @NotNull V>)
+			// that the plain generic return type strips.
+			final ClassModel modelGenerated = ClassModel.getModel(method.getAnnotatedReturnType(),
+					method.getGenericReturnType(), previousModel);
 			this.returnTypes.add(modelGenerated);
 			LOGGER.trace("Model Map ==> {}", modelGenerated);
 			return;
 		} else if (returnTypeModelRaw == List.class) {
 			LOGGER.trace("Model List");
-			final Type listType = method.getGenericReturnType();
-			final ClassModel modelGenerated = ClassModel.getModel(listType, previousModel);
+			final ClassModel modelGenerated = ClassModel.getModel(method.getAnnotatedReturnType(),
+					method.getGenericReturnType(), previousModel);
 			this.returnTypes.add(modelGenerated);
 			LOGGER.trace("Model List ==> {}", modelGenerated);
 			return;
