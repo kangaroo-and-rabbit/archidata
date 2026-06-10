@@ -1,0 +1,42 @@
+---
+services:
+  mongodb:
+    build: ./mongodb
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: base_db_password
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data/mongo/keys/:/data/keys/
+    tmpfs:
+      - /data/db:size=2G # MongoDB data in RAM (adjust size as needed)
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
+    healthcheck:
+      test: >-
+        mongosh --username root --password base_db_password
+        --authenticationDatabase admin --quiet --eval "rs.status().ok"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mongoexpress:
+    image: mongo-express:latest
+    container_name: mongoexpress
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: base_db_password
+      ME_CONFIG_MONGODB_URL: mongodb://root:base_db_password@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    ports:
+      - "4077:8081"
+    depends_on:
+      mongodb:
+        condition: service_healthy
