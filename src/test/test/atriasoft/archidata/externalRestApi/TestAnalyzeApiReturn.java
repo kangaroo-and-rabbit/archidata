@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.core.Response;
 
@@ -406,6 +407,8 @@ public class TestAnalyzeApiReturn {
 			// Level 0
 			final ClassListModel classListModel = Assertions.assertInstanceOf(ClassListModel.class,
 					model.returnTypes.get(0));
+			// A plain List<Integer> element is nullable by default.
+			Assertions.assertTrue(classListModel.valueNullable);
 			// Level 1
 			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
 					classListModel.valueModel);
@@ -519,6 +522,8 @@ public class TestAnalyzeApiReturn {
 			// Level 0
 			final ClassMapModel classMapModel = Assertions.assertInstanceOf(ClassMapModel.class,
 					model.returnTypes.get(0));
+			// A plain Map<String, Integer> value is nullable by default.
+			Assertions.assertTrue(classMapModel.valueNullable);
 			final ClassObjectModel classModelOfKey = Assertions.assertInstanceOf(ClassObjectModel.class,
 					classMapModel.keyModel);
 			Assertions.assertEquals(String.class, classModelOfKey.getOriginClasses());
@@ -600,6 +605,119 @@ public class TestAnalyzeApiReturn {
 			Assertions.assertEquals(Integer.class, classSubModel.getOriginClasses());
 		}
 
+	}
+
+	// Endpoints whose *return type itself* is a generic container with a type-use @NotNull on its
+	// element/value. The annotated return type carries those annotations; the plain generic return
+	// type strips them (regression guarded here).
+	public class ReturnValueGenericNotNull {
+		@GET
+		public List<@NotNull Integer> getListNotNull() {
+			return null;
+		}
+
+		@GET
+		public Map<String, @NotNull Integer> getMapNotNull() {
+			return null;
+		}
+
+		@GET
+		public List<List<@NotNull Integer>> getListListElementNotNull() {
+			return null;
+		}
+
+		@GET
+		public Map<String, @NotNull List<@NotNull Integer>> getMapListAllNotNull() {
+			return null;
+		}
+	}
+
+	@Test
+	public void testReturnListNotNull() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(ReturnValueGenericNotNull.class));
+
+		// Check List<@NotNull Integer>: the element is forced non-null.
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListNotNull");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals(1, model.returnTypes.size());
+			final ClassListModel classListModel = Assertions.assertInstanceOf(ClassListModel.class,
+					model.returnTypes.get(0));
+			Assertions.assertFalse(classListModel.valueNullable);
+			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
+					classListModel.valueModel);
+			Assertions.assertEquals(Integer.class, classModelOfValue.getOriginClasses());
+		}
+	}
+
+	@Test
+	public void testReturnMapNotNull() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(ReturnValueGenericNotNull.class));
+
+		// Check Map<String, @NotNull Integer>: the value is forced non-null, the key stays non-null.
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapNotNull");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals(1, model.returnTypes.size());
+			final ClassMapModel classMapModel = Assertions.assertInstanceOf(ClassMapModel.class,
+					model.returnTypes.get(0));
+			Assertions.assertFalse(classMapModel.valueNullable);
+			final ClassObjectModel classModelOfKey = Assertions.assertInstanceOf(ClassObjectModel.class,
+					classMapModel.keyModel);
+			Assertions.assertEquals(String.class, classModelOfKey.getOriginClasses());
+			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
+					classMapModel.valueModel);
+			Assertions.assertEquals(Integer.class, classModelOfValue.getOriginClasses());
+		}
+	}
+
+	@Test
+	public void testReturnNestedNotNull() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(ReturnValueGenericNotNull.class));
+
+		// Check List<List<@NotNull Integer>>: only the innermost element is forced non-null, the
+		// outer list element (the inner List) stays nullable by default.
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getListListElementNotNull");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals(1, model.returnTypes.size());
+			// Level 0: outer list, element nullable by default.
+			final ClassListModel outerList = Assertions.assertInstanceOf(ClassListModel.class,
+					model.returnTypes.get(0));
+			Assertions.assertTrue(outerList.valueNullable);
+			// Level 1: inner list, element forced non-null.
+			final ClassListModel innerList = Assertions.assertInstanceOf(ClassListModel.class, outerList.valueModel);
+			Assertions.assertFalse(innerList.valueNullable);
+			// Level 2.
+			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
+					innerList.valueModel);
+			Assertions.assertEquals(Integer.class, classModelOfValue.getOriginClasses());
+		}
+		// Check Map<String, @NotNull List<@NotNull Integer>>: both the Map value (the List) and the
+		// inner List element are forced non-null.
+		{
+			final ApiModel model = api.getAllApi().get(0).getInterfaceNamed("getMapListAllNotNull");
+			Assertions.assertNotNull(model);
+			Assertions.assertEquals(1, model.returnTypes.size());
+			// Level 0: map, value forced non-null.
+			final ClassMapModel classMapModel = Assertions.assertInstanceOf(ClassMapModel.class,
+					model.returnTypes.get(0));
+			Assertions.assertFalse(classMapModel.valueNullable);
+			final ClassObjectModel classModelOfKey = Assertions.assertInstanceOf(ClassObjectModel.class,
+					classMapModel.keyModel);
+			Assertions.assertEquals(String.class, classModelOfKey.getOriginClasses());
+			// Level 1: inner list, element forced non-null.
+			final ClassListModel innerList = Assertions.assertInstanceOf(ClassListModel.class,
+					classMapModel.valueModel);
+			Assertions.assertFalse(innerList.valueNullable);
+			// Level 2.
+			final ClassObjectModel classModelOfValue = Assertions.assertInstanceOf(ClassObjectModel.class,
+					innerList.valueModel);
+			Assertions.assertEquals(Integer.class, classModelOfValue.getOriginClasses());
+		}
 	}
 
 }
