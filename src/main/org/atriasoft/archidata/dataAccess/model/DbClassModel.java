@@ -60,6 +60,18 @@ public final class DbClassModel {
 	private static final ThreadLocal<java.util.Set<Class<?>>> BUILDING_CONTEXTS = ThreadLocal
 			.withInitial(java.util.HashSet::new);
 
+	/**
+	 * Single global lock for the addon-context build phase. The lock MUST be global
+	 * and not per-model: building model A resolves its addon targets via
+	 * {@link #of(Class)} (see {@code AddOnFieldContext.buildFor}), so with
+	 * per-model monitors two threads entering a bidirectional reference cycle
+	 * (e.g. StockProduct ↔ Variety) from opposite ends acquire the two monitors in
+	 * opposite order and deadlock forever — and every later {@code of()} call on
+	 * either class then blocks un-interruptibly on one of the monitors. The build
+	 * happens once per class, so a global lock has no steady-state contention.
+	 */
+	private static final Object ADDON_CONTEXT_BUILD_LOCK = new Object();
+
 	// ========== Static API ==========
 
 	/**
@@ -355,7 +367,7 @@ public final class DbClassModel {
 			return;
 		}
 		try {
-			synchronized (this) {
+			synchronized (ADDON_CONTEXT_BUILD_LOCK) {
 				if (this.addonContextsBuilt) {
 					return;
 				}
