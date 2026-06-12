@@ -228,8 +228,10 @@ public class ChangeNotificationIntegrationTest {
 
 		waitForEvents(1, 2);
 		synchronized (this.capturedEvents) {
-			Assertions.assertTrue(this.capturedEvents.get(0).hasFullDocument(),
-					"UPDATE_LOOKUP should have full document on INSERT");
+			// May receive a DELETE from the previous step + INSERT, so filter for INSERT only
+			final ChangeEvent insertEvent = this.capturedEvents.stream().filter(ChangeEvent::isInsert).findFirst()
+					.orElseThrow();
+			Assertions.assertTrue(insertEvent.hasFullDocument(), "UPDATE_LOOKUP should have full document on INSERT");
 		}
 
 		this.capturedEvents.clear();
