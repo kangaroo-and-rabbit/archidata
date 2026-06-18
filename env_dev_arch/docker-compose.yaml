@@ -40,3 +40,23 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+
+  # Example wiring of the field-encryption keys into an application container using Docker secrets.
+  # archidata reads a secret either inline (<NAME>) or, following the Docker convention, from the
+  # file pointed to by <NAME>_FILE. See doc/field_encryption.md.
+  #
+  # myapp:
+  #   image: my-archidata-app:latest
+  #   environment:
+  #     DATA_DECRYPT_ENABLE: "true"               # authorize decryption on read
+  #     DATA_ENCRYPT_KEY_FILE: /run/secrets/data_encrypt_key   # base key ("default")
+  #     DATA_ENCRYPT_KEYS_DIR: /run/secrets/encrypt_keys       # optional: directory of named keys
+  #   secrets:
+  #     - data_encrypt_key
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+
+# secrets:
+#   data_encrypt_key:
+#     file: ./secrets/data_encrypt_key   # generated via EncryptionKeyGenerator (never commit real keys)
