@@ -1,5 +1,10 @@
 package org.atriasoft.archidata.tools;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +48,9 @@ public class ConfigBaseVariable {
 	private static String eMailPassword;
 	private static String thumbnailFormat;
 	private static String thumbnailWidth;
+	private static String dataDecryptEnable;
+	private static byte[] encryptDefaultKey;
+	private static String encryptKeysDir;
 	private static Class<?>[] dbInterfacesClasses;
 
 	/**
@@ -210,6 +218,33 @@ public class ConfigBaseVariable {
 	}
 
 	/**
+	 * Enables or disables the decryption of {@code @DataEncrypt} fields on read.
+	 * @param value {@code "true"} to allow decryption, anything else (or {@code null}) to forbid it.
+	 */
+	public static void setDataDecryptEnable(final String value) {
+		checkNotLocked("dataDecryptEnable");
+		dataDecryptEnable = value;
+	}
+
+	/**
+	 * Sets the raw bytes of the base encryption key (logical name {@code "default"}).
+	 * @param value the key material (raw or Base64 symmetric key, or PEM asymmetric key), may be {@code null}.
+	 */
+	public static void setEncryptDefaultKey(final byte[] value) {
+		checkNotLocked("encryptDefaultKey");
+		encryptDefaultKey = value == null ? null : value.clone();
+	}
+
+	/**
+	 * Sets the directory scanned for additional named encryption keys.
+	 * @param value the directory path, may be {@code null}.
+	 */
+	public static void setEncryptKeysDir(final String value) {
+		checkNotLocked("encryptKeysDir");
+		encryptKeysDir = value;
+	}
+
+	/**
 	 * Reloads all configuration values from environment variables and unlocks the configuration.
 	 * Only works if reconfiguration is allowed. Primarily used for testing.
 	 *
@@ -238,7 +273,34 @@ public class ConfigBaseVariable {
 		eMailPassword = System.getenv("EMAIL_PASSWORD");
 		thumbnailFormat = System.getenv("THUMBNAIL_FORMAT");
 		thumbnailWidth = System.getenv("THUMBNAIL_WIDTH");
+		dataDecryptEnable = System.getenv("DATA_DECRYPT_ENABLE");
+		encryptDefaultKey = readSecretBytes("DATA_ENCRYPT_KEY");
+		encryptKeysDir = System.getenv("DATA_ENCRYPT_KEYS_DIR");
 		dbInterfacesClasses = new Class<?>[0];
+	}
+
+	/**
+	 * Reads a secret value either from the file pointed to by {@code <name>_FILE} (the Docker secrets
+	 * convention) or, as a fallback, from the inline environment variable {@code <name>}.
+	 *
+	 * @param name the base environment variable name.
+	 * @return the secret bytes, or {@code null} if neither variable is defined.
+	 */
+	private static byte[] readSecretBytes(final String name) {
+		final String filePath = System.getenv(name + "_FILE");
+		if (filePath != null && !filePath.isEmpty()) {
+			try {
+				return Files.readAllBytes(Path.of(filePath));
+			} catch (final IOException e) {
+				LOGGER.error("Failed to read secret file for {}_FILE: {}", name, filePath, e);
+				return null;
+			}
+		}
+		final String inline = System.getenv(name);
+		if (inline != null && !inline.isEmpty()) {
+			return inline.getBytes(StandardCharsets.UTF_8);
+		}
+		return null;
 	}
 
 	static {
@@ -442,5 +504,33 @@ public class ConfigBaseVariable {
 			return 256;
 		}
 		return Integer.parseInt(thumbnailWidth);
+	}
+
+	/**
+	 * Returns whether archidata is allowed to decrypt {@code @DataEncrypt} fields on read.
+	 * Defaults to {@code false}: without explicit activation, encrypted fields are never decrypted.
+	 * @return {@code true} if decryption is enabled.
+	 */
+	public static boolean getDataDecryptEnabled() {
+		if (dataDecryptEnable == null) {
+			return false;
+		}
+		return Boolean.parseBoolean(dataDecryptEnable);
+	}
+
+	/**
+	 * Returns the raw bytes of the base encryption key, or {@code null} if not configured.
+	 * @return The base key material.
+	 */
+	public static byte[] getEncryptDefaultKey() {
+		return encryptDefaultKey == null ? null : encryptDefaultKey.clone();
+	}
+
+	/**
+	 * Returns the directory scanned for additional named encryption keys, or {@code null}.
+	 * @return The encryption keys directory path.
+	 */
+	public static String getEncryptKeysDir() {
+		return encryptKeysDir;
 	}
 }

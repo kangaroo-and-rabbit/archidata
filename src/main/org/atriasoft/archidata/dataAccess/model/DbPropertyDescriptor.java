@@ -8,9 +8,11 @@ import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.annotation.CreationTimestamp;
 import org.atriasoft.archidata.annotation.DataAsyncHardDeleted;
 import org.atriasoft.archidata.annotation.DataDeleted;
+import org.atriasoft.archidata.annotation.DataEncrypt;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
+import org.atriasoft.archidata.crypto.FieldEncryptionContext;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
@@ -131,9 +133,16 @@ public final class DbPropertyDescriptor {
 	 */
 	void buildCodec() {
 		if (this.property.canRead()) {
+			final DataEncrypt encrypt = this.property.getAnnotation(DataEncrypt.class);
+			FieldEncryptionContext encryptCtx = null;
+			if (encrypt != null) {
+				final String encryptKey = encrypt.encryptKey().isEmpty() ? encrypt.value() : encrypt.encryptKey();
+				final String decryptKey = encrypt.decryptKey().isEmpty() ? encrypt.value() : encrypt.decryptKey();
+				encryptCtx = new FieldEncryptionContext(encryptKey, decryptKey);
+			}
 			this.codec = MongoCodecFactory.buildFieldCodec(this.property.getRawGetter(),
 					this.property.canWrite() ? this.property.getRawSetter() : null, this.property.getTypeInfo(),
-					this.dbFieldName);
+					this.dbFieldName, encryptCtx);
 		}
 	}
 

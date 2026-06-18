@@ -21,11 +21,15 @@ import org.atriasoft.archidata.bean.TypeInfo;
 import org.atriasoft.archidata.bean.accessor.PropertyGetter;
 import org.atriasoft.archidata.bean.accessor.PropertySetter;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
+import org.atriasoft.archidata.crypto.FieldEncryptionContext;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Factory that creates pre-compiled {@link MongoFieldCodec} instances for each field type.
@@ -38,6 +42,8 @@ import org.bson.types.ObjectId;
  * to select the right lambda, then never again.
  */
 public final class MongoCodecFactory {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(MongoCodecFactory.class);
 
 	private static final DateTimeFormatter LOCAL_DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -63,8 +69,63 @@ public final class MongoCodecFactory {
 			final PropertySetter setter,
 			final TypeInfo typeInfo,
 			final String dbFieldName) {
-		final MongoTypeWriter writer = buildWriter(typeInfo);
-		final MongoTypeReader reader = buildReader(typeInfo);
+		return buildFieldCodec(getter, setter, typeInfo, dbFieldName, null);
+	}
+
+	/**
+	 * Build a complete field codec, optionally wrapping the converters with field encryption.
+	 *
+	 * @param getter the pre-built lambda getter for the property
+	 * @param setter the pre-built lambda setter for the property (may be null for read-only)
+	 * @param typeInfo the resolved type info for the property
+	 * @param dbFieldName the MongoDB field name
+	 * @param encryptCtx the field encryption context, or {@code null} for a clear field
+	 * @return a pre-compiled MongoFieldCodec
+	 */
+	public static MongoFieldCodec buildFieldCodec(
+			final PropertyGetter getter,
+			final PropertySetter setter,
+			final TypeInfo typeInfo,
+			final String dbFieldName,
+			final FieldEncryptionContext encryptCtx) {
+		MongoTypeWriter writer = buildWriter(typeInfo);
+		MongoTypeReader reader = buildReader(typeInfo);
+		if (encryptCtx != null) {
+			if (typeInfo.rawType() != String.class) {
+				throw new IllegalStateException("@DataEncrypt is only supported on String fields (field '" + dbFieldName
+						+ "' is " + typeInfo.rawType().getName() + ")");
+			}
+			final MongoTypeWriter baseWriter = writer;
+			final MongoTypeReader baseReader = reader;
+			writer = javaValue -> {
+				final Object base = baseWriter.toMongo(javaValue);
+				try {
+					return encryptCtx.encrypt((String) base);
+				} catch (final Exception e) {
+					// Never silently store the clear value: fail the whole operation.
+					throw new DataAccessException("Failed to encrypt field '" + dbFieldName + "'", e);
+				}
+			};
+			reader = mongoValue -> {
+				if (!ConfigBaseVariable.getDataDecryptEnabled()) {
+					// Decryption not authorized: leave the field unset, data stays protected.
+					return null;
+				}
+				if (!encryptCtx.canDecrypt()) {
+					// No decryption key on this node (e.g. encrypt-only deployment): leave unset.
+					LOGGER.warn("No decryption key available for field '{}': value left unset", dbFieldName);
+					return null;
+				}
+				final String clear;
+				try {
+					clear = encryptCtx.decrypt((String) mongoValue);
+				} catch (final Exception e) {
+					// Wrong key, scheme mismatch or tampered data: surface a clear error.
+					throw new DataAccessException("Failed to decrypt field '" + dbFieldName + "'", e);
+				}
+				return baseReader.fromMongo(clear);
+			};
+		}
 		return new MongoFieldCodec(getter, setter, dbFieldName, writer, reader, typeInfo.isPrimitive());
 	}
 
