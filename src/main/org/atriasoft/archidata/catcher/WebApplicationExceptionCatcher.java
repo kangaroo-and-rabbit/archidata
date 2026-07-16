@@ -15,6 +15,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplicationException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WebApplicationExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public WebApplicationExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link WebApplicationException} to a JSON error response, preserving the original HTTP status code.
 	 * @param exception the WebApplicationException that was thrown

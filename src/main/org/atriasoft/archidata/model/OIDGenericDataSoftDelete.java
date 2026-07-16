@@ -21,6 +21,9 @@ import jakarta.ws.rs.DefaultValue;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericDataSoftDelete extends OIDGenericData {
 
+	/** Creates an empty {@link OIDGenericDataSoftDelete} instance. */
+	public OIDGenericDataSoftDelete() {}
+
 	@DataNotRead
 	@Column(nullable = false)
 	@DefaultValue("'0'")

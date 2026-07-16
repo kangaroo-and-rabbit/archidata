@@ -29,6 +29,9 @@ public class FrontGeneric {
 	/** Base directory path from which front-end static files are served. */
 	protected String baseFrontFolder = "/data/front";
 
+	/** Default constructor used by the JAX-RS resource framework. */
+	public FrontGeneric() {}
+
 	private String getExtension(final String filename) {
 		if (filename.contains(".")) {
 			return filename.substring(filename.lastIndexOf(".") + 1);

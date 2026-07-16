@@ -21,6 +21,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public InputExceptionCatcher() {}
+
 	/**
 	 * Maps an {@link InputException} to a BAD_REQUEST JSON error response with details about the invalid input.
 	 * @param exception the InputException that was thrown

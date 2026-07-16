@@ -37,6 +37,9 @@ public class openApiResource {
 	private static String apiVersion = "1.0.0";
 	private static String cachedSpec;
 
+	/** Default constructor used by the JAX-RS resource framework. */
+	public openApiResource() {}
+
 	/**
 	 * Configure the OpenAPI resource with analyzed API data.
 	 *

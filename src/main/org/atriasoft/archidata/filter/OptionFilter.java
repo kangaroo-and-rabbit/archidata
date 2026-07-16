@@ -24,6 +24,9 @@ import jakarta.ws.rs.ext.Provider;
 public class OptionFilter implements ContainerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(OptionFilter.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public OptionFilter() {}
+
 	/**
 	 * Filters incoming requests and aborts OPTIONS requests with a 204 No Content response.
 	 */

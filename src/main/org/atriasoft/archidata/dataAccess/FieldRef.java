@@ -58,6 +58,7 @@ public final class FieldRef<T> {
 	}
 
 	/**
+	 * Gets the resolved database field name wrapped by this reference.
 	 * @return the resolved database field name
 	 */
 	public String getFieldName() {

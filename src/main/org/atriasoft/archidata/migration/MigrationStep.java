@@ -25,6 +25,9 @@ public class MigrationStep implements MigrationInterface {
 	private final List<AsyncCall> actions = new ArrayList<>();
 	private boolean isGenerated = false;
 
+	/** Creates an empty migration step with no registered action. */
+	public MigrationStep() {}
+
 	/**
 	 * Returns the canonical class name as the migration name.
 	 *

@@ -14,6 +14,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserByToken {
+	/** Creates an empty {@link UserByToken} instance. */
+	public UserByToken() {}
+
 	/** Type constant indicating a regular user. */
 	// Set here by number to permit to extend it by the user.
 	public static final int TYPE_USER = -1;

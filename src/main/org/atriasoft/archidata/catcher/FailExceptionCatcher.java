@@ -15,6 +15,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class FailExceptionCatcher implements ExceptionMapper<FailException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FailExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public FailExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link FailException} to a JSON error response using the exception's HTTP status.
 	 * @param exception the FailException that was thrown

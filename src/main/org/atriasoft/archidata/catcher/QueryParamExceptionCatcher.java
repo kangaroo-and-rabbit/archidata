@@ -19,6 +19,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class QueryParamExceptionCatcher implements ExceptionMapper<QueryParamException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryParamExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public QueryParamExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link QueryParamException} to a BAD_REQUEST JSON error response with details about the invalid query parameter.
 	 * @param exception the QueryParamException that was thrown

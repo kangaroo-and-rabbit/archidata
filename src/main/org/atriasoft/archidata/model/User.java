@@ -31,6 +31,9 @@ import jakarta.ws.rs.DefaultValue;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
 public class User extends OIDGenericDataSoftDelete {
+	/** Creates an empty {@link User} instance. */
+	public User() {}
+
 	@NotNull
 	@Column(length = 128)
 	@Size(min = 3, max = 128)

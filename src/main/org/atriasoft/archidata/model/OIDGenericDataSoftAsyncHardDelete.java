@@ -21,6 +21,9 @@ import jakarta.validation.constraints.Null;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericDataSoftAsyncHardDelete extends OIDGenericDataSoftDelete {
 
+	/** Creates an empty {@link OIDGenericDataSoftAsyncHardDelete} instance. */
+	public OIDGenericDataSoftAsyncHardDelete() {}
+
 	@DataNotRead
 	@Column(nullable = false)
 	@DataAsyncHardDeleted

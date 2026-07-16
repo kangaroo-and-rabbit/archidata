@@ -13,6 +13,9 @@ import jakarta.validation.ConstraintValidatorContext;
  */
 public class CollectionItemNotNullValidator implements ConstraintValidator<CollectionItemNotNull, Object> {
 
+	/** Default constructor used by the validation framework. */
+	public CollectionItemNotNullValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final CollectionItemNotNull annotation) {

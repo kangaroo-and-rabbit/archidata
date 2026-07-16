@@ -14,6 +14,9 @@ import jakarta.ws.rs.core.MediaType;
  */
 public class SwaggerUiExternal extends openApiResource {
 
+	/** Default constructor used by the JAX-RS resource framework. */
+	public SwaggerUiExternal() {}
+
 	/**
 	 * Returns an HTML page embedding the Swagger UI, configured to load the OpenAPI spec from the sibling endpoint.
 	 * @return An HTML string containing the Swagger UI page.

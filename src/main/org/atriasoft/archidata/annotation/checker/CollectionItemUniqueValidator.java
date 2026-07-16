@@ -15,6 +15,9 @@ import jakarta.validation.ConstraintValidatorContext;
  */
 public class CollectionItemUniqueValidator implements ConstraintValidator<CollectionItemUnique, Object> {
 
+	/** Default constructor used by the validation framework. */
+	public CollectionItemUniqueValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final CollectionItemUnique annotation) {

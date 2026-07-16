@@ -33,6 +33,9 @@ public class PyApiGeneration {
 	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(PyApiGeneration.class);
 
+	/** Default constructor for this static helper class. */
+	public PyApiGeneration() {}
+
 	/**
 	 * Converts a CamelCase method name to snake_case.
 	 * @param name the CamelCase name to convert

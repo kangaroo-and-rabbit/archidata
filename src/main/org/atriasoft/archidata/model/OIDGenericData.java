@@ -22,6 +22,9 @@ import jakarta.validation.constraints.Null;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDGenericData extends GenericTiming {
 
+	/** Creates an empty {@link OIDGenericData} instance. */
+	public OIDGenericData() {}
+
 	@Id
 	@BsonId
 	@Column(nullable = false, unique = true, name = "_id")

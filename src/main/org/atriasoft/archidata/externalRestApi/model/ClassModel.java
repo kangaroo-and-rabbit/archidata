@@ -36,6 +36,9 @@ public abstract class ClassModel {
 	/** The set of models this model depends on. */
 	protected Set<ClassModel> dependencyModels = new HashSet<>();
 
+	/** Default constructor for subclasses. */
+	protected ClassModel() {}
+
 	/**
 	 * Returns the original Java class this model was created from.
 	 * @return the origin class
@@ -52,6 +55,11 @@ public abstract class ClassModel {
 		return this.apiGenerationMode;
 	}
 
+	/**
+	 * Indicates whether this model was created from the given class.
+	 * @param clazz the class to compare against this model's origin class
+	 * @return {@code true} if this model's origin class is the given class
+	 */
 	protected boolean isCompatible(final Class<?> clazz) {
 		return this.originClasses == clazz;
 	}

@@ -24,6 +24,9 @@ import jakarta.validation.constraints.Size;
 @Table(name = "data")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends OIDGenericDataSoftDelete {
+	/** Creates an empty {@link Data} instance. */
+	public Data() {}
+
 	@Column(length = 128, nullable = false)
 	@Schema(description = "Sha512 of the data")
 	@Size(max = 512)

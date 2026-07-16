@@ -18,6 +18,9 @@ public class CheckForeignKeyValidator implements ConstraintValidator<CheckForeig
 	Class<?> target = null;
 	private static final Logger LOGGER = LoggerFactory.getLogger(CheckForeignKeyValidator.class);
 
+	/** Default constructor used by the validation framework. */
+	public CheckForeignKeyValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final CheckForeignKey annotation) {

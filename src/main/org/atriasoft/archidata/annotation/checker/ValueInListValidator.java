@@ -15,6 +15,9 @@ import jakarta.validation.ConstraintValidatorContext;
 public class ValueInListValidator implements ConstraintValidator<ValueInList, String> {
 	List<String> values;
 
+	/** Default constructor used by the validation framework. */
+	public ValueInListValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final ValueInList annotation) {

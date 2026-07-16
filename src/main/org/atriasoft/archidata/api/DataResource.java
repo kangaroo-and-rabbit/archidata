@@ -77,6 +77,9 @@ public class DataResource {
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
 
+	/** Default constructor used by the JAX-RS resource framework. */
+	public DataResource() {}
+
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
 			// Log.print("Create folder: " + path);

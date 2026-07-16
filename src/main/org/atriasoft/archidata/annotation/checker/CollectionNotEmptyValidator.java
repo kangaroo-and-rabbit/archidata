@@ -12,6 +12,9 @@ import jakarta.validation.ConstraintValidatorContext;
  */
 public class CollectionNotEmptyValidator implements ConstraintValidator<CollectionNotEmpty, Object> {
 
+	/** Default constructor used by the validation framework. */
+	public CollectionNotEmptyValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final CollectionNotEmpty annotation) {

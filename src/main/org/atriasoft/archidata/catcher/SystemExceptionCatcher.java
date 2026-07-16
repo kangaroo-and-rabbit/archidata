@@ -15,6 +15,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class SystemExceptionCatcher implements ExceptionMapper<SystemException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SystemExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public SystemExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link SystemException} to a JSON error response using the exception's HTTP status.
 	 * @param exception the SystemException that was thrown

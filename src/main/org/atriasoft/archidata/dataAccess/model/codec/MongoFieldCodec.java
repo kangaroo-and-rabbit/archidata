@@ -53,6 +53,7 @@ public final class MongoFieldCodec {
 	 * @param instance the Java bean instance
 	 * @param docSet the $set document to append to
 	 * @param docUnSet the $unset document (may be null for sub-objects/inserts)
+	 * @throws Exception if reading the field or converting its value fails
 	 */
 	public void writeToDoc(
 			final String parentFieldName,
@@ -78,6 +79,7 @@ public final class MongoFieldCodec {
 	 * @param instance the Java bean instance
 	 * @param docSet the $set document
 	 * @param docUnSet the $unset document (may be null)
+	 * @throws Exception if reading the field or converting its value fails
 	 */
 	public void writeToDoc(
 			final String parentFieldName,
@@ -103,6 +105,7 @@ public final class MongoFieldCodec {
 	 *
 	 * @param doc the MongoDB document
 	 * @param instance the Java bean instance to populate
+	 * @throws Exception if reading the document value or setting the field fails
 	 */
 	public void readFromDoc(final Document doc, final Object instance) throws Exception {
 		readFromDocInternal(doc, this.dbFieldName, this.reader, instance);
@@ -114,6 +117,7 @@ public final class MongoFieldCodec {
 	 * @param doc the MongoDB document
 	 * @param overrideFieldName the field name to read from the document
 	 * @param instance the Java bean instance to populate
+	 * @throws Exception if reading the document value or setting the field fails
 	 */
 	public void readFromDoc(final Document doc, final String overrideFieldName, final Object instance)
 			throws Exception {
@@ -127,6 +131,7 @@ public final class MongoFieldCodec {
 	 * @param overrideFieldName the field name to read from the document
 	 * @param overrideReader the reader to use instead of the pre-compiled one
 	 * @param instance the Java bean instance to populate
+	 * @throws Exception if reading the document value or setting the field fails
 	 */
 	public void readFromDoc(
 			final Document doc,
@@ -142,6 +147,7 @@ public final class MongoFieldCodec {
 	 *
 	 * @param javaValue the Java value (may be null)
 	 * @return the MongoDB-compatible value, or null if input is null
+	 * @throws Exception if converting the value fails
 	 */
 	public Object convertToMongo(final Object javaValue) throws Exception {
 		if (javaValue == null) {

@@ -1,0 +1,100 @@
+digraph UML_Class_diagram {
+    #rankdir=LR;
+	graph [
+		label="UML Class diagram demo"
+		labelloc="t"
+		fontname="Helvetica,Arial,sans-serif"
+	]
+	node [
+		fontname="Helvetica,Arial,sans-serif"
+		shape=record
+		style=filled
+		fillcolor=gray95
+	]
+	edge [fontname="Helvetica,Arial,sans-serif"]
+
+    # mettre des lien en dashed
+	edge [arrowhead=vee style=dashed]
+	Client -> Interface1 [label=dependency]
+	Client -> Interface2
+
+    # heritage arrow:
+	edge [dir=back arrowtail=empty style=""]
+	Interface1 -> Class1 [xlabel=inheritance]
+	Interface2 -> Class1 [dir=none]
+	Interface2 [label="" xlabel="Simple\ninterface" shape=circle]
+
+
+
+
+	API_REST_PLOP [
+		shape=plain
+		label=<<table color="#FF3333" border="2" cellborder="1" cellspacing="0" cellpadding="4">
+			<tr>
+				<td>
+					<b>MY_CLASS_NAME</b><br/>(REST)
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<table border="0" cellborder="0" cellspacing="0" >
+						<tr>
+							<td align="left" port="PROPERTY_1_REF" >
+								+ plop(xxx: Kaboom) : KataPloof<br/>
+								&nbsp;&nbsp;&nbsp;&nbsp;/qsdqds/{id}/
+							</td>
+						</tr>
+						<tr>
+							<td align="left" port="PROPERTY_2_REF" >
+								+ plop(xxx: Kaboom) : KataPloof<br/>
+								&nbsp;&nbsp;&nbsp;&nbsp;/qsdqds/{id}/
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>>
+	]
+
+
+
+	Interface1[label = <{<b>«interface» I/O</b> | + property<br align="left"/>...<br align="left"/>|+ method<br align="left"/>...<br align="left"/>}>]
+	Class1[label = <{<b>I/O class</b> | + property<br align="left"/>...<br align="left"/>|+ method<br align="left"/>...<br align="left"/>}>]
+	edge [dir=back arrowtail=empty style=dashed]
+	Class1 -> MY_CLASS_NAME_REF [label=implementation]
+	MY_CLASS_NAME_REF [
+		shape=plain
+		label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+			<tr> <td port="CLASS_NAME"> <b>MY_CLASS_NAME</b> </td> </tr>
+			<tr> <td>
+				<table border="0" cellborder="0" cellspacing="0" >
+						<tr><td  align="left"><i>//Link with the TechnicalRoute</i></td></tr>
+					<tr> <td align="left" port="PROPERTY_1_REF" >+ PROPERTY_1 : String (SOLO)</td> </tr>
+					<tr> <td align="left" port="PROPERTY_2_REF" >- PROPERTY_2 : ExternalObject (EXTERN) </td> </tr>
+					<tr> <td align="left">...</td> </tr>
+				</table>
+			</td> </tr>
+			<tr> <td align="left">+ method<br/>...<br align="left"/></td> </tr>
+		</table>>
+	]
+
+	edge [dir=back arrowtail=diamond]
+	MY_CLASS_NAME_REF:PROPERTY_2_REF -> EXTERNAL_OBJECT_CLASS_NAME_REF:CLASS_NAME [xlabel="composition"]
+
+	EXTERNAL_OBJECT_CLASS_NAME_REF [
+		shape=plain
+		label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+			<tr> <td port="CLASS_NAME"> <b>ExternalObject</b> </td> </tr>
+			<tr> <td>
+				<table border="0" cellborder="0" cellspacing="0" >
+					<tr> <td align="left" port="PROPERTY_1_REF" >+ PROPERTY_1 : String (SOLO)</td> </tr>
+				</table>
+				</td> </tr>
+			<tr> <td align="left">
+				+ method<br/>
+				...<br align="left"/>
+			</td> </tr>
+		</table>>
+	]
+
+}

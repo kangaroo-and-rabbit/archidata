@@ -18,6 +18,9 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 public class CORSFilter implements ContainerResponseFilter {
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public CORSFilter() {}
+
 	/**
 	 * Adds CORS headers to the response.
 	 *

@@ -1,0 +1,16 @@
+{
+  "projects": [
+    {
+      "name": "archidata",
+      "path": "/home/heero/dev/perso/kangaroo_and_rabbit/archidata",
+      "auto_start": true
+    }
+  ],
+  "server": {
+    "java_home": "/usr/lib/jvm/java-25-openjdk",
+    "jdtls_path": "/usr/share/java/jdtls",
+    "workspace_base": "/tmp/jdtls-workspaces",
+    "socket_path": "/tmp/jdtls-server.sock",
+    "log_level": "ERROR"
+  }
+}

@@ -127,91 +127,163 @@ public class ConfigBaseVariable {
 
 	// ========== Setters ==========
 
+	/**
+	 * Sets the temporary data folder path.
+	 * @param value the new temporary data folder path
+	 */
 	public static void setTmpDataFolder(final String value) {
 		checkNotLocked("tmpDataFolder");
 		tmpDataFolder = value;
 	}
 
+	/**
+	 * Sets the data folder path.
+	 * @param value the new data folder path
+	 */
 	public static void setDataFolder(final String value) {
 		checkNotLocked("dataFolder");
 		dataFolder = value;
 	}
 
+	/**
+	 * Sets whether the database may be created automatically.
+	 * @param value the new "able to create" flag value
+	 */
 	public static void setDbAbleToCreate(final String value) {
 		checkNotLocked("dbAbleToCreate");
 		dbAbleToCreate = value;
 	}
 
+	/**
+	 * Sets the database host.
+	 * @param value the new database host
+	 */
 	public static void setDbHost(final String value) {
 		checkNotLocked("dbHost");
 		dbHost = value;
 	}
 
+	/**
+	 * Sets the database port.
+	 * @param value the new database port
+	 */
 	public static void setDbPort(final String value) {
 		checkNotLocked("dbPort");
 		dbPort = value;
 	}
 
+	/**
+	 * Sets the database user.
+	 * @param value the new database user
+	 */
 	public static void setDbUser(final String value) {
 		checkNotLocked("dbUser");
 		dbUser = value;
 	}
 
+	/**
+	 * Sets whether the database connection is kept alive.
+	 * @param value the new "keep connected" flag value
+	 */
 	public static void setDbKeepConnected(final String value) {
 		checkNotLocked("dbKeepConnected");
 		dbKeepConnected = value;
 	}
 
+	/**
+	 * Sets the database password.
+	 * @param value the new database password
+	 */
 	public static void setDbPassword(final String value) {
 		checkNotLocked("dbPassword");
 		dbPassword = value;
 	}
 
+	/**
+	 * Sets the database name.
+	 * @param value the new database name
+	 */
 	public static void setBdDatabase(final String value) {
 		checkNotLocked("bdDatabase");
 		bdDatabase = value;
 	}
 
+	/**
+	 * Sets the API address.
+	 * @param value the new API address
+	 */
 	public static void setApiAddress(final String value) {
 		checkNotLocked("apiAdress");
 		apiAdress = value;
 	}
 
+	/**
+	 * Sets the SSO address.
+	 * @param value the new SSO address
+	 */
 	public static void setSsoAddress(final String value) {
 		checkNotLocked("ssoAdress");
 		ssoAdress = value;
 	}
 
+	/**
+	 * Sets the SSO token.
+	 * @param value the new SSO token
+	 */
 	public static void setSsoToken(final String value) {
 		checkNotLocked("ssoToken");
 		ssoToken = value;
 	}
 
+	/**
+	 * Sets the test mode flag.
+	 * @param value the new test mode value
+	 */
 	public static void setTestMode(final String value) {
 		checkNotLocked("testMode");
 		testMode = value;
 	}
 
+	/**
+	 * Sets the "from" address used for outgoing e-mails.
+	 * @param value the new e-mail "from" address
+	 */
 	public static void setEMailFrom(final String value) {
 		checkNotLocked("eMailFrom");
 		eMailFrom = value;
 	}
 
+	/**
+	 * Sets the login used for the e-mail account.
+	 * @param value the new e-mail login
+	 */
 	public static void setEMailLogin(final String value) {
 		checkNotLocked("eMailLogin");
 		eMailLogin = value;
 	}
 
+	/**
+	 * Sets the password used for the e-mail account.
+	 * @param value the new e-mail password
+	 */
 	public static void setEMailPassword(final String value) {
 		checkNotLocked("eMailPassword");
 		eMailPassword = value;
 	}
 
+	/**
+	 * Sets the thumbnail output format.
+	 * @param value the new thumbnail format
+	 */
 	public static void setThumbnailFormat(final String value) {
 		checkNotLocked("thumbnailFormat");
 		thumbnailFormat = value;
 	}
 
+	/**
+	 * Sets the thumbnail width.
+	 * @param value the new thumbnail width
+	 */
 	public static void setThumbnailWidth(final String value) {
 		checkNotLocked("thumbnailWidth");
 		thumbnailWidth = value;

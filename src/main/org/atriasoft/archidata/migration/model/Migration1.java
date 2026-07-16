@@ -23,6 +23,9 @@ import jakarta.ws.rs.DefaultValue;
 @Table(name = "KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration1 extends GenericDataSoftDelete {
+	/** Creates an empty {@link Migration1} instance. */
+	public Migration1() {}
+
 	/** The current version of the migration model format. */
 	static final int VERSION_MIGRATION = 1;
 	/** Name of the migration. */

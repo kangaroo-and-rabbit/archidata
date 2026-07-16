@@ -22,6 +22,9 @@ import jakarta.ws.rs.DefaultValue;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UUIDGenericData extends GenericTiming {
 
+	/** Creates an empty {@link UUIDGenericData} instance. */
+	public UUIDGenericData() {}
+
 	@Id
 	@DefaultValue("(UUID_TO_BIN(UUID(), TRUE))")
 	@Column(nullable = false, unique = true)

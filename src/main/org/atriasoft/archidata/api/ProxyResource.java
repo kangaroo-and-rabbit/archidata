@@ -25,6 +25,9 @@ import jakarta.ws.rs.core.Response.Status;
 public class ProxyResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyResource.class);
 
+	/** Default constructor used by the JAX-RS resource framework. */
+	public ProxyResource() {}
+
 	/**
 	 * Fetches content from the given external URL and returns it to the client.
 	 * @param url The external URL to fetch content from.

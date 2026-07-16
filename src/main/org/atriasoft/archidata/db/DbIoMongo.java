@@ -194,6 +194,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 	/**
 	 * Returns a short human-readable description of every cached cluster, for
 	 * health-check / heartbeat logs.
+	 * @return a human-readable summary of the cached clusters, or {@code "no-shared-client"} when none
 	 */
 	public static String describeSharedClusters() {
 		if (CLIENT_CACHE.isEmpty()) {

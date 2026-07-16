@@ -21,6 +21,9 @@ import jakarta.ws.rs.DefaultValue;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericDataSoftDelete extends GenericData {
 
+	/** Creates an empty {@link GenericDataSoftDelete} instance. */
+	public GenericDataSoftDelete() {}
+
 	@DataNotRead
 	@Column(nullable = false)
 	@DefaultValue("'0'")

@@ -15,6 +15,9 @@ import jakarta.validation.constraints.NotNull;
 @Table(name = "applicationToken")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericToken extends OIDGenericDataSoftDelete {
+	/** Creates an empty {@link GenericToken} instance. */
+	public GenericToken() {}
+
 	@NotNull
 	private ObjectId parentId;
 	@NotNull

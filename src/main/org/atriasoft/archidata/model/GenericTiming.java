@@ -25,6 +25,9 @@ import jakarta.validation.constraints.Null;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericTiming {
 
+	/** Creates an empty {@link GenericTiming} instance. */
+	public GenericTiming() {}
+
 	@DataNotRead
 	@CreationTimestamp
 	@Column(nullable = false, insertable = false, updatable = false)

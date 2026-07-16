@@ -18,6 +18,9 @@ import org.slf4j.LoggerFactory;
 public class ImportModel {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ImportModel.class);
 
+	/** Creates an empty import model with no registered import. */
+	public ImportModel() {}
+
 	/** Defines the mode/category of import to generate. */
 	public enum ModeImport {
 		/** Import the Zod schema. */

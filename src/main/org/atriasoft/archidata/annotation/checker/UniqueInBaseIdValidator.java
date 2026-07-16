@@ -21,6 +21,9 @@ public class UniqueInBaseIdValidator implements ConstraintValidator<UniqueInBase
 	String nameOfField;
 	Class<?> target;
 
+	/** Default constructor used by the validation framework. */
+	public UniqueInBaseIdValidator() {}
+
 	/** {@inheritDoc} */
 	@Override
 	public void initialize(final UniqueInBaseId annotation) {

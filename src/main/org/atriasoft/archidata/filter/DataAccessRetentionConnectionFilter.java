@@ -50,6 +50,9 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	@Context
 	private ResourceInfo resourceInfo;
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public DataAccessRetentionConnectionFilter() {}
+
 	/**
 	 * Opens a database connection for the current thread.
 	 *

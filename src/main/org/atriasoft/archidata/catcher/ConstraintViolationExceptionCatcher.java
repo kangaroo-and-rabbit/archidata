@@ -22,6 +22,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class ConstraintViolationExceptionCatcher implements ExceptionMapper<ConstraintViolationException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConstraintViolationExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public ConstraintViolationExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link ConstraintViolationException} to a BAD_REQUEST JSON error response with details about each constraint violation.
 	 * @param exception the ConstraintViolationException that was thrown

@@ -15,12 +15,18 @@ import java.util.Map;
 public record BackupSnapshot(
 		Map<String, byte[]> collections) {
 
-	/** Return the number of collections in this snapshot. */
+	/**
+	 * Return the number of collections in this snapshot.
+	 * @return the number of collections held by this snapshot
+	 */
 	public int size() {
 		return this.collections.size();
 	}
 
-	/** Return {@code true} if this snapshot contains no collections. */
+	/**
+	 * Return {@code true} if this snapshot contains no collections.
+	 * @return {@code true} when this snapshot holds no collection
+	 */
 	public boolean isEmpty() {
 		return this.collections.isEmpty();
 	}

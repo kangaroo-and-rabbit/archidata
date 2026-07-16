@@ -16,6 +16,9 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JacksonExceptionCatcher.class);
 
+	/** Default constructor used by the JAX-RS provider framework. */
+	public JacksonExceptionCatcher() {}
+
 	/**
 	 * Maps a {@link JacksonException} to an INTERNAL_SERVER_ERROR JSON error response.
 	 * @param exception the JacksonException that was thrown during JSON processing

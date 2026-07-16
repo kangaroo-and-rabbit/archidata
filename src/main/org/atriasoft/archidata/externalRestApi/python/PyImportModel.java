@@ -12,6 +12,9 @@ import org.atriasoft.archidata.externalRestApi.model.ClassModel;
  */
 public class PyImportModel {
 
+	/** Creates an empty import model with no registered import. */
+	public PyImportModel() {}
+
 	/** Defines the type of import to generate. */
 	public enum ImportType {
 		/** Import the type itself. */

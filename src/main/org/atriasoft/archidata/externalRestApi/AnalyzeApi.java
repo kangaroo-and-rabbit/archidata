@@ -24,6 +24,9 @@ public class AnalyzeApi {
 	/** Container for all discovered class models. */
 	protected final ModelGroup modelGroup = new ModelGroup();
 
+	/** Creates an empty API analyzer with no registered API group or model. */
+	public AnalyzeApi() {}
+
 	/**
 	 * Registers multiple data model classes and analyzes them.
 	 * @param classes the list of model classes to add
