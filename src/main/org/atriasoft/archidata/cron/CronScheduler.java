@@ -166,7 +166,9 @@ public class CronScheduler {
 				Thread.currentThread().interrupt();
 			}
 		}
-		LOGGER.debug("Stop CRON producer thread");
+		// WARN for the same reason as the consumer: a silently stopped producer means no
+		// periodic task is ever enqueued again.
+		LOGGER.warn("Stop CRON producer thread");
 	}
 
 	/** Enqueues every one-time scheduled task whose execution time has been reached. */
@@ -219,12 +221,22 @@ public class CronScheduler {
 				Thread.currentThread().interrupt();
 				break;
 			}
-			runTask(pending);
+			try {
+				runTask(pending);
+			} catch (final Throwable ex) {
+				// Belt and braces: runTask already contains everything, but NOTHING may kill
+				// this loop — a dead consumer freezes every periodic task silently (the
+				// producer keeps rejecting re-enqueues of the never-consumed pending tasks).
+				LOGGER.error("CRON consumer survived an unexpected error around task '{}': {}", pending.task().name(),
+						ex.getMessage(), ex);
+			}
 		}
-		LOGGER.debug("Stop CRON consumer thread");
+		// WARN: outside of an explicit stop() this must be visible — a stopped consumer
+		// means no periodic task will ever run again in this process.
+		LOGGER.warn("Stop CRON consumer thread");
 	}
 
-	/** Runs one task: tracks it, notifies the listener around it, and captures the success outcome. */
+	/** Runs one task: tracks it, notifies the listener around it, and captures the outcome. */
 	private void runTask(final PendingTask pending) {
 		final Task task = pending.task();
 		final String name = task.name();
@@ -232,15 +244,19 @@ public class CronScheduler {
 		this.runningTaskNames.add(name);
 		final Object handle = notifyStart(name, pending.trigger());
 		final long start = System.currentTimeMillis();
-		boolean success = true;
+		Throwable failure = null;
 		try {
 			task.action().run();
-		} catch (final Exception ex) {
-			success = false;
+		} catch (final Throwable ex) {
+			// Throwable, not Exception: an Error (OutOfMemoryError during a heavy task, …)
+			// must be recorded as a failure and MUST NOT propagate — it would kill the
+			// consumer loop through the executor's FutureTask without any log, silently
+			// freezing every periodic task while the rest of the process keeps running.
+			failure = ex;
 			LOGGER.error("Fail in CRON consumer throw in task '{}': {}", name, ex.getMessage(), ex);
 		} finally {
 			this.runningTaskNames.remove(name);
-			notifyEnd(handle, success);
+			notifyEnd(handle, failure);
 			final long duration = System.currentTimeMillis() - start;
 			if (duration > 120_000) { // 2 minutes
 				LOGGER.error("Task '{}' executed in {} ms took too long! > 2 minutes", name, duration);
@@ -265,13 +281,13 @@ public class CronScheduler {
 	}
 
 	/** Notifies the listener that a task finished. Never throws. */
-	private void notifyEnd(final Object handle, final boolean success) {
+	private void notifyEnd(final Object handle, final Throwable failure) {
 		final CronExecutionListener listener = this.executionListener;
 		if (listener == null) {
 			return;
 		}
 		try {
-			listener.onEnd(handle, success);
+			listener.onEnd(handle, failure == null, failure);
 		} catch (final Exception ex) {
 			LOGGER.error("CRON execution listener onEnd failed: {}", ex.getMessage(), ex);
 		}
