@@ -49,6 +49,8 @@ public class ConfigBaseVariable {
 	private static String thumbnailFormat;
 	private static String thumbnailWidth;
 	private static String dataDecryptEnable;
+	private static String queryStatisticsFile;
+	private static String queryStatisticsPeriod;
 	private static byte[] encryptDefaultKey;
 	private static String encryptKeysDir;
 	private static Class<?>[] dbInterfacesClasses;
@@ -290,6 +292,25 @@ public class ConfigBaseVariable {
 	}
 
 	/**
+	 * Sets the path of the query-statistics JSON file. Setting a non-empty value enables the
+	 * query-statistics collection mode.
+	 * @param value the new query-statistics file path, or {@code null} to disable the mode
+	 */
+	public static void setQueryStatisticsFile(final String value) {
+		checkNotLocked("queryStatisticsFile");
+		queryStatisticsFile = value;
+	}
+
+	/**
+	 * Sets the cron expression driving the query-statistics flush period.
+	 * @param value the new cron expression
+	 */
+	public static void setQueryStatisticsPeriod(final String value) {
+		checkNotLocked("queryStatisticsPeriod");
+		queryStatisticsPeriod = value;
+	}
+
+	/**
 	 * Enables or disables the decryption of {@code @DataEncrypt} fields on read.
 	 * @param value {@code "true"} to allow decryption, anything else (or {@code null}) to forbid it.
 	 */
@@ -346,6 +367,8 @@ public class ConfigBaseVariable {
 		thumbnailFormat = System.getenv("THUMBNAIL_FORMAT");
 		thumbnailWidth = System.getenv("THUMBNAIL_WIDTH");
 		dataDecryptEnable = System.getenv("DATA_DECRYPT_ENABLE");
+		queryStatisticsFile = System.getenv("QUERY_STATISTICS_FILE");
+		queryStatisticsPeriod = System.getenv("QUERY_STATISTICS_PERIOD");
 		encryptDefaultKey = readSecretBytes("DATA_ENCRYPT_KEY");
 		encryptKeysDir = System.getenv("DATA_ENCRYPT_KEYS_DIR");
 		dbInterfacesClasses = new Class<?>[0];
@@ -576,6 +599,37 @@ public class ConfigBaseVariable {
 			return 256;
 		}
 		return Integer.parseInt(thumbnailWidth);
+	}
+
+	/**
+	 * Returns the path of the JSON file where the query statistics are accumulated.
+	 *
+	 * <p>
+	 * This is the switch of the whole query-statistics mode: when it is {@code null} or empty the
+	 * collection is fully disabled and costs nothing at runtime. Set the environment variable
+	 * {@code QUERY_STATISTICS_FILE} to a writable path to enable it.
+	 * </p>
+	 *
+	 * @return The query-statistics file path, or {@code null} when the mode is disabled.
+	 */
+	public static String getQueryStatisticsFile() {
+		if (queryStatisticsFile == null || queryStatisticsFile.isEmpty()) {
+			return null;
+		}
+		return queryStatisticsFile;
+	}
+
+	/**
+	 * Returns the cron expression driving the periodic flush of the query statistics to disk,
+	 * defaulting to {@code "*&#47;10 * * * *"} (every 10 minutes).
+	 *
+	 * @return The flush period as a cron expression.
+	 */
+	public static String getQueryStatisticsPeriod() {
+		if (queryStatisticsPeriod == null || queryStatisticsPeriod.isEmpty()) {
+			return "*/10 * * * *";
+		}
+		return queryStatisticsPeriod;
 	}
 
 	/**

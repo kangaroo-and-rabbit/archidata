@@ -41,6 +41,8 @@ import org.atriasoft.archidata.dataAccess.options.ForceReadOnlyField;
 import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
+import org.atriasoft.archidata.dataAccess.statistic.QuerySignature.Operation;
+import org.atriasoft.archidata.dataAccess.statistic.QueryStatistics;
 import org.atriasoft.archidata.dataAccess.options.OverrideTableName;
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
@@ -134,6 +136,42 @@ public class DBAccessMongo implements Closeable {
 
 	/** Global statistics for all MongoDB operations performed through this class. */
 	public static MongoDbStatistic statistic = new MongoDbStatistic();
+
+	/**
+	 * Returns the soft-delete field a query implicitly filters on, for {@link QueryStatistics}.
+	 *
+	 * @param options the query options, checked for {@link AccessDeletedItems}
+	 * @param deletedFieldName the soft-delete field of the model, or {@code null} if it has none
+	 * @return the soft-delete field actually excluded, or {@code null} when the query does not
+	 *         exclude soft-deleted documents
+	 */
+	private static String statisticSoftDeleteField(final QueryOptions options, final String deletedFieldName) {
+		if (deletedFieldName == null) {
+			return null;
+		}
+		if (options != null && options.exist(AccessDeletedItems.class)) {
+			return null;
+		}
+		return deletedFieldName;
+	}
+
+	/**
+	 * Builds the sort document of a query, or {@code null} when the query is not sorted.
+	 *
+	 * @param options the query options holding the {@link OrderBy} entries
+	 * @return the sort document ({@code field -> 1|-1}, in order), or {@code null}
+	 */
+	private static Document generateSortOrNull(final QueryOptions options) {
+		final List<OrderBy> orders = options.get(OrderBy.class);
+		if (orders.isEmpty()) {
+			return null;
+		}
+		final Document sorts = new Document();
+		for (final OrderBy order : orders) {
+			order.generateSort(sorts);
+		}
+		return sorts;
+	}
 
 	// by default we manage some add-on that permit to manage non-native model (like
 	// json serialization, List of external key as String list...)
@@ -1443,6 +1481,8 @@ public class DBAccessMongo implements Closeable {
 			final String collectionName = model.getTableName(options);
 			final String deletedFieldName = model.getDeletedFieldName();
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null,
+					statisticSoftDeleteField(options, deletedFieldName));
 			final Document docSet = new Document();
 			final Document docUnSet = new Document();
 
@@ -1615,6 +1655,9 @@ public class DBAccessMongo implements Closeable {
 			} else {
 				LOGGER.trace("filter = None");
 			}
+			final Document sorts = generateSortOrNull(options);
+			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), sorts,
+					statisticSoftDeleteField(options, deletedFieldName));
 			FindIterable<Document> retFind = null;
 			statistic.countFind++;
 			if (filters != null) {
@@ -1623,12 +1666,7 @@ public class DBAccessMongo implements Closeable {
 			} else {
 				retFind = this.session != null ? collection.find(this.session) : collection.find();
 			}
-			final List<OrderBy> orders = options.get(OrderBy.class);
-			if (orders.size() != 0) {
-				final Document sorts = new Document();
-				for (final OrderBy order : orders) {
-					order.generateSort(sorts);
-				}
+			if (sorts != null) {
 				retFind = retFind.sort(sorts);
 			}
 
@@ -1784,6 +1822,8 @@ public class DBAccessMongo implements Closeable {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+			QueryStatistics.record(collectionName, Operation.COUNT, condition.getFilter(), null,
+					statisticSoftDeleteField(options, deletedFieldName));
 			statistic.countCountDocuments++;
 			if (filters != null) {
 				return this.session != null ? collection.countDocuments(this.session, filters)
@@ -1884,6 +1924,8 @@ public class DBAccessMongo implements Closeable {
 		final String deletedFieldName = model.getDeletedFieldName();
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		QueryStatistics.record(collectionName, Operation.DELETE, condition.getFilter(), null,
+				statisticSoftDeleteField(options, deletedFieldName));
 
 		// If the entity has an @DataAsyncHardDeleted field and ForceHardDelete is not requested,
 		// perform an async hard delete (set hardDeleted=true and deleted=true) instead of physical removal.
@@ -1977,6 +2019,8 @@ public class DBAccessMongo implements Closeable {
 		final String deletedFieldName = model.getDeletedFieldName();
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		QueryStatistics.record(collectionName, Operation.DELETE_SOFT, condition.getFilter(), null,
+				statisticSoftDeleteField(options, deletedFieldName));
 		final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
 		Document actions = null;
 		if (updateTsDesc == null) {
@@ -2093,6 +2137,8 @@ public class DBAccessMongo implements Closeable {
 		}
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		QueryStatistics.record(collectionName, Operation.RESTORE, condition.getFilter(), null,
+				statisticSoftDeleteField(options, deletedFieldName));
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
 		statistic.countUpdateMany++;
 		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
@@ -2253,6 +2299,7 @@ public class DBAccessMongo implements Closeable {
 			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), null, null);
 			statistic.countFind++;
 			final FindIterable<Document> cursor;
 			if (filters != null) {
@@ -2308,6 +2355,8 @@ public class DBAccessMongo implements Closeable {
 			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			final Document sorts = generateSortOrNull(queryOptions);
+			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), sorts, null);
 			statistic.countFind++;
 			FindIterable<Document> cursor;
 			if (filters != null) {
@@ -2317,12 +2366,7 @@ public class DBAccessMongo implements Closeable {
 			}
 
 			// Apply ordering
-			final List<OrderBy> orders = queryOptions.get(OrderBy.class);
-			if (!orders.isEmpty()) {
-				final Document sorts = new Document();
-				for (final OrderBy order : orders) {
-					order.generateSort(sorts);
-				}
+			if (sorts != null) {
 				cursor = cursor.sort(sorts);
 			}
 
@@ -2389,6 +2433,7 @@ public class DBAccessMongo implements Closeable {
 			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
+			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null, null);
 			statistic.countUpdateMany++;
 			if (filters != null) {
 				final UpdateResult result = this.session != null
