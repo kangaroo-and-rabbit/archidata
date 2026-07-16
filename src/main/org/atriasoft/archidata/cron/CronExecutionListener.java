@@ -26,4 +26,22 @@ public interface CronExecutionListener {
 	 * @param success {@code true} if the task ran without throwing, {@code false} otherwise
 	 */
 	void onEnd(Object handle, boolean success);
+
+	/**
+	 * Called after a task finished, with the failure cause when it threw. The scheduler catches
+	 * {@link Throwable} around task execution (an {@link Error} such as {@code OutOfMemoryError} in a
+	 * task must never kill the consumer thread), so {@code failure} can be any throwable, not only
+	 * exceptions.
+	 *
+	 * <p>Default implementation delegates to {@link #onEnd(Object, boolean)} so existing listeners
+	 * keep working unchanged; override this variant to record the failure itself (message, stack)
+	 * in the execution journal.
+	 *
+	 * @param handle the handle returned by the matching {@link #onStart}
+	 * @param success {@code true} if the task ran without throwing, {@code false} otherwise
+	 * @param failure what the task threw, or {@code null} on success
+	 */
+	default void onEnd(final Object handle, final boolean success, final Throwable failure) {
+		onEnd(handle, success);
+	}
 }
