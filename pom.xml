@@ -63,7 +63,7 @@
 		<dependency>
 			<groupId>com.twelvemonkeys.imageio</groupId>
 			<artifactId>imageio-jpeg</artifactId>
-			<version>3.13.1</version>
+			<version>3.14.0</version>
 		</dependency>
 		<!-- webp-imageio removed: bundled native libwebp vulnerable to CVE-2023-4863.
 		     WebP reading is covered by TwelveMonkeys. WebP writing (thumbnails) to be
