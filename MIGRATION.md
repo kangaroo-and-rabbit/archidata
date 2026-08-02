@@ -10,6 +10,9 @@ déjà l'inverse). Ils pilotent désormais la **projection MongoDB** de la lectu
 sélectionné n'est ni transféré ni mappé, et un champ de relation exclu ne déclenche plus la requête
 supplémentaire de sa résolution.
 
+Un `FilterValue` accepte en plus les **chemins pointés** (`"address.city"`) pour ne transférer
+qu'une partie d'un sous-document embarqué.
+
 ### Qui est impacté
 
 Uniquement le code qui passait déjà un `FilterValue` / `FilterOmit` à une **lecture** en croyant
@@ -26,6 +29,10 @@ valeur par défaut. Les écritures (`update`, `updateById`) sont inchangées.
   plus être mis à jour ni supprimé.
 - Deux `FilterValue` (ou deux `FilterOmit`) sur une même requête lèvent maintenant une
   `DataAccessException` au lieu d'un choix arbitraire.
+- Un nom de champ inconnu (faute de frappe) lève une `DataAccessException` : sans ça, une liste
+  blanche erronée ne lirait plus rien du tout, en silence.
+- Les chemins pointés sont refusés dans un `FilterOmit` (une projection ne peut pas mélanger
+  inclusions et exclusions) : lister ce qu'on garde avec `FilterValue`.
 - `@DataNotRead` reste prioritaire : `ReadAllColumn` lève cette exclusion mais ne contourne pas une
   liste blanche explicite.
 

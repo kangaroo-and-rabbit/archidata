@@ -20,6 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import test.atriasoft.archidata.ConfigureDb;
+import test.atriasoft.archidata.dataAccess.model.ComplexSubObject;
+import test.atriasoft.archidata.dataAccess.model.DeepNestedModel;
+import test.atriasoft.archidata.dataAccess.model.Enum2ForTest;
+import test.atriasoft.archidata.dataAccess.model.NestedSubObject;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDChildExpand;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDChildFFF;
 import test.atriasoft.archidata.dataAccess.model.TypeManyToOneDocOIDParentIgnore;
@@ -110,6 +114,88 @@ public class TestReadFieldSelection {
 		Assertions.assertThrows(DataAccessException.class, () -> projectionOf(twoValues));
 		final QueryOptions twoOmits = new QueryOptions(new FilterOmit("field1"), new FilterOmit("field2"));
 		Assertions.assertThrows(DataAccessException.class, () -> projectionOf(twoOmits));
+	}
+
+	@Test
+	public void testUnknownFieldIsRejected() throws Exception {
+		// A typo must fail loudly: silently reading nothing is far harder to diagnose.
+		final QueryOptions typoInclude = new QueryOptions(new FilterValue("feild1"));
+		Assertions.assertThrows(DataAccessException.class, () -> projectionOf(typoInclude));
+		final QueryOptions typoOmit = new QueryOptions(new FilterOmit("feild1"));
+		Assertions.assertThrows(DataAccessException.class, () -> projectionOf(typoOmit));
+		Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.getById(Model.class, this.insertedId, new FilterValue("feild1")));
+	}
+
+	// ========== Dotted paths inside an embedded sub-document ==========
+
+	private static Set<String> nestedProjectionOf(final QueryOptions options) throws Exception {
+		return Set.copyOf(DbClassModel.of(DeepNestedModel.class)
+				.generateSelectFields(QueryOptions.readAllColumn(options), options));
+	}
+
+	@Test
+	public void testDottedPathIsPushedToTheProjection() throws Exception {
+		final Set<String> fields = nestedProjectionOf(
+				new QueryOptions(new FilterValue("simpleObject.name", "simpleObject.count")));
+		Assertions.assertEquals(Set.of("_id", "simpleObject.name", "simpleObject.count"), fields);
+	}
+
+	@Test
+	public void testWholeFieldWinsOverItsSubPaths() throws Exception {
+		final Set<String> fields = nestedProjectionOf(
+				new QueryOptions(new FilterValue("simpleObject", "simpleObject.name")));
+		Assertions.assertEquals(Set.of("_id", "simpleObject"), fields);
+	}
+
+	@Test
+	public void testDottedPathOnlyReadsTheRequestedPartOfTheSubDocument() throws Exception {
+		final DeepNestedModel data = new DeepNestedModel();
+		data.simpleObject = new ComplexSubObject("alpha", 42, true, Enum2ForTest.ENUM_VALUE_1, List.of("a", "b"));
+		data.nestedObject = new NestedSubObject("outer", null);
+		final ObjectId id = ConfigureDb.da.insert(data).getOid();
+
+		final DeepNestedModel retrieved = ConfigureDb.da.getById(DeepNestedModel.class, id,
+				new FilterValue("simpleObject.name"));
+
+		Assertions.assertNotNull(retrieved.simpleObject);
+		// Only the requested part of the sub-document travelled...
+		Assertions.assertEquals("alpha", retrieved.simpleObject.name);
+		Assertions.assertNull(retrieved.simpleObject.count);
+		Assertions.assertNull(retrieved.simpleObject.tags);
+		// ... and the sibling top-level field was not read at all.
+		Assertions.assertNull(retrieved.nestedObject);
+		Assertions.assertEquals(id, retrieved.getOid());
+	}
+
+	@Test
+	public void testDottedPathReachesADeeperLevel() throws Exception {
+		final DeepNestedModel data = new DeepNestedModel();
+		data.nestedObject = new NestedSubObject("outer",
+				new ComplexSubObject("inner", 7, false, Enum2ForTest.ENUM_VALUE_3, List.of("z")));
+		final ObjectId id = ConfigureDb.da.insert(data).getOid();
+
+		final DeepNestedModel retrieved = ConfigureDb.da.getById(DeepNestedModel.class, id,
+				new FilterValue("nestedObject.inner.name"));
+
+		Assertions.assertNotNull(retrieved.nestedObject);
+		Assertions.assertNull(retrieved.nestedObject.label);
+		Assertions.assertNotNull(retrieved.nestedObject.inner);
+		Assertions.assertEquals("inner", retrieved.nestedObject.inner.name);
+		Assertions.assertNull(retrieved.nestedObject.inner.count);
+	}
+
+	@Test
+	public void testDottedPathOnAnUnknownFieldIsRejected() throws Exception {
+		final QueryOptions options = new QueryOptions(new FilterValue("simpleObjetc.name"));
+		Assertions.assertThrows(DataAccessException.class, () -> nestedProjectionOf(options));
+	}
+
+	@Test
+	public void testDottedPathIsRejectedInFilterOmit() throws Exception {
+		// The projection is an inclusion: MongoDB cannot mix it with a sub-field exclusion.
+		final QueryOptions options = new QueryOptions(new FilterOmit("simpleObject.name"));
+		Assertions.assertThrows(DataAccessException.class, () -> nestedProjectionOf(options));
 	}
 
 	// ========== The objects built out of a restricted read ==========

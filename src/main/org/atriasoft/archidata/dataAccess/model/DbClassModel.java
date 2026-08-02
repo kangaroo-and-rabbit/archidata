@@ -353,7 +353,9 @@ public final class DbClassModel {
 			if (!selector.isRead(desc, options)) {
 				continue;
 			}
-			fields.add(desc.getFieldName(options).inTable());
+			// Not simply the field name: a query asking for a part of an embedded sub-document
+			// projects the dotted sub-paths instead of the whole field.
+			selector.collectProjectionPaths(desc, options, fields);
 		}
 		return fields;
 	}

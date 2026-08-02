@@ -204,6 +204,8 @@ Rules:
 
 - **The primary key is always read**, even under a `FilterOmit` — an entity without its identifier
   could not be updated, deleted, nor linked afterwards.
+- **An unknown field name raises a `DataAccessException`.** A typo in a whitelist would otherwise
+  read nothing at all, which is much harder to diagnose than an exception.
 - **Excluding a relation field also drops its queries.** A `@ManyToOneDoc` / `@OneToManyDoc` field
   that is expanded into its target entity costs an extra query per read; omitting it skips the
   resolution entirely.
@@ -223,6 +225,33 @@ light.getTitle();    // "Hello"
 light.getContent();  // null — never transferred
 light.getOid();      // present anyway
 ```
+
+#### Reaching inside an embedded sub-document
+
+A `FilterValue` entry may be a dotted path. It is pushed to MongoDB as-is, so only that part of the
+sub-document is transferred and the top-level field is rebuilt partially:
+
+```java
+final Article light = da.getById(Article.class, id,
+		new FilterValue("author.name", "author.avatar.small"));
+
+light.getAuthor().getName();          // "Alice"
+light.getAuthor().getEmail();         // null — never transferred
+light.getAuthor().getAvatar().getSmall();  // present
+```
+
+- Naming both a field and one of its sub-paths reads the **whole** field — the widest wins
+  (`new FilterValue("author", "author.name")` reads all of `author`).
+- Paths can go as deep as the document does (`a.b.c`).
+- The prefix must be a real field of the entity: `new FilterValue("authr.name")` raises a
+  `DataAccessException`.
+- **Dotted paths are rejected in a `FilterOmit`**: the projection archidata builds is an inclusion,
+  and MongoDB does not allow mixing inclusions and exclusions in a single projection. List what to
+  keep with a `FilterValue` instead.
+- This works on **embedded** sub-documents (an object, a list or a map of objects stored inside the
+  document). A `@ManyToOneDoc` relation is *not* embedded — its target lives in another collection,
+  so `"parent.name"` does not restrict the resolution query; the useful lever there is to omit the
+  relation entirely, which drops that query.
 
 ### OrderBy
 

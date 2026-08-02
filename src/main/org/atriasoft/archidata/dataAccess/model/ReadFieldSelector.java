@@ -2,6 +2,7 @@ package org.atriasoft.archidata.dataAccess.model;
 
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -9,7 +10,7 @@ import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.exception.DataAccessException;
 
 /**
- * Resolves which top-level fields of an entity are read from the database.
+ * Resolves which fields of an entity are read from the database.
  *
  * <p>The selection is applied twice for a single query, and both times through this class so the
  * two stay in sync:
@@ -28,16 +29,28 @@ import org.atriasoft.archidata.exception.DataAccessException;
  *   <li>with a {@link FilterValue}, only the listed fields are read (whitelist);</li>
  *   <li>with a {@link FilterOmit}, the listed fields are not read (blacklist).</li>
  * </ol>
- * Field names are matched on the structural name — the same one {@code FilterValue}/{@code FilterOmit}
- * use for updates, so {@code new FilterValue(User::getName)} designates the same field on a read and
- * on a write.
+ *
+ * <p><b>Dotted paths.</b> A {@link FilterValue} entry may address an embedded sub-document
+ * ({@code "address.city"}, {@code "address.geo.lat"}): the path is pushed to MongoDB as-is, so only
+ * that part of the sub-document is transferred, and the top-level field is rebuilt partially — the
+ * fields left out keep their default value. Naming both a field and one of its sub-paths reads the
+ * whole field: the widest wins.
+ *
+ * <p>Dotted paths are rejected in a {@link FilterOmit}: the projection archidata builds is an
+ * inclusion, and MongoDB does not allow mixing inclusions and exclusions in one projection. List
+ * what to keep with a {@link FilterValue} instead.
+ *
+ * <p>Field names are matched on the structural name — the same one {@code FilterValue}/{@code
+ * FilterOmit} use for updates, so {@code new FilterValue(User::getName)} designates the same field
+ * on a read and on a write. An unknown name is rejected: silently reading nothing would be a much
+ * harder failure to diagnose than an exception.
  */
 public final class ReadFieldSelector {
 
 	private final boolean readAllColumns;
-	/** Whitelisted structural field names, or {@code null} when no {@link FilterValue} is given. */
+	/** Whitelisted structural field names or dotted paths, or {@code null} without {@link FilterValue}. */
 	private final List<String> include;
-	/** Blacklisted structural field names, or {@code null} when no {@link FilterOmit} is given. */
+	/** Blacklisted structural field names, or {@code null} without {@link FilterOmit}. */
 	private final List<String> omit;
 	/** Primary key descriptor, always read whatever the filters say. May be {@code null}. */
 	private final DbPropertyDescriptor primaryKey;
@@ -56,8 +69,8 @@ public final class ReadFieldSelector {
 	 * @param model the model of the read entity
 	 * @param options the query options, may be {@code null}
 	 * @return the selector to apply on every field of the entity
-	 * @throws DataAccessException if the options carry more than one {@link FilterValue} or more
-	 *         than one {@link FilterOmit} (the intent would be ambiguous)
+	 * @throws DataAccessException if the restriction options are ambiguous, name an unknown field,
+	 *         or omit a dotted path
 	 */
 	public static ReadFieldSelector of(final DbClassModel model, final QueryOptions options)
 			throws DataAccessException {
@@ -71,8 +84,8 @@ public final class ReadFieldSelector {
 	 * @param readAllColumns {@code true} to also read the {@code @DataNotRead} fields
 	 * @param options the query options, may be {@code null}
 	 * @return the selector to apply on every field of the entity
-	 * @throws DataAccessException if the options carry more than one {@link FilterValue} or more
-	 *         than one {@link FilterOmit}
+	 * @throws DataAccessException if the restriction options are ambiguous, name an unknown field,
+	 *         or omit a dotted path
 	 */
 	public static ReadFieldSelector of(
 			final DbClassModel model,
@@ -90,10 +103,54 @@ public final class ReadFieldSelector {
 		if (omits.size() > 1) {
 			throw new DataAccessException("Request a read with more than 1 FilterOmit of values");
 		}
-		return new ReadFieldSelector(readAllColumns, //
-				includes.isEmpty() ? null : includes.get(0).getValues(), //
-				omits.isEmpty() ? null : omits.get(0).getValues(), //
-				primaryKey);
+		final List<String> include = includes.isEmpty() ? null : includes.get(0).getValues();
+		final List<String> omit = omits.isEmpty() ? null : omits.get(0).getValues();
+		checkFieldsExist(model, include, "FilterValue");
+		checkFieldsExist(model, omit, "FilterOmit");
+		if (omit != null) {
+			for (final String path : omit) {
+				if (path.indexOf('.') >= 0) {
+					throw new DataAccessException("FilterOmit does not support the dotted path '" + path
+							+ "': a projection cannot mix inclusions and exclusions, list what to keep with a FilterValue");
+				}
+			}
+		}
+		return new ReadFieldSelector(readAllColumns, include, omit, primaryKey);
+	}
+
+	/** Reject a restriction naming a field the entity does not have — a typo must not read nothing. */
+	private static void checkFieldsExist(final DbClassModel model, final List<String> paths, final String origin)
+			throws DataAccessException {
+		if (model == null || paths == null) {
+			return;
+		}
+		for (final String path : paths) {
+			final String field = topLevelOf(path);
+			if (model.findByDbFieldName(field) == null) {
+				throw new DataAccessException(
+						origin + " references the unknown field '" + field + "' on " + model.getTableName());
+			}
+		}
+	}
+
+	/** Top-level field name of a path: what stands before the first dot. */
+	private static String topLevelOf(final String path) {
+		final int dot = path.indexOf('.');
+		return dot < 0 ? path : path.substring(0, dot);
+	}
+
+	/** Tells whether a path list addresses the given top-level field, whole or through a sub-path. */
+	private static boolean addresses(final List<String> paths, final String field) {
+		for (final String path : paths) {
+			if (path.length() == field.length()) {
+				if (path.equals(field)) {
+					return true;
+				}
+			} else if (path.length() > field.length() && path.charAt(field.length()) == '.' && path.startsWith(field)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -119,10 +176,49 @@ public final class ReadFieldSelector {
 		// Matched on the structural name: the name a rename option maps *from*, and the one
 		// FilterValue/FilterOmit already use for the updates.
 		final String name = desc.getFieldName(options).inStruct();
-		if (this.include != null && !this.include.contains(name)) {
+		if (this.include != null && !addresses(this.include, name)) {
 			return false;
 		}
 		return this.omit == null || !this.omit.contains(name);
+	}
+
+	/**
+	 * Append the projection paths of a read field: the field itself, or the dotted sub-paths when
+	 * the query only asks for a part of an embedded sub-document.
+	 *
+	 * @param desc the field to project (must be {@link #isRead} first)
+	 * @param options the query options (used to resolve a renamed column), may be {@code null}
+	 * @param out the projection paths accumulated so far
+	 */
+	public void collectProjectionPaths(
+			final DbPropertyDescriptor desc,
+			final QueryOptions options,
+			final List<String> out) {
+		final FieldName fieldName = desc.getFieldName(options);
+		if (this.include == null) {
+			out.add(fieldName.inTable());
+			return;
+		}
+		final String struct = fieldName.inStruct();
+		// The whole field is asked for: it wins over any sub-path of the same field.
+		for (final String path : this.include) {
+			if (path.equals(struct)) {
+				out.add(fieldName.inTable());
+				return;
+			}
+		}
+		boolean partial = false;
+		for (final String path : this.include) {
+			if (path.length() > struct.length() && path.charAt(struct.length()) == '.' && path.startsWith(struct)) {
+				// Rebuilt on the table name: a renamed column keeps its sub-path.
+				out.add(fieldName.inTable() + path.substring(struct.length()));
+				partial = true;
+			}
+		}
+		if (!partial) {
+			// Read without being listed: the primary key.
+			out.add(fieldName.inTable());
+		}
 	}
 
 	/**
