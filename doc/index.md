@@ -15,6 +15,7 @@ Core Concepts
 
 - [Data Model](data_model.md) — Model classes, annotations, relationships, and validation
 - [Database Access](database_access.md) — CRUD operations, query options, and conditions
+- [Indexes](indexes.md) — Declare the MongoDB indexes and synchronize them at startup
 - [Migration](migration.md) — Database migration engine
 - [Security & Authentication](security.md) — JWT tokens, roles, and permissions
 
