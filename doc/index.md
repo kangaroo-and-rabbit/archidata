@@ -25,6 +25,8 @@ Advanced Topics
 - [Connection Management](connectionManagement.md) — Persistent connections, transactions, and virtual threads
 - [ChangeStream Quick Start](ChangeStream_QuickStart.md) — Real-time database change notifications
 - [ChangeStream Advanced](ChangeStream_Advanced.md) — Filtering, monitoring, and performance
+- [Change Journal](change_journal.md) — Periodic incremental capture of the modified documents, and its retention
+- [Field Encryption](field_encryption.md) — Transparent encryption of selected fields
 - [OpenAPI Generation](openapi_generation.md) — Generate an OpenAPI 3.0.3 specification from your API
 - [TypeScript API Generation](typescript_api_generation.md) — Generate TypeScript client code from your API
 - [Pagination](pagination.md) — Offset-based pagination via HTTP headers and RFC 5988 `Link`
