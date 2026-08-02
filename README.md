@@ -115,6 +115,45 @@ mvn spotbugs:check
 ```
 
 
+Release
+=======
+
+`./deliver` releases the repository from `develop` to `main`, driven by `version.txt`.
+
+```bash
+./deliver           # prepare the release (interactive)
+./deliver push      # publish branches and tags
+./deliver revert    # undo a release that was not pushed
+./deliver status    # where the repository stands
+```
+
+A release lists every commit made since the last tag, then asks which part of the version it bumps:
+
+```
+== Commits since v0.48.0 (12)
+    9b671d9  [FEAT] (journal) periodic incremental journal of the modified documents  (Edouard DUPIN)
+    bd111eb  [FEAT] (dataAccess) push FilterValue/FilterOmit down to the projection   (Edouard DUPIN)
+    ...
+== Current version: 0.48.1-dev
+    (1) major   -> 1.0.0     (change API)
+    (2) medium  -> 0.49.0    (add feature)
+    (3) minor   -> 0.48.2    (bug fix & doc)
+    (q) quit, release nothing
+```
+
+It then fast-forwards `main` onto `develop` — never a merge commit when the history allows a
+fast-forward — writes `version.txt`, runs `.island/release.bash` (which propagates the version to
+`pom.xml` and the dependencies), commits `[RELEASE] Release vX.Y.Z`, tags it, and reopens the next
+`-dev` version on `develop`.
+
+Nothing is pushed until `./deliver push`. Until then `./deliver revert` puts both branches and the
+tag back exactly where they were — it refuses once the release is published, since rewriting a
+shared history is not something to do by accident.
+
+Useful options: `-n` (dry-run, changes nothing), `--level major|medium|minor` (skip the question),
+`--from` / `--to` (other branches than `develop` / `main`), `--remote` (default `origin`).
+
+
 Gitea Registry
 ==============
 
