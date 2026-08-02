@@ -70,6 +70,15 @@ public class Condition extends QueryOption {
 	/**
 	 * Builds a composite BSON filter that combines this condition with deletion exclusion logic.
 	 *
+	 * <p>The soft-delete predicate is a plain equality on {@code false}, not an {@code $or} also
+	 * accepting the documents without the field: archidata always writes the field when it inserts
+	 * a document, and the equality is what makes a <b>partial index</b> usable. MongoDB only uses a
+	 * partial index when the query implies its filter, and an {@code $or} accepting missing fields
+	 * implies nothing — such a query falls back to a collection scan, which defeats the very index
+	 * meant to serve it.
+	 *
+	 * <p>A document written outside of archidata, without the field, is therefore invisible.
+	 *
 	 * @param collectionName the name of the collection being queried
 	 * @param options the query options to check for {@link AccessDeletedItems}
 	 * @param deletedFieldName the name of the soft-delete field, or {@code null} if none
@@ -82,7 +91,7 @@ public class Condition extends QueryOption {
 		}
 		final List<Bson> filter = new ArrayList<>();
 		if (exclude_deleted && deletedFieldName != null) {
-			filter.add(Filters.or(Filters.eq(deletedFieldName, false), Filters.exists(deletedFieldName, false)));
+			filter.add(Filters.eq(deletedFieldName, false));
 		}
 		// Check if we have a condition to generate
 		if (this.bsonFilter != null) {

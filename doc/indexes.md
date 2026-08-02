@@ -175,6 +175,27 @@ the engine logs a warning: two versions of the code are undoing each other's ind
 restart. It does not block — that would prevent a legitimate deployment — but the symptom becomes
 visible instead of looking like an unexplained slowness.
 
+## Soft-deleted entities: index only the living documents
+
+An entity with a soft-delete field is read with `{deleted: false}`, so an index covering the whole
+collection also indexes documents no query will ever return. A **partial index** holds only the
+living ones — smaller, and cheaper to maintain:
+
+```java
+@Index(value = {"companyId", "-createdAt"}, partialFilter = "{\"deleted\": false}")
+public class Article extends OIDGenericDataSoftDelete { … }
+```
+
+Do **not** index the `deleted` field alone. With two possible values it filters almost nothing: on
+a collection where most documents are alive, walking the index then fetching 95 % of the documents
+in random order costs more than a sequential scan. The soft-delete predicate rides for free on the
+indexes of the fields you really query.
+
+> This only works because the predicate is a plain equality. MongoDB uses a partial index only when
+> the query implies its filter — an `$or` also accepting the documents without the field implies
+> nothing, and such a query falls back to a collection scan. That is why archidata always writes
+> the field on insert, and why a document written outside of archidata without it is invisible.
+
 ## Limitations
 
 - Only ascending/descending keys are declarable: no text, geospatial, hashed or wildcard index.

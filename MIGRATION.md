@@ -1,5 +1,55 @@
 # Migration Guide
 
+## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)
+
+### Ce qui change
+
+Le filtre de lecture des entités soft-delete passe de :
+
+```javascript
+{$or: [{deleted: false}, {deleted: {$exists: false}}]}
+```
+
+à une simple égalité :
+
+```javascript
+{deleted: false}
+```
+
+En contrepartie, archidata écrit désormais **systématiquement** le champ à l'insertion, même quand
+le modèle ne déclare pas de `@DefaultValue` (avant, le champ restait absent dans ce cas).
+
+### Pourquoi
+
+MongoDB n'utilise un **index partiel** que si le prédicat de la requête implique son filtre. Un
+`$or` acceptant aussi les documents sans le champ n'implique rien : la requête retombait en
+`COLLSCAN`, ce qui annulait l'index censé la servir. Mesuré sur 20 000 documents : `COLLSCAN` avec
+le `$or`, `IXSCAN` avec l'égalité.
+
+L'index partiel est exactement l'outil adapté au soft-delete — il n'indexe que les documents
+vivants. Il est maintenant utilisable :
+
+```java
+@Index(value = {"companyId", "-createdAt"}, partialFilter = "{\"deleted\": false}")
+```
+
+### Qui est impacté
+
+Les documents **sans** le champ `deleted` (écrits hors archidata, ou antérieurs à l'ajout du champ
+dans le modèle) deviennent invisibles aux lectures normales. Ils restent accessibles avec
+`AccessDeletedItems`.
+
+### Comment migrer
+
+Sur chaque collection soft-delete contenant d'éventuels documents anciens :
+
+```javascript
+db.<collection>.updateMany({deleted: {$exists: false}}, {$set: {deleted: false}})
+```
+
+À exécuter côté application (migration applicative) : archidata ne connaît pas la liste des
+collections concernées de ses dépôts consommateurs.
+
 ## v0.49.0 - `FilterValue` / `FilterOmit` deviennent effectifs en lecture (CHANGEMENT DE COMPORTEMENT)
 
 ### Ce qui change

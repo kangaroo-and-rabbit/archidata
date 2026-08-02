@@ -1254,14 +1254,15 @@ public class DBAccessMongo implements Closeable {
 			if (updateTsDesc != null && !directdata) {
 				updateTsDesc.getProperty().setValue(data, Date.from(Instant.now()));
 			}
-			// Handle deleted field (insert with default value)
+			// Handle deleted field: always written, even without a declared default value (same
+			// reason as the DELETED case of insertPrimaryKey).
 			final DbPropertyDescriptor deletedDesc = model.getDeletedField();
 			if (deletedDesc != null && !directdata) {
 				final String defVal = deletedDesc.getDefaultValue();
-				if (defVal != null) {
-					final Object defaultValue = convertDefaultField(defVal, deletedDesc.getProperty().getField());
-					deletedDesc.getProperty().setValue(data, defaultValue);
-				}
+				final Object defaultValue = defVal != null
+						? convertDefaultField(defVal, deletedDesc.getProperty().getField())
+						: Boolean.FALSE;
+				deletedDesc.getProperty().setValue(data, defaultValue);
 			}
 
 			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
@@ -1356,11 +1357,14 @@ public class DBAccessMongo implements Closeable {
 					}
 					case DELETED: {
 						if (!directdata) {
+							// Always written, even without a declared default value: the read
+							// filter is an equality on 'false' (see Condition#getFilter), so a
+							// document inserted without the field would be invisible to every
+							// query -- including the read back of this very insert.
 							final String defVal = desc.getDefaultValue();
-							if (defVal != null) {
-								final Object defaultValue = convertDefaultField(defVal, field);
-								docSet.append(fieldName.inTable(), defaultValue);
-							}
+							final Object defaultValue = defVal != null ? convertDefaultField(defVal, field)
+									: Boolean.FALSE;
+							docSet.append(fieldName.inTable(), defaultValue);
 						}
 						break;
 					}
