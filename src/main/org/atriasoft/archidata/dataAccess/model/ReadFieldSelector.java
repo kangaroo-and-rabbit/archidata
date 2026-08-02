@@ -125,10 +125,9 @@ public final class ReadFieldSelector {
 			return;
 		}
 		for (final String path : paths) {
-			final String field = topLevelOf(path);
-			if (model.findByDbFieldName(field) == null) {
+			if (model.findByFieldPath(path) == null) {
 				throw new DataAccessException(
-						origin + " references the unknown field '" + field + "' on " + model.getTableName());
+						origin + " references the unknown field '" + topLevelOf(path) + "' on " + model.getTableName());
 			}
 		}
 	}

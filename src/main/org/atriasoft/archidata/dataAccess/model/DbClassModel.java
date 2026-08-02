@@ -303,6 +303,24 @@ public final class DbClassModel {
 	}
 
 	/**
+	 * Find the top-level {@link DbPropertyDescriptor} addressed by a field path.
+	 *
+	 * <p>A path may reach inside an embedded sub-document ({@code "address.city"}): only its first
+	 * segment identifies a field of this entity, and that is what is returned. Used to check the
+	 * paths of a projection restriction or of an index declaration.
+	 *
+	 * @param fieldPath the structural field name, possibly dotted
+	 * @return the matching descriptor, or {@code null} if the entity has no such field
+	 */
+	public DbPropertyDescriptor findByFieldPath(final String fieldPath) {
+		if (fieldPath == null) {
+			return null;
+		}
+		final int dot = fieldPath.indexOf('.');
+		return findByDbFieldName(dot < 0 ? fieldPath : fieldPath.substring(0, dot));
+	}
+
+	/**
 	 * Find a {@link DbPropertyDescriptor} by its Java property name.
 	 *
 	 * @param propertyName the Java property name to search for
