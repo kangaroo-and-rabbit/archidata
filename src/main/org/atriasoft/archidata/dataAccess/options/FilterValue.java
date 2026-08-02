@@ -11,7 +11,11 @@ import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 
 /**
- * Whitelist option specifying which fields to include in update operations.
+ * Whitelist option specifying which top-level fields to include.
+ *
+ * <p>On an update it selects the fields to write; on a read it becomes the MongoDB projection, so
+ * an unlisted field is never transferred nor mapped (the primary key is always read). Field names
+ * are the structural ones — the same on both sides.
  *
  * <p>Supports both string-based and type-safe method reference constructors:
  * <pre>{@code
@@ -28,7 +32,7 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterValue extends QueryOption {
-	/** The list of field names to include in update operations. */
+	/** The list of field names to include. */
 	public final List<String> filterValue;
 
 	/**

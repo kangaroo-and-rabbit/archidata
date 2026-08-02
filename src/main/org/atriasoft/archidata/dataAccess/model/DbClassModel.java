@@ -330,16 +330,27 @@ public final class DbClassModel {
 	 * Generate the list of field names for SELECT/projection.
 	 *
 	 * @param readAllColumns if {@code true}, include all columns regardless of {@code @DataNotRead}
+	 * @param options the query options for column renaming and field restriction
+	 *        ({@code FilterValue} / {@code FilterOmit})
+	 * @return a list of resolved field names for the projection
+	 * @throws DataAccessException if the field restriction options are ambiguous
+	 */
+	public List<String> generateSelectFields(final boolean readAllColumns, final QueryOptions options)
+			throws DataAccessException {
+		return generateSelectFields(ReadFieldSelector.of(this, readAllColumns, options), options);
+	}
+
+	/**
+	 * Generate the list of field names for SELECT/projection from an already resolved selector.
+	 *
+	 * @param selector the resolved read selector of the query
 	 * @param options the query options for column renaming
 	 * @return a list of resolved field names for the projection
 	 */
-	public List<String> generateSelectFields(final boolean readAllColumns, final QueryOptions options) {
+	public List<String> generateSelectFields(final ReadFieldSelector selector, final QueryOptions options) {
 		final List<String> fields = new ArrayList<>();
 		for (final DbPropertyDescriptor desc : this.allFields) {
-			if (!readAllColumns && desc.isNotRead()) {
-				continue;
-			}
-			if (desc.getAction() == DbFieldAction.ADDON && !desc.canRetrieve()) {
+			if (!selector.isRead(desc, options)) {
 				continue;
 			}
 			fields.add(desc.getFieldName(options).inTable());

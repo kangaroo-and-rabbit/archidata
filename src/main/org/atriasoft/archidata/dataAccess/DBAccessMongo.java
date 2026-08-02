@@ -27,6 +27,7 @@ import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbFieldAction;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.ReadFieldSelector;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoTypeReader;
@@ -1752,20 +1753,19 @@ public class DBAccessMongo implements Closeable {
 		}
 		// POJO path: Document → Java object with AddOn/OptionSpecifyType support
 		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
-		final boolean readAllfields = QueryOptions.readAllColumn(options);
 		final DbClassModel dbModel = DbClassModel.of(clazz);
+		// Same selector as the projection: a field excluded from the transfer is not mapped, and an
+		// excluded AddOn field does not trigger the extra queries its resolution would have needed.
+		final ReadFieldSelector selector = ReadFieldSelector.of(dbModel, options);
 
 		// Create instance via ClassModel's default constructor
 		final Object data = dbModel.getClassModel().newInstance();
 
 		for (final DbPropertyDescriptor desc : dbModel.getAllFields()) {
-			if (!readAllfields && desc.isNotRead()) {
+			if (!selector.isRead(desc, options)) {
 				continue;
 			}
 			if (desc.getAction() == DbFieldAction.ADDON) {
-				if (!desc.canRetrieve()) {
-					continue;
-				}
 				desc.getAddOn().fillFromDoc(this, documentModel, desc, data, options, lazyCall, batchCollector);
 			} else {
 				final MongoFieldCodec codec = desc.getCodec();

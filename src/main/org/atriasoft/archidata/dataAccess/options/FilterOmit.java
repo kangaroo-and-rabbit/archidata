@@ -10,7 +10,11 @@ import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
 import org.atriasoft.archidata.dataAccess.SerializableFunction;
 
 /**
- * Blacklist option specifying which fields to exclude from update operations.
+ * Blacklist option specifying which top-level fields to exclude.
+ *
+ * <p>On an update it removes the fields from what is written; on a read it removes them from the
+ * MongoDB projection, so they are never transferred nor mapped — and an excluded relation field
+ * does not trigger the extra query its resolution would have needed. The primary key stays read.
  *
  * <p>Supports both string-based and type-safe method reference constructors:
  * <pre>{@code
@@ -27,7 +31,7 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterOmit extends QueryOption {
-	/** The list of field names to exclude from update operations. */
+	/** The list of field names to exclude. */
 	public final List<String> filterValue;
 
 	/**

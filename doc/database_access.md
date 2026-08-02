@@ -162,7 +162,7 @@ new Condition(Filters.and(
 
 ### FilterValue
 
-Specifies which fields to read or update. By default, all non-`@DataNotRead` fields are returned. Supports both string-based and type-safe method reference constructors.
+Whitelist of top-level fields. On a read it becomes the **MongoDB projection**; on an update it selects the fields to write. By default, all non-`@DataNotRead` fields are read. Supports both string-based and type-safe method reference constructors.
 
 ```java
 // String-based
@@ -176,7 +176,7 @@ da.updateById(data, id, new FilterValue(Article::getTitle, Article::getContent))
 
 ### FilterOmit
 
-The opposite of `FilterValue` — specifies which fields to exclude. Supports method references.
+The opposite of `FilterValue` — blacklist of top-level fields, on reads as well as on updates. Supports method references.
 
 ```java
 // String-based
@@ -184,6 +184,44 @@ da.gets(Article.class, new FilterOmit("content"));
 
 // Type-safe with method references (recommended)
 da.gets(Article.class, new FilterOmit(Article::getContent));
+```
+
+### Restricting what a read transfers
+
+`FilterValue` / `FilterOmit` are pushed down to MongoDB as a projection: an unselected field is
+**never transferred** and never mapped. Use it to leave a heavy field (a long text, a blob, a large
+list) in the database when the query does not need it.
+
+```java
+// Only title and status travel over the wire:
+da.gets(Article.class, new FilterValue(Article::getTitle, Article::getStatus));
+
+// Everything but the heavy body:
+da.gets(Article.class, new FilterOmit(Article::getContent));
+```
+
+Rules:
+
+- **The primary key is always read**, even under a `FilterOmit` — an entity without its identifier
+  could not be updated, deleted, nor linked afterwards.
+- **Excluding a relation field also drops its queries.** A `@ManyToOneDoc` / `@OneToManyDoc` field
+  that is expanded into its target entity costs an extra query per read; omitting it skips the
+  resolution entirely.
+- **Field names are the structural ones** — the name used by `@Column(name = "...")` when present,
+  which is exactly what the method references resolve to, and the same names updates already use.
+- `@DataNotRead` fields (typically `createdAt` / `updatedAt`) stay excluded; `ReadAllColumn` lifts
+  that exclusion but does **not** defeat an explicit `FilterValue` whitelist.
+- Only one `FilterValue` and one `FilterOmit` per query — a second one raises a `DataAccessException`
+  rather than silently picking a winner. When both are given, the omit applies on top of the include.
+- The restriction applies to the **top level only**: the entities loaded behind a relation are read
+  in full, with their own options.
+
+```java
+// Left at their default value (null / 0), not fetched:
+final Article light = da.getById(Article.class, id, new FilterValue(Article::getTitle));
+light.getTitle();    // "Hello"
+light.getContent();  // null — never transferred
+light.getOid();      // present anyway
 ```
 
 ### OrderBy

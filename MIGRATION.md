@@ -1,5 +1,36 @@
 # Migration Guide
 
+## v0.49.0 - `FilterValue` / `FilterOmit` deviennent effectifs en lecture (CHANGEMENT DE COMPORTEMENT)
+
+### Ce qui change
+
+`FilterValue` et `FilterOmit` n'agissaient que sur les écritures : passés à un `gets` / `get` /
+`getById`, ils étaient **ignorés silencieusement** (alors que `doc/database_access.md` décrivait
+déjà l'inverse). Ils pilotent désormais la **projection MongoDB** de la lecture : un champ non
+sélectionné n'est ni transféré ni mappé, et un champ de relation exclu ne déclenche plus la requête
+supplémentaire de sa résolution.
+
+### Qui est impacté
+
+Uniquement le code qui passait déjà un `FilterValue` / `FilterOmit` à une **lecture** en croyant
+qu'il filtrait : les objets retournés n'ont plus que les champs demandés, les autres restent à leur
+valeur par défaut. Les écritures (`update`, `updateById`) sont inchangées.
+
+**Avant :** `da.gets(Article.class, new FilterValue("title"))` renvoyait tous les champs.
+**Après :** seuls `title` et la clé primaire sont lus.
+
+### Comment migrer
+
+- Pour retrouver l'ancien comportement, retirer l'option de l'appel de lecture.
+- La clé primaire reste toujours lue, même sous `FilterOmit` : un objet sans identifiant ne pourrait
+  plus être mis à jour ni supprimé.
+- Deux `FilterValue` (ou deux `FilterOmit`) sur une même requête lèvent maintenant une
+  `DataAccessException` au lieu d'un choix arbitraire.
+- `@DataNotRead` reste prioritaire : `ReadAllColumn` lève cette exclusion mais ne contourne pas une
+  liste blanche explicite.
+
+Voir [doc/database_access.md](doc/database_access.md#restricting-what-a-read-transfers).
+
 ## v0.43.1 - Suppression du mode test JWT (BREAKING CHANGE)
 
 ### Ce qui change
