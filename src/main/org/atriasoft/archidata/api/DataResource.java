@@ -52,10 +52,11 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.CacheControl;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.StreamingOutput;
@@ -74,6 +75,14 @@ public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
 	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	private static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
+	/** How long the browser may keep a data without asking again.
+	 *
+	 * <p>
+	 * The content behind an object id never changes: another content is another object. A year is
+	 * what the specification allows at most, and "immutable" tells the browser not even to ask when
+	 * the page is reloaded. It stays private: what is behind a token must not end up in a shared
+	 * cache. */
+	private static final String DATA_CACHE_CONTROL = "private, max-age=31536000, immutable";
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
 
@@ -436,20 +445,24 @@ public class DataResource {
 	@Operation(description = "Get back some data from the data environment", tags = "SYSTEM")
 	public Response retrieveDataId(
 			@Context final SecurityContext sc,
+			@Context final Request request,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataId ? oid={} user={}", oid, (gc == null ? "null" : gc.userByToken));
-		// logger.info("===================================================");
+		LOGGER.debug("== DATA retrieveDataId ? oid={} user={}", oid, (gc == null ? "null" : gc.userByToken));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
+		final EntityTag etag = etagOf(value);
+		final Response notModified = notModifiedOrNull(request, etag);
+		if (notModified != null) {
+			return notModified;
+		}
 		try {
 			return buildStream(getFileData(oid), range,
-					value.getMimeType() == null ? "application/octet-stream" : value.getMimeType());
+					value.getMimeType() == null ? "application/octet-stream" : value.getMimeType(), etag);
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
@@ -473,16 +486,23 @@ public class DataResource {
 	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrieveDataThumbnailId(
 			@Context final SecurityContext sc,
+			@Context final Request request,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		LOGGER.info("===================================================");
-		LOGGER.info("== DATA retrieveDataThumbnailId ? {}", (gc == null ? "null" : gc.userByToken));
-		LOGGER.info("===================================================");
+		LOGGER.debug("== DATA retrieveDataThumbnailId ? {}", (gc == null ? "null" : gc.userByToken));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
+		}
+		// A thumbnail is not the data it is made of: it deserves a name of its own, or the
+		// browser would hand back the small picture when the whole one is asked for.
+		final EntityTag etag = value.getSha512() == null ? etagOf(value)
+				: new EntityTag("thumbnail-" + value.getSha512());
+		final Response notModified = notModifiedOrNull(request, etag);
+		if (notModified != null) {
+			return notModified;
 		}
 		final String filePathName = getFileData(oid);
 		final File inputFile = new File(filePathName);
@@ -500,7 +520,7 @@ public class DataResource {
 			} catch (final IOException ex) {
 				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image", ex);
 			}
-			LOGGER.info("input size image: {}x{} type={}", inputImage.getWidth(), inputImage.getHeight(),
+			LOGGER.debug("input size image: {}x{} type={}", inputImage.getWidth(), inputImage.getHeight(),
 					inputImage.getType());
 			final int scaledWidth = ConfigBaseVariable.getThumbnailWidth();
 			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth()
@@ -510,7 +530,7 @@ public class DataResource {
 
 			// scales the input image to the output image
 			final Graphics2D g2d = outputImage.createGraphics();
-			LOGGER.info("output size image: {}x{}", scaledWidth, scaledHeight);
+			LOGGER.debug("output size image: {}x{}", scaledWidth, scaledHeight);
 			g2d.drawImage(inputImage, 0, 0, scaledWidth, scaledHeight, null);
 			g2d.dispose();
 			// create the output stream:
@@ -523,7 +543,7 @@ public class DataResource {
 						.build();
 			}
 			final byte[] imageData = baos.toByteArray();
-			LOGGER.info("output length {}", imageData.length);
+			LOGGER.debug("output length {}", imageData.length);
 			if (imageData.length == 0) {
 				LOGGER.error("Fail to convert image... Availlable format:");
 				for (final String data : ImageIO.getWriterFormatNames()) {
@@ -538,15 +558,14 @@ public class DataResource {
 				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
 						"Fail to convert mime type of " + ConfigBaseVariable.getThumbnailFormat(), ex);
 			}
-			// TODO: move this in a decorator !!!
-			final CacheControl cc = new CacheControl();
-			cc.setMaxAge(3600);
-			cc.setNoCache(false);
-			out.cacheControl(cc);
+			// A thumbnail is made again from scratch on every request: without this a list of
+			// covers asks for every picture again on every render, and the server spends its
+			// time resizing them.
+			addCacheHeaders(out, etag);
 			return out.build();
 		}
 		try {
-			return buildStream(filePathName, range, value.getMimeType());
+			return buildStream(filePathName, range, value.getMimeType(), etag);
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
 		}
@@ -570,20 +589,142 @@ public class DataResource {
 	@Operation(description = "Get back some data from the data environment (with a beautiful name (permit download with basic name)", tags = "SYSTEM")
 	public Response retrieveDataFull(
 			@Context final SecurityContext sc,
+			@Context final Request request,
 			@QueryParam(HttpHeaders.AUTHORIZATION) final String token,
 			@ApiInputOptional @HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid,
 			@PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		// logger.info("===================================================");
-		LOGGER.info("== DATA retrieveDataFull ? id={} user={}", oid, (gc == null ? "null" : gc.userByToken));
-		// logger.info("===================================================");
+		LOGGER.debug("== DATA retrieveDataFull ? id={} user={}", oid, (gc == null ? "null" : gc.userByToken));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
 		}
+		final EntityTag etag = etagOf(value);
+		final Response notModified = notModifiedOrNull(request, etag);
+		if (notModified != null) {
+			return notModified;
+		}
 		return buildStream(getFileData(oid), range,
-				value.getMimeType() == null ? "application/octet-stream" : value.getMimeType());
+				value.getMimeType() == null ? "application/octet-stream" : value.getMimeType(), etag);
+	}
+
+	/** The tag of a data, as strong as its content: the same content is the same data.
+	 *
+	 * @param value The data to name.
+	 * @return Its tag, or null when it has nothing to be named by. */
+	private static EntityTag etagOf(final Data value) {
+		if (value == null) {
+			return null;
+		}
+		if (value.getSha512() != null) {
+			return new EntityTag(value.getSha512());
+		}
+		if (value.getOid() != null) {
+			return new EntityTag(value.getOid().toHexString());
+		}
+		return null;
+	}
+
+	/** Answer with nothing when the browser already holds this exact content.
+	 *
+	 * @param request The incoming request, holding what the browser already has.
+	 * @param etag The tag of what is being asked for.
+	 * @return The answer to send back, or null when the content has to be sent. */
+	private static Response notModifiedOrNull(final Request request, final EntityTag etag) {
+		if (request == null || etag == null) {
+			return null;
+		}
+		final Response.ResponseBuilder builder = request.evaluatePreconditions(etag);
+		if (builder == null) {
+			return null;
+		}
+		return builder.header(HttpHeaders.CACHE_CONTROL, DATA_CACHE_CONTROL).tag(etag).build();
+	}
+
+	/** Say how long this may be kept, and by what name.
+	 *
+	 * @param builder The answer being built.
+	 * @param etag The tag of the content, null when it has none. */
+	private static void addCacheHeaders(final Response.ResponseBuilder builder, final EntityTag etag) {
+		builder.header(HttpHeaders.CACHE_CONTROL, DATA_CACHE_CONTROL);
+		if (etag != null) {
+			builder.tag(etag);
+		}
+	}
+
+	/** What a "Range" header asks for, once read.
+	 *
+	 * @param from First byte asked for.
+	 * @param to Last byte asked for, included. */
+	public record ByteRange(
+			long from,
+			long to) {}
+
+	/** A range that says nothing this file can answer: it starts past the end. */
+	public static final ByteRange RANGE_OUT_OF_FILE = new ByteRange(-1, -1);
+
+	/** Read a "Range" header.
+	 *
+	 * <p>
+	 * Only the first range of a list is honoured: answering several at once needs a multipart body,
+	 * and no player asks for that.
+	 *
+	 * @param range The header, "bytes=0-1023", "bytes=1024-" or "bytes=-1024".
+	 * @param fileLength The length of the file being asked about.
+	 * @return What to send back, {@link #RANGE_OUT_OF_FILE} when it asks past the end of the file,
+	 *         or null when there is nothing to read in it and the whole file is to be sent. */
+	public static ByteRange parseRange(final String range, final long fileLength) {
+		if (range == null || fileLength <= 0) {
+			return null;
+		}
+		final int equalPos = range.indexOf('=');
+		if (equalPos < 0 || !"bytes".equalsIgnoreCase(range.substring(0, equalPos).trim())) {
+			return null;
+		}
+		// Several ranges at once would need a multipart answer: the first one is served, which
+		// every player accepts.
+		String first = range.substring(equalPos + 1).trim();
+		final int commaPos = first.indexOf(',');
+		if (commaPos >= 0) {
+			first = first.substring(0, commaPos).trim();
+		}
+		final int dashPos = first.indexOf('-');
+		if (dashPos < 0) {
+			return null;
+		}
+		final String startText = first.substring(0, dashPos).trim();
+		final String endText = first.substring(dashPos + 1).trim();
+		try {
+			if (startText.isEmpty()) {
+				// "bytes=-N": the last N bytes. A player reads the index of a Matroska this way,
+				// and without an answer to it seeking in a media never works.
+				if (endText.isEmpty()) {
+					return null;
+				}
+				final long wanted = Long.parseLong(endText);
+				if (wanted <= 0) {
+					return RANGE_OUT_OF_FILE;
+				}
+				final long from = Math.max(0, fileLength - wanted);
+				return new ByteRange(from, fileLength - 1);
+			}
+			final long from = Long.parseLong(startText);
+			if (from < 0 || from >= fileLength) {
+				return RANGE_OUT_OF_FILE;
+			}
+			long to = endText.isEmpty() ? fileLength - 1 : Long.parseLong(endText);
+			if (to >= fileLength) {
+				to = fileLength - 1;
+			}
+			if (to < from) {
+				return RANGE_OUT_OF_FILE;
+			}
+			return new ByteRange(from, to);
+		} catch (final NumberFormatException ex) {
+			LOGGER.warn("Can not read the range '{}': {}", range, ex.getMessage());
+			return null;
+		}
 	}
 
 	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
@@ -594,6 +735,22 @@ public class DataResource {
 	 * @throws Exception IOException if an error occurs in streaming. */
 	private Response buildStream(final String filename, final String range, final String inputMimeType)
 			throws FailException {
+		return buildStream(filename, range, inputMimeType, null);
+	}
+
+	/** Send a file back, whole or in part.
+	 *
+	 * @param filename The file on disk.
+	 * @param range What the browser asks for, null when it asks for everything.
+	 * @param inputMimeType The type of the content, as it is stored.
+	 * @param etag The tag of the content, so the browser can keep it.
+	 * @return The answer to send back.
+	 * @throws FailException When the file can not be read. */
+	private Response buildStream(
+			final String filename,
+			final String range,
+			final String inputMimeType,
+			final EntityTag etag) throws FailException {
 		// Browsers don't support video/x-matroska or audio/x-matroska, serve as webm instead
 		final String mimeType;
 		if ("video/x-matroska".equals(inputMimeType)) {
@@ -604,32 +761,39 @@ public class DataResource {
 			mimeType = inputMimeType;
 		}
 		final File file = new File(filename);
-		// logger.info("request range : {}", range);
+		final ByteRange asked = parseRange(range, file.length());
+		if (asked == RANGE_OUT_OF_FILE) {
+			// Sending the whole file back would have the player read, at great length, something
+			// other than what it asked for.
+			return Response.status(Response.Status.REQUESTED_RANGE_NOT_SATISFIABLE).header("Accept-Ranges", "bytes")
+					.header("Content-Range", "bytes */" + file.length()).build();
+		}
 		// range not requested : Firefox does not send range headers
-		if (range == null) {
+		if (asked == null) {
 			final StreamingOutput output = new StreamingOutput() {
 				@Override
 				public void write(final OutputStream out) {
 					try (FileInputStream in = new FileInputStream(file)) {
-						final byte[] buf = new byte[1024 * 1024];
+						final byte[] buf = new byte[CHUNK_SIZE];
 						int len;
 						while ((len = in.read(buf)) != -1) {
 							try {
 								out.write(buf, 0, len);
-								out.flush();
 								// logger.info("---- wrote {} bytes file ----", len);
 							} catch (final IOException ex) {
 								LOGGER.info("remote close connection");
 								break;
 							}
 						}
+						out.flush();
 					} catch (final IOException ex) {
 						throw new InternalServerErrorException(ex);
 					}
 				}
 			};
 			final Response.ResponseBuilder out = Response.ok(output).header(HttpHeaders.CONTENT_LENGTH, file.length())
-					.header("Accept-Ranges", "bytes");
+					.header("Accept-Ranges", "bytes").header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
+			addCacheHeaders(out, etag);
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
@@ -637,21 +801,8 @@ public class DataResource {
 
 		}
 
-		final String[] ranges = range.split("=")[1].split("-");
-		final long from = Long.parseLong(ranges[0]);
-
-		// Determine the end byte position
-		long to;
-		if (ranges.length == 2 && !ranges[1].isEmpty()) {
-			// Explicit end specified: "bytes=start-end"
-			to = Long.parseLong(ranges[1]);
-		} else {
-			// Open-ended: "bytes=start-" — serve the rest of the file
-			to = file.length() - 1;
-		}
-		if (to >= file.length()) {
-			to = file.length() - 1;
-		}
+		final long from = asked.from();
+		final long to = asked.to();
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
 		// LOGGER.info("responseRange: {}", responseRange);
 		try {
@@ -664,6 +815,7 @@ public class DataResource {
 					.header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
 					.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth())
 					.header(HttpHeaders.LAST_MODIFIED, new Date(file.lastModified()));
+			addCacheHeaders(out, etag);
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
