@@ -295,7 +295,7 @@ public class TsGenerateApi {
 			final Map<Path, String> generation) throws IOException {
 		final InputStream ioStream = TsGenerateApi.class.getClassLoader().getResourceAsStream(name);
 		if (ioStream == null) {
-			throw new IllegalArgumentException("rest-tools.ts is not found");
+			throw new IllegalArgumentException("Resource not found on the classpath: " + name);
 		}
 		final BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream));
 		final StringBuilder data = new StringBuilder();
