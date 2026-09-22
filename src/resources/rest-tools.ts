@@ -76,6 +76,16 @@ export interface Pagination<TYPE> {
   linkHeader?: string;
 }
 
+/**
+ * What a client asks for when it wants a specific page. Carried by the
+ * `X-Pagination-Offset` / `X-Pagination-Limit` headers, which is what an
+ * endpoint reading `@PaginationContext` expects.
+ */
+export interface PaginationRequest {
+  offset?: number;
+  limit?: number;
+}
+
 export type ErrorRestApiCallback = (response: Response) => void;
 
 let errorApiGlobalCallback: ErrorRestApiCallback | undefined = undefined;
@@ -509,13 +519,13 @@ export function RESTRequestJson<TYPE>(
  *
  * @typeParam TYPE - the element type of the paginated list
  * @param request - the underlying REST request (path, queries, body, …)
- * @param checker - optional runtime validator for the items list
+ * @param checker - optional runtime validator, applied to each item
  * @param page - optional pagination request input (offset / limit)
  */
 export function RESTRequestPaginatedJson<TYPE>(
   request: RESTRequestType,
-  checker?: (data: any) => data is TYPE[],
-  page?: { offset?: number; limit?: number }
+  checker?: (data: any) => data is TYPE,
+  page?: PaginationRequest
 ): Promise<Pagination<TYPE>> {
   const requestWithPagination: RESTRequestType = {
     ...request,
@@ -543,7 +553,12 @@ export function RESTRequestPaginatedJson<TYPE>(
           } as RestErrorResponse);
           return;
         }
-        if (!isNullOrUndefined(checker) && !checker(value.data)) {
+        // The body is the item list: the checker is the item's own, so it is
+        // applied to each element rather than to the array.
+        if (
+          !isNullOrUndefined(checker) &&
+          !value.data.every((item: any) => checker(item))
+        ) {
           reject({
             name: 'Model check fail',
             time: Date().toString(),

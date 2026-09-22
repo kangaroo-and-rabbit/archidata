@@ -10,6 +10,7 @@ import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.DotGenerateApi;
 import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
 import org.atriasoft.archidata.externalRestApi.PythonGenerateApi;
+import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
 import org.atriasoft.archidata.model.OIDGenericDataSoftDelete;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -23,8 +24,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 /**
- * {@code Pagination<T>} across the generators: the type reaches the API in several
- * shapes, and each one has its own way of getting it wrong.
+ * {@code Pagination<T>} across every generator: the type reaches the API in three
+ * shapes (TypeScript, Python, OpenAPI, dot), and each one has its own way of getting
+ * it wrong.
  */
 public class TestPaginationGeneration {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestPaginationGeneration.class);
@@ -62,6 +64,43 @@ public class TestPaginationGeneration {
 		Assertions.assertTrue(client.contains(") -> Pagination[SampleRow]:"), client);
 		// @PaginationContext is a server-side concern, it must not leak
 		Assertions.assertFalse(client.contains("PaginationContext"), client);
+	}
+
+	@Test
+	public void testTypeScriptClientCanRequestAPage() throws Exception {
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api());
+		final String client = generation.get(Paths.get("api/sample-paginated-resource.ts"));
+		LOGGER.info("sample-paginated-resource.ts:\n{}", client);
+		Assertions.assertTrue(client.contains("Promise<Pagination<SampleRow>>"), client);
+		Assertions.assertFalse(client.contains("PaginationContext"), client);
+		// without a page argument the client can only ever read the server's first page
+		Assertions.assertTrue(client.contains("page?: PaginationRequest,"), client);
+		Assertions.assertTrue(client.contains("}, isSampleRow, page);"), client);
+	}
+
+	@Path("/sample-query-paginated/{entity}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public static class SampleQueryPaginatedResource {
+		// pagination carried by the resource's own query parameters, not @PaginationContext
+		@GET
+		public Pagination<SampleRow> list(
+				@PathParam("entity") final String entity,
+				@jakarta.ws.rs.QueryParam("offset") final Long offset,
+				@jakarta.ws.rs.QueryParam("limit") final Long limit) {
+			return null;
+		}
+	}
+
+	@Test
+	public void testAPageAskedByQueryIsEchoedBack() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleQueryPaginatedResource.class));
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+		final String client = generation.get(Paths.get("api/sample-query-paginated-resource.ts"));
+		LOGGER.info("sample-query-paginated-resource.ts:\n{}", client);
+		// without this the returned Pagination reports offset 0 whatever was asked
+		Assertions.assertTrue(
+				client.contains("}, isSampleRow, page ?? { offset: queries.offset, limit: queries.limit });"), client);
 	}
 
 	@Test
