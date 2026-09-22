@@ -9,6 +9,7 @@ import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
+import org.atriasoft.archidata.externalRestApi.model.ClassPaginationModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -223,6 +224,8 @@ public class DotClassElement {
 			return generateDotList(fieldListModel, dotGroup);
 		} else if (model instanceof final ClassMapModel fieldMapModel) {
 			return generateDotMap(fieldMapModel, dotGroup);
+		} else if (model instanceof final ClassPaginationModel fieldPaginationModel) {
+			return "Pagination&lt;" + generateClassModelTypescript(fieldPaginationModel.valueModel, dotGroup) + "&gt;";
 		}
 		throw new IOException("Impossible model:" + model);
 	}
@@ -254,6 +257,9 @@ public class DotClassElement {
 			if (className != null) {
 				return className;
 			}
+		} else if (model instanceof final ClassPaginationModel fieldPaginationModel) {
+			// the edge points at the paginated item: the page itself is a transport shape
+			return generateClassModelTypescriptLink(fieldPaginationModel.valueModel, dotGroup);
 		}
 		return null;
 	}
