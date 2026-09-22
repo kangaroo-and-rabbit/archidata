@@ -4,487 +4,706 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
-import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
-import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
+import org.atriasoft.archidata.externalRestApi.model.ClassPaginationModel;
+import org.atriasoft.archidata.externalRestApi.model.ParameterClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ParameterClassModelList;
 import org.atriasoft.archidata.externalRestApi.model.RestTypeRequest;
-import org.atriasoft.archidata.externalRestApi.python.PyClassElement.DefinedPosition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.MediaType;
 
 /**
- * Generates Python API client classes.
+ * Generates the Python client class of one REST resource ({@code api/<resource>.py}).
+ *
+ * <p>Mirrors {@link org.atriasoft.archidata.externalRestApi.typescript.TsApiGeneration}: one
+ * class per {@code @Path} resource, one method per endpoint. Path parameters are
+ * positional (in the order of the path), everything else is keyword-only; the answer is
+ * validated with Pydantic and returned typed.
  */
 public class PyApiGeneration {
 	/** Logger for this class. */
 	static final Logger LOGGER = LoggerFactory.getLogger(PyApiGeneration.class);
 
-	/** Default constructor for this static helper class. */
-	public PyApiGeneration() {}
+	private static final Pattern PATH_PARAM = Pattern.compile("\\{([^}:]+)(?::[^}]*)?\\}");
+	private static final String INDENT = PyClassElement.INDENT;
+	private static final String INDENT2 = INDENT + INDENT;
+	private static final String INDENT3 = INDENT2 + INDENT;
+	private static final String INDENT4 = INDENT3 + INDENT;
 
-	/**
-	 * Converts a CamelCase method name to snake_case.
-	 * @param name the CamelCase name to convert
-	 * @return the snake_case version of the name
-	 */
-	public static String toSnakeCase(final String name) {
-		return name.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+	/** Private constructor to prevent instantiation of this utility class. */
+	private PyApiGeneration() {
+		// Utility class
 	}
 
 	/**
-	 * Generates the Python type annotation for a single model.
-	 * @param model the class model to generate a type annotation for
-	 * @param pyGroup the group registry for resolving type references
-	 * @param imports the set of model import names to populate
-	 * @param isPartial whether to generate the Update (partial) variant
-	 * @return the Python type annotation string
+	 * A generated method parameter.
+	 * @param pyName the Python parameter name
+	 * @param originalName the name on the wire (path, query or header key)
+	 * @param annotation the type annotation, without the {@code | None} of optional parameters
+	 * @param optional whether the parameter defaults to {@code None}
+	 * @param doc the description written in the docstring
 	 */
-	public static String generateTypeAnnotation(
-			final ClassModel model,
-			final PyClassElementGroup pyGroup,
-			final Set<String> imports,
-			final boolean isPartial) {
-
-		if (model instanceof final ClassObjectModel objectModel) {
-			final PyClassElement pyModel = pyGroup.find(objectModel);
-			if (pyModel != null && pyModel.nativeType != DefinedPosition.NATIVE) {
-				final String typeName = pyModel.getTypeName();
-				imports.add(typeName);
-				if (isPartial) {
-					return typeName + "Update";
-				}
-				return typeName;
+	private record Parameter(
+			String pyName,
+			String originalName,
+			String annotation,
+			boolean optional,
+			String doc) {
+		String signature() {
+			if (this.optional) {
+				return this.pyName + ": " + this.annotation + " | None = None";
 			}
-			return "Any";
+			return this.pyName + ": " + this.annotation;
 		}
-
-		if (model instanceof final ClassEnumModel enumModel) {
-			final PyClassElement pyModel = pyGroup.find(enumModel);
-			if (pyModel != null) {
-				imports.add(pyModel.getTypeName());
-				return pyModel.getTypeName();
-			}
-			return "str";
-		}
-
-		if (model instanceof final ClassListModel listModel) {
-			final String valueType = generateTypeAnnotation(listModel.valueModel, pyGroup, imports, isPartial);
-			return "list[" + valueType + "]";
-		}
-
-		if (model instanceof final ClassMapModel mapModel) {
-			final String keyType = generateTypeAnnotation(mapModel.keyModel, pyGroup, imports, isPartial);
-			final String valueType = generateTypeAnnotation(mapModel.valueModel, pyGroup, imports, isPartial);
-			return "dict[" + keyType + ", " + valueType + "]";
-		}
-
-		// Native type
-		final PyClassElement pyModel = pyGroup.find(model);
-		if (pyModel != null) {
-			return pyModel.getTypeName();
-		}
-
-		return "Any";
 	}
 
 	/**
-	 * Generates the type annotation for a list of models as a union type.
-	 * @param models the list of parameter class models
-	 * @param pyGroup the group registry for resolving type references
-	 * @param imports the set of model import names to populate
-	 * @param isPartial whether to generate the Update (partial) variant
-	 * @return the Python type annotation string, possibly a union type
+	 * Gets the Python class name of a resource.
+	 * @param element the resource
+	 * @return the class name ({@code ZoneResourceApi})
+	 */
+	public static String getClassName(final ApiGroupModel element) {
+		return element.name + "Api";
+	}
+
+	/**
+	 * Gets the module name of a resource.
+	 * @param element the resource
+	 * @return the snake_case module name, without extension
+	 */
+	public static String getFileName(final ApiGroupModel element) {
+		return PyClassElement.toSnakeCase(element.name);
+	}
+
+	/**
+	 * Gets the attribute name of a resource in the aggregated client.
+	 * @param element the resource
+	 * @return the snake_case attribute name ({@code zone_resource})
+	 */
+	public static String getAttributeName(final ApiGroupModel element) {
+		return PyClassElement.toPythonIdentifier(element.name);
+	}
+
+	/**
+	 * Renders the union annotation of a parameter model list.
+	 * @param models the parameter models
+	 * @param group the group registry for resolving type references
+	 * @param imports the import model of the file
+	 * @return the annotation, {@code None} when empty
 	 */
 	public static String generateTypeAnnotations(
 			final ParameterClassModelList models,
-			final PyClassElementGroup pyGroup,
-			final Set<String> imports,
-			final boolean isPartial) {
-
+			final PyClassElementGroup group,
+			final PyImportModel imports) {
 		if (models == null || models.models() == null || models.models().isEmpty()) {
 			return "None";
 		}
-
-		if (models.models().size() == 1) {
-			return generateTypeAnnotation(models.models().get(0), pyGroup, imports, isPartial);
-		}
-
-		// Union type
 		final List<String> types = new ArrayList<>();
 		for (final ClassModel model : models.models()) {
-			types.add(generateTypeAnnotation(model, pyGroup, imports, isPartial));
+			types.add(generateVariantAnnotation(model, models.valid(), models.groups(), group, imports));
 		}
 		return String.join(" | ", types);
 	}
 
 	/**
-	 * Generates the Python API client file for a resource group.
-	 * @param element the API group model containing endpoint definitions
-	 * @param pyGroup the group registry for resolving type references
+	 * Renders the annotation of a model in a validation context: an object gets the variant
+	 * matching the groups ({@code ZoneCreate}), anything else its default rendering.
+	 */
+	private static String generateVariantAnnotation(
+			final ClassModel model,
+			final boolean valid,
+			final Class<?>[] groups,
+			final PyClassElementGroup group,
+			final PyImportModel imports) {
+		if (model instanceof ClassObjectModel) {
+			final PyClassElement element = group.find(model);
+			if (element != null && element.nativeType == PyClassElement.DefinedPosition.NORMAL) {
+				final String name = element.getTypeName(valid, groups);
+				imports.addModel(element, name);
+				return name;
+			}
+		}
+		return PyClassElement.generateTypeForModel(model, group, imports);
+	}
+
+	private static boolean isVoid(final List<ClassModel> returnTypes) {
+		if (returnTypes.isEmpty()) {
+			return true;
+		}
+		final Class<?> clazz = returnTypes.get(0).getOriginClasses();
+		return returnTypes.size() == 1 && (clazz == Void.class || clazz == void.class);
+	}
+
+	private static boolean producesJson(final List<String> produces) {
+		return produces == null || produces.isEmpty() || produces.contains(MediaType.APPLICATION_JSON);
+	}
+
+	private static String mimeConstant(final String mediaType) {
+		if (MediaType.APPLICATION_JSON.equals(mediaType)) {
+			return "HTTPMimeType.JSON";
+		}
+		if (MediaType.MULTIPART_FORM_DATA.equals(mediaType)) {
+			return "HTTPMimeType.MULTIPART";
+		}
+		if (MediaType.TEXT_PLAIN.equals(mediaType)) {
+			return "HTTPMimeType.TEXT_PLAIN";
+		}
+		if (MediaType.APPLICATION_OCTET_STREAM.equals(mediaType)) {
+			return "HTTPMimeType.OCTET_STREAM";
+		}
+		if ("text/csv".equals(mediaType)) {
+			return "HTTPMimeType.CSV";
+		}
+		if ("image/jpeg".equals(mediaType)) {
+			return "HTTPMimeType.IMAGE_JPEG";
+		}
+		if ("image/png".equals(mediaType)) {
+			return "HTTPMimeType.IMAGE_PNG";
+		}
+		if (MediaType.WILDCARD.equals(mediaType)) {
+			return "HTTPMimeType.ALL";
+		}
+		return null;
+	}
+
+	/**
+	 * Orders the path parameters as they appear in the endpoint, then the others by name.
+	 */
+	private static List<String> orderedPathParameters(final ApiModel interfaceElement) {
+		final List<String> ordered = new ArrayList<>();
+		final Matcher matcher = PATH_PARAM.matcher(interfaceElement.restEndPoint);
+		while (matcher.find()) {
+			final String name = matcher.group(1).strip();
+			if (interfaceElement.parameters.containsKey(name) && !ordered.contains(name)) {
+				ordered.add(name);
+			}
+		}
+		final List<String> others = new ArrayList<>(interfaceElement.parameters.keySet());
+		others.removeAll(ordered);
+		Collections.sort(others);
+		ordered.addAll(others);
+		return ordered;
+	}
+
+	private static String humanize(final String methodName) {
+		final String spaced = PyClassElement.toSnakeCase(methodName).replace('_', ' ');
+		return Character.toUpperCase(spaced.charAt(0)) + spaced.substring(1) + ".";
+	}
+
+	private static String renderDictLiteral(final String indent, final List<Parameter> parameters) {
+		final StringBuilder out = new StringBuilder("{\n");
+		for (final Parameter param : parameters) {
+			out.append(indent).append(INDENT).append(PyClassElement.pyString(param.originalName())).append(": ")
+					.append(param.pyName()).append(",\n");
+		}
+		out.append(indent).append("}");
+		return out.toString();
+	}
+
+	/**
+	 * Generates the Python module of a resource and adds it to the generation map.
+	 * @param element the API group model containing the endpoint definitions
+	 * @param group the group registry for resolving type references
 	 * @param generation the map of file paths to generated content
 	 */
 	public static void generateApiFile(
 			final ApiGroupModel element,
-			final PyClassElementGroup pyGroup,
+			final PyClassElementGroup group,
 			final Map<Path, String> generation) {
-
-		final StringBuilder out = new StringBuilder();
-		final Set<String> modelImports = new TreeSet<>();
-		final Set<String> restToolsImports = new HashSet<>();
-
-		// Start building the class
-		final StringBuilder classContent = new StringBuilder();
-		final String className = element.name + "Api";
-
-		classContent.append("\n\nclass ");
-		classContent.append(className);
-		classContent.append(":\n");
-		classContent.append("    \"\"\"REST API client for ");
-		classContent.append(element.name);
-		classContent.append(" resources.\"\"\"\n\n");
-
-		// Constructor
-		classContent.append("    def __init__(self, rest_config: RESTConfig) -> None:\n");
-		classContent.append("        \"\"\"Initialize the API client.\n\n");
-		classContent.append("        Args:\n");
-		classContent.append("            rest_config: REST client configuration.\n");
-		classContent.append("        \"\"\"\n");
-		classContent.append("        self._rest_config = rest_config\n");
-		restToolsImports.add("RESTConfig");
-
-		// Generate methods for each endpoint
+		final PyImportModel imports = new PyImportModel();
+		imports.addRestTools("RESTConfigSource");
+		final List<String> methods = new ArrayList<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
-			classContent.append("\n");
-			classContent.append(generateMethod(interfaceElement, pyGroup, modelImports, restToolsImports));
+			methods.add(generateMethod(interfaceElement, group, imports));
 		}
-
-		// Build final output with imports
-		out.append("\"\"\"");
-		out.append(element.name);
-		out.append(" API client (auto-generated code).\"\"\"\n\n");
-		out.append("from __future__ import annotations\n\n");
-
-		// Typing imports
-		out.append("from typing import TYPE_CHECKING\n\n");
-
-		// Rest tools imports
-		final List<String> sortedRestImports = new ArrayList<>(restToolsImports);
-		Collections.sort(sortedRestImports);
-		out.append("from .rest_tools import (\n");
-		for (final String imp : sortedRestImports) {
-			out.append("    ");
-			out.append(imp);
-			out.append(",\n");
+		final String className = getClassName(element);
+		final StringBuilder out = new StringBuilder();
+		out.append("\"\"\"").append(element.name).append(" API client (auto-generated code).\"\"\"\n\n");
+		out.append(imports.renderCommonImports());
+		out.append(imports.renderApiFileImports());
+		out.append("\n");
+		out.append("class ").append(className).append(":\n");
+		out.append(INDENT).append("\"\"\"Client of the ``").append(element.name).append("`` endpoints");
+		if (element.restEndPoint != null && !element.restEndPoint.isBlank()) {
+			out.append(" (``").append(element.restEndPoint).append("``)");
 		}
-		out.append(")\n");
-
-		// Model imports
-		if (!modelImports.isEmpty()) {
-			out.append("\nif TYPE_CHECKING:\n");
-			out.append("    from .model import (\n");
-			final List<String> sortedModelImports = new ArrayList<>(modelImports);
-			Collections.sort(sortedModelImports);
-			for (final String imp : sortedModelImports) {
-				out.append("        ");
-				out.append(imp);
-				out.append(",\n");
-			}
-			out.append("    )\n");
+		out.append(".\"\"\"\n\n");
+		out.append(INDENT).append("def __init__(self, rest_config: RESTConfigSource) -> None:\n");
+		out.append(INDENT2).append("\"\"\"Bind the client to a server configuration.\n\n");
+		out.append(INDENT2).append("Args:\n");
+		out.append(INDENT3).append("rest_config: The configuration, or a callable returning it (called\n");
+		out.append(INDENT4).append("before every request, for tokens that change at runtime).\n\n");
+		out.append(INDENT2).append("\"\"\"\n");
+		out.append(INDENT2).append("self._rest_config = rest_config\n");
+		for (final String method : methods) {
+			out.append("\n");
+			out.append(method);
 		}
-
-		out.append(classContent);
-
-		final String fileName = PyClassElement.toSnakeCase(element.name) + "_api";
-		generation.put(Paths.get("api").resolve(fileName + ".py"), out.toString());
+		generation.put(Paths.get("api").resolve(getFileName(element) + ".py"), out.toString());
 	}
 
 	/**
-	 * Generate a single API method.
+	 * Generates one endpoint method.
 	 */
 	private static String generateMethod(
 			final ApiModel interfaceElement,
-			final PyClassElementGroup pyGroup,
-			final Set<String> modelImports,
-			final Set<String> restToolsImports) {
+			final PyClassElementGroup group,
+			final PyImportModel imports) {
+		final String methodName = PyClassElement.toPythonIdentifier(interfaceElement.name);
+		final boolean isPatch = interfaceElement.restTypeRequest == RestTypeRequest.PATCH;
+		final boolean returnsVoid = isVoid(interfaceElement.returnTypes);
+		final boolean isPaginated = interfaceElement.returnTypes.stream()
+				.anyMatch(ClassPaginationModel.class::isInstance);
+		final boolean jsonAnswer = producesJson(interfaceElement.produces);
+		final boolean multiProduces = interfaceElement.produces != null && interfaceElement.produces.size() > 1;
 
-		final StringBuilder out = new StringBuilder();
-		final String methodName = toSnakeCase(interfaceElement.name);
-		final boolean isPartial = interfaceElement.restTypeRequest == RestTypeRequest.PATCH;
-
-		// Determine return type
-		String returnType = "None";
-		boolean returnsList = false;
-		boolean returnsVoid = true;
-
-		if (!interfaceElement.returnTypes.isEmpty()) {
-			final ClassModel returnModel = interfaceElement.returnTypes.get(0);
-			if (returnModel.getOriginClasses() != Void.class && returnModel.getOriginClasses() != void.class) {
-				returnsVoid = false;
-				if (returnModel instanceof ClassListModel) {
-					returnsList = true;
-					returnType = generateTypeAnnotation(returnModel, pyGroup, modelImports, false);
-				} else {
-					returnType = generateTypeAnnotation(returnModel, pyGroup, modelImports, false);
-				}
-			}
+		// -- parameters -------------------------------------------------------
+		// Java lets two parameters of one endpoint map to the same Python name (`type` and
+		// `type_`, a path `entityId` and a query `entity_id`, ...); the wire name is kept
+		// by Parameter.originalName, so only the Python one has to be made unique.
+		final Set<String> usedNames = new LinkedHashSet<>();
+		usedNames.add("self");
+		final List<Parameter> pathParams = new ArrayList<>();
+		for (final String name : orderedPathParameters(interfaceElement)) {
+			pathParams.add(new Parameter(uniqueName(name, usedNames), name,
+					generateTypeAnnotations(interfaceElement.parameters.get(name), group, imports), false,
+					"Path parameter ``{" + name + "}``."));
 		}
-
-		// Method signature
-		out.append("    def ");
-		out.append(methodName);
-		out.append("(\n");
-		out.append("        self,\n");
-
-		// Path parameters
-		for (final Entry<String, ParameterClassModelList> param : interfaceElement.parameters.entrySet()) {
-			out.append("        ");
-			out.append(toSnakeCase(param.getKey()));
-			out.append(": ");
-			out.append(generateTypeAnnotations(param.getValue(), pyGroup, modelImports, false));
-			out.append(",\n");
-		}
-
-		// Query parameters
-		if (!interfaceElement.queries.isEmpty()) {
-			out.append("        *,\n"); // Force keyword-only after this
-			for (final Entry<String, ParameterClassModelList> query : interfaceElement.queries.entrySet()) {
-				out.append("        ");
-				out.append(toSnakeCase(query.getKey()));
-				out.append(": ");
-				out.append(generateTypeAnnotations(query.getValue(), pyGroup, modelImports, false));
-				out.append(" | None = None,\n");
-			}
-		}
-
-		// Request body (data parameter)
+		Parameter dataParam = null;
+		final List<Parameter> multipartParams = new ArrayList<>();
 		if (interfaceElement.unnamedElement.size() == 1) {
-			if (interfaceElement.queries.isEmpty()) {
-				out.append("        *,\n");
+			String annotation = generateTypeAnnotations(interfaceElement.unnamedElement.get(0), group, imports);
+			if (isPatch) {
+				imports.addTyping("Any");
+				annotation = annotation + " | dict[str, Any]";
 			}
-			out.append("        data: ");
-			final String dataType = generateTypeAnnotations(interfaceElement.unnamedElement.get(0), pyGroup,
-					modelImports, isPartial);
-			out.append(dataType);
-			out.append(",\n");
-			// Also add Create variant for creation endpoints
-			if (interfaceElement.restTypeRequest == RestTypeRequest.POST) {
-				// Import the Create variant
-				for (final ClassModel model : interfaceElement.unnamedElement.get(0).models()) {
-					if (model instanceof ClassObjectModel) {
-						final PyClassElement pyModel = pyGroup.find(model);
-						if (pyModel != null) {
-							modelImports.add(pyModel.getTypeName() + "Create");
-						}
-					}
-				}
-			}
-			if (isPartial) {
-				// Import the Update variant
-				for (final ClassModel model : interfaceElement.unnamedElement.get(0).models()) {
-					if (model instanceof ClassObjectModel) {
-						final PyClassElement pyModel = pyGroup.find(model);
-						if (pyModel != null) {
-							modelImports.add(pyModel.getTypeName() + "Update");
-						}
-					}
-				}
-			}
+			dataParam = new Parameter(uniqueName("data", usedNames), null, annotation, false,
+					isPatch ? "Request body: the fields to change (unset fields are not sent)." : "Request body.");
 		} else if (!interfaceElement.multiPartParameters.isEmpty()) {
-			if (interfaceElement.queries.isEmpty()) {
-				out.append("        *,\n");
-			}
-			// Multipart data as dict
-			out.append("        data: dict[str, Any],\n");
-			modelImports.add("Any");
-		}
-
-		out.append("    ) -> ");
-		out.append(returnType);
-		out.append(":\n");
-
-		// Docstring
-		out.append("        \"\"\"");
-		if (interfaceElement.description != null) {
-			out.append(interfaceElement.description);
-		} else {
-			out.append(methodName.replace("_", " ").substring(0, 1).toUpperCase());
-			out.append(methodName.replace("_", " ").substring(1));
-		}
-		out.append(".\n");
-
-		// Document parameters
-		if (!interfaceElement.parameters.isEmpty() || !interfaceElement.queries.isEmpty()
-				|| interfaceElement.unnamedElement.size() == 1) {
-			out.append("\n        Args:\n");
-			for (final Entry<String, ParameterClassModelList> param : interfaceElement.parameters.entrySet()) {
-				out.append("            ");
-				out.append(toSnakeCase(param.getKey()));
-				out.append(": Path parameter.\n");
-			}
-			for (final Entry<String, ParameterClassModelList> query : interfaceElement.queries.entrySet()) {
-				out.append("            ");
-				out.append(toSnakeCase(query.getKey()));
-				out.append(": Query parameter.\n");
-			}
-			if (interfaceElement.unnamedElement.size() == 1) {
-				out.append("            data: Request body.\n");
+			for (final Entry<String, ParameterClassModelList> entry : new TreeMap<>(
+					interfaceElement.multiPartParameters).entrySet()) {
+				multipartParams.add(new Parameter(uniqueName(entry.getKey(), usedNames), entry.getKey(),
+						generateTypeAnnotations(entry.getValue(), group, imports), entry.getValue().optional(),
+						"Multipart field ``" + entry.getKey() + "``."));
 			}
 		}
-
-		if (!returnsVoid) {
-			out.append("\n        Returns:\n");
-			out.append("            ");
-			out.append(returnType);
-			out.append("\n");
+		final List<Parameter> queryParams = new ArrayList<>();
+		for (final Entry<String, ParameterClassModelList> entry : new TreeMap<>(interfaceElement.queries).entrySet()) {
+			queryParams.add(new Parameter(uniqueName(entry.getKey(), usedNames), entry.getKey(),
+					generateTypeAnnotations(entry.getValue(), group, imports), true,
+					"Query parameter ``" + entry.getKey() + "``."));
 		}
-
-		out.append("\n        Raises:\n");
-		out.append("            RestErrorResponse: If the request fails.\n");
-		out.append("        \"\"\"\n");
-
-		// Method body - build REST request
-		out.append("        rest_model = RESTModel(\n");
-		out.append("            end_point=\"");
-		out.append(interfaceElement.restEndPoint);
-		out.append("\",\n");
-		out.append("            request_type=HTTPRequestModel.");
-		out.append(interfaceElement.restTypeRequest.name());
-		out.append(",\n");
-		restToolsImports.add("RESTModel");
-		restToolsImports.add("HTTPRequestModel");
-
-		// Content type
-		if (interfaceElement.consumes != null && !interfaceElement.consumes.isEmpty()) {
-			for (final String consume : interfaceElement.consumes) {
-				if (MediaType.APPLICATION_JSON.equals(consume)) {
-					out.append("            content_type=HTTPMimeType.JSON,\n");
-					restToolsImports.add("HTTPMimeType");
-					break;
-				} else if (MediaType.MULTIPART_FORM_DATA.equals(consume)) {
-					out.append("            content_type=HTTPMimeType.MULTIPART,\n");
-					restToolsImports.add("HTTPMimeType");
-					break;
-				}
+		final List<Parameter> headerParams = new ArrayList<>();
+		for (final Entry<String, ParameterClassModelList> entry : new TreeMap<>(interfaceElement.headers).entrySet()) {
+			headerParams.add(new Parameter(uniqueName(entry.getKey(), usedNames), entry.getKey(),
+					generateTypeAnnotations(entry.getValue(), group, imports), entry.getValue().optional(),
+					"Header ``" + entry.getKey() + "``."));
+		}
+		final List<Parameter> extraParams = new ArrayList<>();
+		String offsetArgument = null;
+		String limitArgument = null;
+		if (isPaginated) {
+			// A resource can carry its page through its own `offset` / `limit` query
+			// parameters instead of @PaginationContext (the pagination headers are then
+			// ignored server-side): reuse them rather than declaring a second pair.
+			offsetArgument = existingIntParameter("offset", pathParams, queryParams, headerParams);
+			if (offsetArgument == null) {
+				offsetArgument = uniqueName("offset", usedNames);
+				extraParams
+						.add(new Parameter(offsetArgument, null, "int", true, "Index of the first item of the page."));
+			}
+			limitArgument = existingIntParameter("limit", pathParams, queryParams, headerParams);
+			if (limitArgument == null) {
+				limitArgument = uniqueName("limit", usedNames);
+				extraParams
+						.add(new Parameter(limitArgument, null, "int", true, "Maximum number of items in the page."));
 			}
 		}
-
-		// Accept type
-		if (interfaceElement.produces != null && !interfaceElement.produces.isEmpty()) {
+		String acceptDefault = null;
+		String acceptArgument = null;
+		if (multiProduces) {
+			final List<String> accepted = new ArrayList<>();
 			for (final String produce : interfaceElement.produces) {
-				if (MediaType.APPLICATION_JSON.equals(produce)) {
-					out.append("            accept=HTTPMimeType.JSON,\n");
-					restToolsImports.add("HTTPMimeType");
+				final String constant = mimeConstant(produce);
+				if (constant == null) {
+					LOGGER.error("Unmanaged produced media type: {}", produce);
+					continue;
+				}
+				accepted.add(constant);
+			}
+			if (!accepted.isEmpty()) {
+				imports.addRestTools("HTTPMimeType");
+				acceptDefault = accepted.contains("HTTPMimeType.JSON") ? "HTTPMimeType.JSON" : accepted.get(0);
+				acceptArgument = uniqueName("accept", usedNames);
+				extraParams.add(new Parameter(acceptArgument, null, "HTTPMimeType", false,
+						"Expected answer type, one of " + String.join(", ", accepted) + "."));
+			}
+		}
+
+		// -- return type ------------------------------------------------------
+		final String returnType;
+		if (returnsVoid) {
+			returnType = "None";
+		} else if (!jsonAnswer && !multiProduces) {
+			returnType = "bytes";
+		} else {
+			returnType = generateTypeAnnotations(new ParameterClassModelList(true, new Class<?>[] { GroupRead.class },
+					interfaceElement.returnTypes, false), group, imports);
+		}
+
+		// -- signature --------------------------------------------------------
+		final StringBuilder out = new StringBuilder();
+		out.append(INDENT).append("def ").append(methodName).append("(\n");
+		out.append(INDENT2).append("self,\n");
+		for (final Parameter param : pathParams) {
+			out.append(INDENT2).append(param.signature()).append(",\n");
+		}
+		final List<Parameter> keywordParams = new ArrayList<>();
+		if (dataParam != null) {
+			keywordParams.add(dataParam);
+		}
+		keywordParams.addAll(multipartParams);
+		keywordParams.addAll(queryParams);
+		keywordParams.addAll(headerParams);
+		keywordParams.addAll(extraParams);
+		if (!keywordParams.isEmpty()) {
+			out.append(INDENT2).append("*,\n");
+			for (final Parameter param : keywordParams) {
+				out.append(INDENT2);
+				if (param.pyName().equals(acceptArgument) && acceptDefault != null) {
+					out.append(acceptArgument).append(": HTTPMimeType = ").append(acceptDefault);
+				} else {
+					out.append(param.signature());
+				}
+				out.append(",\n");
+			}
+		}
+		out.append(INDENT).append(") -> ").append(returnType).append(":\n");
+
+		// -- docstring --------------------------------------------------------
+		final StringBuilder doc = new StringBuilder();
+		if (interfaceElement.description != null && !interfaceElement.description.isBlank()) {
+			doc.append(interfaceElement.description.strip());
+			if (!interfaceElement.description.strip().endsWith(".")) {
+				doc.append(".");
+			}
+		} else {
+			doc.append(humanize(interfaceElement.name));
+		}
+		doc.append("\n\n``").append(interfaceElement.restTypeRequest.name()).append(" ")
+				.append(interfaceElement.restEndPoint).append("``");
+		final List<Parameter> documented = new ArrayList<>(pathParams);
+		documented.addAll(keywordParams);
+		if (!documented.isEmpty()) {
+			doc.append("\n\nArgs:\n");
+			for (final Parameter param : documented) {
+				doc.append(INDENT).append(param.pyName()).append(": ").append(param.doc()).append("\n");
+			}
+		}
+		if (!returnsVoid) {
+			doc.append("\nReturns:\n").append(INDENT).append("The validated answer (``").append(returnType)
+					.append("``).\n");
+		}
+		doc.append("\nRaises:\n").append(INDENT)
+				.append("RESTError: When the call fails (network, HTTP status or invalid answer).\n\n");
+		out.append(PyClassElement.pyDocstring(doc.toString(), INDENT2));
+
+		// -- body: request ----------------------------------------------------
+		imports.addRestTools("RESTModel");
+		imports.addRestTools("RESTRequestType");
+		imports.addRestTools("HTTPRequestModel");
+		final StringBuilder restModel = new StringBuilder();
+		restModel.append(INDENT4).append("end_point=").append(PyClassElement.pyString(interfaceElement.restEndPoint))
+				.append(",\n");
+		restModel.append(INDENT4).append("request_type=HTTPRequestModel.")
+				.append(interfaceElement.restTypeRequest.name()).append(",\n");
+		if (acceptArgument != null) {
+			restModel.append(INDENT4).append("accept=").append(acceptArgument).append(",\n");
+		} else if (!returnsVoid && jsonAnswer) {
+			imports.addRestTools("HTTPMimeType");
+			restModel.append(INDENT4).append("accept=HTTPMimeType.JSON,\n");
+		}
+		String contentType = null;
+		if (interfaceElement.consumes != null) {
+			for (final String consume : interfaceElement.consumes) {
+				contentType = mimeConstant(consume);
+				if (contentType != null) {
 					break;
 				}
 			}
 		}
-
-		out.append("        )\n\n");
-
-		// Build params dict
-		if (!interfaceElement.parameters.isEmpty()) {
-			out.append("        params = {\n");
-			for (final Entry<String, ParameterClassModelList> param : interfaceElement.parameters.entrySet()) {
-				out.append("            \"");
-				out.append(param.getKey());
-				out.append("\": ");
-				out.append(toSnakeCase(param.getKey()));
-				out.append(",\n");
-			}
-			out.append("        }\n\n");
+		if (contentType == null && (dataParam != null || !multipartParams.isEmpty())) {
+			contentType = multipartParams.isEmpty() ? "HTTPMimeType.JSON" : "HTTPMimeType.MULTIPART";
 		}
-
-		// Build queries dict
-		if (!interfaceElement.queries.isEmpty()) {
-			out.append("        queries = {\n");
-			out.append("            k: v\n");
-			out.append("            for k, v in {\n");
-			for (final Entry<String, ParameterClassModelList> query : interfaceElement.queries.entrySet()) {
-				out.append("                \"");
-				out.append(query.getKey());
-				out.append("\": ");
-				out.append(toSnakeCase(query.getKey()));
-				out.append(",\n");
-			}
-			out.append("            }.items()\n");
-			out.append("            if v is not None\n");
-			out.append("        }\n\n");
+		if (contentType != null && (dataParam != null || !multipartParams.isEmpty())) {
+			imports.addRestTools("HTTPMimeType");
+			restModel.append(INDENT4).append("content_type=").append(contentType).append(",\n");
 		}
-
-		// Build request
-		out.append("        request = RESTRequestType(\n");
-		out.append("            rest_model=rest_model,\n");
-		out.append("            rest_config=self._rest_config,\n");
-		restToolsImports.add("RESTRequestType");
-
-		if (!interfaceElement.parameters.isEmpty()) {
-			out.append("            params=params,\n");
+		final StringBuilder request = new StringBuilder();
+		request.append(INDENT3).append("rest_model=RESTModel(\n").append(restModel).append(INDENT3).append("),\n");
+		request.append(INDENT3).append("rest_config=self._rest_config,\n");
+		if (!pathParams.isEmpty()) {
+			request.append(INDENT3).append("params=").append(renderDictLiteral(INDENT3, pathParams)).append(",\n");
 		}
-		if (!interfaceElement.queries.isEmpty()) {
-			out.append("            queries=queries if queries else None,\n");
+		if (!queryParams.isEmpty()) {
+			request.append(INDENT3).append("queries=").append(renderDictLiteral(INDENT3, queryParams)).append(",\n");
 		}
-		if (interfaceElement.unnamedElement.size() == 1 || !interfaceElement.multiPartParameters.isEmpty()) {
-			// Check if data is a Pydantic model
-			out.append(
-					"            data=data.model_dump(by_alias=True, exclude_none=True) if hasattr(data, 'model_dump') else data,\n");
+		if (!headerParams.isEmpty()) {
+			// headers left to None are not sent
+			request.append(INDENT3).append("headers={\n").append(INDENT4).append("key: value\n").append(INDENT4)
+					.append("for key, value in ").append(renderDictLiteral(INDENT4, headerParams)).append(".items()\n")
+					.append(INDENT4).append("if value is not None\n").append(INDENT3).append("},\n");
 		}
+		if (dataParam != null) {
+			request.append(INDENT3).append("data=data,\n");
+		} else if (!multipartParams.isEmpty()) {
+			request.append(INDENT3).append("data=").append(renderDictLiteral(INDENT3, multipartParams)).append(",\n");
+		}
+		final String requestExpr = "RESTRequestType(\n" + request + INDENT2 + ")";
 
-		out.append("        )\n\n");
-
-		// Execute request
+		// -- body: call -------------------------------------------------------
 		if (returnsVoid) {
-			out.append("        RESTRequestVoid(request)\n");
-			restToolsImports.add("RESTRequestVoid");
+			imports.addRestTools("RESTRequestVoid");
+			out.append(INDENT2).append("RESTRequestVoid(\n").append(INDENT3).append(indentContinuation(requestExpr))
+					.append(",\n").append(INDENT2).append(")\n");
+		} else if (isPaginated) {
+			imports.addRestTools("RESTRequestPaginatedJson");
+			final ClassPaginationModel pagination = (ClassPaginationModel) interfaceElement.returnTypes.stream()
+					.filter(ClassPaginationModel.class::isInstance).findFirst().get();
+			final String itemType = PyClassElement.generateTypeForModel(pagination.valueModel, group, imports);
+			out.append(INDENT2).append("return RESTRequestPaginatedJson(\n").append(INDENT3)
+					.append(indentContinuation(requestExpr)).append(",\n").append(INDENT3)
+					.append(typeArgument(itemType, imports)).append(",\n").append(INDENT3).append("offset=")
+					.append(offsetArgument).append(",\n").append(INDENT3).append("limit=").append(limitArgument)
+					.append(",\n").append(INDENT2).append(")\n");
+		} else if ("bytes".equals(returnType)) {
+			imports.addRestTools("RESTRequestBytes");
+			out.append(INDENT2).append("return RESTRequestBytes(\n").append(INDENT3)
+					.append(indentContinuation(requestExpr)).append(",\n").append(INDENT2).append(")\n");
+		} else if ("Any".equals(returnType)) {
+			imports.addRestTools("RESTRequest");
+			out.append(INDENT2).append("return RESTRequest(\n").append(INDENT3).append(indentContinuation(requestExpr))
+					.append(",\n").append(INDENT2).append(").data\n");
 		} else {
-			// Determine the model type for validation
-			final ClassModel returnModel = interfaceElement.returnTypes.get(0);
-			if (returnModel instanceof final ClassListModel listModel) {
-				final PyClassElement pyModel = pyGroup.find(listModel.valueModel);
-				if (pyModel != null && pyModel.nativeType != DefinedPosition.NATIVE) {
-					out.append("        from .model import ");
-					out.append(pyModel.getTypeName());
-					out.append("\n");
-					out.append("        return RESTRequestJson(request, ");
-					out.append(pyModel.getTypeName());
-					out.append(", is_list=True)\n");
-				} else {
-					out.append("        return RESTRequest(request).data\n");
-					restToolsImports.add("RESTRequest");
-				}
-			} else if (returnModel instanceof final ClassObjectModel objectModel) {
-				final PyClassElement pyModel = pyGroup.find(objectModel);
-				if (pyModel != null && pyModel.nativeType != DefinedPosition.NATIVE) {
-					out.append("        from .model import ");
-					out.append(pyModel.getTypeName());
-					out.append("\n");
-					out.append("        return RESTRequestJson(request, ");
-					out.append(pyModel.getTypeName());
-					out.append(")\n");
-				} else {
-					out.append("        return RESTRequest(request).data\n");
-					restToolsImports.add("RESTRequest");
-				}
-			} else {
-				out.append("        return RESTRequest(request).data\n");
-				restToolsImports.add("RESTRequest");
-			}
-			restToolsImports.add("RESTRequestJson");
+			imports.addRestTools("RESTRequestJson");
+			out.append(INDENT2).append("return RESTRequestJson(\n").append(INDENT3)
+					.append(indentContinuation(requestExpr)).append(",\n").append(INDENT3)
+					.append(typeArgument(returnType, imports)).append(",\n").append(INDENT2).append(")\n");
 		}
-
 		return out.toString();
+	}
+
+	/**
+	 * Turns a wire name into a Python parameter name that is not taken yet in this method.
+	 * @param originalName the name on the wire
+	 * @param usedNames the names already taken, extended with the returned one
+	 * @return the Python parameter name
+	 */
+	private static String uniqueName(final String originalName, final Set<String> usedNames) {
+		final String base = PyClassElement.toPythonParameter(originalName);
+		String candidate = base;
+		int index = 2;
+		while (!usedNames.add(candidate)) {
+			candidate = base + "_" + index;
+			index++;
+		}
+		return candidate;
+	}
+
+	/**
+	 * Finds a declared parameter that already carries a pagination input.
+	 * @param wireName the wire name to look for ({@code offset} or {@code limit})
+	 * @param groups the declared parameter lists to search
+	 * @return the Python name of that parameter, or {@code null} when there is no integer one
+	 */
+	@SafeVarargs
+	private static String existingIntParameter(final String wireName, final List<Parameter>... groups) {
+		for (final List<Parameter> parameters : groups) {
+			for (final Parameter parameter : parameters) {
+				if (wireName.equals(parameter.originalName()) && "int".equals(parameter.annotation())) {
+					return parameter.pyName();
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Renders the runtime type passed to the validator. A union is not a {@code type[T]} for
+	 * the type checkers, so it is cast explicitly.
+	 */
+	private static String typeArgument(final String annotation, final PyImportModel imports) {
+		if (isTopLevelUnion(annotation)) {
+			imports.addTyping("cast");
+			return "cast(\"type[" + annotation + "]\", " + annotation + ")";
+		}
+		return annotation;
+	}
+
+	/**
+	 * Checks whether an annotation is a union at its top level: {@code A | B} is, while
+	 * {@code list[A | None]} is not (a cast there would be redundant, and type checkers say so).
+	 * @param annotation the type annotation
+	 * @return true when the union is the outermost construct
+	 */
+	private static boolean isTopLevelUnion(final String annotation) {
+		int depth = 0;
+		for (int index = 0; index < annotation.length(); index++) {
+			final char current = annotation.charAt(index);
+			if (current == '[') {
+				depth++;
+			} else if (current == ']') {
+				depth--;
+			} else if (current == '|' && depth == 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Re-indents the continuation lines of an expression nested one level deeper. */
+	private static String indentContinuation(final String expression) {
+		final String[] lines = expression.split("\n", -1);
+		final StringBuilder out = new StringBuilder(lines[0]);
+		for (int i = 1; i < lines.length; i++) {
+			out.append("\n").append(INDENT).append(lines[i]);
+		}
+		return out.toString();
+	}
+
+	/**
+	 * Generates {@code api/__init__.py}: re-exports every resource class.
+	 * @param apiModels the resources
+	 * @param generation the map of file paths to generated content
+	 */
+	public static void generateApiIndex(final List<ApiGroupModel> apiModels, final Map<Path, String> generation) {
+		final Map<String, String> byFile = new TreeMap<>();
+		for (final ApiGroupModel element : apiModels) {
+			byFile.put(getFileName(element), getClassName(element));
+		}
+		final StringBuilder out = new StringBuilder();
+		out.append("\"\"\"Clients of the server resources (auto-generated code).\"\"\"\n\n");
+		for (final Entry<String, String> entry : byFile.entrySet()) {
+			PyImportModel.appendMultilineImport(out, "." + entry.getKey(), Set.of(entry.getValue()));
+		}
+		out.append("\n\n__all__ = [\n");
+		final List<String> names = new ArrayList<>(byFile.values());
+		Collections.sort(names);
+		for (final String name : names) {
+			out.append(INDENT).append(PyClassElement.pyString(name)).append(",\n");
+		}
+		out.append("]\n");
+		generation.put(Paths.get("api").resolve("__init__.py"), out.toString());
+	}
+
+	/**
+	 * Generates {@code client.py}: the {@code ApiClient} holding one bound client per resource.
+	 * @param apiModels the resources
+	 * @param generation the map of file paths to generated content
+	 */
+	public static void generateClient(final List<ApiGroupModel> apiModels, final Map<Path, String> generation) {
+		final Map<String, ApiGroupModel> byAttribute = new LinkedHashMap<>();
+		final List<ApiGroupModel> sorted = new ArrayList<>(apiModels);
+		sorted.sort((a, b) -> getAttributeName(a).compareTo(getAttributeName(b)));
+		for (final ApiGroupModel element : sorted) {
+			byAttribute.put(getAttributeName(element), element);
+		}
+		final StringBuilder out = new StringBuilder();
+		out.append("\"\"\"Aggregated client of the server API (auto-generated code).\"\"\"\n\n");
+		final Set<String> classNames = new TreeSet<>(PyClassElement.IMPORT_NAME_ORDER);
+		for (final ApiGroupModel element : byAttribute.values()) {
+			classNames.add(getClassName(element));
+		}
+		out.append("from .api import (\n");
+		for (final String name : classNames) {
+			out.append(INDENT).append(name).append(",\n");
+		}
+		out.append(")\n");
+		out.append("from .rest_tools import RESTConfigSource\n\n\n");
+		out.append("class ApiClient:\n");
+		out.append(INDENT).append("\"\"\"One object holding every resource client, sharing one configuration.\n\n");
+		out.append(INDENT).append("Example::\n\n");
+		out.append(INDENT2).append("client = ApiClient(RESTConfig(server=\"https://my.server/api\", token_api=KEY))\n");
+		if (!byAttribute.isEmpty()) {
+			out.append(INDENT2).append("client.").append(byAttribute.keySet().iterator().next())
+					.append(".<method>(...)\n");
+		}
+		out.append("\n").append(INDENT)
+				.append("Pass a callable instead of a ``RESTConfig`` when the token changes at runtime:\n");
+		out.append(INDENT).append("it is called before every request.\n");
+		out.append(INDENT).append("\"\"\"\n\n");
+		out.append(INDENT).append("def __init__(self, rest_config: RESTConfigSource) -> None:\n");
+		out.append(INDENT2).append("\"\"\"Bind every resource client to ``rest_config``.\"\"\"\n");
+		out.append(INDENT2).append("self.rest_config = rest_config\n");
+		for (final Entry<String, ApiGroupModel> entry : byAttribute.entrySet()) {
+			out.append(renderClientAttribute(entry.getKey(), getClassName(entry.getValue())));
+		}
+		generation.put(Paths.get("client.py"), out.toString());
+	}
+
+	/**
+	 * Renders one {@code self.<resource> = <Resource>Api(rest_config)} line of the client,
+	 * wrapped the way a Python formatter would when it does not fit.
+	 * @param attribute the attribute name
+	 * @param className the resource client class
+	 * @return the assignment, terminated by a new line
+	 */
+	private static String renderClientAttribute(final String attribute, final String className) {
+		final String declaration = INDENT2 + "self." + attribute + " = ";
+		final String oneLine = declaration + className + "(rest_config)";
+		if (oneLine.length() <= PyClassElement.LINE_LENGTH) {
+			return oneLine + "\n";
+		}
+		if ((declaration + className + "(").length() <= PyClassElement.LINE_LENGTH) {
+			return declaration + className + "(\n" + INDENT3 + "rest_config,\n" + INDENT2 + ")\n";
+		}
+		return declaration + "(\n" + INDENT3 + className + "(rest_config)\n" + INDENT2 + ")\n";
+	}
+
+	/**
+	 * Checks whether a model is an enum (helper for callers building unions).
+	 * @param model the model
+	 * @return true for an enum model
+	 */
+	public static boolean isEnum(final ClassModel model) {
+		return model instanceof ClassEnumModel;
+	}
+
+	/**
+	 * Registers the variant of a model requested with explicit validation groups.
+	 * @param model the model
+	 * @param valid whether validation is active
+	 * @param groups the validation groups
+	 * @param group the group registry
+	 * @return the registered variant, or null for native types
+	 */
+	public static ParameterClassModel requestVariant(
+			final ClassModel model,
+			final boolean valid,
+			final Class<?>[] groups,
+			final PyClassElementGroup group) {
+		final PyClassElement element = group.find(model);
+		if (element == null || element.nativeType != PyClassElement.DefinedPosition.NORMAL) {
+			return null;
+		}
+		return element.getParameterClassModel(valid, groups, model);
 	}
 }

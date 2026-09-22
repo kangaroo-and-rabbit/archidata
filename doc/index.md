@@ -30,4 +30,5 @@ Advanced Topics
 - [Field Encryption](field_encryption.md) — Transparent encryption of selected fields
 - [OpenAPI Generation](openapi_generation.md) — Generate an OpenAPI 3.0.3 specification from your API
 - [TypeScript API Generation](typescript_api_generation.md) — Generate TypeScript client code from your API
+- [Python API Generation](python_api_generation.md) — Generate a typed Python client package (Pydantic) from your API
 - [Pagination](pagination.md) — Offset-based pagination via HTTP headers and RFC 5988 `Link`
