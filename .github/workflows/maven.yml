@@ -65,5 +65,7 @@ jobs:
       - name: find the element
         run: find . -name "dependency-graph.json"
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
+      # Needs a write token: the token of a pull request opened from a fork is read-only, so only do it on the develop branch itself
       - name: Update dependency graph
+        if: github.event_name == 'push'
         uses: advanced-security/maven-dependency-submission-action@b275d12641ac2d2108b2cbb7598b154ad2f2cee8

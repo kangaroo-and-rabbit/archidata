@@ -8,6 +8,8 @@ on:
 
 jobs:
   assign-pr-author-as-assignee:
+    # The token of a pull request opened from a fork is read-only, it can not set the assignee
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: "Assign Author as Assignee"
