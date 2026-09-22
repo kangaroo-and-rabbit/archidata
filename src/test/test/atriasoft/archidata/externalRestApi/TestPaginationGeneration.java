@@ -8,6 +8,7 @@ import org.atriasoft.archidata.annotation.method.PaginationContext;
 import org.atriasoft.archidata.dataAccess.model.Pagination;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.DotGenerateApi;
+import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
 import org.atriasoft.archidata.externalRestApi.PythonGenerateApi;
 import org.atriasoft.archidata.model.OIDGenericDataSoftDelete;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +62,17 @@ public class TestPaginationGeneration {
 		Assertions.assertTrue(client.contains(") -> Pagination[SampleRow]:"), client);
 		// @PaginationContext is a server-side concern, it must not leak
 		Assertions.assertFalse(client.contains("PaginationContext"), client);
+	}
+
+	@Test
+	public void testOpenApiDescribesTheWire() throws Exception {
+		final String specification = OpenApiGenerateApi.generateJson(api(), "Test", "1.0");
+		LOGGER.info("openapi:\n{}", specification);
+		// the body on the wire is the plain item list; the totals travel in headers
+		Assertions.assertTrue(specification.contains("\"type\" : \"array\""), specification);
+		Assertions.assertTrue(specification.contains("SampleRow"), specification);
+		Assertions.assertTrue(specification.contains("X-Total-Count"), specification);
+		Assertions.assertTrue(specification.contains("Link"), specification);
 	}
 
 	@Test

@@ -15,6 +15,7 @@ import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
+import org.atriasoft.archidata.externalRestApi.model.ClassPaginationModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
@@ -173,6 +174,13 @@ public class OpenApiGenerateApi {
 		for (final Map.Entry<String, ParameterClassModelList> entry : endpoint.headers.entrySet()) {
 			parameters.add(buildParameter(entry.getKey(), "header", entry.getValue(), !entry.getValue().optional()));
 		}
+		// A paginated endpoint reading @PaginationContext takes its page from headers the
+		// signature does not show; an endpoint declaring its own offset / limit query
+		// parameters already listed them above.
+		if (!endpoint.returnTypes.isEmpty() && endpoint.returnTypes.get(0) instanceof ClassPaginationModel
+				&& !endpoint.queries.containsKey("offset") && !endpoint.queries.containsKey("limit")) {
+			parameters.addAll(buildPaginationRequestParameters());
+		}
 		if (!parameters.isEmpty()) {
 			operation.put("parameters", parameters);
 		}
@@ -316,9 +324,59 @@ public class OpenApiGenerateApi {
 				}
 				response200.put("content", content);
 			}
+			if (returnModel instanceof ClassPaginationModel) {
+				response200.put("headers", buildPaginationResponseHeaders());
+			}
 		}
 		responses.put("200", response200);
 		return responses;
+	}
+
+	/**
+	 * Headers {@code PaginationResponseFilter} adds to a {@code Pagination<T>} answer. They
+	 * carry what the body does not: without them a client cannot tell a full page from the
+	 * last one.
+	 */
+	private static Map<String, Object> buildPaginationResponseHeaders() {
+		final Map<String, Object> headers = new LinkedHashMap<>();
+		final Map<String, Object> totalCount = new LinkedHashMap<>();
+		totalCount.put("description", "Total number of items matching the query, across every page");
+		totalCount.put("schema", Map.of("type", "integer", "format", "int64"));
+		headers.put("X-Total-Count", totalCount);
+		final Map<String, Object> link = new LinkedHashMap<>();
+		link.put("description", "RFC 5988 navigation links: first, prev, next, last");
+		link.put("schema", Map.of("type", "string"));
+		headers.put("Link", link);
+		return headers;
+	}
+
+	/**
+	 * Parameters a client uses to ask for a page, when the endpoint takes its input from
+	 * {@code @PaginationContext} rather than from its own query parameters.
+	 * @return the two header parameters, offset and limit
+	 */
+	private static List<Map<String, Object>> buildPaginationRequestParameters() {
+		final List<Map<String, Object>> parameters = new ArrayList<>();
+		parameters.add(buildPaginationHeaderParameter("X-Pagination-Offset",
+				"Index of the first item of the page (default 0). Also accepted as a query parameter of the same name, which is how the Link header carries it.",
+				"int64"));
+		parameters.add(buildPaginationHeaderParameter("X-Pagination-Limit",
+				"Maximum number of items in the page (server default when absent). Also accepted as a query parameter of the same name.",
+				"int64"));
+		return parameters;
+	}
+
+	private static Map<String, Object> buildPaginationHeaderParameter(
+			final String name,
+			final String description,
+			final String format) {
+		final Map<String, Object> parameter = new LinkedHashMap<>();
+		parameter.put("name", name);
+		parameter.put("in", "header");
+		parameter.put("required", false);
+		parameter.put("description", description);
+		parameter.put("schema", Map.of("type", "integer", "format", format));
+		return parameter;
 	}
 
 	// ========== SCHEMAS ==========
@@ -650,6 +708,14 @@ public class OpenApiGenerateApi {
 			ref.put("$ref", "#/components/schemas/" + getSimpleName(model));
 			return ref;
 		}
+		if (model instanceof final ClassPaginationModel paginationModel) {
+			// On the wire a Pagination<T> is the plain item list: the totals travel in the
+			// X-Total-Count and Link headers (see PaginationResponseFilter).
+			final Map<String, Object> schema = new LinkedHashMap<>();
+			schema.put("type", "array");
+			schema.put("items", buildSchemaRef(paginationModel.valueModel));
+			return schema;
+		}
 		if (model instanceof ClassListModel) {
 			final ClassListModel listModel = (ClassListModel) model;
 			final Map<String, Object> schema = new LinkedHashMap<>();
@@ -685,6 +751,14 @@ public class OpenApiGenerateApi {
 			final Map<String, Object> ref = new LinkedHashMap<>();
 			ref.put("$ref", "#/components/schemas/" + getSimpleName(model));
 			return ref;
+		}
+		if (model instanceof final ClassPaginationModel paginationModel) {
+			// On the wire a Pagination<T> is the plain item list: the totals travel in the
+			// X-Total-Count and Link headers (see PaginationResponseFilter).
+			final Map<String, Object> schema = new LinkedHashMap<>();
+			schema.put("type", "array");
+			schema.put("items", buildSchemaRef(paginationModel.valueModel));
+			return schema;
 		}
 		if (model instanceof ClassListModel) {
 			final ClassListModel listModel = (ClassListModel) model;
