@@ -327,6 +327,11 @@ public class TsApiGeneration {
 			if (needGenerateProgress) {
 				data.append("\n\t\t\tcallbacks,");
 			}
+			final boolean isPaginatedReturn = interfaceElement.returnTypes.stream()
+					.anyMatch(ClassPaginationModel.class::isInstance);
+			if (isPaginatedReturn) {
+				data.append("\n\t\t\tpage,");
+			}
 			data.append("\n\t\t}: {");
 			data.append("\n\t\trestConfig: RESTConfig,");
 			toolImports.add("RESTConfig");
@@ -419,6 +424,12 @@ public class TsApiGeneration {
 			if (needGenerateProgress) {
 				data.append("\n\t\tcallbacks?: RESTCallbacks,");
 				toolImports.add("RESTCallbacks");
+			}
+			if (isPaginatedReturn) {
+				// Without it the caller can only ever read the server's first page: the
+				// offset and limit travel in headers the rest of the signature cannot carry.
+				data.append("\n\t\tpage?: PaginationRequest,");
+				toolImports.add("PaginationRequest");
 			}
 			final boolean isPaginated = interfaceElement.returnTypes.stream()
 					.anyMatch(ClassPaginationModel.class::isInstance);
@@ -524,9 +535,29 @@ public class TsApiGeneration {
 				data.append(", is");
 				data.append(returnModelNameIfComplex);
 			} else if (isPaginated) {
-				// Pagination<T> body is the plain item list; runtime body check
-				// is omitted in this version (Pagination<T> ships without a list
-				// checker today). The helper accepts an undefined checker.
+				// The body is the plain item list: the checker is the item's own, applied
+				// to each element by the helper.
+				final ClassPaginationModel paginationModel = (ClassPaginationModel) interfaceElement.returnTypes
+						.stream().filter(ClassPaginationModel.class::isInstance).findFirst().get();
+				final TsClassElement itemType = tsGroup.find(paginationModel.valueModel);
+				if (itemType != null && itemType.nativeType != DefinedPosition.NATIVE
+						&& itemType.getCheckType() != null) {
+					data.append(", ");
+					data.append(itemType.getCheckType());
+					imports.add(true, new Class<?>[] { GroupRead.class }, paginationModel.valueModel);
+					imports.addCheck(paginationModel.valueModel);
+				} else {
+					data.append(", undefined");
+				}
+				// A resource can carry its page through its own offset / limit query
+				// parameters instead of @PaginationContext. Feeding them to the helper is
+				// what makes the returned Pagination echo the page that was asked for,
+				// rather than a fabricated offset 0.
+				if (interfaceElement.queries.containsKey("offset") && interfaceElement.queries.containsKey("limit")) {
+					data.append(", page ?? { offset: queries.offset, limit: queries.limit }");
+				} else {
+					data.append(", page");
+				}
 			} else {
 				final TsClassElement retType = tsGroup.find(interfaceElement.returnTypes.get(0));
 				if (retType.getCheckType() != null) {
