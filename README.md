@@ -122,9 +122,12 @@ Release
 
 ```bash
 ./deliver           # prepare the release (interactive)
+./deliver deploy    # run 'mvn deploy' on the prepared release
 ./deliver push      # publish branches and tags
 ./deliver revert    # undo a release that was not pushed
 ./deliver status    # where the repository stands
+
+./deliver --deploy  # all in one: release, 'mvn deploy', then push if the deploy succeeded
 ```
 
 A release lists every commit made since the last tag, then asks which part of the version it bumps:
@@ -150,8 +153,15 @@ Nothing is pushed until `./deliver push`. Until then `./deliver revert` puts bot
 tag back exactly where they were — it refuses once the release is published, since rewriting a
 shared history is not something to do by accident.
 
+`./deliver --deploy` goes all the way: once the release is made, it runs `mvn deploy` on `main` (the
+release version) and pushes only if the deploy succeeded — a pushed tag with no artifact behind it
+would announce a version nobody can use. If the deploy fails, the release stays local:
+`./deliver deploy` tries again, `./deliver revert` undoes it. Once deployed, `revert` refuses: the
+Maven repository already holds that version number.
+
 Useful options: `-n` (dry-run, changes nothing), `--level major|medium|minor` (skip the question),
-`--from` / `--to` (other branches than `develop` / `main`), `--remote` (default `origin`).
+`--deploy` (release, deploy, then push), `--from` / `--to` (other branches than `develop` / `main`),
+`--remote` (default `origin`).
 
 
 Gitea Registry
