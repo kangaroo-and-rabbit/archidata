@@ -44,6 +44,10 @@ public class DataStream {
 	private Integer width;
 	@Schema(description = "Height in pixels")
 	private Integer height;
+	@Schema(description = "Width the picture is meant to be shown at; null when unknown or equal to the pixel width")
+	private Integer displayWidth;
+	@Schema(description = "Height the picture is meant to be shown at; null when unknown or equal to the pixel height")
+	private Integer displayHeight;
 	@Schema(description = "Frame rate (video only)")
 	private Double frameRate;
 
@@ -178,6 +182,38 @@ public class DataStream {
 	 */
 	public void setHeight(final Integer height) {
 		this.height = height;
+	}
+
+	/**
+	 * Gets the width the picture is meant to be shown at (video and image streams).
+	 * @return the display width, or {@code null} when it is the pixel width
+	 */
+	public Integer getDisplayWidth() {
+		return this.displayWidth;
+	}
+
+	/**
+	 * Sets the width the picture is meant to be shown at.
+	 * @param displayWidth the display width to set
+	 */
+	public void setDisplayWidth(final Integer displayWidth) {
+		this.displayWidth = displayWidth;
+	}
+
+	/**
+	 * Gets the height the picture is meant to be shown at (video and image streams).
+	 * @return the display height, or {@code null} when it is the pixel height
+	 */
+	public Integer getDisplayHeight() {
+		return this.displayHeight;
+	}
+
+	/**
+	 * Sets the height the picture is meant to be shown at.
+	 * @param displayHeight the display height to set
+	 */
+	public void setDisplayHeight(final Integer displayHeight) {
+		this.displayHeight = displayHeight;
 	}
 
 	/**
