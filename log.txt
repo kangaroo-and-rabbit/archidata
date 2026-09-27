@@ -1,0 +1,15 @@
+2026-09-27
+- deliver : ajout de la commande 'deploy' (lance 'mvn deploy' sur la release préparée)
+  et de l'option '--deploy' qui enchaîne release -> mvn deploy -> push, le push n'ayant
+  lieu que si le deploy a réussi.
+- Décisions :
+  - en cas d'échec du deploy, la release reste locale (pas de revert automatique) :
+    './deliver deploy' pour réessayer, './deliver revert' pour l'annuler ;
+  - une release déployée est marquée dans l'état ('deployed_at') : 'revert' et un
+    second 'deploy' la refusent sans --force (le dépôt Maven détient déjà ce numéro) ;
+  - '--deploy' vérifie pom.xml, mvn dans le PATH et le remote avant de toucher au dépôt.
+- Testé en bac à sable (dépôt jetable + remote bare + faux mvn) : succès, échec puis
+  reprise, revert refusé après deploy, revert après échec, absence de pom.xml.
+- Le même script 'deliver' existe à l'identique dans jimbe, karentory, karideo, karoto,
+  karso et karusic : non modifiés.
+- Fichiers modifiés par cette session : deliver, README.md, log.txt, spec.md.
