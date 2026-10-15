@@ -8,8 +8,10 @@ collection, so that each one runs only once.
 The working example is [`sample/archidata/basic`](../sample/archidata/basic): `WebLauncher.migrateDB()`
 and `migration/Initialization.java`.
 
-> **Note:** Reverse migration is not implemented. `MigrationEngine.revertTo()` exists but its
-> per-step revert does nothing: write a new forward migration instead.
+> **Note:** Reverse migration is not supported. `MigrationInterface` has no reverse operation:
+> `MigrationEngine.revertSingle()` always throws `UnsupportedOperationException`, and so does
+> `revertTo()` as soon as one migration would have to be reverted. Write a new forward migration
+> instead.
 
 
 How it works
@@ -31,8 +33,11 @@ and `logs` after every action, so a failure says which action broke: the `logs` 
 failed record holds the `DB request ERROR: ...` message of the failing action.
 
 Matching is done **by name** (`getName()`). If the last recorded name is neither the
-initialization nor any registered migration (a migration renamed or removed), nothing is applied
-and no error is raised: never rename or remove a migration once it has been deployed.
+initialization nor any registered migration (a migration renamed or removed), the engine refuses
+to go on and raises a `MigrationException` naming the unknown migration (`migrateWaitAdmin` then
+blocks, so the server does not start). Applying nothing would run the application on a database of
+unknown state, and applying everything would replay migrations already done. Never rename or
+remove a migration once it has been deployed; if it happened, restore its former `getName()`.
 
 
 MigrationEngine

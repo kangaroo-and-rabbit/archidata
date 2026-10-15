@@ -19,7 +19,8 @@ import jakarta.ws.rs.InternalServerErrorException;
  * Engine that manages and executes database migrations in order.
  *
  * <p>
- * Supports initial database setup, sequential migration application, and revert operations.
+ * Supports initial database setup and sequential (forward-only) migration application. Reverting
+ * is not supported: see {@link #revertSingle}.
  * Tracks migration progress and logs in the database via {@link Migration} records.
  * </p>
  */
@@ -178,6 +179,16 @@ public class MigrationEngine {
 						LOGGER.info("        ++ add ");
 						toApply.add(elem);
 					}
+					if (!find) {
+						// Applying nothing would start the application on a schema of unknown state, and
+						// applying everything would replay migrations already done: refuse to go on.
+						LOGGER.error("The last recorded migration '{}' is neither the initialization nor a registered"
+								+ " migration (renamed or removed?): refuse to migrate", currentVersion.name);
+						throw new MigrationException("Unknown last migration '" + currentVersion.name
+								+ "' in KAR_migration: it matches neither the initialization nor any registered"
+								+ " migration (a deployed migration has been renamed or removed). Restore its name"
+								+ " (getName()) in the migration list.");
+					}
 				}
 			}
 			final int id = 0;
@@ -291,9 +302,17 @@ public class MigrationEngine {
 	/**
 	 * Reverts migrations from the current version back to the specified migration name.
 	 *
+	 * <p>
+	 * <b>Not supported:</b> {@link MigrationInterface} has no reverse operation, so every migration
+	 * that would have to be reverted makes {@link #revertSingle} throw an
+	 * {@link UnsupportedOperationException}. Write a new forward migration instead. The method only
+	 * returns normally when there is nothing to revert.
+	 * </p>
+	 *
 	 * @param da the database access interface
 	 * @param migrationName the target migration name to revert to (exclusive)
 	 * @throws MigrationException if retrieving the current version fails
+	 * @throws UnsupportedOperationException if at least one migration would have to be reverted
 	 */
 	public void revertTo(final DBAccessMongo da, final String migrationName) throws MigrationException {
 		final Migration currentVersion = getCurrentVersion(da);
@@ -319,16 +338,24 @@ public class MigrationEngine {
 	}
 
 	/**
-	 * Reverts a single migration step.
+	 * Reverts a single migration step: <b>not supported</b>.
+	 *
+	 * <p>
+	 * {@link MigrationInterface} only describes the forward operation ({@code applyMigration}); there
+	 * is no reverse action to run, so this method always throws. Undo a migration by writing a new
+	 * forward migration.
+	 * </p>
 	 *
 	 * @param da the database access interface
 	 * @param elem the migration to revert
 	 * @param id the current revert index
 	 * @param count the total number of migrations to revert
+	 * @throws UnsupportedOperationException always
 	 */
 	public void revertSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count) {
-		LOGGER.info("Revert migration: {} [BEGIN]", elem.getName());
-
-		LOGGER.info("Revert migration: {} [ END ]", elem.getName());
+		LOGGER.error("Revert migration: {} is not supported (no reverse operation in MigrationInterface)",
+				elem.getName());
+		throw new UnsupportedOperationException("Reverting a migration is not supported ('" + elem.getName()
+				+ "'): MigrationInterface has no reverse operation, write a new forward migration instead");
 	}
 }
