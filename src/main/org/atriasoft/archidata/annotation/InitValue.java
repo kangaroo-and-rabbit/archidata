@@ -25,8 +25,11 @@ import java.lang.annotation.Target;
  * }
  * }
  *
- * <p>Replaces {@code jakarta.ws.rs.DefaultValue} on entity fields, which archidata no longer
- * reads. The name differs on purpose: a wrong import would otherwise compile and be ignored. The
+ * <p>Read on the bean property: the field, or its getter or setter (a record component propagates
+ * it to the field and to the accessor), hence the {@code METHOD} target.
+ *
+ * <p>Replaces {@code jakarta.ws.rs.DefaultValue} on entity fields, which archidata rejects there
+ * (error when the model is analysed). The name differs on purpose from the JAX-RS one. The
  * JAX-RS {@code @DefaultValue} stays the right annotation on the parameters of a REST resource
  * (handled by Jersey).
  */

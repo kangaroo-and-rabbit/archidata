@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * resolve this name. Replaces {@code jakarta.persistence.Column(name = "...")}, which archidata
  * no longer reads.
  */
-@Target({ ElementType.FIELD, ElementType.METHOD })
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Field {
 	/**

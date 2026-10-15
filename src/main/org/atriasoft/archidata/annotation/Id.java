@@ -28,7 +28,10 @@ import java.lang.annotation.Target;
  * <p>Combine it with {@code @Field("_id")} to store the key in the MongoDB {@code _id} field (as
  * {@code OIDGenericData} does). Replaces {@code jakarta.persistence.Id}, which archidata no longer
  * reads.
+ *
+ * <p>Read on the Java field only (on a record, put it on the component, which propagates it to the
+ * field): the target is therefore restricted to fields.
  */
-@Target({ ElementType.FIELD, ElementType.METHOD })
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Id {}

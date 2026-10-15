@@ -96,8 +96,8 @@ public class Article extends OIDGenericDataSoftDelete { }
 
 ### @Id
 
-`org.atriasoft.archidata.annotation.Id`, on a field (or getter). No attribute. Makes it the
-primary key (action `PRIMARY_KEY`). The key is generated on insert for an `ObjectId`, a `Long`
+`org.atriasoft.archidata.annotation.Id`, on a field (or a record component; not on a getter). No
+attribute. Makes it the primary key (action `PRIMARY_KEY`). The key is generated on insert for an `ObjectId`, a `Long`
 (sequence in the `counters` collection) or a `UUID`; another type (`String`, `Integer`...) is set
 by the application and inserted with the `DirectPrimaryKey` option. Stored as `_id` when combined
 with `@Field("_id")`, as in `OIDGenericData` and `UUIDGenericData` (`GenericData` keeps `id`).
@@ -110,8 +110,8 @@ public ObjectId oid;
 
 ### @Field
 
-`org.atriasoft.archidata.annotation.Field`, on a field (or a record component). `value` (required)
-is the name of the field in MongoDB, when it differs from the Java name. It is also the name to use
+`org.atriasoft.archidata.annotation.Field`, on a field (or a record component; not on a getter).
+`value` (required) is the name of the field in MongoDB, when it differs from the Java name. It is also the name to use
 in `@Index`, `FilterValue` and the filters; the method references (`Fields.of(User::getFullName)`)
 resolve it. It carries no constraint: use Bean Validation (`@NotNull`, `@Size`) and
 `@Indexed(unique = true)`. The JSON name of the REST API does not change. An empty or blank name
@@ -125,8 +125,8 @@ public String name;
 
 ### @InitValue
 
-`org.atriasoft.archidata.annotation.InitValue`, on a field (or a record component). When the field
-is `null` at insert time, `value` is converted to the field type (number, boolean, enum, string,
+`org.atriasoft.archidata.annotation.InitValue`, on a field (or a record component, a getter or a
+setter). When the field is `null` at insert time, `value` is converted to the field type (number, boolean, enum, string,
 date; surrounding single quotes removed) and stored. On an update, a `null` field carrying
 `@InitValue` is left unchanged instead of being removed. For a `@DataDeleted` field it replaces the
 implicit `false`.
