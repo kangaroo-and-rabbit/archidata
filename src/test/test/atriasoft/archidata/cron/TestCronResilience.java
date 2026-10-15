@@ -74,6 +74,26 @@ public class TestCronResilience {
 		}
 	}
 
+	/**
+	 * Waits until the listener recorded {@code size} end notifications: the task body (which
+	 * releases the latches) runs BEFORE the scheduler notifies the end of the task.
+	 */
+	private static boolean awaitSize(final List<?> list, final int size, final long timeoutMs) {
+		final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+		while (list.size() < size) {
+			if (System.nanoTime() > deadline) {
+				return false;
+			}
+			try {
+				Thread.sleep(5L);
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return false;
+			}
+		}
+		return true;
+	}
+
 	@Test
 	@Timeout(10)
 	public void consumerSurvivesExceptionAndError() {
@@ -101,6 +121,7 @@ public class TestCronResilience {
 		Assertions.assertTrue(awaitLatch(survivorRan, 5_000),
 				"the consumer thread must survive a task throwing an Exception and a task throwing an Error");
 
+		Assertions.assertTrue(awaitSize(listener.ends, 3, 5_000), "the end of every task must be notified");
 		Assertions.assertEquals(3, listener.ends.size());
 		final EndRecord exceptionEnd = listener.ends.get(0);
 		Assertions.assertEquals("throws-exception", exceptionEnd.taskName());
@@ -145,6 +166,7 @@ public class TestCronResilience {
 		local.triggerWakeup("legacy-ok");
 
 		Assertions.assertTrue(awaitLatch(ran, 5_000));
+		Assertions.assertTrue(awaitSize(ends, 2, 5_000), "the end of every task must be notified");
 		Assertions.assertEquals(List.of(false, true), ends);
 	}
 }
