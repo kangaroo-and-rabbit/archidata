@@ -117,6 +117,18 @@ public class TestCronExpression {
 	}
 
 	@Test
+	public void stepLargerThanTheFieldIsRejected() {
+		// a huge step used to overflow 'value += step' and throw ArrayIndexOutOfBoundsException
+		for (final String expr : new String[] { "*/2147483647 * * * *", "0 0 1-31/2147483647 * *", "*/61 * * * *",
+				"0 0 * * */9" }) {
+			Assertions.assertThrows(IllegalArgumentException.class, () -> CronScheduler.matches(expr, at(10, 1, 0, 0)),
+					"'" + expr + "' should be rejected");
+		}
+		assertMatch("*/60 * * * *", at(10, 1, 3, 0));
+		assertNoMatch("*/60 * * * *", at(10, 1, 3, 1));
+	}
+
+	@Test
 	public void removeTaskAlsoRemovesOneTimeTask() {
 		final CronScheduler scheduler = new CronScheduler();
 		scheduler.addTask("later", LocalDateTime.now().plusHours(1), () -> {});

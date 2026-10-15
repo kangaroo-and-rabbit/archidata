@@ -142,8 +142,10 @@ final class CronExpression {
 			if (slash >= 0) {
 				rangePart = part.substring(0, slash);
 				step = parseNumber(part.substring(slash + 1), fieldName, part);
-				if (step <= 0) {
-					throw new IllegalArgumentException("Invalid step in " + fieldName + ": " + part);
+				// a step larger than the field cannot select a second value and could overflow the loop below
+				if (step <= 0 || step > max - min + 1) {
+					throw new IllegalArgumentException(
+							"Invalid step in " + fieldName + ": " + part + " (valid: 1-" + (max - min + 1) + ")");
 				}
 			} else {
 				rangePart = part;

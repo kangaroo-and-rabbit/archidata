@@ -65,6 +65,10 @@ Each field is a comma-separated list (`1-5,10,20-22`) of:
 | `*/n` | every `n` values **from the minimum of the field**: `*/15` on the minute is 0, 15, 30, 45; `*/2` on the day of month is 1, 3, 5...; `*/2` on the month is January, March...; `*/2` on the day of week is Sunday, Tuesday, Thursday, Saturday |
 | `a-b/n` | every `n` values from `a` to `b`: `1-10/3` is 1, 4, 7, 10 |
 
+A step `n` must be between 1 and the number of values of the field (60 for the
+minute, 24 for the hour, 31 for the day of month, 12 for the month, 8 for the
+day of week); a larger one is rejected.
+
 Not supported: names (`MON`, `JAN`), `?`, `L`, `W`, `#`, macros (`@daily`),
 a seconds field, `a/n` without a range (rejected, as in Vixie cron).
 
