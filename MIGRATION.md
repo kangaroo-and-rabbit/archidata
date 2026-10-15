@@ -1,5 +1,96 @@
 # Migration Guide
 
+## Prochaine version (après v0.50.2) - Annotations propres à archidata à la place de JPA (BREAKING CHANGE)
+
+archidata ne lit plus aucune annotation JPA (`jakarta.persistence`), ni le `@DefaultValue` de
+JAX-RS posé sur un champ d'entité. Quatre annotations d'archidata, dans
+`org.atriasoft.archidata.annotation`, les remplacent. Il n'y a **pas de période de
+compatibilité** : les anciennes annotations ne sont plus lues, sans erreur ni avertissement.
+
+Rien ne change en base pour un modèle migré : mêmes noms de collection, mêmes noms de champs,
+mêmes valeurs initiales. Sans annotation, la collection porte toujours le nom simple de la classe
+(`getSimpleName()`).
+
+### Correspondance
+
+| Avant | Maintenant |
+|---|---|
+| `@jakarta.persistence.Table(name = "media")` (sur la classe) | `@Collection("media")` |
+| `@jakarta.persistence.Column(name = "nom")` (sur un champ) | `@Field("nom")` |
+| `@jakarta.persistence.Id` | `@Id` (`org.atriasoft.archidata.annotation.Id`) |
+| `@jakarta.ws.rs.DefaultValue("'0'")` sur un champ d'entité | `@InitValue("'0'")` |
+| `@ManyToOne` / `@OneToMany` / `@ManyToMany` (JPA) | `@ManyToOneDoc` / `@OneToManyDoc` / `@ManyToManyDoc` |
+| `@Column` sans `name`, `@GeneratedValue`, `@Entity` | rien (à supprimer) |
+
+Le `@DefaultValue` de JAX-RS reste la bonne annotation sur les **paramètres** d'une ressource REST
+(`@QueryParam("page") @DefaultValue("1") int page`) : c'est Jersey qui le gère, ne pas y toucher.
+Le nom `@InitValue` est distinct exprès : un mauvais import compilerait et serait ignoré.
+
+Collision de noms : dans un fichier qui importe aussi `java.lang.reflect.Field` ou
+`java.util.Collection`, écrire l'une des deux classes avec son nom complet
+(`@org.atriasoft.archidata.annotation.Field("nom")`).
+
+### Ce qui disparaît
+
+- Les attributs de `@Column` autres que `name` : `nullable`, `length`, `unique`, `insertable`,
+  `updatable`. Ils n'avaient aucun effet (sauf `unique`, qui loguait un avertissement dans
+  `IndexRegistry`, retiré lui aussi). Les remplacer, si la contrainte est voulue, par `@NotNull`,
+  `@Size(max = ...)` ou `@Indexed(unique = true)` : attention, ces annotations-là **agissent**
+  (validation, index unique).
+- `@GeneratedValue` / `GenerationType` : sans effet, la génération de la clé dépend de son type
+  (`ObjectId`, `Long` par la collection `counters`, `UUID`).
+- Les relations JPA (`@ManyToOne`, `@OneToMany`, `@ManyToMany`) : elles ne servaient plus qu'au
+  générateur d'API (lien `linkClass` des graphes Dot/draw.io). Les relations passent uniquement par
+  `@ManyToOneDoc`, `@OneToManyDoc` et `@ManyToManyDoc`.
+- La dépendance `jakarta.persistence-api`, retirée du pom d'archidata : une application qui importe
+  encore `jakarta.persistence` ne compile plus. **Ne pas la rajouter dans l'application** : les
+  anciennes annotations compileraient de nouveau et seraient ignorées en silence (collection
+  renommée en nom de classe, champ renommé, valeur initiale perdue).
+- `@BsonId` sur `OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` : archidata ne le
+  lisait pas (il ne servait qu'au codec POJO du driver MongoDB).
+- API Java : `AnnotationTools.getLimitSize`, `getColumnNotNull`, `isUnique`, `getStrategy`,
+  `getManyToOne`, `getManyToMany`, `getOneToMany` sont supprimées et `getDefault` devient
+  `getInitValue` ; `DbPropertyDescriptor.isNullable`, `isUnique`, `getColumnLength`,
+  `getGenerationStrategy` sont supprimées et `getDefaultValue` devient `getInitValue`.
+
+### Comment migrer
+
+Le script `tools/migrate-annotations.sh` du dépôt archidata fait les remplacements mécaniques
+(sed, GNU) dans un dossier de sources, puis liste ce qui reste à traiter à la main. Il modifie les
+fichiers en place : le lancer sur un arbre git propre et relire le `git diff`.
+
+```bash
+# depuis le dépôt de l'application, archidata étant cloné à côté
+../archidata/tools/migrate-annotations.sh back/src
+```
+
+Ce qu'il fait :
+
+- `@Table(name = "x")` → `@Collection("x")` (aussi avec une constante : `@Table(name = X.NAME)`) ;
+- `@Column(name = "x")` → `@Field("x")` ; `@Column` sans attribut supprimé ;
+- `import jakarta.persistence.Id` → `import org.atriasoft.archidata.annotation.Id` ;
+- `@Entity` sans attribut, `@GeneratedValue(...)` et leurs imports supprimés ;
+- `@DefaultValue(` → `@InitValue(` dans les fichiers **sans** paramètre JAX-RS (`@QueryParam`,
+  `@PathParam`, `@HeaderParam`, `@FormParam`, `@MatrixParam`, `@CookieParam`, `@BeanParam`) ;
+- les imports remplacés (nom complet de l'annotation à la place de l'import dans les fichiers qui
+  importent `java.lang.reflect.Field` ou `java.util.Collection`).
+
+Ce qu'il liste, à traiter à la main :
+
+- les `@Column` avec d'autres attributs que `name` (`nullable`, `length`, `unique`...) : garder le
+  nom dans `@Field("...")`, supprimer le reste ou le remplacer par une vraie contrainte (voir
+  ci-dessus) ;
+- les `@Table` avec d'autres attributs que `name` ;
+- les relations JPA, à réécrire avec `@ManyToOneDoc` / `@OneToManyDoc` / `@ManyToManyDoc` ;
+- les autres usages de `jakarta.persistence` (`@Transient`, `@Enumerated`, imports `*`...) ;
+- les fichiers de ressources REST dont il n'a pas touché les `@DefaultValue` (paramètres JAX-RS) :
+  vérifier qu'aucun n'est sur un champ d'entité ;
+- les fichiers où il a écrit le nom complet de `@Field` / `@Collection`.
+
+Ensuite : organiser les imports (IDE), lancer le formateur, vérifier que
+`grep -rn "jakarta.persistence" src` ne trouve plus rien, puis lancer les tests. Voir
+`doc/annotations.md` et `doc/data_model.md`.
+
 ## Prochaine version (après v0.50.2) - Corrections de bugs qui changent le comportement (CHANGEMENT DE COMPORTEMENT)
 
 Ce lot corrige des bugs ; plusieurs corrections changent un comportement observable. À relire
