@@ -61,7 +61,7 @@ Exception to HTTP mapping
 | `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
 | any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception | `Catch system exception` |
-| `com.fasterxml.jackson.core.JacksonException` | `JacksonExceptionCatcher` | 500 | `Catch JSON Exception` |
+| `com.fasterxml.jackson.core.JacksonException` | `JacksonExceptionCatcher` | 400 for a body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`); 500 for any other Jackson failure | `Catch JSON Exception` |
 | any other `Exception` (including `DataAccessException`) | `ExceptionCatcher` | 500 | `Internal Server Error` |
 
 Every mapper logs the error with its `oid` (see below) at `ERROR` level, so a
@@ -208,8 +208,6 @@ All mappers answer with `Content-Type: application/json`.
 Pitfalls
 --------
 
-- `JacksonExceptionCatcher` answers **500** for a body that cannot be parsed,
-  although it is the caller's mistake. Do not rely on 400 for malformed JSON.
 - `FailException` does not use the `inputError` list: only `InputException`
   and validation errors do.
 - The generic `ExceptionCatcher` returns `exception.getMessage()` to the

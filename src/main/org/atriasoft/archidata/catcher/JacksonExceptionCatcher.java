@@ -4,6 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -20,17 +23,19 @@ public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException
 	public JacksonExceptionCatcher() {}
 
 	/**
-	 * Maps a {@link JacksonException} to an INTERNAL_SERVER_ERROR JSON error response.
+	 * Maps a {@link JacksonException} to a JSON error response. A body that cannot be parsed
+	 * ({@link StreamReadException}) or does not match the expected type ({@link MismatchedInputException},
+	 * {@link ValueInstantiationException}) is the caller's mistake and gives HTTP 400; any other
+	 * Jackson failure (serialization, bad class definition) is a server error and gives HTTP 500.
 	 * @param exception the JacksonException that was thrown during JSON processing
-	 * @return a {@link Response} containing the error details as JSON with HTTP 500 status
+	 * @return a {@link Response} containing the error details as JSON with HTTP 400 or 500 status
 	 */
 	@Override
 	public Response toResponse(final JacksonException exception) {
 		LOGGER.warn("Catch exception Input data parsing:");
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error OID={}: {}", ret.oid, exception.getMessage(), exception);
-		return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ret).type(MediaType.APPLICATION_JSON)
-				.build();
+		return Response.status(ret.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
 
 	/**
@@ -39,9 +44,20 @@ public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException
 	 * @param exception the Exception that was thrown
 	 * @return a RestErrorResponse object containing the error details
 	 */
-	private RestErrorResponse build(final Exception exception) {
-		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Catch JSON Exception",
-				exception.getMessage());
+	private RestErrorResponse build(final JacksonException exception) {
+		final Response.Status status = isCallerError(exception) ? Response.Status.BAD_REQUEST
+				: Response.Status.INTERNAL_SERVER_ERROR;
+		return new RestErrorResponse(status, "Catch JSON Exception", exception.getMessage());
+	}
+
+	/**
+	 * Tells whether the exception comes from invalid input data sent by the caller.
+	 * @param exception the exception to classify
+	 * @return true for parsing and input mapping errors
+	 */
+	private static boolean isCallerError(final JacksonException exception) {
+		return exception instanceof StreamReadException || exception instanceof MismatchedInputException
+				|| exception instanceof ValueInstantiationException;
 	}
 
 }
