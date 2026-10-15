@@ -17,13 +17,17 @@ Archi-data is a Java framework for building REST servers backed by MongoDB. It p
 - **JPA-style annotations** for model definition and validation
 - **Test utilities** for integration testing
 
-For complete documentation, see [doc/index.md](doc/index.md).
+Documentation:
+
+- [doc/index.md](doc/index.md): index of all the documentation pages
+- [sample/archidata/basic](sample/archidata/basic): a complete, tested sample application (see the [tutorial](doc/TUTORIAL_01_first_install.md))
+- [doc/annotations.md](doc/annotations.md): reference of every annotation
 
 
 Prerequisites
 -------------
 
-- **Java 21+** (tested with Java 25)
+- **Java 25** (the version archidata is compiled for)
 - **Maven 3.8+**
 - **MongoDB 6+** (replica set required for transactions and change streams)
 

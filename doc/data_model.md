@@ -91,6 +91,8 @@ This gives you just a primary key with no timestamps or soft delete.
 Field Annotations
 =================
 
+All the annotations are summarized in the [annotations reference](annotations.md).
+
 ### @Id
 
 Marks the primary key field. Required on exactly one field per model.
@@ -104,21 +106,21 @@ public ObjectId _id = null;
 
 Controls how a field is stored in MongoDB.
 
-| Parameter    | Default | Description |
-|-------------|---------|-------------|
-| `nullable`  | `true`  | Whether the field can be null |
-| `unique`    | `false` | Whether the value must be unique across all documents |
-| `length`    | `255`   | Max string length. Use `0` for unlimited |
-| `name`      | field name | Override the column name in MongoDB |
-| `insertable`| `true`  | Whether the field is written on insert |
-| `updatable` | `true`  | Whether the field is written on update |
+| Parameter    | Default | Effect |
+|-------------|---------|--------|
+| `name`      | field name | Name of the field in MongoDB (also the name used in `@Index` and `FilterValue`) |
+| `nullable`  | `true`  | Stored in the field descriptor; **not enforced** on write. Use `@NotNull` |
+| `length`    | `255`   | Stored in the field descriptor; **not enforced**. Use `@Size` |
+| `unique`    | `false` | **Creates no index** and enforces nothing. Use `@Index` / `@Indexed` (see [indexes](indexes.md)) |
+| `insertable`, `updatable` | `true` | Informational only: no data-access code reads them |
 
 ```java
-@Column(nullable = false, length = 100, unique = true)
+@Column(nullable = false, length = 100)
+@Indexed(unique = true) // @Column(unique = true) alone creates no index
 public String email;
 
 @Column(length = 0)
-public String description;  // unlimited length
+public String description;
 
 @Column(name = "user_name")
 public String name;  // stored as "user_name" in MongoDB
@@ -491,7 +493,6 @@ Complete Model Example
 ======================
 
 ```java
-@Entity
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
 public class User extends OIDGenericDataSoftDelete {

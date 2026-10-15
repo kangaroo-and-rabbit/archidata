@@ -6,7 +6,7 @@ version, and no more index that only exists on the machine where someone created
 
 ## Declaring
 
-Three equivalent ways, mixable, so a project can keep its declarations where it prefers.
+Three equivalent ways, mixable, so a project can keep its declarations where it prefers. All annotations are listed in the [annotations reference](annotations.md).
 
 ### On the class — compound indexes
 

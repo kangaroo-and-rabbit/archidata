@@ -29,6 +29,8 @@ a PEM `PUBLIC KEY` / `PRIVATE KEY` block is RSA or X25519 depending on its embed
 
 ## Annotating a field
 
+See also the [annotations reference](annotations.md).
+
 Currently supported on `String` fields.
 
 ```java
