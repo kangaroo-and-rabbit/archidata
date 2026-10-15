@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Set;
+
 import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationListener;
 import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationManager;
 import org.atriasoft.archidata.dataStreamEvent.CollectionWatchBuilder;
@@ -71,6 +73,15 @@ public class ChangeNotificationManagerTest {
 		this.manager.registerListener(event -> LOGGER.info("User event: {}", event), "users");
 
 		assertEquals(1, this.manager.getListenerCount(), "Should have 1 listener");
+	}
+
+	@Test
+	@Order(45)
+	public void testRegisterListenerOnCollectionSet() {
+		this.manager.registerListener(event -> LOGGER.info("Set event: {}", event), Set.of("users", "orders"));
+		assertEquals(2, this.manager.getListenerCount(), "One registration per collection");
+		this.manager.registerListener(event -> LOGGER.info("Empty set event: {}", event), Set.of());
+		assertEquals(2, this.manager.getListenerCount(), "An empty set registers nothing (not a global listener)");
 	}
 
 	@Test

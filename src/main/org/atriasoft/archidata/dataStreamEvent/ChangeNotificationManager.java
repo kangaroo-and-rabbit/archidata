@@ -617,29 +617,19 @@ public class ChangeNotificationManager {
 		registerCollectionListener(listener, collectionNames, mode);
 	}
 
+	/**
+	 * Registers a listener on the given collections. An empty set registers nothing (it does NOT make the
+	 * listener global, unlike {@link #registerListenerInternal}).
+	 */
 	private void registerCollectionListener(
 			final ChangeNotificationListener listener,
 			final Set<String> collectionNames,
 			final FullDocument mode) {
-		this.lock.writeLock().lock();
-		try {
-			warnIgnoredMode(mode);
-			final ListenerRegistration registration = new ListenerRegistration(listener, null);
-
-			for (final String collectionName : collectionNames) {
-				this.collectionListeners.computeIfAbsent(collectionName, k -> ConcurrentHashMap.newKeySet())
-						.add(registration);
-
-				// Auto-watch if manager is running
-				if (this.running && !this.workers.containsKey(collectionName)) {
-					startWorkerForCollection(collectionName);
-				}
-			}
-
-			LOGGER.info("Registered listener for collections: {}", collectionNames);
-		} finally {
-			this.lock.writeLock().unlock();
+		if (collectionNames == null || collectionNames.isEmpty()) {
+			LOGGER.warn("Listener registered on an empty set of collections: nothing registered");
+			return;
 		}
+		registerListenerInternal(listener, collectionNames, mode, null);
 	}
 
 	/**
