@@ -97,8 +97,9 @@ yyyy-MM-dd_HH:mm:ss
 yyyy-MM-dd_HH:mm:ss.SSS
 ```
 
-One trailing alphabetic suffix is stripped before parsing (`_full`, `_delta`,
-`_partial`...). Suffixes the engine understands:
+Every trailing alphabetic suffix is stripped before parsing (`_full`, `_delta`,
+`_partial`..., possibly several: `2026-10-15_full_delta` parses as
+2026-10-15). Suffixes the engine understands:
 
 | Suffix | Meaning |
 |---|---|
@@ -212,11 +213,9 @@ as `since` of the next delta. `BackupFileInfo` is package-private.
 Pitfalls
 --------
 
-- The date in the sequence drives everything. A delta named
-  `2026-10-15_full_delta` (a `_full` sequence handed to `storeDelta`, which
-  appends `_delta`) has two alphabetic suffixes: only the last is stripped, the
-  date no longer parses, and the archive is invisible to the retention and to
-  `restoreLatest()`. Give deltas a plain date sequence.
+- The date in the sequence drives everything: an archive whose sequence does
+  not start with one of the formats above is invisible to the retention and to
+  `restoreLatest()`.
 - `getLastFullBackupDate()` reads the sequence as **UTC**. Format your sequences
   in UTC, otherwise `since` is shifted by your offset and a delta can miss
   documents.

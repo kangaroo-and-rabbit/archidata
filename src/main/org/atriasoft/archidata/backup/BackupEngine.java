@@ -1011,8 +1011,8 @@ public class BackupEngine {
 
 	/**
 	 * Parse a date from a backup sequence string.
-	 * The sequence may contain trailing suffixes (e.g. "_full", "_partial") which are
-	 * stripped before parsing. Supports formats: yyyy-MM-dd, yyyy-MM-ddTHH-mm-ss,
+	 * The sequence may contain trailing letter suffixes (e.g. "_full", "_partial", "_delta", or several
+	 * of them such as "_full_delta") which are all stripped before parsing. Supports formats: yyyy-MM-dd, yyyy-MM-ddTHH-mm-ss,
 	 * yyyy-MM-dd_HH-mm-ss, yyyy-MM-dd_HH:mm:ss.SSS, yyyy-MM-dd_HH:mm:ss.
 	 * @param sequence the sequence string to parse
 	 * @return the parsed LocalDate, or null if unparseable
@@ -1042,16 +1042,22 @@ public class BackupEngine {
 		return null;
 	}
 
-	/** Strip a known trailing letter suffix like {@code "_full"}, {@code "_partial"} or {@code "_delta"}. */
+	/**
+	 * Strip every trailing letter suffix like {@code "_full"}, {@code "_partial"} or {@code "_delta"}, so that a
+	 * sequence such as {@code "2026-10-15_full_delta"} keeps a parsable date.
+	 */
 	private static String stripSequenceSuffix(final String sequence) {
-		final int lastUnderscore = sequence.lastIndexOf('_');
-		if (lastUnderscore > 0) {
-			final String suffix = sequence.substring(lastUnderscore + 1);
-			if (!suffix.isEmpty() && suffix.chars().allMatch(Character::isLetter)) {
-				return sequence.substring(0, lastUnderscore);
+		String cleaned = sequence;
+		int lastUnderscore = cleaned.lastIndexOf('_');
+		while (lastUnderscore > 0) {
+			final String suffix = cleaned.substring(lastUnderscore + 1);
+			if (suffix.isEmpty() || !suffix.chars().allMatch(Character::isLetter)) {
+				break;
 			}
+			cleaned = cleaned.substring(0, lastUnderscore);
+			lastUnderscore = cleaned.lastIndexOf('_');
 		}
-		return sequence;
+		return cleaned;
 	}
 
 	/**
