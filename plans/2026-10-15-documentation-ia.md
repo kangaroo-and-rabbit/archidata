@@ -56,29 +56,33 @@
 - Fichiers en vrac à la racine : ne pas y toucher.
 - `context7.json` préparé ; la soumission sur context7.com est faite par l'utilisateur.
 
-## Bugs du code découverts pendant la rédaction (non corrigés, à traiter à part)
+## Bugs du code découverts pendant la rédaction (état au 2026-10-16)
 
-1. `ConfigBaseVariable.getDBAbleToCreate()` utilise `Boolean.getBoolean(valeur)` (lit une
-   propriété système) : renvoie false même si la variable vaut "true".
-2. `ConfigBaseVariable.getDBPort()` utilise `Short.parseShort` : port > 32767 refusé.
-3. `InputExceptionCatcher` écrit toujours status=400 dans le JSON, même si le code HTTP est autre.
-4. `JacksonExceptionCatcher` répond 500 pour un JSON mal formé (devrait être 400).
-5. `RESTApiRequest.fetchString()`/`fetchByte()` ne vérifient pas le statut ; la map des
-   headers n'est jamais remplie.
-6. `CronTask` : `*/n` = valeur % n (jour du mois `*/2` → 2,4,6…), jour du mois ET jour de
-   semaine combinés en ET (Unix : OU), dimanche = 7 seulement, `removeTask` ignore les
-   tâches ponctuelles.
-7. `BackupEngine` : un delta nommé `<date>_full_delta` n'est plus parsable.
-8. `OffsetDateTime` non géré par `MongoCodecFactory`.
-9. Javadoc d'`UuidUtils` : annonce des UUID ordonnés, or ils ne sont pas triables.
-10. `tools.PublicKey` inutilisé (doublon de `JWTWrapper.PublicKey`).
-11. `QueryStatistics` crée un `CronScheduler` à threads non daemon.
-12. `MigrationStep` met à jour `"log"` alors que le champ s'appelle `logs` (à vérifier).
-13. `MigrationEngine` : un dernier nom de migration inconnu n'applique rien, sans erreur ;
-    `revertSingle` ne fait rien.
-14. Le pom déclare `logback-classic` deux fois (la seconde en scope test) : pas de backend
-    SLF4J transitif pour les applications.
-15. `Common.ADMIN_TOKEN` (src/test) : rôles `Boolean` et sujet `Long`, refusés par
-    `AuthenticationFilter`.
-16. `ChangeNotificationManager` : le mode FullDocument par listener est ignoré ; javadoc de
-    `WorkerStatus` annonce un backoff exponentiel alors que le délai est fixe.
+1. `ConfigBaseVariable.getDBAbleToCreate()` lisait une propriété système
+   (`Boolean.getBoolean`) : corrigé (8c011df, `parseBoolean`).
+2. `ConfigBaseVariable.getDBPort()` refusait les ports > 32767 : corrigé (efa68ec, `int`
+   validé 1..65535 ; `DbConfig` prend un `Integer`, changement d'API).
+3. `InputExceptionCatcher` écrivait toujours status=400 : corrigé (d5bf4d7).
+4. `JacksonExceptionCatcher` répondait 500 pour un JSON mal formé : corrigé (38b8c31, 400).
+5. `RESTApiRequest.fetchString()`/`fetchByte()` ne vérifient pas le statut : faux diagnostic
+   (accès bruts voulus ; la correction 94c815f a été annulée par bf0c426). La map des headers
+   jamais remplie : corrigé (94c815f, `header(key, value)`).
+6. `CronTask` (`*/n`, ET au lieu de OU, dimanche = 7 seul) : corrigé (a95554b, syntaxe Vixie).
+   `removeTask` ignorait les tâches ponctuelles : corrigé (le code retire aussi
+   `scheduledTasks`).
+7. `BackupEngine` : delta `<date>_full_delta` non parsable : corrigé (b2b65ea).
+8. `OffsetDateTime` non géré par `MongoCodecFactory` : corrigé (a7c0b6a, date BSON relue en
+   UTC, offset perdu). `LocalDateTime` reste non supporté.
+9. Javadoc d'`UuidUtils` (UUID ordonnés) : corrigé (cb927a7, javadoc).
+10. `tools.PublicKey` inutilisé : corrigé (94cd9e7, déprécié `forRemoval`, remplacé par
+    `JWTWrapper.PublicKey`).
+11. `QueryStatistics` : scheduler à threads non daemon : corrigé (c177d86).
+12. `MigrationStep` mettait à jour `"log"` au lieu de `logs` : corrigé (afd15b0).
+13. `MigrationEngine` : dernier nom inconnu sans erreur, `revertSingle` muet : corrigé (1bf004f,
+    `MigrationException` et `UnsupportedOperationException`).
+14. Le pom déclare `logback-classic` deux fois : faux diagnostic. Le doublon a été retiré ; il
+    n'y a pas de backend transitif, et c'est voulu (scope test).
+15. `Common.ADMIN_TOKEN` invalide : corrigé (9a63987).
+16. `ChangeNotificationManager` : mode FullDocument par listener ignoré : non corrigé, raison :
+    le comportement reste ignoré ; l'API est dépréciée, logue un warning et le délai de reprise
+    fixe est documenté (ef179fd).

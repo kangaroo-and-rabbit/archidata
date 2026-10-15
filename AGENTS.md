@@ -28,7 +28,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 | `catcher` | JAX-RS exception mappers (`GenericCatcher.addAll(rc)`), `RestErrorResponse` |
 | `checker` | `ValidationContext`, `DataAccessConnectionContext` (per-request validation and connection context) |
 | `converter` | Jackson / Jakarta param / Mongo codecs for custom types |
-| `cron` | `CronScheduler`, `CronTask` (restricted cron syntax) |
+| `cron` | `CronScheduler`, `CronTask` (Unix/Vixie cron syntax, numeric fields only) |
 | `crypto` | Field encryption back-end of `@DataEncrypt` |
 | `dataAccess` | `DataAccess` (static facade), `DBAccessMongo`, `Filters`, `QueryOptions`, `TransactionContext` |
 | `dataAccess.options` | Query options: `Condition`, `FilterValue`, `FilterOmit`, `OrderBy`, `Limit`, `Skip`, `AccessDeletedItems`, `ReadAllColumn`, `DirectData`… |
@@ -164,26 +164,42 @@ Each point was checked against the code; the doc page gives the details.
 - **`MigrationEngine`**: the history is the `KAR_migration` collection. On an empty database
   only the initialization (`setInit`) runs, and the last migration is recorded as done (the
   migrations `add`ed are never played on a fresh install, so the init must create the final
-  state). If the last recorded name is not found (migration renamed), nothing is applied and
-  no error is raised. See `doc/migration.md`.
-- **No SLF4J backend comes transitively** (archidata's logback is test-scoped): the application
-  must declare `ch.qos.logback:logback-classic` (or another backend), otherwise no log at all.
+  state). If the last recorded name is not found (migration renamed), the engine throws a
+  `MigrationException` and the startup is blocked. Reverting is not supported: `revertSingle` /
+  `revertTo` throw `UnsupportedOperationException` (write a new forward migration). See
+  `doc/migration.md`.
+- **SLF4J backend**: archidata's logback is test-scoped on purpose, so no backend comes
+  transitively: the application must declare `ch.qos.logback:logback-classic` (or another
+  backend), otherwise no log at all.
 - **Change streams** (`ChangeNotificationManager`): they require MongoDB running as a replica
   set (a single-node one is fine); only the `FullDocument` mode passed to `start()` counts (the
-  per-listener mode is ignored); listeners run synchronously on the collection's worker thread,
-  so a slow listener blocks that collection (hand heavy work to an executor); `stop()` clears
-  the listeners and the resume tokens (register them again after a restart). See
-  `doc/change_stream.md`.
-- **Cron** (`CronScheduler`): a single consumer thread runs every task one after the other (a
-  blocking task delays all the others); a run missed while the server was down is not caught
-  up; the scheduler is per process (two instances run every task twice). The syntax is not
-  Unix cron (`*/n`, day-of-month AND day-of-week, Sunday = 7…): read `doc/cron.md`.
+  per-listener / per-watch mode is always ignored: those overloads are `@Deprecated` and log a
+  warning); the retry delay after a failure is fixed (1 s / 5 s, no exponential backoff);
+  listeners run synchronously on the collection's worker thread, so a slow listener blocks that
+  collection (hand heavy work to an executor); `stop()` clears the listeners and the resume
+  tokens (register them again after a restart). See `doc/change_stream.md`.
+- **Cron** (`CronScheduler`): the syntax is Unix (Vixie) cron: `*/n` starts at the minimum of
+  the field, Sunday is 0 or 7, day-of-month and day-of-week combine with OR. Names (`MON`,
+  `JAN`), macros (`@daily`), `L`, `W` and `#` are not supported. A single consumer thread runs
+  every task one after the other (a blocking task delays all the others); a run missed while
+  the server was down is not caught up; the scheduler is per process (two instances run every
+  task twice). See `doc/cron.md`.
+- **Date types**: `OffsetDateTime` fields are persisted as a BSON date and read back in UTC
+  (the offset is lost). `LocalDateTime` is not supported by the data layer.
+- **`@ApiDoc(hidden = true)`** is honoured by every client generator.
+- **REST client** (`tools.RESTApiRequest`): `fetch(Class)` / `fetchList` throw
+  `RESTErrorResponseException` on an error status, whereas `fetchString()` / `fetchByte()` are
+  raw accessors that do not throw on 4xx/5xx (check the status yourself). `header(key, value)`
+  adds a request header.
+- **Deprecated**: `tools.PublicKey` (`forRemoval`): use `JWTWrapper.PublicKey`.
 - **`ConfigBaseVariable` reads the environment once, when the class is loaded** (static
   initializer): `System.setenv`-style tricks afterwards have no effect, use the setters before
   the first use (they are locked by `lock()`). `getDBPassword()` throws `IllegalStateException`
-  when `DB_PASSWORD` is not set. See `doc/tools.md`.
+  when `DB_PASSWORD` is not set. `DB_ABLE_TO_CREATE` is read with `Boolean.parseBoolean`;
+  `getDBPort()` returns an `int` validated in 1..65535 (`DbConfig` takes an `Integer` port). See `doc/tools.md`.
 - **Errors with a precise HTTP status**: throw `new FailException(Response.Status.XXX, "message")`
   (the single-argument constructor answers 400), or a JAX-RS `WebApplicationException`
-  (`NotFoundException`…). See `doc/error_handling.md`.
+  (`NotFoundException`…). `GenericCatcher` answers 400 for malformed or mistyped JSON (`JacksonExceptionCatcher`), and
+  `InputExceptionCatcher` reports the real status. See `doc/error_handling.md`.
 - **Compile the application with `-parameters`** (`<maven.compiler.parameters>true</maven.compiler.parameters>`),
   otherwise the validation errors name the method arguments `arg0`, `arg1`….

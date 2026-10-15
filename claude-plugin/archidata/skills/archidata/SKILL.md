@@ -135,7 +135,7 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
 
 ### Cron
 `cron.CronScheduler`: `addTask("name", "0 3 * * *", runnable)`, `addTask(name, LocalDateTime, runnable)`
-(one shot), `start()`, `stop()`. Docs: `doc/cron.md` (the syntax differs from Unix cron).
+(one shot), `start()`, `stop()`. Docs: `doc/cron.md` (Unix/Vixie syntax, numeric fields only).
 
 ### Configuration
 `tools.ConfigBaseVariable` reads `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE`,
@@ -161,16 +161,26 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
   `$unset`): pass the list of fields for a partial update (PATCH).
 - **Migrations**: collection `KAR_migration`. On an empty database only the init runs (the
   added migrations are marked done without running: the init must build the final state).
-  Renaming a migration (`getName()`) makes the engine apply nothing, without error.
-- **No SLF4J backend comes with archidata**: declare `ch.qos.logback:logback-classic` in the
-  application, or there are no logs at all.
+  An unknown last migration name (renamed) throws `MigrationException` and blocks the startup;
+  `revertSingle` / `revertTo` throw `UnsupportedOperationException`.
+- **SLF4J backend**: archidata's logback is test-scoped on purpose; declare
+  `ch.qos.logback:logback-classic` in the application, or there are no logs at all.
 - **Change streams**: need a MongoDB replica set (single node is fine); only the `FullDocument`
-  mode given to `start()` is used; listeners run on the collection worker thread, so a slow
+  mode given to `start()` is used (per-listener mode: deprecated, ignored, logs a warning); the
+  retry delay is fixed (1 s / 5 s); listeners run on the collection worker thread, so a slow
   listener blocks that collection; `stop()` clears listeners and resume tokens.
-- **Cron**: one consumer thread for all tasks, no catch-up of missed runs, one scheduler per
-  process (N instances = N runs). Not Unix syntax: read `doc/cron.md`.
+- **Cron**: Unix (Vixie) syntax (`*/n` from the field minimum, Sunday = 0 or 7, day-of-month
+  OR day-of-week); no names (`MON`), macros (`@daily`), `L`, `W`, `#`. One consumer thread for
+  all tasks, no catch-up of missed runs, one scheduler per process (N instances = N runs).
+- **Dates**: `OffsetDateTime` is persisted as a BSON date, read back in UTC (offset lost);
+  `LocalDateTime` is not supported.
+- **REST client** (`RESTApiRequest`): `fetch(Class)` / `fetchList` throw
+  `RESTErrorResponseException` on an error status; `fetchString()` / `fetchByte()` are raw and
+  do not throw on 4xx/5xx. `header(key, value)` exists.
+- **Deprecated**: `tools.PublicKey`, use `JWTWrapper.PublicKey`. `@ApiDoc(hidden = true)` is
+  honoured by all generators. Malformed JSON gives 400 (`JacksonExceptionCatcher`).
 - **`ConfigBaseVariable` reads the environment when the class is loaded**; set values with the
-  setters before first use. `getDBPassword()` throws if `DB_PASSWORD` is missing.
+  setters before first use. `getDBPassword()` throws if `DB_PASSWORD` is missing. `DB_PORT` is validated in 1..65535.
 - **HTTP status of an error**: use `new FailException(Response.Status.XXX, msg)`; the
   one-argument constructor always gives 400.
 - **Compile with `-parameters`** (`<maven.compiler.parameters>true</maven.compiler.parameters>`),
