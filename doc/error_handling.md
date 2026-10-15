@@ -56,7 +56,7 @@ Exception to HTTP mapping
 |---|---|---|---|
 | `FailException` | `FailExceptionCatcher` | `exception.status` (default 400) | `Request Fail` |
 | `UnAuthorizedException` (extends `FailException`) | `FailExceptionCatcher` | 401 | `Request Fail` |
-| `InputException` | `InputExceptionCatcher` | `exception.status` (default 400) | `Constraint Violation` |
+| `InputException` | `InputExceptionCatcher` | `exception.status` (default 400; the body `status` and `statusMessage` follow it) | `Constraint Violation` |
 | `SystemException` | `SystemExceptionCatcher` | `exception.status` (default 500) | `System error` |
 | `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
@@ -208,11 +208,6 @@ All mappers answer with `Content-Type: application/json`.
 Pitfalls
 --------
 
-- `InputException` with a custom status: the HTTP status is the one you give,
-  but the `status` and `statusMessage` fields of the JSON body are always
-  `400` / `Bad Request` (the catcher builds the body with `BAD_REQUEST`).
-  A client that reads the body instead of the HTTP status sees 400 for a 404.
-  Use `FailException(Response.Status.NOT_FOUND, ...)` when the body must agree.
 - `JacksonExceptionCatcher` answers **500** for a body that cannot be parsed,
   although it is the caller's mistake. Do not rely on 400 for malformed JSON.
 - `FailException` does not use the `inputError` list: only `InputException`

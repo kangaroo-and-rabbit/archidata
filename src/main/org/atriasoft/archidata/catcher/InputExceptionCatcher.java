@@ -25,7 +25,8 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 	public InputExceptionCatcher() {}
 
 	/**
-	 * Maps an {@link InputException} to a BAD_REQUEST JSON error response with details about the invalid input.
+	 * Maps an {@link InputException} to a JSON error response with details about the invalid input.
+	 * The HTTP status, in the response and in the body, is the one of the exception (400 by default).
 	 * @param exception the InputException that was thrown
 	 * @return a {@link Response} containing the error details as JSON
 	 */
@@ -50,8 +51,8 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 		inputError.add(new RestInputError(exception.missingVariable, exception.getMessage()));
 		Collections.sort(inputError, Comparator.comparing(RestInputError::getFullPath));
 		final String errorType = "Constraint Violation";
-		return new RestErrorResponse(Response.Status.BAD_REQUEST, Instant.now().toString(), errorType,
-				exception.getMessage(), inputError);
+		return new RestErrorResponse(exception.status, Instant.now().toString(), errorType, exception.getMessage(),
+				inputError);
 	}
 
 }
