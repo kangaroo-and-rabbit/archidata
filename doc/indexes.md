@@ -110,7 +110,7 @@ user:
 
 ```java
 public void migrateDB() throws Exception {
-    migrationEngine.migrateWaitAdmin(GlobalConfiguration.dbConfig);
+    migrationEngine.migrateWaitAdmin(new DbConfig());
 
     final IndexEngine indexes = new IndexEngine();
     indexes.addClass(User.class, Media.class);

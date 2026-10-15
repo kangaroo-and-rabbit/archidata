@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.atria-soft.sample</groupId>
+	<artifactId>archidata-sample-basic</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+	<description>Minimal reference application built on archidata: one model, one CRUD resource, one migration.</description>
+
+	<properties>
+		<!-- Keep in line with the <version> of ../../../pom.xml -->
+		<archidata.version>0.50.3-SNAPSHOT</archidata.version>
+		<maven.compiler.release>25</maven.compiler.release>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<!-- Brings Jersey, Grizzly, Jackson, the MongoDB driver, Hibernate Validator, the SLF4J API
+		     and jul-to-slf4j -->
+		<dependency>
+			<groupId>org.atria-soft</groupId>
+			<artifactId>archidata</artifactId>
+			<version>${archidata.version}</version>
+		</dependency>
+		<!-- SLF4J backend: archidata does NOT bring one transitively (its logback is test-scoped) -->
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.6.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>6.1.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>6.1.3</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.16.0</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.5.6</version>
+			</plugin>
+			<!-- mvn exec:java                 : production launcher (configuration from the environment)
+			     mvn exec:java@local           : local launcher (hard-coded dev configuration + test token) -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.6.4</version>
+				<configuration>
+					<mainClass>sample.archidata.basic.WebLauncher</mainClass>
+				</configuration>
+				<executions>
+					<execution>
+						<id>local</id>
+						<configuration>
+							<mainClass>sample.archidata.basic.WebLauncherLocal</mainClass>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
