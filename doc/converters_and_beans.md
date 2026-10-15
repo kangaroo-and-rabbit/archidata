@@ -66,7 +66,7 @@ through its `String` constructor.
 Entity fields are converted by `MongoCodecFactory` (package
 `dataAccess.model.codec`, shared with the data layer): `long`, `int`, `short`,
 `float`, `double`, `boolean`, `String`, `Character`, `ObjectId`, `UUID`, `Date`
-natively; `Instant` as a BSON date; `LocalDate` as the string `yyyy-MM-dd`;
+natively; `Instant` and `OffsetDateTime` as a BSON date; `LocalDate` as the string `yyyy-MM-dd`;
 `LocalTime` as nanoseconds of the day (`long`); enums by `toString()` (not
 `name()`); `List<E>`; `Set<E>` stored as a list; `Map<K,V>` stored as a
 sub-document with `K` among `String`, `Integer`, `Long`, `Short`, `ObjectId`;
@@ -74,12 +74,14 @@ sub-document with `K` among `String`, `Integer`, `Long`, `Short`, `ObjectId`;
 (its fields converted the same way). See [data_model.md](data_model.md) for the
 annotations.
 
-`OffsetDateTimeCodec` (`converter.mongo`) encodes an `OffsetDateTime` as a BSON
-date (UTC milliseconds) and decodes it back in UTC. It is installed in the
-MongoDB client registry, so it applies to values handled by the driver itself,
-but `MongoCodecFactory` has no branch for `OffsetDateTime`: an `OffsetDateTime`
-**entity field** is not a supported persisted type. Use `Date` or `Instant` for
-stored timestamps, and `OffsetDateTime` for API parameters.
+An `OffsetDateTime` entity field is stored like an `Instant`: a BSON date (UTC,
+millisecond precision). It is read back **in UTC**: the original offset is not
+kept (`2025-06-15T14:30+02:00` comes back as `2025-06-15T12:30Z`, the same
+instant), and the sub-millisecond part is lost. `OffsetDateTimeCodec`
+(`converter.mongo`) does the same for the values handled by the MongoDB driver
+itself (it is installed in the client registry). Store the offset in a separate
+field if you need it. `LocalDateTime` has no branch: it is not a supported
+persisted type.
 
 
 Adding a converter
@@ -219,8 +221,8 @@ non-record class that you want built through a constructor must be compiled with
 Pitfalls
 --------
 
-- A model with an `OffsetDateTime` field serializes fine to JSON (as UTC) but
-  cannot be persisted; do not copy API types straight into entities.
+- An `OffsetDateTime` field is persisted and serialized to JSON in UTC: the
+  offset given by the client is lost (the instant is kept).
 - Enums are stored with `toString()`. An enum that overrides `toString()` is
   stored under that text, and renaming it breaks the existing documents.
 - `@ValidGroup` without `@Valid` skips the default group, so a plain `@NotNull`

@@ -5,6 +5,8 @@ import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
@@ -178,6 +180,10 @@ public final class MongoCodecFactory {
 		if (raw == Instant.class) {
 			return v -> Date.from((Instant) v);
 		}
+		if (raw == OffsetDateTime.class) {
+			// Stored as a BSON date (UTC instant, millisecond precision): the offset is not kept
+			return v -> Date.from(((OffsetDateTime) v).toInstant());
+		}
 		if (raw == LocalDate.class) {
 			return v -> ((LocalDate) v).format(LOCAL_DATE_FMT);
 		}
@@ -290,6 +296,10 @@ public final class MongoCodecFactory {
 		// --- Temporal ---
 		if (raw == Instant.class) {
 			return v -> ((Date) v).toInstant();
+		}
+		if (raw == OffsetDateTime.class) {
+			// Read back in UTC, like the BSON OffsetDateTimeCodec
+			return v -> OffsetDateTime.ofInstant(((Date) v).toInstant(), ZoneOffset.UTC);
 		}
 		if (raw == LocalDate.class) {
 			return v -> LocalDate.parse((String) v, LOCAL_DATE_FMT);

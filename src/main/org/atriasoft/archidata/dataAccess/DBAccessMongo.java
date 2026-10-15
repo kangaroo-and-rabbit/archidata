@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -1164,6 +1165,9 @@ public class DBAccessMongo implements Closeable {
 		}
 		if (type == Instant.class) {
 			return Instant.parse(data);
+		}
+		if (type == OffsetDateTime.class) {
+			return OffsetDateTime.parse(data);
 		}
 		if (type == LocalDate.class) {
 			return LocalDate.parse(data);
