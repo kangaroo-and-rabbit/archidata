@@ -13,3 +13,22 @@
 - Le même script 'deliver' existe à l'identique dans jimbe, karentory, karideo, karoto,
   karso et karusic : non modifiés.
 - Fichiers modifiés par cette session : deliver, README.md, log.txt, spec.md.
+
+2026-10-15
+- Enquête sur la régénération du client TS de karso (archidata 0.50.2) :
+  - rest-tools.ts : changement voulu (pagination, 92f5d83/eb2f026/efa8a73, v0.48.0) ;
+    ajout seul (champ `headers` optionnel, types Pagination, RESTRequestPaginatedJson),
+    identique au fichier de karideo et karentory.
+  - éléments de tableau/record `.nullable()` : choix voulu (2ff5f12, v0.47.0, testé),
+    gardé. Le désactiver se fait par `List<@NotNull X>`, comme karideo.
+- Correction : `@ApiOptionalIsNullable` sans `groups` n'avait aucun effet (un `@Valid`
+  simple porte le groupe implicite GroupRead, jamais égal à une liste vide). Sans `groups`,
+  l'annotation s'applique désormais à tous les usages. Test :
+  testJsonIncludeNonNullOptionalIsNullableWithoutGroup.
+- Doc : section « Forms (react-hook-form) » dans doc/typescript_api_generation.md (modèle
+  de données avec groupes / DTO de requête sans groupe, piège du suffixe UserCreateCreate,
+  champs @DefaultValue ignorés quand ils sont null en update) ; javadoc de
+  ApiOptionalIsNullable, ValidGroup, ApiGenerationMode (exemple corrigé : create/update).
+- Fichiers modifiés par cette session : TsClassElement.java, TestTypeScriptApiGeneration.java,
+  ApiOptionalIsNullable.java, ValidGroup.java, ApiGenerationMode.java,
+  doc/typescript_api_generation.md, doc/data_model.md, spec.md, log.txt.

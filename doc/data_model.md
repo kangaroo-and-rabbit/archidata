@@ -290,6 +290,10 @@ public class User extends OIDGenericDataSoftDelete {
 
 This generates three TypeScript types: `User` (read), `UserCreate`, and `UserUpdate`.
 
+The write variants are the ones an endpoint asks for with `@Valid @ValidGroup(GroupCreate.class) User`
+(the group name is appended to the type name). For forms that send `null` (react-hook-form), see
+[TypeScript API Generation - Forms](typescript_api_generation.md#forms-react-hook-form-optional-fields-that-accept-null).
+
 
 Relationship Annotations
 ========================

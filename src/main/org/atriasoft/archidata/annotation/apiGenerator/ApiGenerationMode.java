@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
  *
  * <p>Example:
  * <pre>{@code
- * @ApiGenerationMode(creatable=false, updatable=false)
+ * @ApiGenerationMode(create = false, update = false)
  * public class User {
  *     public String username;
  *     public String email;
@@ -33,6 +33,11 @@ import java.lang.annotation.Target;
  *
  * In this example, the User class will not generate separate data structures
  * for create and update operations in the client code, only for read operations.
+ *
+ * <p>The {@code MyClassCreate} / {@code MyClassUpdate} variants are the ones an endpoint asks for with
+ * {@code @Valid @ValidGroup(GroupCreate.class)} / {@code @ValidGroup(GroupUpdate.class)}: the group name is
+ * appended to the type name. A request DTO dedicated to one endpoint needs neither this annotation nor
+ * {@code @ValidGroup}.
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
