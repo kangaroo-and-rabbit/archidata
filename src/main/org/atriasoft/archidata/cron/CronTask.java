@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * Represents a scheduled task with a cron expression, parsed once at creation (see {@link CronExpression}
- * for the syntax).
+ * for the syntax). {@link #toString()} shows the expression as written by the caller.
  */
 record CronTask(
 		String name,
@@ -35,11 +35,6 @@ record CronTask(
 	 */
 	public boolean matches(final LocalDateTime time) {
 		return this.schedule.matches(time);
-	}
-
-	/** @return the cron expression as written by the caller */
-	public String cronExpression() {
-		return this.schedule.expression();
 	}
 
 	@Override

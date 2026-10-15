@@ -13,32 +13,29 @@ import java.time.LocalDateTime;
  */
 final class CronExpression {
 	/** Index of the minute field. */
-	static final int MINUTE = 0;
+	private static final int MINUTE = 0;
 	/** Index of the hour field. */
-	static final int HOUR = 1;
+	private static final int HOUR = 1;
 	/** Index of the day-of-month field. */
-	static final int DAY_OF_MONTH = 2;
+	private static final int DAY_OF_MONTH = 2;
 	/** Index of the month field. */
-	static final int MONTH = 3;
+	private static final int MONTH = 3;
 	/** Index of the day-of-week field. */
-	static final int DAY_OF_WEEK = 4;
+	private static final int DAY_OF_WEEK = 4;
 	/** Names of the five fields, for error messages. */
-	static final String[] FIELD_NAMES = { "minute", "hour", "day of month", "month", "day of week" };
+	private static final String[] FIELD_NAMES = { "minute", "hour", "day of month", "month", "day of week" };
 	/** Bounds of the five fields (day of week: 0 and 7 are both Sunday). */
-	static final int[][] LIMITS = { { 0, 59 }, { 0, 23 }, { 1, 31 }, { 1, 12 }, { 0, 7 } };
+	private static final int[][] LIMITS = { { 0, 59 }, { 0, 23 }, { 1, 31 }, { 1, 12 }, { 0, 7 } };
 
 	private final String expression;
-	private final String[] parts;
 	private final boolean[][] fields;
-	private final boolean dayOfMonthRestricted;
-	private final boolean dayOfWeekRestricted;
+	/** Both day fields are restricted, so that they combine with OR (Vixie rule). */
+	private final boolean daysCombineWithOr;
 
-	private CronExpression(final String expression, final String[] parts, final boolean[][] fields) {
+	private CronExpression(final String expression, final String[] parts) {
 		this.expression = expression;
-		this.parts = parts;
-		this.fields = fields;
-		this.dayOfMonthRestricted = isRestricted(parts[DAY_OF_MONTH]);
-		this.dayOfWeekRestricted = isRestricted(parts[DAY_OF_WEEK]);
+		this.fields = parseFields(parts);
+		this.daysCombineWithOr = isRestricted(parts[DAY_OF_MONTH]) && isRestricted(parts[DAY_OF_WEEK]);
 	}
 
 	/**
@@ -49,35 +46,13 @@ final class CronExpression {
 	 * @throws IllegalArgumentException if the expression is invalid, with the offending field
 	 */
 	static CronExpression parse(final String cronExpression) {
-		final String[] parts = splitFields(cronExpression);
-		return new CronExpression(cronExpression, parts, parseFields(parts));
+		return new CronExpression(cronExpression, splitFields(cronExpression));
 	}
 
 	/** @return the expression as written by the caller */
-	String expression() {
+	@Override
+	public String toString() {
 		return this.expression;
-	}
-
-	/**
-	 * @param index the field index ({@link #MINUTE} .. {@link #DAY_OF_WEEK})
-	 * @return the field as written by the caller
-	 */
-	String part(final int index) {
-		return this.parts[index];
-	}
-
-	/**
-	 * @param index the field index ({@link #MINUTE} .. {@link #DAY_OF_WEEK})
-	 * @param value the value to test (day of week: 0 or 7 is Sunday)
-	 * @return {@code true} if the field allows this value
-	 */
-	boolean allows(final int index, final int value) {
-		return this.fields[index][value];
-	}
-
-	/** @return {@code true} when both day fields are restricted, so that they combine with OR */
-	boolean daysCombineWithOr() {
-		return this.dayOfMonthRestricted && this.dayOfWeekRestricted;
 	}
 
 	/**
@@ -94,7 +69,7 @@ final class CronExpression {
 		final boolean dayOfMonth = this.fields[DAY_OF_MONTH][time.getDayOfMonth()];
 		// java.time: Monday = 1 .. Sunday = 7; cron: Sunday = 0 (7 is folded into 0 by parseFields)
 		final boolean dayOfWeek = this.fields[DAY_OF_WEEK][time.getDayOfWeek().getValue() % 7];
-		if (daysCombineWithOr()) {
+		if (this.daysCombineWithOr) {
 			return dayOfMonth || dayOfWeek;
 		}
 		return dayOfMonth && dayOfWeek;
