@@ -7,8 +7,8 @@ one-time tasks at a given date, tasks to run "now", and tasks woken on demand
 by an event. It has no dependency (no Quartz): one producer thread decides what
 is due, one consumer thread runs it.
 
-This page covers the API, the supported cron syntax (smaller than Unix cron),
-the threading model, the wake-up debounce and the listener hook.
+This page covers the API, the cron syntax (Unix cron, without names nor
+macros), the threading model, the wake-up debounce and the listener hook.
 
 
 When to use it
@@ -44,7 +44,8 @@ This is what karideo and karusic do in their `WebLauncher`.
 Cron expressions
 ----------------
 
-Exactly five fields separated by **one space**: `minute hour dayOfMonth month dayOfWeek`.
+Five fields separated by whitespace: `minute hour dayOfMonth month dayOfWeek`.
+The syntax and the matching rules are those of Unix (Vixie) cron.
 
 | Field | Range |
 |---|---|
@@ -52,27 +53,34 @@ Exactly five fields separated by **one space**: `minute hour dayOfMonth month da
 | hour | 0-23 |
 | day of month | 1-31 |
 | month | 1-12 |
-| day of week | 1-7, **1 = Monday, 7 = Sunday** |
+| day of week | 0-7, **0 and 7 = Sunday**, 1 = Monday |
 
-Each field accepts `*`, a number, `*/n`, a range `a-b`, or a comma-separated
-list of those (`1-5,10,20-22`). Not supported: names (`MON`, `JAN`), `?`, `L`,
-`@daily`, steps on ranges (`1-10/2`), a seconds field, `0` or `7` for Sunday
-as in Unix cron (here `0` is rejected).
+Each field is a comma-separated list (`1-5,10,20-22`) of:
 
-`addTask` validates the expression and throws `IllegalArgumentException` (the
-`NumberFormatException` of a bad number is one too) with the offending field.
+| Form | Meaning |
+|---|---|
+| `*` | every value of the field |
+| `n` | that value |
+| `a-b` | from `a` to `b` included (`a <= b`) |
+| `*/n` | every `n` values **from the minimum of the field**: `*/15` on the minute is 0, 15, 30, 45; `*/2` on the day of month is 1, 3, 5...; `*/2` on the month is January, March...; `*/2` on the day of week is Sunday, Tuesday, Thursday, Saturday |
+| `a-b/n` | every `n` values from `a` to `b`: `1-10/3` is 1, 4, 7, 10 |
 
-Matching rules that differ from Unix cron:
+Not supported: names (`MON`, `JAN`), `?`, `L`, `W`, `#`, macros (`@daily`),
+a seconds field, `a/n` without a range (rejected, as in Vixie cron).
 
-- `*/n` matches when `value % n == 0`. For minutes and hours that is what you
-  expect (`*/15` is 0, 15, 30, 45). For day of month and month, which start at
-  1, `*/2` matches 2, 4, 6... and `*/5` on the day matches 5, 10, 15... not
-  1, 6, 11.
-- The day of month **and** the day of week must both match. In Unix cron they
-  are ORed when both are restricted. `0 0 1 * 1` is "midnight when the 1st is a
-  Monday" here.
-- Times are local (`LocalDateTime.now()`, JVM time zone), evaluated once per
-  minute.
+Day of month and day of week, as in Unix cron: when **both** are restricted
+(neither starts with `*`), a day is due if **either** matches. `0 0 1 * 1` is
+"midnight on the 1st of the month and on every Monday". When one of them
+starts with `*` (`*` or `*/n`), both must match: `0 0 */2 * 1` is "midnight on
+the Mondays that fall on an odd day".
+
+`addTask` validates the expression and throws `IllegalArgumentException` with
+the offending field. `CronScheduler.matches(String expression, LocalDateTime
+time)` tells whether an expression is due at a given minute, with the same
+rules (useful to check an expression in a test).
+
+Times are local (`LocalDateTime.now()`, JVM time zone), evaluated once per
+minute.
 
 
 Adding and removing tasks
@@ -84,7 +92,8 @@ Adding and removing tasks
 | `addTask(String name, String cron, Runnable action)` | same with `uniqueInQueue = true` |
 | `addTask(String name, LocalDateTime executeAt, Runnable action)` | one-time task. `executeAt` may be at most one minute in the past, otherwise `IllegalArgumentException` |
 | `addTask(Runnable action)` | one-time task, runs as soon as possible |
-| `removeTask(String name)` | removes a **recurring** task only |
+| `removeTask(String name)` | removes the recurring task and the pending one-time task of that name |
+| `hasTask(String name)` | `true` if a recurring task or a not-yet-fired one-time task has this name |
 
 A null or empty `name` is replaced by a generated `ObjectId` string. Adding a
 task with an existing name replaces it. Tasks can be added while the scheduler
@@ -161,7 +170,7 @@ Reference
 
 | Class | Visibility | Role |
 |---|---|---|
-| `CronScheduler` | public | the scheduler: `start`, `stop`, `addTask` (4 overloads), `removeTask`, `triggerWakeup`, `setGracePeriodMinutes`, `disableGracePeriodMinutes`, `setEventGraceMillis`, `getEventGraceMillis`, `setExecutionListener` |
+| `CronScheduler` | public | the scheduler: `start`, `stop`, `addTask` (4 overloads), `removeTask`, `hasTask`, static `matches`, `triggerWakeup`, `setGracePeriodMinutes`, `disableGracePeriodMinutes`, `setEventGraceMillis`, `getEventGraceMillis`, `setExecutionListener` |
 | `CronExecutionListener` | public interface | `onStart`, `onEnd` (2 and 3 arguments) |
 | `CronTriggerType` | public enum | `SCHEDULED`, `WAKEUP`, `RERUN` |
 | `ScheduledTask` | public record | `(String name, LocalDateTime executeAt, Runnable action)`, equality by name |
@@ -171,7 +180,6 @@ Reference
 Pitfalls
 --------
 
-- Day of week numbering: Sunday is `7`. `0 3 * * 0` throws.
 - The scheduler is per-process. With two server instances behind a load
   balancer every job runs twice.
 - A single consumer thread: a blocking task (network call without timeout)
@@ -180,7 +188,7 @@ Pitfalls
 - The cron clock uses the JVM time zone and is evaluated on minute changes:
   a clock jump or a suspended JVM skips the minutes in between, with no
   catch-up.
-- `removeTask` does not cancel a one-time task, nor a task already queued.
+- `removeTask` does not cancel an occurrence already waiting in the queue.
 - `triggerWakeup` ignores one-time tasks and unknown names without any error.
 - `QueryStatistics` creates its own `CronScheduler` when
   `QUERY_STATISTICS_FILE` is set, whose threads you cannot stop (only

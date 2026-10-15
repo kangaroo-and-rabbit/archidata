@@ -317,10 +317,11 @@ public class CronScheduler {
 	 * Adds a recurring cron task with a cron expression schedule.
 	 *
 	 * @param name task name (generated if null or empty)
-	 * @param cronExpression cron expression ("minute hour dayOfMonth month dayOfWeek")
-	 *        minute(0-59) hour(0-23) dayOfMonth(1-31) month(1-12) dayOfWeek(1-7).
-	 *        Value formats: "*" (all), "*\/5" (every 5), "1-5" (range), "1,5,6" (list),
-	 *        "1-5,10,20-22" (combined)
+	 * @param cronExpression Unix (Vixie) cron expression ("minute hour dayOfMonth month dayOfWeek")
+	 *        minute(0-59) hour(0-23) dayOfMonth(1-31) month(1-12) dayOfWeek(0-7, 0 and 7 = Sunday).
+	 *        Value formats: "*" (all), "*\/5" (every 5 from the field minimum), "1-5" (range),
+	 *        "1-10/3" (range with step), "1,5,6" (list), "1-5,10,20-22" (combined). When both the
+	 *        day of month and the day of week are restricted, a day matching either one is due.
 	 * @param action the action to execute
 	 * @param uniqueInQueue if {@code true}, only one pending instance in queue
 	 * @throws IllegalArgumentException if the cron expression is invalid
@@ -331,7 +332,7 @@ public class CronScheduler {
 			name = new ObjectId().toString();
 		}
 		LOGGER.debug("Add task name '{}' cron='{}'", name, cronExpression);
-		validateCronExpression(cronExpression);
+		CronTask.validate(cronExpression);
 		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
 	}
 
@@ -380,13 +381,39 @@ public class CronScheduler {
 	}
 
 	/**
-	 * Removes a cron task by name.
+	 * Removes a task by name: the recurring task and the pending one-time task of that name. An occurrence
+	 * already waiting in the queue still runs.
 	 *
 	 * @param name the name of the task to remove
 	 */
 	public void removeTask(final String name) {
 		LOGGER.debug("remove task name '{}'", name);
 		this.cronTasks.remove(name);
+		this.scheduledTasks.remove(name);
+	}
+
+	/**
+	 * Tells whether a task (recurring or one-time, not yet fired) is registered under this name.
+	 *
+	 * @param name the task name
+	 * @return {@code true} if a recurring task or a pending one-time task has this name
+	 */
+	public boolean hasTask(final String name) {
+		return this.cronTasks.containsKey(name) || this.scheduledTasks.containsKey(name);
+	}
+
+	/**
+	 * Tells whether a cron expression matches a given time (minute precision), with the same rules as the
+	 * scheduler.
+	 *
+	 * @param cronExpression the five-field cron expression
+	 * @param time the time to test (seconds are ignored)
+	 * @return {@code true} if a task with this expression would be enqueued at this minute
+	 * @throws IllegalArgumentException if the expression is invalid
+	 */
+	public static boolean matches(final String cronExpression, final LocalDateTime time)
+			throws IllegalArgumentException {
+		return CronTask.matches(cronExpression, time);
 	}
 
 	/**
@@ -498,71 +525,6 @@ public class CronScheduler {
 		}
 		LOGGER.info("triggerWakeup: enqueue '{}'", task.name());
 		this.queue.offer(pending);
-	}
-
-	private void validateCronExpression(final String expr) throws IllegalArgumentException {
-		final String[] parts = expr.split(" ");
-		if (parts.length != 5) {
-			throw new IllegalArgumentException("Cron expression must have 5 fields (minute hour day month dayOfWeek)");
-		}
-
-		// ranges for fields: minute(0-59), hour(0-23), day(1-31), month(1-12), dayOfWeek(1-7)
-		final int[][] limits = { { 0, 59 }, // minute
-				{ 0, 23 }, // hour
-				{ 1, 31 }, // day
-				{ 1, 12 }, // month
-				{ 1, 7 } // dayOfWeek (1=Monday..7=Sunday)
-		};
-
-		for (int i = 0; i < parts.length; i++) {
-			final String field = parts[i];
-			final int min = limits[i][0];
-			final int max = limits[i][1];
-
-			validateField(field, min, max, i);
-		}
-	}
-
-	private void validateField(final String field, final int min, final int max, final int position)
-			throws IllegalArgumentException {
-		final String fieldName = switch (position) {
-			case 0 -> "minute";
-			case 1 -> "hour";
-			case 2 -> "day of month";
-			case 3 -> "month";
-			case 4 -> "day of week";
-			default -> "unknown";
-		};
-
-		if (field.equals("*")) {
-			return;
-		}
-
-		for (final String part : field.split(",")) {
-			if (part.startsWith("*/")) {
-				final int step = Integer.parseInt(part.substring(2));
-				if (step <= 0) {
-					throw new IllegalArgumentException("Invalid step in " + fieldName + ": " + part);
-				}
-			} else if (part.contains("-")) {
-				final String[] range = part.split("-");
-				if (range.length != 2) {
-					throw new IllegalArgumentException("Invalid range in " + fieldName + ": " + part);
-				}
-				final int start = Integer.parseInt(range[0]);
-				final int end = Integer.parseInt(range[1]);
-				if (start > end || start < min || end > max) {
-					throw new IllegalArgumentException(
-							"Range out of bounds in " + fieldName + ": " + part + " (valid: " + min + "-" + max + ")");
-				}
-			} else {
-				final int value = Integer.parseInt(part);
-				if (value < min || value > max) {
-					throw new IllegalArgumentException(
-							"Value out of bounds in " + fieldName + ": " + part + " (valid: " + min + "-" + max + ")");
-				}
-			}
-		}
 	}
 
 }
