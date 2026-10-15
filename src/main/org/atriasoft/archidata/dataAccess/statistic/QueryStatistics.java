@@ -190,9 +190,10 @@ public final class QueryStatistics {
 
 	/**
 	 * Writes the current counters to the JSON file, atomically. Does nothing when the mode is
-	 * disabled. Never propagates an exception.
+	 * disabled. Never propagates an exception. Synchronized: the periodic flush and the shutdown hook
+	 * share the same temporary file.
 	 */
-	public static void flush() {
+	public static synchronized void flush() {
 		final String file = ConfigBaseVariable.getQueryStatisticsFile();
 		if (file == null) {
 			return;

@@ -3,6 +3,9 @@ package test.atriasoft.archidata.statistic;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import org.atriasoft.archidata.cron.CronScheduler;
 import org.atriasoft.archidata.dataAccess.Filters;
@@ -15,6 +18,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 /**
  * Tests the accumulation and the JSON persistence of {@link QueryStatistics}.
@@ -162,5 +171,47 @@ public class TestQueryStatistics {
 		final CronScheduler scheduler = (CronScheduler) field.get(null);
 		Assertions.assertNotNull(scheduler, "the first record must start the flush scheduler");
 		Assertions.assertTrue(scheduler.isDaemonThreads(), "the flush scheduler must use daemon threads");
+	}
+
+	@Test
+	public void testConcurrentFlushesDoNotCollide() throws Exception {
+		final Path file = this.tempDir.resolve("stats.json");
+		ConfigBaseVariable.setQueryStatisticsFile(file.toString());
+		QueryStatistics.record("user", Operation.FIND, Filters.eq("name", "bob"), null, null);
+		final Logger logger = (Logger) LoggerFactory.getLogger(QueryStatistics.class);
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		logger.addAppender(appender);
+		try {
+			final int threadCount = 8;
+			final CountDownLatch go = new CountDownLatch(1);
+			final List<Thread> threads = new ArrayList<>();
+			for (int iii = 0; iii < threadCount; iii++) {
+				final Thread thread = new Thread(() -> {
+					try {
+						go.await();
+					} catch (final InterruptedException ex) {
+						Thread.currentThread().interrupt();
+						return;
+					}
+					for (int jjj = 0; jjj < 25; jjj++) {
+						QueryStatistics.flush();
+					}
+				});
+				thread.start();
+				threads.add(thread);
+			}
+			go.countDown();
+			for (final Thread thread : threads) {
+				thread.join();
+			}
+		} finally {
+			logger.detachAppender(appender);
+			appender.stop();
+		}
+		final List<ILoggingEvent> errors = appender.list.stream().filter(event -> event.getLevel() == Level.ERROR)
+				.toList();
+		Assertions.assertTrue(errors.isEmpty(), () -> "concurrent flushes failed: " + errors);
+		Assertions.assertTrue(Files.readString(file).contains("user|FIND|E:name|S:|R:"));
 	}
 }
