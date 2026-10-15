@@ -67,7 +67,7 @@ jobs:
       - name: Install the library locally for the sample
         run: mvn -B install -DskipTests -Dgpg.skip=true
       - name: Build and test the sample
-        run: mvn -B -f sample/archidata/basic/pom.xml verify
+        run: mvn -B -f sample/archidata/basic/pom.xml verify -Darchidata.version=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)
       # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
       # Needs a write token: the token of a pull request opened from a fork is read-only, so only do it on the develop branch itself
       - name: Update dependency graph

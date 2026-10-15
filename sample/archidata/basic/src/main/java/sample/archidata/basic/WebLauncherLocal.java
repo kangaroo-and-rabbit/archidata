@@ -27,6 +27,12 @@ public class WebLauncherLocal extends WebLauncher {
 		ConfigBaseVariable.setBdDatabase("sample_basic");
 	}
 
+	/** The key is generated locally: do not let the SSO key updater replace it. */
+	@Override
+	protected void startJwtKeyUpdater() {
+		// nothing
+	}
+
 	/**
 	 * Create a token signed by the local key.
 	 * @param login login written in the token.
@@ -52,6 +58,7 @@ public class WebLauncherLocal extends WebLauncher {
 		LOGGER.info("ADMIN token: {}", createToken("admin", "ADMIN"));
 		launcher.migrateDB();
 		launcher.synchronizeIndexes();
+		launcher.registerShutdownHook();
 		launcher.process();
 		Thread.currentThread().join();
 	}

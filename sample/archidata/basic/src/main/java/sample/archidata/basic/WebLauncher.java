@@ -98,20 +98,29 @@ public class WebLauncher {
 		// Bean Validation of the @Valid parameters.
 		rc.register(ValidationFeature.class);
 
-		this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc);
-		final HttpServer serverLink = this.server;
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			LOGGER.info("Stopping server...");
-			serverLink.shutdownNow();
-		}, "shutdownHook"));
-
-		// Fetch (and refresh) the JWT public key from SSO_ADDRESS. Without SSO_ADDRESS the thread
-		// stops at once and the key must be provided otherwise (see WebLauncherLocal).
-		this.keyUpdater = new UpdateJwtPublicKey();
-		this.keyUpdater.start();
-
+		// false = create the server without starting it: the JWT key updater is launched first.
+		this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc, false);
+		startJwtKeyUpdater();
 		this.server.start();
 		LOGGER.info("Server started at {}", getBaseURI());
+	}
+
+	/**
+	 * Fetch (and refresh) the JWT public key from SSO_ADDRESS. Without SSO_ADDRESS the thread stops at
+	 * once and the key must be provided otherwise. Override to do nothing when the key is local
+	 * (see WebLauncherLocal): the updater would replace it by the SSO one.
+	 */
+	protected void startJwtKeyUpdater() {
+		this.keyUpdater = new UpdateJwtPublicKey();
+		this.keyUpdater.start();
+	}
+
+	/** Stop the server when the JVM exits. To call once per launcher, from main (not from process()). */
+	protected void registerShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			LOGGER.info("Stopping server...");
+			stop();
+		}, "shutdownHook"));
 	}
 
 	/** Stop the HTTP server (used by tests and the local launcher). */
@@ -137,6 +146,7 @@ public class WebLauncher {
 		final WebLauncher launcher = new WebLauncher();
 		launcher.migrateDB();
 		launcher.synchronizeIndexes();
+		launcher.registerShutdownHook();
 		launcher.process();
 		Thread.currentThread().join();
 	}

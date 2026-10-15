@@ -281,10 +281,9 @@ public void process() throws Exception {
 	rc.register(JacksonFeature.class);
 	rc.register(ValidationFeature.class);
 
-	this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc);
-	// ... shutdown hook ...
-	this.keyUpdater = new UpdateJwtPublicKey();
-	this.keyUpdater.start();
+	// false: the server is created but not started yet
+	this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc, false);
+	startJwtKeyUpdater(); // new UpdateJwtPublicKey().start(), overridden by WebLauncherLocal
 	this.server.start();
 }
 ```
@@ -296,7 +295,7 @@ public void process() throws Exception {
 | `GenericCatcher.addAll(rc)` | All the exception catchers: errors become JSON with the right status. |
 | `ContextGenericTools.addJsr310(rc)` | archidata's Jackson mapper (java.time, ObjectId) **and** the `@ValidGroup` interceptor. Without it, `@ValidGroup` is silently ignored. |
 | `ValidationFeature` | Bean Validation of the `@Valid` parameters. |
-| `UpdateJwtPublicKey` | Thread fetching the JWT public key from `SSO_ADDRESS`; stops at once when it is not set. |
+| `UpdateJwtPublicKey` | Thread fetching the JWT public key from `SSO_ADDRESS`; stops at once when it is not set. Started by `startJwtKeyUpdater()`, before the server. |
 
 ### Configuration
 
@@ -320,7 +319,8 @@ configuration:
 File: [`WebLauncherLocal.java`](../sample/archidata/basic/src/main/java/sample/archidata/basic/WebLauncherLocal.java)
 
 For development without SSO, it hard-codes the configuration, generates a local RSA key pair with
-`JWTWrapper.initLocalToken(null)`, and prints a USER and an ADMIN token signed with it:
+`JWTWrapper.initLocalToken(null)`, and prints a USER and an ADMIN token signed with it. It overrides `startJwtKeyUpdater()` to do nothing,
+otherwise `UpdateJwtPublicKey` would replace the local key by the SSO one when `SSO_ADDRESS` is set:
 
 ```java
 final Map<String, Object> roles = Map.of("sample", Map.of(role, PartRight.READ_WRITE.getValue()));

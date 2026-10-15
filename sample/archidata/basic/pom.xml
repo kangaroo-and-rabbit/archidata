@@ -11,6 +11,7 @@
 		<!-- Keep in line with the <version> of ../../../pom.xml -->
 		<archidata.version>0.50.3-SNAPSHOT</archidata.version>
 		<maven.compiler.release>25</maven.compiler.release>
+		<maven.compiler.parameters>true</maven.compiler.parameters>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 

@@ -38,6 +38,6 @@ What each file shows
 | `src/main/java/.../filter/SampleAuthenticationFilter.java` | The JWT filter: an `AuthenticationFilter` with the application name. |
 | `src/main/java/.../migration/Initialization.java` | The first `MigrationStep`, seeding data with `addAction`. |
 | `src/main/java/.../WebLauncher.java` | Production start-up: migrations, index synchronization, Jersey configuration, Grizzly server. Configuration from environment variables. |
-| `src/main/java/.../WebLauncherLocal.java` | Development start-up: hard-coded configuration, local RSA key and generated tokens (no SSO). |
+| `src/main/java/.../WebLauncherLocal.java` | Development start-up: hard-coded configuration, local RSA key and generated tokens (no SSO, the JWT key updater is disabled). |
 | `src/main/resources/logback.xml` | Logging at INFO (Logback defaults to DEBUG). |
 | `src/test/java/.../SampleTest.java` | Infrastructure-free checks: access annotations, validation groups, token round trip. |
