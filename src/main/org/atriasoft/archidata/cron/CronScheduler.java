@@ -143,20 +143,19 @@ public class CronScheduler {
 		if (this.producerThread != null && !this.producerThread.isShutdown()) {
 			return;
 		}
+		final ThreadFactory threadFactory;
 		if (this.daemonThreads) {
-			final ThreadFactory daemonFactory = runnable -> {
+			threadFactory = runnable -> {
 				final Thread thread = Executors.defaultThreadFactory().newThread(runnable);
 				thread.setDaemon(true);
 				return thread;
 			};
-			this.producerThread = Executors.newSingleThreadExecutor(daemonFactory);
-			this.consumerThread = Executors.newSingleThreadExecutor(daemonFactory);
-			this.rerunTimer = Executors.newSingleThreadScheduledExecutor(daemonFactory);
 		} else {
-			this.producerThread = Executors.newSingleThreadExecutor();
-			this.consumerThread = Executors.newSingleThreadExecutor();
-			this.rerunTimer = Executors.newSingleThreadScheduledExecutor();
+			threadFactory = Executors.defaultThreadFactory();
 		}
+		this.producerThread = Executors.newSingleThreadExecutor(threadFactory);
+		this.consumerThread = Executors.newSingleThreadExecutor(threadFactory);
+		this.rerunTimer = Executors.newSingleThreadScheduledExecutor(threadFactory);
 		this.producerThread.submit((Runnable) this::producerThread);
 		this.consumerThread.submit((Runnable) this::consumerThread);
 	}
