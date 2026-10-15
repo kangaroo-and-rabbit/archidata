@@ -1,8 +1,10 @@
 package test.atriasoft.archidata.statistic;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.atriasoft.archidata.cron.CronScheduler;
 import org.atriasoft.archidata.dataAccess.Filters;
 import org.atriasoft.archidata.dataAccess.statistic.QuerySignature.Operation;
 import org.atriasoft.archidata.dataAccess.statistic.QueryStatEntry;
@@ -149,5 +151,16 @@ public class TestQueryStatistics {
 		final Path file = this.tempDir.resolve("stats.json");
 		QueryStatistics.flush();
 		Assertions.assertFalse(Files.exists(file));
+	}
+
+	@Test
+	public void testFlushSchedulerDoesNotKeepTheJvmAlive() throws Exception {
+		ConfigBaseVariable.setQueryStatisticsFile(this.tempDir.resolve("stats.json").toString());
+		QueryStatistics.record("user", Operation.FIND, Filters.eq("name", "bob"), null, null);
+		final Field field = QueryStatistics.class.getDeclaredField("scheduler");
+		field.setAccessible(true);
+		final CronScheduler scheduler = (CronScheduler) field.get(null);
+		Assertions.assertNotNull(scheduler, "the first record must start the flush scheduler");
+		Assertions.assertTrue(scheduler.isDaemonThreads(), "the flush scheduler must use daemon threads");
 	}
 }

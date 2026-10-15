@@ -145,6 +145,9 @@ public final class QueryStatistics {
 		LOGGER.info("Query statistics enabled: file={} period='{}'", path, period);
 		try {
 			scheduler = new CronScheduler();
+			// The application does not own this scheduler: it must not keep the JVM alive (the shutdown hook
+			// below writes the last report).
+			scheduler.setDaemonThreads(true);
 			scheduler.addTask(CRON_TASK_NAME, period, QueryStatistics::flush);
 			scheduler.start();
 		} catch (final Exception ex) {

@@ -39,8 +39,9 @@ QUERY_STATISTICS_FILE=./data/query-stats.json ./run-server.sh
 There is no call to add in your code: `DBAccessMongo` records every filtered
 read, count, update, soft delete, restore and hard delete itself.
 
-On first use the statistics start a private `CronScheduler` that rewrites the
-file every period, and install a shutdown hook that writes it one last time.
+On first use the statistics start a private `CronScheduler` (daemon threads:
+it never keeps the JVM alive) that rewrites the file every period, and install
+a shutdown hook that writes it one last time.
 If the file already exists it is read back, so the counters keep growing across
 restarts.
 
@@ -134,5 +135,3 @@ Pitfalls
   stale shapes.
 - Calling `record` from your own code is possible but pointless: only the
   `DBAccessMongo` paths feed the report.
-- The flush scheduler threads are not daemon threads and the application does
-  not own them. Outside tests they are only stopped by the JVM exit.

@@ -121,8 +121,10 @@ Threading model
   `ERROR` when it ends.
 - A task that throws (even an `Error`) is logged, reported to the listener as
   a failure, and the consumer keeps going.
-- Both executors use non-daemon threads: call `stop()` at shutdown, otherwise
-  the JVM does not exit by itself.
+- By default the threads are not daemon threads: call `stop()` at shutdown,
+  otherwise the JVM does not exit by itself. `setDaemonThreads(true)` before
+  `start()` creates daemon threads instead (`isDaemonThreads()` reads the flag),
+  for a scheduler nobody stops explicitly.
 - `setGracePeriodMinutes(Integer)`: the producer sleeps that long after
   `start()` before scheduling anything, one-time tasks included. `null`, 0 or a
   negative value disables it (`disableGracePeriodMinutes()` does the same).
@@ -170,7 +172,7 @@ Reference
 
 | Class | Visibility | Role |
 |---|---|---|
-| `CronScheduler` | public | the scheduler: `start`, `stop`, `addTask` (4 overloads), `removeTask`, `hasTask`, static `matches`, `triggerWakeup`, `setGracePeriodMinutes`, `disableGracePeriodMinutes`, `setEventGraceMillis`, `getEventGraceMillis`, `setExecutionListener` |
+| `CronScheduler` | public | the scheduler: `start`, `stop`, `addTask` (4 overloads), `removeTask`, `hasTask`, static `matches`, `setDaemonThreads`, `isDaemonThreads`, `triggerWakeup`, `setGracePeriodMinutes`, `disableGracePeriodMinutes`, `setEventGraceMillis`, `getEventGraceMillis`, `setExecutionListener` |
 | `CronExecutionListener` | public interface | `onStart`, `onEnd` (2 and 3 arguments) |
 | `CronTriggerType` | public enum | `SCHEDULED`, `WAKEUP`, `RERUN` |
 | `ScheduledTask` | public record | `(String name, LocalDateTime executeAt, Runnable action)`, equality by name |
@@ -191,6 +193,6 @@ Pitfalls
 - `removeTask` does not cancel an occurrence already waiting in the queue.
 - `triggerWakeup` ignores one-time tasks and unknown names without any error.
 - `QueryStatistics` creates its own `CronScheduler` when
-  `QUERY_STATISTICS_FILE` is set, whose threads you cannot stop (only
-  `QueryStatistics.reset()`, meant for tests, does); it flushes at JVM shutdown
-  through a shutdown hook.
+  `QUERY_STATISTICS_FILE` is set. Its threads are daemon threads, so it does not
+  prevent the JVM from exiting; it flushes at JVM shutdown through a shutdown
+  hook.

@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.types.ObjectId;
@@ -64,6 +65,8 @@ public class CronScheduler {
 	private ExecutorService producerThread;
 	private ExecutorService consumerThread;
 	private Integer gracePeriodMinutes = null;
+	/** Whether {@link #start()} creates daemon threads. */
+	private volatile boolean daemonThreads = false;
 
 	/** Default minimum spacing between two event-driven executions of the same task. */
 	private static final long DEFAULT_EVENT_GRACE_MILLIS = 15_000L;
@@ -90,6 +93,26 @@ public class CronScheduler {
 	 */
 	public void setExecutionListener(final CronExecutionListener listener) {
 		this.executionListener = listener;
+	}
+
+	/**
+	 * Chooses whether the scheduler threads (producer, consumer, wake-up timer) are daemon threads. Daemon
+	 * threads do not keep the JVM alive: use it for a scheduler that the application does not stop itself.
+	 * Default {@code false}. Takes effect at the next {@link #start()}.
+	 *
+	 * @param daemon {@code true} to create daemon threads
+	 */
+	public void setDaemonThreads(final boolean daemon) {
+		this.daemonThreads = daemon;
+	}
+
+	/**
+	 * Tells whether the scheduler creates daemon threads.
+	 *
+	 * @return {@code true} if the threads created by {@link #start()} are daemon threads
+	 */
+	public boolean isDaemonThreads() {
+		return this.daemonThreads;
 	}
 
 	/**
@@ -120,9 +143,20 @@ public class CronScheduler {
 		if (this.producerThread != null && !this.producerThread.isShutdown()) {
 			return;
 		}
-		this.producerThread = Executors.newSingleThreadExecutor();
-		this.consumerThread = Executors.newSingleThreadExecutor();
-		this.rerunTimer = Executors.newSingleThreadScheduledExecutor();
+		if (this.daemonThreads) {
+			final ThreadFactory daemonFactory = runnable -> {
+				final Thread thread = Executors.defaultThreadFactory().newThread(runnable);
+				thread.setDaemon(true);
+				return thread;
+			};
+			this.producerThread = Executors.newSingleThreadExecutor(daemonFactory);
+			this.consumerThread = Executors.newSingleThreadExecutor(daemonFactory);
+			this.rerunTimer = Executors.newSingleThreadScheduledExecutor(daemonFactory);
+		} else {
+			this.producerThread = Executors.newSingleThreadExecutor();
+			this.consumerThread = Executors.newSingleThreadExecutor();
+			this.rerunTimer = Executors.newSingleThreadScheduledExecutor();
+		}
 		this.producerThread.submit((Runnable) this::producerThread);
 		this.consumerThread.submit((Runnable) this::consumerThread);
 	}
