@@ -418,35 +418,36 @@ public class RESTApiRequest {
 	}
 
 	/**
-	 * Sends the request and returns the raw HTTP response as bytes.
-	 * @return Raw HTTP response with byte array body (2xx status only).
-	 * @throws IOException If the request fails, or if an error response body is not an archidata error JSON.
+	 * Sends the request and returns the raw HTTP response as bytes, whatever its status.
+	 * The status is not checked: read {@link HttpResponse#statusCode()} (a 4xx/5xx answer is returned,
+	 * not thrown). Use {@link #fetch(Class)} to get a {@link RESTErrorResponseException} on error.
+	 * @return Raw HTTP response with byte array body.
+	 * @throws IOException If the request fails.
 	 * @throws InterruptedException If the request is interrupted.
-	 * @throws RESTErrorResponseException If the server answers with a 4xx/5xx status.
+	 * @throws RESTErrorResponseException Never thrown here; kept for source compatibility.
 	 */
 	public HttpResponse<byte[]> fetchByte() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
 		final HttpResponse<byte[]> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
 		displayResponse(httpResponse);
-		final byte[] body = httpResponse.body();
-		checkHttpError(httpResponse.statusCode(), body == null ? null : new String(body, StandardCharsets.UTF_8));
 		return httpResponse;
 	}
 
 	/**
-	 * Sends the request and returns the raw HTTP response as a string.
-	 * @return Raw HTTP response with string body (2xx status only).
-	 * @throws IOException If the request fails, or if an error response body is not an archidata error JSON.
+	 * Sends the request and returns the raw HTTP response as a string, whatever its status.
+	 * The status is not checked: read {@link HttpResponse#statusCode()} (a 4xx/5xx answer is returned,
+	 * not thrown). Use {@link #fetch(Class)} to get a {@link RESTErrorResponseException} on error.
+	 * @return Raw HTTP response with string body.
+	 * @throws IOException If the request fails.
 	 * @throws InterruptedException If the request is interrupted.
-	 * @throws RESTErrorResponseException If the server answers with a 4xx/5xx status.
+	 * @throws RESTErrorResponseException Never thrown here; kept for source compatibility.
 	 */
 	public HttpResponse<String> fetchString() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		displayResponse(httpResponse);
-		checkHttpError(httpResponse.statusCode(), httpResponse.body());
 		return httpResponse;
 	}
 
@@ -584,6 +585,7 @@ public class RESTApiRequest {
 	private <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(final Class<TYPE_RESPONSE> clazzReturn)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpResponse<String> httpResponse = fetchString();
+		checkHttpError(httpResponse.statusCode(), httpResponse.body());
 		if (clazzReturn == Void.class || clazzReturn == void.class) {
 			return null;
 		}
@@ -602,6 +604,7 @@ public class RESTApiRequest {
 	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(final Class<TYPE_RESPONSE> clazzReturn)
 			throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpResponse<String> httpResponse = fetchString();
+		checkHttpError(httpResponse.statusCode(), httpResponse.body());
 		LOGGER.trace("Receive model: List<{}> with data: '{}'", clazzReturn.getCanonicalName(), httpResponse.body());
 		return this.mapper.readValue(httpResponse.body(),
 				this.mapper.getTypeFactory().constructCollectionType(List.class, clazzReturn));

@@ -58,16 +58,22 @@ class TestRESTApiRequest {
 	}
 
 	@Test
-	void fetchStringThrowsOnError() {
-		final RESTErrorResponseException ex = Assertions.assertThrows(RESTErrorResponseException.class,
-				() -> new RESTApiRequest(baseUrl + "/ko", null, null).fetchString());
-		Assertions.assertEquals(404, ex.status);
+	void fetchStringReturnsTheErrorResponse() throws Exception {
+		// Raw accessor: the caller reads the status (karso and karideo tests rely on it).
+		final HttpResponse<String> response = new RESTApiRequest(baseUrl + "/ko", null, null).fetchString();
+		Assertions.assertEquals(404, response.statusCode());
 	}
 
 	@Test
-	void fetchByteThrowsOnError() {
+	void fetchByteReturnsTheErrorResponse() throws Exception {
+		final HttpResponse<byte[]> response = new RESTApiRequest(baseUrl + "/ko", null, null).fetchByte();
+		Assertions.assertEquals(404, response.statusCode());
+	}
+
+	@Test
+	void fetchClassThrowsOnError() {
 		final RESTErrorResponseException ex = Assertions.assertThrows(RESTErrorResponseException.class,
-				() -> new RESTApiRequest(baseUrl + "/ko", null, null).fetchByte());
+				() -> new RESTApiRequest(baseUrl + "/ko", null, null).fetch(String.class));
 		Assertions.assertEquals(404, ex.status);
 	}
 
@@ -78,9 +84,9 @@ class TestRESTApiRequest {
 	}
 
 	@Test
-	void fetchStringNonJsonErrorIsIOException() {
+	void fetchClassNonJsonErrorIsIOException() {
 		Assertions.assertThrows(IOException.class,
-				() -> new RESTApiRequest(baseUrl + "/html", null, null).fetchString());
+				() -> new RESTApiRequest(baseUrl + "/html", null, null).fetch(String.class));
 	}
 
 	@Test

@@ -121,16 +121,16 @@ trailing slashes removed). It returns a new `RESTApiRequest` each call.
 | debug | `showIOStream()`, `formatBody()` (pretty-print the JSON body) |
 | send | `fetch(Class<T>)`, `fetchList(Class<T>)`, `fetch()` (no body), `fetchString()`, `fetchByte()`, `generateRequest()` (build the `HttpRequest` without sending) |
 
-Errors: `fetch`, `fetch(Class)`, `fetchList`, `fetchString` and `fetchByte` throw `RESTErrorResponseException`
+Errors: `fetch`, `fetch(Class)` and `fetchList` throw `RESTErrorResponseException`
 for a non-2xx status whose body is the archidata error JSON (see
 [error_handling.md](error_handling.md)), and `IOException` when the error body
 is not JSON. The status code is in the exception's `status` field.
 
 Pitfalls of the client:
 
-- To read a 4xx/5xx answer without an exception you must catch
-  `RESTErrorResponseException` (its `status` field holds the code):
-  `fetchString()` and `fetchByte()` only return 2xx responses.
+- `fetchString()` and `fetchByte()` are raw accessors: they return the
+  response whatever the status and never throw on 4xx/5xx (despite the
+  `throws` clause, kept for compatibility). Check `statusCode()` yourself.
 - A custom header added with `header(...)` is sent in addition to
   `Authorization` and `Content-Type`; it does not replace them.
 - `fetch(Class)` with `String.class` returns the raw body; with `void.class`
