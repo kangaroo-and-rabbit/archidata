@@ -119,6 +119,9 @@ public class ChangeNotificationManager {
 	// Global FullDocument mode set at startup (applies to all collections)
 	private FullDocument globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;
 
+	// Per-listener / per-watch modes requested before start(): checked against the effective mode at start
+	private final Set<FullDocument> modesRequestedBeforeStart = ConcurrentHashMap.newKeySet();
+
 	// Lifecycle
 	private volatile boolean running = false;
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -201,6 +204,7 @@ public class ChangeNotificationManager {
 
 			this.database = database;
 			this.globalFullDocumentMode = mode;
+			warnModesRequestedBeforeStart(mode);
 			this.executorService = Executors.newCachedThreadPool();
 			this.running = true;
 
@@ -335,6 +339,7 @@ public class ChangeNotificationManager {
 			this.collectionListeners.clear();
 			this.globalListeners.clear();
 			this.resumeTokens.clear();
+			this.modesRequestedBeforeStart.clear();
 			this.database = null;
 
 			// Close owned MongoClient if we created one
@@ -616,9 +621,9 @@ public class ChangeNotificationManager {
 			final ChangeNotificationListener listener,
 			final Set<String> collectionNames,
 			final FullDocument mode) {
-		warnIgnoredMode(mode);
 		this.lock.writeLock().lock();
 		try {
+			warnIgnoredMode(mode);
 			final ListenerRegistration registration = new ListenerRegistration(listener, null);
 
 			for (final String collectionName : collectionNames) {
@@ -641,13 +646,41 @@ public class ChangeNotificationManager {
 	 * Logs a warning when a caller asks for a FullDocument mode other than the global one: per-listener
 	 * modes are not supported (one worker per collection, with the mode given to {@code start()}).
 	 *
+	 * <p>
+	 * Before {@code start()} the effective mode is not known yet (start may choose another one): the
+	 * requested mode is kept and checked by {@link #warnModesRequestedBeforeStart(FullDocument)}.
+	 * </p>
+	 *
 	 * @param mode the requested mode, {@code null} when none was requested
 	 */
 	private void warnIgnoredMode(final FullDocument mode) {
-		if (mode != null && mode != this.globalFullDocumentMode) {
+		if (mode == null) {
+			return;
+		}
+		if (!this.running) {
+			this.modesRequestedBeforeStart.add(mode);
+			return;
+		}
+		if (mode != this.globalFullDocumentMode) {
 			LOGGER.warn("FullDocument mode {} requested for a listener or a watch is IGNORED: the mode is global,"
 					+ " chosen by start() (current: {})", mode, this.globalFullDocumentMode);
 		}
+	}
+
+	/**
+	 * Logs a warning for each per-listener / per-watch mode requested before {@code start()} that differs
+	 * from the effective mode, then forgets them. Called by {@code start()} under the write lock.
+	 *
+	 * @param effectiveMode the global mode chosen by {@code start()}
+	 */
+	private void warnModesRequestedBeforeStart(final FullDocument effectiveMode) {
+		for (final FullDocument requested : this.modesRequestedBeforeStart) {
+			if (requested != effectiveMode) {
+				LOGGER.warn("FullDocument mode {} requested for a listener or a watch before start() is IGNORED:"
+						+ " the mode is global, chosen by start() (effective: {})", requested, effectiveMode);
+			}
+		}
+		this.modesRequestedBeforeStart.clear();
 	}
 
 	/**
@@ -674,9 +707,9 @@ public class ChangeNotificationManager {
 			final Set<String> collectionNames,
 			final FullDocument mode,
 			final Predicate<ChangeEvent> clientFilter) {
-		warnIgnoredMode(mode);
 		this.lock.writeLock().lock();
 		try {
+			warnIgnoredMode(mode);
 			final ListenerRegistration registration = new ListenerRegistration(listener, clientFilter);
 
 			if (collectionNames == null || collectionNames.isEmpty()) {
@@ -855,6 +888,7 @@ public class ChangeNotificationManager {
 			// This prevents re-reading events when new listeners are added
 			this.globalListeners.clear();
 			this.collectionListeners.clear();
+			this.modesRequestedBeforeStart.clear();
 		} finally {
 			this.lock.writeLock().unlock();
 		}
@@ -998,8 +1032,13 @@ public class ChangeNotificationManager {
 	 */
 	void startWatchingCollection(final String collectionName, final FullDocument mode, final List<Bson> pipeline) {
 		// mode parameter is ignored as we use global mode
-		warnIgnoredMode(mode);
-		watchCollectionInternal(collectionName, pipeline);
+		this.lock.writeLock().lock();
+		try {
+			warnIgnoredMode(mode);
+			watchCollectionInternal(collectionName, pipeline);
+		} finally {
+			this.lock.writeLock().unlock();
+		}
 	}
 
 	// ========== Inner Classes ==========
