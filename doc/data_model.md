@@ -251,7 +251,7 @@ public List<User> getAll() { ... }
 | `description` | `""`    | Description of the class, field, or API method |
 | `example`     | `""`    | Example value (classes and fields) |
 | `group`       | `""`    | Logical group / tag for API methods |
-| `hidden`      | `false` | Hide from generated documentation |
+| `hidden`      | `false` | Leave the field, the endpoint or the whole resource class out of the generated clients and documentation (the field is still serialized in JSON, the endpoint still answers) |
 
 > **Backward compatibility:** When `@ApiDoc` is absent, the generators fall back to Swagger's `@Schema` and `@Operation` with a deprecation warning. This fallback will be removed in a future version.
 

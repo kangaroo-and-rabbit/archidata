@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
+import org.atriasoft.archidata.externalRestApi.model.ApiTool;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ModelGroup;
 import org.slf4j.Logger;
@@ -53,6 +54,10 @@ public class AnalyzeApi {
 	 * @throws Exception if analysis fails
 	 */
 	public void addApi(final Class<?> clazz) throws Exception {
+		if (ApiTool.apiIsHidden(clazz)) {
+			LOGGER.debug("Skip API class hidden by @ApiDoc(hidden = true): {}", clazz.getName());
+			return;
+		}
 		this.apiModels.add(new ApiGroupModel(clazz, this.modelGroup));
 		analyzeModels();
 	}
@@ -64,6 +69,10 @@ public class AnalyzeApi {
 	 */
 	public void addAllApi(final List<Class<?>> classes) throws Exception {
 		for (final Class<?> clazz : classes) {
+			if (ApiTool.apiIsHidden(clazz)) {
+				LOGGER.debug("Skip API class hidden by @ApiDoc(hidden = true): {}", clazz.getName());
+				continue;
+			}
 			this.apiModels.add(new ApiGroupModel(clazz, this.modelGroup));
 		}
 		analyzeModels();

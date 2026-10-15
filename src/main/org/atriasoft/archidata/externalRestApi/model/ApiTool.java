@@ -137,6 +137,28 @@ public class ApiTool {
 	}
 
 	/**
+	 * Tells whether an API method is hidden from the generated clients and documentation
+	 * ({@code @ApiDoc(hidden = true)} on the method or on the interface method it implements).
+	 * @param element the method to inspect
+	 * @return {@code true} if the method must not be generated
+	 */
+	public static boolean apiIsHidden(final Method element) {
+		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingInterfaces(element, ApiDoc.class);
+		return apiDoc != null && apiDoc.hidden();
+	}
+
+	/**
+	 * Tells whether a whole JAX-RS resource class is hidden from the generated clients and
+	 * documentation ({@code @ApiDoc(hidden = true)} on the class).
+	 * @param clazz the resource class to inspect
+	 * @return {@code true} if none of its methods must be generated
+	 */
+	public static boolean apiIsHidden(final Class<?> clazz) {
+		final ApiDoc apiDoc = clazz.getAnnotation(ApiDoc.class);
+		return apiDoc != null && apiDoc.hidden();
+	}
+
+	/**
 	 * Extracts the API operation description from {@code @ApiDoc} or {@code @Operation}.
 	 * @param element the method to inspect
 	 * @return the description string, or {@code null} if not annotated

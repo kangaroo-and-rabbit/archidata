@@ -53,7 +53,12 @@ public @interface ApiDoc {
 	String group() default "";
 
 	/**
-	 * If true, the element is hidden from generated API documentation.
+	 * If true, the element is left out of every generator (OpenAPI, TypeScript, Python...).
+	 *
+	 * <p>On an API method, the endpoint is not generated; on a JAX-RS resource class, none of its
+	 * endpoints is; on a field, the property is removed from the generated model. The endpoint still
+	 * answers and the field is still serialized in JSON: this only hides them from the generated
+	 * clients and documentation. It has no effect on a model class.
 	 * @return whether the element should be hidden, false by default
 	 */
 	boolean hidden() default false;

@@ -517,6 +517,11 @@ public class ClassObjectModel extends ClassModel {
 				LOGGER.trace("        SKIP (no field): '{}'", prop.getName());
 				continue;
 			}
+			final ApiDoc fieldApiDoc = prop.getField().getAnnotation(ApiDoc.class);
+			if (fieldApiDoc != null && fieldApiDoc.hidden()) {
+				LOGGER.trace("        SKIP (@ApiDoc(hidden = true)): '{}'", prop.getName());
+				continue;
+			}
 			final String dataName = prop.getName();
 			if (isPropertyFromSuperClass(clazz, dataName)) {
 				LOGGER.trace("        SKIP:  '{}'", dataName);

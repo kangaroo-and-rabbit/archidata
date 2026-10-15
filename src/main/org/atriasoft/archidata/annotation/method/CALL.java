@@ -8,7 +8,8 @@ import java.lang.annotation.Target;
 import jakarta.ws.rs.HttpMethod;
 
 /**
-* Indicates that the annotated method responds to HTTP ARCHIVE requests.
+* Indicates that the annotated method responds to HTTP CALL requests (custom verb for an action
+* that is not a CRUD operation; the API generators emit the matching client call).
 *
 * @author Edouard DUPIN
 * @see HttpMethod

@@ -83,6 +83,10 @@ public class ApiGroupModel {
 						orderedElement.methodName());
 				continue;
 			}
+			if (ApiTool.apiIsHidden(orderedElement.method())) {
+				LOGGER.trace("    {} ==> hidden by @ApiDoc(hidden = true)", orderedElement.methodName());
+				continue;
+			}
 			final ApiModel model = new ApiModel(clazz, orderedElement.method(), this.restEndPoint, consumes, produces,
 					previousModel);
 			this.interfaces.add(model);
