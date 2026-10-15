@@ -50,6 +50,7 @@ import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.Skip;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
+import org.atriasoft.archidata.db.BsonCodecs;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
@@ -1659,8 +1660,10 @@ public class DBAccessMongo implements Closeable {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			if (filters != null) {
-				LOGGER.trace("filter = {}",
-						filters.toBsonDocument().toJson(JsonWriterSettings.builder().indent(true).build()));
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace("filter = {}", BsonCodecs.toBsonDocument(filters)
+							.toJson(JsonWriterSettings.builder().indent(true).build()));
+				}
 			} else {
 				LOGGER.trace("filter = None");
 			}

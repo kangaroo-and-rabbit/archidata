@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.atriasoft.archidata.db.BsonCodecs;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.bson.Document;
@@ -110,7 +111,7 @@ public final class QuerySignature {
 		final Set<String> range = new TreeSet<>();
 		final boolean[] containsOr = { false };
 		if (filter != null) {
-			walk(filter.toBsonDocument(), equality, range, containsOr);
+			walk(BsonCodecs.toBsonDocument(filter), equality, range, containsOr);
 		}
 		// A range predicate always wins: it is what pins the field at the tail of the index.
 		equality.removeAll(range);
