@@ -39,11 +39,13 @@ devient `2-30/2`). Voir `doc/cron.md`.
 
 ### Statuts HTTP des catchers
 
-- `JacksonExceptionCatcher` : un corps de requête JSON illisible (`StreamReadException`) ou qui ne
-  correspond pas au type attendu (`MismatchedInputException`, `ValueInstantiationException`)
-  répond **400** au lieu de 500. Les mêmes erreurs levées par un parsing fait par le serveur
-  lui-même (réponse d'un service amont, document stocké) restent en 500, comme toute autre erreur
-  Jackson.
+- Un corps de requête JSON illisible (`StreamReadException`) ou qui ne correspond pas au type
+  attendu (`MismatchedInputException`, `ValueInstantiationException`) répond **400** au lieu
+  de 500 : `RequestBodyReaderInterceptor` l'enveloppe dans une `RequestBodyException`, à laquelle
+  `RequestBodyExceptionCatcher` répond 400. Toute `JacksonException` brute (parsing fait par le
+  serveur lui-même, réponse d'un service amont, document stocké, sérialisation) reste en 500
+  (`JacksonExceptionCatcher`). `GenericCatcher.addAll(rc)` enregistre l'intercepteur et le
+  mapper ; une application qui enregistre les catchers un par un doit ajouter ces deux classes.
 - `InputExceptionCatcher` : le champ `status` du corps JSON reprend le statut réel de
   l'`InputException` (celui de la réponse HTTP) ; avant, il valait toujours 400.
 

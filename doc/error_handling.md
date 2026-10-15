@@ -38,7 +38,8 @@ rc.register(ValidationFeature.class);
 ```
 
 `GenericCatcher.addAll(ResourceConfig)` is the only entry point; the class has
-a private constructor. It registers, in this order: `JacksonExceptionCatcher`,
+a private constructor. It registers `RequestBodyReaderInterceptor` (see the JSON
+row below), then, in this order: `RequestBodyExceptionCatcher`, `JacksonExceptionCatcher`,
 `InputExceptionCatcher`, `SystemExceptionCatcher`, `FailExceptionCatcher`,
 `ConstraintViolationExceptionCatcher`, `QueryParamExceptionCatcher`,
 `ExceptionCatcher`, `WebApplicationExceptionCatcher`. The order does not matter:
@@ -61,7 +62,8 @@ Exception to HTTP mapping
 | `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
 | any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception | `Catch system exception` |
-| `com.fasterxml.jackson.core.JacksonException` | `JacksonExceptionCatcher` | 400 for a request body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`); 500 for the same errors raised by a parsing done by the server itself (upstream response, stored document) and for any other Jackson failure | `Catch JSON Exception` |
+| `RequestBodyException`: a request body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`), wrapped by `RequestBodyReaderInterceptor` around the reading of the entity | `RequestBodyExceptionCatcher` | 400 | `Catch JSON Exception` |
+| any other `com.fasterxml.jackson.core.JacksonException`: a parsing done by the server itself (upstream response, stored document), a serialization or class definition failure | `JacksonExceptionCatcher` | 500 | `Catch JSON Exception` |
 | any other `Exception` (including `DataAccessException`) | `ExceptionCatcher` | 500 | `Internal Server Error` |
 
 Every mapper logs the error with its `oid` (see below) at `ERROR` level, so a
@@ -191,16 +193,18 @@ Class reference
 | `InputException` | `(String variable, String message)`, `(Response.Status, String variable, String message)` | `missingVariable`, `status` |
 | `SystemException` | `(String)`, `(Response.Status, String)` | `status` |
 | `DataAccessException` | `(String)`, `(String, Throwable)` | none |
+| `RequestBodyException` (an `IOException`) | `(Throwable cause)`: the Jackson error of the request body | none |
 | `RESTErrorResponseException` | `()`, `(ObjectId, time, name, message, status, statusMessage, inputError)` | `oid`, `time`, `name`, `message`, `status`, `statusMessage`, `inputError` |
 
 `org.atriasoft.archidata.catcher`:
 
 | Class | Role |
 |---|---|
-| `GenericCatcher` | `static void addAll(ResourceConfig)` registers every mapper |
+| `GenericCatcher` | `static void addAll(ResourceConfig)` registers every mapper and `RequestBodyReaderInterceptor` |
 | `RestErrorResponse` | the JSON body; constructors `(status, time, error, message, inputError)`, `(status, time, error, message)`, `(status, error, message)` (time = now), `(status)` (name `generic`) |
 | `RestInputError` | one invalid input: `argument`, `path`, `message` |
-| `FailExceptionCatcher`, `InputExceptionCatcher`, `SystemExceptionCatcher`, `ConstraintViolationExceptionCatcher`, `QueryParamExceptionCatcher`, `WebApplicationExceptionCatcher`, `JacksonExceptionCatcher`, `ExceptionCatcher` | the mappers, public with a public no-arg constructor; register them individually only if you want a subset |
+| `RequestBodyReaderInterceptor` | server `ReaderInterceptor` that wraps the JSON errors of the request body in a `RequestBodyException` (registered by `addAll`) |
+| `FailExceptionCatcher`, `InputExceptionCatcher`, `SystemExceptionCatcher`, `ConstraintViolationExceptionCatcher`, `QueryParamExceptionCatcher`, `WebApplicationExceptionCatcher`, `RequestBodyExceptionCatcher`, `JacksonExceptionCatcher`, `ExceptionCatcher` | the mappers, public with a public no-arg constructor; register them individually only if you want a subset |
 
 All mappers answer with `Content-Type: application/json`.
 
