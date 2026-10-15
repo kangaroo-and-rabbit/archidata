@@ -17,14 +17,19 @@ déployées change :
 | jour du mois ET jour de semaine restreints tous les deux (`0 0 1 * 1`) | les deux devaient correspondre (ET) | l'un ou l'autre suffit (OU) |
 
 `*/n` sur la minute ou l'heure, `*`, les valeurs et les intervalles (hors jour de semaine 0)
-gardent leur sens. Nouveautés : `a-b/n`, dimanche = 7 ; les expressions invalides sont refusées
-par `addTask` (`IllegalArgumentException`) au lieu d'échouer à chaque évaluation.
+gardent leur sens. Nouveautés : dimanche = 7 ; les expressions invalides sont refusées par
+`addTask` (`IllegalArgumentException`) au lieu d'échouer à chaque évaluation.
 
-**Comment migrer :** `addTask` logue un WARN, avec l'ancienne et la nouvelle interprétation sur une
-ligne, pour chaque expression dont le sens a changé. Démarrer l'application, chercher
-`changed meaning when archidata moved to the Unix` dans les logs, et réécrire l'expression si le
-nouveau sens n'est pas celui voulu (par exemple `*/2` sur le jour du mois pour les jours pairs
-devient `2-30/2`). Voir `doc/cron.md`.
+Des expressions qui faisaient échouer l'ancien parseur à chaque évaluation (la tâche ne tournait
+jamais) **s'exécutent désormais** :
+
+- un pas sur un intervalle `a-b/n` (par exemple `0-30/10`) ;
+- des champs séparés par plusieurs espaces ou par une tabulation (`0  12 * * *`).
+
+**Comment migrer :** aucun avertissement n'est logué. Relire chaque expression cron déployée avec
+le tableau ci-dessus et la réécrire si le nouveau sens n'est pas celui voulu (par exemple `*/2` sur
+le jour du mois pour les jours pairs devient `2-30/2`) ; vérifier aussi que les tâches qui ne
+tournaient jamais pour les raisons ci-dessus doivent bien tourner. Voir `doc/cron.md`.
 
 ### `MigrationEngine`
 
