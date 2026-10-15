@@ -5,7 +5,6 @@ import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.persistence.Column;
 import jakarta.validation.Path;
 import jakarta.validation.constraints.NotNull;
 
@@ -17,14 +16,11 @@ import jakarta.validation.constraints.NotNull;
 public class RestInputError {
 	private static Pattern PATTERN = Pattern.compile("^([^.]+)\\.([^.]+)(\\.(.*))?");
 	/** The argument name that caused the validation error. */
-	@Column(length = 0)
 	public String argument;
 	/** The property path within the argument that caused the validation error. */
-	@Column(length = 0)
 	public String path;
 	/** The validation error message describing what went wrong. */
 	@NotNull
-	@Column(length = 0)
 	public String message;
 
 	@Override

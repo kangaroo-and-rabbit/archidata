@@ -3,15 +3,14 @@ package org.atriasoft.archidata.migration.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.DataNotRead;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Data model representing a migration record (version 3, the current one).
@@ -30,7 +29,7 @@ import jakarta.ws.rs.DefaultValue;
  * </p>
  */
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
-@Table(name = "KAR_migration")
+@Collection("KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration extends GenericDataSoftDelete {
 	/** Creates an empty {@link Migration} instance. */
@@ -40,16 +39,14 @@ public class Migration extends GenericDataSoftDelete {
 	static final int VERSION_MIGRATION = 3;
 	/** Name of the migration. */
 	@Schema(description = "Name of the migration")
-	@Column(length = 256)
 	public String name;
 	/** Version of the migration engine format. */
 	@DataNotRead
-	@DefaultValue("'3'")
+	@InitValue("'3'")
 	@Schema(description = "Version of the migration engine")
 	public Integer version;
 	/** Whether the migration completed successfully. */
-	@Column(nullable = false)
-	@DefaultValue("'0'")
+	@InitValue("'0'")
 	@Schema(description = "if the migration is well terminated or not")
 	public Boolean terminated = false;
 	/** Current step index in the migration progression. */
@@ -60,6 +57,5 @@ public class Migration extends GenericDataSoftDelete {
 	public Integer count;
 	/** Structured log messages generated during the migration. */
 	@Schema(description = "Log generate by the migration")
-	@Column(length = -1)
 	public List<MigrationMessage> logs = new ArrayList<>();
 }

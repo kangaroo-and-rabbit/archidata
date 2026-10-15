@@ -2,6 +2,9 @@ package org.atriasoft.archidata.journal;
 
 import java.util.Date;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
@@ -9,9 +12,6 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 /**
  * Progress marker of the change journal for one source collection: the upper bound of the last
@@ -22,7 +22,7 @@ import jakarta.persistence.Table;
  * whose capture failed keeps its previous marker, so the missed documents are picked up by the
  * next run.
  */
-@Table(name = ChangeJournalMarker.COLLECTION_NAME)
+@Collection(ChangeJournalMarker.COLLECTION_NAME)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChangeJournalMarker {
 
@@ -34,16 +34,14 @@ public class ChangeJournalMarker {
 
 	@Id
 	@BsonId
-	@Column(nullable = false, unique = true, name = "_id")
+	@Field("_id")
 	@Schema(description = "Unique ObjectID of the marker")
 	@ApiReadOnly
 	private ObjectId oid = null;
 
-	@Column(nullable = false, unique = true)
 	@Schema(description = "Name of the journalized source collection (table)", example = "user")
 	private String collectionName = null;
 
-	@Column(nullable = false)
 	@Schema(description = "Upper bound of the last successful capture: only documents modified after this date are captured next time", example = "2000-01-23T00:23:45.678Z")
 	private Date lastSavedAt = null;
 

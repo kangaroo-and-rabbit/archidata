@@ -171,8 +171,6 @@ public class TestIndexDeclaration {
 		final IndexSpec session = specs.stream()//
 				.filter(spec -> "sessionExpireAt".equals(spec.getKeys().get(0).path())).findFirst().orElseThrow();
 		Assertions.assertEquals(3600, session.getExpireAfterSeconds());
-		// @Column(unique = true) creates nothing: it only raises a warning.
-		Assertions.assertTrue(specs.stream().noneMatch(spec -> "legacyKey".equals(spec.getKeys().get(0).path())));
 	}
 
 	// ========== Programmatic declaration ==========

@@ -2,17 +2,17 @@ package org.atriasoft.archidata.model;
 
 import java.util.Date;
 
+import org.atriasoft.archidata.annotation.Collection;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 /**
  * Represents an application token stored in the database. Contains the token string, its validity period, and a reference to the parent entity.
  */
-@Table(name = "applicationToken")
+@Collection("applicationToken")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericToken extends OIDGenericDataSoftDelete {
 	/** Creates an empty {@link GenericToken} instance. */

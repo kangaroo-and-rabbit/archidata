@@ -29,9 +29,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -252,40 +249,6 @@ public class ClassObjectModel extends ClassModel {
 			return example;
 		}
 
-		private static Class<?> getSubModelIfExist2(final PropertyDescriptor property) {
-			final ManyToOne manyToOne = property.getAnnotation(ManyToOne.class);
-			if (manyToOne != null) {
-				if (manyToOne.targetEntity() != null && manyToOne.targetEntity() != void.class) {
-					return manyToOne.targetEntity();
-				}
-				return null;
-			}
-			final ManyToMany manyToMany = property.getAnnotation(ManyToMany.class);
-			if (manyToMany != null) {
-				if (manyToMany.targetEntity() != null && manyToMany.targetEntity() != void.class) {
-					return manyToMany.targetEntity();
-				}
-				return null;
-			}
-			final OneToMany oneToMany = property.getAnnotation(OneToMany.class);
-			if (oneToMany != null) {
-				if (oneToMany.targetEntity() != null && oneToMany.targetEntity() != void.class) {
-					return oneToMany.targetEntity();
-				}
-				return null;
-			}
-			return null;
-		}
-
-		private static ClassModel getSubModelIfExist(final PropertyDescriptor property, final ModelGroup previous)
-				throws IOException {
-			final Class<?> tmp = getSubModelIfExist2(property);
-			if (tmp == null) {
-				return null;
-			}
-			return ClassModel.getModel(tmp, previous);
-		}
-
 		/**
 		 * Returns the annotated type of the property (from its backing field, or its getter as a
 		 * fallback). Used to read type-use annotations on generic arguments (e.g. nullability).
@@ -313,7 +276,7 @@ public class ClassObjectModel extends ClassModel {
 				throws DataAccessException, IOException {
 			this(property.getName(), //
 					ClassModel.getModel(getAnnotatedType(property), property.getTypeInfo().genericType(), previous), //
-					getSubModelIfExist(property, previous), //
+					null, //
 					property.getAnnotation(CheckForeignKey.class), //
 					getSchemaDescription(property), //
 					getSchemaExample(property), //
@@ -334,41 +297,6 @@ public class ClassObjectModel extends ClassModel {
 
 		// -- Legacy Field-based helpers (kept for backward compatibility) --
 
-		@Deprecated
-		private static Class<?> getSubModelIfExist2(final Field field) {
-			final ManyToOne manyToOne = AnnotationTools.getManyToOne(field);
-			if (manyToOne != null) {
-				if (manyToOne.targetEntity() != null && manyToOne.targetEntity() != void.class) {
-					return manyToOne.targetEntity();
-				}
-				return null;
-			}
-			final ManyToMany manyToMany = AnnotationTools.getManyToMany(field);
-			if (manyToMany != null) {
-				if (manyToMany.targetEntity() != null && manyToMany.targetEntity() != void.class) {
-					return manyToMany.targetEntity();
-				}
-				return null;
-			}
-			final OneToMany oneToMany = AnnotationTools.getOneToMany(field);
-			if (oneToMany != null) {
-				if (oneToMany.targetEntity() != null && oneToMany.targetEntity() != void.class) {
-					return oneToMany.targetEntity();
-				}
-				return null;
-			}
-			return null;
-		}
-
-		@Deprecated
-		private static ClassModel getSubModelIfExist(final Field field, final ModelGroup previous) throws IOException {
-			final Class<?> tmp = getSubModelIfExist2(field);
-			if (tmp == null) {
-				return null;
-			}
-			return ClassModel.getModel(tmp, previous);
-		}
-
 		/**
 		 * Constructs a FieldProperty from a legacy Field (kept for backward compatibility).
 		 * @param field the Java field to extract metadata from
@@ -381,7 +309,7 @@ public class ClassObjectModel extends ClassModel {
 		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
-					getSubModelIfExist(field, previous), //
+					null, //
 					AnnotationTools.get(field, CheckForeignKey.class), //
 					AnnotationTools.getSchemaDescription(field), //
 					AnnotationTools.getSchemaExample(field), //

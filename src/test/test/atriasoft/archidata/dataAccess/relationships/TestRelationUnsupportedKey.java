@@ -2,6 +2,8 @@ package test.atriasoft.archidata.dataAccess.relationships;
 
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.annotation.OneToManyDoc;
@@ -11,13 +13,10 @@ import org.atriasoft.archidata.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
 /** A relation field whose key type is not ObjectId, Long or UUID must be rejected, naming the class and the field. */
 public class TestRelationUnsupportedKey {
 
-	@Table(name = "RelBadManyToOne")
+	@Collection("RelBadManyToOne")
 	public static class BadManyToOne {
 		@Id
 		public String id;
@@ -25,7 +24,7 @@ public class TestRelationUnsupportedKey {
 		public String parentId;
 	}
 
-	@Table(name = "RelBadOneToMany")
+	@Collection("RelBadOneToMany")
 	public static class BadOneToMany {
 		@Id
 		public String id;
@@ -33,7 +32,7 @@ public class TestRelationUnsupportedKey {
 		public List<String> childIds;
 	}
 
-	@Table(name = "RelBadManyToMany")
+	@Collection("RelBadManyToMany")
 	public static class BadManyToMany {
 		@Id
 		public String id;

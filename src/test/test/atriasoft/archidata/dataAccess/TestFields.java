@@ -2,6 +2,8 @@ package test.atriasoft.archidata.dataAccess;
 
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.Fields;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
@@ -13,9 +15,6 @@ import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 
 /**
  * Unit tests for {@link Fields} utility class.
@@ -62,7 +61,7 @@ public class TestFields {
 	public static class ColumnRenameModel {
 		@Id
 		public String _id;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 		public String normalField;
 
@@ -202,7 +201,7 @@ public class TestFields {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {

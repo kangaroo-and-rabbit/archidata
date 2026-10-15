@@ -3,6 +3,8 @@ package test.atriasoft.archidata.dataAccess;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.Filters;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
@@ -12,9 +14,6 @@ import org.bson.conversions.Bson;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 
 /**
  * Comprehensive unit tests for the {@link Filters} class and its method reference resolution.
@@ -112,11 +111,11 @@ public class TestFilters {
 		}
 	}
 
-	/** Model with @Column(name) for custom field name mapping. */
+	/** Model with @Field for custom field name mapping. */
 	public static class ColumnRenameModel {
 		@Id
 		public String _id;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 		public String normalField;
 
@@ -778,7 +777,7 @@ public class TestFilters {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {

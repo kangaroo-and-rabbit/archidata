@@ -79,7 +79,6 @@ import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /**
@@ -1263,7 +1262,7 @@ public class DBAccessMongo implements Closeable {
 			// reason as the DELETED case of insertPrimaryKey).
 			final DbPropertyDescriptor deletedDesc = model.getDeletedField();
 			if (deletedDesc != null && !directdata) {
-				final String defVal = deletedDesc.getDefaultValue();
+				final String defVal = deletedDesc.getInitValue();
 				final Object defaultValue = defVal != null
 						? convertDefaultField(defVal, deletedDesc.getProperty().getField())
 						: Boolean.FALSE;
@@ -1366,7 +1365,7 @@ public class DBAccessMongo implements Closeable {
 							// filter is an equality on 'false' (see Condition#getFilter), so a
 							// document inserted without the field would be invisible to every
 							// query -- including the read back of this very insert.
-							final String defVal = desc.getDefaultValue();
+							final String defVal = desc.getInitValue();
 							final Object defaultValue = defVal != null ? convertDefaultField(defVal, field)
 									: Boolean.FALSE;
 							docSet.append(fieldName.inTable(), defaultValue);
@@ -1390,7 +1389,7 @@ public class DBAccessMongo implements Closeable {
 						Object currentInsertValue = prop.getValue(data);
 
 						if (currentInsertValue == null && field != null && !field.getClass().isPrimitive()) {
-							final String defVal = desc.getDefaultValue();
+							final String defVal = desc.getInitValue();
 							if (defVal == null) {
 								break;
 							}
@@ -1551,7 +1550,7 @@ public class DBAccessMongo implements Closeable {
 				final PropertyDescriptor prop = desc.getProperty();
 				if (!prop.getType().isPrimitive()) {
 					final Object tmp = prop.getValue(data);
-					if (tmp == null && desc.getDefaultValue() != null) {
+					if (tmp == null && desc.getInitValue() != null) {
 						continue;
 					}
 				}

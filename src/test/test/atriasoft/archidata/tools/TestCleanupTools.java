@@ -7,6 +7,7 @@ import java.util.Date;
 
 import org.atriasoft.archidata.annotation.DataAsyncHardDeleted;
 import org.atriasoft.archidata.annotation.DataNotRead;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 

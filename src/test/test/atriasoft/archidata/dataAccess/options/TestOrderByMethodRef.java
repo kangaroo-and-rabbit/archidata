@@ -1,5 +1,7 @@
 package test.atriasoft.archidata.dataAccess.options;
 
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
@@ -14,9 +16,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
-
 /**
  * Unit tests for method reference support in {@link OrderItem} and {@link OrderBy}.
  * These tests do NOT require a running MongoDB instance.
@@ -28,7 +27,7 @@ public class TestOrderByMethodRef {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {
@@ -175,7 +174,7 @@ public class TestOrderByMethodRef {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {

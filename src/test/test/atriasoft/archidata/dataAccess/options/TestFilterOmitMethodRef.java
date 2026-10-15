@@ -2,6 +2,8 @@ package test.atriasoft.archidata.dataAccess.options;
 
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
@@ -14,9 +16,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
-
 /**
  * Unit tests for method reference constructors in {@link FilterOmit}.
  * These tests do NOT require a running MongoDB instance.
@@ -28,7 +27,7 @@ public class TestFilterOmitMethodRef {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {
@@ -123,7 +122,7 @@ public class TestFilterOmitMethodRef {
 		public String _id;
 		public String name;
 		public int age;
-		@Column(name = "full_name")
+		@Field("full_name")
 		public String fullName;
 
 		public String getName() {

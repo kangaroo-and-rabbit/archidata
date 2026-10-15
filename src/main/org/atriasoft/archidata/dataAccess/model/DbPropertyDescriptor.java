@@ -10,6 +10,8 @@ import org.atriasoft.archidata.annotation.DataAsyncHardDeleted;
 import org.atriasoft.archidata.annotation.DataDeleted;
 import org.atriasoft.archidata.annotation.DataEncrypt;
 import org.atriasoft.archidata.annotation.DataNotRead;
+import org.atriasoft.archidata.annotation.Id;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.atriasoft.archidata.annotation.UpdateTimestamp;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.crypto.FieldEncryptionContext;
@@ -20,10 +22,6 @@ import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
-
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Wraps a generic {@link PropertyDescriptor} with archidata-specific database metadata.
@@ -38,13 +36,9 @@ public final class DbPropertyDescriptor {
 	// Pre-computed DB metadata
 	private final String dbFieldName;
 	private DbFieldAction action;
-	private final boolean nullable;
-	private final boolean unique;
 	private final boolean apiReadOnly;
 	private final boolean notRead;
-	private final String defaultValue;
-	private final int columnLength;
-	private final GenerationType generationStrategy;
+	private final String initValue;
 
 	// AddOn support (resolved in 2nd pass via resolveAddOn)
 	private DataAccessAddOn addOn;
@@ -64,20 +58,8 @@ public final class DbPropertyDescriptor {
 
 		final Field field = property.getField();
 
-		// DB field name: @Column(name) or property name
-		if (field != null) {
-			this.dbFieldName = AnnotationTools.getFieldNameRaw(field);
-			this.nullable = AnnotationTools.getNullable(field) || !AnnotationTools.getColumnNotNull(field);
-			this.unique = AnnotationTools.isUnique(field);
-			this.columnLength = AnnotationTools.getLimitSize(field);
-			this.generationStrategy = AnnotationTools.getStrategy(field);
-		} else {
-			this.dbFieldName = property.getName();
-			this.nullable = true;
-			this.unique = false;
-			this.columnLength = 255;
-			this.generationStrategy = null;
-		}
+		// DB field name: @Field(name) or property name
+		this.dbFieldName = field != null ? AnnotationTools.getFieldNameRaw(field) : property.getName();
 
 		// Determine action from annotations (without addOns - resolved later)
 		this.action = determineActionWithoutAddOn(property);
@@ -86,9 +68,9 @@ public final class DbPropertyDescriptor {
 		this.apiReadOnly = property.hasAnnotation(ApiReadOnly.class);
 		this.notRead = property.hasAnnotation(DataNotRead.class);
 
-		// Default value
-		final DefaultValue dv = property.getAnnotation(DefaultValue.class);
-		this.defaultValue = dv != null ? dv.value() : null;
+		// Value written at insertion when the field is null
+		final InitValue init = property.getAnnotation(InitValue.class);
+		this.initValue = init != null ? init.value() : null;
 
 		// AddOn defaults (resolved in 2nd pass)
 		this.addOn = null;
@@ -168,7 +150,7 @@ public final class DbPropertyDescriptor {
 	}
 
 	/**
-	 * Returns the MongoDB field name derived from {@code @Column(name)} or the property name.
+	 * Returns the MongoDB field name derived from {@code @Field} or the property name.
 	 *
 	 * @return the database field name
 	 */
@@ -183,24 +165,6 @@ public final class DbPropertyDescriptor {
 	 */
 	public DbFieldAction getAction() {
 		return this.action;
-	}
-
-	/**
-	 * Checks whether this field allows null values.
-	 *
-	 * @return {@code true} if the field is nullable
-	 */
-	public boolean isNullable() {
-		return this.nullable;
-	}
-
-	/**
-	 * Checks whether this field has a unique constraint.
-	 *
-	 * @return {@code true} if the field must be unique
-	 */
-	public boolean isUnique() {
-		return this.unique;
 	}
 
 	/**
@@ -222,30 +186,12 @@ public final class DbPropertyDescriptor {
 	}
 
 	/**
-	 * Returns the default value string from {@code @DefaultValue}, or {@code null} if none.
+	 * Returns the value of {@link InitValue}, written at insertion when the field is {@code null}.
 	 *
-	 * @return the default value, or {@code null}
+	 * @return the initial value, or {@code null} if the property has no {@code @InitValue}
 	 */
-	public String getDefaultValue() {
-		return this.defaultValue;
-	}
-
-	/**
-	 * Returns the maximum column length from {@code @Column(length)}, defaulting to 255.
-	 *
-	 * @return the column length limit
-	 */
-	public int getColumnLength() {
-		return this.columnLength;
-	}
-
-	/**
-	 * Returns the ID generation strategy from {@code @GeneratedValue}, or {@code null} if none.
-	 *
-	 * @return the generation strategy, or {@code null}
-	 */
-	public GenerationType getGenerationStrategy() {
-		return this.generationStrategy;
+	public String getInitValue() {
+		return this.initValue;
 	}
 
 	/**

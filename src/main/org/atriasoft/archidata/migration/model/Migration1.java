@@ -1,13 +1,12 @@
 package org.atriasoft.archidata.migration.model;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.atriasoft.archidata.model.GenericDataSoftDelete;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Data model representing a migration record (version 1).
@@ -25,7 +24,7 @@ import jakarta.ws.rs.DefaultValue;
 // For logs only
 //public static final String TABLE_NAME = "KAR_migration";
 
-@Table(name = "KAR_migration")
+@Collection("KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Migration1 extends GenericDataSoftDelete {
 	/** Creates an empty {@link Migration1} instance. */
@@ -35,11 +34,9 @@ public class Migration1 extends GenericDataSoftDelete {
 	static final int VERSION_MIGRATION = 1;
 	/** Name of the migration. */
 	@Schema(description = "Name of the migration")
-	@Column(length = 256)
 	public String name;
 	/** Whether the migration completed successfully. */
-	@Column(nullable = false)
-	@DefaultValue("'0'")
+	@InitValue("'0'")
 	@Schema(description = "if the migration is well terminated or not")
 	public Boolean terminated = false;
 	/** Current step index in the migration progression. */
@@ -50,6 +47,5 @@ public class Migration1 extends GenericDataSoftDelete {
 	public Integer count;
 	/** Plain-text log generated during the migration. */
 	@Schema(description = "Log generate by the migration")
-	@Column(length = 0)
 	public String log = "";
 }

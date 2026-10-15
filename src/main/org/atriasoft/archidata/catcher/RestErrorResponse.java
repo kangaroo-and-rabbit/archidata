@@ -9,7 +9,6 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import jakarta.annotation.Nullable;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 
@@ -24,22 +23,18 @@ public class RestErrorResponse {
 	public ObjectId oid = new ObjectId();
 	/** The error name or type identifier (mandatory for TypeScript generic error handling). */
 	@NotNull
-	@Column(length = 0)
 	public String name; // Mandatory for TS generic error
 	/** The human-readable error message (mandatory for TypeScript generic error handling). */
 	@NotNull
-	@Column(length = 0)
 	public String message; // Mandatory for TS generic error
 	/** The ISO-8601 timestamp indicating when the error occurred. */
 	@NotNull
-	@Column(length = 0)
 	public String time;
 	/** The HTTP status code associated with this error. */
 	@NotNull
 	final public int status;
 	/** The human-readable HTTP status reason phrase. */
 	@NotNull
-	@Column(length = 0)
 	final public String statusMessage;
 
 	/** Optional list of input validation errors providing details about specific field failures. */

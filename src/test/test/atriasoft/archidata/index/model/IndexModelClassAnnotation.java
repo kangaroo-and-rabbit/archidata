@@ -2,11 +2,10 @@ package test.atriasoft.archidata.index.model;
 
 import java.util.Date;
 
+import org.atriasoft.archidata.annotation.Field;
 import org.atriasoft.archidata.annotation.Index;
 import org.atriasoft.archidata.model.OIDGenericData;
 import org.bson.types.ObjectId;
-
-import jakarta.persistence.Column;
 
 /** Indexes declared with the class-level annotation. */
 @Index({ "companyId", "-publishedAt" })
@@ -17,7 +16,7 @@ public class IndexModelClassAnnotation extends OIDGenericData {
 
 	public Date publishedAt;
 
-	@Column(name = "email")
+	@Field("email")
 	public String mailAddress;
 
 	public SubAddress address;

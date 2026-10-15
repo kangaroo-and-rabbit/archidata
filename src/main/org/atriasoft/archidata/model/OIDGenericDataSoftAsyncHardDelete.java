@@ -10,7 +10,6 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
@@ -25,7 +24,6 @@ public class OIDGenericDataSoftAsyncHardDelete extends OIDGenericDataSoftDelete 
 	public OIDGenericDataSoftAsyncHardDelete() {}
 
 	@DataNotRead
-	@Column(nullable = false)
 	@DataAsyncHardDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@ApiReadOnly

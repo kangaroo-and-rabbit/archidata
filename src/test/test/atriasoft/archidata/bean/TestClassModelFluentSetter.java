@@ -1,13 +1,12 @@
 package test.atriasoft.archidata.bean;
 
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import jakarta.persistence.Id;
 
 /**
  * Unit tests for fluent setter detection in {@link ClassModel}.

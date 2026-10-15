@@ -2,6 +2,7 @@ package test.atriasoft.archidata.dataAccess.records;
 
 import java.io.IOException;
 
+import org.atriasoft.archidata.annotation.Id;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.bson.types.ObjectId;
 
-import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 import test.atriasoft.archidata.dataAccess.model.Enum2ForTest;

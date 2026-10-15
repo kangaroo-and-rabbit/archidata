@@ -2,6 +2,9 @@ package org.atriasoft.archidata.journal;
 
 import java.util.Date;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
@@ -9,9 +12,6 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 /**
  * A single entry of the change journal: one version of one source document, captured by
@@ -25,7 +25,7 @@ import jakarta.persistence.Table;
  * successive versions of a document are the entries sharing the same
  * ({@code collectionName}, {@code sourceId}) ordered by {@code recordedAt}.
  */
-@Table(name = ChangeJournalEntry.COLLECTION_NAME)
+@Collection(ChangeJournalEntry.COLLECTION_NAME)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChangeJournalEntry {
 
@@ -37,27 +37,23 @@ public class ChangeJournalEntry {
 
 	@Id
 	@BsonId
-	@Column(nullable = false, unique = true, name = "_id")
+	@Field("_id")
 	@Schema(description = "Unique ObjectID of the journal entry")
 	@ApiReadOnly
 	private ObjectId oid = null;
 
-	@Column(nullable = false)
 	@Schema(description = "Name of the source collection (table) the document comes from", example = "user")
 	private String collectionName = null;
 
-	@Column(nullable = false)
 	@Schema(description = "String representation of the source document primary key", example = "65161616841351")
 	private String sourceId = null;
 
-	@Column(nullable = false)
 	@Schema(description = "Source document serialized in BSON extended JSON")
 	private String data = null;
 
 	@Schema(description = "Update (or creation) date of the source document when it was captured", example = "2000-01-23T00:23:45.678Z")
 	private Date sourceUpdatedAt = null;
 
-	@Column(nullable = false)
 	@Schema(description = "Date at which this entry was written in the journal", example = "2000-01-23T00:23:45.678Z")
 	private Date recordedAt = null;
 

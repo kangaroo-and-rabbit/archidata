@@ -2,6 +2,8 @@ package test.atriasoft.archidata.dataAccess.decorators;
 
 import java.io.IOException;
 
+import org.atriasoft.archidata.annotation.Id;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,8 +14,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.bson.types.ObjectId;
 
-import jakarta.persistence.Id;
-import jakarta.ws.rs.DefaultValue;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 
@@ -24,11 +24,11 @@ class TestDefaultValue {
 	public static class Model {
 		@Id
 		public ObjectId _id = null;
-		@DefaultValue("'default_text'")
+		@InitValue("'default_text'")
 		public String textData = null;
-		@DefaultValue("'42'")
+		@InitValue("'42'")
 		public Integer intData = null;
-		@DefaultValue("'0'")
+		@InitValue("'0'")
 		public Boolean boolData = null;
 	}
 

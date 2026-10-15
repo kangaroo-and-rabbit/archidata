@@ -3,6 +3,7 @@ package org.atriasoft.archidata.model;
 import java.util.Date;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
@@ -12,8 +13,6 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
@@ -21,27 +20,24 @@ import jakarta.validation.constraints.Size;
 /**
  * Represents a stored data/media file with its metadata including SHA-512 hash, MIME type, size, and analyzed media streams.
  */
-@Table(name = "data")
+@Collection("data")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Data extends OIDGenericDataSoftDelete {
 	/** Creates an empty {@link Data} instance. */
 	public Data() {}
 
-	@Column(length = 128, nullable = false)
 	@Schema(description = "Sha512 of the data")
 	@Size(max = 512)
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private String sha512;
-	@Column(length = 128, nullable = false)
 	@Schema(description = "Mime -type of the media")
 	@Size(max = 512)
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private String mimeType;
-	@Column(nullable = false)
 	@Schema(description = "Size in Byte of the data")
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })

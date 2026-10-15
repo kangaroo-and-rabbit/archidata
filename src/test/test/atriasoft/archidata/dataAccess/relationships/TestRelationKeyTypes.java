@@ -3,6 +3,7 @@ package test.atriasoft.archidata.dataAccess.relationships;
 import java.util.List;
 import java.util.UUID;
 
+import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.annotation.OneToManyDoc;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-import jakarta.persistence.Table;
 import test.atriasoft.archidata.ConfigureDb;
 
 /** Relations (ManyToOneDoc, OneToManyDoc, ManyToManyDoc) with UUID, Long and ObjectId keys. */
@@ -27,113 +27,113 @@ import test.atriasoft.archidata.ConfigureDb;
 public class TestRelationKeyTypes {
 
 	// UUID
-	@Table(name = "RelKeyUParent")
+	@Collection("RelKeyUParent")
 	public static class UParent extends UUIDGenericData {
 		public String data;
 		@OneToManyDoc(targetEntity = UChild.class, remoteField = "parentId")
 		public List<UUID> childIds;
 	}
 
-	@Table(name = "RelKeyUChild")
+	@Collection("RelKeyUChild")
 	public static class UChild extends UUIDGenericData {
 		public String data;
 		@ManyToOneDoc(targetEntity = UParent.class, remoteField = "childIds", addLinkWhenCreate = true, removeLinkWhenDelete = true, updateLinkWhenUpdate = true)
 		public UUID parentId;
 	}
 
-	@Table(name = "RelKeyUParent")
+	@Collection("RelKeyUParent")
 	public static class UParentExpand extends UUIDGenericData {
 		public String data;
 		@OneToManyDoc(targetEntity = UChild.class, remoteField = "parentId")
 		public List<UChild> childIds;
 	}
 
-	@Table(name = "RelKeyUChild")
+	@Collection("RelKeyUChild")
 	public static class UChildExpand extends UUIDGenericData {
 		public String data;
 		@ManyToOneDoc(targetEntity = UParent.class, remoteField = "childIds")
 		public UParent parentId;
 	}
 
-	@Table(name = "RelKeyUMRoot")
+	@Collection("RelKeyUMRoot")
 	public static class UMRoot extends UUIDGenericData {
 		@ManyToManyDoc(targetEntity = UMRemote.class, remoteField = "back")
 		public List<UUID> remote;
 	}
 
-	@Table(name = "RelKeyUMRemote")
+	@Collection("RelKeyUMRemote")
 	public static class UMRemote extends UUIDGenericData {
 		@ManyToManyDoc(targetEntity = UMRoot.class, remoteField = "remote")
 		public List<UUID> back;
 	}
 
-	@Table(name = "RelKeyUMRoot")
+	@Collection("RelKeyUMRoot")
 	public static class UMRootExpand extends UUIDGenericData {
 		@ManyToManyDoc(targetEntity = UMRemote.class, remoteField = "back")
 		public List<UMRemote> remote;
 	}
 
 	// UUID -> ObjectId
-	@Table(name = "RelKeyOTarget")
+	@Collection("RelKeyOTarget")
 	public static class OTarget extends OIDGenericData {
 		public String data;
 		@OneToManyDoc(targetEntity = UToO.class, remoteField = "target")
 		public List<UUID> uuidChildren;
 	}
 
-	@Table(name = "RelKeyUToO")
+	@Collection("RelKeyUToO")
 	public static class UToO extends UUIDGenericData {
 		@ManyToOneDoc(targetEntity = OTarget.class, remoteField = "uuidChildren", addLinkWhenCreate = true, removeLinkWhenDelete = true, updateLinkWhenUpdate = true)
 		public ObjectId target;
 	}
 
 	// ObjectId -> UUID
-	@Table(name = "RelKeyOChild")
+	@Collection("RelKeyOChild")
 	public static class OChild extends OIDGenericData {
 		@ManyToOneDoc(targetEntity = UParentWithO.class, remoteField = "oChildren", addLinkWhenCreate = true, removeLinkWhenDelete = true, updateLinkWhenUpdate = true)
 		public UUID parent;
 	}
 
-	@Table(name = "RelKeyUParentO")
+	@Collection("RelKeyUParentO")
 	public static class UParentWithO extends UUIDGenericData {
 		@OneToManyDoc(targetEntity = OChild.class, remoteField = "parent")
 		public List<ObjectId> oChildren;
 	}
 
 	// M2M UUID <-> ObjectId
-	@Table(name = "RelKeyUOMRoot")
+	@Collection("RelKeyUOMRoot")
 	public static class UOMRoot extends UUIDGenericData {
 		@ManyToManyDoc(targetEntity = UOMRemote.class, remoteField = "back")
 		public List<ObjectId> remote;
 	}
 
-	@Table(name = "RelKeyUOMRemote")
+	@Collection("RelKeyUOMRemote")
 	public static class UOMRemote extends OIDGenericData {
 		@ManyToManyDoc(targetEntity = UOMRoot.class, remoteField = "remote")
 		public List<UUID> back;
 	}
 
 	// Long
-	@Table(name = "RelKeyLParent")
+	@Collection("RelKeyLParent")
 	public static class LParent extends GenericData {
 		public String data;
 		@OneToManyDoc(targetEntity = LChild.class, remoteField = "parentId")
 		public List<Long> childIds;
 	}
 
-	@Table(name = "RelKeyLChild")
+	@Collection("RelKeyLChild")
 	public static class LChild extends GenericData {
 		@ManyToOneDoc(targetEntity = LParent.class, remoteField = "childIds", addLinkWhenCreate = true, removeLinkWhenDelete = true, updateLinkWhenUpdate = true)
 		public Long parentId;
 	}
 
-	@Table(name = "RelKeyLMRoot")
+	@Collection("RelKeyLMRoot")
 	public static class LMRoot extends GenericData {
 		@ManyToManyDoc(targetEntity = LMRemote.class, remoteField = "back")
 		public List<Long> remote;
 	}
 
-	@Table(name = "RelKeyLMRemote")
+	@Collection("RelKeyLMRemote")
 	public static class LMRemote extends GenericData {
 		@ManyToManyDoc(targetEntity = LMRoot.class, remoteField = "remote")
 		public List<Long> back;

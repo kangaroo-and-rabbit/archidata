@@ -26,14 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.Nullable;
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -42,7 +34,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Utility class providing helper methods for annotation introspection on classes,
@@ -407,22 +398,19 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns the collection (table) name from the {@code @Table} annotation or the class simple name.
+	 * Returns the collection name from the {@link Collection} annotation of the class, or the class
+	 * simple name when the class is not annotated (the annotation is not inherited).
 	 *
 	 * @param element the entity class
-	 * @return the table name
+	 * @return the collection name
 	 */
 	public static String getTableName(final Class<?> element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Table.class);
-		if (annotation.length == 0) {
-			// when no annotation is detected, then the table name is the class name
+		final Collection annotation = element.getDeclaredAnnotation(Collection.class);
+		if (annotation == null) {
+			// when no annotation is detected, then the collection name is the class name
 			return element.getSimpleName();
 		}
-		final String tmp = ((Table) annotation[0]).name();
-		if (tmp == null) {
-			return element.getSimpleName();
-		}
-		return tmp;
+		return annotation.value();
 	}
 
 	/**
@@ -552,47 +540,17 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Retrieves the default value string from the {@code @DefaultValue} annotation on a field.
+	 * Retrieves the value of the {@link InitValue} annotation on a field.
 	 *
 	 * @param element the field to inspect
-	 * @return the default value string, or {@code null} if not annotated
+	 * @return the initial value string, or {@code null} if not annotated
 	 */
-	public static String getDefault(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(DefaultValue.class);
-		if (annotation.length == 0) {
+	public static String getInitValue(final Field element) {
+		final InitValue annotation = element.getDeclaredAnnotation(InitValue.class);
+		if (annotation == null) {
 			return null;
 		}
-		return ((DefaultValue) annotation[0]).value();
-	}
-
-	/**
-	 * Retrieves the {@code @ManyToOne} annotation from a field.
-	 *
-	 * @param element the field to inspect
-	 * @return the annotation instance, or {@code null} if not present
-	 */
-	public static ManyToOne getManyToOne(final Field element) {
-		return get(element, ManyToOne.class);
-	}
-
-	/**
-	 * Retrieves the {@code @ManyToMany} annotation from a field.
-	 *
-	 * @param element the field to inspect
-	 * @return the annotation instance, or {@code null} if not present
-	 */
-	public static ManyToMany getManyToMany(final Field element) {
-		return get(element, ManyToMany.class);
-	}
-
-	/**
-	 * Retrieves the {@code @OneToMany} annotation from a field.
-	 *
-	 * @param element the field to inspect
-	 * @return the annotation instance, or {@code null} if not present
-	 */
-	public static OneToMany getOneToMany(final Field element) {
-		return get(element, OneToMany.class);
+		return annotation.value();
 	}
 
 	/**
@@ -633,21 +591,6 @@ public class AnnotationTools {
 	 */
 	public static Min getConstraintsMin(final Field element) {
 		return get(element, Min.class);
-	}
-
-	/**
-	 * Returns the column length from {@code @Column(length)}, defaulting to 255.
-	 *
-	 * @param element the field to inspect
-	 * @return the column length, or 255 if not specified
-	 */
-	public static int getLimitSize(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
-		if (annotation.length == 0) {
-			return 255;
-		}
-		final int length = ((Column) annotation[0]).length();
-		return length <= 0 ? 0 : length;
 	}
 
 	/**
@@ -712,21 +655,19 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns the raw field name from {@code @Column(name)} or the Java field name.
+	 * Returns the database field name from the {@link org.atriasoft.archidata.annotation.Field}
+	 * annotation, or the Java field name when the field is not annotated (or the name is blank).
 	 *
 	 * @param element the field to inspect
 	 * @return the resolved field name
 	 */
 	public static String getFieldNameRaw(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
-		if (annotation.length == 0) {
+		final org.atriasoft.archidata.annotation.Field annotation = element
+				.getDeclaredAnnotation(org.atriasoft.archidata.annotation.Field.class);
+		if (annotation == null || annotation.value().isBlank()) {
 			return element.getName();
 		}
-		final String name = ((Column) annotation[0]).name();
-		if (name.isBlank()) {
-			return element.getName();
-		}
-		return name;
+		return annotation.value();
 	}
 
 	/**
@@ -760,20 +701,6 @@ public class AnnotationTools {
 			}
 		}
 		return new FieldName(inStructName, inTableName);
-	}
-
-	/**
-	 * Checks whether the {@code @Column} annotation specifies {@code nullable=false}.
-	 *
-	 * @param element the field to inspect
-	 * @return {@code true} if the column is marked as not-null
-	 */
-	public static boolean getColumnNotNull(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
-		if (annotation.length == 0) {
-			return false;
-		}
-		return !((Column) annotation[0]).nullable();
 	}
 
 	/**
@@ -842,7 +769,7 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns the field annotated with {@code @Id} in the given class, or {@code null} if none.
+	 * Returns the field annotated with {@link Id} in the given class, or {@code null} if none.
 	 *
 	 * @param clazz the class to inspect
 	 * @return the primary key field, or {@code null}
@@ -857,7 +784,7 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Checks whether a field is annotated with {@code @Id}.
+	 * Checks whether a field is annotated with {@link Id}.
 	 *
 	 * @param element the field to inspect
 	 * @return {@code true} if the field is a primary key
@@ -868,34 +795,6 @@ public class AnnotationTools {
 			return true;
 		}
 		return false;
-	}
-
-	/**
-	 * Checks whether a field has a unique constraint via {@code @Column(unique=true)}.
-	 *
-	 * @param element the field to inspect
-	 * @return {@code true} if the field is marked as unique
-	 */
-	public static boolean isUnique(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(Column.class);
-		if (annotation.length == 0) {
-			return false;
-		}
-		return ((Column) annotation[0]).unique();
-	}
-
-	/**
-	 * Returns the {@link GenerationType} strategy from {@code @GeneratedValue}, or {@code null}.
-	 *
-	 * @param element the field to inspect
-	 * @return the generation strategy, or {@code null} if not annotated
-	 */
-	public static GenerationType getStrategy(final Field element) {
-		final Annotation[] annotation = element.getDeclaredAnnotationsByType(GeneratedValue.class);
-		if (annotation.length == 0) {
-			return null;
-		}
-		return ((GeneratedValue) annotation[0]).strategy();
 	}
 
 	/**
@@ -949,7 +848,7 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Checks whether a field is annotated with {@code @Id}.
+	 * Checks whether a field is annotated with {@link Id}.
 	 *
 	 * @param element the field to inspect
 	 * @return {@code true} if the field is an ID field
@@ -999,7 +898,7 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns the {@code @Id}-annotated field from the class, or {@code null} if none.
+	 * Returns the {@link Id}-annotated field from the class, or {@code null} if none.
 	 *
 	 * @param clazz the class to inspect
 	 * @return the ID field, or {@code null}
@@ -1085,7 +984,7 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns the {@code @Id}-annotated field from the class, or {@code null} if none.
+	 * Returns the {@link Id}-annotated field from the class, or {@code null} if none.
 	 *
 	 * @param clazz the class to inspect
 	 * @return the ID field, or {@code null}

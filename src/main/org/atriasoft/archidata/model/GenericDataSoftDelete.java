@@ -2,6 +2,7 @@ package org.atriasoft.archidata.model;
 
 import org.atriasoft.archidata.annotation.DataDeleted;
 import org.atriasoft.archidata.annotation.DataNotRead;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
@@ -10,10 +11,8 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Extends {@link GenericData} with soft-delete support. Records are marked as deleted rather than being physically removed from the database.
@@ -25,8 +24,7 @@ public class GenericDataSoftDelete extends GenericData {
 	public GenericDataSoftDelete() {}
 
 	@DataNotRead
-	@Column(nullable = false)
-	@DefaultValue("'0'")
+	@InitValue("'0'")
 	@DataDeleted
 	@Schema(description = "Deleted state", hidden = true)
 	@ApiReadOnly

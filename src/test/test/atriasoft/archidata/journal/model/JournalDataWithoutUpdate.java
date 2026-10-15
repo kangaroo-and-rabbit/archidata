@@ -1,5 +1,7 @@
 package test.atriasoft.archidata.journal.model;
 
+import org.atriasoft.archidata.annotation.Field;
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
@@ -8,8 +10,6 @@ import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 
@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Null;
 public class JournalDataWithoutUpdate {
 	@Id
 	@BsonId
-	@Column(nullable = false, unique = true, name = "_id")
+	@Field("_id")
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })

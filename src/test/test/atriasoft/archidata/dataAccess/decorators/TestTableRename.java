@@ -2,6 +2,8 @@ package test.atriasoft.archidata.dataAccess.decorators;
 
 import java.io.IOException;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.Id;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,8 +14,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.bson.types.ObjectId;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 
@@ -21,7 +21,7 @@ import test.atriasoft.archidata.StepwiseExtension;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TestTableRename {
 
-	@Table(name = "my_custom_collection")
+	@Collection("my_custom_collection")
 	public static class Model {
 		@Id
 		public ObjectId _id = null;

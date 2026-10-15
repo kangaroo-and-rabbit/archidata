@@ -10,7 +10,6 @@ import org.atriasoft.archidata.annotation.Index;
 import org.atriasoft.archidata.annotation.Indexed;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
-import org.atriasoft.archidata.dataAccess.model.DbFieldAction;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -119,7 +118,6 @@ public final class IndexRegistry {
 			checkFieldsExist(model, declaration);
 			out.add(declaration.spec);
 		}
-		warnOnUnenforcedUnique(model, out);
 		final List<IndexSpec> result = List.copyOf(out);
 		RESOLVED.put(clazz, result);
 		return result;
@@ -245,35 +243,5 @@ public final class IndexRegistry {
 						+ "' on " + model.getTableName());
 			}
 		}
-	}
-
-	/**
-	 * Warn about a {@code @Column(unique = true)} that nothing enforces. {@code @Column} carries
-	 * JPA metadata archidata does not act upon, so the constraint only exists if an index declares
-	 * it. Primary keys are excluded: MongoDB gives them a unique {@code _id_} index natively.
-	 */
-	private static void warnOnUnenforcedUnique(final DbClassModel model, final List<IndexSpec> specs) {
-		for (final DbPropertyDescriptor desc : model.getAllFields()) {
-			if (!desc.isUnique() || desc.getAction() == DbFieldAction.PRIMARY_KEY) {
-				continue;
-			}
-			if (isCoveredByUniqueIndex(specs, desc.getDbFieldName())) {
-				continue;
-			}
-			LOGGER.warn(
-					"{}.{}: @Column(unique = true) is not enforced by the database, archidata does not act upon it. "
-							+ "Declare @Indexed(unique = true) (or @Index(value = \"{}\", unique = true)) to enforce it.",
-					model.getTableName(), desc.getDbFieldName(), desc.getDbFieldName());
-		}
-	}
-
-	/** Tells whether a unique index starts with the given field — enough to enforce its unicity. */
-	private static boolean isCoveredByUniqueIndex(final List<IndexSpec> specs, final String fieldName) {
-		for (final IndexSpec spec : specs) {
-			if (spec.isUnique() && !spec.getKeys().isEmpty() && spec.getKeys().get(0).path().equals(fieldName)) {
-				return true;
-			}
-		}
-		return false;
 	}
 }

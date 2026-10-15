@@ -6,8 +6,6 @@ import org.atriasoft.archidata.model.GenericDataSoftDelete;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -24,8 +22,7 @@ import jakarta.validation.constraints.Size;
  * The parent classes also carry the group constraints ({@code GroupCreate}, {@code GroupUpdate}) that
  * reject a payload setting one of these server-managed fields.
  */
-// Stored in the "Task" collection (the class name; use @Table(name = "...") to change it).
-@Entity
+// Stored in the "Task" collection (the class name; use @Collection("...") to change it).
 // Omit null fields in the JSON output.
 @JsonInclude(JsonInclude.Include.NON_NULL)
 // Compound MongoDB index for "open tasks, newest first". It is created by IndexEngine at startup
@@ -38,8 +35,7 @@ public class Task extends GenericDataSoftDelete {
 	@Schema(description = "Short title of the task")
 	private String title;
 
-	// length = 0: no length limit at the storage level; @Size bounds what the API accepts.
-	@Column(length = 0)
+	// MongoDB sets no length limit: @Size bounds what the API accepts.
 	@Size(max = 4096)
 	@Schema(description = "Free text description")
 	private String description;

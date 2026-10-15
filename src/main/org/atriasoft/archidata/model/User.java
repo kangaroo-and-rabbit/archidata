@@ -3,6 +3,8 @@ package org.atriasoft.archidata.model;
 import java.util.Date;
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.annotation.InitValue;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
@@ -16,18 +18,15 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import jakarta.ws.rs.DefaultValue;
 
 /**
  * Represents a user entity with login credentials, connection tracking, blocking capabilities, and cover images.
  */
-@Table(name = "user")
+@Collection("user")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @ApiGenerationMode(create = true, update = true)
 public class User extends OIDGenericDataSoftDelete {
@@ -35,7 +34,6 @@ public class User extends OIDGenericDataSoftDelete {
 	public User() {}
 
 	@NotNull
-	@Column(length = 128)
 	@Size(min = 3, max = 128)
 	@Pattern(regexp = "^[a-zA-Z0-9-_ \\.]+$")
 	@UniqueInBaseId(target = User.class, nameOfField = "login", groups = GroupWithContext.class)
@@ -45,10 +43,8 @@ public class User extends OIDGenericDataSoftDelete {
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })
 	private Date lastConnection = null;
 
-	@DefaultValue("'0'")
-	@Column(nullable = false)
+	@InitValue("'0'")
 	private Boolean blocked = false;
-	@Column(length = 512)
 	@Size(max = 512)
 	@ApiReadOnly
 	@NotNull(groups = { GroupPersistant.class })

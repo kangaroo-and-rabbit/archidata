@@ -2,6 +2,7 @@ package test.atriasoft.archidata.dataAccess;
 
 import java.io.IOException;
 
+import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.bson.types.ObjectId;
@@ -16,10 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.StepwiseExtension;
 
@@ -32,8 +29,6 @@ class TestIdGeneration {
 
 	public static class ModelLong {
 		@Id
-		@GeneratedValue(strategy = GenerationType.IDENTITY)
-		@Column(nullable = false, unique = true)
 		public Long id = null;
 		public String data;
 	}
