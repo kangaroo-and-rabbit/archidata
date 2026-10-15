@@ -4,160 +4,42 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Represents a scheduled task with a cron expression.
- *
- * <p>The syntax follows Unix (Vixie) cron: five fields {@code minute hour dayOfMonth month dayOfWeek}
- * separated by whitespace; each field is a comma-separated list of {@code *}, {@code n}, {@code a-b},
- * {@code *}{@code /s} or {@code a-b/s}. A step starts at the low bound of the field or of the range. The day of
- * week is 0-7, Sunday being 0 or 7. When both the day of month and the day of week are restricted (neither
- * starts with {@code *}), a day matches if either of them matches.
+ * Represents a scheduled task with a cron expression, parsed once at creation (see {@link CronExpression}
+ * for the syntax).
  */
 record CronTask(
 		String name,
-		String cronExpression,
+		CronExpression schedule,
 		Runnable action,
 		boolean uniqueInQueue)
 		implements Task {
 
-	/** Index of the day-of-month field. */
-	private static final int DAY_OF_MONTH = 2;
-	/** Index of the day-of-week field. */
-	private static final int DAY_OF_WEEK = 4;
-	/** Names of the five fields, for error messages. */
-	private static final String[] FIELD_NAMES = { "minute", "hour", "day of month", "month", "day of week" };
-	/** Bounds of the five fields (day of week: 0 and 7 are both Sunday). */
-	private static final int[][] LIMITS = { { 0, 59 }, { 0, 23 }, { 1, 31 }, { 1, 12 }, { 0, 7 } };
+	/**
+	 * Creates a task and parses its cron expression.
+	 *
+	 * @param name the task name
+	 * @param cronExpression the five-field expression
+	 * @param action the action to run
+	 * @param uniqueInQueue {@code true} to keep at most one pending instance in the queue
+	 * @throws IllegalArgumentException if the expression is invalid
+	 */
+	CronTask(final String name, final String cronExpression, final Runnable action, final boolean uniqueInQueue) {
+		this(name, CronExpression.parse(cronExpression), action, uniqueInQueue);
+	}
 
 	/**
 	 * Check if the cron expression matches the given time (minute precision).
 	 *
 	 * @param time the time to test
 	 * @return {@code true} if the task is due at this minute
-	 * @throws IllegalArgumentException if the expression is invalid
 	 */
 	public boolean matches(final LocalDateTime time) {
-		return matches(this.cronExpression, time);
+		return this.schedule.matches(time);
 	}
 
-	/**
-	 * Check if a cron expression matches the given time (minute precision).
-	 *
-	 * @param cronExpression the five-field expression
-	 * @param time the time to test
-	 * @return {@code true} if the expression is due at this minute
-	 * @throws IllegalArgumentException if the expression is invalid
-	 */
-	static boolean matches(final String cronExpression, final LocalDateTime time) {
-		final String[] parts = splitFields(cronExpression);
-		final boolean[][] fields = parse(parts);
-		if (!fields[0][time.getMinute()] || !fields[1][time.getHour()] || !fields[3][time.getMonthValue()]) {
-			return false;
-		}
-		final boolean dayOfMonth = fields[DAY_OF_MONTH][time.getDayOfMonth()];
-		// java.time: Monday = 1 .. Sunday = 7; cron: Sunday = 0 (7 is folded into 0 by parse)
-		final boolean dayOfWeek = fields[DAY_OF_WEEK][time.getDayOfWeek().getValue() % 7];
-		if (isRestricted(parts[DAY_OF_MONTH]) && isRestricted(parts[DAY_OF_WEEK])) {
-			return dayOfMonth || dayOfWeek;
-		}
-		return dayOfMonth && dayOfWeek;
-	}
-
-	/**
-	 * Validate a cron expression.
-	 *
-	 * @param cronExpression the five-field expression
-	 * @throws IllegalArgumentException if the expression is invalid, with the offending field
-	 */
-	static void validate(final String cronExpression) {
-		parse(splitFields(cronExpression));
-	}
-
-	/** Vixie rule: a day field starting with '*' (including '*' + '/n') does not restrict the day. */
-	private static boolean isRestricted(final String field) {
-		return !field.startsWith("*");
-	}
-
-	private static String[] splitFields(final String cronExpression) {
-		if (cronExpression == null) {
-			throw new IllegalArgumentException("Cron expression must not be null");
-		}
-		final String[] parts = cronExpression.trim().split("\\s+");
-		if (parts.length != 5) {
-			throw new IllegalArgumentException(
-					"Cron expression must have 5 fields (minute hour day month dayOfWeek): '" + cronExpression + "'");
-		}
-		return parts;
-	}
-
-	/** Expands the five fields into arrays of allowed values, indexed by value. */
-	private static boolean[][] parse(final String[] parts) {
-		final boolean[][] fields = new boolean[5][];
-		for (int i = 0; i < parts.length; i++) {
-			fields[i] = parseField(parts[i], LIMITS[i][0], LIMITS[i][1], FIELD_NAMES[i]);
-		}
-		// Sunday may be written 0 or 7
-		if (fields[DAY_OF_WEEK][7]) {
-			fields[DAY_OF_WEEK][0] = true;
-		}
-		return fields;
-	}
-
-	private static boolean[] parseField(final String field, final int min, final int max, final String fieldName) {
-		final boolean[] allowed = new boolean[max + 1];
-		for (final String part : field.split(",", -1)) {
-			final String rangePart;
-			int step = 1;
-			final int slash = part.indexOf('/');
-			if (slash >= 0) {
-				rangePart = part.substring(0, slash);
-				step = parseNumber(part.substring(slash + 1), fieldName, part);
-				if (step <= 0) {
-					throw new IllegalArgumentException("Invalid step in " + fieldName + ": " + part);
-				}
-			} else {
-				rangePart = part;
-			}
-			final int start;
-			final int end;
-			if (rangePart.equals("*")) {
-				start = min;
-				end = max;
-			} else if (rangePart.contains("-")) {
-				final String[] range = rangePart.split("-", -1);
-				if (range.length != 2) {
-					throw new IllegalArgumentException("Invalid range in " + fieldName + ": " + part);
-				}
-				start = parseNumber(range[0], fieldName, part);
-				end = parseNumber(range[1], fieldName, part);
-				if (start > end) {
-					throw new IllegalArgumentException("Invalid range in " + fieldName + ": " + part);
-				}
-			} else {
-				if (slash >= 0) {
-					// Vixie cron: a step needs '*' or a range ("5/10" is rejected)
-					throw new IllegalArgumentException(
-							"Step without '*' or range in " + fieldName + ": " + part + " (use '*/n' or 'a-b/n')");
-				}
-				start = parseNumber(rangePart, fieldName, part);
-				end = start;
-			}
-			if (start < min || end > max) {
-				throw new IllegalArgumentException(
-						"Value out of bounds in " + fieldName + ": " + part + " (valid: " + min + "-" + max + ")");
-			}
-			for (int value = start; value <= end; value += step) {
-				allowed[value] = true;
-			}
-		}
-		return allowed;
-	}
-
-	private static int parseNumber(final String text, final String fieldName, final String part) {
-		try {
-			return Integer.parseInt(text);
-		} catch (final NumberFormatException ex) {
-			throw new IllegalArgumentException("Invalid number in " + fieldName + ": " + part, ex);
-		}
+	/** @return the cron expression as written by the caller */
+	public String cronExpression() {
+		return this.schedule.expression();
 	}
 
 	@Override

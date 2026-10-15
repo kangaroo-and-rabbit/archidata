@@ -366,7 +366,6 @@ public class CronScheduler {
 			name = new ObjectId().toString();
 		}
 		LOGGER.debug("Add task name '{}' cron='{}'", name, cronExpression);
-		CronTask.validate(cronExpression);
 		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
 	}
 
@@ -447,7 +446,7 @@ public class CronScheduler {
 	 */
 	public static boolean matches(final String cronExpression, final LocalDateTime time)
 			throws IllegalArgumentException {
-		return CronTask.matches(cronExpression, time);
+		return CronExpression.parse(cronExpression).matches(time);
 	}
 
 	/**
