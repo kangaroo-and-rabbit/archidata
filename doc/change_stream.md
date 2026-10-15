@@ -70,8 +70,10 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   without a collection) do not create workers on their own: they only receive events from
   collections that are already watched.
 - **The FullDocument mode is global.** It is fixed by `start(..., mode)` and applied to every worker.
-  The `mode` argument accepted by `registerListener(...)`, `withMode(...)` and
-  `CollectionWatchBuilder.fullDocument(...)` is kept for API compatibility and **ignored**.
+  There is one worker per collection, so a listener cannot get another mode: the `mode` argument
+  of `registerListener(..., mode)`, `withMode(...)` and `CollectionWatchBuilder.fullDocument(...)`
+  is **ignored**. These overloads are `@Deprecated` and log a warning when the requested mode
+  differs from the global one.
   `start(database)`, `start(dbConfig)` and `start()` use `FullDocument.DEFAULT`.
 
   | Mode | INSERT / REPLACE | UPDATE | DELETE |
@@ -92,7 +94,7 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   `MongoInterruptedException` and `InvalidResumeToken` (code 260) reset the token and retry after
   1 s; other `MongoCommandException` / `MongoException` set `RECONNECTING` and retry after 5 s;
   any other exception sets `ERROR` and retries after 5 s. The loop ends only on `stop()`
-  (`STOPPED`). The delay is fixed, not exponential, despite the Javadoc wording.
+  (`STOPPED`). The delay is fixed (no exponential backoff, no retry limit).
 - **Two kinds of filtering.** Server-side (`CollectionWatchBuilder`, an aggregation `$match`
   pipeline) reduces network traffic but is attached to the collection, not to a listener.
   Client-side (`ListenerRegistrationBuilder`, a `Predicate<ChangeEvent>`) is per listener and can
@@ -172,7 +174,7 @@ Obtained from `createListenerBuilder(...)`. Every filter is combined with AND; c
   the event has no full document.
 - `filter(Predicate<ChangeEvent>)`, `filterOperation(OperationType...)`,
   `filterCollection(String...)` (useful on global listeners).
-- `withMode(FullDocument)`: ignored (see above).
+- `withMode(FullDocument)`: deprecated, ignored (see above).
 - `register()`.
 
 ### CollectionWatchBuilder
@@ -184,7 +186,7 @@ Obtained from `manager.watch(name)`. Builds an aggregation pipeline applied by M
   (e.g. `"insert"`),
 - `whereField(String, Object)` and `whereFieldExists(String)` (match on `fullDocument.<field>`),
 - `filterOnUpdate(Bson)` and `whenFieldUpdated(String)` (match on `updateDescription.updatedFields.<field>`),
-- `fullDocument(FullDocument)`: ignored (see above).
+- `fullDocument(FullDocument)`: deprecated, ignored (see above).
 
 The pipeline is stored per collection and used when the worker is (re)created. Calling `start()` a
 second time while the worker already runs replaces the stored pipeline but does not restart the
@@ -249,7 +251,8 @@ set, a queue) and do the delivery outside the listener, since listeners run on t
 
 - **Standalone MongoDB**: change streams are unavailable; the worker logs a `MongoException` every
   5 s. Check `getWorkerStatuses()` (stuck on `RECONNECTING`).
-- **Mode is global and fixed at `start`.** Per-listener modes are silently ignored. Calling
+- **Mode is global and fixed at `start`.** Per-listener modes are ignored (deprecated API, a
+  warning is logged). Calling
   `start(db, otherMode)` on a running manager restarts it and drops every listener (and resume
   token), so register listeners afterwards. `setDefaultFullDocumentMode` does not touch running workers.
 - **`stop()` forgets everything**: listeners, resume tokens and the owned client. After a

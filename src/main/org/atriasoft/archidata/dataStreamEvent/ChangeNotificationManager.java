@@ -41,8 +41,8 @@ import com.mongodb.client.model.changestream.FullDocument;
  * system)</li>
  * <li>Worker thread pool management (one worker per watched collection)</li>
  * <li>Listener registration and event distribution</li>
- * <li>FullDocument mode computation (automatic selection of most demanding
- * mode)</li>
+ * <li>A single FullDocument mode, chosen by {@code start()}, for every collection
+ * (the per-listener and per-watch modes are ignored and deprecated)</li>
  * <li>Both server-side (aggregation pipeline) and client-side (predicate)
  * filtering</li>
  * <li>Global listeners (all collections) and collection-specific listeners</li>
@@ -71,8 +71,11 @@ import com.mongodb.client.model.changestream.FullDocument;
  * </pre>
  *
  * <p>
- * The manager uses DEFAULT FullDocument mode, which provides full documents for
- * INSERT operations and update descriptions for UPDATE operations.
+ * {@code start(database)} uses the DEFAULT FullDocument mode, which provides full
+ * documents for INSERT operations and update descriptions for UPDATE operations.
+ * Pass {@code FullDocument.UPDATE_LOOKUP} to {@code start(database, mode)} to also
+ * get the full document on UPDATE. This mode is global: there is one worker per
+ * collection, so a listener cannot ask for another mode.
  * </p>
  *
  * <p>
@@ -497,23 +500,25 @@ public class ChangeNotificationManager {
 	 * @param listener The listener
 	 */
 	public void registerListener(final ChangeNotificationListener listener) {
-		registerListener(listener, (FullDocument) null);
+		registerListenerInternal(listener, null, null, null);
 	}
 
 	/**
-	 * Register a global listener with specific mode
+	 * Register a global listener with specific mode: <b>the mode is ignored</b>.
+	 *
+	 * <p>
+	 * The FullDocument mode is global, chosen by {@link #start(MongoDatabase, FullDocument)}. A
+	 * different mode given here is ignored (a warning is logged).
+	 * </p>
 	 *
 	 * @param listener The listener
-	 * @param mode FullDocument mode
+	 * @param mode FullDocument mode (ignored)
+	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener)} and
+	 *             choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
+	@Deprecated
 	public void registerListener(final ChangeNotificationListener listener, final FullDocument mode) {
-		this.lock.writeLock().lock();
-		try {
-			this.globalListeners.add(new ListenerRegistration(listener, mode, null));
-			LOGGER.info("Registered global listener with mode: {}", mode);
-		} finally {
-			this.lock.writeLock().unlock();
-		}
+		registerListenerInternal(listener, null, mode, null);
 	}
 
 	/**
@@ -535,21 +540,29 @@ public class ChangeNotificationManager {
 	 * @param collectionName Collection name
 	 */
 	public void registerListener(final ChangeNotificationListener listener, final String collectionName) {
-		registerListener(listener, collectionName, null);
+		registerListenerInternal(listener, Set.of(collectionName), null, null);
 	}
 
 	/**
-	 * Register a listener for a specific collection with mode
+	 * Register a listener for a specific collection with mode: <b>the mode is ignored</b>.
+	 *
+	 * <p>
+	 * The FullDocument mode is global, chosen by {@link #start(MongoDatabase, FullDocument)}. A
+	 * different mode given here is ignored (a warning is logged).
+	 * </p>
 	 *
 	 * @param listener The listener
 	 * @param collectionName Collection name
-	 * @param mode FullDocument mode
+	 * @param mode FullDocument mode (ignored)
+	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener, String)}
+	 *             and choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
+	@Deprecated
 	public void registerListener(
 			final ChangeNotificationListener listener,
 			final String collectionName,
 			final FullDocument mode) {
-		registerListener(listener, Set.of(collectionName), mode);
+		registerListenerInternal(listener, Set.of(collectionName), mode, null);
 	}
 
 	/**
@@ -574,23 +587,39 @@ public class ChangeNotificationManager {
 	 * @param collectionNames Collection names
 	 */
 	public void registerListener(final ChangeNotificationListener listener, final Set<String> collectionNames) {
-		registerListener(listener, collectionNames, null);
+		registerCollectionListener(listener, collectionNames, null);
 	}
 
 	/**
-	 * Register a listener for multiple collections with mode
+	 * Register a listener for multiple collections with mode: <b>the mode is ignored</b>.
+	 *
+	 * <p>
+	 * The FullDocument mode is global, chosen by {@link #start(MongoDatabase, FullDocument)}. A
+	 * different mode given here is ignored (a warning is logged).
+	 * </p>
 	 *
 	 * @param listener The listener
 	 * @param collectionNames Collection names
-	 * @param mode FullDocument mode
+	 * @param mode FullDocument mode (ignored)
+	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener, Set)}
+	 *             and choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
+	@Deprecated
 	public void registerListener(
 			final ChangeNotificationListener listener,
 			final Set<String> collectionNames,
 			final FullDocument mode) {
+		registerCollectionListener(listener, collectionNames, mode);
+	}
+
+	private void registerCollectionListener(
+			final ChangeNotificationListener listener,
+			final Set<String> collectionNames,
+			final FullDocument mode) {
+		warnIgnoredMode(mode);
 		this.lock.writeLock().lock();
 		try {
-			final ListenerRegistration registration = new ListenerRegistration(listener, mode, null);
+			final ListenerRegistration registration = new ListenerRegistration(listener, null);
 
 			for (final String collectionName : collectionNames) {
 				this.collectionListeners.computeIfAbsent(collectionName, k -> ConcurrentHashMap.newKeySet())
@@ -602,9 +631,22 @@ public class ChangeNotificationManager {
 				}
 			}
 
-			LOGGER.info("Registered listener for collections: {} with mode: {}", collectionNames, mode);
+			LOGGER.info("Registered listener for collections: {}", collectionNames);
 		} finally {
 			this.lock.writeLock().unlock();
+		}
+	}
+
+	/**
+	 * Logs a warning when a caller asks for a FullDocument mode other than the global one: per-listener
+	 * modes are not supported (one worker per collection, with the mode given to {@code start()}).
+	 *
+	 * @param mode the requested mode, {@code null} when none was requested
+	 */
+	private void warnIgnoredMode(final FullDocument mode) {
+		if (mode != null && mode != this.globalFullDocumentMode) {
+			LOGGER.warn("FullDocument mode {} requested for a listener or a watch is IGNORED: the mode is global,"
+					+ " chosen by start() (current: {})", mode, this.globalFullDocumentMode);
 		}
 	}
 
@@ -624,21 +666,23 @@ public class ChangeNotificationManager {
 	}
 
 	/**
-	 * Internal registration with all parameters (called by builder)
+	 * Internal registration with all parameters (called by builder). The mode is ignored (only
+	 * logged when it differs from the global one).
 	 */
 	void registerListenerInternal(
 			final ChangeNotificationListener listener,
 			final Set<String> collectionNames,
 			final FullDocument mode,
 			final Predicate<ChangeEvent> clientFilter) {
+		warnIgnoredMode(mode);
 		this.lock.writeLock().lock();
 		try {
-			final ListenerRegistration registration = new ListenerRegistration(listener, mode, clientFilter);
+			final ListenerRegistration registration = new ListenerRegistration(listener, clientFilter);
 
 			if (collectionNames == null || collectionNames.isEmpty()) {
 				// Global listener
 				this.globalListeners.add(registration);
-				LOGGER.info("Registered global listener with mode: {} and filter: {}", mode, clientFilter != null);
+				LOGGER.info("Registered global listener with filter: {}", clientFilter != null);
 			} else {
 				// Collection-specific listener
 				for (final String collectionName : collectionNames) {
@@ -651,8 +695,8 @@ public class ChangeNotificationManager {
 					}
 				}
 
-				LOGGER.info("Registered listener for collections: {} with mode: {} and filter: {}", collectionNames,
-						mode, clientFilter != null);
+				LOGGER.info("Registered listener for collections: {} with filter: {}", collectionNames,
+						clientFilter != null);
 			}
 		} finally {
 			this.lock.writeLock().unlock();
@@ -717,11 +761,12 @@ public class ChangeNotificationManager {
 	// ========== Configuration ==========
 
 	/**
-	 * Sets the default FullDocument mode used when a listener doesn't specify a
-	 * mode.
+	 * Sets the global FullDocument mode used by the workers started afterwards.
 	 *
 	 * <p>
-	 * This only affects new listeners. Existing workers will not be reconfigured.
+	 * Running workers are not reconfigured: only the collections watched later use
+	 * the new mode. {@code start(..., mode)} overwrites this value. Prefer passing
+	 * the mode to {@link #start(MongoDatabase, FullDocument)}.
 	 * </p>
 	 *
 	 * @param mode The default FullDocument mode (typically DEFAULT or
@@ -758,9 +803,9 @@ public class ChangeNotificationManager {
 	}
 
 	/**
-	 * Gets the effective FullDocument mode for each watched collection. The
-	 * effective mode is the most demanding mode requested by any listener for that
-	 * collection.
+	 * Gets the effective FullDocument mode for each watched collection. It is the
+	 * global mode (see {@link #computeEffectiveMode(String)}): the modes requested
+	 * by the listeners are ignored.
 	 *
 	 * @return An unmodifiable map of collection names to their effective
 	 *         FullDocument modes
@@ -953,6 +998,7 @@ public class ChangeNotificationManager {
 	 */
 	void startWatchingCollection(final String collectionName, final FullDocument mode, final List<Bson> pipeline) {
 		// mode parameter is ignored as we use global mode
+		warnIgnoredMode(mode);
 		watchCollectionInternal(collectionName, pipeline);
 	}
 
@@ -965,10 +1011,9 @@ public class ChangeNotificationManager {
 		private final ChangeNotificationListener listener;
 		private final Predicate<ChangeEvent> clientFilter;
 
-		public ListenerRegistration(final ChangeNotificationListener listener, final FullDocument mode,
+		public ListenerRegistration(final ChangeNotificationListener listener,
 				final Predicate<ChangeEvent> clientFilter) {
 			this.listener = listener;
-			// mode parameter is kept for backward compatibility but not stored as we use global mode
 			this.clientFilter = clientFilter;
 		}
 

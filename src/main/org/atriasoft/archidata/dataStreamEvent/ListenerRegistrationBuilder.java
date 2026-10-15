@@ -12,7 +12,8 @@ import com.mongodb.client.model.changestream.OperationType;
 /**
  * Builder for registering change notification listeners with client-side
  * filtering capabilities. This builder allows fluent configuration of filters,
- * modes, and other options before registering the listener.
+ * and other options before registering the listener (the FullDocument mode itself is global, see
+ * {@link #withMode(FullDocument)}).
  *
  * <p>
  * Client-side filters are applied AFTER MongoDB sends the events, allowing for
@@ -58,11 +59,19 @@ public class ListenerRegistrationBuilder {
 	}
 
 	/**
-	 * Specify the FullDocument mode for this listener
+	 * Specify the FullDocument mode for this listener: <b>ignored</b>.
 	 *
-	 * @param mode The FullDocument mode (DEFAULT, UPDATE_LOOKUP, WHEN_AVAILABLE)
+	 * <p>
+	 * The FullDocument mode is global: it is chosen once by
+	 * {@link ChangeNotificationManager#start(com.mongodb.client.MongoDatabase, FullDocument)} and used
+	 * by every collection worker. A different mode given here is ignored (a warning is logged).
+	 * </p>
+	 *
+	 * @param mode The FullDocument mode (ignored)
 	 * @return this builder for chaining
+	 * @deprecated the mode is ignored; choose it once with {@code ChangeNotificationManager.start(..., mode)}.
 	 */
+	@Deprecated
 	public ListenerRegistrationBuilder withMode(final FullDocument mode) {
 		this.mode = mode;
 		return this;

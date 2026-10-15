@@ -11,7 +11,8 @@ import com.mongodb.client.model.changestream.FullDocument;
 
 /**
  * Builder for configuring MongoDB server-side filtering on Change Streams.
- * Allows fluent configuration of aggregation pipelines and FullDocument mode
+ * Allows fluent configuration of aggregation pipelines (the FullDocument mode is global, set by
+ * {@code ChangeNotificationManager.start()})
  * before starting to watch a collection.
  *
  * <p>
@@ -26,7 +27,6 @@ import com.mongodb.client.model.changestream.FullDocument;
  *
  * <pre>
  * manager.watch("users")
- * 		.fullDocument(FullDocument.UPDATE_LOOKUP)
  * 		.onlyUpdates()
  * 		.whenFieldUpdated("email")
  * 		.start();
@@ -44,7 +44,7 @@ import com.mongodb.client.model.changestream.FullDocument;
 public class CollectionWatchBuilder {
 	private final ChangeNotificationManager manager;
 	private final String collectionName;
-	private FullDocument fullDocumentMode = FullDocument.DEFAULT;
+	private FullDocument fullDocumentMode = null; // ignored: the mode is global
 	private final List<Bson> pipeline = new ArrayList<>();
 
 	/**
@@ -60,11 +60,19 @@ public class CollectionWatchBuilder {
 	}
 
 	/**
-	 * Set the FullDocument mode for this watch
+	 * Set the FullDocument mode for this watch: <b>ignored</b>.
 	 *
-	 * @param mode The FullDocument mode
+	 * <p>
+	 * The FullDocument mode is global: it is chosen once by
+	 * {@link ChangeNotificationManager#start(com.mongodb.client.MongoDatabase, FullDocument)} and used
+	 * by every collection worker. A different mode given here is ignored (a warning is logged).
+	 * </p>
+	 *
+	 * @param mode The FullDocument mode (ignored)
 	 * @return this builder for chaining
+	 * @deprecated the mode is ignored; choose it once with {@code ChangeNotificationManager.start(..., mode)}.
 	 */
+	@Deprecated
 	public CollectionWatchBuilder fullDocument(final FullDocument mode) {
 		this.fullDocumentMode = mode;
 		return this;

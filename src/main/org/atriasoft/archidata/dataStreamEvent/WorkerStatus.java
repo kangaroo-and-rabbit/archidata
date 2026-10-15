@@ -32,13 +32,15 @@ public enum WorkerStatus {
 
 	/**
 	 * Worker is reconnecting to MongoDB after a connection error. This is a
-	 * temporary state with exponential backoff before retry.
+	 * temporary state: the worker waits a fixed delay before retrying (1 s after an
+	 * interruption or an invalid resume token, 5 s after another MongoDB error),
+	 * with no exponential backoff and no retry limit.
 	 */
 	RECONNECTING,
 
 	/**
-	 * Worker encountered an unexpected error. The worker will attempt to recover
-	 * after a delay.
+	 * Worker encountered an unexpected error. The worker retries after a fixed
+	 * 5 s delay, with no retry limit.
 	 */
 	ERROR,
 

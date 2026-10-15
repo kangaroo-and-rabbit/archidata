@@ -29,8 +29,8 @@ import com.mongodb.client.model.changestream.OperationType;
  * ChangeStreamDocument events into ChangeEvent objects. It handles:
  * </p>
  * <ul>
- * <li>Connection failures with automatic reconnection and exponential
- * backoff</li>
+ * <li>Connection failures with automatic reconnection after a fixed delay (1 s
+ * or 5 s, no exponential backoff, no retry limit)</li>
  * <li>Resume token management for fault tolerance</li>
  * <li>Server-side filtering via aggregation pipelines</li>
  * <li>FullDocument mode configuration (DEFAULT, UPDATE_LOOKUP, etc.)</li>
@@ -129,7 +129,7 @@ public class ChangeStreamWorker implements Runnable {
 					LOGGER.error("MongoDB command error in ChangeStreamWorker for collection: {}", this.collectionName,
 							e);
 					this.status = WorkerStatus.RECONNECTING;
-					// Exponential backoff before reconnecting
+					// Fixed delay before reconnecting
 					try {
 						Thread.sleep(5000);
 					} catch (final InterruptedException ie) {
@@ -141,7 +141,7 @@ public class ChangeStreamWorker implements Runnable {
 				LOGGER.error("MongoDB error in ChangeStreamWorker for collection: {}", this.collectionName, e);
 				this.status = WorkerStatus.RECONNECTING;
 
-				// Exponential backoff before reconnecting
+				// Fixed delay before reconnecting
 				try {
 					Thread.sleep(5000);
 				} catch (final InterruptedException ie) {
