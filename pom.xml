@@ -260,80 +260,67 @@
 							<goal>run</goal>
 						</goals>
 						<configuration>
-							<target xmlns:if="ant:if">
+							<target>
 								<property name="llm.out" value="${project.build.outputDirectory}/META-INF/archidata"/>
-								<property name="llm.doc" value="${basedir}/doc"/>
 								<property name="llm.sep.a" value="&#10;&#10;================================================================================&#10;FILE: "/>
 								<property name="llm.sep.b" value="&#10;================================================================================&#10;&#10;"/>
 								<mkdir dir="${llm.out}"/>
-								<fileset id="llm.unlisted" dir="${llm.doc}" includes="*.md" excludes="index.md,TUTORIAL_01_first_install.md,data_model.md,annotations.md,database_access.md,pagination.md,indexes.md,migration.md,security.md,error_handling.md,converters_and_beans.md,connectionManagement.md,tools.md,openapi_generation.md,typescript_api_generation.md,python_api_generation.md,change_stream.md,change_journal.md,field_encryption.md,backup.md,cron.md,statistics.md,graph_generation.md"/>
+								<property name="llm.mark" value="${project.build.directory}/llm-listed"/>
+								<delete dir="${llm.mark}"/>
+								<mkdir dir="${llm.mark}/doc"/>
 								<copy file="${basedir}/llms.txt" todir="${llm.out}" overwrite="true"/>
 								<copy file="${basedir}/AGENTS.md" todir="${llm.out}" overwrite="true"/>
-								<concat destfile="${llm.out}/llms-full.txt" encoding="UTF-8" outputencoding="UTF-8" fixlastline="true">
-									<string value="This file is the archidata ${project.version} documentation, matching the version of the jar that contains it (org.atria-soft:archidata:${project.version}).&#10;"/>
-									<string value="${llm.sep.a}README.md${llm.sep.b}"/>
-									<file file="${basedir}/README.md"/>
-									<string value="${llm.sep.a}doc/index.md${llm.sep.b}"/>
-									<file file="${llm.doc}/index.md"/>
-									<string value="${llm.sep.a}doc/TUTORIAL_01_first_install.md${llm.sep.b}"/>
-									<file file="${llm.doc}/TUTORIAL_01_first_install.md"/>
-									<string value="${llm.sep.a}doc/data_model.md${llm.sep.b}"/>
-									<file file="${llm.doc}/data_model.md"/>
-									<string value="${llm.sep.a}doc/annotations.md${llm.sep.b}"/>
-									<file file="${llm.doc}/annotations.md"/>
-									<string value="${llm.sep.a}doc/database_access.md${llm.sep.b}"/>
-									<file file="${llm.doc}/database_access.md"/>
-									<string value="${llm.sep.a}doc/pagination.md${llm.sep.b}"/>
-									<file file="${llm.doc}/pagination.md"/>
-									<string value="${llm.sep.a}doc/indexes.md${llm.sep.b}"/>
-									<file file="${llm.doc}/indexes.md"/>
-									<string value="${llm.sep.a}doc/migration.md${llm.sep.b}"/>
-									<file file="${llm.doc}/migration.md"/>
-									<string value="${llm.sep.a}doc/security.md${llm.sep.b}"/>
-									<file file="${llm.doc}/security.md"/>
-									<string value="${llm.sep.a}doc/error_handling.md${llm.sep.b}"/>
-									<file file="${llm.doc}/error_handling.md"/>
-									<string value="${llm.sep.a}doc/converters_and_beans.md${llm.sep.b}"/>
-									<file file="${llm.doc}/converters_and_beans.md"/>
-									<string value="${llm.sep.a}doc/connectionManagement.md${llm.sep.b}"/>
-									<file file="${llm.doc}/connectionManagement.md"/>
-									<string value="${llm.sep.a}doc/tools.md${llm.sep.b}"/>
-									<file file="${llm.doc}/tools.md"/>
-									<string value="${llm.sep.a}doc/openapi_generation.md${llm.sep.b}"/>
-									<file file="${llm.doc}/openapi_generation.md"/>
-									<string value="${llm.sep.a}doc/typescript_api_generation.md${llm.sep.b}"/>
-									<file file="${llm.doc}/typescript_api_generation.md"/>
-									<string value="${llm.sep.a}doc/python_api_generation.md${llm.sep.b}"/>
-									<file file="${llm.doc}/python_api_generation.md"/>
-									<string value="${llm.sep.a}doc/change_stream.md${llm.sep.b}"/>
-									<file file="${llm.doc}/change_stream.md"/>
-									<string value="${llm.sep.a}doc/change_journal.md${llm.sep.b}"/>
-									<file file="${llm.doc}/change_journal.md"/>
-									<string value="${llm.sep.a}doc/field_encryption.md${llm.sep.b}"/>
-									<file file="${llm.doc}/field_encryption.md"/>
-									<string value="${llm.sep.a}doc/backup.md${llm.sep.b}"/>
-									<file file="${llm.doc}/backup.md"/>
-									<string value="${llm.sep.a}doc/cron.md${llm.sep.b}"/>
-									<file file="${llm.doc}/cron.md"/>
-									<string value="${llm.sep.a}doc/statistics.md${llm.sep.b}"/>
-									<file file="${llm.doc}/statistics.md"/>
-									<string value="${llm.sep.a}doc/graph_generation.md${llm.sep.b}"/>
-									<file file="${llm.doc}/graph_generation.md"/>
-								</concat>
-								<!-- doc pages missing from the list above: appended at the end, with a warning -->
-								<pathconvert property="llm.unlisted.names" refid="llm.unlisted" pathsep=", ">
+								<!-- Appends one page to llms-full.txt, after a "FILE: <path>" separator, and records it as listed -->
+								<macrodef name="llm-page">
+									<attribute name="file"/>
+									<sequential>
+										<touch file="${llm.mark}/@{file}"/>
+										<concat destfile="${llm.out}/llms-full.txt" append="true" encoding="UTF-8" outputencoding="UTF-8" fixlastline="true">
+											<string value="${llm.sep.a}@{file}${llm.sep.b}"/>
+											<file file="${basedir}/@{file}"/>
+										</concat>
+									</sequential>
+								</macrodef>
+								<echo file="${llm.out}/llms-full.txt" encoding="UTF-8">This file is the archidata ${project.version} documentation, matching the version of the jar that contains it (org.atria-soft:archidata:${project.version}).&#10;</echo>
+								<!-- THE ordered list of the pages of llms-full.txt (the only place to maintain) -->
+								<llm-page file="README.md"/>
+								<llm-page file="doc/index.md"/>
+								<llm-page file="doc/TUTORIAL_01_first_install.md"/>
+								<llm-page file="doc/data_model.md"/>
+								<llm-page file="doc/annotations.md"/>
+								<llm-page file="doc/database_access.md"/>
+								<llm-page file="doc/pagination.md"/>
+								<llm-page file="doc/indexes.md"/>
+								<llm-page file="doc/migration.md"/>
+								<llm-page file="doc/security.md"/>
+								<llm-page file="doc/error_handling.md"/>
+								<llm-page file="doc/converters_and_beans.md"/>
+								<llm-page file="doc/connectionManagement.md"/>
+								<llm-page file="doc/tools.md"/>
+								<llm-page file="doc/openapi_generation.md"/>
+								<llm-page file="doc/typescript_api_generation.md"/>
+								<llm-page file="doc/python_api_generation.md"/>
+								<llm-page file="doc/change_stream.md"/>
+								<llm-page file="doc/change_journal.md"/>
+								<llm-page file="doc/field_encryption.md"/>
+								<llm-page file="doc/backup.md"/>
+								<llm-page file="doc/cron.md"/>
+								<llm-page file="doc/statistics.md"/>
+								<llm-page file="doc/graph_generation.md"/>
+								<!-- a doc page that is not listed above fails the build -->
+								<pathconvert property="llm.unlisted.names" pathsep=", ">
+									<fileset dir="${basedir}/doc" includes="*.md">
+										<present present="srconly" targetdir="${llm.mark}/doc"/>
+									</fileset>
 									<flattenmapper/>
 								</pathconvert>
-								<condition property="llm.has.unlisted">
-									<not>
-										<equals arg1="${llm.unlisted.names}" arg2=""/>
-									</not>
-								</condition>
-								<echo level="warning" if:set="llm.has.unlisted" message="doc pages missing from the llms-full.txt list in pom.xml: ${llm.unlisted.names}"/>
-								<concat if:set="llm.has.unlisted" destfile="${llm.out}/llms-full.txt" append="true" encoding="UTF-8" outputencoding="UTF-8" fixlastline="true">
-									<string value="${llm.sep.a}Other doc pages (not yet listed in pom.xml): ${llm.unlisted.names}${llm.sep.b}"/>
-									<fileset refid="llm.unlisted"/>
-								</concat>
+								<fail message="doc pages missing from the llms-full.txt list in pom.xml (embed-llm-documentation): ${llm.unlisted.names}">
+									<condition>
+										<not>
+											<equals arg1="${llm.unlisted.names}" arg2=""/>
+										</not>
+									</condition>
+								</fail>
 							</target>
 						</configuration>
 					</execution>

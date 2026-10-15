@@ -124,8 +124,8 @@ Every new feature, or change of behaviour, updates the documentation in the same
 2. `doc/annotations.md` when an annotation is added or changed.
 3. `llms.txt` at the root: one link per doc page (absolute GitHub URL on `develop`).
 4. A new page in `doc/` must also be added to the ordered list of the
-   `embed-llm-documentation` execution in `pom.xml` (otherwise the build warns and appends the page
-   at the end of `llms-full.txt`, after the ordered pages).
+   `embed-llm-documentation` execution in `pom.xml` (one `<llm-page file="doc/xxx.md"/>` line, the
+   only place where the order is defined): a page of `doc/` that is not listed FAILS the build.
 5. The javadoc of the public classes touched.
 
 The jar ships `META-INF/archidata/llms.txt`, `META-INF/archidata/AGENTS.md` and
