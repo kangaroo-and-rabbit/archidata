@@ -345,6 +345,19 @@ public class RESTApiRequest {
 	// ====================================================================
 
 	/**
+	 * Adds (or replaces) a custom HTTP header sent with the request.
+	 * The {@code Authorization} header set from the token and the {@code Content-Type} set by the body
+	 * methods are sent too; a header with the same name added here is sent in addition to them.
+	 * @param headerKey The header name.
+	 * @param headerValue The header value.
+	 * @return This request instance for chaining.
+	 */
+	public RESTApiRequest header(final String headerKey, final String headerValue) {
+		this.headers.put(headerKey, headerValue);
+		return this;
+	}
+
+	/**
 	 * Enables detailed HTTP request/response logging for this request.
 	 * @return This request instance for chaining.
 	 */
@@ -406,31 +419,34 @@ public class RESTApiRequest {
 
 	/**
 	 * Sends the request and returns the raw HTTP response as bytes.
-	 * @return Raw HTTP response with byte array body.
-	 * @throws IOException If the request fails.
+	 * @return Raw HTTP response with byte array body (2xx status only).
+	 * @throws IOException If the request fails, or if an error response body is not an archidata error JSON.
 	 * @throws InterruptedException If the request is interrupted.
-	 * @throws RESTErrorResponseException If an error occurs in the server.
+	 * @throws RESTErrorResponseException If the server answers with a 4xx/5xx status.
 	 */
 	public HttpResponse<byte[]> fetchByte() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
 		final HttpResponse<byte[]> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
 		displayResponse(httpResponse);
+		final byte[] body = httpResponse.body();
+		checkHttpError(httpResponse.statusCode(), body == null ? null : new String(body, StandardCharsets.UTF_8));
 		return httpResponse;
 	}
 
 	/**
 	 * Sends the request and returns the raw HTTP response as a string.
-	 * @return Raw HTTP response with string body.
-	 * @throws IOException If the request fails.
+	 * @return Raw HTTP response with string body (2xx status only).
+	 * @throws IOException If the request fails, or if an error response body is not an archidata error JSON.
 	 * @throws InterruptedException If the request is interrupted.
-	 * @throws RESTErrorResponseException If an error occurs in the server.
+	 * @throws RESTErrorResponseException If the server answers with a 4xx/5xx status.
 	 */
 	public HttpResponse<String> fetchString() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
 		final HttpClient client = HttpClient.newHttpClient();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		displayResponse(httpResponse);
+		checkHttpError(httpResponse.statusCode(), httpResponse.body());
 		return httpResponse;
 	}
 
@@ -519,18 +535,19 @@ public class RESTApiRequest {
 
 	/**
 	 * Checks the HTTP response status and throws an appropriate exception for error responses (non-2xx).
-	 * @param httpResponse The HTTP response to check.
+	 * @param statusCode The HTTP status code of the response.
+	 * @param body The response body as text.
 	 * @throws RESTErrorResponseException If the response body can be parsed as an error.
 	 * @throws IOException If the error response cannot be parsed.
 	 */
-	private void checkHttpError(final HttpResponse<String> httpResponse)
+	private void checkHttpError(final int statusCode, final String body)
 			throws RESTErrorResponseException, IOException {
-		if (httpResponse.statusCode() >= 200 && httpResponse.statusCode() < 300) {
+		if (statusCode >= 200 && statusCode < 300) {
 			return;
 		}
-		LOGGER.trace("Receive Error: {}", httpResponse.body());
+		LOGGER.trace("Receive Error: {}", body);
 		try {
-			throw this.mapper.readValue(httpResponse.body(), RESTErrorResponseException.class);
+			throw this.mapper.readValue(body, RESTErrorResponseException.class);
 		} catch (final JsonProcessingException ex) {
 			// The error body is not parseable JSON: this is almost never an archidata problem.
 			// The remote returned a non-JSON error page — typically a proxy/gateway HTML page for a
@@ -540,10 +557,10 @@ public class RESTApiRequest {
 			LOGGER.warn(
 					"RestAPI received a non-JSON error body [HTTP {}] — likely a proxy/gateway error page "
 							+ "(maintenance/capacity), not a structured API error: {}",
-					httpResponse.statusCode(), firstLineForLog(httpResponse.body()));
-			LOGGER.debug("Full non-JSON error body [HTTP {}]:\n{}", httpResponse.statusCode(), httpResponse.body(), ex);
-			throw new IOException("RestAPI Fail to parse the error " + ex.getClass().getName() + " ["
-					+ httpResponse.statusCode() + "] " + httpResponse.body());
+					statusCode, firstLineForLog(body));
+			LOGGER.debug("Full non-JSON error body [HTTP {}]:\n{}", statusCode, body, ex);
+			throw new IOException(
+					"RestAPI Fail to parse the error " + ex.getClass().getName() + " [" + statusCode + "] " + body);
 		}
 	}
 
@@ -567,7 +584,6 @@ public class RESTApiRequest {
 	private <TYPE_RESPONSE> TYPE_RESPONSE callAndParseRequest(final Class<TYPE_RESPONSE> clazzReturn)
 			throws RESTErrorResponseException, IOException, InterruptedException {
 		final HttpResponse<String> httpResponse = fetchString();
-		checkHttpError(httpResponse);
 		if (clazzReturn == Void.class || clazzReturn == void.class) {
 			return null;
 		}
@@ -586,7 +602,6 @@ public class RESTApiRequest {
 	private <TYPE_RESPONSE> List<TYPE_RESPONSE> callAndParseRequestList(final Class<TYPE_RESPONSE> clazzReturn)
 			throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpResponse<String> httpResponse = fetchString();
-		checkHttpError(httpResponse);
 		LOGGER.trace("Receive model: List<{}> with data: '{}'", clazzReturn.getCanonicalName(), httpResponse.body());
 		return this.mapper.readValue(httpResponse.body(),
 				this.mapper.getTypeFactory().constructCollectionType(List.class, clazzReturn));

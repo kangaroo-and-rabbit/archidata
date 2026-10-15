@@ -117,21 +117,22 @@ trailing slashes removed). It returns a new `RESTApiRequest` each call.
 | verb | `get()`, `post()`, `put()`, `patch()`, `delete()`, `archive()`, `restore()`, `call()`, `verb(String)`. Default is `GET`. `archive`, `restore` and `call` send the custom HTTP methods `ARCHIVE`, `RESTORE`, `CALL` used by archidata resources |
 | body | `bodyJson(Object)`, `bodyAsJson(String)`, `bodyMap(Map<String,Object>)`, `bodyString(String)` / `bodyString(String, contentType)`, `bodyByte(byte[], contentType)`, `bodyMultipart(Map<String,Object>)` (a `File` value is sent as binary, anything else as text) |
 | query | `queryParam(String key, Object... values)`: repeats allowed, `Date` and `ZonedDateTime` formatted in ISO, `null` becomes the text `null` |
+| header | `header(String key, String value)`: adds a custom header (same key replaces the previous value) |
 | debug | `showIOStream()`, `formatBody()` (pretty-print the JSON body) |
 | send | `fetch(Class<T>)`, `fetchList(Class<T>)`, `fetch()` (no body), `fetchString()`, `fetchByte()`, `generateRequest()` (build the `HttpRequest` without sending) |
 
-Errors: `fetch`, `fetch(Class)` and `fetchList` throw `RESTErrorResponseException`
+Errors: `fetch`, `fetch(Class)`, `fetchList`, `fetchString` and `fetchByte` throw `RESTErrorResponseException`
 for a non-2xx status whose body is the archidata error JSON (see
 [error_handling.md](error_handling.md)), and `IOException` when the error body
 is not JSON. The status code is in the exception's `status` field.
 
 Pitfalls of the client:
 
-- `fetchString()` and `fetchByte()` return the response whatever the status:
-  they do **not** throw on 4xx/5xx, despite the `throws` clause. Check
-  `statusCode()` yourself.
-- There is no public method to add a custom header. Only `Authorization` (from
-  `setToken`) and `Content-Type` (from the body methods) are sent.
+- To read a 4xx/5xx answer without an exception you must catch
+  `RESTErrorResponseException` (its `status` field holds the code):
+  `fetchString()` and `fetchByte()` only return 2xx responses.
+- A custom header added with `header(...)` is sent in addition to
+  `Authorization` and `Content-Type`; it does not replace them.
 - `fetch(Class)` with `String.class` returns the raw body; with `void.class`
   or `Void.class` it returns `null`.
 - The HTTP version is forced to HTTP/1.1, and a new `HttpClient` is created for
