@@ -1,6 +1,9 @@
 package org.atriasoft.archidata.cron;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A cron expression parsed once: the allowed values of each field and the day restriction flags.
@@ -26,6 +29,8 @@ final class CronExpression {
 	static final String[] FIELD_NAMES = { "minute", "hour", "day of month", "month", "day of week" };
 	/** Bounds of the five fields (day of week: 0 and 7 are both Sunday). */
 	static final int[][] LIMITS = { { 0, 59 }, { 0, 23 }, { 1, 31 }, { 1, 12 }, { 0, 7 } };
+	/** Day names indexed 0..7 (0 and 7 are Sunday), for the messages. */
+	private static final String[] DAY_NAMES = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
 
 	private final String expression;
 	private final String[] parts;
@@ -98,6 +103,87 @@ final class CronExpression {
 			return dayOfMonth || dayOfWeek;
 		}
 		return dayOfMonth && dayOfWeek;
+	}
+
+	/**
+	 * Describes how the meaning of this expression changed when archidata moved to the Unix (Vixie) cron
+	 * syntax. The former matcher read {@code *}{@code /n} as "the value is a multiple of n" (not "every n
+	 * from the field minimum"), numbered the days of week Monday = 1 .. Sunday = 7 (0 never matched), and
+	 * always combined the day of month and the day of week with AND.
+	 *
+	 * @return a one-line description of the old and the new interpretation, or {@code null} when the
+	 *         expression means the same thing under both
+	 */
+	String describeChangeFromLegacySyntax() {
+		final List<String> changes = new ArrayList<>();
+		for (final int index : new int[] { DAY_OF_MONTH, MONTH, DAY_OF_WEEK }) {
+			final boolean[] legacy = legacyAllowed(index);
+			if (legacy == null) {
+				continue;
+			}
+			final int first = index == DAY_OF_WEEK ? 1 : LIMITS[index][0];
+			final boolean[] current = new boolean[legacy.length];
+			for (int value = first; value < legacy.length; value++) {
+				current[value] = this.fields[index][value];
+			}
+			if (!Arrays.equals(legacy, current)) {
+				changes.add(FIELD_NAMES[index] + " '" + this.parts[index] + "' was " + listValues(index, legacy)
+						+ ", now " + listValues(index, current));
+			}
+		}
+		if (daysCombineWithOr()) {
+			changes.add("day of month '" + this.parts[DAY_OF_MONTH] + "' and day of week '" + this.parts[DAY_OF_WEEK]
+					+ "' had to match both (AND), now either one is enough (OR)");
+		}
+		return changes.isEmpty() ? null : String.join("; ", changes);
+	}
+
+	/**
+	 * Values a field allowed with the former matcher (day of week indexed Monday = 1 .. Sunday = 7).
+	 *
+	 * @param index the field index
+	 * @return the allowed values indexed by value, or {@code null} when the former matcher could not read
+	 *         the field (a step on a range failed at every evaluation)
+	 */
+	private boolean[] legacyAllowed(final int index) {
+		final int min = index == DAY_OF_WEEK ? 1 : LIMITS[index][0];
+		final int max = index == DAY_OF_WEEK ? 7 : LIMITS[index][1];
+		final boolean[] allowed = new boolean[max + 1];
+		for (final String part : this.parts[index].split(",", -1)) {
+			if (part.contains("/") && !part.startsWith("*/")) {
+				return null;
+			}
+			for (int value = min; value <= max; value++) {
+				if (legacyPartMatches(part, value)) {
+					allowed[value] = true;
+				}
+			}
+		}
+		return allowed;
+	}
+
+	private static boolean legacyPartMatches(final String part, final int value) {
+		if (part.equals("*")) {
+			return true;
+		}
+		if (part.startsWith("*/")) {
+			return value % Integer.parseInt(part.substring(2)) == 0;
+		}
+		if (part.contains("-")) {
+			final String[] range = part.split("-", -1);
+			return value >= Integer.parseInt(range[0]) && value <= Integer.parseInt(range[1]);
+		}
+		return Integer.parseInt(part) == value;
+	}
+
+	private static String listValues(final int index, final boolean[] allowed) {
+		final List<String> values = new ArrayList<>();
+		for (int value = 0; value < allowed.length; value++) {
+			if (allowed[value]) {
+				values.add(index == DAY_OF_WEEK ? DAY_NAMES[value] : Integer.toString(value));
+			}
+		}
+		return values.isEmpty() ? "never" : "{" + String.join(",", values) + "}";
 	}
 
 	/** Vixie rule: a day field starting with '*' (including '*' + '/n') does not restrict the day. */

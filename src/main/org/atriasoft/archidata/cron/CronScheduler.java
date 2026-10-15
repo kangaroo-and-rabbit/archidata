@@ -366,7 +366,15 @@ public class CronScheduler {
 			name = new ObjectId().toString();
 		}
 		LOGGER.debug("Add task name '{}' cron='{}'", name, cronExpression);
-		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
+		final CronTask task = new CronTask(name, cronExpression, action, uniqueInQueue);
+		final String legacyChange = task.schedule().describeChangeFromLegacySyntax();
+		if (legacyChange != null) {
+			LOGGER.warn(
+					"Cron task '{}' expression '{}' changed meaning when archidata moved to the Unix"
+							+ " (Vixie) cron syntax: {}. Check that the new meaning is the expected one.",
+					name, cronExpression, legacyChange);
+		}
+		this.cronTasks.put(name, task);
 	}
 
 	/**

@@ -1,5 +1,108 @@
 # Migration Guide
 
+## Prochaine version (après v0.50.2) - Corrections de bugs qui changent le comportement (CHANGEMENT DE COMPORTEMENT)
+
+Ce lot corrige des bugs ; plusieurs corrections changent un comportement observable. À relire
+avant de monter de version.
+
+### Syntaxe cron (`CronScheduler`)
+
+La syntaxe est désormais celle du cron Unix (Vixie). Le sens de certaines expressions déjà
+déployées change :
+
+| Motif | Avant | Maintenant |
+|---|---|---|
+| `*/n` sur le jour du mois, le mois ou le jour de semaine | valeurs multiples de `n` (`*/2` sur le jour du mois : 2, 4, 6...) | tous les `n` depuis le minimum du champ (`*/2` : 1, 3, 5...) |
+| jour de semaine `0` | ne correspondait jamais (lundi = 1 .. dimanche = 7) | dimanche (0 ou 7) |
+| jour du mois ET jour de semaine restreints tous les deux (`0 0 1 * 1`) | les deux devaient correspondre (ET) | l'un ou l'autre suffit (OU) |
+
+`*/n` sur la minute ou l'heure, `*`, les valeurs et les intervalles (hors jour de semaine 0)
+gardent leur sens. Nouveautés : `a-b/n`, dimanche = 7 ; les expressions invalides sont refusées
+par `addTask` (`IllegalArgumentException`) au lieu d'échouer à chaque évaluation.
+
+**Comment migrer :** `addTask` logue un WARN, avec l'ancienne et la nouvelle interprétation sur une
+ligne, pour chaque expression dont le sens a changé. Démarrer l'application, chercher
+`changed meaning when archidata moved to the Unix` dans les logs, et réécrire l'expression si le
+nouveau sens n'est pas celui voulu (par exemple `*/2` sur le jour du mois pour les jours pairs
+devient `2-30/2`). Voir `doc/cron.md`.
+
+### `MigrationEngine`
+
+- Si le dernier nom de migration enregistré dans `KAR_migration` n'est ni l'initialisation ni une
+  migration ajoutée (migration renommée ou supprimée), le moteur lève une `MigrationException` et
+  `migrateWaitAdmin` bloque le démarrage. Avant : rien n'était appliqué, sans erreur.
+  **Comment migrer :** ne jamais renommer une migration déployée ; si c'est arrivé, rendre à
+  `getName()` son ancien nom.
+- `revertSingle()` lève `UnsupportedOperationException`, de même que `revertTo()` dès qu'une
+  migration doit être annulée. Avant : l'annulation ne faisait rien en silence. Écrire une nouvelle
+  migration « en avant » à la place.
+
+### Statuts HTTP des catchers
+
+- `JacksonExceptionCatcher` : un corps de requête JSON illisible (`StreamReadException`) ou qui ne
+  correspond pas au type attendu (`MismatchedInputException`, `ValueInstantiationException`)
+  répond **400** au lieu de 500. Les mêmes erreurs levées par un parsing fait par le serveur
+  lui-même (réponse d'un service amont, document stocké) restent en 500, comme toute autre erreur
+  Jackson.
+- `InputExceptionCatcher` : le champ `status` du corps JSON reprend le statut réel de
+  l'`InputException` (celui de la réponse HTTP) ; avant, il valait toujours 400.
+
+**Comment migrer :** adapter les clients ou les tests qui attendaient un 500 sur un JSON invalide,
+ou qui lisaient `status` dans le corps.
+
+### `DbConfig` et `ConfigBaseVariable.getDBPort()` : port en `Integer`
+
+Les ports au-delà de 32767 sont acceptés. Le constructeur de `DbConfig` prend un `Integer` ;
+l'ancien constructeur `Short` est conservé, `@Deprecated`, et délègue. Un appel avec un `null`
+littéral comme port est désormais ambigu entre les deux : écrire `(Integer) null`. Le port est
+validé dans 1..65535 (`IllegalArgumentException` sinon). `ConfigBaseVariable.getDBPort()` renvoie
+un `int` (au lieu de `Short`) et lève `IllegalArgumentException` si `DB_PORT` n'est pas un entier
+entre 1 et 65535.
+
+### `DB_ABLE_TO_CREATE` lu correctement
+
+La variable était lue avec `Boolean.getBoolean` (qui lit une propriété système portant ce nom) :
+toute valeur donnait `false`. Elle est maintenant lue avec `Boolean.parseBoolean` :
+`DB_ABLE_TO_CREATE=true` donne enfin `true` (sans variable : `true`, inchangé).
+
+### Change streams : modes `FullDocument` par listener dépréciés
+
+Le mode `FullDocument` est global, choisi par `ChangeNotificationManager.start(...)`. Les surcharges
+qui prennent un mode par listener ou par watch (`registerListener(..., FullDocument)`,
+`ListenerRegistrationBuilder.withMode`, `CollectionWatchBuilder.fullDocument`) l'ignoraient déjà ;
+elles sont `@Deprecated` et loguent un WARN quand le mode demandé diffère du mode effectif (au
+`start()` pour un listener enregistré avant le démarrage). Retirer le mode de ces appels et le
+passer à `start()`.
+
+### `tools.PublicKey` déprécié
+
+`org.atriasoft.archidata.tools.PublicKey` est `@Deprecated(forRemoval = true)` : utiliser
+`JWTWrapper.PublicKey`.
+
+### `@ApiDoc(hidden = true)` respecté
+
+Il était ignoré. Il retire désormais l'élément de tous les générateurs (OpenAPI, TypeScript,
+Python, graphes) : sur une méthode, l'endpoint ; sur une classe de ressource JAX-RS (ou une
+superclasse ou interface), tous ses endpoints ; sur un champ, son getter ou son setter, la
+propriété du modèle. L'endpoint répond toujours et le champ est toujours sérialisé en JSON.
+**Comment migrer :** vérifier que les éléments marqués `hidden` ne sont pas utilisés par les
+clients générés.
+
+### `OffsetDateTime` persisté en UTC
+
+Un champ d'entité `OffsetDateTime` est stocké comme un `Instant` (date BSON, précision
+milliseconde) et relu **en UTC** : l'offset d'origine est perdu (`2025-06-15T14:30+02:00` revient
+`2025-06-15T12:30Z`, même instant). Avant, ce type n'était pas pris en charge comme champ
+persisté. Stocker l'offset dans un champ séparé si besoin.
+
+### `RESTApiRequest.header()`
+
+Nouvelle méthode `header(key, value)` pour ajouter un en-tête à la requête. `fetchString()` et
+`fetchByte()` restent des accesseurs bruts qui ne lèvent pas d'exception sur 4xx/5xx ;
+`fetch(Class)`, `fetch()` et `fetchList` lèvent `RESTErrorResponseException`.
+
+---
+
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)
 
 ### Ce qui change

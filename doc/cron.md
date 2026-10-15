@@ -79,6 +79,13 @@ the offending field. `CronScheduler.matches(String expression, LocalDateTime
 time)` tells whether an expression is due at a given minute, with the same
 rules (useful to check an expression in a test).
 
+Before this syntax, archidata read `*/n` as "the value is a multiple of `n`",
+numbered the days of week Monday = 1 .. Sunday = 7 (0 never matched) and always
+combined the two day fields with AND. `addTask` logs a WARN, with the former and
+the current meaning on one line, when an expression changed meaning: `*/n` on
+the day of month, the month or the day of week, a day of week 0, or both day
+fields restricted. See `MIGRATION.md`.
+
 Times are local (`LocalDateTime.now()`, JVM time zone), evaluated once per
 minute.
 
