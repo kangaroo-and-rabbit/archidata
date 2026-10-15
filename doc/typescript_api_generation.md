@@ -67,7 +67,8 @@ react-hook-form sends `null` for a field the user cleared, and an update is a
 schema of the request body must therefore accept `null` **and** a missing key
 on its optional fields: `.nullable().optional()`.
 
-How an optional field (no `@NotNull`) is generated:
+How an optional field (not a primitive, no `@NotNull` active for the generated
+variant) is generated:
 
 | Class annotations                                          | Zod suffix                |
 |------------------------------------------------------------|---------------------------|
@@ -77,8 +78,8 @@ How an optional field (no `@NotNull`) is generated:
 | `@JsonInclude(NON_NULL)` + `@ApiOptionalIsNullable(groups = …)` | `.nullable().optional()` in the listed groups, `.optional()` elsewhere |
 
 A field-level `@jakarta.annotation.Nullable` makes the field optional even with
-`@NotNull`, but follows the same table: under `@JsonInclude(NON_NULL)` it gives
-`.optional()`, which does **not** accept `null`.
+`@NotNull`, but follows the same table: under `@JsonInclude(NON_NULL)` without
+`@ApiOptionalIsNullable` it gives `.optional()`, which does **not** accept `null`.
 
 `@ValidGroup(GroupX.class)` on a parameter appends the group name to the
 generated type: `@Valid @ValidGroup(GroupCreate.class) User` is `UserCreate`

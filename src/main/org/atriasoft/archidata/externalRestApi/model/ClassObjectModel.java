@@ -437,7 +437,8 @@ public class ClassObjectModel extends ClassModel {
 
 	/**
 	 * Returns the groups for which optional fields should be treated as nullable.
-	 * @return the array of group classes, or {@code null} if not specified
+	 * @return the array of group classes, empty when every usage is concerned ({@code @ApiOptionalIsNullable} without
+	 *         groups), or {@code null} if the class is not annotated
 	 */
 	public Class<?>[] getOptionalIsNullableGroups() {
 		return this.optionalIsNullableGroups;
