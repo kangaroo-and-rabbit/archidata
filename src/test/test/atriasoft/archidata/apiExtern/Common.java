@@ -3,7 +3,9 @@ package test.atriasoft.archidata.apiExtern;
 import java.util.Map;
 import java.util.UUID;
 
+import org.atriasoft.archidata.filter.PartRight;
 import org.atriasoft.archidata.tools.JWTWrapper;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Assertions;
 
 public class Common {
@@ -16,12 +18,22 @@ public class Common {
 		}
 	}
 
-	public static final String USER_TOKEN = JWTWrapper.generateJWToken(16512L, "test_user_login", "Karso",
-			"test.atriasoft", //
-			Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE)), null, 3600);
-	public static final String ADMIN_TOKEN = JWTWrapper.generateJWToken(16512L, "test_admin_login", "Karso",
-			"test.atriasoft", Map.of("test.atriasoft", Map.of("USER", Boolean.TRUE, "ADMIN", Boolean.TRUE)), null,
+	/** Subject of {@link #USER_TOKEN}: an ObjectId, as {@code AuthenticationFilter} requires. */
+	public static final ObjectId USER_ID = new ObjectId("000000000000000000004081");
+	/** Subject of {@link #ADMIN_TOKEN}. */
+	public static final ObjectId ADMIN_ID = new ObjectId("000000000000000000004082");
+
+	/** Token of a user with the USER role on the test application (roles are PartRight codes). */
+	public static final String USER_TOKEN = JWTWrapper.generateJWToken(USER_ID, "test_user_login", "Karso",
+			TestAuthenticationFilter.APPLICATION_NAME, //
+			Map.of(TestAuthenticationFilter.APPLICATION_NAME, Map.of("USER", PartRight.READ_WRITE.getValue())), null,
 			3600);
+	/** Token of a user with the USER and ADMIN roles on the test application. */
+	public static final String ADMIN_TOKEN = JWTWrapper.generateJWToken(ADMIN_ID, "test_admin_login", "Karso",
+			TestAuthenticationFilter.APPLICATION_NAME, //
+			Map.of(TestAuthenticationFilter.APPLICATION_NAME,
+					Map.of("USER", PartRight.READ_WRITE.getValue(), "ADMIN", PartRight.READ_WRITE.getValue())),
+			null, 3600);
 
 	public static String randGeneratedStr(final int length) {
 		final String base = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvxyz0123456789éàê_- '()";

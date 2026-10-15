@@ -12,10 +12,12 @@ import jakarta.ws.rs.ext.Provider;
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class TestAuthenticationFilter extends AuthenticationFilter {
+	/** Application name of the test server: the roles of the test tokens are granted for it. */
+	public static final String APPLICATION_NAME = "karusic";
 	final Logger logger = LoggerFactory.getLogger(TestAuthenticationFilter.class);
 
 	public TestAuthenticationFilter() {
-		super("karusic");
+		super(APPLICATION_NAME);
 	}
 
 }

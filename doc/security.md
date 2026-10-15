@@ -508,10 +508,15 @@ static {
     }
 }
 
+// The subject must be an ObjectId and the role values PartRight codes:
+// AuthenticationFilter rejects a Long subject or Boolean roles (401).
 static final String TOKEN = JWTWrapper.generateJWToken(
-    16512L, "test_user", "Karso", "myapp",
-    Map.of("myapp", Map.of("USER", PartRight.READ)), null, 3600);
+    new ObjectId("000000000000000000004081"), "test_user", "Karso", "myapp",
+    Map.of("myapp", Map.of("USER", PartRight.READ.getValue())), null, 3600);
 ```
+
+archidata's own tests do the same in `src/test/.../apiExtern/Common.java` (`USER_TOKEN`,
+`ADMIN_TOKEN`), with roles keyed by the application name of the test filter.
 
 ### 3. UserByToken API
 
@@ -575,8 +580,8 @@ JWTWrapper.createJwtTestToken(16512, "test_user", "Karso", "myapp",
 JWTWrapper.initLocalToken(null);
 
 // Then generate tokens with real RSA signatures:
-JWTWrapper.generateJWToken(16512L, "test_user", "Karso", "myapp",
-    Map.of("myapp", Map.of("USER", PartRight.READ)), null, 3600);
+JWTWrapper.generateJWToken(new ObjectId(), "test_user", "Karso", "myapp",
+    Map.of("myapp", Map.of("USER", PartRight.READ.getValue())), null, 3600);
 ```
 
 ### 8. Force re-login
