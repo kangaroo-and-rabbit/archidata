@@ -251,6 +251,19 @@ public class TestTypeScriptApiGeneration {
 		}
 	}
 
+	// A request DTO (one use only, plain @Valid): @ApiOptionalIsNullable without groups applies to every usage.
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@ApiOptionalIsNullable
+	public record TestOptionalNullableRequest(
+			@NotNull Long valueNotNull,
+			Long valueOptional) {}
+
+	@Path("optionalNullablePath")
+	public class SampleResourceOptionalNullablePost {
+		@POST
+		public void create(@Valid final TestOptionalNullableRequest data) {}
+	}
+
 	@Test
 	public void testGenerateABasicRestApiGet() throws Exception {
 
@@ -1018,6 +1031,72 @@ public class TestTypeScriptApiGeneration {
 						}
 						""",
 				generation.get(Paths.get("model/test-json-include-write-object.ts")));
+	}
+
+	@Test
+	public void testJsonIncludeNonNullOptionalIsNullableWithoutGroup() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(SampleResourceOptionalNullablePost.class));
+
+		final Map<java.nio.file.Path, String> generation = TsGenerateApi.generateApi(api);
+
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import {
+					HTTPRequestModel,
+					RESTConfig,
+					RESTRequestVoid,
+				} from "../rest-tools";
+				import {
+					TestOptionalNullableRequest,
+				} from "../model";
+
+				export namespace SampleResourceOptionalNullablePost {
+					export function create({
+							restConfig,
+							data,
+						}: {
+						restConfig: RESTConfig,
+						data: TestOptionalNullableRequest,
+					}): Promise<void> {
+						return RESTRequestVoid({
+							restModel: {
+								endPoint: "optionalNullablePath/",
+								requestType: HTTPRequestModel.POST,
+							},
+							restConfig,
+							data,
+						});
+					};
+				}
+				""", generation.get(Paths.get("api/sample-resource-optional-nullable-post.ts")));
+		Assertions.assertEquals("""
+				/**
+				 * Interface of the server (auto-generated code)
+				 */
+				import { z as zod } from "zod";
+				import { ZodLong } from "./long";
+
+				export const ZodTestOptionalNullableRequest = zod.object({
+					valueNotNull: ZodLong,
+					valueOptional: ZodLong.nullable().optional(),
+
+				});
+
+				export type TestOptionalNullableRequest = zod.infer<typeof ZodTestOptionalNullableRequest>;
+
+				export function isTestOptionalNullableRequest(data: any): data is TestOptionalNullableRequest {
+					try {
+						ZodTestOptionalNullableRequest.parse(data);
+						return true;
+					} catch (e: any) {
+						console.log(`Fail to parse data type='ZodTestOptionalNullableRequest' error=${e}`);
+						return false;
+					}
+				}
+				""", generation.get(Paths.get("model/test-optional-nullable-request.ts")));
 	}
 
 	@Test

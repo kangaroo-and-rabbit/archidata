@@ -564,7 +564,8 @@ public class TsClassElement {
 	 * @param isValid whether validation is active
 	 * @param groups the validation groups to consider
 	 * @param jsonIncludeNonNull whether JSON serialization uses NON_NULL inclusion
-	 * @param optionalIsNullableGroups groups for which optional fields should also be nullable
+	 * @param optionalIsNullableGroups groups for which optional fields should also be nullable ({@code null}: none,
+	 *            empty: every group)
 	 * @return the Zod suffix string, or empty string if not optional
 	 */
 	public String optionalTypeZod(
@@ -577,7 +578,9 @@ public class TsClassElement {
 			return "";
 		}
 		if (jsonIncludeNonNull) {
-			if (optionalIsNullableGroups != null && isMatchingGroup(groups, optionalIsNullableGroups)) {
+			// @ApiOptionalIsNullable without groups applies to every usage of the model.
+			if (optionalIsNullableGroups != null
+					&& (optionalIsNullableGroups.length == 0 || isMatchingGroup(groups, optionalIsNullableGroups))) {
 				return ".nullable().optional()";
 			}
 			return ".optional()";
