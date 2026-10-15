@@ -5,8 +5,8 @@ Single reference of every annotation archidata defines or interprets. Each entry
 the attributes with their defaults, the real effect (as implemented), a short example and the page
 that details the topic. Archidata annotations live in `org.atriasoft.archidata.annotation` and its
 sub-packages; the standard ones come from `jakarta.*` or Jackson. The JPA annotations
-(`jakarta.persistence`: `@Table`, `@Column`, `@Id`, `@GeneratedValue`, `@ManyToOne`...) are not read
-at all: see [MIGRATION.md](https://github.com/kangaroo-and-rabbit/archidata/blob/develop/MIGRATION.md)
+(`jakarta.persistence`: `@Table`, `@Column`, `@Id`, `@GeneratedValue`, `@ManyToOne`...) are not read:
+they are rejected: analysing the model of an entity (or of a super class) that still carries one of them on the class, a field or a method throws a `DataAccessException` naming the class, the element, the old annotation and its replacement. See [MIGRATION.md](https://github.com/kangaroo-and-rabbit/archidata/blob/develop/MIGRATION.md)
 for the correspondence.
 
 Summary
@@ -71,7 +71,8 @@ Known pitfalls
   `AuthenticationFilter` answer 403; `@DenyAll` always answers 403.
 - `@Field` only renames the field in the database: use `@NotNull` and `@Size` for validation.
 - `@InitValue` is the archidata annotation for a value written on insert. The JAX-RS
-  `jakarta.ws.rs.DefaultValue` on an entity field is ignored (it stays the right annotation on the
+  `jakarta.ws.rs.DefaultValue` on an entity field is rejected with a `DataAccessException` when the
+  model is analysed (it stays the right annotation on the
   parameters of a REST resource).
 
 
@@ -132,7 +133,7 @@ implicit `false`.
 public Integer retryCount;
 ```
 
-Not to be confused with `jakarta.ws.rs.DefaultValue`, which archidata ignores on an entity field and
+Not to be confused with `jakarta.ws.rs.DefaultValue`, which archidata rejects on an entity field (`DataAccessException` when the model is analysed) and
 which keeps its JAX-RS meaning on the parameters of a resource method.
 
 ### @Nullable

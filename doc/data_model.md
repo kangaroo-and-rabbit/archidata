@@ -91,7 +91,8 @@ Field Annotations
 
 All the annotations are summarized in the [annotations reference](annotations.md). The mapping
 annotations are archidata's own (`org.atriasoft.archidata.annotation`): the JPA annotations
-(`jakarta.persistence`) are not read.
+(`jakarta.persistence`) are not read: an entity that still carries one is rejected with a
+`DataAccessException` when its model is analysed.
 
 ### @Id
 
@@ -164,7 +165,8 @@ public Boolean deleted = null;
 
 > **Note:** The value is a string converted to the field type; the surrounding single quotes are
 > optional (`'active'`, `'42'`; `'0'` reads as `false` for a boolean). Do not use the JAX-RS
-> `@DefaultValue` on an entity field: archidata ignores it (it is meant for resource parameters).
+> `@DefaultValue` on an entity field: archidata rejects it with a `DataAccessException` (it is meant
+> for resource parameters).
 
 ### @DataNotRead
 

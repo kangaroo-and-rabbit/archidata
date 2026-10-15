@@ -5,7 +5,15 @@
 archidata ne lit plus aucune annotation JPA (`jakarta.persistence`), ni le `@DefaultValue` de
 JAX-RS posé sur un champ d'entité. Quatre annotations d'archidata, dans
 `org.atriasoft.archidata.annotation`, les remplacent. Il n'y a **pas de période de
-compatibilité** : les anciennes annotations ne sont plus lues, sans erreur ni avertissement.
+compatibilité** : les anciennes annotations ne sont plus lues, et une entité qui en porte encore
+une est **refusée**.
+
+Échec rapide : à la première analyse du modèle d'une entité (premier accès en base), archidata lève
+une `DataAccessException` si la classe, l'une de ses classes mères, l'un de leurs champs ou l'une de
+leurs méthodes porte une annotation `jakarta.persistence.*`, ou si l'un de leurs champs porte
+`jakarta.ws.rs.DefaultValue`. Le message nomme la classe, l'élément, l'ancienne annotation et son
+remplacement (tableau ci-dessous). Ce n'est pas un mode de compatibilité : une entité oubliée ne
+change plus de collection, de nom de champ ni de valeur initiale en silence, elle bloque.
 
 Rien ne change en base pour un modèle migré : mêmes noms de collection, mêmes noms de champs,
 mêmes valeurs initiales. Sans annotation, la collection porte toujours le nom simple de la classe
@@ -45,8 +53,8 @@ Collision de noms : dans un fichier qui importe aussi `java.lang.reflect.Field` 
   arêtes de relation des graphes.
 - La dépendance `jakarta.persistence-api`, retirée du pom d'archidata : une application qui importe
   encore `jakarta.persistence` ne compile plus. **Ne pas la rajouter dans l'application** : les
-  anciennes annotations compileraient de nouveau et seraient ignorées en silence (collection
-  renommée en nom de classe, champ renommé, valeur initiale perdue).
+  anciennes annotations compileraient de nouveau, et l'entité serait refusée à l'exécution
+  (`DataAccessException`, voir « Échec rapide » ci-dessus).
 - `@BsonId` sur `OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` : archidata ne le
   lisait pas (il ne servait qu'au codec POJO du driver MongoDB).
 - API Java : `AnnotationTools.getLimitSize`, `getColumnNotNull`, `isUnique`, `getStrategy`,

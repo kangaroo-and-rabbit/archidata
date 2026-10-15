@@ -158,8 +158,9 @@ Each point was checked against the code; the doc page gives the details.
   `@Collection("name")` (collection, default: class simple name), `@Field("name")` (field name in
   the document, nothing else), `@Id` (primary key), `@InitValue("...")` (value written on insert
   when `null`). The JPA annotations (`jakarta.persistence`: `@Table`, `@Column`, `@GeneratedValue`,
-  `@ManyToOne`...) and a JAX-RS `@DefaultValue` on an entity field are silently ignored. See
-  `doc/annotations.md` and `MIGRATION.md`.
+  `@ManyToOne`...) and a JAX-RS `@DefaultValue` on an entity field are not read: analysing the model
+  of an entity that still carries one throws a `DataAccessException` naming the class, the element
+  and the replacement. See `doc/annotations.md` and `MIGRATION.md`.
 - **Unicity only exists through a unique index**: declare `@Index` / `@Indexed(unique = true)` and
   run `IndexEngine.addClass(...)` + `synchronize()` at startup. See `doc/indexes.md`.
 - **`updateById` without `FilterValue` rewrites every editable field, `null` included** (a null

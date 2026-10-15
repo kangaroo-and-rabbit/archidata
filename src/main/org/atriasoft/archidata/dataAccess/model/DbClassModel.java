@@ -1,5 +1,9 @@
 package org.atriasoft.archidata.dataAccess.model;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -453,10 +457,78 @@ public final class DbClassModel {
 				+ " or the target entity itself");
 	}
 
+	/** Package of the JPA annotations, no longer read by archidata. */
+	private static final String JPA_PACKAGE = "jakarta.persistence.";
+	/** JAX-RS {@code @DefaultValue}, replaced by {@code @InitValue} on an entity field. */
+	private static final String JAXRS_DEFAULT_VALUE = "jakarta.ws.rs.DefaultValue";
+
+	/**
+	 * Give the archidata replacement of an annotation that is no longer read.
+	 * @param annotationName the fully qualified name of the old annotation
+	 * @return the replacement, as written in MIGRATION.md
+	 */
+	private static String legacyReplacement(final String annotationName) {
+		return switch (annotationName) {
+			case "jakarta.persistence.Table" -> "@Collection(\"name\")";
+			case "jakarta.persistence.Column" -> "@Field(\"name\"), or nothing when it has no name";
+			case "jakarta.persistence.Id" -> "@org.atriasoft.archidata.annotation.Id";
+			case "jakarta.persistence.ManyToOne" -> "@ManyToOneDoc";
+			case "jakarta.persistence.OneToMany" -> "@OneToManyDoc";
+			case "jakarta.persistence.ManyToMany" -> "@ManyToManyDoc";
+			case JAXRS_DEFAULT_VALUE -> "@InitValue(...)";
+			default -> "nothing: remove it (it has no archidata equivalent)";
+		};
+	}
+
+	/**
+	 * Reject an annotation that archidata no longer reads.
+	 * @param clazz the entity class being analysed
+	 * @param element the description of the annotated element
+	 * @param annotated the annotated element
+	 * @param checkDefaultValue whether the JAX-RS {@code @DefaultValue} is also rejected (entity field)
+	 * @throws DataAccessException if a legacy annotation is found
+	 */
+	private static void checkLegacyAnnotations(
+			final Class<?> clazz,
+			final String element,
+			final AnnotatedElement annotated,
+			final boolean checkDefaultValue) throws DataAccessException {
+		for (final Annotation annotation : annotated.getDeclaredAnnotations()) {
+			final String name = annotation.annotationType().getName();
+			if (name.startsWith(JPA_PACKAGE) || (checkDefaultValue && JAXRS_DEFAULT_VALUE.equals(name))) {
+				throw new DataAccessException("Unsupported annotation @" + name + " on " + clazz.getName() + " ("
+						+ element + "): archidata no longer reads it, replace it with " + legacyReplacement(name)
+						+ " (see MIGRATION.md)");
+			}
+		}
+	}
+
+	/**
+	 * Fail fast on an entity still annotated with JPA ({@code jakarta.persistence.*}) or with a JAX-RS
+	 * {@code @DefaultValue} on a field: these annotations are no longer read, so the entity would silently
+	 * change collection, field names or initial values. Checks the class, its fields and its methods, and
+	 * those of its super classes.
+	 * @param clazz the entity class being analysed
+	 * @throws DataAccessException if a legacy annotation is found
+	 */
+	private static void checkNoLegacyAnnotation(final Class<?> clazz) throws DataAccessException {
+		for (Class<?> current = clazz; current != null && current != Object.class; current = current.getSuperclass()) {
+			checkLegacyAnnotations(clazz, "class " + current.getName(), current, false);
+			for (final Field field : current.getDeclaredFields()) {
+				checkLegacyAnnotations(clazz, "field " + current.getSimpleName() + "." + field.getName(), field, true);
+			}
+			for (final Method method : current.getDeclaredMethods()) {
+				checkLegacyAnnotations(clazz, "method " + current.getSimpleName() + "." + method.getName() + "()",
+						method, false);
+			}
+		}
+	}
+
 	// ========== Private constructor ==========
 
 	private DbClassModel(final Class<?> clazz, final List<DataAccessAddOn> addOns)
 			throws IntrospectionException, DataAccessException {
+		checkNoLegacyAnnotation(clazz);
 		this.classModel = ClassModel.of(clazz);
 		this.tableName = AnnotationTools.getTableName(clazz);
 
