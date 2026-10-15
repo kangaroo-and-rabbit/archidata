@@ -100,6 +100,50 @@ public class AnnotationTools {
 	}
 
 	/**
+	 * Retrieves a single annotation from a class, its superclasses and all the interfaces they
+	 * implement (directly or through other interfaces). The class itself wins, then its interfaces,
+	 * then its superclass and so on (nearest declaration first).
+	 *
+	 * @param <TYPE> the annotation type
+	 * @param clazz the class to inspect
+	 * @param annotationClass the annotation type to look for
+	 * @return the annotation instance, or {@code null} if not found
+	 */
+	public static <TYPE extends Annotation> TYPE getAnnotationIncludingHierarchy(
+			final Class<?> clazz,
+			final Class<TYPE> annotationClass) {
+		Class<?> current = clazz;
+		while (current != null) {
+			final TYPE annotation = current.getDeclaredAnnotation(annotationClass);
+			if (annotation != null) {
+				return annotation;
+			}
+			final TYPE fromInterfaces = getAnnotationFromInterfaces(current, annotationClass);
+			if (fromInterfaces != null) {
+				return fromInterfaces;
+			}
+			current = current.getSuperclass();
+		}
+		return null;
+	}
+
+	private static <TYPE extends Annotation> TYPE getAnnotationFromInterfaces(
+			final Class<?> clazz,
+			final Class<TYPE> annotationClass) {
+		for (final Class<?> iface : clazz.getInterfaces()) {
+			final TYPE annotation = iface.getDeclaredAnnotation(annotationClass);
+			if (annotation != null) {
+				return annotation;
+			}
+			final TYPE inherited = getAnnotationFromInterfaces(iface, annotationClass);
+			if (inherited != null) {
+				return inherited;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Collects all instances of an annotation from the class and its interfaces.
 	 *
 	 * @param <TYPE> the annotation type

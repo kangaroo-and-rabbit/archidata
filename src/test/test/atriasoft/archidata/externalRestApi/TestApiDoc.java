@@ -9,6 +9,7 @@ import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
 import org.atriasoft.archidata.externalRestApi.PythonGenerateApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
+import org.atriasoft.archidata.externalRestApi.model.ApiTool;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldProperty;
 import org.junit.jupiter.api.Assertions;
@@ -138,6 +139,30 @@ public class TestApiDoc {
 	public static class HiddenApi {
 		@GET
 		public String secretHiddenClassEndpoint() {
+			return null;
+		}
+	}
+
+	@ApiDoc(hidden = true)
+	public interface HiddenApiContract {}
+
+	@Path("/test-hidden-interface")
+	@Produces({ MediaType.APPLICATION_JSON })
+	public static class HiddenByInterfaceApi implements HiddenApiContract {
+		@GET
+		public String secretInterfaceEndpoint() {
+			return null;
+		}
+	}
+
+	@ApiDoc(hidden = true)
+	public abstract static class HiddenApiBase {}
+
+	@Path("/test-hidden-superclass")
+	@Produces({ MediaType.APPLICATION_JSON })
+	public static class HiddenBySuperclassApi extends HiddenApiBase {
+		@GET
+		public String secretSuperclassEndpoint() {
 			return null;
 		}
 	}
@@ -274,6 +299,16 @@ public class TestApiDoc {
 		Assertions.assertNotNull(model);
 		Assertions.assertNotNull(findField(model, "visibleBean"));
 		Assertions.assertNull(findField(model, "secretGetterField"));
+	}
+
+	@Test
+	public void testHiddenOnInterfaceOrSuperclassIsRespected() throws Exception {
+		Assertions.assertTrue(ApiTool.apiIsHidden(HiddenByInterfaceApi.class));
+		Assertions.assertTrue(ApiTool.apiIsHidden(HiddenBySuperclassApi.class));
+		Assertions.assertFalse(ApiTool.apiIsHidden(ApiWithHiddenMethod.class));
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(ApiWithHiddenMethod.class, HiddenByInterfaceApi.class, HiddenBySuperclassApi.class));
+		Assertions.assertEquals(1, api.getAllApi().size());
 	}
 
 	// -- Helpers --

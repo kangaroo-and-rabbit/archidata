@@ -149,12 +149,13 @@ public class ApiTool {
 
 	/**
 	 * Tells whether a whole JAX-RS resource class is hidden from the generated clients and
-	 * documentation ({@code @ApiDoc(hidden = true)} on the class).
+	 * documentation ({@code @ApiDoc(hidden = true)} on the class, one of its superclasses or one of
+	 * the interfaces it implements).
 	 * @param clazz the resource class to inspect
 	 * @return {@code true} if none of its methods must be generated
 	 */
 	public static boolean apiIsHidden(final Class<?> clazz) {
-		final ApiDoc apiDoc = clazz.getAnnotation(ApiDoc.class);
+		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingHierarchy(clazz, ApiDoc.class);
 		return apiDoc != null && apiDoc.hidden();
 	}
 
