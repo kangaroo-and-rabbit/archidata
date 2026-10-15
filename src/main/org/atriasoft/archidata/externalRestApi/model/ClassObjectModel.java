@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
+import org.atriasoft.archidata.annotation.ManyToManyDoc;
+import org.atriasoft.archidata.annotation.ManyToOneDoc;
+import org.atriasoft.archidata.annotation.OneToManyDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAccessLimitation;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.checker.CheckForeignKey;
@@ -250,6 +253,47 @@ public class ClassObjectModel extends ClassModel {
 		}
 
 		/**
+		 * Returns the target entity of a relation annotation ({@code @ManyToOneDoc}, {@code @OneToManyDoc} or
+		 * {@code @ManyToManyDoc}), or {@code null} if there is none.
+		 * @param manyToOne the {@code @ManyToOneDoc} annotation, or {@code null}
+		 * @param oneToMany the {@code @OneToManyDoc} annotation, or {@code null}
+		 * @param manyToMany the {@code @ManyToManyDoc} annotation, or {@code null}
+		 * @return the target entity class, or {@code null}
+		 */
+		private static Class<?> getLinkTarget(
+				final ManyToOneDoc manyToOne,
+				final OneToManyDoc oneToMany,
+				final ManyToManyDoc manyToMany) {
+			Class<?> target = null;
+			if (manyToOne != null) {
+				target = manyToOne.targetEntity();
+			} else if (oneToMany != null) {
+				target = oneToMany.targetEntity();
+			} else if (manyToMany != null) {
+				target = manyToMany.targetEntity();
+			}
+			if (target == null || target == void.class) {
+				return null;
+			}
+			return target;
+		}
+
+		/**
+		 * Resolves the class model of the relation target, used by the graph generators to draw the
+		 * relation edges.
+		 * @param target the target entity class, or {@code null}
+		 * @param previous the model group for resolving referenced types
+		 * @return the target class model, or {@code null} if the property is not a relation
+		 * @throws IOException if type resolution fails
+		 */
+		private static ClassModel getLinkClass(final Class<?> target, final ModelGroup previous) throws IOException {
+			if (target == null) {
+				return null;
+			}
+			return ClassModel.getModel(target, previous);
+		}
+
+		/**
 		 * Returns the annotated type of the property (from its backing field, or its getter as a
 		 * fallback). Used to read type-use annotations on generic arguments (e.g. nullability).
 		 * @param property the bean property descriptor
@@ -276,7 +320,9 @@ public class ClassObjectModel extends ClassModel {
 				throws DataAccessException, IOException {
 			this(property.getName(), //
 					ClassModel.getModel(getAnnotatedType(property), property.getTypeInfo().genericType(), previous), //
-					null, //
+					getLinkClass(getLinkTarget(property.getAnnotation(ManyToOneDoc.class),
+							property.getAnnotation(OneToManyDoc.class), property.getAnnotation(ManyToManyDoc.class)),
+							previous), //
 					property.getAnnotation(CheckForeignKey.class), //
 					getSchemaDescription(property), //
 					getSchemaExample(property), //
@@ -309,7 +355,9 @@ public class ClassObjectModel extends ClassModel {
 		public FieldProperty(final Field field, final ModelGroup previous) throws DataAccessException, IOException {
 			this(field.getName(), //
 					ClassModel.getModel(field.getGenericType(), previous), //
-					null, //
+					getLinkClass(getLinkTarget(AnnotationTools.get(field, ManyToOneDoc.class),
+							AnnotationTools.get(field, OneToManyDoc.class),
+							AnnotationTools.get(field, ManyToManyDoc.class)), previous), //
 					AnnotationTools.get(field, CheckForeignKey.class), //
 					AnnotationTools.getSchemaDescription(field), //
 					AnnotationTools.getSchemaExample(field), //

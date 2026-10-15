@@ -41,7 +41,8 @@ Collision de noms : dans un fichier qui importe aussi `java.lang.reflect.Field` 
   (`ObjectId`, `Long` par la collection `counters`, `UUID`).
 - Les relations JPA (`@ManyToOne`, `@OneToMany`, `@ManyToMany`) : elles ne servaient plus qu'au
   générateur d'API (lien `linkClass` des graphes Dot/draw.io). Les relations passent uniquement par
-  `@ManyToOneDoc`, `@OneToManyDoc` et `@ManyToManyDoc`.
+  `@ManyToOneDoc`, `@OneToManyDoc` et `@ManyToManyDoc`, dont le `targetEntity` trace désormais les
+  arêtes de relation des graphes.
 - La dépendance `jakarta.persistence-api`, retirée du pom d'archidata : une application qui importe
   encore `jakarta.persistence` ne compile plus. **Ne pas la rajouter dans l'application** : les
   anciennes annotations compileraient de nouveau et seraient ignorées en silence (collection

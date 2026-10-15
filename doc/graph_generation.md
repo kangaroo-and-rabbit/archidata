@@ -71,9 +71,10 @@ What you get:
   for the enums (their values), red boxes for the REST resources (one line per
   endpoint: `GET /path -> ReturnType`).
 - Edges: inheritance (hollow triangle arrow), relations between models (filled
-  diamond), associations, REST endpoint to the model it takes or returns
+  diamond, drawn from the `targetEntity` of `@ManyToOneDoc`, `@OneToManyDoc`
+  and `@ManyToManyDoc`, labelled with the field name), associations, REST endpoint to the model it takes or returns
   (dashed red), and `@CheckForeignKey` links (dashed purple); a foreign key
-  without a link class also shows ` -> Target` on the field.
+  without a relation annotation also shows ` -> Target` on the field.
 - The layout is computed for you: inheritance trees are laid out as trees, then
   the blocks (a tree, a standalone class, an enum, a REST group) are placed with
   a force-directed algorithm and pushed apart to remove overlaps. The result is

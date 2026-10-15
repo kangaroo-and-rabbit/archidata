@@ -2,6 +2,8 @@ package test.atriasoft.archidata.externalRestApi;
 
 import java.util.List;
 
+import org.atriasoft.archidata.annotation.ManyToOneDoc;
+import org.atriasoft.archidata.annotation.OneToManyDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.checker.CheckForeignKey;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
@@ -65,6 +67,18 @@ public class TestDrawioGeneration {
 		@CheckForeignKey(target = FkTarget.class)
 		public ObjectId parentId;
 		public String name;
+	}
+
+	public static class RelParent {
+		public ObjectId oid;
+		@OneToManyDoc(targetEntity = RelChild.class, remoteField = "parentId")
+		public List<ObjectId> childIds;
+	}
+
+	public static class RelChild {
+		public ObjectId oid;
+		@ManyToOneDoc(targetEntity = RelParent.class, remoteField = "childIds")
+		public ObjectId parentId;
 	}
 
 	// -- Test API --
@@ -272,6 +286,20 @@ public class TestDrawioGeneration {
 		Assertions.assertTrue(xml.contains("value=\"parentId\""), "FK edge should have field name as label");
 
 		LOGGER.info("FK Draw.io XML:\n{}", xml);
+	}
+
+	@Test
+	public void testManyToOneDocRelationEdge() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(RelChild.class);
+		api.addModel(RelParent.class);
+
+		final String xml = DrawioGenerateApi.generateApiString(api);
+
+		// Relation edge style (diamond) labelled with the relation field names
+		Assertions.assertTrue(xml.contains("endArrow=diamondThin"), "Should have a relation edge");
+		Assertions.assertTrue(xml.contains("value=\"parentId\""), "@ManyToOneDoc edge should be labelled parentId");
+		Assertions.assertTrue(xml.contains("value=\"childIds\""), "@OneToManyDoc edge should be labelled childIds");
 	}
 
 	private static int countOccurrences(final String text, final String search) {
