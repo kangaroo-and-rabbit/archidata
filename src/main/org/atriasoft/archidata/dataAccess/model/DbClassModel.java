@@ -1,15 +1,20 @@
 package org.atriasoft.archidata.dataAccess.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
+import org.atriasoft.archidata.annotation.ManyToManyDoc;
+import org.atriasoft.archidata.annotation.ManyToOneDoc;
+import org.atriasoft.archidata.annotation.OneToManyDoc;
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
+import org.atriasoft.archidata.dataAccess.addOn.AddOnManyToManyDoc;
 import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.slf4j.Logger;
@@ -412,6 +417,42 @@ public final class DbClassModel {
 		}
 	}
 
+	/**
+	 * Reject a relation field (ManyToOneDoc, OneToManyDoc, ManyToManyDoc) that no add-on accepted: the
+	 * link would otherwise be silently ignored. Supported relation keys are ObjectId, Long and UUID.
+	 */
+	private static void checkRelationKeyType(final Class<?> clazz, final DbPropertyDescriptor dbProp)
+			throws DataAccessException {
+		final PropertyDescriptor prop = dbProp.getProperty();
+		if (prop.getField() == null) {
+			return;
+		}
+		// AddOnManyToManyDoc accepts any annotated field: check its key type here.
+		final boolean manyToManyOk = dbProp.getAddOn() instanceof final AddOnManyToManyDoc manyToMany
+				&& manyToMany.canRetreiveAnWrite(dbProp);
+		if (dbProp.getAction() == DbFieldAction.ADDON && (!prop.hasAnnotation(ManyToManyDoc.class) || manyToManyOk)) {
+			return;
+		}
+		String annotation = null;
+		if (prop.hasAnnotation(ManyToOneDoc.class)) {
+			annotation = "@ManyToOneDoc";
+		} else if (prop.hasAnnotation(OneToManyDoc.class)) {
+			annotation = "@OneToManyDoc";
+		} else if (prop.hasAnnotation(ManyToManyDoc.class)) {
+			annotation = "@ManyToManyDoc";
+		}
+		if (annotation == null) {
+			return;
+		}
+		final String type = Collection.class.isAssignableFrom(prop.getType())
+				? prop.getType().getSimpleName() + "<" + prop.getElementType().getSimpleName() + ">"
+				: prop.getType().getSimpleName();
+		throw new DataAccessException("Unsupported relation key type on " + clazz.getName() + "." + prop.getName()
+				+ " (" + annotation + " on type " + type + "): the supported relation keys are"
+				+ " ObjectId, Long and UUID (a List of them for @OneToManyDoc and @ManyToManyDoc),"
+				+ " or the target entity itself");
+	}
+
 	// ========== Private constructor ==========
 
 	private DbClassModel(final Class<?> clazz, final List<DataAccessAddOn> addOns)
@@ -444,6 +485,7 @@ public final class DbClassModel {
 		// 2nd pass: resolve add-ons (needs fully built DbPropertyDescriptor)
 		for (final DbPropertyDescriptor dbProp : all) {
 			dbProp.resolveAddOn(addOns);
+			checkRelationKeyType(clazz, dbProp);
 		}
 
 		// 3rd pass: build pre-compiled codecs (after add-on resolution)

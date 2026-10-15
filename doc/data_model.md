@@ -302,6 +302,11 @@ Relationship Annotations
 
 Archidata uses document-based relationship annotations for MongoDB. These manage bidirectional links between collections.
 
+The key of a relation field must be an `ObjectId`, a `Long` or a `UUID` (a `List` of them for
+`@OneToManyDoc` and `@ManyToManyDoc`), or the target entity itself to expand it. A relation on
+another key type (for example `String`) is rejected when the model is analysed, with an error
+naming the class and the field; it used to be silently ignored.
+
 ### @ManyToOneDoc
 
 The child stores a reference to the parent. When the child is created/deleted/updated, the parent's list is automatically maintained.

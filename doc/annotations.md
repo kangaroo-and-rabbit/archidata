@@ -161,6 +161,11 @@ Archidata stores links as lists of ids on both sides; these annotations keep the
 consistent. They are only needed for bidirectional links; for a simple reference use
 [`@CheckForeignKey`](#checkforeignkey).
 
+The key of a relation field must be an `ObjectId`, a `Long` or a `UUID` (a `List` of them for
+`@OneToManyDoc` and `@ManyToManyDoc`), or the target entity itself to expand it. Any other type
+(for example a `String` key) is rejected when the model is analysed, with an error naming the
+class and the field, instead of being silently ignored.
+
 ### @ManyToOneDoc
 
 | Attribute | Default | Meaning |
