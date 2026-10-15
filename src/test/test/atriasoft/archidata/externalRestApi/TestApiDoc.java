@@ -93,6 +93,28 @@ public class TestApiDoc {
 		public String secretInternalField;
 	}
 
+	public static class ModelWithHiddenGetter {
+		private String visibleBean;
+		private String secretGetterField;
+
+		public String getVisibleBean() {
+			return this.visibleBean;
+		}
+
+		public void setVisibleBean(final String visibleBean) {
+			this.visibleBean = visibleBean;
+		}
+
+		@ApiDoc(description = "internal", hidden = true)
+		public String getSecretGetterField() {
+			return this.secretGetterField;
+		}
+
+		public void setSecretGetterField(final String secretGetterField) {
+			this.secretGetterField = secretGetterField;
+		}
+	}
+
 	@Path("/test-hidden")
 	@Produces({ MediaType.APPLICATION_JSON })
 	public static class ApiWithHiddenMethod {
@@ -242,6 +264,16 @@ public class TestApiDoc {
 		Assertions.assertFalse(text.contains("secret_hidden_class_endpoint"));
 		Assertions.assertFalse(text.contains("test-hidden-class"));
 		Assertions.assertFalse(text.contains("secret_internal_field"));
+	}
+
+	@Test
+	public void testHiddenOnGetterIsRespected() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(ModelWithHiddenGetter.class);
+		final ClassObjectModel model = findModel(api, ModelWithHiddenGetter.class);
+		Assertions.assertNotNull(model);
+		Assertions.assertNotNull(findField(model, "visibleBean"));
+		Assertions.assertNull(findField(model, "secretGetterField"));
 	}
 
 	// -- Helpers --
