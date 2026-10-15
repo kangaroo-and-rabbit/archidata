@@ -4,11 +4,14 @@ import java.util.List;
 
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
- * Port handling of {@link DbConfig}: range validation and the deprecated {@code Short} constructor.
+ * Port handling of {@link DbConfig}: range validation ({@link DataAccessException}) and the deprecated
+ * {@code Short} constructor.
  */
 class TestDbConfig {
 
@@ -29,9 +32,9 @@ class TestDbConfig {
 
 	@Test
 	void testPortOutOfRangeIsRejected() {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> withPort(0));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> withPort(-1));
-		Assertions.assertThrows(IllegalArgumentException.class, () -> withPort(65536));
+		Assertions.assertThrows(DataAccessException.class, () -> withPort(0));
+		Assertions.assertThrows(DataAccessException.class, () -> withPort(-1));
+		Assertions.assertThrows(DataAccessException.class, () -> withPort(65536));
 	}
 
 	@SuppressWarnings("deprecation")
@@ -42,7 +45,19 @@ class TestDbConfig {
 		Assertions.assertEquals(27018, config.getPort());
 		Assertions.assertEquals(27017,
 				new DbConfig("localhost", (Short) null, "root", "pass", "db", false, List.of()).getPort());
-		Assertions.assertThrows(IllegalArgumentException.class,
+		Assertions.assertThrows(DataAccessException.class,
 				() -> new DbConfig("localhost", Short.valueOf((short) -1), "root", "pass", "db", false, List.of()));
+	}
+
+	@Test
+	void testInvalidConfiguredPortIsDataAccessException() {
+		ConfigBaseVariable.setDbPort("70000");
+		final DataAccessException ex = Assertions.assertThrows(DataAccessException.class, DbConfig::new);
+		Assertions.assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+	}
+
+	@AfterEach
+	void restoreConfiguration() {
+		ConfigBaseVariable.clearAllValue();
 	}
 }

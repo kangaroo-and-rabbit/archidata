@@ -288,8 +288,11 @@ Pitfalls
   `getDBAbleToCreate()`. The value is parsed with `Boolean.parseBoolean`
   (unset gives `true`; anything other than `true`, ignoring case, gives `false`).
 - `getDBPort()` returns an `int` and throws `IllegalArgumentException` when
-  `DB_PORT` is not an integer between 1 and 65535. `DbConfig` stores the port
-  as `Integer`.
+  `DB_PORT` is not an integer between 1 and 65535 (unchecked, like the other
+  configuration accessors). `DbConfig` stores the port as `Integer`; its
+  constructors throw `DataAccessException` for a port out of 1..65535, and
+  `new DbConfig()` turns the `IllegalArgumentException` of `getDBPort()` into a
+  `DataAccessException` (the original one is the cause).
 - `getDBPassword()` throws when no password is configured, so a MongoDB without
   authentication still needs an explicit (possibly empty) `DB_PASSWORD`.
 - The environment is read once at class loading. Setting an environment variable

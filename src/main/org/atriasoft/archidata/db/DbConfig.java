@@ -33,10 +33,12 @@ public class DbConfig {
 	/**
 	 * Constructs a DbConfig using values from {@link ConfigBaseVariable}.
 	 *
-	 * @throws DataAccessException if the configuration cannot be loaded
+	 * @throws DataAccessException if the configuration cannot be loaded, including a {@code DB_PORT} that is
+	 *         not an integer between 1 and 65535 (the {@code IllegalArgumentException} of
+	 *         {@link ConfigBaseVariable#getDBPort()} is the cause)
 	 */
 	public DbConfig() throws DataAccessException {
-		this(ConfigBaseVariable.getDBHost(), ConfigBaseVariable.getDBPort(), ConfigBaseVariable.getDBLogin(),
+		this(ConfigBaseVariable.getDBHost(), configuredPort(), ConfigBaseVariable.getDBLogin(),
 				ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
 				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getBbInterfacesClasses()));
 	}
@@ -51,8 +53,7 @@ public class DbConfig {
 	 * @param dbName the name of the database
 	 * @param keepConnected whether to keep the connection open for reuse
 	 * @param classes the list of data model classes registered with this configuration
-	 * @throws DataAccessException if the configuration is invalid
-	 * @throws IllegalArgumentException if the port is not between 1 and 65535
+	 * @throws DataAccessException if the configuration is invalid, including a port not between 1 and 65535
 	 */
 	public DbConfig(final String hostname, final Integer port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
@@ -65,7 +66,7 @@ public class DbConfig {
 		if (port == null) {
 			this.port = DEFAULT_PORT;
 		} else if (port < 1 || port > MAX_PORT) {
-			throw new IllegalArgumentException("Invalid DB port " + port + ": must be between 1 and " + MAX_PORT);
+			throw new DataAccessException("Invalid DB port " + port + ": must be between 1 and " + MAX_PORT);
 		} else {
 			this.port = port;
 		}
@@ -88,8 +89,7 @@ public class DbConfig {
 	 * @param dbName the name of the database
 	 * @param keepConnected whether to keep the connection open for reuse
 	 * @param classes the list of data model classes registered with this configuration
-	 * @throws DataAccessException if the configuration is invalid
-	 * @throws IllegalArgumentException if the port is not between 1 and 65535
+	 * @throws DataAccessException if the configuration is invalid, including a port not between 1 and 65535
 	 * @deprecated use {@link #DbConfig(String, Integer, String, String, String, boolean, List)}: the port is an
 	 *             {@code Integer} (up to 65535). A literal {@code null} port is ambiguous between the two
 	 *             constructors: write {@code (Integer) null}.
@@ -98,6 +98,21 @@ public class DbConfig {
 	public DbConfig(final String hostname, final Short port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
 		this(hostname, port == null ? null : Integer.valueOf(port), login, password, dbName, keepConnected, classes);
+	}
+
+	/**
+	 * Reads the port of {@link ConfigBaseVariable}: its {@code IllegalArgumentException} (the configuration
+	 * accessors throw unchecked exceptions) becomes the {@link DataAccessException} of the constructors.
+	 *
+	 * @return the configured port
+	 * @throws DataAccessException if {@code DB_PORT} is not an integer between 1 and 65535
+	 */
+	private static Integer configuredPort() throws DataAccessException {
+		try {
+			return ConfigBaseVariable.getDBPort();
+		} catch (final IllegalArgumentException ex) {
+			throw new DataAccessException(ex.getMessage(), ex);
+		}
 	}
 
 	/** {@inheritDoc} */

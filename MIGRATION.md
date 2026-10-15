@@ -62,9 +62,10 @@ ou qui lisaient `status` dans le corps.
 Les ports au-delà de 32767 sont acceptés. Le constructeur de `DbConfig` prend un `Integer` ;
 l'ancien constructeur `Short` est conservé, `@Deprecated`, et délègue. Un appel avec un `null`
 littéral comme port est désormais ambigu entre les deux : écrire `(Integer) null`. Le port est
-validé dans 1..65535 (`IllegalArgumentException` sinon). `ConfigBaseVariable.getDBPort()` renvoie
-un `int` (au lieu de `Short`) et lève `IllegalArgumentException` si `DB_PORT` n'est pas un entier
-entre 1 et 65535.
+validé dans 1..65535 : les constructeurs de `DbConfig` lèvent sinon `DataAccessException`
+(l'exception qu'ils déclarent déjà). `ConfigBaseVariable.getDBPort()` renvoie un `int` (au lieu de
+`Short`) et lève `IllegalArgumentException` si `DB_PORT` n'est pas un entier entre 1 et 65535 ;
+`new DbConfig()` la convertit en `DataAccessException`.
 
 ### `DB_ABLE_TO_CREATE` lu correctement
 
