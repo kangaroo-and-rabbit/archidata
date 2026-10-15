@@ -45,6 +45,65 @@ import jakarta.ws.rs.ext.Provider;
  * This filter intercepts incoming requests, validates JWT or API key tokens,
  * and checks role-based access permissions before allowing access to secured resources.
  * </p>
+ *
+ * <h2>Position in the chain</h2>
+ * <p>
+ * The filter runs at {@link Priorities#AUTHENTICATION}, after pre-matching filters and before
+ * the filters with a user priority (such as {@link DataAccessRetentionConnectionFilter}) and before
+ * the resource method. It is a no-op for methods annotated {@link PermitAll}, it rejects with
+ * 403 the methods annotated {@link DenyAll} and the methods that carry neither
+ * {@link RolesAllowed} nor {@link RightAllowed} (every endpoint must declare its access level).
+ * </p>
+ *
+ * <h2>Token lookup</h2>
+ * <ol>
+ * <li>The {@code Authorization} header: {@code Bearer <jwt>} (checked by {@link #validateJwtToken(String)})
+ * or {@code ApiKey <token>} (checked by {@link #validateToken(String)}).</li>
+ * <li>The {@value #APIKEY} header, which carries a raw application token.</li>
+ * <li>Only when none of the two headers is present and the resource method is annotated
+ * {@link PermitTokenInURI}: the query parameters {@code Authorization} and {@value #APIKEY} with the same
+ * content as the headers.</li>
+ * </ol>
+ * <p>
+ * A request without any usable token is answered with 401.
+ * </p>
+ *
+ * <h2>Security context</h2>
+ * <p>
+ * On success the filter installs a {@link MySecurityContext} built from the {@link UserByToken}
+ * of the token (JWT claims {@code sub}, {@code login}, {@code roles} and {@code right}) with
+ * {@link ContainerRequestContext#setSecurityContext(jakarta.ws.rs.core.SecurityContext)}. Roles of
+ * {@link RolesAllowed} are prefixed with the application name ({@code applicationName + "/" + role}) and
+ * any one of them is enough; the fine-grained right of {@link RightAllowed} must also be granted
+ * when present (AND logic). In a resource method the context is available through
+ * {@code @Context SecurityContext}.
+ * </p>
+ *
+ * <h2>Extending</h2>
+ * <p>
+ * Register a subclass on the application (the class itself has no no-argument constructor, so give
+ * the subclass one, or register an instance) and override the protected hooks: {@link #validateToken(String)} to support API
+ * keys (the default returns {@code null} and so refuses them), {@link #validateJwtToken(String)} to change
+ * how the JWT claims become a {@link UserByToken}, {@link #checkRole} and {@link #checkResourceRight}
+ * to change the authorization rules.
+ * </p>
+ *
+ * <pre>{@code
+ * public class MyAuthFilter extends AuthenticationFilter {
+ * 	public MyAuthFilter() {
+ * 		super("my-app");
+ * 	}
+ *
+ * 	@Override
+ * 	protected UserByToken validateToken(final String token) throws Exception {
+ * 		// look the application token up in the database, return null if unknown
+ * 		return null;
+ * 	}
+ * }
+ * }</pre>
+ *
+ * @see MySecurityContext
+ * @see JWTWrapper
  */
 //@PreMatching
 @Provider
@@ -109,6 +168,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	 * <p>
 	 * Validates tokens (JWT or API key), checks role-based access, and sets the security context.
 	 * </p>
+	 *
+	 * @param requestContext the container request context; aborted with 401 or 403 when the access is refused
+	 * @throws IOException declared by the {@link ContainerRequestFilter} contract
 	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {

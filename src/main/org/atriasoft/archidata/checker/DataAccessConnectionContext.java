@@ -19,6 +19,23 @@ import jakarta.ws.rs.InternalServerErrorException;
  * <p>
  * <strong>Important:</strong> Never pass the {@link DBAccessMongo} instance to another thread.
  * </p>
+ *
+ * <p>
+ * Use it in a try-with-resources block; the inner code (or any code called from it on the same
+ * thread) reaches the connection with {@link #getConnection()}:
+ * </p>
+ * <pre>{@code
+ * try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+ * 	final DBAccessMongo da = ctx.get();
+ * 	// ... da.get(...), da.insert(...)
+ * }
+ * }</pre>
+ *
+ * <p>
+ * {@link org.atriasoft.archidata.filter.DataAccessRetentionConnectionFilter} opens one of these per
+ * request for the resources annotated with
+ * {@link org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection}.
+ * </p>
  */
 // Note: never sent the DBAccessMongo through an other thread.
 public class DataAccessConnectionContext implements AutoCloseable {

@@ -11,8 +11,20 @@ import jakarta.validation.Payload;
 /**
  * Validation constraint that checks whether a foreign key value exists in the database.
  *
- * <p>When applied to a field or parameter, the validator queries the database
- * to verify that the referenced entity exists in the target class table.
+ * <p>When applied to a field or parameter, the validator ({@link CheckForeignKeyValidator})
+ * queries the database to verify that the referenced entity exists in the collection of the
+ * {@link #target()} class. A {@code null} value is considered valid (combine with
+ * {@code @NotNull} to require it).</p>
+ *
+ * <p>It can be put on a single key or, as a type-use annotation, on the elements of a list:</p>
+ * <pre>{@code
+ * public class Article extends OIDGenericDataSoftDelete {
+ * 	@CheckForeignKey(target = User.class)
+ * 	public ObjectId authorId;
+ *
+ * 	public List<@CheckForeignKey(target = Tag.class) ObjectId> tagIds;
+ * }
+ * }</pre>
  */
 @Constraint(validatedBy = CheckForeignKeyValidator.class)
 @Target({ ElementType.TYPE, //

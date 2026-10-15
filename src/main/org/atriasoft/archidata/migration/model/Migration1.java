@@ -13,8 +13,13 @@ import jakarta.ws.rs.DefaultValue;
  * Data model representing a migration record (version 1).
  *
  * <p>
- * The original migration model format with plain-text log support.
- * Stored in the {@code KAR_migration} collection.
+ * The original migration model format with plain-text log support (field {@code log}, no
+ * {@code version} field). Stored in the {@code KAR_migration} collection.
+ * </p>
+ *
+ * <p>
+ * Kept only to read and upgrade databases written by the first engine; new code uses
+ * {@link Migration}. See also {@link Migration2}.
  * </p>
  */
 // For logs only

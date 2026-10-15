@@ -17,6 +17,22 @@ import jakarta.ws.rs.core.SecurityContext;
  * Supports role checking with optional read/write permission suffixes (e.g., {@code "role:r"},
  * {@code "role:w"}, {@code "role:rw"}) and group-based role resolution.
  * </p>
+ *
+ * <p>
+ * Instances are created by {@link AuthenticationFilter} once the token is validated and attached to the
+ * request; the principal is a {@link GenericContext}. A resource method gets it with
+ * {@code @Context SecurityContext} and can cast it to {@code MySecurityContext} to reach the
+ * archidata-specific helpers ({@link #getUserID()}, {@link #getGroups()},
+ * {@link #hasResourceRight(String, String, PartRight)}...).
+ * </p>
+ *
+ * <ul>
+ * <li>{@link #isUserInRole(String)} accepts {@code "role"}, {@code "group/role"} and the
+ * suffixes {@code :r}, {@code :w}, {@code :rw}. The role {@code USER} is granted to any
+ * authenticated caller.</li>
+ * <li>{@link #hasResourceRight(String, String, PartRight)} checks a fine-grained right with a bitmask
+ * comparison (see {@link org.atriasoft.archidata.annotation.security.RightAllowed}).</li>
+ * </ul>
  */
 // https://simplapi.wordpress.com/2015/09/19/jersey-jax-rs-securitycontext-in-action/
 public class MySecurityContext implements SecurityContext {

@@ -20,6 +20,16 @@ import jakarta.validation.constraints.Null;
 
 /**
  * Base model providing automatic creation and update timestamps. All data models that need time tracking should extend this class.
+ *
+ * <p>
+ * {@code createdAt} is filled on insert ({@link CreationTimestamp}) and {@code updatedAt} on every
+ * update ({@link UpdateTimestamp}) by the data access layer. Both are read-only for the API clients
+ * ({@link ApiReadOnly}), must be absent from the create and update payloads and are mandatory once
+ * persisted (validation groups {@link GroupCreate}, {@link GroupUpdate} and {@link GroupPersistant}).
+ * They are serialized as ISO-8601 strings. This class has no primary key; the ready-to-use bases
+ * that add one are {@link OIDGenericData} (ObjectId), {@link UUIDGenericData} (UUID) and
+ * {@link GenericData} (Long), with {@code ...SoftDelete} variants.
+ * </p>
  */
 //@ApiGenerationMode(create = true, update = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -14,11 +14,19 @@ import jakarta.persistence.Table;
 import jakarta.ws.rs.DefaultValue;
 
 /**
- * Data model representing a migration record (version 3).
+ * Data model representing a migration record (version 3, the current one).
  *
  * <p>
- * Tracks migration name, progress, completion status, and structured log messages.
- * Stored in the {@code KAR_migration} collection.
+ * Tracks migration name, progress, completion status, and structured log messages
+ * ({@link MigrationMessage}). Stored in the {@code KAR_migration} collection: one document per
+ * migration step run by the {@link org.atriasoft.archidata.migration.MigrationEngine}, which reads
+ * them back ({@code MigrationEngine#getCurrentVersion(org.atriasoft.archidata.dataAccess.DBAccessMongo)})
+ * to know which steps are already applied and which one has to be resumed.
+ * </p>
+ *
+ * <p>
+ * Applications do not create these records themselves. The previous formats are kept as
+ * {@link Migration1} and {@link Migration2} so older databases can still be read and upgraded.
  * </p>
  */
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...

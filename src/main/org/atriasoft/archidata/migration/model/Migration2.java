@@ -17,6 +17,12 @@ import jakarta.ws.rs.DefaultValue;
  * Tracks migration name, progress, completion status, and a plain-text log string.
  * Stored in the {@code KAR_migration} collection.
  * </p>
+ *
+ * <p>
+ * Second format: it adds the {@code version} field to {@link Migration1}. It is superseded by
+ * {@link Migration}, which replaces the text log by structured {@link MigrationMessage} entries,
+ * and is kept to read and upgrade older databases.
+ * </p>
  */
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
 @Table(name = "KAR_migration")

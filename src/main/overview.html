@@ -27,6 +27,14 @@ stack for rapid API development: data access, authentication, validation, and cl
 		</ul>
 	</li>
 	<li><strong>JPA-style annotations</strong> for model definition and validation</li>
+	<li><strong>Cross-cutting services</strong>:
+		<ul>
+			<li>Transparent field encryption (AES-GCM, X25519, RSA)</li>
+			<li>Declarative MongoDB index management and query statistics</li>
+			<li>Incremental change journal and real-time change streams</li>
+			<li>Offset pagination through HTTP headers</li>
+		</ul>
+	</li>
 	<li><strong>Test utilities</strong> for integration testing</li>
 </ul>
 
@@ -57,7 +65,7 @@ stack for rapid API development: data access, authentication, validation, and cl
 	</tr>
 	<tr>
 		<td>{@link org.atriasoft.archidata.checker}</td>
-		<td>Database connection lifecycle management</td>
+		<td>Thread-local contexts: shared database connection and Bean Validation context</td>
 	</tr>
 	<tr>
 		<td>{@link org.atriasoft.archidata.converter}</td>
@@ -68,8 +76,12 @@ stack for rapid API development: data access, authentication, validation, and cl
 		<td>Cron-based task scheduling</td>
 	</tr>
 	<tr>
+		<td>{@link org.atriasoft.archidata.crypto}</td>
+		<td>Transparent field-level encryption: cipher providers, key store, envelope format</td>
+	</tr>
+	<tr>
 		<td>{@link org.atriasoft.archidata.dataAccess}</td>
-		<td>MongoDB data access layer (CRUD, queries, transactions)</td>
+		<td>MongoDB data access layer (CRUD, queries, transactions, query statistics in <code>dataAccess.statistic</code>)</td>
 	</tr>
 	<tr>
 		<td>{@link org.atriasoft.archidata.dataStreamEvent}</td>
@@ -92,8 +104,16 @@ stack for rapid API development: data access, authentication, validation, and cl
 		<td>JAX-RS filters for JWT authentication, CORS, and connection management</td>
 	</tr>
 	<tr>
+		<td>{@link org.atriasoft.archidata.index}</td>
+		<td>Declarative management of the MongoDB indexes</td>
+	</tr>
+	<tr>
 		<td>{@link org.atriasoft.archidata.interceptor}</td>
 		<td>JAX-RS interceptors for validation group selection</td>
+	</tr>
+	<tr>
+		<td>{@link org.atriasoft.archidata.journal}</td>
+		<td>Periodic incremental journal of the modified documents, with retention</td>
 	</tr>
 	<tr>
 		<td>{@link org.atriasoft.archidata.migration}</td>
@@ -104,15 +124,54 @@ stack for rapid API development: data access, authentication, validation, and cl
 		<td>Base entity classes for database-backed models</td>
 	</tr>
 	<tr>
+		<td>{@link org.atriasoft.archidata.pagination}</td>
+		<td>Offset-based pagination through HTTP headers and the <code>Link</code> header</td>
+	</tr>
+	<tr>
 		<td>{@link org.atriasoft.archidata.tools}</td>
 		<td>Utility classes (configuration, JWT, REST client, UUID, etc.)</td>
 	</tr>
 </table>
 
+<h2>Quick start</h2>
+
+<p>A model is a plain class extending one of the base entities; the data access layer works by
+introspection, there is no mapping file:</p>
+
+<pre>{@code
+@Table(name = "task")
+public class Task extends OIDGenericDataSoftDelete {
+	@Column(nullable = false, length = 200)
+	public String title;
+	public Boolean completed = false;
+}
+}</pre>
+
+<p>Then use the static {@link org.atriasoft.archidata.dataAccess.DataAccess} facade (the database is
+configured with {@link org.atriasoft.archidata.tools.ConfigBaseVariable}):</p>
+
+<pre>{@code
+ConfigBaseVariable.setBdDatabase("my_app");
+
+final Task task = new Task();
+task.title = "Write the javadoc";
+final Task created = DataAccess.insert(task);
+
+final Task loaded = DataAccess.getById(Task.class, created.getOid());
+final List<Task> open = DataAccess.gets(Task.class,
+		new Condition(Filters.eq("completed", false)),
+		new Limit(10));
+}</pre>
+
+<p>To expose it over REST, add a JAX-RS resource, register it with an
+{@link org.atriasoft.archidata.filter.AuthenticationFilter} subclass on a Jersey
+<code>ResourceConfig</code>, and secure each method with <code>@RolesAllowed</code> or
+<code>@PermitAll</code>. The full walk-through is in the first tutorial linked below.</p>
+
 <h2>Prerequisites</h2>
 
 <ul>
-	<li><strong>Java 21+</strong> (tested with Java 25)</li>
+	<li><strong>Java 25</strong> (the project is compiled with source and target 25)</li>
 	<li><strong>Maven 3.8+</strong></li>
 	<li><strong>MongoDB 6+</strong> (replica set required for transactions and change streams)</li>
 </ul>
@@ -120,7 +179,12 @@ stack for rapid API development: data access, authentication, validation, and cl
 <h2>Documentation</h2>
 
 <p>For complete documentation including tutorials and advanced topics, see the
-<a href="https://gitea.atria-soft.org/kangaroo-and-music/archidata/src/branch/master/doc/index.md">documentation index</a>.</p>
+<a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc/index.md">documentation index</a>
+(all guides are in the <a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc">doc folder</a> on GitHub), in particular the
+<a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc/TUTORIAL_01_first_install.md">first install tutorial</a>,
+<a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc/database_access.md">database access</a>,
+<a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc/security.md">security</a> and
+<a href="https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc/migration.md">migration</a>.</p>
 
 </body>
 </html>
