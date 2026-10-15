@@ -450,13 +450,23 @@ public class ConfigBaseVariable {
 
 	/**
 	 * Returns the database port, defaulting to {@code 27017}.
-	 * @return The database port number.
+	 * @return The database port number (between 1 and 65535).
+	 * @throws IllegalArgumentException if the configured value is not an integer between 1 and 65535.
 	 */
-	public static Short getDBPort() {
+	public static int getDBPort() {
 		if (dbPort == null) {
 			return 27017;
 		}
-		return Short.parseShort(dbPort);
+		final int port;
+		try {
+			port = Integer.parseInt(dbPort.trim());
+		} catch (final NumberFormatException ex) {
+			throw new IllegalArgumentException("Invalid DB port '" + dbPort + "': not an integer", ex);
+		}
+		if (port < 1 || port > 65535) {
+			throw new IllegalArgumentException("Invalid DB port '" + dbPort + "': must be between 1 and 65535");
+		}
+		return port;
 	}
 
 	/**

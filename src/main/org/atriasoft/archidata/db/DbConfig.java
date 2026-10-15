@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 public class DbConfig {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
 	private final String hostname;
-	private final Short port;
+	private final Integer port;
 	private final String login;
 	private final String password;
 	private String dbName;
@@ -49,7 +49,7 @@ public class DbConfig {
 	 * @param classes the list of data model classes registered with this configuration
 	 * @throws DataAccessException if the configuration is invalid
 	 */
-	public DbConfig(final String hostname, final Short port, final String login, final String password,
+	public DbConfig(final String hostname, final Integer port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
 
 		if (hostname == null) {

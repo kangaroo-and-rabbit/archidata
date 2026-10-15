@@ -61,13 +61,29 @@ class TestConfigBaseVariable {
 	@Test
 	void testGetDBPortDefault() {
 		ConfigBaseVariable.setDbPort(null);
-		Assertions.assertEquals((short) 27017, ConfigBaseVariable.getDBPort());
+		Assertions.assertEquals(27017, ConfigBaseVariable.getDBPort());
 	}
 
 	@Test
 	void testGetDBPortCustom() {
 		ConfigBaseVariable.setDbPort("5432");
-		Assertions.assertEquals((short) 5432, ConfigBaseVariable.getDBPort());
+		Assertions.assertEquals(5432, ConfigBaseVariable.getDBPort());
+	}
+
+	@Test
+	void testGetDBPortAboveShortRange() {
+		ConfigBaseVariable.setDbPort("40000");
+		Assertions.assertEquals(40000, ConfigBaseVariable.getDBPort());
+		ConfigBaseVariable.setDbPort("65535");
+		Assertions.assertEquals(65535, ConfigBaseVariable.getDBPort());
+	}
+
+	@Test
+	void testGetDBPortInvalid() {
+		for (final String value : new String[] { "0", "65536", "-1", "abc", "" }) {
+			ConfigBaseVariable.setDbPort(value);
+			Assertions.assertThrows(IllegalArgumentException.class, ConfigBaseVariable::getDBPort, value);
+		}
 	}
 
 	@Test

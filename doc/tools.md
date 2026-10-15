@@ -39,7 +39,7 @@ as text.
 | `DATA_FOLDER` | `setDataFolder` | `getMediaDataFolder()` | `./data/media` | folder of the stored media files (also the folder saved by the [backup](backup.md)) |
 | `DB_ABLE_TO_CREATE` | `setDbAbleToCreate` | `getDBAbleToCreate()` | `true` | whether the database may be created automatically. See the pitfall below: no code of the library reads it |
 | `DB_HOST` | `setDbHost` | `getDBHost()` | `localhost` | MongoDB host |
-| `DB_PORT` | `setDbPort` | `getDBPort()` (`Short`) | `27017` | MongoDB port |
+| `DB_PORT` | `setDbPort` | `getDBPort()` (`int`) | `27017` | MongoDB port |
 | `DB_USER` | `setDbUser` | `getDBLogin()` | `root` | MongoDB user |
 | `DB_PASSWORD` | `setDbPassword` | `getDBPassword()` | none: **throws `IllegalStateException`** when unset | MongoDB password |
 | `DB_DATABASE` | `setBdDatabase` | `getDBName()` | none (`null`) | database name |
@@ -286,8 +286,9 @@ Pitfalls
 - `DB_ABLE_TO_CREATE` does nothing: no code in the library reads
   `getDBAbleToCreate()`. The value is parsed with `Boolean.parseBoolean`
   (unset gives `true`; anything other than `true`, ignoring case, gives `false`).
-- `getDBPort()` returns a `Short` and parses with `Short.parseShort`: a port
-  above 32767 fails with `NumberFormatException`.
+- `getDBPort()` returns an `int` and throws `IllegalArgumentException` when
+  `DB_PORT` is not an integer between 1 and 65535. `DbConfig` stores the port
+  as `Integer`.
 - `getDBPassword()` throws when no password is configured, so a MongoDB without
   authentication still needs an explicit (possibly empty) `DB_PASSWORD`.
 - The environment is read once at class loading. Setting an environment variable
