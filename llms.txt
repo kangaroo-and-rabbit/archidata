@@ -1,0 +1,53 @@
+# archidata
+
+> archidata (Maven `org.atria-soft:archidata`, MPL 2.0) is a Java 25 framework for REST servers built on Jakarta JAX-RS (Jersey + Grizzly) and MongoDB: annotated entities with automatic CRUD, filters and pagination, relations, JWT roles and rights, Bean Validation groups, migrations, index synchronization, backups, change streams, cron, and generation of OpenAPI, TypeScript and Python clients. Every jar embeds the full documentation of its own version at `META-INF/archidata/llms-full.txt`: read it from the jar in `~/.m2/repository/org/atria-soft/archidata/<version>/` that matches the project's pom.
+
+Read the pitfalls first: launcher registration (`GenericCatcher.addAll`, `ContextGenericTools.addJsr310`), `@Valid` + `@ValidGroup`, 403 on endpoints without a security annotation, JWT format, `@DataNotRead` timestamps, indexes, partial updates with `FilterValue`.
+
+## Start here
+
+- [Pitfalls and contributor guide (AGENTS.md)](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/AGENTS.md): verified pitfalls when using archidata, package map, build, conventions
+- [README](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/README.md): features, prerequisites, Maven dependency
+- [Documentation index](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/index.md): list of every documentation page
+- [Getting started tutorial](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/TUTORIAL_01_first_install.md): build a first application step by step
+- [Sample project (basic)](https://github.com/kangaroo-and-rabbit/archidata/tree/develop/sample/archidata/basic): compilable reference application (entity, secured CRUD resource, migration, launcher, tests)
+- [Sample launcher](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/sample/archidata/basic/src/main/java/sample/archidata/basic/WebLauncher.java): the exact Jersey registrations an application needs
+- [Sample CRUD resource](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/sample/archidata/basic/src/main/java/sample/archidata/basic/api/TaskResource.java): secured REST endpoints with validation groups
+
+## Core concepts
+
+- [Data model](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/data_model.md): base entity classes, field annotations, relations, validation groups
+- [Annotations reference](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/annotations.md): every archidata annotation and its effect
+- [Database access](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/database_access.md): CRUD with `DataAccess`, query options (`Condition`, `FilterValue`, `OrderBy`, `Limit`)
+- [Pagination](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/pagination.md): offset pagination through HTTP headers and the RFC 5988 `Link` header
+- [Indexes](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/indexes.md): declare MongoDB indexes and synchronize them at startup with `IndexEngine`
+- [Migration](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/migration.md): `MigrationEngine`, `MigrationStep`, initialization of an empty database
+- [Security and authentication](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/security.md): JWT, `AuthenticationFilter`, `@RolesAllowed`, `@RightAllowed`, `PartRight`
+- [Error handling](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/error_handling.md): exception catchers, exception to HTTP status mapping, `FailException`
+- [Converters, validation groups and beans](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/converters_and_beans.md): Jackson setup, `@ValidGroup`, custom types
+- [Tools](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/tools.md): `ConfigBaseVariable` (environment), `RESTApi` client, `JWTWrapper`, `DataTools` uploads
+- [Connection management](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/connectionManagement.md): persistent connections, transactions, virtual threads
+
+## Client generation
+
+- [OpenAPI generation](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/openapi_generation.md): OpenAPI 3.0.3 specification from the JAX-RS resources
+- [TypeScript API generation](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/typescript_api_generation.md): typed TypeScript client (zod) with `TsGenerateApi`
+- [Python API generation](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/python_api_generation.md): typed Python package (Pydantic) with `PythonGenerateApi`
+
+## Reference
+
+- [Javadoc](https://javadoc.io/doc/org.atria-soft/archidata): API reference of every published version
+- [Maven Central](https://central.sonatype.com/artifact/org.atria-soft/archidata): published versions and dependency snippet
+- [Source code](https://github.com/kangaroo-and-rabbit/archidata/tree/develop/src/main/org/atriasoft/archidata): sources (non-standard layout `src/main`)
+
+## Optional
+
+- [Change streams](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/change_stream.md): real-time MongoDB change notifications (`ChangeNotificationManager`, needs a replica set)
+- [Change journal](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/change_journal.md): periodic incremental capture of modified documents and its retention
+- [Field encryption](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/field_encryption.md): transparent encryption of fields with `@DataEncrypt`
+- [Backup and restore](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/backup.md): `BackupEngine` full and delta archives, retention, restore
+- [Cron scheduler](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/cron.md): `CronScheduler` and its restricted cron syntax
+- [Query statistics](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/statistics.md): count each query shape and the index it would need
+- [Graph generation](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/graph_generation.md): Graphviz DOT and draw.io diagrams of the API and model
+- [Version upgrade notes](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/MIGRATION.md): behaviour changes between archidata versions (in French)
+- [Claude Code skill](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/claude-plugin/archidata/skills/archidata/SKILL.md): short recipes for projects that use archidata

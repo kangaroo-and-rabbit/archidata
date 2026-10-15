@@ -1,0 +1,189 @@
+# AGENTS.md — working on archidata
+
+Guide for AI agents (and humans) who modify the archidata library itself. If you only *use*
+archidata in an application, read the [Pitfalls](#pitfalls-when-using-archidata) section, then
+`llms.txt` (index) or `META-INF/archidata/llms-full.txt` inside the jar (the full documentation
+of that exact version).
+
+archidata (`org.atria-soft:archidata`, MPL 2.0) is a Java framework for REST servers on
+Jakarta JAX-RS (Jersey + Grizzly) backed by MongoDB: entity introspection and CRUD, JWT
+security, validation, migrations, indexes, backups, change streams, cron, and generation of
+OpenAPI / TypeScript / Python clients. Public mirror: <https://github.com/kangaroo-and-rabbit/archidata>
+(branch `develop`). Documentation: `doc/` (start at `doc/index.md`). Reference project that
+compiles against the current version: `sample/archidata/basic`.
+
+## Package map
+
+All packages live under `org.atriasoft.archidata` in `src/main/`.
+
+| Package | Content |
+| --- | --- |
+| `annotation` | Model annotations: `@DataNotRead`, `@DataDeleted`, `@CreationTimestamp`, `@UpdateTimestamp`, `@Index`/`@Indexed`, `@ManyToOneDoc`/`@OneToManyDoc`/`@ManyToManyDoc`, `@DataEncrypt`; `AnnotationTools` (reflection helpers) |
+| `annotation.apiGenerator` | `@ApiDoc`, `@ApiReadOnly`, `@ApiGenerationMode`, `@ApiOptionalIsNullable`… (client generation) |
+| `annotation.checker` | Validation groups (`GroupCreate`, `GroupUpdate`, `GroupRead`, `GroupPersistant`), `@CheckForeignKey`, collection validators |
+| `annotation.method` / `annotation.security` / `annotation.filter` | `@PaginationContext`, custom HTTP verbs (`@ARCHIVE`, `@RESTORE`, `@CALL`), `@RightAllowed`, `@PermitTokenInURI`, `@DataAccessSingleConnection` |
+| `api` | Ready-made JAX-RS resources: `DataResource` (media upload/streaming), `openApiResource`, `FrontGeneric`, `ProxyResource`, `MediaStreamer` |
+| `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `RetentionPolicy`, `BackupSnapshot` |
+| `bean` | Bean introspection used by the data layer (internal) |
+| `catcher` | JAX-RS exception mappers (`GenericCatcher.addAll(rc)`), `RestErrorResponse` |
+| `checker` | `ValidationContext`, `DataAccessConnectionContext` (per-request validation and connection context) |
+| `converter` | Jackson / Jakarta param / Mongo codecs for custom types |
+| `cron` | `CronScheduler`, `CronTask` (restricted cron syntax) |
+| `crypto` | Field encryption back-end of `@DataEncrypt` |
+| `dataAccess` | `DataAccess` (static facade), `DBAccessMongo`, `Filters`, `QueryOptions`, `TransactionContext` |
+| `dataAccess.options` | Query options: `Condition`, `FilterValue`, `FilterOmit`, `OrderBy`, `Limit`, `Skip`, `AccessDeletedItems`, `ReadAllColumn`, `DirectData`… |
+| `dataAccess.model` / `dataAccess.model.codec` / `dataAccess.mongo` / `dataAccess.addOn` | Entity model descriptors, Mongo codecs, relation add-ons, `Pagination<T>` / `PaginationContext` |
+| `dataAccess.statistic` | `QueryStatistics` (per-query counters) |
+| `dataStreamEvent` | `ChangeNotificationManager` (MongoDB change streams → Java listeners) |
+| `db` | `DbConfig`, `DbIo`, `DbIoFactory` (connection pool) |
+| `exception` | `FailException`, `InputException`, `DataAccessException`, `SystemException`, `UnAuthorizedException` |
+| `externalRestApi` | `AnalyzeApi`, `OpenApiGenerateApi`, `TsGenerateApi`, `PythonGenerateApi`, `DotGenerateApi`, `DrawioGenerateApi` |
+| `filter` | `AuthenticationFilter`, `CORSFilter`, `OptionFilter`, `PartRight`, `MySecurityContext`, `DataAccessRetentionConnectionFilter` |
+| `index` | `IndexEngine` (declare + synchronize MongoDB indexes, `KAR_index` cache) |
+| `interceptor` | `ValidGroupInterceptor` (`@ValidGroup`) |
+| `journal` | `ChangeJournalEngine` (incremental capture of modified documents) |
+| `migration` | `MigrationEngine`, `MigrationStep`, `MigrationInterface` (`KAR_migration` collection) |
+| `model` | Base entities (`OIDGenericDataSoftDelete`, `GenericTiming`, `Data`, `User`…), `model.token` (JWT payload records) |
+| `pagination` | `PaginationFeature` (offset pagination via HTTP headers + RFC 5988 `Link`) |
+| `tools` | `ConfigBaseVariable`, `ContextGenericTools`, `JWTWrapper`, `RESTApi`, `DataTools`, `UuidUtils`, `SsrfGuard`… |
+
+Tests live in `src/test/test/atriasoft/archidata/` (same package layout).
+
+## Build and test
+
+- **Java 25** is the target (`maven.compiler.source/target` = 25). Any newer JDK can build it;
+  the default `java` of the machine may be too old, so set `JAVA_HOME` explicitly.
+- **Non-standard source paths**: sources in `src/main`, tests in `src/test`, resources in
+  `src/resources` and `src/testResources` (not `src/main/java`).
+- The `formatter-maven-plugin` runs `validate` (fails on unformatted code). Format with
+  `mvn formatter:format`, or skip with `-Dformatter.skip=true`. CheckStyle: `-Dcheckstyle.skip=true`.
+- Release signing: skip with `-Dgpg.skip=true` for local builds.
+- Applications built on archidata (karso, karideo, karusic…) bind `exec-maven-plugin` to
+  `package`, which starts the server: always pass `-Dexec.skip=true` there. archidata itself has
+  no exec plugin, so the flag is harmless here and keeps one command for every project.
+- Only one `target/` directory is shared: never run two Maven builds of this repository at the
+  same time (serialize them, e.g. with `flock`).
+
+```bash
+# compile
+mvn compile -Dformatter.skip=true -Dcheckstyle.skip=true
+# jar without tests (also generates META-INF/archidata/llms-full.txt)
+mvn package -DskipTests -Dexec.skip=true -Dformatter.skip=true -Dcheckstyle.skip=true -Dgpg.skip=true
+# one test class
+mvn test -Dtest=TestTypeScriptApiGeneration -Dformatter.skip=true -Dcheckstyle.skip=true
+# install in ~/.m2 for the sample and the applications
+mvn install -DskipTests -Dgpg.skip=true
+```
+
+Tests need a **local MongoDB replica set** on `localhost:27017` (user `root`, password
+`base_db_password`, database `test_db`, dropped at each run): start it with
+`env_dev/docker-compose.yml`. The change stream tests require the replica set. The REST tests
+start a Grizzly server on `127.0.0.1:12345`. Surefire runs the classes sequentially in one fork:
+do not run two test sessions against the same MongoDB at once. Downstream applications
+(karso, karideo, karusic, karentory) start their test server on `127.0.0.1:12342`: never run
+their back-end tests in parallel either.
+
+## Code conventions
+
+Enforced by `CheckStyle.xml` and `Formatter.xml` at the root:
+
+- No `var`: always write the explicit type.
+- `final` on every parameter and local variable.
+- `this.` prefix on every instance field access.
+- TAB indentation, LF line endings, UTF-8.
+- No wildcard imports (`import java.util.*` is rejected).
+- Modifier order `public static final` (never `static public` / `final static`).
+- Logging through SLF4J: `private static final Logger LOGGER = LoggerFactory.getLogger(X.class);`.
+  Never `printStackTrace()` nor `System.out`.
+- Utility classes (only static members) have a private constructor (CheckStyle
+  `HideUtilityClassConstructor`).
+- Javadoc on public classes and methods (`doclint=all` in `maven-javadoc-plugin`).
+
+## Commit format
+
+`[TYPE] (scope) message`, scope optional, message in English, imperative or descriptive:
+
+```
+[FEAT] A stream says the size its picture is meant to be shown at
+[FIX] (externalRestApi) describe Pagination<T> in the OpenAPI specification
+[DOC] (dataStreamEvent) Merge the three change stream pages into one, checked against the code
+[DEV-OPS] (dependabot) Bump org.slf4j:jul-to-slf4j
+[RELEASE] Release v0.50.2
+[VERSION] update dev tag version
+```
+
+Types seen in the history: `FEAT`, `FIX`, `DOC`, `DEV-OPS`, `RELEASE`, `VERSION`. One subject
+per commit; no AI attribution line.
+
+## Documentation rules
+
+Every new feature, or change of behaviour, updates the documentation in the same commit:
+
+1. The relevant page in `doc/` (or a new page, linked from `doc/index.md`). Code examples must
+   compile; prefer pointing to `sample/archidata/basic` over copying code.
+2. `doc/annotations.md` when an annotation is added or changed.
+3. `llms.txt` at the root: one link per doc page (absolute GitHub URL on `develop`).
+4. A new page in `doc/` must also be added to the ordered list of the
+   `embed-llm-documentation` execution in `pom.xml` (otherwise the build warns and appends the page
+   at the end of `llms-full.txt`, after the ordered pages).
+5. The javadoc of the public classes touched.
+
+The jar ships `META-INF/archidata/llms.txt`, `META-INF/archidata/AGENTS.md` and
+`META-INF/archidata/llms-full.txt` (README + `doc/index.md` + every page), generated at
+`generate-resources` by `maven-antrun-plugin`.
+
+## Pitfalls when using archidata
+
+Each point was checked against the code; the doc page gives the details.
+
+- **Launcher**: call `GenericCatcher.addAll(rc)` (JSON errors with the right HTTP status) and
+  `ContextGenericTools.addJsr310(rc)`. The second one registers the Jackson mapper (ISO dates
+  instead of timestamps, archidata modules) and the `ValidGroupInterceptor`: without it,
+  `@ValidGroup` is silently ignored and the date format changes. See `sample/.../WebLauncher.java`.
+- **`@ValidGroup` does not check the `Default` group** (the archidata groups do not extend it):
+  also put `@Valid` on the parameter and register Jersey's `ValidationFeature`
+  (`@Valid @ValidGroup(GroupCreate.class) final Task task`). See `doc/converters_and_beans.md`.
+- **`AuthenticationFilter` answers 403 to any endpoint without `@PermitAll`, `@RolesAllowed` or
+  `@RightAllowed`** (and to `@DenyAll`). Conversely, with no authentication filter registered,
+  `@RolesAllowed` is ignored: archidata does not register Jersey's `RolesAllowedDynamicFeature`.
+  See `doc/security.md`.
+- **JWT**: the subject (`sub`) must be an `ObjectId` hex string; the default issuer is `"Karso"`
+  (`new AuthenticationFilter(app)`, otherwise pass it); the `roles` / `right` claims are maps
+  `{application: {name: code}}` whose values are `PartRight` codes (int `0..3` or the name
+  `NONE`/`READ`/`WRITE`/`READ_WRITE`), never `Boolean`. Roles are checked as
+  `applicationName/ROLE`.
+- **`createdAt` and `updatedAt` carry `@DataNotRead`**: they are not returned by default reads.
+  Use the `ReadAllColumn` option to get them. See `doc/data_model.md`.
+- **`@Column(unique = true)` creates no index** (`IndexEngine` only logs a warning): declare `@Index` /
+  `@Indexed(unique = true)` and run `IndexEngine.addClass(...)` + `synchronize()` at startup.
+  See `doc/indexes.md`.
+- **`updateById` without `FilterValue` rewrites every editable field, `null` included** (a null
+  field is `$unset`, unless it has a `@DefaultValue`). Pass
+  `new FilterValue(List.of("field1", "field2"))` for a partial update. `update(...)` with a
+  `Condition` refuses to run without exactly one `FilterValue`. See `doc/database_access.md`.
+- **`MigrationEngine`**: the history is the `KAR_migration` collection. On an empty database
+  only the initialization (`setInit`) runs, and the last migration is recorded as done (the
+  migrations `add`ed are never played on a fresh install, so the init must create the final
+  state). If the last recorded name is not found (migration renamed), nothing is applied and
+  no error is raised. See `doc/migration.md`.
+- **No SLF4J backend comes transitively** (archidata's logback is test-scoped): the application
+  must declare `ch.qos.logback:logback-classic` (or another backend), otherwise no log at all.
+- **Change streams** (`ChangeNotificationManager`): they require MongoDB running as a replica
+  set (a single-node one is fine); only the `FullDocument` mode passed to `start()` counts (the
+  per-listener mode is ignored); listeners run synchronously on the collection's worker thread,
+  so a slow listener blocks that collection (hand heavy work to an executor); `stop()` clears
+  the listeners and the resume tokens (register them again after a restart). See
+  `doc/change_stream.md`.
+- **Cron** (`CronScheduler`): a single consumer thread runs every task one after the other (a
+  blocking task delays all the others); a run missed while the server was down is not caught
+  up; the scheduler is per process (two instances run every task twice). The syntax is not
+  Unix cron (`*/n`, day-of-month AND day-of-week, Sunday = 7…): read `doc/cron.md`.
+- **`ConfigBaseVariable` reads the environment once, when the class is loaded** (static
+  initializer): `System.setenv`-style tricks afterwards have no effect, use the setters before
+  the first use (they are locked by `lock()`). `getDBPassword()` throws `IllegalStateException`
+  when `DB_PASSWORD` is not set. See `doc/tools.md`.
+- **Errors with a precise HTTP status**: throw `new FailException(Response.Status.XXX, "message")`
+  (the single-argument constructor answers 400), or a JAX-RS `WebApplicationException`
+  (`NotFoundException`…). See `doc/error_handling.md`.
+- **Compile the application with `-parameters`** (`<maven.compiler.parameters>true</maven.compiler.parameters>`),
+  otherwise the validation errors name the method arguments `arg0`, `arg1`….

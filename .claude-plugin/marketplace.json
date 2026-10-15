@@ -1,0 +1,17 @@
+{
+	"name": "archidata",
+	"description": "Claude Code plugins for projects built on the archidata Java framework (JAX-RS + MongoDB)",
+	"owner": {
+		"name": "Edouard DUPIN",
+		"url": "https://github.com/kangaroo-and-rabbit"
+	},
+	"plugins": [
+		{
+			"name": "archidata",
+			"source": "./claude-plugin/archidata",
+			"description": "Recipes and verified pitfalls for writing entities, REST resources, migrations, indexes and security with org.atria-soft:archidata",
+			"category": "development",
+			"tags": ["java", "jax-rs", "mongodb", "rest", "archidata"]
+		}
+	]
+}

@@ -249,6 +249,102 @@
 					<target>25</target>
 				</configuration>
 			</plugin>
+			<!-- Ship the documentation for AI agents inside the jar, under META-INF/archidata/:
+			     llms.txt (index of links), AGENTS.md (contributor guide) and llms-full.txt (README +
+			     every doc/*.md page, concatenated in reading order). A new doc page must be added to the
+			     ordered list below; a page missing from it is still appended at the end, under one
+			     separator that names it, and the build prints a warning. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>embed-llm-documentation</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target xmlns:if="ant:if">
+								<property name="llm.out" value="${project.build.outputDirectory}/META-INF/archidata"/>
+								<property name="llm.doc" value="${basedir}/doc"/>
+								<property name="llm.sep.a" value="&#10;&#10;================================================================================&#10;FILE: "/>
+								<property name="llm.sep.b" value="&#10;================================================================================&#10;&#10;"/>
+								<mkdir dir="${llm.out}"/>
+								<fileset id="llm.unlisted" dir="${llm.doc}" includes="*.md" excludes="index.md,TUTORIAL_01_first_install.md,data_model.md,annotations.md,database_access.md,pagination.md,indexes.md,migration.md,security.md,error_handling.md,converters_and_beans.md,connectionManagement.md,tools.md,openapi_generation.md,typescript_api_generation.md,python_api_generation.md,change_stream.md,change_journal.md,field_encryption.md,backup.md,cron.md,statistics.md,graph_generation.md"/>
+								<copy file="${basedir}/llms.txt" todir="${llm.out}" overwrite="true"/>
+								<copy file="${basedir}/AGENTS.md" todir="${llm.out}" overwrite="true"/>
+								<concat destfile="${llm.out}/llms-full.txt" encoding="UTF-8" outputencoding="UTF-8" fixlastline="true">
+									<string value="This file is the archidata ${project.version} documentation, matching the version of the jar that contains it (org.atria-soft:archidata:${project.version}).&#10;"/>
+									<string value="${llm.sep.a}README.md${llm.sep.b}"/>
+									<file file="${basedir}/README.md"/>
+									<string value="${llm.sep.a}doc/index.md${llm.sep.b}"/>
+									<file file="${llm.doc}/index.md"/>
+									<string value="${llm.sep.a}doc/TUTORIAL_01_first_install.md${llm.sep.b}"/>
+									<file file="${llm.doc}/TUTORIAL_01_first_install.md"/>
+									<string value="${llm.sep.a}doc/data_model.md${llm.sep.b}"/>
+									<file file="${llm.doc}/data_model.md"/>
+									<string value="${llm.sep.a}doc/annotations.md${llm.sep.b}"/>
+									<file file="${llm.doc}/annotations.md"/>
+									<string value="${llm.sep.a}doc/database_access.md${llm.sep.b}"/>
+									<file file="${llm.doc}/database_access.md"/>
+									<string value="${llm.sep.a}doc/pagination.md${llm.sep.b}"/>
+									<file file="${llm.doc}/pagination.md"/>
+									<string value="${llm.sep.a}doc/indexes.md${llm.sep.b}"/>
+									<file file="${llm.doc}/indexes.md"/>
+									<string value="${llm.sep.a}doc/migration.md${llm.sep.b}"/>
+									<file file="${llm.doc}/migration.md"/>
+									<string value="${llm.sep.a}doc/security.md${llm.sep.b}"/>
+									<file file="${llm.doc}/security.md"/>
+									<string value="${llm.sep.a}doc/error_handling.md${llm.sep.b}"/>
+									<file file="${llm.doc}/error_handling.md"/>
+									<string value="${llm.sep.a}doc/converters_and_beans.md${llm.sep.b}"/>
+									<file file="${llm.doc}/converters_and_beans.md"/>
+									<string value="${llm.sep.a}doc/connectionManagement.md${llm.sep.b}"/>
+									<file file="${llm.doc}/connectionManagement.md"/>
+									<string value="${llm.sep.a}doc/tools.md${llm.sep.b}"/>
+									<file file="${llm.doc}/tools.md"/>
+									<string value="${llm.sep.a}doc/openapi_generation.md${llm.sep.b}"/>
+									<file file="${llm.doc}/openapi_generation.md"/>
+									<string value="${llm.sep.a}doc/typescript_api_generation.md${llm.sep.b}"/>
+									<file file="${llm.doc}/typescript_api_generation.md"/>
+									<string value="${llm.sep.a}doc/python_api_generation.md${llm.sep.b}"/>
+									<file file="${llm.doc}/python_api_generation.md"/>
+									<string value="${llm.sep.a}doc/change_stream.md${llm.sep.b}"/>
+									<file file="${llm.doc}/change_stream.md"/>
+									<string value="${llm.sep.a}doc/change_journal.md${llm.sep.b}"/>
+									<file file="${llm.doc}/change_journal.md"/>
+									<string value="${llm.sep.a}doc/field_encryption.md${llm.sep.b}"/>
+									<file file="${llm.doc}/field_encryption.md"/>
+									<string value="${llm.sep.a}doc/backup.md${llm.sep.b}"/>
+									<file file="${llm.doc}/backup.md"/>
+									<string value="${llm.sep.a}doc/cron.md${llm.sep.b}"/>
+									<file file="${llm.doc}/cron.md"/>
+									<string value="${llm.sep.a}doc/statistics.md${llm.sep.b}"/>
+									<file file="${llm.doc}/statistics.md"/>
+									<string value="${llm.sep.a}doc/graph_generation.md${llm.sep.b}"/>
+									<file file="${llm.doc}/graph_generation.md"/>
+								</concat>
+								<!-- doc pages missing from the list above: appended at the end, with a warning -->
+								<pathconvert property="llm.unlisted.names" refid="llm.unlisted" pathsep=", ">
+									<flattenmapper/>
+								</pathconvert>
+								<condition property="llm.has.unlisted">
+									<not>
+										<equals arg1="${llm.unlisted.names}" arg2=""/>
+									</not>
+								</condition>
+								<echo level="warning" if:set="llm.has.unlisted" message="doc pages missing from the llms-full.txt list in pom.xml: ${llm.unlisted.names}"/>
+								<concat if:set="llm.has.unlisted" destfile="${llm.out}/llms-full.txt" append="true" encoding="UTF-8" outputencoding="UTF-8" fixlastline="true">
+									<string value="${llm.sep.a}Other doc pages (not yet listed in pom.xml): ${llm.unlisted.names}${llm.sep.b}"/>
+									<fileset refid="llm.unlisted"/>
+								</concat>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 			<!-- Create the source bundle -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

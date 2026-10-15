@@ -99,7 +99,7 @@ appRights.put("users", PartRight.READ.getValue());
 rights.put("myapp", appRights);
 
 final String token = JWTWrapper.generateJWToken(
-	userId,          // Object: user ID (ObjectId or Long)
+	userId,          // Object: user ID (must be an ObjectId: AuthenticationFilter rejects other types)
 	"john.doe",      // String: user login
 	"my-app",        // String: issuer
 	"my-app",        // String: application

@@ -1,0 +1,13 @@
+{
+	"name": "archidata",
+	"displayName": "archidata",
+	"description": "Skill for projects that use the archidata Java framework (org.atria-soft:archidata): recipes for entities, CRUD, pagination, security, migrations, indexes, uploads, client generation, and the pitfalls to avoid",
+	"author": {
+		"name": "Edouard DUPIN",
+		"url": "https://github.com/kangaroo-and-rabbit"
+	},
+	"homepage": "https://github.com/kangaroo-and-rabbit/archidata/tree/develop/doc",
+	"repository": "https://github.com/kangaroo-and-rabbit/archidata",
+	"license": "MPL-2.0",
+	"keywords": ["java", "jax-rs", "jersey", "grizzly", "mongodb", "rest", "archidata"]
+}
