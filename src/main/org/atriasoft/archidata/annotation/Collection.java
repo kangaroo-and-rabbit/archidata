@@ -12,6 +12,7 @@ import java.lang.annotation.Target;
  * ({@code Class.getSimpleName()}, e.g. {@code Media} for {@code com.example.Media}). The
  * annotation is read on the class itself only: a subclass does not inherit the collection of its
  * parent. A query can still target another collection with the {@code OverrideTableName} option.
+ * An empty or blank name is rejected with a {@code DataAccessException} when the model is analysed.
  *
  * <p>Example:
  * {@snippet lang = java :

@@ -531,6 +531,11 @@ public final class DbClassModel {
 		checkNoLegacyAnnotation(clazz);
 		this.classModel = ClassModel.of(clazz);
 		this.tableName = AnnotationTools.getTableName(clazz);
+		for (final PropertyDescriptor prop : this.classModel.getProperties()) {
+			if (prop.getField() != null) {
+				AnnotationTools.checkFieldName(prop.getField());
+			}
+		}
 
 		final List<DbPropertyDescriptor> all = new ArrayList<>();
 		final List<DbPropertyDescriptor> regular = new ArrayList<>();

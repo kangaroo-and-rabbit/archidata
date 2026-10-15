@@ -12,7 +12,8 @@ import java.lang.annotation.Target;
  * Validation for the checks ({@code @NotNull}, {@code @Size}...) and {@link Indexed}/{@link Index}
  * for the unicity. The name is read on the Java field (on a record, put it on the component,
  * which propagates it to the field). The JSON name used by the REST API is not affected (Jackson
- * keeps the Java name).
+ * keeps the Java name). An empty or blank name is rejected with a {@code DataAccessException} when
+ * the model is analysed.
  *
  * <p>Example:
  * {@snippet lang = java :

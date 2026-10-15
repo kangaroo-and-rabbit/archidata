@@ -86,7 +86,8 @@ Detail: [Data model](data_model.md).
 `org.atriasoft.archidata.annotation.Collection`, on a class. `value` (required) gives the MongoDB
 collection name. Without the annotation the class simple name is used (`Article` for
 `com.example.Article`); the annotation is read on the class itself, not inherited. Overridable per
-query with the `OverrideTableName` option.
+query with the `OverrideTableName` option. An empty or blank name (`@Collection("")`) is rejected
+with a `DataAccessException` when the model is analysed.
 
 ```java
 @Collection("article")
@@ -113,7 +114,9 @@ public ObjectId oid;
 is the name of the field in MongoDB, when it differs from the Java name. It is also the name to use
 in `@Index`, `FilterValue` and the filters; the method references (`Fields.of(User::getFullName)`)
 resolve it. It carries no constraint: use Bean Validation (`@NotNull`, `@Size`) and
-`@Indexed(unique = true)`. The JSON name of the REST API does not change.
+`@Indexed(unique = true)`. The JSON name of the REST API does not change. An empty or blank name
+(`@Field("")`) is rejected with a `DataAccessException` when the model is analysed: remove the
+annotation to keep the Java name.
 
 ```java
 @Field("user_name")
@@ -133,8 +136,8 @@ implicit `false`.
 public Integer retryCount;
 ```
 
-Not to be confused with `jakarta.ws.rs.DefaultValue`, which archidata rejects on an entity field (`DataAccessException` when the model is analysed) and
-which keeps its JAX-RS meaning on the parameters of a resource method.
+Not to be confused with `jakarta.ws.rs.DefaultValue`, which archidata rejects on an entity field
+(`DataAccessException` when the model is analysed) and which keeps its JAX-RS meaning on the parameters of a resource method.
 
 ### @Nullable
 

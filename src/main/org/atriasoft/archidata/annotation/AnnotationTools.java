@@ -403,12 +403,18 @@ public class AnnotationTools {
 	 *
 	 * @param element the entity class
 	 * @return the collection name
+	 * @throws DataAccessException if the {@link Collection} name is empty or blank
 	 */
-	public static String getTableName(final Class<?> element) {
+	public static String getTableName(final Class<?> element) throws DataAccessException {
 		final Collection annotation = element.getDeclaredAnnotation(Collection.class);
 		if (annotation == null) {
 			// when no annotation is detected, then the collection name is the class name
 			return element.getSimpleName();
+		}
+		if (annotation.value().isBlank()) {
+			throw new DataAccessException("Empty collection name on " + element.getName()
+					+ ": @Collection(\"\") is not allowed, give a name or remove the annotation to use the class"
+					+ " simple name");
 		}
 		return annotation.value();
 	}
@@ -656,18 +662,45 @@ public class AnnotationTools {
 
 	/**
 	 * Returns the database field name from the {@link org.atriasoft.archidata.annotation.Field}
-	 * annotation, or the Java field name when the field is not annotated (or the name is blank).
+	 * annotation, or the Java field name when the field is not annotated.
+	 *
+	 * <p>An empty or blank {@code @Field("")} is rejected: {@link #checkFieldName(Field)} throws a
+	 * {@link DataAccessException} when the entity model is analysed, and this method throws an
+	 * {@link IllegalArgumentException} if it is reached anyway.
 	 *
 	 * @param element the field to inspect
 	 * @return the resolved field name
+	 * @throws IllegalArgumentException if the {@code @Field} name is empty or blank
 	 */
 	public static String getFieldNameRaw(final Field element) {
 		final org.atriasoft.archidata.annotation.Field annotation = element
 				.getDeclaredAnnotation(org.atriasoft.archidata.annotation.Field.class);
-		if (annotation == null || annotation.value().isBlank()) {
+		if (annotation == null) {
 			return element.getName();
 		}
+		if (annotation.value().isBlank()) {
+			throw new IllegalArgumentException(emptyFieldNameMessage(element));
+		}
 		return annotation.value();
+	}
+
+	/**
+	 * Rejects an empty or blank {@link org.atriasoft.archidata.annotation.Field} name.
+	 *
+	 * @param element the field to inspect
+	 * @throws DataAccessException if the {@code @Field} name is empty or blank
+	 */
+	public static void checkFieldName(final Field element) throws DataAccessException {
+		final org.atriasoft.archidata.annotation.Field annotation = element
+				.getDeclaredAnnotation(org.atriasoft.archidata.annotation.Field.class);
+		if (annotation != null && annotation.value().isBlank()) {
+			throw new DataAccessException(emptyFieldNameMessage(element));
+		}
+	}
+
+	private static String emptyFieldNameMessage(final Field element) {
+		return "Empty field name on " + element.getDeclaringClass().getName() + "." + element.getName()
+				+ ": @Field(\"\") is not allowed, give a name or remove the annotation to use the Java field name";
 	}
 
 	/**
