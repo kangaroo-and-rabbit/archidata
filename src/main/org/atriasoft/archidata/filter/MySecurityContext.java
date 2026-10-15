@@ -28,8 +28,11 @@ import jakarta.ws.rs.core.SecurityContext;
  *
  * <ul>
  * <li>{@link #isUserInRole(String)} accepts {@code "role"}, {@code "group/role"} and the
- * suffixes {@code :r}, {@code :w}, {@code :rw}. The role {@code USER} is granted to any
- * authenticated caller.</li>
+ * suffixes {@code :r}, {@code :w}, {@code :rw}. The bare role {@code USER} is granted to any
+ * authenticated caller, but {@link AuthenticationFilter} checks roles as {@code "applicationName/role"}:
+ * through it, {@code USER} is granted only if the token has a roles entry for that application
+ * (see {@link #checkRightInGroup(String, String, boolean, boolean)}). Any other role needs the matching
+ * right ({@code READ}, {@code WRITE} or {@code READ_WRITE}) in the group.</li>
  * <li>{@link #hasResourceRight(String, String, PartRight)} checks a fine-grained right with a bitmask
  * comparison (see {@link org.atriasoft.archidata.annotation.security.RightAllowed}).</li>
  * </ul>
