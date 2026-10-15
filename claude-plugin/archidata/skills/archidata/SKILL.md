@@ -77,7 +77,8 @@ parameter `@PaginationContext final PaginationContext page`, return `Pagination<
 `@ManyToOneDoc(targetEntity = Parent.class, remoteField = "children")` on the child's
 `ObjectId` field, `@OneToManyDoc(targetEntity = Child.class, remoteField = "parentId")` on the
 parent's `List<ObjectId>`, `@ManyToManyDoc` for both sides; `@CheckForeignKey(X.class)` checks
-the target exists. The reverse lists are maintained by the data layer. Docs: `doc/data_model.md`.
+the target exists. Supported relation keys: `ObjectId`, `Long`, `UUID` (UUID primary keys,
+`UUIDGenericData`, work); a `String` key is rejected with an error naming the class and field. The reverse lists are maintained by the data layer. Docs: `doc/data_model.md`.
 
 ### Migration
 Extend `migration.MigrationStep`, override `getName()` (stable string, never rename it) and
@@ -178,7 +179,9 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
   `RESTErrorResponseException` on an error status; `fetchString()` / `fetchByte()` are raw and
   do not throw on 4xx/5xx. `header(key, value)` exists.
 - **Deprecated**: `tools.PublicKey`, use `JWTWrapper.PublicKey`. `@ApiDoc(hidden = true)` is
-  honoured by all generators. Malformed JSON gives 400 (`JacksonExceptionCatcher`).
+  honoured by all generators. Malformed JSON in a request body gives 400
+  (`RequestBodyReaderInterceptor` + `RequestBodyExceptionCatcher`, registered by
+  `GenericCatcher.addAll`); any other raw `JacksonException` gives 500.
 - **`ConfigBaseVariable` reads the environment when the class is loaded**; set values with the
   setters before first use. `getDBPassword()` throws if `DB_PASSWORD` is missing. `DB_PORT` is validated in 1..65535.
 - **HTTP status of an error**: use `new FailException(Response.Status.XXX, msg)`; the

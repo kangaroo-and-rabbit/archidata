@@ -199,7 +199,15 @@ Each point was checked against the code; the doc page gives the details.
   `getDBPort()` returns an `int` validated in 1..65535 (`DbConfig` takes an `Integer` port). See `doc/tools.md`.
 - **Errors with a precise HTTP status**: throw `new FailException(Response.Status.XXX, "message")`
   (the single-argument constructor answers 400), or a JAX-RS `WebApplicationException`
-  (`NotFoundException`…). `GenericCatcher` answers 400 for malformed or mistyped JSON (`JacksonExceptionCatcher`), and
-  `InputExceptionCatcher` reports the real status. See `doc/error_handling.md`.
+  (`NotFoundException`…). `GenericCatcher.addAll` registers `RequestBodyReaderInterceptor`
+  and `RequestBodyExceptionCatcher`: malformed or mistyped JSON in a request body answers 400. Any
+  other raw `JacksonException` (server-side parsing, serialization) answers 500
+  (`JacksonExceptionCatcher`). `InputExceptionCatcher` reports the real status. See `doc/error_handling.md`.
 - **Compile the application with `-parameters`** (`<maven.compiler.parameters>true</maven.compiler.parameters>`),
   otherwise the validation errors name the method arguments `arg0`, `arg1`….
+- **Relation keys**: the key of a `@ManyToOneDoc`, `@OneToManyDoc` or `@ManyToManyDoc` field is an
+  `ObjectId`, a `Long` or a `UUID` (a `List` of them on the collection side), or the target
+  entity itself to expand it. Any other type (`String`...) is rejected with an error naming the
+  class and the field when the model is analysed. See `doc/data_model.md`.
+- **UUID primary keys** (`UUIDGenericData`, `UUIDGenericDataSoftDelete`) work for reads, filters
+  and relations; the key is generated at insertion by `UuidUtils.nextUUID()`.

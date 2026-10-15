@@ -19,6 +19,8 @@
 		"Change streams need a replica set; only the FullDocument mode given to start() counts (per-listener mode is deprecated and ignored); listeners run on the worker thread; stop() clears listeners.",
 		"CronScheduler uses Unix (Vixie) syntax, numeric only (no MON, @daily, L, W, #); one consumer thread, no catch-up of missed runs, one scheduler per process (see doc/cron.md).",
 		"ConfigBaseVariable reads the environment when the class loads; getDBPassword() throws if DB_PASSWORD is missing.",
+		"Relation fields (@ManyToOneDoc, @OneToManyDoc, @ManyToManyDoc) support ObjectId, Long and UUID keys; any other type, such as String, is rejected naming the class and field. UUID primary keys work.",
+		"JSON errors: GenericCatcher.addAll registers RequestBodyReaderInterceptor and RequestBodyExceptionCatcher, so a bad request body gives 400; any other raw JacksonException gives 500.",
 		"Use new FailException(Response.Status.X, message) for an error with a precise HTTP status; the one-argument constructor gives 400.",
 		"Compile the application with -parameters, otherwise validation errors name the arguments arg0, arg1.",
 		"Read META-INF/archidata/llms-full.txt in the archidata jar of ~/.m2 matching the project's version: it is the documentation of that exact version."
