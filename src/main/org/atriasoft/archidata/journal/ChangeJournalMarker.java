@@ -6,7 +6,6 @@ import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.Field;
 import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
-import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -33,7 +32,6 @@ public class ChangeJournalMarker {
 	public ChangeJournalMarker() {}
 
 	@Id
-	@BsonId
 	@Field("_id")
 	@Schema(description = "Unique ObjectID of the marker")
 	@ApiReadOnly

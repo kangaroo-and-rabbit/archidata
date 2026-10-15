@@ -9,7 +9,6 @@ import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
-import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,7 +17,6 @@ import jakarta.validation.constraints.Null;
 
 public class DataStoreWithoutUpdate {
 	@Id
-	@BsonId
 	@Field("_id")
 	@Schema(description = "Unique ObjectID of the object", example = "65161616841351")
 	@ApiReadOnly

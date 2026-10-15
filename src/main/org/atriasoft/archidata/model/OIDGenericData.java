@@ -7,7 +7,6 @@ import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
-import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -26,7 +25,6 @@ public class OIDGenericData extends GenericTiming {
 	public OIDGenericData() {}
 
 	@Id
-	@BsonId
 	@Field("_id")
 	@Schema(description = "Unique ObjectID of the object", example = "65161616841351")
 	@ApiReadOnly

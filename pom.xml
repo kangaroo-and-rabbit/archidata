@@ -137,11 +137,6 @@
 			<artifactId>nimbus-jose-jwt</artifactId>
 			<version>10.10</version>
 		</dependency>
-		<dependency>
-			<groupId>jakarta.persistence</groupId>
-			<artifactId>jakarta.persistence-api</artifactId>
-			<version>3.2.0</version>
-		</dependency>
 		<!-- Swagger dependencies -->
 		<dependency>
 			<groupId>io.swagger.core.v3</groupId>
