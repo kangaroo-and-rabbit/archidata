@@ -14,7 +14,9 @@ import org.atriasoft.archidata.exception.DataAccessException;
  * Utility class for UUID generation and conversion.
  *
  * <p>Provides conversions between {@link UUID}, {@code byte[]}, and {@link BigInteger},
- * as well as a monotonically increasing UUID generator based on system time.</p>
+ * as well as a time-based unique UUID generator.</p>
+ *
+ * <p>The generated UUIDs are unique but <b>not sortable</b>: see {@link #nextUUID()}.</p>
  */
 public class UuidUtils {
 	private UuidUtils() {
@@ -98,10 +100,17 @@ public class UuidUtils {
 	private static Generator generator = new Generator();
 
 	/**
-	 * Returns the next monotonically increasing UUID from the internal generator.
+	 * Returns the next UUID from the internal generator.
 	 *
-	 * <p>The generated UUIDs are time-based and guaranteed to be unique and ordered
-	 * within the same JVM instance.</p>
+	 * <p>The most significant 64 bits hold a counter of milliseconds elapsed since the generator
+	 * creation (strictly increasing, one step per call even within the same millisecond), stored
+	 * <b>byte-reversed</b>. The least significant 64 bits hold the server id ({@code UUID_SERVER_ID},
+	 * 16 bits) and the number of seconds between 2024-03-19 and the generator creation.</p>
+	 *
+	 * <p>The UUIDs are unique within the same JVM instance. Because of the byte reversal, neither
+	 * {@link UUID#compareTo(UUID)} nor the textual or binary order of the UUIDs follows the creation
+	 * order: do not sort on them to get a chronological order. The format is kept as is because
+	 * UUIDs are already stored in databases.</p>
 	 * @return A new unique UUID.
 	 */
 	public static UUID nextUUID() {
