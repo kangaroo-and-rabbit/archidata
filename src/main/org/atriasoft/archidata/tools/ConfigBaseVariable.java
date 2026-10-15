@@ -434,7 +434,7 @@ public class ConfigBaseVariable {
 		if (dbAbleToCreate == null) {
 			return true;
 		}
-		return Boolean.getBoolean(dbAbleToCreate);
+		return Boolean.parseBoolean(dbAbleToCreate);
 	}
 
 	/**

@@ -284,9 +284,8 @@ Pitfalls
 --------
 
 - `DB_ABLE_TO_CREATE` does nothing: no code in the library reads
-  `getDBAbleToCreate()`. Its implementation also uses `Boolean.getBoolean(value)`,
-  which reads a *system property* named like the value, so for a set value
-  (even `true`) it returns `false`; only the unset case returns `true`.
+  `getDBAbleToCreate()`. The value is parsed with `Boolean.parseBoolean`
+  (unset gives `true`; anything other than `true`, ignoring case, gives `false`).
 - `getDBPort()` returns a `Short` and parses with `Short.parseShort`: a port
   above 32767 fails with `NumberFormatException`.
 - `getDBPassword()` throws when no password is configured, so a MongoDB without

@@ -95,6 +95,16 @@ class TestConfigBaseVariable {
 	}
 
 	@Test
+	void testGetDBAbleToCreateParsesValue() {
+		ConfigBaseVariable.setDbAbleToCreate(null);
+		Assertions.assertTrue(ConfigBaseVariable.getDBAbleToCreate());
+		ConfigBaseVariable.setDbAbleToCreate("true");
+		Assertions.assertTrue(ConfigBaseVariable.getDBAbleToCreate());
+		ConfigBaseVariable.setDbAbleToCreate("false");
+		Assertions.assertFalse(ConfigBaseVariable.getDBAbleToCreate());
+	}
+
+	@Test
 	void testGetDBKeepConnectedDefault() {
 		ConfigBaseVariable.setDbKeepConnected(null);
 		Assertions.assertFalse(ConfigBaseVariable.getDBKeepConnected());
