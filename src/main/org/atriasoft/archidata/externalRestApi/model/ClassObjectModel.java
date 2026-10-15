@@ -517,8 +517,10 @@ public class ClassObjectModel extends ClassModel {
 				LOGGER.trace("        SKIP (no field): '{}'", prop.getName());
 				continue;
 			}
-			final ApiDoc fieldApiDoc = prop.getAnnotation(ApiDoc.class);
-			if (fieldApiDoc != null && fieldApiDoc.hidden()) {
+			// any @ApiDoc(hidden = true) hides the property: getAnnotation() only returns the first one (the
+			// field's), so look at all of them (field, getter, setter; a record component reaches the field and
+			// the accessor)
+			if (prop.getAnnotations(ApiDoc.class).stream().anyMatch(ApiDoc::hidden)) {
 				LOGGER.trace("        SKIP (@ApiDoc(hidden = true)): '{}'", prop.getName());
 				continue;
 			}

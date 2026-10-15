@@ -116,6 +116,24 @@ public class TestApiDoc {
 		}
 	}
 
+	public static class ModelWithDocumentedFieldAndHiddenGetter {
+		@ApiDoc(description = "documented on the field")
+		private String secretField;
+
+		@ApiDoc(hidden = true)
+		public String getSecretField() {
+			return this.secretField;
+		}
+
+		public void setSecretField(final String secretField) {
+			this.secretField = secretField;
+		}
+	}
+
+	public record RecordWithHiddenComponent(
+			String visibleComponent,
+			@ApiDoc(hidden = true) String secretComponent) {}
+
 	@Path("/test-hidden")
 	@Produces({ MediaType.APPLICATION_JSON })
 	public static class ApiWithHiddenMethod {
@@ -299,6 +317,25 @@ public class TestApiDoc {
 		Assertions.assertNotNull(model);
 		Assertions.assertNotNull(findField(model, "visibleBean"));
 		Assertions.assertNull(findField(model, "secretGetterField"));
+	}
+
+	@Test
+	public void testHiddenOnGetterWinsOverDocumentedField() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(ModelWithDocumentedFieldAndHiddenGetter.class);
+		final ClassObjectModel model = findModel(api, ModelWithDocumentedFieldAndHiddenGetter.class);
+		Assertions.assertNotNull(model);
+		Assertions.assertNull(findField(model, "secretField"));
+	}
+
+	@Test
+	public void testHiddenOnRecordComponentIsRespected() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addModel(RecordWithHiddenComponent.class);
+		final ClassObjectModel model = findModel(api, RecordWithHiddenComponent.class);
+		Assertions.assertNotNull(model);
+		Assertions.assertNotNull(findField(model, "visibleComponent"));
+		Assertions.assertNull(findField(model, "secretComponent"));
 	}
 
 	@Test
