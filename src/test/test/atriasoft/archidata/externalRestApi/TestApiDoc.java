@@ -185,6 +185,42 @@ public class TestApiDoc {
 		}
 	}
 
+	public abstract static class ApiBaseWithHiddenMethod {
+		@ApiDoc(hidden = true)
+		public abstract String secretOverriddenEndpoint();
+	}
+
+	@Path("/test-hidden-overridden")
+	@Produces({ MediaType.APPLICATION_JSON })
+	public static class ApiOverridingHiddenMethod extends ApiBaseWithHiddenMethod {
+		@GET
+		@Path("secret")
+		@Override
+		public String secretOverriddenEndpoint() {
+			return null;
+		}
+
+		@GET
+		@Path("visible")
+		public String visibleOverridingEndpoint() {
+			return null;
+		}
+	}
+
+	public interface HiddenMethodContract {
+		@ApiDoc(hidden = true)
+		String secretSuperInterfaceEndpoint();
+	}
+
+	public interface HiddenMethodSubContract extends HiddenMethodContract {}
+
+	public static class ApiImplementingSubContract implements HiddenMethodSubContract {
+		@Override
+		public String secretSuperInterfaceEndpoint() {
+			return null;
+		}
+	}
+
 	// -- Tests --
 
 	@Test
@@ -346,6 +382,21 @@ public class TestApiDoc {
 		final AnalyzeApi api = new AnalyzeApi();
 		api.addAllApi(List.of(ApiWithHiddenMethod.class, HiddenByInterfaceApi.class, HiddenBySuperclassApi.class));
 		Assertions.assertEquals(1, api.getAllApi().size());
+	}
+
+	@Test
+	public void testHiddenMethodOfAbstractBaseIsRespectedWhenOverridden() throws Exception {
+		Assertions
+				.assertTrue(ApiTool.apiIsHidden(ApiOverridingHiddenMethod.class.getMethod("secretOverriddenEndpoint")));
+		Assertions.assertFalse(
+				ApiTool.apiIsHidden(ApiOverridingHiddenMethod.class.getMethod("visibleOverridingEndpoint")));
+		Assertions.assertTrue(
+				ApiTool.apiIsHidden(ApiImplementingSubContract.class.getMethod("secretSuperInterfaceEndpoint")));
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(ApiOverridingHiddenMethod.class));
+		final String text = new ObjectMapper().writeValueAsString(OpenApiGenerateApi.generate(api, "Test", "1.0"));
+		Assertions.assertTrue(text.contains("visibleOverridingEndpoint"), text);
+		Assertions.assertFalse(text.contains("secretOverriddenEndpoint"), text);
 	}
 
 	// -- Helpers --

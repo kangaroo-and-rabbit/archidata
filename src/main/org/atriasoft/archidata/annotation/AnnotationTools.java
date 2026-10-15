@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
@@ -112,30 +113,58 @@ public class AnnotationTools {
 	public static <TYPE extends Annotation> TYPE getAnnotationIncludingHierarchy(
 			final Class<?> clazz,
 			final Class<TYPE> annotationClass) {
-		Class<?> current = clazz;
-		while (current != null) {
-			final TYPE annotation = current.getDeclaredAnnotation(annotationClass);
-			if (annotation != null) {
-				return annotation;
+		return findInHierarchy(clazz, type -> type.getDeclaredAnnotation(annotationClass));
+	}
+
+	/**
+	 * Retrieves a single annotation from a method and from the methods it overrides or implements, in the
+	 * superclasses and in all the interfaces of the hierarchy (directly or through other interfaces). Same
+	 * order as {@link #getAnnotationIncludingHierarchy(Class, Class)}: the method itself wins, then the
+	 * nearest declaration.
+	 *
+	 * @param <TYPE> the annotation type
+	 * @param method the method to inspect
+	 * @param annotationClass the annotation type to look for
+	 * @return the annotation instance, or {@code null} if not found
+	 */
+	public static <TYPE extends Annotation> TYPE getAnnotationIncludingHierarchy(
+			final Method method,
+			final Class<TYPE> annotationClass) {
+		return findInHierarchy(method.getDeclaringClass(), type -> {
+			try {
+				return type.getDeclaredMethod(method.getName(), method.getParameterTypes())
+						.getDeclaredAnnotation(annotationClass);
+			} catch (final NoSuchMethodException ex) {
+				return null;
 			}
-			final TYPE fromInterfaces = getAnnotationFromInterfaces(current, annotationClass);
+		});
+	}
+
+	/**
+	 * Applies a lookup to a class, its interfaces, its superclass and so on, and returns the first
+	 * non-null result.
+	 */
+	private static <TYPE> TYPE findInHierarchy(final Class<?> clazz, final Function<Class<?>, TYPE> lookup) {
+		for (Class<?> current = clazz; current != null; current = current.getSuperclass()) {
+			final TYPE found = lookup.apply(current);
+			if (found != null) {
+				return found;
+			}
+			final TYPE fromInterfaces = findInInterfaces(current, lookup);
 			if (fromInterfaces != null) {
 				return fromInterfaces;
 			}
-			current = current.getSuperclass();
 		}
 		return null;
 	}
 
-	private static <TYPE extends Annotation> TYPE getAnnotationFromInterfaces(
-			final Class<?> clazz,
-			final Class<TYPE> annotationClass) {
+	private static <TYPE> TYPE findInInterfaces(final Class<?> clazz, final Function<Class<?>, TYPE> lookup) {
 		for (final Class<?> iface : clazz.getInterfaces()) {
-			final TYPE annotation = iface.getDeclaredAnnotation(annotationClass);
-			if (annotation != null) {
-				return annotation;
+			final TYPE found = lookup.apply(iface);
+			if (found != null) {
+				return found;
 			}
-			final TYPE inherited = getAnnotationFromInterfaces(iface, annotationClass);
+			final TYPE inherited = findInInterfaces(iface, lookup);
 			if (inherited != null) {
 				return inherited;
 			}

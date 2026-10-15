@@ -90,7 +90,8 @@ elles sont `@Deprecated` et loguent un WARN dès qu'un mode leur est passé, ava
 ### `@ApiDoc(hidden = true)` respecté
 
 Il était ignoré. Il retire désormais l'élément de tous les générateurs (OpenAPI, TypeScript,
-Python, graphes) : sur une méthode, l'endpoint ; sur une classe de ressource JAX-RS (ou une
+Python, graphes) : sur une méthode (ou sur la méthode qu'elle surcharge ou implémente, dans une
+superclasse ou une interface), l'endpoint ; sur une classe de ressource JAX-RS (ou une
 superclasse ou interface), tous ses endpoints ; sur un champ, son getter ou son setter, la
 propriété du modèle. L'endpoint répond toujours et le champ est toujours sérialisé en JSON.
 **Comment migrer :** vérifier que les éléments marqués `hidden` ne sont pas utilisés par les

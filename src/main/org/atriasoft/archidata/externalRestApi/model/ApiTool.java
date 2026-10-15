@@ -138,12 +138,13 @@ public class ApiTool {
 
 	/**
 	 * Tells whether an API method is hidden from the generated clients and documentation
-	 * ({@code @ApiDoc(hidden = true)} on the method or on the interface method it implements).
+	 * ({@code @ApiDoc(hidden = true)} on the method or, when the method carries no {@code @ApiDoc}, on the
+	 * nearest method it overrides or implements in a superclass or an interface).
 	 * @param element the method to inspect
 	 * @return {@code true} if the method must not be generated
 	 */
 	public static boolean apiIsHidden(final Method element) {
-		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingInterfaces(element, ApiDoc.class);
+		final ApiDoc apiDoc = AnnotationTools.getAnnotationIncludingHierarchy(element, ApiDoc.class);
 		return apiDoc != null && apiDoc.hidden();
 	}
 

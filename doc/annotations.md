@@ -409,7 +409,7 @@ Targets: class, field, method. Replaces `@Schema` / `@Operation` for documentati
 | `description` | `""` | Description. |
 | `example` | `""` | Example value (otherwise one is generated). |
 | `group` | `""` | Group (tag) of an API method. |
-| `hidden` | `false` | Leaves the element out of every generator (OpenAPI, TypeScript, Python, graphs): on a method, the endpoint; on a JAX-RS resource class (or a superclass or interface of it), all its endpoints; on a field, its getter or its setter, the property of the model. The REST endpoint still answers and the field is still serialized in JSON: it only hides them from the generated clients and documentation. No effect on a model class. |
+| `hidden` | `false` | Leaves the element out of every generator (OpenAPI, TypeScript, Python, graphs): on a method (or on the method it overrides or implements in a superclass or an interface, when the method itself has no `@ApiDoc`), the endpoint; on a JAX-RS resource class (or a superclass or interface of it), all its endpoints; on a field, its getter or its setter, the property of the model. The REST endpoint still answers and the field is still serialized in JSON: it only hides them from the generated clients and documentation. No effect on a model class. |
 
 ```java
 @ApiDoc(description = "Unique login", example = "john_doe")
