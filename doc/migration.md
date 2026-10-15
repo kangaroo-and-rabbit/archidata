@@ -74,7 +74,7 @@ public void migrateDB() throws Exception {
 final DbConfig config = new DbConfig();
 
 // Explicit values: hostname, port, login, password, database name, keep connected, classes
-final DbConfig other = new DbConfig("localhost", (short) 27017, "root", "secret", "my_db", false, List.of());
+final DbConfig other = new DbConfig("localhost", 27017, "root", "secret", "my_db", false, List.of());
 ```
 
 `DB_PASSWORD` has no default: `new DbConfig()` throws an `IllegalStateException` when it is not set.

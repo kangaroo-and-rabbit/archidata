@@ -18,6 +18,10 @@ import org.slf4j.LoggerFactory;
  */
 public class DbConfig {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
+	/** Port used when none is given (MongoDB default). */
+	private static final int DEFAULT_PORT = 27017;
+	/** Highest valid TCP port. */
+	private static final int MAX_PORT = 65535;
 	private final String hostname;
 	private final Integer port;
 	private final String login;
@@ -41,13 +45,14 @@ public class DbConfig {
 	 * Constructs a DbConfig with explicit connection parameters.
 	 *
 	 * @param hostname the database server hostname (defaults to "localhost" if null)
-	 * @param port the database server port (defaults to 27017 if null)
+	 * @param port the database server port, between 1 and 65535 (defaults to 27017 if null)
 	 * @param login the database login username
 	 * @param password the database login password
 	 * @param dbName the name of the database
 	 * @param keepConnected whether to keep the connection open for reuse
 	 * @param classes the list of data model classes registered with this configuration
 	 * @throws DataAccessException if the configuration is invalid
+	 * @throws IllegalArgumentException if the port is not between 1 and 65535
 	 */
 	public DbConfig(final String hostname, final Integer port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
@@ -58,7 +63,9 @@ public class DbConfig {
 			this.hostname = hostname;
 		}
 		if (port == null) {
-			this.port = 27017;
+			this.port = DEFAULT_PORT;
+		} else if (port < 1 || port > MAX_PORT) {
+			throw new IllegalArgumentException("Invalid DB port " + port + ": must be between 1 and " + MAX_PORT);
 		} else {
 			this.port = port;
 		}
@@ -68,6 +75,29 @@ public class DbConfig {
 		this.keepConnected = keepConnected;
 		this.classes = classes;
 
+	}
+
+	/**
+	 * Constructs a DbConfig with a {@code Short} port (former signature, kept for source and binary
+	 * compatibility). A port above 32767 cannot be given this way: a negative value is rejected.
+	 *
+	 * @param hostname the database server hostname (defaults to "localhost" if null)
+	 * @param port the database server port (defaults to 27017 if null)
+	 * @param login the database login username
+	 * @param password the database login password
+	 * @param dbName the name of the database
+	 * @param keepConnected whether to keep the connection open for reuse
+	 * @param classes the list of data model classes registered with this configuration
+	 * @throws DataAccessException if the configuration is invalid
+	 * @throws IllegalArgumentException if the port is not between 1 and 65535
+	 * @deprecated use {@link #DbConfig(String, Integer, String, String, String, boolean, List)}: the port is an
+	 *             {@code Integer} (up to 65535). A literal {@code null} port is ambiguous between the two
+	 *             constructors: write {@code (Integer) null}.
+	 */
+	@Deprecated
+	public DbConfig(final String hostname, final Short port, final String login, final String password,
+			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
+		this(hostname, port == null ? null : Integer.valueOf(port), login, password, dbName, keepConnected, classes);
 	}
 
 	/** {@inheritDoc} */
