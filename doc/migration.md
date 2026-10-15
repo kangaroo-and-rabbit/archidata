@@ -26,8 +26,9 @@ On start-up, `MigrationEngine` reads the last record of `KAR_migration`:
 3. **Otherwise**: it runs, in order, every migration registered *after* the one named in the
    last record.
 
-Each run inserts a record (`name`, `stepId`, `count`, `terminated`, `logs`) and updates it after
-every action, so a failure says which action broke.
+Each run inserts a record (`name`, `stepId`, `count`, `terminated`, `logs`) and updates `stepId`
+and `logs` after every action, so a failure says which action broke: the `logs` array of the
+failed record holds the `DB request ERROR: ...` message of the failing action.
 
 Matching is done **by name** (`getName()`). If the last recorded name is neither the
 initialization nor any registered migration (a migration renamed or removed), nothing is applied

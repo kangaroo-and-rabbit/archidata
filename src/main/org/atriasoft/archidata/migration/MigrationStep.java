@@ -91,7 +91,7 @@ public class MigrationStep implements MigrationInterface {
 				model.logs.add(new MigrationMessage(iii + 1, "DB request ERROR: " + ex.getMessage()));
 				model.stepId = iii + 1;
 				try {
-					da.updateById(model, model.getId(), new FilterValue("stepId", "log"));
+					da.updateById(model, model.getId(), new FilterValue("stepId", "logs"));
 				} catch (final Exception e) {
 					LOGGER.error("Failed to update migration step on error: {}", e.getMessage(), e);
 				}
@@ -101,7 +101,7 @@ public class MigrationStep implements MigrationInterface {
 			LOGGER.info(" >>>> DB ACTION : {}/{} ==> DONE", iii + 1, this.actions.size());
 			model.stepId = iii + 1;
 			try {
-				da.updateById(model, model.getId(), new FilterValue("stepId", "log"));
+				da.updateById(model, model.getId(), new FilterValue("stepId", "logs"));
 			} catch (final Exception e) {
 				LOGGER.error("Failed to update migration step progress: {}", e.getMessage(), e);
 			}

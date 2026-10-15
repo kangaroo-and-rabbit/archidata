@@ -1,10 +1,13 @@
 package test.atriasoft.archidata.migration;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.migration.MigrationEngine;
 import org.atriasoft.archidata.migration.MigrationException;
+import org.atriasoft.archidata.migration.model.Migration;
+import org.atriasoft.archidata.migration.model.MigrationMessage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,6 +64,29 @@ public class TestMigrationFail {
 		Assertions.assertThrows(MigrationException.class, () -> {
 			migrationEngine.migrateErrorThrow(new DbConfig());
 		});
+	}
+
+	@Order(3)
+	@Test
+	public void testFailedMigrationLogsArePersisted() throws Exception {
+		final List<Migration> elements = ConfigureDb.da.gets(Migration.class);
+		final Migration failed = elements.stream().filter(elem -> "Fail migration Test".equals(elem.name)).findFirst()
+				.orElse(null);
+		Assertions.assertNotNull(failed);
+		Assertions.assertFalse(failed.terminated);
+		Assertions.assertEquals(1, failed.stepId);
+		Assertions.assertNotNull(failed.logs);
+		Assertions.assertTrue(
+				failed.logs.stream().map((final MigrationMessage msg) -> msg.message)
+						.anyMatch(msg -> msg != null && msg.startsWith("DB request ERROR: FAIL migration")),
+				"intermediate logs must be persisted, got: " + failed.logs.size() + " message(s)");
+		Assertions.assertTrue(failed.logs.stream().map((final MigrationMessage msg) -> msg.message)
+				.anyMatch("Fail in the migration engine..."::equals));
+		final Migration done = elements.stream().filter(elem -> new Migration1().getName().equals(elem.name))
+				.findFirst().orElse(null);
+		Assertions.assertNotNull(done);
+		Assertions.assertTrue(
+				done.logs.stream().map((final MigrationMessage msg) -> msg.message).anyMatch("==> DONE"::equals));
 	}
 
 }

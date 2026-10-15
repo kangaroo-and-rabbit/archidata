@@ -254,6 +254,12 @@ public class MigrationEngine {
 			migrationResult.logs.add(new MigrationMessage(0, "Fail in the migration apply "));
 			migrationResult.logs.add(new MigrationMessage(0, e.getLocalizedMessage()));
 			LOGGER.error("Migration apply failed: {}", e.getMessage(), e);
+			try {
+				da.updateById(migrationResult, migrationResult.getId(), new FilterValue("logs"));
+			} catch (final Exception updateException) {
+				LOGGER.error("Failed to update migration log (exception): {}", updateException.getMessage(),
+						updateException);
+			}
 			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @"
 					+ migrationResult.stepId + "/" + migrationResult.count);
 		}
@@ -269,7 +275,7 @@ public class MigrationEngine {
 		} else {
 			try {
 				migrationResult.logs.add(new MigrationMessage(0, "Fail in the migration engine..."));
-				da.updateById(migrationResult, migrationResult.getId(), new FilterValue("log"));
+				da.updateById(migrationResult, migrationResult.getId(), new FilterValue("logs"));
 			} catch (final Exception e) {
 				LOGGER.error("Failed to update migration log (failure): {}", e.getMessage(), e);
 				throw new MigrationException("Fail to update migration Log in the migration table: "
