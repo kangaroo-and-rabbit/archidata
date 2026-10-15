@@ -27,7 +27,7 @@ Summary
 | [`@CreationTimestamp`](#creationtimestamp) | Timestamps | Set to now on insert. |
 | [`@UpdateTimestamp`](#updatetimestamp) | Timestamps | Set to now on insert and on every update. |
 | [`@DataDeleted`](#datadeleted) | Soft delete | Boolean soft-delete flag; deleted rows hidden by default. |
-| [`@DataAsyncHardDeleted`](#dataasynchardeleted) | Soft delete | Flag for a deferred physical removal. |
+| [`@DataAsyncHardDeleted`](#dataasyncharddeleted) | Soft delete | Flag for a deferred physical removal. |
 | [`@CheckForeignKey`](#checkforeignkey) | Validation | The referenced document must exist. |
 | [`@UniqueInBaseId`](#uniqueinbaseid) | Validation | The value must be unique in the collection of `target`. |
 | [`@ValueInList`](#valueinlist) | Validation | String restricted to a fixed list. |

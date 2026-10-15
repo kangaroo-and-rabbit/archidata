@@ -1,0 +1,59 @@
+site_name: Archidata
+site_description: Java framework built on Jakarta JAX-RS and MongoDB
+site_url: https://kangaroo-and-rabbit.github.io/archidata/
+repo_url: https://github.com/kangaroo-and-rabbit/archidata
+repo_name: kangaroo-and-rabbit/archidata
+edit_uri: edit/develop/doc/
+docs_dir: doc
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - First install tutorial: TUTORIAL_01_first_install.md
+  - Guides:
+      - Data model: data_model.md
+      - Annotations: annotations.md
+      - Database access: database_access.md
+      - Indexes: indexes.md
+      - Migration: migration.md
+      - Security and authentication: security.md
+      - Connection management: connectionManagement.md
+      - Change stream: change_stream.md
+      - Change journal: change_journal.md
+      - Field encryption: field_encryption.md
+      - Pagination: pagination.md
+      - Error handling: error_handling.md
+      - Backup: backup.md
+      - Cron: cron.md
+      - Statistics: statistics.md
+  - Reference:
+      - Converters and beans: converters_and_beans.md
+      - Tools: tools.md
+      - OpenAPI generation: openapi_generation.md
+      - TypeScript API generation: typescript_api_generation.md
+      - Python API generation: python_api_generation.md
+      - Graph generation: graph_generation.md
+  - API (Javadoc): https://kangaroo-and-rabbit.github.io/archidata/api/

@@ -1,0 +1,63 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Install Zensical
+        run: pip install zensical==0.0.70
+      - name: Build the documentation site
+        run: zensical build --clean --strict
+      - name: Rewrite links that leave the doc folder to GitHub URLs
+        run: |
+          find site -name '*.html' -print0 | xargs -0 sed -i -E \
+            's#href="(\.\./)+(sample|src)/#href="https://github.com/kangaroo-and-rabbit/archidata/blob/develop/\2/#g'
+      - uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+      - name: Generate the Javadoc and llms-full.txt
+        # llms-full.txt is built by the embed-llm-documentation execution of the pom,
+        # the same file as the one shipped in the jar.
+        run: mvn -B generate-resources javadoc:javadoc -Dformatter.skip=true -Dcheckstyle.skip=true
+      - name: Publish llms.txt and llms-full.txt at the root of the site
+        run: cp llms.txt target/classes/META-INF/archidata/llms-full.txt site/
+      - name: Copy the Javadoc into the site under /api/
+        run: |
+          APIDOCS=$(find target -type d -name apidocs | head -n 1)
+          test -n "$APIDOCS"
+          mkdir -p site/api
+          cp -r "$APIDOCS"/. site/api/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

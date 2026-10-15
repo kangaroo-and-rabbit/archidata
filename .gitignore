@@ -6,3 +6,4 @@ env_dev/data/
 env_dev_arch/data/
 *.tar.gz
 .claude/
+site/
