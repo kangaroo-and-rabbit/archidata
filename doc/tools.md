@@ -150,8 +150,8 @@ JWT: `JWTWrapper`
 Token generation and validation, RSA key handling and the remote public key
 refresh are described in [security.md](security.md). Nothing is repeated here.
 The nested class `JWTWrapper.PublicKey` is the DTO of the public key exchange;
-the top-level `tools.PublicKey` has the same shape and is not used by the
-library itself.
+the top-level `tools.PublicKey` has the same shape, is not used by the
+library and is deprecated for removal: use `JWTWrapper.PublicKey`.
 
 
 Identifiers and text
