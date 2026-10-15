@@ -77,9 +77,9 @@ toute valeur donnait `false`. Elle est maintenant lue avec `Boolean.parseBoolean
 Le mode `FullDocument` est global, choisi par `ChangeNotificationManager.start(...)`. Les surcharges
 qui prennent un mode par listener ou par watch (`registerListener(..., FullDocument)`,
 `ListenerRegistrationBuilder.withMode`, `CollectionWatchBuilder.fullDocument`) l'ignoraient déjà ;
-elles sont `@Deprecated` et loguent un WARN quand le mode demandé diffère du mode effectif (au
-`start()` pour un listener enregistré avant le démarrage). Retirer le mode de ces appels et le
-passer à `start()`.
+elles sont `@Deprecated` et loguent un WARN dès qu'un mode leur est passé, avant ou après
+`start()` : seul le mode de `start()` compte. Retirer le mode de ces appels et le passer à
+`start()`.
 
 ### `tools.PublicKey` déprécié
 

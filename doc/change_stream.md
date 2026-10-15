@@ -72,8 +72,8 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
 - **The FullDocument mode is global.** It is fixed by `start(..., mode)` and applied to every worker.
   There is one worker per collection, so a listener cannot get another mode: the `mode` argument
   of `registerListener(..., mode)`, `withMode(...)` and `CollectionWatchBuilder.fullDocument(...)`
-  is **ignored**. These overloads are `@Deprecated` and log a warning when the requested mode
-  differs from the global one.
+  is **ignored**. These overloads are `@Deprecated` and log a warning as soon as a mode is passed,
+  before or after `start()`: only the mode given to `start()` counts.
   `start(database)`, `start(dbConfig)` and `start()` use `FullDocument.DEFAULT`.
 
   | Mode | INSERT / REPLACE | UPDATE | DELETE |

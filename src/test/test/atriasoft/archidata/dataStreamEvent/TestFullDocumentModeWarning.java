@@ -19,8 +19,8 @@ import ch.qos.logback.core.read.ListAppender;
 import test.atriasoft.archidata.ConfigureDb;
 
 /**
- * A per-listener FullDocument mode is ignored: a warning must be logged even when the listener is
- * registered before {@code start()} (the effective mode is only known at start).
+ * A per-listener or per-watch FullDocument mode is always ignored: a warning is logged as soon as one is
+ * passed, before or after {@code start()}.
  */
 class TestFullDocumentModeWarning {
 	private final Logger managerLogger = (Logger) LoggerFactory.getLogger(ChangeNotificationManager.class);
@@ -58,35 +58,41 @@ class TestFullDocumentModeWarning {
 
 	@SuppressWarnings("deprecation")
 	@Test
-	void testModeRegisteredBeforeStartIsWarnedAtStart() {
+	void testModeRegisteredBeforeStartIsWarnedAtOnce() {
 		this.manager.registerListener(event -> {}, "modeWarningCollection", FullDocument.UPDATE_LOOKUP);
-		Assertions.assertTrue(ignoredModeWarnings().isEmpty(), "the effective mode is not known before start()");
-
-		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
 
 		final List<ILoggingEvent> warnings = ignoredModeWarnings();
-		Assertions.assertEquals(1, warnings.size(), "start() must warn about the mode requested before it");
+		Assertions.assertEquals(1, warnings.size(), "a mode passed to a listener is always ignored");
 		Assertions.assertTrue(warnings.get(0).getFormattedMessage().contains("UPDATE_LOOKUP"));
-		Assertions.assertTrue(warnings.get(0).getFormattedMessage().contains("DEFAULT"));
+		Assertions.assertTrue(warnings.get(0).getFormattedMessage().contains("start()"));
+
+		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
+		Assertions.assertEquals(1, ignoredModeWarnings().size(), "start() does not warn again");
 	}
 
 	@SuppressWarnings("deprecation")
 	@Test
-	void testSameModeRegisteredBeforeStartIsNotWarned() {
+	void testSameModeAsStartIsWarnedToo() {
+		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
+
 		this.manager.registerListener(event -> {}, "modeWarningCollection", FullDocument.DEFAULT);
 
-		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
-
-		Assertions.assertTrue(ignoredModeWarnings().isEmpty(), "the requested mode is the effective one");
+		Assertions.assertEquals(1, ignoredModeWarnings().size(), "the per-listener mode is ignored even when equal");
 	}
 
 	@SuppressWarnings("deprecation")
 	@Test
-	void testModeRegisteredAfterStartIsWarnedAtOnce() {
-		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
-
-		this.manager.registerListener(event -> {}, "modeWarningCollection", FullDocument.UPDATE_LOOKUP);
+	void testWatchModeIsWarned() {
+		this.manager.watch("modeWarningCollection").fullDocument(FullDocument.UPDATE_LOOKUP).start();
 
 		Assertions.assertEquals(1, ignoredModeWarnings().size());
+	}
+
+	@Test
+	void testNoModeIsNotWarned() {
+		this.manager.registerListener(event -> {}, "modeWarningCollection");
+		this.manager.start(ConfigureDb.da.getInterface().getDatabase(), FullDocument.DEFAULT);
+
+		Assertions.assertTrue(ignoredModeWarnings().isEmpty());
 	}
 }

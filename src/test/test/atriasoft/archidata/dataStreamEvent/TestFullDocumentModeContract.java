@@ -14,7 +14,8 @@ import com.mongodb.client.model.changestream.FullDocument;
 
 /**
  * The FullDocument mode is global (chosen by {@code start()}): every API that takes a per-listener
- * or per-collection mode ignores it and must say so by being deprecated.
+ * or per-collection mode always ignores it and must say so by being deprecated (and by a warning at each
+ * call, see {@link TestFullDocumentModeWarning}).
  */
 class TestFullDocumentModeContract {
 

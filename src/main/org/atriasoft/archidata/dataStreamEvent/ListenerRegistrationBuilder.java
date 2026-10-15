@@ -64,7 +64,7 @@ public class ListenerRegistrationBuilder {
 	 * <p>
 	 * The FullDocument mode is global: it is chosen once by
 	 * {@link ChangeNotificationManager#start(com.mongodb.client.MongoDatabase, FullDocument)} and used
-	 * by every collection worker. A different mode given here is ignored (a warning is logged).
+	 * by every collection worker. A mode given here is ignored (a warning is logged).
 	 * </p>
 	 *
 	 * @param mode The FullDocument mode (ignored)
