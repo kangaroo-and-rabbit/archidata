@@ -31,9 +31,9 @@ The most common choice. Provides an ObjectId primary key, creation/update timest
 
 ```java
 public class Article extends OIDGenericDataSoftDelete {
-	@Column(nullable = false, length = 200)
+	@NotNull
+	@Size(max = 200)
 	public String title;
-	@Column(length = 0)
 	public String content;
 }
 ```
@@ -52,9 +52,7 @@ Same as above but without soft delete. Calling `deleteById()` performs a hard de
 
 ```java
 public class LogEntry extends OIDGenericData {
-	@Column(nullable = false)
 	public String message;
-	@Column(nullable = false)
 	public String level;
 }
 ```
@@ -65,7 +63,7 @@ Uses a Long primary key with auto-increment (via a MongoDB `counters` collection
 
 ```java
 public class Counter extends GenericDataSoftDelete {
-	@Column(nullable = false, length = 100)
+	@Size(max = 100)
 	public String name;
 	public int value;
 }
@@ -91,64 +89,47 @@ This gives you just a primary key with no timestamps or soft delete.
 Field Annotations
 =================
 
-All the annotations are summarized in the [annotations reference](annotations.md).
+All the annotations are summarized in the [annotations reference](annotations.md). The mapping
+annotations are archidata's own (`org.atriasoft.archidata.annotation`): the JPA annotations
+(`jakarta.persistence`) are not read.
 
 ### @Id
 
-Marks the primary key field. Required on exactly one field per model.
+Marks the primary key field. Required on exactly one field per model. An `ObjectId`, `Long` or
+`UUID` key is generated on insert; a key of another type is set by the application and inserted with
+the `DirectPrimaryKey` option.
 
 ```java
 @Id
 public ObjectId _id = null;
 ```
 
-### @Column
+### @Field
 
-Controls how a field is stored in MongoDB.
-
-| Parameter    | Default | Effect |
-|-------------|---------|--------|
-| `name`      | field name | Name of the field in MongoDB (also the name used in `@Index` and `FilterValue`) |
-| `nullable`  | `true`  | Stored in the field descriptor; **not enforced** on write. Use `@NotNull` |
-| `length`    | `255`   | Stored in the field descriptor; **not enforced**. Use `@Size` |
-| `unique`    | `false` | **Creates no index** and enforces nothing. Use `@Index` / `@Indexed` (see [indexes](indexes.md)) |
-| `insertable`, `updatable` | `true` | Informational only: no data-access code reads them |
+Gives the name of the field in MongoDB when it differs from the Java name (also the name used in
+`@Index`, `FilterValue` and the filters). It carries no constraint: validation goes through Bean
+Validation (`@NotNull`, `@Size`) and unicity through a unique index (see [indexes](indexes.md)).
 
 ```java
-@Column(nullable = false, length = 100)
-@Indexed(unique = true) // @Column(unique = true) alone creates no index
-public String email;
-
-@Column(length = 0)
-public String description;
-
-@Column(name = "user_name")
+@Field("user_name")
 public String name;  // stored as "user_name" in MongoDB
+
+@Indexed(unique = true) // unicity is only enforced by a unique index
+@Size(max = 100)
+public String email;
 ```
 
-### @Table
+### @Collection
 
-Override the MongoDB collection name for a model (defaults to the class name):
+Override the MongoDB collection name for a model (defaults to the class simple name, the annotation
+is not inherited):
 
 ```java
-@Table(name = "articles")
+@Collection("articles")
 public class Article extends OIDGenericDataSoftDelete {
 	// stored in the "articles" collection
 }
 ```
-
-### @GeneratedValue
-
-Used with Long primary keys to enable auto-increment:
-
-```java
-@Id
-@GeneratedValue(strategy = GenerationType.IDENTITY)
-@Column(nullable = false, unique = true)
-public Long id = null;
-```
-
-> **Note:** This is already configured in `GenericData`. You only need this for custom models without inheritance.
 
 ### @CreationTimestamp
 
@@ -156,7 +137,6 @@ Automatically sets the field to the current timestamp on insert:
 
 ```java
 @CreationTimestamp
-@Column(nullable = false, insertable = false, updatable = false)
 public Date createdAt = null;
 ```
 
@@ -166,23 +146,25 @@ Automatically sets the field to the current timestamp on insert and every update
 
 ```java
 @UpdateTimestamp
-@Column(nullable = false, insertable = false, updatable = false)
 public Date updatedAt = null;
 ```
 
-### @DefaultValue
+### @InitValue
 
-Sets a default value for a field when it is null on insert:
+Sets the value written in the database when the field is null on insert. On an update, a null
+field carrying `@InitValue` is left unchanged instead of being removed:
 
 ```java
-@DefaultValue("'active'")
+@InitValue("'active'")
 public String status = null;
 
-@DefaultValue("'0'")
+@InitValue("'0'")
 public Boolean deleted = null;
 ```
 
-> **Note:** The value string uses single-quote quoting: `'string_value'` for strings, `0` or `1` for booleans.
+> **Note:** The value is a string converted to the field type; the surrounding single quotes are
+> optional (`'active'`, `'42'`; `'0'` reads as `false` for a boolean). Do not use the JAX-RS
+> `@DefaultValue` on an entity field: archidata ignores it (it is meant for resource parameters).
 
 ### @DataNotRead
 
@@ -200,8 +182,7 @@ Marks a field as the soft-delete flag. When this field is `true`, the document i
 ```java
 @DataDeleted
 @DataNotRead
-@Column(nullable = false)
-@DefaultValue("'0'")
+@InitValue("'0'")
 public Boolean deleted = null;
 ```
 
@@ -502,23 +483,21 @@ Complete Model Example
 @ApiGenerationMode(create = true, update = true)
 public class User extends OIDGenericDataSoftDelete {
 
-	@Column(nullable = false, length = 128, unique = true)
+	@Indexed(unique = true)
 	@NotNull(groups = { GroupCreate.class })
 	@Size(min = 3, max = 128)
 	@Pattern(regexp = "^[a-zA-Z0-9-_]+$")
 	@UniqueInBaseId(target = User.class, nameOfField = "login", groups = GroupWithContext.class)
 	public String login;
 
-	@Column(nullable = false, length = 256)
 	@NotNull(groups = { GroupCreate.class })
 	@Email
 	public String email;
 
-	@Column(length = 512)
+	@Size(max = 512)
 	public String bio;
 
-	@Column(nullable = false)
-	@DefaultValue("'active'")
+	@InitValue("'active'")
 	public String status;
 
 	@CheckForeignKey(Article.class)

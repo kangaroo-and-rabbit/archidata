@@ -4,19 +4,21 @@ Annotations reference
 Single reference of every annotation archidata defines or interprets. Each entry gives the target,
 the attributes with their defaults, the real effect (as implemented), a short example and the page
 that details the topic. Archidata annotations live in `org.atriasoft.archidata.annotation` and its
-sub-packages; the standard ones come from `jakarta.*` or Jackson.
+sub-packages; the standard ones come from `jakarta.*` or Jackson. The JPA annotations
+(`jakarta.persistence`: `@Table`, `@Column`, `@Id`, `@GeneratedValue`, `@ManyToOne`...) are not read
+at all: see [MIGRATION.md](https://github.com/kangaroo-and-rabbit/archidata/blob/develop/MIGRATION.md)
+for the correspondence.
 
 Summary
 -------
 
 | Annotation | Theme | One line |
 |------------|-------|----------|
-| [`@Table`](#table) | Model | Collection name of an entity (default: class simple name). |
-| [`@Id`](#id) | Model | Primary key field (stored as `_id`). |
-| [`@GeneratedValue`](#generatedvalue) | Model | JPA metadata, read into the field descriptor only. |
-| [`@Column`](#column) | Model | Stored field name; `nullable`, `length`, `unique` are metadata, not constraints. |
-| [`@DefaultValue`](#defaultvalue) | Model | Value used on insert when the field is `null`. |
-| [`@Nullable`](#nullable) | Model | Marks a field as nullable for the DB descriptor and the API generators. |
+| [`@Collection`](#collection) | Model | Collection name of an entity (default: class simple name). |
+| [`@Id`](#id) | Model | Primary key field (`ObjectId`, `Long`, `UUID`...). |
+| [`@Field`](#field) | Model | Name of the field in the MongoDB document; nothing else. |
+| [`@InitValue`](#initvalue) | Model | Value written on insert when the field is `null`. |
+| [`@Nullable`](#nullable) | Model | Marks a field as nullable for the API generators. |
 | [`@DataNotRead`](#datanotread) | Model | Field written normally but not returned by default reads. |
 | [`@DataEncrypt`](#dataencrypt) | Encryption | Transparent encryption of a `String` field. |
 | [`@ManyToOneDoc`](#manytoonedoc) | Relations | Child side of a document-level 1-N link. |
@@ -58,8 +60,8 @@ Summary
 Known pitfalls
 --------------
 
-- `@Column(unique = true)` creates **no index** and rejects nothing. Declare `@Index` / `@Indexed`
-  and call `IndexEngine.synchronize()` ([Indexes](indexes.md)).
+- Unicity only exists through a unique index: declare `@Index` / `@Indexed(unique = true)` and call
+  `IndexEngine.synchronize()` ([Indexes](indexes.md)).
 - `createdAt` and `updatedAt` (from `GenericTiming`) carry `@DataNotRead`: they are not returned by
   default. Add the `ReadAllColumn` query option to read them.
 - `@ValidGroup` only works when `ContextGenericTools.addJsr310(rc)` has been called (it registers
@@ -67,8 +69,10 @@ Known pitfalls
   to check the unannotated constraints.
 - A resource method with none of `@RolesAllowed`, `@RightAllowed`, `@PermitAll` makes
   `AuthenticationFilter` answer 403; `@DenyAll` always answers 403.
-- `@Column(nullable)` and `@Column(length)` are not enforced by the data access layer: use
-  `@NotNull` and `@Size` for real validation.
+- `@Field` only renames the field in the database: use `@NotNull` and `@Size` for validation.
+- `@InitValue` is the archidata annotation for a value written on insert. The JAX-RS
+  `jakarta.ws.rs.DefaultValue` on an entity field is ignored (it stays the right annotation on the
+  parameters of a REST resource).
 
 
 Model and persistence
@@ -76,66 +80,65 @@ Model and persistence
 
 Detail: [Data model](data_model.md).
 
-### @Table
+### @Collection
 
-`jakarta.persistence.Table`, on a class. `name` gives the MongoDB collection name; without it (or
-without the annotation) the class simple name is used. Overridable per query with the
-`OverrideTableName` option.
+`org.atriasoft.archidata.annotation.Collection`, on a class. `value` (required) gives the MongoDB
+collection name. Without the annotation the class simple name is used (`Article` for
+`com.example.Article`); the annotation is read on the class itself, not inherited. Overridable per
+query with the `OverrideTableName` option.
 
 ```java
-@Table(name = "article")
+@Collection("article")
 public class Article extends OIDGenericDataSoftDelete { }
 ```
 
 ### @Id
 
-`jakarta.persistence.Id`, on a field. Makes it the primary key (action `PRIMARY_KEY`, stored as
-`_id` when combined with `@Column(name = "_id")` as in `OIDGenericData`, `UUIDGenericData`).
+`org.atriasoft.archidata.annotation.Id`, on a field (or getter). No attribute. Makes it the
+primary key (action `PRIMARY_KEY`). The key is generated on insert for an `ObjectId`, a `Long`
+(sequence in the `counters` collection) or a `UUID`; another type (`String`, `Integer`...) is set
+by the application and inserted with the `DirectPrimaryKey` option. Stored as `_id` when combined
+with `@Field("_id")`, as in `OIDGenericData` and `UUIDGenericData` (`GenericData` keeps `id`).
 
 ```java
 @Id
-@Column(nullable = false, unique = true, name = "_id")
+@Field("_id")
 public ObjectId oid;
 ```
 
-### @GeneratedValue
+### @Field
 
-`jakarta.persistence.GeneratedValue`, on a field. The `strategy` is read into the field
-descriptor (`AnnotationTools.getStrategy`); the key generation itself depends on the key type of
-the generic base class, not on this annotation.
-
-### @Column
-
-`jakarta.persistence.Column`, on a field. What archidata really reads:
-
-| Attribute | Default | Effect |
-|-----------|---------|--------|
-| `name` | `""` (field name) | Name of the field in MongoDB. Also the name to use in `@Index` and `FilterValue`. |
-| `nullable` | `true` | Stored in the descriptor; **not enforced** on write. Use `@NotNull`. |
-| `length` | `255` | Stored in the descriptor; **not enforced**. Use `@Size`. |
-| `unique` | `false` | Stored in the descriptor; **creates no index**. Use `@Index` / `@Indexed`. |
-| `insertable`, `updatable` | `true` | Informational only: no data-access code reads them. |
+`org.atriasoft.archidata.annotation.Field`, on a field (or a record component). `value` (required)
+is the name of the field in MongoDB, when it differs from the Java name. It is also the name to use
+in `@Index`, `FilterValue` and the filters; the method references (`Fields.of(User::getFullName)`)
+resolve it. It carries no constraint: use Bean Validation (`@NotNull`, `@Size`) and
+`@Indexed(unique = true)`. The JSON name of the REST API does not change.
 
 ```java
-@Column(name = "user_name", nullable = false, length = 100)
+@Field("user_name")
 public String name;
 ```
 
-### @DefaultValue
+### @InitValue
 
-`jakarta.ws.rs.DefaultValue`, on a field. When the field is `null` at insert time the string value
-is converted to the field type and stored. For a `@DataDeleted` field it replaces the implicit
-`false`.
+`org.atriasoft.archidata.annotation.InitValue`, on a field (or a record component). When the field
+is `null` at insert time, `value` is converted to the field type (number, boolean, enum, string,
+date; surrounding single quotes removed) and stored. On an update, a `null` field carrying
+`@InitValue` is left unchanged instead of being removed. For a `@DataDeleted` field it replaces the
+implicit `false`.
 
 ```java
-@DefaultValue("false")
-public Boolean enabled;
+@InitValue("'0'")
+public Integer retryCount;
 ```
+
+Not to be confused with `jakarta.ws.rs.DefaultValue`, which archidata ignores on an entity field and
+which keeps its JAX-RS meaning on the parameters of a resource method.
 
 ### @Nullable
 
-`jakarta.annotation.Nullable`, on a field. The field is considered nullable by the descriptor and
-by the TypeScript/Python generators (the generated type accepts `null`).
+`jakarta.annotation.Nullable`, on a field. The field is considered nullable by the TypeScript/Python
+generators (the generated type accepts `null`).
 
 ### @DataNotRead
 
@@ -270,14 +273,13 @@ On a `Date` field. Set to the current time on insert and on every update. `updat
 ```java
 @DataNotRead
 @CreationTimestamp
-@Column(nullable = false, insertable = false, updatable = false)
 private Date createdAt = null;
 ```
 
 ### @DataDeleted
 
 On a `Boolean` field. Marks the soft-delete flag: `delete` sets it to `true`, inserts initialize it
-to `false` (or to the `@DefaultValue`), and reads skip documents whose flag is true unless the
+to `false` (or to the `@InitValue`), and reads skip documents whose flag is true unless the
 `AccessDeletedItems` option is given. Only one such field per class.
 
 ### @DataAsyncHardDeleted

@@ -169,7 +169,7 @@ Whitelist of top-level fields. On a read it becomes the **MongoDB projection**; 
 da.gets(Article.class, new FilterValue("title", "status"));
 da.updateById(data, id, new FilterValue("title", "content"));
 
-// Type-safe with method references (recommended — resolves @Column annotations)
+// Type-safe with method references (recommended — resolves @Field annotations)
 da.gets(Article.class, new FilterValue(Article::getTitle, Article::getStatus));
 da.updateById(data, id, new FilterValue(Article::getTitle, Article::getContent));
 ```
@@ -209,7 +209,7 @@ Rules:
 - **Excluding a relation field also drops its queries.** A `@ManyToOneDoc` / `@OneToManyDoc` field
   that is expanded into its target entity costs an extra query per read; omitting it skips the
   resolution entirely.
-- **Field names are the structural ones** — the name used by `@Column(name = "...")` when present,
+- **Field names are the structural ones** — the name used by `@Field("...")` when present,
   which is exactly what the method references resolve to, and the same names updates already use.
 - `@DataNotRead` fields (typically `createdAt` / `updatedAt`) stay excluded; `ReadAllColumn` lifts
   that exclusion but does **not** defeat an explicit `FilterValue` whitelist.
@@ -347,7 +347,7 @@ new OptionSpecifyType("items", ItemClass.class, true)  // is a list
 Type-Safe Utilities
 ===================
 
-Archidata provides type-safe utilities that resolve method references to database field names, respecting `@Column(name)` annotations. This avoids string typos and provides compile-time safety.
+Archidata provides type-safe utilities that resolve method references to database field names, respecting `@Field("...")` annotations. This avoids string typos and provides compile-time safety.
 
 ### Fields — Field Name Resolution
 
@@ -356,7 +356,7 @@ Archidata provides type-safe utilities that resolve method references to databas
 ```java
 // Single field name
 final String fieldName = Fields.of(User::getName);       // -> "name"
-final String fieldName = Fields.of(User::getFullName);   // -> "full_name" (if @Column(name="full_name"))
+final String fieldName = Fields.of(User::getFullName);   // -> "full_name" (if @Field("full_name"))
 
 // List of field names
 final List<String> names = Fields.list(User::getName, User::getAge);  // -> ["name", "age"]

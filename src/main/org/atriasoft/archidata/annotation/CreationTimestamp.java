@@ -20,15 +20,14 @@ import java.lang.annotation.Target;
  * - When a field is annotated with @CreationTimestamp, it will automatically
  *   be set to the current date and time when the object is inserted into the
  *   database.
- * - This annotation is typically used in conjunction with other annotations
- *   such as @Column to define database column properties.
+ * - The base classes ({@code GenericTiming} and its subclasses) already declare
+ *   it: an entity extending them does not need to repeat it.
  *
  * <p>Example:
  * <pre>{@code
  * public class MyEntity {
  *     @DataNotRead
  *     @CreationTimestamp
- *     @Column(nullable = false, insertable = false, updatable = false)
  *     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX") // optional depend on the configuration
  *     @Nullable
  *     public Date createdAt = null;

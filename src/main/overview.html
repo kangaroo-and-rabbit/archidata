@@ -26,7 +26,7 @@ stack for rapid API development: data access, authentication, validation, and cl
 			<li>Database migration engine</li>
 		</ul>
 	</li>
-	<li><strong>JPA-style annotations</strong> for model definition and validation</li>
+	<li><strong>Model annotations</strong> (<code>@Collection</code>, <code>@Field</code>, <code>@Id</code>, <code>@InitValue</code>, relations, indexes) and Bean Validation</li>
 	<li><strong>Cross-cutting services</strong>:
 		<ul>
 			<li>Transparent field encryption (AES-GCM, X25519, RSA)</li>
@@ -139,9 +139,10 @@ stack for rapid API development: data access, authentication, validation, and cl
 introspection, there is no mapping file:</p>
 
 <pre>{@code
-@Table(name = "task")
+@Collection("task")
 public class Task extends OIDGenericDataSoftDelete {
-	@Column(nullable = false, length = 200)
+	@NotNull
+	@Size(max = 200)
 	public String title;
 	public Boolean completed = false;
 }

@@ -26,7 +26,7 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * // String-based (existing)
  * new FilterValue("name", "email")
  *
- * // Type-safe getter references (resolves @Column annotations)
+ * // Type-safe getter references (resolves @Field annotations)
  * new FilterValue(User::getName, User::getEmail)
  *
  * // Type-safe setter references

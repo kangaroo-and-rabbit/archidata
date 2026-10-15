@@ -20,14 +20,13 @@ import java.lang.annotation.Target;
  * - When a field is annotated with @UpdateTimestamp, it will automatically
  *   be updated to the current date and time whenever the object is modified
  *   in the database.
- * - This annotation is typically used in conjunction with other annotations
- *   such as @Column to define database column properties.
+ * - The base classes ({@code GenericTiming} and its subclasses) already declare
+ *   it: an entity extending them does not need to repeat it.
  *
  * <p>Example:
  * <pre>{@code
  * public class MyEntity {
  *     @UpdateTimestamp
- *     @Column(nullable = false, insertable = false, updatable = false)
  *     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
  *     @Nullable
  *     public Date updatedAt = null;

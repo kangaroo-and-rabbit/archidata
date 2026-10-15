@@ -29,7 +29,7 @@ import org.bson.conversions.Bson;
  *
  * <p>Method reference overloads use {@link org.atriasoft.archidata.dataAccess.model.DbClassModel}
  * to resolve the property name to the correct database field name, respecting
- * {@code @Column(name = "...")} annotations. Results are cached for performance.
+ * {@code @Field("...")} annotations. Results are cached for performance.
  *
  * @see org.atriasoft.archidata.dataAccess.options.Condition
  * @see com.mongodb.client.model.Filters

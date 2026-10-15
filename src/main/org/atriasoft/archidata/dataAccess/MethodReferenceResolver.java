@@ -30,7 +30,7 @@ public final class MethodReferenceResolver {
 	 * @param <T>    the entity type
 	 * @param <R>    the return type of the getter
 	 * @param getter a serializable getter reference (e.g. User::getName)
-	 * @return the database field name (e.g. "name" or "custom_name" if @Column(name) is set)
+	 * @return the database field name (e.g. "name" or "custom_name" if @Field("custom_name") is set)
 	 * @throws IllegalArgumentException if the method reference cannot be resolved
 	 */
 	public static <T, R> String resolveFieldName(final SerializableFunction<T, R> getter) {

@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
  * }
  * }
  *
- * <p>Field names are the structural ones — the name of {@code @Column(name = "...")} when present,
+ * <p>Field names are the structural ones — the name of {@code @Field("...")} when present,
  * the same names used by {@code FilterValue}. A dotted path addresses an embedded sub-document
  * ({@code "address.city"}). A leading {@code -} makes the key descending.
  *

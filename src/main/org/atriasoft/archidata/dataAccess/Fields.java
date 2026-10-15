@@ -7,14 +7,14 @@ import java.util.List;
  * Type-safe utility for resolving entity method references to database field names.
  *
  * <p>Provides a convenient API to obtain database field names from getter or setter
- * method references, respecting {@code @Column(name = "...")} annotations.
+ * method references, respecting {@code @Field("...")} annotations.
  * All resolution is delegated to {@link MethodReferenceResolver}.
  *
  * <h2>Single field name:</h2>
  * <pre>{@code
  * String fieldName = Fields.of(User::getName);       // -> "name"
  * String fieldName = Fields.of(User::setName);       // -> "name"
- * String fieldName = Fields.of(User::getFullName);   // -> "full_name" (if @Column(name="full_name"))
+ * String fieldName = Fields.of(User::getFullName);   // -> "full_name" (if @Field("full_name"))
  * }</pre>
  *
  * <h2>List of field names:</h2>

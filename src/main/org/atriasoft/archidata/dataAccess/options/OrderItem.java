@@ -13,7 +13,7 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * // String-based
  * new OrderItem("name", Order.ASC)
  *
- * // Type-safe getter reference (resolves @Column annotations)
+ * // Type-safe getter reference (resolves @Field annotations)
  * new OrderItem(User::getName, Order.ASC)
  *
  * // Type-safe setter reference

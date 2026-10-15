@@ -94,7 +94,6 @@ public class Task extends GenericDataSoftDelete {
 	@Schema(description = "Short title of the task")
 	private String title;
 
-	@Column(length = 0)
 	@Size(max = 4096)
 	@Schema(description = "Free text description")
 	private String description;
@@ -111,17 +110,17 @@ What the base class gives:
 
 | Field | Source | Behaviour |
 |-------|--------|-----------|
-| `id` (Long) | `GenericData` | Generated on insert, stored as `_id`. Must be absent on create (`GroupCreate`). |
+| `id` (Long) | `GenericData` | Generated on insert (sequence of the `counters` collection), stored as `id`. Must be absent on create (`GroupCreate`). |
 | `createdAt`, `updatedAt` | `GenericTiming` | Filled by the data access layer. Marked `@DataNotRead`: not returned by default reads. |
 | `deleted` | `GenericDataSoftDelete` | Soft delete: `deleteById` sets the flag; default reads skip deleted documents. |
 
 Other base classes exist: `OIDGenericData[SoftDelete]` (ObjectId id, field `oid`) and
 `UUIDGenericData[SoftDelete]`. See [Data Model](data_model.md).
 
-The collection is named after the class (`Task`); `@Table(name = "...")` changes it.
+The collection is named after the class (`Task`); `@Collection("...")` changes it.
 
 `@Index` declares a MongoDB index; it is applied by `IndexEngine` at start-up (step 5), not by the
-migrations. Note that `@Column(unique = true)` creates no index: use `@Indexed(unique = true)`.
+migrations. Unicity is only enforced by a unique index: use `@Indexed(unique = true)`.
 See [Indexes](indexes.md).
 
 

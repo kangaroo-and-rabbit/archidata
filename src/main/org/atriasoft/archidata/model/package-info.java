@@ -19,9 +19,10 @@
  *
  * <p>Example:</p>
  * {@snippet lang = java :
- * @Table(name = "task")
+ * @Collection("task")
  * public class Task extends OIDGenericDataSoftDelete {
- * 	@Column(nullable = false, length = 200)
+ * 	@NotNull
+ * 	@Size(max = 200)
  * 	public String title;
  * 	public Boolean completed = false;
  * }

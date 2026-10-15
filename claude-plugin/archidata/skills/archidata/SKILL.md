@@ -50,9 +50,11 @@ Before starting: `MigrationEngine` then `IndexEngine.synchronize()` (see below).
 
 ### Entity
 Extend a base class of `model`: `OIDGenericDataSoftDelete` (ObjectId id, timestamps, soft delete,
-recommended), `OIDGenericData`, `GenericDataSoftDelete` (Long id). Annotate with
-`@jakarta.persistence.Entity` (collection = class name, or `@Table(name = "...")`), Bean
-Validation constraints, `@Schema`/`@ApiDoc` for the generated clients. Server-managed fields get
+recommended), `OIDGenericData`, `GenericDataSoftDelete` (Long id). The collection is the class
+simple name, or `@Collection("...")`; `@Field("...")` renames a field in the document,
+`@InitValue("...")` sets its value on insert when `null` (package `annotation`; the JPA
+annotations and a JAX-RS `@DefaultValue` on a field are ignored). Add Bean Validation
+constraints, `@Schema`/`@ApiDoc` for the generated clients. Server-managed fields get
 `@ApiReadOnly`; create/update-only rules use the groups `GroupCreate` / `GroupUpdate`
 (`annotation.checker`). Docs: `doc/data_model.md`, `doc/annotations.md`.
 
@@ -156,8 +158,8 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
   / `right` claims are `{app: {name: code}}` with `PartRight` codes (int 0-3 or the name), never
   `Boolean`.
 - **`createdAt` / `updatedAt` are `@DataNotRead`**: absent from default reads, use `ReadAllColumn`.
-- **`@Column(unique = true)` creates no index**: use `@Index`/`@Indexed` and run
-  `IndexEngine.synchronize()` at startup.
+- **Unicity only exists through a unique index**: use `@Index`/`@Indexed(unique = true)` and run
+  `IndexEngine.synchronize()` at startup. `@Field` only renames a field.
 - **`updateById` without `FilterValue` rewrites every editable field, `null` included** (null =
   `$unset`): pass the list of fields for a partial update (PATCH).
 - **Migrations**: collection `KAR_migration`. On an empty database only the init runs (the

@@ -134,7 +134,7 @@ public UserAuthGet create(@Valid @ValidGroup(GroupCreate.class) final UserCreate
 `@ApiOptionalIsNullable` without groups needs archidata 0.50.3 or later (before,
 it had no effect).
 
-**`@DefaultValue` fields on update:** `DataAccess` skips a `null` field that
-carries `@DefaultValue` (the stored value is kept), while any other `null`
+**`@InitValue` fields on update:** `DataAccess` skips a `null` field that
+carries `@InitValue` (the stored value is kept), while any other `null`
 field is removed from the document. A form can not clear such a field by
 sending `null`: give it an explicit value instead.

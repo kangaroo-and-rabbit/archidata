@@ -387,9 +387,9 @@ Complete Example
 
 ```java
 public class Article extends OIDGenericDataSoftDelete {
-	@Column(nullable = false, length = 200)
+	@NotNull
+	@Size(max = 200)
 	public String title;
-	@Column(length = 0)
 	public String content;
 	@CheckForeignKey(User.class)
 	public ObjectId authorId;

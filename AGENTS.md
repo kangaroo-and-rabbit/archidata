@@ -18,7 +18,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 
 | Package | Content |
 | --- | --- |
-| `annotation` | Model annotations: `@DataNotRead`, `@DataDeleted`, `@CreationTimestamp`, `@UpdateTimestamp`, `@Index`/`@Indexed`, `@ManyToOneDoc`/`@OneToManyDoc`/`@ManyToManyDoc`, `@DataEncrypt`; `AnnotationTools` (reflection helpers) |
+| `annotation` | Model annotations: `@Collection`, `@Field`, `@Id`, `@InitValue`, `@DataNotRead`, `@DataDeleted`, `@CreationTimestamp`, `@UpdateTimestamp`, `@Index`/`@Indexed`, `@ManyToOneDoc`/`@OneToManyDoc`/`@ManyToManyDoc`, `@DataEncrypt`; `AnnotationTools` (reflection helpers) |
 | `annotation.apiGenerator` | `@ApiDoc`, `@ApiReadOnly`, `@ApiGenerationMode`, `@ApiOptionalIsNullable`… (client generation) |
 | `annotation.checker` | Validation groups (`GroupCreate`, `GroupUpdate`, `GroupRead`, `GroupPersistant`), `@CheckForeignKey`, collection validators |
 | `annotation.method` / `annotation.security` / `annotation.filter` | `@PaginationContext`, custom HTTP verbs (`@ARCHIVE`, `@RESTORE`, `@CALL`), `@RightAllowed`, `@PermitTokenInURI`, `@DataAccessSingleConnection` |
@@ -154,11 +154,16 @@ Each point was checked against the code; the doc page gives the details.
   `applicationName/ROLE`.
 - **`createdAt` and `updatedAt` carry `@DataNotRead`**: they are not returned by default reads.
   Use the `ReadAllColumn` option to get them. See `doc/data_model.md`.
-- **`@Column(unique = true)` creates no index** (`IndexEngine` only logs a warning): declare `@Index` /
-  `@Indexed(unique = true)` and run `IndexEngine.addClass(...)` + `synchronize()` at startup.
-  See `doc/indexes.md`.
+- **Mapping annotations are archidata's own** (`org.atriasoft.archidata.annotation`):
+  `@Collection("name")` (collection, default: class simple name), `@Field("name")` (field name in
+  the document, nothing else), `@Id` (primary key), `@InitValue("...")` (value written on insert
+  when `null`). The JPA annotations (`jakarta.persistence`: `@Table`, `@Column`, `@GeneratedValue`,
+  `@ManyToOne`...) and a JAX-RS `@DefaultValue` on an entity field are silently ignored. See
+  `doc/annotations.md` and `MIGRATION.md`.
+- **Unicity only exists through a unique index**: declare `@Index` / `@Indexed(unique = true)` and
+  run `IndexEngine.addClass(...)` + `synchronize()` at startup. See `doc/indexes.md`.
 - **`updateById` without `FilterValue` rewrites every editable field, `null` included** (a null
-  field is `$unset`, unless it has a `@DefaultValue`). Pass
+  field is `$unset`, unless it has an `@InitValue`). Pass
   `new FilterValue(List.of("field1", "field2"))` for a partial update. `update(...)` with a
   `Condition` refuses to run without exactly one `FilterValue`. See `doc/database_access.md`.
 - **`MigrationEngine`**: the history is the `KAR_migration` collection. On an empty database

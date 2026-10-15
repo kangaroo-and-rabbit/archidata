@@ -54,13 +54,13 @@ order — which matters for a compound index — obvious at the call site.
 | `partialFilter` | restricts the index to the documents matching a JSON filter |
 | `name` | explicit name, always prefixed by `kar_` |
 
-Field names are the **structural** ones — the name of `@Column(name = "...")` when present, the
+Field names are the **structural** ones — the name of `@Field("...")` when present, the
 same ones `FilterValue` uses. A dotted path indexes inside an embedded sub-document
 (`"address.city"`).
 
-> `@Column(unique = true)` creates **nothing**. `@Column` carries JPA metadata archidata does not
-> act upon, so the constraint would exist only in the source. A non-primary-key field relying on it
-> raises a warning naming the annotation to use instead.
+> Unicity only exists through a unique index declared here (`@Indexed(unique = true)` or
+> `@Index(value = ..., unique = true)`): no other annotation creates an index. The JPA
+> `@Column(unique = true)` is not read at all.
 
 ## Synchronizing
 

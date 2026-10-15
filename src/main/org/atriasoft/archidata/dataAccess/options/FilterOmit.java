@@ -21,7 +21,7 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * // String-based (existing)
  * new FilterOmit("password", "secret")
  *
- * // Type-safe getter references (resolves @Column annotations)
+ * // Type-safe getter references (resolves @Field annotations)
  * new FilterOmit(User::getPassword, User::getSecret)
  *
  * // Type-safe setter references

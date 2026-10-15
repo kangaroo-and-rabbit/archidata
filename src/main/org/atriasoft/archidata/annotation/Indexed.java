@@ -23,9 +23,8 @@ import java.lang.annotation.Target;
  * }
  * }
  *
- * <p>Note that {@code @Column(unique = true)} does <b>not</b> create any index: {@code @Column}
- * carries JPA information archidata does not act upon. Unicity must be declared here (or with
- * {@link Index}) to be enforced by the database.
+ * <p>Unicity is declared here (or with {@link Index}) and enforced by the database through the
+ * unique index; no other annotation creates an index.
  *
  * @see Index
  * @see org.atriasoft.archidata.index.IndexRegistry

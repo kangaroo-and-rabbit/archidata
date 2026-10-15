@@ -35,7 +35,6 @@ public class Article extends OIDGenericDataSoftDelete {
 	public String title;
 
 	@ApiDoc(description = "Article content")
-	@Column(length = 0)
 	public String content;
 
 	@CheckForeignKey(User.class)

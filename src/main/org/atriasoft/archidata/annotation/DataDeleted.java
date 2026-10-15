@@ -29,8 +29,7 @@ import java.lang.annotation.Target;
  *
  *     @DataDeleted
  *     @DataNotRead
- *     @Column(nullable = false)
- *     @DefaultValue("'0'")
+ *     @InitValue("'0'")
  *     public Boolean deleted = null;
  * }
  * }</pre>

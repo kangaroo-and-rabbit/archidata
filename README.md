@@ -14,7 +14,7 @@ Archi-data is a Java framework for building REST servers backed by MongoDB. It p
   - Soft delete, timestamps, and relationship management
   - Database migration engine
   - Backup/restore engine and incremental change journal
-- **JPA-style annotations** for model definition and validation
+- **Own model annotations** (`@Collection`, `@Field`, `@Id`, `@InitValue`, relations, indexes) and Bean Validation
 - **Test utilities** for integration testing
 
 Documentation:
