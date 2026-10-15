@@ -1,5 +1,6 @@
 package test.atriasoft.archidata.hybernateValidator;
 
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 
 import org.atriasoft.archidata.exception.RESTErrorResponseException;
@@ -103,5 +104,26 @@ public class TestValidator {
 		Assertions.assertEquals("arg1", exception.inputError.get(3).argument);
 		Assertions.assertEquals("subElement.data", exception.inputError.get(3).path);
 		Assertions.assertEquals("size must be between 2 and 2147483647", exception.inputError.get(3).message);
+	}
+
+	@Test
+	public void malformedRequestBodyIsBadRequest() throws Exception {
+		final HttpResponse<String> response = api.request(TestValidator.ENDPOINT_NAME).post()
+				.queryParam("queryParametersName", "8").bodyAsJson("{not json").fetchString();
+		Assertions.assertEquals(400, response.statusCode(), response.body());
+	}
+
+	@Test
+	public void mismatchedRequestBodyIsBadRequest() throws Exception {
+		final HttpResponse<String> response = api.request(TestValidator.ENDPOINT_NAME).post()
+				.queryParam("queryParametersName", "8").bodyAsJson("{\"data\": [1, 2]}").fetchString();
+		Assertions.assertEquals(400, response.statusCode(), response.body());
+	}
+
+	@Test
+	public void jsonParsedByTheServerIsInternalError() throws Exception {
+		final HttpResponse<String> response = api.request(TestValidator.ENDPOINT_NAME, "serverParse").post()
+				.fetchString();
+		Assertions.assertEquals(500, response.statusCode(), response.body());
 	}
 }

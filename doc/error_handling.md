@@ -61,7 +61,7 @@ Exception to HTTP mapping
 | `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
 | any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception | `Catch system exception` |
-| `com.fasterxml.jackson.core.JacksonException` | `JacksonExceptionCatcher` | 400 for a body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`); 500 for any other Jackson failure | `Catch JSON Exception` |
+| `com.fasterxml.jackson.core.JacksonException` | `JacksonExceptionCatcher` | 400 for a request body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`); 500 for the same errors raised by a parsing done by the server itself (upstream response, stored document) and for any other Jackson failure | `Catch JSON Exception` |
 | any other `Exception` (including `DataAccessException`) | `ExceptionCatcher` | 500 | `Internal Server Error` |
 
 Every mapper logs the error with its `oid` (see below) at `ERROR` level, so a

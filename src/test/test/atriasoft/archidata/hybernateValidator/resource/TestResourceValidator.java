@@ -5,6 +5,8 @@ import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -30,6 +32,17 @@ public class TestResourceValidator {
 			final @QueryParam("queryParametersName") @Min(5) Long value,
 			final @Valid @ValidGroup(GroupCreate.class) ValidatorModel data) throws Exception {
 		return;
+	}
+
+	/**
+	 * Parses an invalid JSON document on the server side (as a stored document or an upstream response
+	 * would be): the error is the server's, not the caller's.
+	 */
+	@POST
+	@Path("serverParse")
+	@PermitAll
+	public void serverParse() throws Exception {
+		new ObjectMapper().readValue("{\"data\": [1, 2]}", ValidatorModel.class);
 	}
 
 }

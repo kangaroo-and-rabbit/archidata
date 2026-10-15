@@ -18,15 +18,20 @@ import jakarta.ws.rs.ext.ExceptionMapper;
  */
 public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JacksonExceptionCatcher.class);
+	/** Jersey class that runs the MessageBodyReader of an entity (also matches its inner classes). */
+	private static final String JERSEY_ENTITY_READER = "org.glassfish.jersey.message.internal.ReaderInterceptorExecutor";
+	/** Package of the Jersey client: an entity read there is an upstream response, not the request body. */
+	private static final String JERSEY_CLIENT_PACKAGE = "org.glassfish.jersey.client.";
 
 	/** Default constructor used by the JAX-RS provider framework. */
 	public JacksonExceptionCatcher() {}
 
 	/**
-	 * Maps a {@link JacksonException} to a JSON error response. A body that cannot be parsed
+	 * Maps a {@link JacksonException} to a JSON error response. A request body that cannot be parsed
 	 * ({@link StreamReadException}) or does not match the expected type ({@link MismatchedInputException},
-	 * {@link ValueInstantiationException}) is the caller's mistake and gives HTTP 400; any other
-	 * Jackson failure (serialization, bad class definition) is a server error and gives HTTP 500.
+	 * {@link ValueInstantiationException}) is the caller's mistake and gives HTTP 400. The same exceptions
+	 * raised by a parsing done by the server itself (an upstream response, a stored document) and any other
+	 * Jackson failure (serialization, bad class definition) are server errors and give HTTP 500.
 	 * @param exception the JacksonException that was thrown during JSON processing
 	 * @return a {@link Response} containing the error details as JSON with HTTP 400 or 500 status
 	 */
@@ -51,13 +56,29 @@ public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException
 	}
 
 	/**
-	 * Tells whether the exception comes from invalid input data sent by the caller.
+	 * Tells whether the exception comes from invalid input data sent by the caller: a parsing or input
+	 * mapping error raised while Jersey reads the request entity (a frame of its
+	 * {@code ReaderInterceptorExecutor}, and no frame of the Jersey client, whose {@code readEntity} uses the
+	 * same executor to read an upstream response).
 	 * @param exception the exception to classify
-	 * @return true for parsing and input mapping errors
+	 * @return true for parsing and input mapping errors of the request body
 	 */
 	private static boolean isCallerError(final JacksonException exception) {
-		return exception instanceof StreamReadException || exception instanceof MismatchedInputException
-				|| exception instanceof ValueInstantiationException;
+		if (!(exception instanceof StreamReadException || exception instanceof MismatchedInputException
+				|| exception instanceof ValueInstantiationException)) {
+			return false;
+		}
+		boolean readingEntity = false;
+		for (final StackTraceElement frame : exception.getStackTrace()) {
+			final String className = frame.getClassName();
+			if (className.startsWith(JERSEY_CLIENT_PACKAGE)) {
+				return false;
+			}
+			if (className.startsWith(JERSEY_ENTITY_READER)) {
+				readingEntity = true;
+			}
+		}
+		return readingEntity;
 	}
 
 }
