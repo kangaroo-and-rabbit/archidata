@@ -62,6 +62,8 @@ public class TestMassOperationGuard {
 		Assertions.assertThrows(DataAccessException.class,
 				() -> ConfigureDb.da.update(patch("x"), new Condition(Filters.empty()), onlyStatus));
 		Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.update(patch("x"), new Condition(new Document()), onlyStatus));
+		Assertions.assertThrows(DataAccessException.class,
 				() -> ConfigureDb.da.update(patch("x"), new Condition(), new Condition(), onlyStatus));
 		Assertions.assertThrows(DataAccessException.class,
 				() -> ConfigureDb.da.deleteHard(Item.class, new Condition()));

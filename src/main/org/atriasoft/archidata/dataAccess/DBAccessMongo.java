@@ -59,6 +59,7 @@ import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
@@ -1565,8 +1566,11 @@ public class DBAccessMongo implements Closeable {
 		final boolean allowMass = options.exist(AllowMassOperation.class);
 		final List<Bson> filters = new ArrayList<>();
 		for (final Condition elem : options.get(Condition.class)) {
-			if (!isEmptyFilter(elem.getFilter())) {
-				filters.add(elem.getFilter());
+			final Bson filter = elem.getFilter();
+			// A read keeps an empty filter (it matches everything, like no filter): only a write pays the
+			// encoding of the filter needed to tell whether it is empty.
+			if (throwIfEmpty ? !isEmptyFilter(filter) : filter != null) {
+				filters.add(filter);
 			}
 		}
 		if (filters.isEmpty()) {
@@ -1598,11 +1602,23 @@ public class DBAccessMongo implements Closeable {
 	/**
 	 * Tells whether a filter matches every document: {@code null} or an empty document.
 	 *
+	 * <p>A {@link Document} or a {@link BsonDocument} (what {@code Filters.empty()} returns) is checked
+	 * directly; any other filter is encoded once to see its content.
+	 *
 	 * @param filter the filter
 	 * @return {@code true} if the filter does not restrict anything
 	 */
 	private static boolean isEmptyFilter(final Bson filter) {
-		return filter == null || BsonCodecs.toBsonDocument(filter).isEmpty();
+		if (filter == null) {
+			return true;
+		}
+		if (filter instanceof final Document document) {
+			return document.isEmpty();
+		}
+		if (filter instanceof final BsonDocument document) {
+			return document.isEmpty();
+		}
+		return BsonCodecs.toBsonDocument(filter).isEmpty();
 	}
 
 	/**
