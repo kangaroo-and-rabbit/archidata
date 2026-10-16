@@ -287,6 +287,14 @@ sur un champ en lecture seule (la requête passe maintenant, la valeur étant ig
 d'un constructeur (records, `@JsonCreator`) ne sont pas filtrées. Pour recevoir une valeur du client,
 utiliser un DTO d'entrée sans `@ApiReadOnly`.
 
+### `@InitValue` passe par le codec du champ (D-18)
+
+La valeur `@InitValue` écrite à l'insertion passe maintenant par le codec du champ, comme une valeur
+fournie. Sur un champ `@DataEncrypt`, elle était stockée en clair, et la lecture suivante échouait
+(`Failed to decrypt`) ; elle est désormais chiffrée. Pour les autres types, la forme BSON est celle
+d'une valeur normale du même champ. Les documents déjà écrits en clair par une `@InitValue` sur un
+champ `@DataEncrypt` restent illisibles : les réécrire avec un `updateById` nommant le champ.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

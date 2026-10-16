@@ -1339,7 +1339,9 @@ public class DBAccessMongo implements Closeable {
 						if (!type.isPrimitive()) {
 							if (prop.getValue(data) == null) {
 								if (currentInsertValue != null) {
-									docSet.append(fieldName.inTable(), currentInsertValue);
+									// The @InitValue goes through the codec like any value: same BSON form, and
+									// encrypted on a @DataEncrypt field.
+									docSet.append(fieldName.inTable(), codec.convertToMongo(currentInsertValue));
 								}
 								break;
 							}

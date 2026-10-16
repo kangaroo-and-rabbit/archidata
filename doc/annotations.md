@@ -129,7 +129,8 @@ public String name;
 
 `org.atriasoft.archidata.annotation.InitValue`, on a field (or a record component, a getter or a
 setter). When the field is `null` at insert time, `value` is converted to the field type (number, boolean, enum, string,
-date; surrounding single quotes removed) and stored. On an update, a `null` field carrying
+date; surrounding single quotes removed) and stored through the field codec, like any value (so it is
+encrypted on a `@DataEncrypt` field). On an update, a `null` field carrying
 `@InitValue` is left unchanged instead of being removed. For a `@DataDeleted` field it replaces the
 implicit `false`.
 
