@@ -223,6 +223,29 @@ Nouvelle méthode `header(key, value)` pour ajouter un en-tête à la requête. 
 
 ---
 
+## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)
+
+Ce lot corrige les constats de l'audit de sécurité de la couche données (D-xx) et le mass
+assignment à l'insertion (W-08). Plusieurs corrections changent un comportement observable.
+
+### `updateById` sans `FilterValue` ne touche plus `@DataNotRead` ni `@DataEncrypt` (D-01)
+
+Une mise à jour complète (`updateById(data, id)` sans `FilterValue`) écrivait tous les champs, y
+compris `@DataNotRead` et `@DataEncrypt`. Comme une lecture standard laisse ces champs à `null` (non
+projetés, ou non déchiffrés quand `DATA_DECRYPT_ENABLE` est désactivé), un « lire puis mettre à jour »
+les effaçait (`$unset`) ; un corps JSON client pouvait aussi les écraser.
+
+Désormais `FilterValue.getEditableFieldsNames(...)` (liste par défaut de `updateById`) exclut ces
+champs protégés : ils ne sont écrits que si un `FilterValue` les nomme
+(`new FilterValue("passwordHash")`). `FilterValue.getAllFieldsNames(...)` les contient toujours.
+`ManyToManyTools.updateRemoteLinks` ne réécrit plus que le champ du lien.
+
+**Comment migrer** : chercher les `updateById` sans `FilterValue` qui doivent écrire un champ
+`@DataNotRead` ou `@DataEncrypt` (changement de mot de passe, de secret, de valeur chiffrée) et
+nommer ce champ dans un `FilterValue`.
+
+---
+
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)
 
 ### Ce qui change

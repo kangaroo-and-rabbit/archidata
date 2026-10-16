@@ -9,6 +9,7 @@ import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.exception.DataAccessException;
 
 /**
@@ -147,13 +148,16 @@ public class ManyToManyTools {
 		// Step 3: force re-update by clearing and re-setting
 		final PropertyDescriptor fieldProp = fieldDesc.getProperty();
 		final PropertyDescriptor pkProp = pkDesc.getProperty();
+		// Only the link field is rewritten: a full update would erase the fields left null by the read
+		// (@DataNotRead, @DataEncrypt without decryption).
+		final FilterValue onlyLinkField = new FilterValue(fieldDesc.getDbFieldName());
 		for (final T elem : data) {
 			final Object dataTemp = fieldProp.getValue(elem);
 			final Object primaryKey = pkProp.getValue(elem);
 			fieldProp.setValue(elem, null);
-			DataAccess.updateById(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey, onlyLinkField);
 			fieldProp.setValue(elem, dataTemp);
-			DataAccess.updateById(elem, primaryKey);
+			DataAccess.updateById(elem, primaryKey, onlyLinkField);
 		}
 	}
 }

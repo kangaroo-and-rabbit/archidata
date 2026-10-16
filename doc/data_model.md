@@ -170,7 +170,7 @@ public Boolean deleted = null;
 
 ### @DataNotRead
 
-Excludes a field from default read queries. The field is still stored in the database but not returned unless `ReadAllColumn` is used:
+Excludes a field from default read queries. The field is still stored in the database but not returned unless `ReadAllColumn` is used. A full update (`updateById` without `FilterValue`) never writes it, nor a `@DataEncrypt` field: name it in a `FilterValue` to update it:
 
 ```java
 @DataNotRead

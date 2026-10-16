@@ -201,7 +201,7 @@ public class DataAccess {
 	 * User updateData = new User();
 	 * updateData.email = "newemail@example.com";
 	 *
-	 * // Update all fields
+	 * // Update all editable fields (never the @DataNotRead / @DataEncrypt ones)
 	 * DataAccess.updateById(updateData, userId);
 	 *
 	 * // Update only specific fields

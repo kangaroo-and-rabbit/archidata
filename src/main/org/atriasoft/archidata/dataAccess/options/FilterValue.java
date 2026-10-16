@@ -143,7 +143,12 @@ public class FilterValue extends QueryOption {
 	}
 
 	/**
-	 * Creates a FilterValue containing only the editable (non-read-only) field names of the given class.
+	 * Creates a FilterValue containing only the editable field names of the given class.
+	 *
+	 * <p>Excluded: the system-managed fields (primary key, timestamps, deleted marker) and the protected
+	 * fields ({@code @DataNotRead}, {@code @DataEncrypt}). This is the default field list of
+	 * {@code updateById} without {@code FilterValue}: a protected field is written only when a
+	 * {@code FilterValue} names it.
 	 *
 	 * @param clazz the entity class to inspect
 	 * @return a FilterValue with the editable field names

@@ -25,6 +25,9 @@ import java.lang.annotation.Target;
  * {@code DATA_DECRYPT_ENABLE} configuration flag; otherwise the field is left unset on read while
  * the stored value stays encrypted.</p>
  *
+ * <p>A full update ({@code updateById} without {@code FilterValue}) never writes this field: name it
+ * in a {@code FilterValue} to update it.</p>
+ *
  * <p>Scope: currently supported on fields whose database representation is a {@code String}.</p>
  */
 @Target(ElementType.FIELD)

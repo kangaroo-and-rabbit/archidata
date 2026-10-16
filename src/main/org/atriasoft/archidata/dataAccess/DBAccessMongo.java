@@ -542,9 +542,11 @@ public class DBAccessMongo implements Closeable {
 	 * Updates an entity identified by its ID with the provided data.
 	 *
 	 * <p>
-	 * <strong>Field filtering behavior:</strong> By default, ALL fields in the data object will be updated.
-	 * To update only specific fields, use the {@link FilterValue} option to explicitly specify which fields
-	 * should be updated.
+	 * <strong>Field filtering behavior:</strong> By default, every editable field of the data object is
+	 * updated ({@link FilterValue#getEditableFieldsNames(Class)}), a {@code null} value included. The protected
+	 * fields ({@code @DataNotRead}, {@code @DataEncrypt}) are never part of this default: a standard read leaves
+	 * them {@code null}, so a read-then-update would erase them. They are written only when a {@link FilterValue}
+	 * names them explicitly. To update only specific fields, use the {@link FilterValue} option.
 	 * </p>
 	 *
 	 * <p>
@@ -575,7 +577,7 @@ public class DBAccessMongo implements Closeable {
 	 */
 	public <T, ID_TYPE> long updateById(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
 		final QueryOptions options = new QueryOptions(option);
-		// Ensure FilterValue is present - if not provided, update ALL fields
+		// Ensure FilterValue is present - if not provided, update the editable fields (protected ones excluded)
 		if (!options.exist(FilterValue.class)) {
 			options.add(FilterValue.getEditableFieldsNames(data.getClass()));
 		}

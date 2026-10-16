@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.Id;
+import org.atriasoft.archidata.dataAccess.options.FilterValue;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -81,7 +82,12 @@ class TestDataNotRead {
 		final Model update = new Model();
 		update.visible = "visible_updated";
 		update.hidden = "hidden_updated";
+		// A full update never writes a @DataNotRead field: it must be named in a FilterValue.
 		ConfigureDb.da.updateById(update, idOfTheObject);
+		final Model afterFullUpdate = ConfigureDb.da.getById(Model.class, idOfTheObject, new ReadAllColumn());
+		Assertions.assertEquals("visible_updated", afterFullUpdate.visible);
+		Assertions.assertEquals("hidden_value", afterFullUpdate.hidden);
+		ConfigureDb.da.updateById(update, idOfTheObject, new FilterValue("visible", "hidden"));
 		// Default read should not return the hidden field
 		final Model retrieved = ConfigureDb.da.getById(Model.class, idOfTheObject);
 		Assertions.assertNotNull(retrieved);

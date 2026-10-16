@@ -149,8 +149,10 @@ generators (the generated type accepts `null`).
 ### @DataNotRead
 
 `org.atriasoft.archidata.annotation.DataNotRead`, on a field. No attribute. The field is written
-on insert and update like any other, but excluded from default reads; the `ReadAllColumn` query
-option returns it. Used for `createdAt`, `updatedAt`, `deleted`.
+on insert like any other, but excluded from default reads; the `ReadAllColumn` query
+option returns it. Used for `createdAt`, `updatedAt`, `deleted`. A full update (`updateById` without
+`FilterValue`) never writes it: name it in a `FilterValue` to update it. `@DataNotRead` does not imply
+`@ApiReadOnly`.
 
 ```java
 @DataNotRead
@@ -319,7 +321,8 @@ On a `String` field.
 | `decryptKey` | `""` | Key used to decrypt; a key without private part gives an encrypt-only field. |
 
 Decryption on read is disabled unless `DATA_DECRYPT_ENABLE=true`; otherwise the field is left
-`null`.
+`null`. As for `@DataNotRead`, a full update (`updateById` without `FilterValue`) never writes it:
+name it in a `FilterValue` to update it.
 
 ```java
 @DataEncrypt(encryptKey = "org42-pub", decryptKey = "org42-priv")

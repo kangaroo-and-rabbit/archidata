@@ -878,6 +878,30 @@ public class AnnotationTools {
 	}
 
 	/**
+	 * Checks whether a field is annotated with {@link DataEncrypt}.
+	 *
+	 * @param element the field to inspect
+	 * @return {@code true} if the field is encrypted in the database
+	 */
+	public static boolean isDataEncrypt(final Field element) {
+		return element.getDeclaredAnnotationsByType(DataEncrypt.class).length != 0;
+	}
+
+	/**
+	 * Checks whether a field holds protected data: {@code @DataNotRead} or {@code @DataEncrypt}.
+	 *
+	 * <p>A standard read leaves such a field {@code null} (not projected, or not decrypted), so a full update
+	 * built from a read entity would erase it: a full update ({@code updateById} without {@code FilterValue})
+	 * never writes it.
+	 *
+	 * @param element the field to inspect
+	 * @return {@code true} if the field is {@code @DataNotRead} or {@code @DataEncrypt}
+	 */
+	public static boolean isProtectedField(final Field element) {
+		return isDefaultNotRead(element) || isDataEncrypt(element);
+	}
+
+	/**
 	 * Checks whether a field is annotated with {@code @ApiReadOnly}.
 	 *
 	 * @param element the field to inspect
@@ -993,16 +1017,20 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Returns DB field names for the class, optionally filtering out generic (system-managed) fields.
+	 * Returns DB field names for the class, optionally filtering out the fields a full update must not touch.
+	 *
+	 * <p>With {@code full == false} the generic (system-managed) fields and the protected fields
+	 * ({@code @DataNotRead}, {@code @DataEncrypt}, see {@link #isProtectedField(Field)}) are excluded: they
+	 * are only written by an update that names them explicitly in a {@code FilterValue}.
 	 *
 	 * @param clazz the class to inspect
-	 * @param full if {@code true}, include all fields; if {@code false}, exclude generic fields
+	 * @param full if {@code true}, include all fields; if {@code false}, exclude generic and protected fields
 	 * @return a list of field names
 	 */
 	public static List<String> getFieldsNamesFilter(final Class<?> clazz, final boolean full) {
 		final List<String> out = new ArrayList<>();
 		for (final Field field : getAllInstanceFields(clazz)) {
-			if (!full && AnnotationTools.isGenericField(field)) {
+			if (!full && (AnnotationTools.isGenericField(field) || AnnotationTools.isProtectedField(field))) {
 				continue;
 			}
 			out.add(AnnotationTools.getFieldNameRaw(field));

@@ -97,6 +97,18 @@ Update all editable fields by ID:
 da.updateById(updatedArticle, articleId);
 ```
 
+Without `FilterValue`, `updateById` writes every editable field (`FilterValue.getEditableFieldsNames`),
+and a `null` value removes the field (`$unset`, unless it has an `@InitValue`). The editable fields
+exclude the system-managed ones (primary key, timestamps, deleted marker), the `@ApiReadOnly` ones
+(see [ForceReadOnlyField](#forcereadonlyfield)) and the **protected** ones: `@DataNotRead` and
+`@DataEncrypt`. A standard read leaves a protected field `null` (not projected, or not decrypted), so a
+read-then-update would erase it; a full update therefore never touches it. To write a protected field,
+name it in a `FilterValue`:
+
+```java
+da.updateById(user, userId, new FilterValue("passwordHash"));
+```
+
 Update documents matching a condition:
 
 ```java
