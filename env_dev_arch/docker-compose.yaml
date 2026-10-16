@@ -8,7 +8,8 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: base_db_password
     ports:
-      - 27017:27017
+      # Bound to the loopback only: the root DB must not be reachable from the network
+      - 127.0.0.1:27017:27017
     volumes:
       - ./data/mongo/keys/:/data/keys/
     tmpfs:
@@ -34,9 +35,12 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: base_db_password
       ME_CONFIG_MONGODB_URL: mongodb://root:base_db_password@mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
+      # Dev credentials of the web UI (http://127.0.0.1:4077): admin / dev_ui_password, change them if shared
+      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: dev_ui_password
     ports:
-      - "4077:8081"
+      - "127.0.0.1:4077:8081"
     depends_on:
       mongodb:
         condition: service_healthy
