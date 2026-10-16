@@ -482,7 +482,9 @@ with `TestAuthenticationFilter.APPLICATION_NAME`.
 `https`, the host resolved once and every address checked by `SsrfGuard.isForbidden` (private,
 loopback, link-local, CGNAT, multicast, ULA, NAT64, IPv4-mapped…), the connection opened to that
 validated address (no DNS rebinding), no automatic redirection (each `Location` is checked again, 3 at
-most), timeouts and a size limit. `ProxyResource` answers raster images with their type and anything
+most), timeouts (5 s to connect, 30 s per read, 120 s in all) and a size limit
+(`DataTools.setMaxRemoteDataSize`, 50 MiB by default, checked on the `Content-Length` before reading,
+then while reading). `ProxyResource` answers raster images with their type and anything
 else as `application/octet-stream`, with `X-Content-Type-Options: nosniff`, and no longer sends
 `Access-Control-Allow-Origin: *`. Any server-side fetch of a user-supplied URL in an application
 should use `SafeHttpFetcher` too (see [tools](tools.md)).

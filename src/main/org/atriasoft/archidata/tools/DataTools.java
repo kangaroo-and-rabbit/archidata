@@ -434,10 +434,34 @@ public class DataTools {
 	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp", MIME_SVG,
 			"audio/x-matroska", "video/x-matroska", "video/webm" };
 
-	/** Largest body downloaded by {@link #uploadDataFromUri(String)} and {@link #uploadCoverFromUri}. */
-	private static final long MAX_REMOTE_DATA_SIZE = 50L * 1024 * 1024;
+	/** Default largest body downloaded from a remote URL (50 MiB). */
+	public static final long DEFAULT_MAX_REMOTE_DATA_SIZE = 50L * 1024 * 1024;
+	/** Largest body downloaded by {@link #uploadDataFromUri(String)}, {@link #uploadCoverFromUri} and the proxy. */
+	private static volatile long maxRemoteDataSize = DEFAULT_MAX_REMOTE_DATA_SIZE;
 	/** Client used to download the remote data: pinned validated address, no automatic redirection, timeouts. */
 	private static final SafeHttpFetcher REMOTE_FETCHER = new SafeHttpFetcher();
+
+	/**
+	 * Returns the largest body accepted from a remote URL ({@link #uploadDataFromUri(String)},
+	 * {@link #uploadCoverFromUri}, {@code ProxyResource}).
+	 * @return The limit in bytes.
+	 */
+	public static long getMaxRemoteDataSize() {
+		return maxRemoteDataSize;
+	}
+
+	/**
+	 * Sets the largest body accepted from a remote URL. A larger answer is refused with HTTP 413 before it is
+	 * read whole (its {@code Content-Length} is checked first).
+	 * @param maxSize The limit in bytes, strictly positive.
+	 * @throws IllegalArgumentException If the limit is not strictly positive.
+	 */
+	public static void setMaxRemoteDataSize(final long maxSize) {
+		if (maxSize <= 0) {
+			throw new IllegalArgumentException("The remote data size limit must be positive: " + maxSize);
+		}
+		maxRemoteDataSize = maxSize;
+	}
 
 	/**
 	 * Downloads a remote data with the SSRF-safe client.
@@ -449,7 +473,7 @@ public class DataTools {
 	private static byte[] downloadRemoteData(final String url) throws InputException, FailException {
 		final SafeHttpFetcher.Result response;
 		try {
-			response = REMOTE_FETCHER.get(url, MAX_REMOTE_DATA_SIZE);
+			response = REMOTE_FETCHER.get(url, maxRemoteDataSize);
 		} catch (final IOException ex) {
 			throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media", ex);
 		}

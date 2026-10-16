@@ -151,4 +151,20 @@ class TestDataTools {
 		}
 		Assertions.assertFalse(DataTools.isActiveMimeType(null));
 	}
+
+	// ===== remote data size limit (W-04) =====
+
+	@Test
+	void testMaxRemoteDataSize() {
+		Assertions.assertEquals(DataTools.DEFAULT_MAX_REMOTE_DATA_SIZE, DataTools.getMaxRemoteDataSize());
+		try {
+			DataTools.setMaxRemoteDataSize(1024);
+			Assertions.assertEquals(1024, DataTools.getMaxRemoteDataSize());
+			Assertions.assertThrows(IllegalArgumentException.class, () -> DataTools.setMaxRemoteDataSize(0));
+			Assertions.assertThrows(IllegalArgumentException.class, () -> DataTools.setMaxRemoteDataSize(-1));
+			Assertions.assertEquals(1024, DataTools.getMaxRemoteDataSize());
+		} finally {
+			DataTools.setMaxRemoteDataSize(DataTools.DEFAULT_MAX_REMOTE_DATA_SIZE);
+		}
+	}
 }

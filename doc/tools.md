@@ -233,7 +233,10 @@ to its permanent path once its `Data` record is inserted.
 - Upload entry points: `uploadData(InputStream, FormDataContentDisposition)`,
   `uploadDataFromUri(String url)`, `uploadCover(...)`, `uploadCoverFromUri(...)`.
   `uploadDataFromUri` and `uploadCoverFromUri` fetch the URL with
-  `SafeHttpFetcher` (see below).
+  `SafeHttpFetcher` (see below); the body is bounded by
+  `setMaxRemoteDataSize(long)` / `getMaxRemoteDataSize()` (default
+  `DEFAULT_MAX_REMOTE_DATA_SIZE`, 50 MiB; a larger answer gives HTTP 413), which
+  also bounds `ProxyResource`.
 - Type detection: `getMimeType(byte[])`, `getMimeTypeFromFile(String)`,
   `bytesToHex`, `multipartCorrection`, and the constants
   `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,

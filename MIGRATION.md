@@ -270,6 +270,12 @@ filtre du serveur de test. Vérifié : les jetons de karso (`users/get_token`, `
 `application/get_token`, qui retirent `-dev`) et les jetons de test d'archidata, karso, karideo et
 karusic sont compatibles.
 
+### Taille des téléchargements distants bornée (W-04)
+
+Le corps téléchargé par `uploadDataFromUri`, `uploadCoverFromUri` et `ProxyResource` est lu en flux
+et borné par `DataTools.setMaxRemoteDataSize(long)` (50 Mio par défaut) : au-delà, HTTP 413. Avant,
+seule une taille d'exactement 50 Mio était refusée, et le corps entier était chargé en mémoire.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

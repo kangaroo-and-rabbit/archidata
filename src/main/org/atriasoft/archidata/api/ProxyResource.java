@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.exception.InputException;
+import org.atriasoft.archidata.tools.DataTools;
 import org.atriasoft.archidata.tools.SafeHttpFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,6 @@ import jakarta.ws.rs.core.Response.Status;
 @Path("/proxy")
 public class ProxyResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyResource.class);
-	/** Largest body proxied, in bytes. */
-	private static final long MAX_PROXY_SIZE = 20L * 1024 * 1024;
 	private static final SafeHttpFetcher FETCHER = new SafeHttpFetcher();
 
 	/** Default constructor used by the JAX-RS resource framework. */
@@ -48,7 +47,7 @@ public class ProxyResource {
 		final SafeHttpFetcher.Result response;
 		try {
 			// Resolves the host once, connects to the validated address and checks every redirection
-			response = FETCHER.get(url, MAX_PROXY_SIZE);
+			response = FETCHER.get(url, DataTools.getMaxRemoteDataSize());
 		} catch (final InputException e) {
 			return Response.status(Status.FORBIDDEN).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
 		} catch (final FailException e) {
