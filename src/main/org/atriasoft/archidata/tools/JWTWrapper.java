@@ -1,10 +1,11 @@
 package org.atriasoft.archidata.tools;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.atriasoft.archidata.filter.AuthenticationFilter;
@@ -45,8 +47,23 @@ public class JWTWrapper {
 
 	static final Logger LOGGER = LoggerFactory.getLogger(JWTWrapper.class);
 
-	private static RSAKey rsaJWK = null;
-	private static RSAKey rsaPublicJWK = null;
+	/** Written by the key refresh thread, read by every request thread. */
+	private static volatile RSAKey rsaJWK = null;
+	private static volatile RSAKey rsaPublicJWK = null;
+	/** Connection timeout when fetching the SSO public key. */
+	public static final int SSO_CONNECT_TIMEOUT_MS = 5_000;
+	/** Read timeout when fetching the SSO public key. */
+	public static final int SSO_READ_TIMEOUT_MS = 10_000;
+	/** Smallest RSA key accepted from the SSO, in bits. */
+	public static final int MIN_RSA_KEY_SIZE = 2048;
+	/** Largest answer accepted from the SSO public key endpoint. */
+	private static final int MAX_PUBLIC_KEY_ANSWER = 64 * 1024;
+	/** Shortest delay between two refreshes asked by an unknown token signature. */
+	public static final Duration MIN_REFRESH_INTERVAL = Duration.ofSeconds(60);
+	/** When the last refresh was asked by {@link #validateToken} (nanoTime), {@code Long.MIN_VALUE} when never. */
+	private static final AtomicLong LAST_REFRESH_REQUEST = new AtomicLong(Long.MIN_VALUE);
+	/** Accept an {@code http://} SSO address that is not a loopback one. */
+	private static volatile boolean allowInsecureSsoAddress = false;
 	/**
 	 * Optional hook invoked when {@link #validateToken} detects an invalid signature.
 	 * Set by {@code UpdateJwtPublicKey} to trigger an immediate re-fetch of the SSO public key
@@ -60,9 +77,33 @@ public class JWTWrapper {
 	 */
 	public static void setRefreshTrigger(final Runnable trigger) {
 		REFRESH_TRIGGER.set(trigger);
+		LAST_REFRESH_REQUEST.set(Long.MIN_VALUE);
 	}
 
+	/**
+	 * Allows an {@code http://} SSO address that is not a loopback one. By default
+	 * {@link #initLocalTokenRemote(String, String)} only accepts {@code https://}, or {@code http://} to
+	 * {@code localhost} / a loopback address: over plain HTTP, anyone on the path can read {@code SSO_TOKEN} and
+	 * replace the public key with their own (and then forge any token).
+	 * @param allow {@code true} to accept plain HTTP (a private network you trust, for example).
+	 */
+	public static void setAllowInsecureSsoAddress(final boolean allow) {
+		allowInsecureSsoAddress = allow;
+	}
+
+	/**
+	 * Asks the refresh thread to fetch the public key now, at most once per {@link #MIN_REFRESH_INTERVAL}: an
+	 * anonymous client sending tokens with a bad signature must not make the server hammer the SSO.
+	 */
 	private static void requestPublicKeyRefresh() {
+		final long now = System.nanoTime();
+		final long last = LAST_REFRESH_REQUEST.get();
+		if (last != Long.MIN_VALUE && now - last < MIN_REFRESH_INTERVAL.toNanos()) {
+			return;
+		}
+		if (!LAST_REFRESH_REQUEST.compareAndSet(last, now)) {
+			return;
+		}
 		final Runnable trigger = REFRESH_TRIGGER.get();
 		if (trigger != null) {
 			try {
@@ -91,47 +132,108 @@ public class JWTWrapper {
 	}
 
 	/**
+	 * Tells whether the SSO public key may be fetched from this URL: {@code https}, or {@code http} to a
+	 * loopback host, or any {@code http} when {@link #setAllowInsecureSsoAddress(boolean)} allows it.
+	 * @param uri The URL of the public key.
+	 * @return {@code true} when the URL may be used.
+	 */
+	static boolean isAcceptableSsoUri(final URI uri) {
+		final String scheme = uri.getScheme();
+		if ("https".equalsIgnoreCase(scheme)) {
+			return true;
+		}
+		if (!"http".equalsIgnoreCase(scheme)) {
+			return false;
+		}
+		if (allowInsecureSsoAddress) {
+			return true;
+		}
+		final String host = uri.getHost();
+		if (host == null) {
+			return false;
+		}
+		final String bare = host.startsWith("[") ? host.substring(1, host.length() - 1) : host;
+		return "localhost".equalsIgnoreCase(bare) || bare.startsWith("127.") || "::1".equals(bare)
+				|| "0:0:0:0:0:0:0:1".equals(bare);
+	}
+
+	/**
 	 * Initializes the JWT public key by fetching it from a remote SSO server.
+	 * <p>
+	 * The address must be {@code https://} (or {@code http://} to a loopback host, see
+	 * {@link #setAllowInsecureSsoAddress(boolean)}); the connection and the read time out
+	 * ({@value #SSO_CONNECT_TIMEOUT_MS} ms, {@value #SSO_READ_TIMEOUT_MS} ms); redirections are not followed;
+	 * the answer is bounded and the key must be an RSA key of at least {@value #MIN_RSA_KEY_SIZE} bits.
+	 * {@code SSO_TOKEN} is sent in the {@code ApiKey} header and never logged.
+	 * </p>
 	 * @param ssoUri The base URI of the SSO service.
 	 * @param application The application name sent as User-Agent.
-	 * @throws IOException If the HTTP request fails.
+	 * @throws IOException If the address is refused, the HTTP request fails or the key is too weak.
 	 * @throws ParseException If the public key cannot be parsed.
 	 */
 	public static void initLocalTokenRemote(final String ssoUri, final String application)
 			throws IOException, ParseException {
-		// check Token:
-		final URL obj = new URL(ssoUri + "public_key");
-		// LOGGER.debug("Request token from: {}", obj);
-		final HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-		con.setRequestMethod("GET");
-		con.setRequestProperty("User-Agent", application);
-		con.setRequestProperty("Cache-Control", "no-cache");
-		con.setRequestProperty("Content-Type", "application/json");
-		con.setRequestProperty("Accept", "application/json");
-		final String ssoToken = ConfigBaseVariable.ssoToken();
-		if (ssoToken != null) {
-			con.setRequestProperty(AuthenticationFilter.APIKEY, ssoToken);
+		final URI uri;
+		try {
+			uri = new URI(ssoUri + "public_key");
+		} catch (final URISyntaxException ex) {
+			throw new IOException("Invalid SSO address", ex);
 		}
-		final int responseCode = con.getResponseCode();
-
-		// LOGGER.debug("GET Response Code :: {}", responseCode);
-		if (responseCode == HttpURLConnection.HTTP_OK) { // success
-			final BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-			String inputLine;
-			final StringBuilder response = new StringBuilder();
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
+		if (!isAcceptableSsoUri(uri)) {
+			throw new IOException("The SSO address must use https (http is only accepted for a loopback host): "
+					+ uri.getScheme() + "://" + uri.getHost());
+		}
+		final HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
+		try {
+			con.setConnectTimeout(SSO_CONNECT_TIMEOUT_MS);
+			con.setReadTimeout(SSO_READ_TIMEOUT_MS);
+			// A redirection would send SSO_TOKEN to another host: never follow it.
+			con.setInstanceFollowRedirects(false);
+			con.setRequestMethod("GET");
+			con.setRequestProperty("User-Agent", application);
+			con.setRequestProperty("Cache-Control", "no-cache");
+			con.setRequestProperty("Content-Type", "application/json");
+			con.setRequestProperty("Accept", "application/json");
+			final String ssoToken = ConfigBaseVariable.ssoToken();
+			if (ssoToken != null) {
+				con.setRequestProperty(AuthenticationFilter.APIKEY, ssoToken);
 			}
-			in.close();
-			// print result
-			// Do not commit security fail: LOGGER.debug(response.toString());
+			final int responseCode = con.getResponseCode();
+			if (responseCode != HttpURLConnection.HTTP_OK) {
+				LOGGER.debug("GET JWT validator token not worked response code {} from {}://{}", responseCode,
+						uri.getScheme(), uri.getHost());
+				return;
+			}
+			final byte[] body;
+			try (InputStream in = con.getInputStream()) {
+				body = in.readNBytes(MAX_PUBLIC_KEY_ANSWER + 1);
+			}
+			if (body.length > MAX_PUBLIC_KEY_ANSWER) {
+				throw new IOException("SSO public key answer is too large");
+			}
+			// Do not commit security fail: never log the answer nor the token.
 			final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
-			final PublicKey values = mapper.readValue(response.toString(), PublicKey.class);
-			rsaPublicJWK = RSAKey.parse(values.key);
-			return;
+			final PublicKey values = mapper.readValue(new String(body, StandardCharsets.UTF_8), PublicKey.class);
+			final RSAKey key = RSAKey.parse(values.key);
+			if (key.size() < MIN_RSA_KEY_SIZE) {
+				throw new IOException("SSO public key is too weak: " + key.size() + " bits");
+			}
+			final RSAKey previous = rsaPublicJWK;
+			rsaPublicJWK = key;
+			if (previous == null || !previous.equals(key)) {
+				LOGGER.info("JWT public key loaded from the SSO, thumbprint {}", thumbprintOf(key));
+			}
+		} finally {
+			con.disconnect();
 		}
-		LOGGER.debug("GET JWT validator token not worked response code {} from {} ", responseCode, obj);
+	}
+
+	private static String thumbprintOf(final RSAKey key) {
+		try {
+			return key.computeThumbprint().toString();
+		} catch (final JOSEException ex) {
+			return "?";
+		}
 	}
 
 	/**
@@ -315,26 +417,27 @@ public class JWTWrapper {
 				LOGGER.error("FAIL to parse signing");
 				return null;
 			}
-			if (rsaPublicJWK == null) {
+			final RSAKey publicKey = rsaPublicJWK;
+			if (publicKey == null) {
 				LOGGER.error("JWT public key is not present !!!");
 				requestPublicKeyRefresh();
 				return null;
 			}
-			final JWSVerifier verifier = new RSASSAVerifier(rsaPublicJWK);
+			final JWSVerifier verifier = new RSASSAVerifier(publicKey);
 			if (!signedJWT.verify(verifier)) {
-				LOGGER.error("JWT token is NOT verified");
+				LOGGER.warn("JWT token is NOT verified");
 				// SSO may have rotated its key (typically after a restart). Ask the refresh
 				// thread to fetch the new public key now instead of waiting for the next tick.
 				requestPublicKeyRefresh();
 				return null;
 			}
 			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
-				LOGGER.error("JWT token is expired now = {} with={}", new Date(),
+				LOGGER.warn("JWT token is expired now = {} with={}", new Date(),
 						signedJWT.getJWTClaimsSet().getExpirationTime());
 				return null;
 			}
 			if (!issuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {
-				LOGGER.error("JWT issuer is wrong: '{}' != '{}'", issuer, signedJWT.getJWTClaimsSet().getIssuer());
+				LOGGER.warn("JWT issuer is wrong: '{}' != '{}'", issuer, signedJWT.getJWTClaimsSet().getIssuer());
 				return null;
 			}
 			if (application != null && !isForApplication(signedJWT.getJWTClaimsSet(), application)) {
@@ -345,7 +448,8 @@ public class JWTWrapper {
 			// LOGGER.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 			return signedJWT.getJWTClaimsSet();
 		} catch (final JOSEException | ParseException e) {
-			LOGGER.error("Failed to validate JWT token: {}", e.getMessage(), e);
+			// A malformed token is the caller's problem: no stack trace, which would flood the log.
+			LOGGER.warn("Failed to validate JWT token: {}", e.getMessage());
 		}
 		return null;
 	}

@@ -45,8 +45,8 @@ as text.
 | `DB_DATABASE` | `setBdDatabase` | `getDBName()` | none (`null`) | database name |
 | `DB_KEEP_CONNECTED` | `setDbKeepConnected` | `getDBKeepConnected()` | `false` | keep the connection open between operations (see [Connection management](connectionManagement.md)) |
 | `API_ADDRESS` | `setApiAddress` | `getLocalAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
-| `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`) |
-| `SSO_TOKEN` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key |
+| `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `JWTWrapper.setAllowInsecureSsoAddress(true)` is called |
+| `SSO_TOKEN` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
 | `TEST_MODE` | `setTestMode` | `getTestMode()` | `false` | test flag, exposed by the health check of the applications |
 | `EMAIL_FROM`, `EMAIL_LOGIN`, `EMAIL_PASSWORD` | `setEMailFrom`, `setEMailLogin`, `setEMailPassword` | `getEMailConfig()` | none | outgoing mail account. The getter returns a record `EMailConfig(from, login, password)`, or `null` unless **all three** are set |
 | `THUMBNAIL_FORMAT` | `setThumbnailFormat` | `getThumbnailFormat()` | `png` | format of the generated thumbnails |

@@ -342,6 +342,19 @@ validation, `WebApplicationException` 4xx) ne changent pas.
 **Qui est impacté** : un client ou un test qui lisait le texte d'une erreur 500, d'une erreur de corps
 JSON ou d'un 401. Pour un message destiné au client, lever une `FailException`.
 
+### Clé publique SSO : https obligatoire, délais, rechargement limité (W-14, W-15)
+
+`JWTWrapper.initLocalTokenRemote` (donc `UpdateJwtPublicKey` avec `SSO_ADDRESS`) refuse une adresse
+`http://` sauf vers `localhost` / une adresse de bouclage, ou après
+`JWTWrapper.setAllowInsecureSsoAddress(true)`. Délais de 5 s (connexion) et 10 s (lecture), réponse
+bornée à 64 Kio, redirections non suivies, clé RSA de moins de 2048 bits refusée. Un jeton à signature
+inconnue ne déclenche plus qu'un rechargement de la clé par minute au plus. Les jetons invalides sont
+journalisés en WARN, sans trace de pile.
+
+**Qui est impacté** : un déploiement dont `SSO_ADDRESS` est en `http://` vers un autre hôte (par
+exemple `http://karso:80/...` dans un réseau Docker) : passer en `https://` ou appeler
+`JWTWrapper.setAllowInsecureSsoAddress(true)` au démarrage, avant de lancer `UpdateJwtPublicKey`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

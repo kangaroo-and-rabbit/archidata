@@ -70,8 +70,24 @@ JWTWrapper.initLocalToken("my-application-uuid");
 For applications that validate tokens issued by a separate SSO server:
 
 ```java
-JWTWrapper.initLocalTokenRemote("https://sso.example.com", "my-app");
+JWTWrapper.initLocalTokenRemote("https://sso.example.com/karso/api/", "my-app");
 ```
+
+`UpdateJwtPublicKey` (a daemon thread) calls it with `SSO_ADDRESS` and refreshes the key every 5 minutes.
+The fetch is protected:
+
+- the address must be `https://`; `http://` is accepted only for a loopback host (`localhost`, `127.x`,
+  `::1`) or after `JWTWrapper.setAllowInsecureSsoAddress(true)` (plain HTTP exposes `SSO_TOKEN` and lets
+  anyone on the path replace the key, then forge tokens);
+- connection timeout 5 s, read timeout 10 s, answer bounded to 64 KiB, redirections not followed (they
+  would carry `SSO_TOKEN` elsewhere);
+- an RSA key under 2048 bits is refused; the thumbprint of a new key is logged at INFO;
+- `SSO_TOKEN` and the answer are never logged.
+
+A token with an unknown signature asks the thread for an immediate refresh (the SSO may have rotated its
+key), at most once per `JWTWrapper.MIN_REFRESH_INTERVAL` (60 s): anonymous clients sending bad tokens
+cannot make the server hammer the SSO. Invalid, expired or malformed tokens are logged at WARN without a
+stack trace.
 
 ### Load a public key directly
 
