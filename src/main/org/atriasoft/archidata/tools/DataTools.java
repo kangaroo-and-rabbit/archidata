@@ -646,8 +646,6 @@ public class DataTools {
 
 		LOGGER.info("    - id: {}", id);
 		LOGGER.info("    - url: {} ", url);
-		// Validate URL against SSRF attacks before fetching
-		SsrfGuard.validateUrl(url);
 		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
 			throw new InputException("id", "Id does not exist or removed");
