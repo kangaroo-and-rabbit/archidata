@@ -592,6 +592,12 @@ sont comptées ensemble sous la clé `__other__`.
   **pas** fait : il rendrait illisibles les données déjà chiffrées, et l'enveloppe n'a pas de version
   pour distinguer les deux formats (attend la décision sur le format de chiffrement).
 
+### Change streams : document brut (D-16, documentation)
+
+Pas de changement de code : `ChangeEvent.getFullDocument()` et `toJson()` livrent le document tel qu'il
+est stocké, champs `@DataNotRead` compris (et `@DataEncrypt` chiffrés). Ne jamais les relayer tels
+quels à un client (WebSocket, SSE) : n'envoyer que l'identifiant ou un DTO.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

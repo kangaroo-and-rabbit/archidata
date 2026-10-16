@@ -165,6 +165,10 @@ Immutable value object built by the worker.
   empty sets otherwise. `getUpdateDescription()` gives the driver object.
 - `getTimestamp()` (cluster time, or receive time if absent), `getResumeToken()`.
 - `toJson()` / `toJsonExtended()` serialize the full document, or return `null` without one.
+- The full document is the **raw stored document**: no archidata read rule applies to it. Its
+  `@DataNotRead` fields (password hashes, tokens) are present in clear, and its `@DataEncrypt`
+  fields are present in their stored, encrypted form. Never relay `getFullDocument()` or `toJson()`
+  as is to a client.
 
 ### ListenerRegistrationBuilder
 
@@ -246,6 +250,8 @@ manager.registerListener(event -> LOGGER.debug("{}", event));
 There is no WebSocket or SSE integration in this package. To push events to clients, register a
 listener that hands the event to your own transport (a JAX-RS `Sse` sink, a WebSocket session
 set, a queue) and do the delivery outside the listener, since listeners run on the worker thread.
+Send only the fields the client may read (the identifier, or a DTO built from them): the event
+carries the raw document, `@DataNotRead` fields included.
 
 ## Pitfalls and limits
 
