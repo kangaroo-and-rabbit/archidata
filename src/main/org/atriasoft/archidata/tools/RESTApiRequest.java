@@ -18,8 +18,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.atriasoft.archidata.exception.RESTErrorResponseException;
 import org.bson.types.ObjectId;
@@ -358,7 +361,9 @@ public class RESTApiRequest {
 	}
 
 	/**
-	 * Enables detailed HTTP request/response logging for this request.
+	 * Enables detailed HTTP request/response logging for this request: verb, URL and headers at INFO, with
+	 * the credentials masked ({@code Authorization}, {@code ApiKey}, cookies, token query parameters); the
+	 * bodies only at TRACE.
 	 * @return This request instance for chaining.
 	 */
 	public RESTApiRequest showIOStream() {
@@ -480,12 +485,14 @@ public class RESTApiRequest {
 		}
 		displayRequest(out);
 		if (this.showIOStream) {
+			// A body may carry passwords or tokens: its size at INFO, its content only at TRACE.
 			if (this.serializedBodyString != null) {
 				LOGGER.info("    content size: {}", this.serializedBodyString.length());
-				LOGGER.info("    body(String): \"\"\"{}\"\"\"", tryPrettyJson(this.serializedBodyString));
+				if (LOGGER.isTraceEnabled()) {
+					LOGGER.trace("    body(String): \"\"\"{}\"\"\"", tryPrettyJson(this.serializedBodyString));
+				}
 			} else if (this.serializedBodyByte != null) {
 				LOGGER.info("    content size: {}", this.serializedBodyByte.length);
-				LOGGER.info("    body(byte[]): \"\"\"{}\"\"\"", this.serializedBodyByte);
 			}
 		}
 		return out;
@@ -623,11 +630,44 @@ public class RESTApiRequest {
 		if (httpRequest.version().isPresent()) {
 			LOGGER.info("    version: {}", httpRequest.version().get());
 		}
-		LOGGER.info("    url: {}", httpRequest.uri());
+		LOGGER.info("    url: {}", maskUrl(httpRequest.uri().toString()));
 		LOGGER.info("    headers:");
 		for (final Map.Entry<String, List<String>> header : httpRequest.headers().map().entrySet()) {
-			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(), String.join(", ", header.getValue()));
+			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(),
+					maskHeader(header.getKey(), String.join(", ", header.getValue())));
 		}
+	}
+
+	/** Headers whose value is a credential: never logged in clear. */
+	private static final Set<String> SECRET_HEADERS = Set.of("authorization", "apikey", "proxy-authorization", "cookie",
+			"set-cookie");
+	private static final Pattern SECRET_QUERY = Pattern.compile("(?i)(^|[?&])(authorization|apikey)=[^&]*");
+
+	/**
+	 * Masks the value of a header that carries a credential ({@code Authorization}, {@code ApiKey},
+	 * {@code Cookie}...), keeping only the scheme ({@code Bearer ***}).
+	 * @param name The header name.
+	 * @param value The header value.
+	 * @return The value to log.
+	 */
+	public static String maskHeader(final String name, final String value) {
+		if (name == null || value == null || !SECRET_HEADERS.contains(name.toLowerCase(Locale.ROOT))) {
+			return value;
+		}
+		final int space = value.indexOf(' ');
+		return space > 0 ? value.substring(0, space) + " ***" : "***";
+	}
+
+	/**
+	 * Masks the {@code Authorization} and {@code ApiKey} query parameters of a URL.
+	 * @param url The URL.
+	 * @return The URL to log.
+	 */
+	public static String maskUrl(final String url) {
+		if (url == null) {
+			return null;
+		}
+		return SECRET_QUERY.matcher(url).replaceAll("$1$2=***");
 	}
 
 	/**
@@ -642,12 +682,16 @@ public class RESTApiRequest {
 		LOGGER.info("    statusCode: {}", httpResponse.statusCode());
 		LOGGER.info("    headers:");
 		for (final Map.Entry<String, List<String>> header : httpResponse.headers().map().entrySet()) {
-			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(), String.join(", ", header.getValue()));
+			LOGGER.info("        - \"{}\": \"{}\"", header.getKey(),
+					maskHeader(header.getKey(), String.join(", ", header.getValue())));
 		}
-		if (httpResponse.body() instanceof final String tmpBody) {
-			LOGGER.info("    body: \"\"\"{}\"\"\"", tryPrettyJson(tmpBody));
-		} else {
-			LOGGER.info("    body: \"\"\"{}\"\"\"", httpResponse.body());
+		// A body may carry tokens or personal data: only at TRACE.
+		if (LOGGER.isTraceEnabled()) {
+			if (httpResponse.body() instanceof final String tmpBody) {
+				LOGGER.trace("    body: \"\"\"{}\"\"\"", tryPrettyJson(tmpBody));
+			} else {
+				LOGGER.trace("    body: \"\"\"{}\"\"\"", httpResponse.body());
+			}
 		}
 	}
 

@@ -610,6 +610,15 @@ Behind a reverse proxy that terminates TLS, the server sees http and sends no HS
 The files served by `DataResource` also get a sandbox CSP (see above). A front served by `FrontGeneric` that
 needs to be framed must set its own `X-Frame-Options`, or not register the filter.
 
+### Logs
+
+No credential is logged in clear: the JWT is truncated to its first 20 characters when refused,
+`SSO_TOKEN` is never logged, and `RESTApiRequest.showIOStream()` masks the `Authorization`, `ApiKey`,
+`Cookie` and `Set-Cookie` headers and the `Authorization` / `ApiKey` query parameters
+(`RESTApiRequest.maskHeader`, `maskUrl`), and logs the request and response bodies only at TRACE.
+`MySecurityContext.getRole` logs the caller at TRACE. The access log of the reverse proxy still records the
+token of a `@PermitTokenInURI` request: exclude the query string from it.
+
 ### Not handled by archidata
 
 - **Rate limiting**: none (brute force, enumeration, upload floods). Put it in the reverse proxy.

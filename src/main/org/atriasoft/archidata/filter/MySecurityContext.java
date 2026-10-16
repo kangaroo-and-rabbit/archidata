@@ -217,10 +217,11 @@ public class MySecurityContext implements SecurityContext {
 	 * @return the roles map for the group, or {@code null} if no user or roles are available
 	 */
 	public Object getRole(final String group) {
-		LOGGER.info("contextPrincipale={}", this.contextPrincipale);
+		// Identity and roles of the caller: debugging only, never at INFO.
+		LOGGER.trace("contextPrincipale={}", this.contextPrincipale);
 		if (this.contextPrincipale.userByToken != null) {
-			LOGGER.info("contextPrincipale.userByToken={}", this.contextPrincipale.userByToken);
-			LOGGER.info("contextPrincipale.userByToken.roles={}", this.contextPrincipale.userByToken.getRoles());
+			LOGGER.trace("contextPrincipale.userByToken={}", this.contextPrincipale.userByToken);
+			LOGGER.trace("contextPrincipale.userByToken.roles={}", this.contextPrincipale.userByToken.getRoles());
 			return this.contextPrincipale.userByToken.getRoles().get(group);
 		}
 		return null;

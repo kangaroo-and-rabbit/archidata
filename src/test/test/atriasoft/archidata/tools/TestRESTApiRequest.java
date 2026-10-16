@@ -95,4 +95,24 @@ class TestRESTApiRequest {
 		new RESTApiRequest(baseUrl + "/ok", null, null).header("X-Custom", "value42").fetchString();
 		Assertions.assertEquals("value42", LAST_CUSTOM_HEADER.get());
 	}
+
+	// ===== credentials never logged in clear (D-15, W-22) =====
+
+	@Test
+	void credentialHeadersAreMasked() {
+		Assertions.assertEquals("Bearer ***",
+				RESTApiRequest.maskHeader("Authorization", "Bearer eyJhbGciOi.payload.sig"));
+		Assertions.assertEquals("***", RESTApiRequest.maskHeader("apikey", "1234:secret"));
+		Assertions.assertEquals("***", RESTApiRequest.maskHeader("Cookie", "session=abc"));
+		Assertions.assertEquals("application/json", RESTApiRequest.maskHeader("Content-Type", "application/json"));
+	}
+
+	@Test
+	void tokenQueryParametersAreMasked() {
+		Assertions.assertEquals("http://h/data/1?Authorization=***&x=2",
+				RESTApiRequest.maskUrl("http://h/data/1?Authorization=Bearer%20eyJ.a.b&x=2"));
+		Assertions.assertEquals("http://h/data/1?x=2&ApiKey=***",
+				RESTApiRequest.maskUrl("http://h/data/1?x=2&ApiKey=k"));
+		Assertions.assertEquals("http://h/data/1?x=2", RESTApiRequest.maskUrl("http://h/data/1?x=2"));
+	}
 }

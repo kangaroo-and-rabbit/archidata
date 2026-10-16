@@ -395,6 +395,14 @@ Nouveau constructeur `MediaStreamer(File, long from, long length)` : le fichier 
 laisse plus de descripteur ouvert. L'ancien constructeur `MediaStreamer(long, RandomAccessFile)` est
 déprécié.
 
+### Journaux sans en-tête `Authorization` ni corps au niveau INFO (D-15)
+
+`RESTApiRequest.showIOStream()` masque `Authorization`, `ApiKey`, `Cookie`, `Set-Cookie` et les
+paramètres de requête `Authorization` / `ApiKey` (`Bearer ***`), et ne journalise plus les corps
+qu'au niveau TRACE (la taille reste en INFO). `MySecurityContext.getRole` journalise en TRACE.
+**Qui est impacté** : un test qui lisait les corps dans les logs INFO : passer le logger
+`org.atriasoft.archidata.tools.RESTApiRequest` en TRACE.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)
