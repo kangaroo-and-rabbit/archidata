@@ -513,6 +513,16 @@ one of 50 MiB per request. An application that copies a client stream itself sho
 themselves: put a limit in the reverse proxy too (`client_max_body_size` for nginx).
 
 
+### Thumbnails
+
+`GET /data/thumbnail/{oid}` reads the dimensions of a JPEG or PNG from its header before decoding it,
+and answers 415 above 20 000 pixels on a side or 100 Mpx in all
+(`DataResource.MAX_THUMBNAIL_SOURCE_DIMENSION`, `MAX_THUMBNAIL_SOURCE_PIXELS`): a PNG of a few KiB
+can declare a picture of several GiB. The picture is then decoded sub-sampled, at about twice the
+thumbnail width. The thumbnail is still computed on every request that the browser cache (ETag,
+`Cache-Control: private, immutable`) does not absorb: there is no server-side cache.
+
+
 Migration Guide (Breaking Change)
 ==================================
 

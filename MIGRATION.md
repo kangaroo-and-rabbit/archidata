@@ -287,6 +287,16 @@ restait dans `DATA_TMP_FOLDER`). `DataTools.CHUNK_SIZE_IN` est déprécié.
 limite au démarrage. Les variantes non bornées de `saveTemporaryFile` restent disponibles pour les
 flux produits par le serveur lui-même (démultiplexage…).
 
+### Vignettes : dimensions bornées avant décodage (W-06)
+
+`GET /data/thumbnail/{oid}` lit les dimensions dans l'en-tête de l'image et répond 415 au-delà de
+20 000 pixels de côté ou de 100 Mpx (`DataResource.MAX_THUMBNAIL_SOURCE_DIMENSION`,
+`MAX_THUMBNAIL_SOURCE_PIXELS`), au lieu de décoder l'image entière. L'image est décodée
+sous-échantillonnée ; une image très fine donne une vignette d'au moins un pixel de haut (avant : 500).
+
+**Qui est impacté** : un front qui demande la vignette d'une image géante reçoit 415 au lieu d'une
+vignette ; il peut afficher l'image d'origine.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

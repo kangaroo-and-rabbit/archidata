@@ -150,4 +150,51 @@ public class TestDataServing {
 			DataTools.setMaxUploadSize(DataTools.DEFAULT_MAX_UPLOAD_SIZE);
 		}
 	}
+
+	static void chunk(final java.io.DataOutputStream out, final String type, final byte[] data) throws IOException {
+		final byte[] name = type.getBytes(StandardCharsets.US_ASCII);
+		out.writeInt(data.length);
+		out.write(name);
+		out.write(data);
+		final java.util.zip.CRC32 crc = new java.util.zip.CRC32();
+		crc.update(name);
+		crc.update(data);
+		out.writeInt((int) crc.getValue());
+	}
+
+	/** A few hundred bytes of PNG that declare a huge picture (decompression bomb). */
+	static byte[] bombPng(final int width, final int height) throws IOException {
+		final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+		final java.io.DataOutputStream out = new java.io.DataOutputStream(raw);
+		out.write(new byte[] { (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n' });
+		final ByteArrayOutputStream header = new ByteArrayOutputStream();
+		final java.io.DataOutputStream headerOut = new java.io.DataOutputStream(header);
+		headerOut.writeInt(width);
+		headerOut.writeInt(height);
+		headerOut.write(new byte[] { 8, 0, 0, 0, 0 });
+		chunk(out, "IHDR", header.toByteArray());
+		final ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+		try (java.util.zip.DeflaterOutputStream deflate = new java.util.zip.DeflaterOutputStream(compressed)) {
+			deflate.write(new byte[1024]);
+		}
+		chunk(out, "IDAT", compressed.toByteArray());
+		chunk(out, "IEND", new byte[0]);
+		return raw.toByteArray();
+	}
+
+	@Test
+	public void thumbnailOfDecompressionBombIsRefused() throws Exception {
+		final String oid = upload("bomb.png", bombPng(60_000, 60_000));
+		Assertions.assertEquals(415, get("data/thumbnail/" + oid).statusCode());
+	}
+
+	@Test
+	public void thumbnailOfThinPictureHasAtLeastOneLine() throws Exception {
+		final String oid = upload("thin.png", png(2000, 1));
+		final HttpResponse<byte[]> thumbnail = get("data/thumbnail/" + oid);
+		Assertions.assertEquals(200, thumbnail.statusCode());
+		final BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(thumbnail.body()));
+		Assertions.assertEquals(ConfigBaseVariable.getThumbnailWidth(), image.getWidth());
+		Assertions.assertEquals(1, image.getHeight());
+	}
 }

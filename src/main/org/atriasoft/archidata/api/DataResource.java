@@ -18,9 +18,13 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiInputOptional;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiTypeScriptProgress;
@@ -84,6 +88,10 @@ public class DataResource {
 	 * the page is reloaded. It stays private: what is behind a token must not end up in a shared
 	 * cache. */
 	private static final String DATA_CACHE_CONTROL = "private, max-age=31536000, immutable";
+	/** Largest width or height of a picture a thumbnail is made from. */
+	public static final int MAX_THUMBNAIL_SOURCE_DIMENSION = 20_000;
+	/** Largest number of pixels of a picture a thumbnail is made from (100 Mpx). */
+	public static final long MAX_THUMBNAIL_SOURCE_PIXELS = 100_000_000L;
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
 
@@ -516,20 +524,17 @@ public class DataResource {
 		if (value.getMimeType().contentEquals("image/jpeg") || value.getMimeType().contentEquals("image/png")
 		// || value.mimeType.contentEquals("image/webp")
 		) {
-			// reads input image
-			BufferedImage inputImage;
-			try {
-				inputImage = ImageIO.read(inputFile);
-			} catch (final IOException ex) {
-				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image", ex);
-			}
+			final int scaledWidth = ConfigBaseVariable.getThumbnailWidth();
+			// reads input image: dimensions checked on the header first, then decoded sub-sampled
+			final BufferedImage inputImage = readThumbnailSource(inputFile, scaledWidth);
 			LOGGER.debug("input size image: {}x{} type={}", inputImage.getWidth(), inputImage.getHeight(),
 					inputImage.getType());
-			final int scaledWidth = ConfigBaseVariable.getThumbnailWidth();
-			final int scaledHeight = (int) ((float) inputImage.getHeight() / (float) inputImage.getWidth()
-					* scaledWidth);
-			// creates output image
-			final BufferedImage outputImage = new BufferedImage(scaledWidth, scaledHeight, inputImage.getType());
+			final int scaledHeight = Math.max(1,
+					(int) ((float) inputImage.getHeight() / (float) inputImage.getWidth() * scaledWidth));
+			// creates output image (a decoded image may have a custom type, that BufferedImage refuses)
+			final int outputType = inputImage.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB
+					: BufferedImage.TYPE_INT_RGB;
+			final BufferedImage outputImage = new BufferedImage(scaledWidth, scaledHeight, outputType);
 
 			// scales the input image to the output image
 			final Graphics2D g2d = outputImage.createGraphics();
@@ -572,6 +577,54 @@ public class DataResource {
 			return buildStream(filePathName, range, value.getMimeType(), etag);
 		} catch (final Exception ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to build output stream", ex);
+		}
+	}
+
+	/**
+	 * Reads the picture a thumbnail is made from, without decoding more than needed.
+	 * <p>
+	 * The dimensions are read from the header before anything is decoded: a picture wider or higher than
+	 * {@link #MAX_THUMBNAIL_SOURCE_DIMENSION} or larger than {@link #MAX_THUMBNAIL_SOURCE_PIXELS} is refused
+	 * (a few KiB of PNG can declare gigabytes of pixels). The picture is then decoded sub-sampled, at about
+	 * twice the thumbnail width.
+	 * </p>
+	 * @param inputFile The stored picture.
+	 * @param thumbnailWidth The width of the thumbnail.
+	 * @return The decoded, possibly sub-sampled, picture.
+	 * @throws FailException HTTP 415 for a picture too large to make a thumbnail of, HTTP 500 when it cannot
+	 *                       be read.
+	 */
+	static BufferedImage readThumbnailSource(final File inputFile, final int thumbnailWidth) throws FailException {
+		try (ImageInputStream input = ImageIO.createImageInputStream(inputFile)) {
+			final Iterator<ImageReader> readers = input == null ? null : ImageIO.getImageReaders(input);
+			if (readers == null || !readers.hasNext()) {
+				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image");
+			}
+			final ImageReader reader = readers.next();
+			try {
+				reader.setInput(input, true, true);
+				final int width = reader.getWidth(0);
+				final int height = reader.getHeight(0);
+				if (width <= 0 || height <= 0 || width > MAX_THUMBNAIL_SOURCE_DIMENSION
+						|| height > MAX_THUMBNAIL_SOURCE_DIMENSION
+						|| (long) width * height > MAX_THUMBNAIL_SOURCE_PIXELS) {
+					LOGGER.warn("Refuse to make a thumbnail of a {}x{} picture", width, height);
+					throw new FailException(Response.Status.UNSUPPORTED_MEDIA_TYPE,
+							"The picture is too large to make a thumbnail of it");
+				}
+				final ImageReadParam param = reader.getDefaultReadParam();
+				final int step = Math.max(1, width / Math.max(1, thumbnailWidth * 2));
+				param.setSourceSubsampling(step, step, 0, 0);
+				final BufferedImage image = reader.read(0, param);
+				if (image == null) {
+					throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image");
+				}
+				return image;
+			} finally {
+				reader.dispose();
+			}
+		} catch (final IOException ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to READ the image", ex);
 		}
 	}
 
