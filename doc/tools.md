@@ -56,6 +56,7 @@ as text.
 | `DATA_ENCRYPT_KEYS_DIR` | `setEncryptKeysDir` | `getEncryptKeysDir()` | none | folder scanned for additional named keys |
 | `QUERY_STATISTICS_FILE` | `setQueryStatisticsFile` | `getQueryStatisticsFile()` | none (mode off) | enables the [query statistics](statistics.md); path of the report |
 | `QUERY_STATISTICS_PERIOD` | `setQueryStatisticsPeriod` | `getQueryStatisticsPeriod()` | `*/10 * * * *` | cron expression of the report flush |
+| `CORS_ALLOWED_ORIGINS` | `setCorsAllowedOrigins` | `getCorsAllowedOrigins()` (`List<String>`) | none (`null`) | origins allowed by `CORSFilter`, comma separated; unset: any origin, without credentials (see [security](security.md#cors)) |
 | (none) | `setBbInterfacesClasses(Class<?>[])` | `getBbInterfacesClasses()` | empty array | the entity classes the data layer manages (used by `DbConfig`) |
 
 Empty strings are treated as "unset" only for the thumbnail and query-statistics

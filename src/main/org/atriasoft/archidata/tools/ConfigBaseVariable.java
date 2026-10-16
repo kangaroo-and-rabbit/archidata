@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ public class ConfigBaseVariable {
 	private static String queryStatisticsPeriod;
 	private static byte[] encryptDefaultKey;
 	private static String encryptKeysDir;
+	private static String corsAllowedOrigins;
 	private static Class<?>[] dbInterfacesClasses;
 
 	/**
@@ -338,6 +341,16 @@ public class ConfigBaseVariable {
 	}
 
 	/**
+	 * Sets the origins allowed by {@code CORSFilter}, separated by commas.
+	 * @param value the origin list (for example {@code "https://app.example.com,http://localhost:4200"}), may be
+	 *              {@code null} to allow any origin without credentials.
+	 */
+	public static void setCorsAllowedOrigins(final String value) {
+		checkNotLocked("corsAllowedOrigins");
+		corsAllowedOrigins = value;
+	}
+
+	/**
 	 * Reloads all configuration values from environment variables and unlocks the configuration.
 	 * Only works if reconfiguration is allowed. Primarily used for testing.
 	 *
@@ -371,6 +384,7 @@ public class ConfigBaseVariable {
 		queryStatisticsPeriod = System.getenv("QUERY_STATISTICS_PERIOD");
 		encryptDefaultKey = readSecretBytes("DATA_ENCRYPT_KEY");
 		encryptKeysDir = System.getenv("DATA_ENCRYPT_KEYS_DIR");
+		corsAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
 		dbInterfacesClasses = new Class<?>[0];
 	}
 
@@ -668,5 +682,17 @@ public class ConfigBaseVariable {
 	 */
 	public static String getEncryptKeysDir() {
 		return encryptKeysDir;
+	}
+
+	/**
+	 * Returns the origins allowed by {@code CORSFilter} ({@code CORS_ALLOWED_ORIGINS}, comma separated,
+	 * blanks trimmed), or {@code null} when the variable is not set or blank.
+	 * @return The allowed origins, or {@code null}.
+	 */
+	public static List<String> getCorsAllowedOrigins() {
+		if (corsAllowedOrigins == null || corsAllowedOrigins.isBlank()) {
+			return null;
+		}
+		return Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).filter(item -> !item.isEmpty()).toList();
 	}
 }

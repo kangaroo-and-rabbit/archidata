@@ -225,4 +225,16 @@ class TestConfigBaseVariable {
 		Assertions.assertEquals("login", config.login());
 		Assertions.assertEquals("pass", config.password());
 	}
+
+	@Test
+	void testCorsAllowedOrigins() {
+		ConfigBaseVariable.setCorsAllowedOrigins(null);
+		Assertions.assertNull(ConfigBaseVariable.getCorsAllowedOrigins());
+		ConfigBaseVariable.setCorsAllowedOrigins("  ");
+		Assertions.assertNull(ConfigBaseVariable.getCorsAllowedOrigins());
+		ConfigBaseVariable.setCorsAllowedOrigins(" https://a.example.com , http://localhost:4200,,");
+		Assertions.assertEquals(java.util.List.of("https://a.example.com", "http://localhost:4200"),
+				ConfigBaseVariable.getCorsAllowedOrigins());
+		ConfigBaseVariable.setCorsAllowedOrigins(null);
+	}
 }
