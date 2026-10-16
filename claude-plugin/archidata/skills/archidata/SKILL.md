@@ -53,7 +53,8 @@ Extend a base class of `model`: `OIDGenericDataSoftDelete` (ObjectId id, timesta
 recommended), `OIDGenericData`, `GenericDataSoftDelete` (Long id). The collection is the class
 simple name, or `@Collection("...")`; `@Field("...")` renames a field in the document,
 `@InitValue("...")` sets its value on insert when `null` (package `annotation`; the JPA
-annotations and a JAX-RS `@DefaultValue` on a field are ignored). Add Bean Validation
+annotations and a JAX-RS `@DefaultValue` on a field are rejected with a `DataAccessException`
+when the model is analysed). Add Bean Validation
 constraints, `@Schema`/`@ApiDoc` for the generated clients. Server-managed fields get
 `@ApiReadOnly`; create/update-only rules use the groups `GroupCreate` / `GroupUpdate`
 (`annotation.checker`). Docs: `doc/data_model.md`, `doc/annotations.md`.

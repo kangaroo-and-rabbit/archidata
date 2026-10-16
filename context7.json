@@ -12,7 +12,7 @@
 		"AuthenticationFilter answers 403 to any endpoint without @PermitAll, @RolesAllowed or @RightAllowed; without an authentication filter, @RolesAllowed is ignored.",
 		"JWT: the subject must be an ObjectId, the default issuer is \"Karso\", roles and rights are PartRight codes (int 0-3 or name), never Boolean.",
 		"createdAt and updatedAt carry @DataNotRead and are not returned by default reads: use the ReadAllColumn option.",
-		"Entity mapping uses archidata annotations (org.atriasoft.archidata.annotation): @Collection, @Field, @Id, @InitValue. JPA annotations (jakarta.persistence) and JAX-RS @DefaultValue on an entity field are ignored.",
+		"Entity mapping uses archidata annotations (org.atriasoft.archidata.annotation): @Collection, @Field, @Id, @InitValue. JPA annotations (jakarta.persistence) and JAX-RS @DefaultValue on an entity field are not read: an entity that still carries one is rejected with a DataAccessException when its model is analysed.",
 		"Unicity needs a unique index: declare @Indexed(unique = true) or @Index and call IndexEngine.synchronize() at startup; @Field only renames a field.",
 		"updateById without a FilterValue rewrites every editable field, null included: pass the field list for a partial update.",
 		"MigrationEngine stores its history in KAR_migration; an empty database only runs the init; an unknown last migration name throws MigrationException; revert is unsupported.",
