@@ -569,6 +569,18 @@ suivait un lien symbolique posé à l'avance. Le fichier est en `rw-------`. Le 
 requête distinctes est borné (`QueryStatistics.setMaxEntries`, 10 000 par défaut) : au-delà, elles
 sont comptées ensemble sous la clé `__other__`.
 
+### URL de connexion échappée, `DB_TLS`, `DB_AUTH_SOURCE` (D-13)
+
+- `DbConfig.getUrl()` encode l'utilisateur, le mot de passe et le nom de base (pourcentage, RFC 3986).
+  Avant, seul `@` était échappé : un mot de passe contenant `: / ? # %` cassait l'URL ou y ajoutait
+  des options. Un mot de passe déjà encodé à la main (`%40` écrit dans `DB_PASSWORD`) doit être remis
+  en clair.
+- Nouvelles variables : `DB_TLS=true` ajoute `tls=true` ; `DB_AUTH_SOURCE` fixe la base
+  d'authentification (sinon `admin` pour `root`, comme avant). Aussi `DbConfig.setTls` /
+  `setAuthSource`.
+- `DB_USER` vaut toujours `root` par défaut, mais un WARN est écrit une fois : préférer un compte
+  `readWrite` limité à la base de l'application.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

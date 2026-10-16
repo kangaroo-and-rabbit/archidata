@@ -1,7 +1,11 @@
 package org.atriasoft.archidata.db;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -29,6 +33,12 @@ public class DbConfig {
 	private String dbName;
 	private final boolean keepConnected;
 	private final List<Class<?>> classes;
+	/** TLS on the connection ({@code DB_TLS}). */
+	private boolean tls;
+	/** Authentication database ({@code DB_AUTH_SOURCE}), {@code null} for the default. */
+	private String authSource;
+	/** The WARN about the {@code root} account is written once per process. */
+	private static final AtomicBoolean ROOT_WARNED = new AtomicBoolean(false);
 
 	/**
 	 * Constructs a DbConfig using values from {@link ConfigBaseVariable}.
@@ -75,7 +85,8 @@ public class DbConfig {
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
 		this.classes = classes;
-
+		this.tls = ConfigBaseVariable.getDBTls();
+		this.authSource = ConfigBaseVariable.getDBAuthSource();
 	}
 
 	/**
@@ -119,7 +130,8 @@ public class DbConfig {
 	@Override
 	public String toString() {
 		return "DBConfig{hostname='" + this.hostname + '\'' + ", port=" + this.port + ", login='" + this.login + '\''
-				+ ", password='****'" + ", dbName='" + this.dbName + "' }";
+				+ ", password='****'" + ", dbName='" + this.dbName + "', tls=" + this.tls + ", authSource='"
+				+ this.authSource + "' }";
 	}
 
 	/**
@@ -186,6 +198,42 @@ public class DbConfig {
 	}
 
 	/**
+	 * Returns whether the connection uses TLS ({@code tls=true} in the URL).
+	 *
+	 * @return {@code true} if TLS is enabled
+	 */
+	public boolean isTls() {
+		return this.tls;
+	}
+
+	/**
+	 * Enables or disables TLS on the connection (default: {@code DB_TLS}).
+	 *
+	 * @param tls {@code true} to enable TLS
+	 */
+	public void setTls(final boolean tls) {
+		this.tls = tls;
+	}
+
+	/**
+	 * Returns the authentication database, or {@code null} for the default ({@code admin} for {@code root}).
+	 *
+	 * @return the authentication database, or {@code null}
+	 */
+	public String getAuthSource() {
+		return this.authSource;
+	}
+
+	/**
+	 * Sets the authentication database (default: {@code DB_AUTH_SOURCE}).
+	 *
+	 * @param authSource the authentication database, or {@code null} for the default
+	 */
+	public void setAuthSource(final String authSource) {
+		this.authSource = authSource;
+	}
+
+	/**
 	 * Returns the list of data model classes registered with this configuration.
 	 *
 	 * @return the list of classes
@@ -195,25 +243,54 @@ public class DbConfig {
 	}
 
 	/**
+	 * Percent-encodes a URL component (RFC 3986): {@code URLEncoder} writes a space as {@code +}, which the
+	 * MongoDB URI parser reads as a literal plus.
+	 */
+	private static String encode(final String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+	}
+
+	/**
 	 * Builds and returns the MongoDB connection URL from the configuration parameters.
+	 *
+	 * <p>The login, the password, the database name and the authentication database are percent-encoded, so
+	 * that a generated password containing {@code : / ? # @ %} neither breaks the URL nor adds options to it.
+	 * {@code authSource} is the configured one ({@code DB_AUTH_SOURCE}), otherwise {@code admin} for the
+	 * {@code root} user (a WARN is written once: the application should use an account limited to its
+	 * database). {@code tls=true} is added when TLS is enabled ({@code DB_TLS}).
 	 *
 	 * @return the MongoDB connection URL string
 	 */
 	public String getUrl() {
-		final String tmpPassword = getPassword().replace("@", "%40");
 		final StringBuilder tmp = new StringBuilder("mongodb://");
-		tmp.append(getLogin());
+		tmp.append(encode(getLogin()));
 		tmp.append(":");
-		tmp.append(tmpPassword);
+		tmp.append(encode(getPassword()));
 		tmp.append("@");
 		tmp.append(this.hostname);
 		tmp.append(":");
 		tmp.append(this.port);
 		tmp.append("/");
-		tmp.append(this.dbName);
-		if ("root".equals(getLogin())) {
+		if (this.dbName != null) {
+			tmp.append(encode(this.dbName));
+		}
+		final List<String> params = new ArrayList<>();
+		final boolean root = "root".equals(getLogin());
+		if (root && ROOT_WARNED.compareAndSet(false, true)) {
+			LOGGER.warn("The database is accessed with the 'root' account (cluster administrator): use an account "
+					+ "with the readWrite role on '{}' only (DB_USER, DB_AUTH_SOURCE)", this.dbName);
+		}
+		if (this.authSource != null) {
+			params.add("authSource=" + encode(this.authSource));
+		} else if (root) {
 			// For root user, authenticate against admin database
-			tmp.append("?authSource=admin");
+			params.add("authSource=admin");
+		}
+		if (this.tls) {
+			params.add("tls=true");
+		}
+		if (!params.isEmpty()) {
+			tmp.append("?").append(String.join("&", params));
 		}
 		return tmp.toString();
 	}
@@ -239,6 +316,8 @@ public class DbConfig {
 					&& Objects.equals(this.login, dbConfig.login) //
 					&& Objects.equals(this.password, dbConfig.password) //
 					&& Objects.equals(this.dbName, dbConfig.dbName) //
+					&& this.tls == dbConfig.tls //
+					&& Objects.equals(this.authSource, dbConfig.authSource) //
 					&& Objects.equals(this.classes, dbConfig.classes);
 		}
 		return false;
@@ -248,7 +327,7 @@ public class DbConfig {
 	@Override
 	public int hashCode() {
 		return Objects.hash(this.hostname, this.port, this.login, this.password, this.dbName, this.keepConnected,
-				this.classes);
+				this.classes, this.tls, this.authSource);
 	}
 
 	/**
@@ -259,8 +338,11 @@ public class DbConfig {
 	@Override
 	public DbConfig clone() {
 		try {
-			return new DbConfig(this.hostname, this.port, this.login, this.password, this.dbName, this.keepConnected,
-					this.classes);
+			final DbConfig out = new DbConfig(this.hostname, this.port, this.login, this.password, this.dbName,
+					this.keepConnected, this.classes);
+			out.setTls(this.tls);
+			out.setAuthSource(this.authSource);
+			return out;
 		} catch (final DataAccessException e) {
 			LOGGER.error("Failed to clone DbConfig: {}", e.getMessage(), e);
 		}

@@ -40,10 +40,12 @@ as text.
 | `DB_ABLE_TO_CREATE` | `setDbAbleToCreate` | `getDBAbleToCreate()` | `true` | whether the database may be created automatically. See the pitfall below: no code of the library reads it |
 | `DB_HOST` | `setDbHost` | `getDBHost()` | `localhost` | MongoDB host |
 | `DB_PORT` | `setDbPort` | `getDBPort()` (`int`) | `27017` | MongoDB port |
-| `DB_USER` | `setDbUser` | `getDBLogin()` | `root` | MongoDB user |
+| `DB_USER` | `setDbUser` | `getDBLogin()` | `root` | MongoDB user. `root` is the cluster administrator: a WARN is written once; prefer an account with the `readWrite` role on the application database only |
 | `DB_PASSWORD` | `setDbPassword` | `getDBPassword()` | none: **throws `IllegalStateException`** when unset | MongoDB password |
 | `DB_DATABASE` | `setBdDatabase` | `getDBName()` | none (`null`) | database name |
 | `DB_KEEP_CONNECTED` | `setDbKeepConnected` | `getDBKeepConnected()` | `false` | keep the connection open between operations (see [Connection management](connectionManagement.md)) |
+| `DB_TLS` | `setDbTls` | `getDBTls()` | `false` | `true` adds `tls=true` to the connection URL (`DbConfig.setTls` per configuration) |
+| `DB_AUTH_SOURCE` | `setDbAuthSource` | `getDBAuthSource()` | none: `admin` for `root`, the driver default otherwise | authentication database of the account (`DbConfig.setAuthSource` per configuration) |
 | `API_ADDRESS` | `setApiAddress` | `getLocalAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
 | `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `JWTWrapper.setAllowInsecureSsoAddress(true)` is called |
 | `SSO_TOKEN` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |

@@ -39,6 +39,8 @@ public class ConfigBaseVariable {
 	private static String dbPort;
 	private static String dbUser;
 	private static String dbKeepConnected;
+	private static String dbTls;
+	private static String dbAuthSource;
 	private static String dbPassword;
 	private static String bdDatabase;
 	private static String apiAdress;
@@ -194,6 +196,24 @@ public class ConfigBaseVariable {
 	public static void setDbKeepConnected(final String value) {
 		checkNotLocked("dbKeepConnected");
 		dbKeepConnected = value;
+	}
+
+	/**
+	 * Sets whether the database connection uses TLS ({@code DB_TLS}).
+	 * @param value {@code "true"} to enable TLS
+	 */
+	public static void setDbTls(final String value) {
+		checkNotLocked("dbTls");
+		dbTls = value;
+	}
+
+	/**
+	 * Sets the authentication database of the connection ({@code DB_AUTH_SOURCE}).
+	 * @param value the authentication database, or {@code null} for the default
+	 */
+	public static void setDbAuthSource(final String value) {
+		checkNotLocked("dbAuthSource");
+		dbAuthSource = value;
 	}
 
 	/**
@@ -378,6 +398,8 @@ public class ConfigBaseVariable {
 		dbPort = System.getenv("DB_PORT");
 		dbUser = System.getenv("DB_USER");
 		dbKeepConnected = System.getenv("DB_KEEP_CONNECTED");
+		dbTls = System.getenv("DB_TLS");
+		dbAuthSource = System.getenv("DB_AUTH_SOURCE");
 		dbPassword = System.getenv("DB_PASSWORD");
 		bdDatabase = System.getenv("DB_DATABASE");
 		apiAdress = System.getenv("API_ADDRESS");
@@ -535,6 +557,23 @@ public class ConfigBaseVariable {
 			return false;
 		}
 		return Boolean.parseBoolean(dbKeepConnected);
+	}
+
+	/**
+	 * Returns whether the database connection uses TLS ({@code DB_TLS}), defaulting to {@code false}.
+	 * @return {@code true} if TLS is enabled
+	 */
+	public static boolean getDBTls() {
+		return Boolean.parseBoolean(dbTls);
+	}
+
+	/**
+	 * Returns the authentication database ({@code DB_AUTH_SOURCE}), or {@code null} when not configured (then
+	 * {@code admin} for the {@code root} user, the driver default otherwise).
+	 * @return the authentication database, or {@code null}
+	 */
+	public static String getDBAuthSource() {
+		return dbAuthSource == null || dbAuthSource.isBlank() ? null : dbAuthSource;
 	}
 
 	/**
