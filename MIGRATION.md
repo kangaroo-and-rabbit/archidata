@@ -30,6 +30,11 @@ mêmes valeurs initiales. Sans annotation, la collection porte toujours le nom s
 | `@ManyToOne` / `@OneToMany` / `@ManyToMany` (JPA) | `@ManyToOneDoc` / `@OneToManyDoc` / `@ManyToManyDoc` |
 | `@Column` sans `name`, `@GeneratedValue`, `@Entity` | rien (à supprimer) |
 
+`@BsonId` (`org.bson.codecs.pojo.annotations`) n'est pas une annotation JPA : il **reste** à côté
+de `@Id @Field("_id")`. `DbIoMongo` enregistre le codec POJO du driver
+(`PojoCodecProvider.automatic(true)`), qui le lit pour envoyer la propriété dans `_id` ;
+`OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` le gardent.
+
 Le `@DefaultValue` de JAX-RS reste la bonne annotation sur les **paramètres** d'une ressource REST
 (`@QueryParam("page") @DefaultValue("1") int page`) : c'est Jersey qui le gère, ne pas y toucher.
 Le nom `@InitValue` est distinct exprès : un mauvais import compilerait et serait ignoré.
@@ -56,8 +61,6 @@ son nom complet (`@org.atriasoft.archidata.annotation.Field("nom")`).
   encore `jakarta.persistence` ne compile plus. **Ne pas la rajouter dans l'application** : les
   anciennes annotations compileraient de nouveau, et l'entité serait refusée à l'exécution
   (`DataAccessException`, voir « Échec rapide » ci-dessus).
-- `@BsonId` sur `OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` : archidata ne le
-  lisait pas (il ne servait qu'au codec POJO du driver MongoDB).
 - API Java : `AnnotationTools.getLimitSize`, `getColumnNotNull`, `isUnique`, `getStrategy`,
   `getManyToOne`, `getManyToMany`, `getOneToMany` sont supprimées et `getDefault` devient
   `getInitValue` ; `DbPropertyDescriptor.isNullable`, `isUnique`, `getColumnLength`,

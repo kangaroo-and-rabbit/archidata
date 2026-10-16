@@ -101,6 +101,8 @@ attribute. Makes it the primary key (action `PRIMARY_KEY`). The key is generated
 (sequence in the `counters` collection) or a `UUID`; another type (`String`, `Integer`...) is set
 by the application and inserted with the `DirectPrimaryKey` option. Stored as `_id` when combined
 with `@Field("_id")`, as in `OIDGenericData` and `UUIDGenericData` (`GenericData` keeps `id`).
+`OIDGenericData` also keeps the driver's `@BsonId`: the MongoDB POJO codec registered by
+`DbIoMongo` (`PojoCodecProvider.automatic(true)`) reads it to map the property to `_id`.
 
 ```java
 @Id
