@@ -26,8 +26,8 @@
 	</developers>
 	<scm>
 		<url>https://github.com/kangaroo-and-rabbit/archidata</url>
-		<connection>scm:git:git://github.com/kangaroo-and-rabbit/archidata.git</connection>
-		<developerConnection>scm:git:ssh:github.com/kangaroo-and-rabbit/archidata.git</developerConnection>
+		<connection>scm:git:https://github.com/kangaroo-and-rabbit/archidata.git</connection>
+		<developerConnection>scm:git:git@github.com:kangaroo-and-rabbit/archidata.git</developerConnection>
 	</scm>
 	<dependencyManagement>
 		<dependencies>
@@ -364,6 +364,7 @@
 			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.8.0</version>
 				<configuration>
 					<archive>
 						<manifest>
