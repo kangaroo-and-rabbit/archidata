@@ -407,6 +407,15 @@ ajouter l'option `new AllowMassOperation()`. Les lectures ne changent pas.
 **Comment migrer** : chercher les écritures dont la condition est construite conditionnellement
 (`filters.isEmpty() ? Filters.empty() : ...`) et les `updateBsonDocuments` sans `Condition` (migrations).
 
+### Expansion des relations bornée (D-06)
+
+L'expansion d'une relation typée entité (`@ManyToOneDoc Node parent`...) s'arrête après
+`RelationExpansion.getMaxDepth()` niveaux imbriqués (5 par défaut, réglable avec
+`RelationExpansion.setMaxDepth(int)`), et une entité déjà en cours d'expansion plus haut sur la même
+chaîne (cycle, auto-référence) est relue sans que ses relations soient chargées. Avant, un cycle
+provoquait une récursion jusqu'au `StackOverflowError`. Au-delà de ces limites, le champ de relation
+reste `null`.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

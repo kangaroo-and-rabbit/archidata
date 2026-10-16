@@ -1674,6 +1674,9 @@ public class DBAccessMongo implements Closeable {
 
 			LOGGER.trace("GetsWhere ...");
 			final LazyGetterCollector batchCollector = new LazyGetterCollector();
+			final DbPropertyDescriptor pkDesc = model.getPrimaryKey();
+			final String pkColumn = pkDesc != null ? pkDesc.getFieldName(options).inTable() : null;
+			final List<Object> expandedKeys = new ArrayList<>();
 			final MongoCursor<Document> cursor = retFind.iterator();
 			try (cursor) {
 				while (cursor.hasNext()) {
@@ -1683,21 +1686,38 @@ public class DBAccessMongo implements Closeable {
 						LOGGER.trace(" - receive data from DB: {}",
 								TraceMasker.toMaskedJson(doc, TraceMasker.protectedFieldNames(model)));
 					}
-					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
+					final Object primaryKey = pkColumn != null ? doc.get(pkColumn) : null;
+					final Object data;
+					if (RelationExpansion.canExpand(clazz, primaryKey)) {
+						data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
+						if (primaryKey != null) {
+							expandedKeys.add(primaryKey);
+						}
+					} else {
+						// Depth limit reached, or entity already expanded on this chain (cycle): its relation
+						// fields are left unloaded.
+						data = createObjectFromDocument(doc, clazz, options, new ArrayList<>(), null);
+					}
 					outs.add(data);
 				}
 				// Add batched lazy getters (entity-reference fields grouped by target entity)
 				if (!batchCollector.isEmpty()) {
 					lazyCall.addAll(batchCollector.buildLazyGetters(this));
 				}
-				// LOGGER.trace("Async calls: {}", lazyCall.size());
-				List<LazyGetter> actionsAsync = lazyCall;
-				for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-					final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
-					for (final LazyGetter action : actionsAsync) {
-						action.doRequest(actionsAsyncNew);
+				if (!lazyCall.isEmpty()) {
+					final List<String> chain = RelationExpansion.enter(clazz, expandedKeys);
+					try {
+						List<LazyGetter> actionsAsync = lazyCall;
+						for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
+							final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+							for (final LazyGetter action : actionsAsync) {
+								action.doRequest(actionsAsyncNew);
+							}
+							actionsAsync = actionsAsyncNew;
+						}
+					} finally {
+						RelationExpansion.leave(chain);
 					}
-					actionsAsync = actionsAsyncNew;
 				}
 			}
 		} catch (final Exception ex) {

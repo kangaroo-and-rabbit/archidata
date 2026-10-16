@@ -290,6 +290,12 @@ The key of a relation field must be an `ObjectId`, a `Long` or a `UUID` (a `List
 another key type (for example `String`) is rejected when the model is analysed, with an error
 naming the class and the field; it used to be silently ignored.
 
+Expanding a relation runs a read of the target entities, which expands their own relations in turn.
+This is bounded: at most `RelationExpansion.getMaxDepth()` nested levels (5 by default,
+`RelationExpansion.setMaxDepth(int)` to change it), and an entity already expanded higher on the same
+chain (a cycle `A -> B -> A`, or a self-reference) is read again without expanding its relations.
+Beyond these limits the relation field is left `null`.
+
 ### @ManyToOneDoc
 
 The child stores a reference to the parent. When the child is created/deleted/updated, the parent's list is automatically maintained.
