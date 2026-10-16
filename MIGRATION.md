@@ -561,6 +561,14 @@ Un outil qui copie ou synchronise les archives doit aussi copier les fichiers `.
 **Qui est impacté** : une application dont une collection a un nom hors de ce motif, ou dont un
 fichier média dépasse 64 Gio, doit régler les bornes avant de restaurer.
 
+### `QueryStatistics` : fichier privé et table bornée (D-11)
+
+Le fichier de statistiques est écrit via un fichier temporaire au nom imprévisible créé dans le même
+dossier (`Files.createTempFile`), puis déplacé de façon atomique ; l'ancien `<fichier>.tmp` prévisible
+suivait un lien symbolique posé à l'avance. Le fichier est en `rw-------`. Le nombre de formes de
+requête distinctes est borné (`QueryStatistics.setMaxEntries`, 10 000 par défaut) : au-delà, elles
+sont comptées ensemble sous la clé `__other__`.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

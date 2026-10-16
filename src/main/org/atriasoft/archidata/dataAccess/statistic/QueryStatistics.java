@@ -1,14 +1,20 @@
 package org.atriasoft.archidata.dataAccess.statistic;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
@@ -57,8 +63,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * </ul>
  *
  * <p>
- * The file is written atomically (temporary file then move), so it can be read at any time without
- * catching a half-written document.
+ * The file is written atomically (a private temporary file created in the same directory, then an atomic
+ * move), so it can be read at any time without catching a half-written document. The file is readable by its
+ * owner only ({@code rw-------} on a POSIX file system): keep it in a directory reserved to the service.
+ * </p>
+ * <p>
+ * The number of distinct query shapes is bounded ({@link #setMaxEntries(int)}, {@value #DEFAULT_MAX_ENTRIES}
+ * by default): beyond it, new shapes are counted together under {@value #OVERFLOW_KEY}. An application that
+ * builds filters on dynamic keys ({@code meta.<clientKey>}) cannot make the table grow without end.
  * </p>
  *
  * @see QuerySignature
@@ -66,6 +78,13 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 public final class QueryStatistics {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryStatistics.class);
 	private static final String CRON_TASK_NAME = "archidata-query-statistics-flush";
+
+	/** Default maximum number of distinct query shapes kept. */
+	public static final int DEFAULT_MAX_ENTRIES = 10_000;
+	/** Key of the entry counting the shapes met once the table is full. */
+	public static final String OVERFLOW_KEY = "__other__";
+	private static final Set<PosixFilePermission> OWNER_FILE = PosixFilePermissions.fromString("rw-------");
+	private static volatile int maxEntries = DEFAULT_MAX_ENTRIES;
 
 	/** Aggregated occurrences, keyed by {@link QuerySignature#getKey()}. */
 	private static final Map<String, Counter> COUNTERS = new ConcurrentHashMap<>();
@@ -85,6 +104,43 @@ public final class QueryStatistics {
 
 	private QueryStatistics() {
 		// Utility class
+	}
+
+	/**
+	 * Sets the maximum number of distinct query shapes kept; the next shapes are counted under
+	 * {@value #OVERFLOW_KEY}.
+	 * @param value the maximum, {@code >= 1}
+	 * @throws IllegalArgumentException if {@code value < 1}
+	 */
+	public static void setMaxEntries(final int value) {
+		if (value < 1) {
+			throw new IllegalArgumentException("Query statistics max entries must be >= 1, got: " + value);
+		}
+		maxEntries = value;
+	}
+
+	/**
+	 * Returns the maximum number of distinct query shapes kept.
+	 * @return the maximum
+	 */
+	public static int getMaxEntries() {
+		return maxEntries;
+	}
+
+	/**
+	 * Returns the counter of a shape, or the overflow counter when the table is full.
+	 * @param key the shape key
+	 * @return the counter to increment
+	 */
+	private static Counter counterFor(final String key) {
+		final Counter existing = COUNTERS.get(key);
+		if (existing != null) {
+			return existing;
+		}
+		if (COUNTERS.size() >= maxEntries) {
+			return COUNTERS.computeIfAbsent(OVERFLOW_KEY, it -> new Counter());
+		}
+		return COUNTERS.computeIfAbsent(key, it -> new Counter());
 	}
 
 	/**
@@ -122,8 +178,9 @@ public final class QueryStatistics {
 		try {
 			ensureStarted();
 			final QuerySignature signature = QuerySignature.of(collection, operation, filter, sort, softDeleteField);
-			final Counter counter = COUNTERS.computeIfAbsent(signature.getKey(), key -> new Counter());
-			if (counter.signature == null) {
+			final Counter counter = counterFor(signature.getKey());
+			// The overflow counter mixes many shapes: it keeps no description.
+			if (counter.signature == null && counter != COUNTERS.get(OVERFLOW_KEY)) {
 				counter.signature = signature;
 			}
 			counter.count.increment();
@@ -178,7 +235,11 @@ public final class QueryStatistics {
 				if (entry.signature == null) {
 					continue;
 				}
-				final Counter counter = COUNTERS.computeIfAbsent(entry.signature, key -> new Counter());
+				final Counter counter = counterFor(entry.signature);
+				if (counter == COUNTERS.get(OVERFLOW_KEY) && !OVERFLOW_KEY.equals(entry.signature)) {
+					counter.count.add(entry.count);
+					continue;
+				}
 				counter.loaded = entry;
 				counter.count.add(entry.count);
 			}
@@ -201,13 +262,28 @@ public final class QueryStatistics {
 		final Path path = Path.of(file);
 		try {
 			final QueryStatReport report = buildReport();
-			final Path parent = path.toAbsolutePath().getParent();
-			if (parent != null) {
-				Files.createDirectories(parent);
+			final Path target = path.toAbsolutePath();
+			final Path parent = target.getParent();
+			Files.createDirectories(parent);
+			// Unpredictable private name in the same directory (never follows a planted link), then atomic move.
+			final boolean posix = parent.getFileSystem().supportedFileAttributeViews().contains("posix");
+			final String prefix = "." + target.getFileName() + ".";
+			final Path tmp = posix
+					? Files.createTempFile(parent, prefix, ".tmp", PosixFilePermissions.asFileAttribute(OWNER_FILE))
+					: Files.createTempFile(parent, prefix, ".tmp");
+			try {
+				try (OutputStream out = Files.newOutputStream(tmp, StandardOpenOption.WRITE,
+						StandardOpenOption.TRUNCATE_EXISTING)) {
+					new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValue(out, report);
+				}
+				try {
+					Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+				} catch (final AtomicMoveNotSupportedException ex) {
+					Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+				}
+			} finally {
+				Files.deleteIfExists(tmp);
 			}
-			final Path tmp = Path.of(path.toAbsolutePath() + ".tmp");
-			new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValue(tmp.toFile(), report);
-			Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING);
 			LOGGER.debug("Query statistics: flushed {} query shapes to {}", report.queries.size(), path);
 		} catch (final Exception ex) {
 			LOGGER.error("Query statistics: failed to write '{}': {}", path, ex.getMessage());

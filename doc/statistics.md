@@ -50,8 +50,17 @@ Reading the report
 ------------------
 
 The file is a `QueryStatReport`: `generatedAt` and a list of `queries` sorted by
-decreasing `count`. The write is atomic (temporary file then move), so it can be
-read while the server runs.
+decreasing `count`. The write is atomic (a temporary file with an unpredictable
+name, created in the same directory, then an atomic move), so it can be read
+while the server runs. The file is created `rw-------` (owner only) on a POSIX
+file system: keep it in a directory reserved to the service, never in a shared
+one such as `/tmp`.
+
+The number of distinct shapes is bounded (`QueryStatistics.setMaxEntries(int)`,
+10 000 by default). Beyond it, the new shapes are all counted in one entry whose
+`signature` is `__other__` (`QueryStatistics.OVERFLOW_KEY`), without
+description: filters built on dynamic keys cannot make the table grow without
+end.
 
 ```json
 {
@@ -118,6 +127,7 @@ Reference
 | | `flush()` | write the report now (also called by the schedule and the shutdown hook) |
 | | `buildReport()` | the current `QueryStatReport`, without writing it |
 | | `reset()` | drop the in-memory counters and stop the flush schedule, leave the file untouched; for tests |
+| | `setMaxEntries(int)`, `getMaxEntries()`, `DEFAULT_MAX_ENTRIES`, `OVERFLOW_KEY` | bound of the number of distinct shapes (10 000), key of the overflow entry |
 | `QuerySignature` | `of(collection, operation, filter, sort, softDeleteField)` | compute a shape |
 | | `getKey()`, `getCollection()`, `getOperation()`, `getEquality()`, `getSort()`, `getRange()`, `getSoftDeleteField()`, `isContainsOr()`, `getSuggestedIndex()` | read it |
 | `QueryStatReport` | `generatedAt`, `queries` | root of the file |

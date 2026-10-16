@@ -3,9 +3,11 @@ package test.atriasoft.archidata.statistic;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Stream;
 
 import org.atriasoft.archidata.cron.CronScheduler;
 import org.atriasoft.archidata.dataAccess.Filters;
@@ -213,5 +215,48 @@ public class TestQueryStatistics {
 				.toList();
 		Assertions.assertTrue(errors.isEmpty(), () -> "concurrent flushes failed: " + errors);
 		Assertions.assertTrue(Files.readString(file).contains("user|FIND|E:name|S:|R:"));
+	}
+
+	@Test
+	public void testFlushIsPrivateAndIgnoresAPlantedTmpLink() throws Exception {
+		// D-11: the old predictable "<file>.tmp" was followed if a local account planted a link there.
+		final Path file = this.tempDir.resolve("stats.json");
+		final Path victim = this.tempDir.resolve("victim.txt");
+		Files.writeString(victim, "untouched");
+		Files.createSymbolicLink(this.tempDir.resolve("stats.json.tmp"), victim);
+		ConfigBaseVariable.setQueryStatisticsFile(file.toString());
+		QueryStatistics.record("user", Operation.FIND, Filters.eq("name", "bob"), null, null);
+		QueryStatistics.flush();
+		Assertions.assertEquals("untouched", Files.readString(victim));
+		Assertions.assertTrue(Files.readString(file).contains("user|FIND|E:name|S:|R:"));
+		if (file.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+			Assertions.assertEquals("rw-------", PosixFilePermissions.toString(Files.getPosixFilePermissions(file)));
+		}
+		// No temporary file is left behind.
+		try (Stream<Path> files = Files.list(this.tempDir)) {
+			Assertions.assertEquals(0, files
+					.filter(it -> it.getFileName().toString().endsWith(".tmp") && !Files.isSymbolicLink(it)).count());
+		}
+	}
+
+	@Test
+	public void testNumberOfShapesIsBounded() {
+		ConfigBaseVariable.setQueryStatisticsFile(this.tempDir.resolve("stats.json").toString());
+		QueryStatistics.setMaxEntries(3);
+		try {
+			for (int iii = 0; iii < 10; iii++) {
+				QueryStatistics.record("user", Operation.FIND, Filters.eq("meta.key" + iii, 1), null, null);
+			}
+			final QueryStatReport report = QueryStatistics.buildReport();
+			// 3 distinct shapes, plus the overflow entry holding the 7 others.
+			Assertions.assertEquals(4, report.queries.size());
+			final QueryStatEntry overflow = report.queries.stream()
+					.filter(it -> QueryStatistics.OVERFLOW_KEY.equals(it.signature)).findFirst().orElseThrow();
+			Assertions.assertEquals(7, overflow.count);
+			Assertions.assertNull(overflow.collection);
+		} finally {
+			QueryStatistics.setMaxEntries(QueryStatistics.DEFAULT_MAX_ENTRIES);
+		}
+		Assertions.assertThrows(IllegalArgumentException.class, () -> QueryStatistics.setMaxEntries(0));
 	}
 }
