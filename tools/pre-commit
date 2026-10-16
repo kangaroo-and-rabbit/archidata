@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # get bash colors and styles here:
 # http://misc.flogisoft.com/bash/tip_colors_and_formatting
 C_RESET='\e[0m'
 C_RED='\e[31m'
-C_GREEN='\e[32m'
 C_YELLOW='\e[33m'
+C_GREEN='\e[32m'
 
-function __run() #(step, name, cmd)
+function __run() #(step, name, cmd...)
 {
-    local color output exitcode
+    local step="$1" name="$2" output exitcode
+    shift 2
 
-    printf "${C_YELLOW}[%s]${C_RESET} %-20s" "$1" "$2"
-    output=$(eval "$3" 2>&1)
-    exitcode=$?
+    printf "${C_YELLOW}[%s]${C_RESET} %-20s" "$step" "$name"
+    exitcode=0
+    output=$("$@" 2>&1) || exitcode=$?
 
-    if [[ 0 == $exitcode ]]; then
+    if [[ 0 == "$exitcode" ]]; then
         echo -e "${C_GREEN}OK!${C_RESET}"
     else
         echo -e "${C_RED}ERROR! (${exitcode})${C_RESET}\n\n$output"
@@ -23,5 +25,4 @@ function __run() #(step, name, cmd)
     fi
 }
 
-__run "1/1" "Check JAVA code format" "mvn formatter:validate"
-
+__run "1/1" "Check JAVA code format" mvn formatter:validate
