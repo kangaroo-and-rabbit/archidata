@@ -238,6 +238,32 @@ class TestDataTools {
 		}
 	}
 
+	@Test
+	void testDataResourceSaveTemporaryFileIsBounded() throws Exception {
+		final java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("archidata-tmp-bounded");
+		org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(dir.toString());
+		DataTools.setMaxUploadSize(16);
+		try {
+			final long id = org.atriasoft.archidata.api.DataResource.getTmpDataId();
+			final org.atriasoft.archidata.exception.FailException ex = Assertions.assertThrows(
+					org.atriasoft.archidata.exception.FailException.class,
+					() -> org.atriasoft.archidata.api.DataResource
+							.saveTemporaryFile(new java.io.ByteArrayInputStream(new byte[17]), id));
+			Assertions.assertEquals(jakarta.ws.rs.core.Response.Status.REQUEST_ENTITY_TOO_LARGE, ex.status);
+			Assertions.assertFalse(java.nio.file.Files.exists(java.nio.file.Paths.get(DataTools.getTmpFileInData(id))));
+			final long id2 = org.atriasoft.archidata.api.DataResource.getTmpDataId();
+			Assertions.assertEquals(128, org.atriasoft.archidata.api.DataResource
+					.saveTemporaryFile(new java.io.ByteArrayInputStream(new byte[16]), id2).length());
+			org.atriasoft.archidata.api.DataResource.removeTemporaryFile(id2);
+			Assertions
+					.assertFalse(java.nio.file.Files.exists(java.nio.file.Paths.get(DataTools.getTmpFileInData(id2))));
+		} finally {
+			DataTools.setMaxUploadSize(DataTools.DEFAULT_MAX_UPLOAD_SIZE);
+			org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(null);
+			java.nio.file.Files.deleteIfExists(dir);
+		}
+	}
+
 	// ===== content type detection of the uploads (W-17) =====
 
 	@Test

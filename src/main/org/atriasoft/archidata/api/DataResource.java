@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,8 +76,6 @@ import jakarta.ws.rs.core.StreamingOutput;
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
 	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	/** Buffer used to copy an uploaded stream (a 50 MiB one per request let a few uploads fill the heap). */
-	private static final int CHUNK_SIZE_IN = 64 * 1024;
 	/** How long the browser may keep a data without asking again.
 	 *
 	 * <p>
@@ -305,64 +302,36 @@ public class DataResource {
 	}
 
 	/**
-	 * Saves an input stream to a temporary file and returns its SHA-512 hash.
-	 * @param uploadedInputStream The input stream to save.
+	 * Saves an input stream to a temporary file and returns its SHA-512 hash, up to the upload limit
+	 * {@link DataTools#getMaxUploadSize()}: delegates to {@link DataTools#saveTemporaryFile(InputStream, long, long)}.
+	 * @param uploadedInputStream The input stream to save (closed at the end).
 	 * @param idData The temporary file identifier.
 	 * @return The SHA-512 hex string of the saved data.
-	 * @throws FailException If the file cannot be written.
+	 * @throws FailException HTTP 413 when the stream is larger than the upload limit (the file is removed), HTTP
+	 *                       500 when the file cannot be written.
 	 */
 	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData)
 			throws FailException {
-		return saveFile(uploadedInputStream, DataResource.getTmpFileInData(idData));
+		return DataTools.saveTemporaryFile(uploadedInputStream, idData, DataTools.getMaxUploadSize());
 	}
 
 	/**
-	 * Deletes a temporary file if it exists.
+	 * Deletes a temporary file if it exists: delegates to {@link DataTools#removeTemporaryFile(long)}.
 	 * @param idData The temporary file identifier.
 	 */
 	public static void removeTemporaryFile(final long idData) {
-		final String filepath = DataResource.getTmpFileInData(idData);
-		if (Files.exists(Paths.get(filepath))) {
-			try {
-				Files.delete(Paths.get(filepath));
-			} catch (final IOException e) {
-				LOGGER.error("Can not delete temporary file '{}': {}", Paths.get(filepath), e.getMessage(), e);
-			}
-		}
+		DataTools.removeTemporaryFile(idData);
 	}
 
-	// save uploaded file to a defined location on the server
+	/**
+	 * Saves an input stream to a file, up to the upload limit {@link DataTools#getMaxUploadSize()}.
+	 * @param uploadedInputStream The input stream to save (closed at the end).
+	 * @param serverLocation The destination file path.
+	 * @return The SHA-512 hex string of the saved data.
+	 * @throws FailException HTTP 413 when the stream is too large (the file is removed), HTTP 500 on write error.
+	 */
 	static String saveFile(final InputStream uploadedInputStream, final String serverLocation) throws FailException {
-		String out = "";
-		MessageDigest md = null;
-		try (OutputStream outpuStream = new FileOutputStream(new File(serverLocation))) {
-			md = MessageDigest.getInstance("SHA-512");
-		} catch (final IOException ex) {
-			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not write in temporary file", ex);
-		} catch (final NoSuchAlgorithmException ex) {
-			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not find sha512 algorithms", ex);
-		}
-		if (md != null) {
-			try (OutputStream outpuStream = new FileOutputStream(new File(serverLocation))) {
-				int read = 0;
-				final byte[] bytes = new byte[CHUNK_SIZE_IN];
-				while ((read = uploadedInputStream.read(bytes)) != -1) {
-					// logger.info("write {}", read);
-					md.update(bytes, 0, read);
-					outpuStream.write(bytes, 0, read);
-				}
-				LOGGER.info("Flush input stream ... {}", serverLocation);
-				outpuStream.flush();
-				// create the end of sha512
-				final byte[] sha512Digest = md.digest();
-				// convert in hexadecimal
-				out = bytesToHex(sha512Digest);
-				uploadedInputStream.close();
-			} catch (final IOException ex) {
-				throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not write in temporary file", ex);
-			}
-		}
-		return out;
+		return DataTools.saveFile(uploadedInputStream, serverLocation, DataTools.getMaxUploadSize());
 	}
 
 	/**
