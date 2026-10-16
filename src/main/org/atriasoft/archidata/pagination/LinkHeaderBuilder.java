@@ -16,6 +16,11 @@ import jakarta.ws.rs.core.UriBuilder;
  * <p>{@code prev} is omitted on the first page; {@code next} is omitted on the
  * last page. The other query parameters of the original request are preserved
  * so that filters such as {@code ?from=…&to=…} apply to every navigation link.
+ *
+ * <p>The links are relative references (path and query only, RFC 8288 §3.2): the
+ * scheme and the authority of the request URI come from the client's {@code Host}
+ * header, and are never copied into the response (a shared cache that ignores
+ * {@code Host} would otherwise serve links to an attacker's host).
  */
 public final class LinkHeaderBuilder {
 
@@ -24,28 +29,30 @@ public final class LinkHeaderBuilder {
 	/**
 	 * Builds the {@code Link} header value for the given pagination slice.
 	 *
-	 * @param requestUri the original request URI (path + query)
+	 * @param requestUri the original request URI (path + query); its scheme and
+	 *                   authority are dropped
 	 * @param page       the pagination result whose links must be built
 	 * @return the formatted {@code Link} header value (without the leading
 	 *         {@code Link:} prefix); never {@code null}
 	 */
 	public static String build(final URI requestUri, final Pagination<?> page) {
+		final URI base = toRelative(requestUri);
 		final long total = page.getTotal();
 		final long limit = page.getLimit();
 		final long offset = page.getOffset();
 		final long lastOffset = computeLastOffset(total, limit);
 
 		final List<String> links = new ArrayList<>(4);
-		links.add(formatLink(requestUri, 0L, limit, "first"));
+		links.add(formatLink(base, 0L, limit, "first"));
 		if (page.hasPrev()) {
 			final long prevOffset = Math.max(0L, offset - limit);
-			links.add(formatLink(requestUri, prevOffset, limit, "prev"));
+			links.add(formatLink(base, prevOffset, limit, "prev"));
 		}
 		if (page.hasNext()) {
 			final long nextOffset = offset + limit;
-			links.add(formatLink(requestUri, nextOffset, limit, "next"));
+			links.add(formatLink(base, nextOffset, limit, "next"));
 		}
-		links.add(formatLink(requestUri, lastOffset, limit, "last"));
+		links.add(formatLink(base, lastOffset, limit, "last"));
 		return String.join(", ", links);
 	}
 
@@ -67,6 +74,18 @@ public final class LinkHeaderBuilder {
 		}
 		final long fullPages = (total - 1L) / limit;
 		return fullPages * limit;
+	}
+
+	/**
+	 * Keeps only the path and the query of a URI (both kept in their encoded form).
+	 *
+	 * @param uri an absolute or relative URI
+	 * @return a relative reference {@code /path?query}
+	 */
+	static URI toRelative(final URI uri) {
+		final String path = uri.getRawPath() == null || uri.getRawPath().isEmpty() ? "/" : uri.getRawPath();
+		final String query = uri.getRawQuery();
+		return URI.create(query == null ? path : path + "?" + query);
 	}
 
 	private static String formatLink(final URI base, final long offset, final long limit, final String rel) {

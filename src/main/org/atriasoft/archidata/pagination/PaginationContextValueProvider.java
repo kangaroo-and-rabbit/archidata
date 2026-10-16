@@ -79,7 +79,9 @@ public class PaginationContextValueProvider implements ValueParamProvider {
 			// Clamp to what Skip accepts: such an offset is past any real collection (empty page).
 			return parsed >= 0L ? Math.min(parsed, Skip.MAX_VALUE) : fallback;
 		} catch (final NumberFormatException ex) {
-			LOGGER.warn("Ignoring non-numeric {} value '{}', falling back to {}", name, raw, fallback);
+			// The raw client value is not logged (log forging, size): only its length.
+			LOGGER.warn("Ignoring non-numeric {} value ({} characters), falling back to {}", name, raw.length(),
+					fallback);
 			return fallback;
 		}
 	}
@@ -97,7 +99,9 @@ public class PaginationContextValueProvider implements ValueParamProvider {
 			// Clamp oversized page requests so a single call can never pull an unbounded page.
 			return Math.min(parsed, PaginationContext.MAX_LIMIT);
 		} catch (final NumberFormatException ex) {
-			LOGGER.warn("Ignoring non-numeric {} value '{}', falling back to {}", name, raw, fallback);
+			// The raw client value is not logged (log forging, size): only its length.
+			LOGGER.warn("Ignoring non-numeric {} value ({} characters), falling back to {}", name, raw.length(),
+					fallback);
 			return fallback;
 		}
 	}

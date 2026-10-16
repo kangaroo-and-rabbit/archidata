@@ -101,4 +101,17 @@ class TestLinkHeaderBuilder {
 		final String link = LinkHeaderBuilder.build(BASE, page);
 		Assertions.assertTrue(link.contains("X-Pagination-Offset=0>; rel=\"last\""), link);
 	}
+
+	@Test
+	void linksAreRelativeAndIgnoreTheClientHost() {
+		// D-19: the authority of the request URI comes from the client's Host header.
+		final URI forged = URI.create("https://attacker.example.net:8443/api/foos?q=a%20b&from=x");
+		final Pagination<String> page = new Pagination<>(List.of("m"), 200L, 50L, 25L);
+		final String link = LinkHeaderBuilder.build(forged, page);
+		Assertions.assertFalse(link.contains("attacker"), link);
+		Assertions.assertFalse(link.contains("https:"), link);
+		Assertions.assertTrue(link.startsWith("</api/foos?"), link);
+		Assertions.assertTrue(link.contains("q=a%20b"), link);
+		Assertions.assertTrue(link.contains("from=x"), link);
+	}
 }

@@ -123,9 +123,9 @@ themselves.
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Total-Count: 1234
-Link: <https://api.example.com/foos?from=2026-01-01&offset=0&limit=50>; rel="first",
-      <https://api.example.com/foos?from=2026-01-01&offset=50&limit=50>; rel="next",
-      <https://api.example.com/foos?from=2026-01-01&offset=1200&limit=50>; rel="last"
+Link: </foos?from=2026-01-01&X-Pagination-Offset=0&X-Pagination-Limit=50>; rel="first",
+      </foos?from=2026-01-01&X-Pagination-Offset=50&X-Pagination-Limit=50>; rel="next",
+      </foos?from=2026-01-01&X-Pagination-Offset=1200&X-Pagination-Limit=50>; rel="last"
 
 [{"id": "…", "name": "…"}, {"id": "…", "name": "…"}, …]
 ```
@@ -133,6 +133,10 @@ Link: <https://api.example.com/foos?from=2026-01-01&offset=0&limit=50>; rel="fir
 - `X-Total-Count` reflects the number of items matching the request,
   ignoring pagination.
 - `Link` follows RFC 5988 with relations `first`, `prev`, `next`, `last`.
+  The links are relative references (path and query of the request, resolved by the client against
+  the request URI): the scheme and host of the request come from the client's `Host` header and are
+  never copied into the response.
+- A non-numeric offset or limit is logged as a WARN with its length only, never its raw value.
   `prev` is omitted on the first page; `next` is omitted on the last page.
   Other query parameters of the request are preserved.
 - The response body is a plain JSON array; there is no envelope.

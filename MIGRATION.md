@@ -337,6 +337,14 @@ refuse aussi `n > Integer.MAX_VALUE` (2^31 devenait négatif). L'offset de pagin
 **Comment migrer** : borner toute valeur client avant de construire `Limit` (`Math.clamp`), et appeler
 `Limit.setMaxValue(...)` au démarrage si une requête interne dépasse 10 000 documents.
 
+### En-tête `Link` de pagination relatif (D-19)
+
+Les liens `first` / `prev` / `next` / `last` de l'en-tête `Link` sont maintenant des références
+relatives (`</foos?X-Pagination-Offset=50&X-Pagination-Limit=25>`) : l'hôte et le schéma venaient de
+l'en-tête `Host` du client. Un client HTTP standard les résout contre l'URL de la requête ; un client
+qui utilisait le lien tel quel comme URL absolue doit le résoudre (`URI.resolve`). Le WARN d'une valeur
+de pagination non numérique ne contient plus la valeur brute, seulement sa longueur.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)
