@@ -12,70 +12,70 @@ Total : 64 constats, soit 0 CRITIQUE, 5 HAUTE, 17 MOYENNE, 25 BASSE, 17 INFO.
 
 | ID | Sévérité | Titre | Emplacement | Statut |
 |----|----------|-------|-------------|--------|
-| W-01 | HAUTE | SSRF : redirections suivies sans revalidation, DNS rebinding, plages IP manquantes | `tools/SsrfGuard.java:47-63`, `tools/DataTools.java:425-434,487-495`, `api/ProxyResource.java:45-53` | à corriger |
-| W-02 | HAUTE | XSS stocké via SVG servi en ligne sur l'origine de l'API, puis vol du jeton | `tools/DataTools.java:64-66,217`, `api/DataResource.java:465,611,797-803` | à corriger |
-| D1 | HAUTE | Plugins formatter et checkstyle déclarés comme dépendances compile : environ 70 jars d'outillage chez les consommateurs, dont des versions vulnérables | `pom.xml` (fin de `<dependencies>`) | à corriger |
-| D2 | HAUTE | jackson-databind/core 2.22.2 : 4 avis HIGH, corrigés en 2.22.3 | `pom.xml` (jackson) | à corriger |
-| W1 | HAUTE | `assign-pr-author` : action tierce en `@latest` avec un `GITHUB_TOKEN` en écriture | `.github/workflows/assign-pr-author.yml` | à corriger |
-| W-03 | MOYENNE | Audience JWT (`application`) jamais vérifiée : le point #7 était faussement coché | `filter/AuthenticationFilter.java:403` | à corriger (décision requise) |
-| W-04 | MOYENNE | DoS mémoire sur les téléchargements distants : lecture sans borne, contrôle `== 50 Mio` inopérant, pas de timeout | `tools/DataTools.java:434,443,495,502`, `api/ProxyResource.java:53` | à corriger |
-| W-05 | MOYENNE | Upload sans taille maximale, fichiers temporaires orphelins | `api/DataResource.java:334-365`, `tools/DataTools.java:448-457,506-515,554-579` | à corriger |
-| W-06 | MOYENNE | Bombe de décompression et coût CPU des vignettes | `api/DataResource.java:521-531` | à corriger |
-| W-07 | MOYENNE | `Data` lisible par tout USER sans contrôle de propriétaire, état du générateur d'ObjectId divulgué dans chaque erreur | `api/DataResource.java:441-470,587-613`, `catcher/RestErrorResponse.java:23` | à corriger (décision requise) |
-| W-08 | MOYENNE | Mass assignment : `@ApiReadOnly` ignoré à l'insertion | `dataAccess/DBAccessMongo.java:1319-1344`, `model/User.java:44,47` | à corriger |
-| W-09 | MOYENNE | Jeton en query string (`@PermitTokenInURI`), jeton à pleins pouvoirs (#8) | `filter/AuthenticationFilter.java:207-218`, `api/DataResource.java:443,485,589` | à corriger (décision requise) |
-| W-10 | MOYENNE | Deux compteurs temporaires indépendants et non atomiques dans le même dossier | `api/DataResource.java:87,104`, `tools/DataTools.java:60,89,112` | à corriger |
-| D-01 | MOYENNE | `updateById` sans `FilterValue` réécrit (efface ou écrase) les champs `@DataNotRead` et `@DataEncrypt` | `dataAccess/DBAccessMongo.java:580`, `dataAccess/model/codec/MongoFieldCodec.java:65-68`, `dataAccess/commonTools/ManyToManyTools.java:142-156` | à corriger |
-| D-02 | MOYENNE | `@DataNotRead` ignoré dans les sous-objets embarqués | `dataAccess/model/codec/MongoCodecFactory.java:491-530` | à corriger |
-| D-03 | MOYENNE | Le journal de changements copie les documents bruts (secrets) et les garde sans limite | `journal/ChangeJournalEngine.java:256,415-448` | à corriger |
-| D-04 | MOYENNE | Archives de sauvegarde en clair, permissions par défaut, sans intégrité | `backup/BackupEngine.java:213,767-778` | à corriger (décision requise) |
-| W2 | MOYENNE | Aucun bloc `permissions:` dans maven.yml, check-title.yml, assign-pr-author.yml alors que le défaut du dépôt est l'écriture | `.github/workflows/` | à corriger |
-| W3 | MOYENNE | docs.yml : `pages: write` et `id-token: write` accordés au job `build` | `.github/workflows/docs.yml` | à corriger |
-| R1 | MOYENNE | `release.bash` : `versions:use-latest-releases` sans revue (jalons possibles), puis déploiement | `.island/release.bash`, `deliver` | à corriger |
-| E1 | MOYENNE | Environnement de dev : mongo-express sans authentification, Mongo root exposé sur toutes les interfaces | `env_dev/docker-compose.yml`, `env_dev_arch/docker-compose.yaml` | à corriger |
-| D3 | MOYENNE | Dépendances en retard : mongodb-driver 5.3.1 (5.13.0), tika 4.0.0, twelvemonkeys 3.14.0 | `pom.xml` | à corriger |
-| W-11 | BASSE | Path traversal par préfixe de répertoire frère dans `FrontGeneric` (#3 partiel) | `api/FrontGeneric.java:45-47` | à corriger |
-| W-12 | BASSE | CORS `*` avec `Allow-Credentials: true` (#6) | `filter/CORSFilter.java:36,43`, `api/ProxyResource.java:53` | à corriger (décision requise) |
-| W-13 | BASSE | Fuite d'informations dans les réponses d'erreur (messages bruts, noms de classes) | `catcher/ExceptionCatcher.java:36`, `catcher/RequestBodyExceptionCatcher.java:29`, `catcher/JacksonExceptionCatcher.java:36`, `filter/AuthenticationFilter.java:238,257`, `tools/DataTools.java:420-455` | à corriger |
-| W-14 | BASSE | Clé publique SSO : HTTP accepté, pas de timeout, `SSO_TOKEN` en clair (#15) | `tools/JWTWrapper.java:99-134` | à corriger |
-| W-15 | BASSE | Rechargement de la clé SSO déclenchable par un anonyme | `tools/JWTWrapper.java:283,291`, `UpdateJwtPublicKey.java:81-83` | à corriger |
-| W-16 | BASSE | Validation JWT incomplète : `exp` absent donne une NPE, `nbf`/`typ`/`kid` non vérifiés, pas de révocation (#16) | `tools/JWTWrapper.java:294-309` | à corriger |
-| W-17 | BASSE | `uploadCover` sans contrôle du contenu, type MIME déduit de l'extension (#13 partiel) | `tools/DataTools.java:593-633,205-223,567` | à corriger |
-| W-18 | BASSE | Swagger / OpenAPI publics, Swagger UI chargé depuis un CDN sans SRI (#18) | `api/openApiResource.java`, `api/SwaggerUiExternal.java` | à corriger (décision requise) |
-| W-19 | BASSE | Aucun en-tête de sécurité HTTP | global (`filter/CORSFilter.java` seul filtre de réponse) | à corriger |
-| W-20 | BASSE | Fuite possible de descripteurs `RandomAccessFile` (à vérifier) | `api/DataResource.java:812-825` | à corriger |
-| D-05 | BASSE | Restauration d'une archive non fiable : préfixe frère, pas de borne de taille, réécriture libre de la base | `backup/BackupEngine.java:720,738-745,435-439,466-500` | à corriger |
-| D-06 | BASSE | Expansion des relations sans borne de profondeur ni détection de cycle | `dataAccess/addOn/AddOnManyToOneDoc.java:191`, `dataAccess/LazyGetterCollector.java:134` | à corriger |
-| D-07 | BASSE | `Limit` non validé, `Skip`/`Limit` tronqués en `int` | `dataAccess/options/Limit.java:15`, `dataAccess/DBAccessMongo.java:1623,1630,2323` | à corriger |
-| D-08 | BASSE | Primitives d'injection exposées sans garde (`eq` sans `$eq`, noms de champs et de tri libres, `regex`, `where`) | `dataAccess/Filters.java:79,495,564`, `dataAccess/options/OrderBy.java:139` | à corriger |
-| D-09 | BASSE | Logs TRACE des valeurs de filtres et documents, `toJson` calculé même hors TRACE | `dataAccess/DBAccessMongo.java:1600,1645` | à corriger |
-| D-10 | BASSE | Messages du driver (valeurs E11000) renvoyés au client | `dataAccess/DBAccessMongo.java:1356,1666,1782`, `catcher/ExceptionCatcher.java:35` | à corriger |
-| D-11 | BASSE | QueryStatistics : fichier `.tmp` prévisible suivant les liens symboliques, table non bornée | `dataAccess/statistic/QueryStatistics.java:105,208-210` | à corriger |
-| D-12 | BASSE | Migrations sans verrou distribué ni tri explicite de la dernière migration | `migration/MigrationEngine.java:68,85,139` | à corriger (décision requise) |
-| D-13 | BASSE | Connexion DB : `root` et `authSource=admin` par défaut, URL mal échappée, pas de TLS | `tools/ConfigBaseVariable.java:478`, `db/DbConfig.java:203-216` | à corriger |
-| D-14 | BASSE | Chiffrement de champ : pas d'AAD, pas d'identifiant de clé, phrase de passe acceptée comme clé | `crypto/CryptoTools.java:58-62`, `crypto/EncryptedEnvelope.java:41-49`, `crypto/KeyMaterialLoader.java:48-60` | à corriger (décision requise) |
-| D-15 | BASSE | Logs INFO des en-têtes HTTP (`Authorization`), des corps et du principal | `tools/RESTApiRequest.java:485-488,629,645-650`, `filter/MySecurityContext.java:220-223` | à corriger |
-| S1 | BASSE | `configure_precommit.bash` lie un fichier inexistant ; `pre-commit` utilise `eval` | `tools/` | à corriger |
+| W-01 | HAUTE | SSRF : redirections suivies sans revalidation, DNS rebinding, plages IP manquantes | `tools/SsrfGuard.java:47-63`, `tools/DataTools.java:425-434,487-495`, `api/ProxyResource.java:45-53` | corrigé (fa882999) |
+| W-02 | HAUTE | XSS stocké via SVG servi en ligne sur l'origine de l'API, puis vol du jeton | `tools/DataTools.java:64-66,217`, `api/DataResource.java:465,611,797-803` | corrigé (f170dd0f) |
+| D1 | HAUTE | Plugins formatter et checkstyle déclarés comme dépendances compile : environ 70 jars d'outillage chez les consommateurs, dont des versions vulnérables | `pom.xml` (fin de `<dependencies>`) | corrigé (4a2f709f) |
+| D2 | HAUTE | jackson-databind/core 2.22.2 : 4 avis HIGH, corrigés en 2.22.3 | `pom.xml` (jackson) | corrigé (037be859) |
+| W1 | HAUTE | `assign-pr-author` : action tierce en `@latest` avec un `GITHUB_TOKEN` en écriture | `.github/workflows/assign-pr-author.yml` | corrigé (65cccbd5) |
+| W-03 | MOYENNE | Audience JWT (`application`) jamais vérifiée : le point #7 était faussement coché | `filter/AuthenticationFilter.java:403` | corrigé (2d97212d) |
+| W-04 | MOYENNE | DoS mémoire sur les téléchargements distants : lecture sans borne, contrôle `== 50 Mio` inopérant, pas de timeout | `tools/DataTools.java:434,443,495,502`, `api/ProxyResource.java:53` | corrigé (53814528) |
+| W-05 | MOYENNE | Upload sans taille maximale, fichiers temporaires orphelins | `api/DataResource.java:334-365`, `tools/DataTools.java:448-457,506-515,554-579` | corrigé (015dffe8) |
+| W-06 | MOYENNE | Bombe de décompression et coût CPU des vignettes | `api/DataResource.java:521-531` | corrigé (0876f664) |
+| W-07 | MOYENNE | `Data` lisible par tout USER sans contrôle de propriétaire, état du générateur d'ObjectId divulgué dans chaque erreur | `api/DataResource.java:441-470,587-613`, `catcher/RestErrorResponse.java:23` | décision requise |
+| W-08 | MOYENNE | Mass assignment : `@ApiReadOnly` ignoré à l'insertion | `dataAccess/DBAccessMongo.java:1319-1344`, `model/User.java:44,47` | corrigé (c8acbc1f) |
+| W-09 | MOYENNE | Jeton en query string (`@PermitTokenInURI`), jeton à pleins pouvoirs (#8) | `filter/AuthenticationFilter.java:207-218`, `api/DataResource.java:443,485,589` | reporté : prochaine version, voir plans/2026-10-16-urgent-media-token-url.md |
+| W-10 | MOYENNE | Deux compteurs temporaires indépendants et non atomiques dans le même dossier | `api/DataResource.java:87,104`, `tools/DataTools.java:60,89,112` | corrigé (6eee0980) |
+| D-01 | MOYENNE | `updateById` sans `FilterValue` réécrit (efface ou écrase) les champs `@DataNotRead` et `@DataEncrypt` | `dataAccess/DBAccessMongo.java:580`, `dataAccess/model/codec/MongoFieldCodec.java:65-68`, `dataAccess/commonTools/ManyToManyTools.java:142-156` | corrigé (c39d9563, 4b012ac8) |
+| D-02 | MOYENNE | `@DataNotRead` ignoré dans les sous-objets embarqués | `dataAccess/model/codec/MongoCodecFactory.java:491-530` | corrigé (10ce489a) |
+| D-03 | MOYENNE | Le journal de changements copie les documents bruts (secrets) et les garde sans limite | `journal/ChangeJournalEngine.java:256,415-448` | corrigé (8eeee7a0) |
+| D-04 | MOYENNE | Archives de sauvegarde en clair, permissions par défaut, sans intégrité | `backup/BackupEngine.java:213,767-778` | partiel (a2cb594a) : archives en 0600 et somme SHA-256, mais toujours en clair (pas de chiffrement) |
+| W2 | MOYENNE | Aucun bloc `permissions:` dans maven.yml, check-title.yml, assign-pr-author.yml alors que le défaut du dépôt est l'écriture | `.github/workflows/` | corrigé (171f641a, 50fe5852, 65cccbd5) |
+| W3 | MOYENNE | docs.yml : `pages: write` et `id-token: write` accordés au job `build` | `.github/workflows/docs.yml` | corrigé (19a75948) |
+| R1 | MOYENNE | `release.bash` : `versions:use-latest-releases` sans revue (jalons possibles), puis déploiement | `.island/release.bash`, `deliver` | corrigé (56f527ad) |
+| E1 | MOYENNE | Environnement de dev : mongo-express sans authentification, Mongo root exposé sur toutes les interfaces | `env_dev/docker-compose.yml`, `env_dev_arch/docker-compose.yaml` | corrigé (2c65bcca) |
+| D3 | MOYENNE | Dépendances en retard : mongodb-driver 5.3.1 (5.13.0), tika 4.0.0, twelvemonkeys 3.14.0 | `pom.xml` | corrigé (74cb11aa, 5cf5c6c8, 04369731) |
+| W-11 | BASSE | Path traversal par préfixe de répertoire frère dans `FrontGeneric` (#3 partiel) | `api/FrontGeneric.java:45-47` | corrigé (bb5253cd) |
+| W-12 | BASSE | CORS `*` avec `Allow-Credentials: true` (#6) | `filter/CORSFilter.java:36,43`, `api/ProxyResource.java:53` | corrigé (aa8cdf0a, 722e3b1b) |
+| W-13 | BASSE | Fuite d'informations dans les réponses d'erreur (messages bruts, noms de classes) | `catcher/ExceptionCatcher.java:36`, `catcher/RequestBodyExceptionCatcher.java:29`, `catcher/JacksonExceptionCatcher.java:36`, `filter/AuthenticationFilter.java:238,257`, `tools/DataTools.java:420-455` | corrigé (06160575) |
+| W-14 | BASSE | Clé publique SSO : HTTP accepté, pas de timeout, `SSO_TOKEN` en clair (#15) | `tools/JWTWrapper.java:99-134` | corrigé (d00c347c) |
+| W-15 | BASSE | Rechargement de la clé SSO déclenchable par un anonyme | `tools/JWTWrapper.java:283,291`, `UpdateJwtPublicKey.java:81-83` | corrigé (d00c347c) |
+| W-16 | BASSE | Validation JWT incomplète : `exp` absent donne une NPE, `nbf`/`typ`/`kid` non vérifiés, pas de révocation (#16) | `tools/JWTWrapper.java:294-309` | corrigé (3230dc6a) |
+| W-17 | BASSE | `uploadCover` sans contrôle du contenu, type MIME déduit de l'extension (#13 partiel) | `tools/DataTools.java:593-633,205-223,567` | corrigé (b0cb910d) |
+| W-18 | BASSE | Swagger / OpenAPI publics, Swagger UI chargé depuis un CDN sans SRI (#18) | `api/openApiResource.java`, `api/SwaggerUiExternal.java` | corrigé (d264cb3d, 602d6230) |
+| W-19 | BASSE | Aucun en-tête de sécurité HTTP | global (`filter/CORSFilter.java` seul filtre de réponse) | corrigé (1cda850c) |
+| W-20 | BASSE | Fuite possible de descripteurs `RandomAccessFile` (à vérifier) | `api/DataResource.java:812-825` | corrigé (37a8a846) |
+| D-05 | BASSE | Restauration d'une archive non fiable : préfixe frère, pas de borne de taille, réécriture libre de la base | `backup/BackupEngine.java:720,738-745,435-439,466-500` | corrigé (b48e6f22) |
+| D-06 | BASSE | Expansion des relations sans borne de profondeur ni détection de cycle | `dataAccess/addOn/AddOnManyToOneDoc.java:191`, `dataAccess/LazyGetterCollector.java:134` | corrigé (4ccab53f) |
+| D-07 | BASSE | `Limit` non validé, `Skip`/`Limit` tronqués en `int` | `dataAccess/options/Limit.java:15`, `dataAccess/DBAccessMongo.java:1623,1630,2323` | corrigé (8103ae55) |
+| D-08 | BASSE | Primitives d'injection exposées sans garde (`eq` sans `$eq`, noms de champs et de tri libres, `regex`, `where`) | `dataAccess/Filters.java:79,495,564`, `dataAccess/options/OrderBy.java:139` | corrigé (65ba4042) |
+| D-09 | BASSE | Logs TRACE des valeurs de filtres et documents, `toJson` calculé même hors TRACE | `dataAccess/DBAccessMongo.java:1600,1645` | corrigé (04e0cad2) |
+| D-10 | BASSE | Messages du driver (valeurs E11000) renvoyés au client | `dataAccess/DBAccessMongo.java:1356,1666,1782`, `catcher/ExceptionCatcher.java:35` | corrigé (06160575) |
+| D-11 | BASSE | QueryStatistics : fichier `.tmp` prévisible suivant les liens symboliques, table non bornée | `dataAccess/statistic/QueryStatistics.java:105,208-210` | corrigé (01ccd51a) |
+| D-12 | BASSE | Migrations sans verrou distribué ni tri explicite de la dernière migration | `migration/MigrationEngine.java:68,85,139` | décision requise |
+| D-13 | BASSE | Connexion DB : `root` et `authSource=admin` par défaut, URL mal échappée, pas de TLS | `tools/ConfigBaseVariable.java:478`, `db/DbConfig.java:203-216` | corrigé (7474c25d) |
+| D-14 | BASSE | Chiffrement de champ : pas d'AAD, pas d'identifiant de clé, phrase de passe acceptée comme clé | `crypto/CryptoTools.java:58-62`, `crypto/EncryptedEnvelope.java:41-49`, `crypto/KeyMaterialLoader.java:48-60` | décision requise |
+| D-15 | BASSE | Logs INFO des en-têtes HTTP (`Authorization`), des corps et du principal | `tools/RESTApiRequest.java:485-488,629,645-650`, `filter/MySecurityContext.java:220-223` | corrigé (430c71b5) |
+| S1 | BASSE | `configure_precommit.bash` lie un fichier inexistant ; `pre-commit` utilise `eval` | `tools/` | corrigé (b0876dad) |
 | S2 | BASSE | jdtls : PID, log, socket, workspace prévisibles dans /tmp, `.pyc` versionné, chemins absolus | `tools/claude/jdtls/` | à corriger |
-| P1 | BASSE | `maven-assembly-plugin` sans version, mainClass factice, `scm` en `git://` et `ssh:` mal formé | `pom.xml` | à corriger |
-| P2 | BASSE | SpotBugs sans FindSecBugs, pas de scan de dépendances en CI | `pom.xml`, `.github/workflows/maven.yml` | à corriger |
-| W-21 | INFO | Pas de limitation de débit (#12) | global | à corriger |
-| W-22 | INFO | `RESTApiRequest` : jeton journalisé avec `showIOStream`, pas de timeouts, en-têtes multipart non échappés | `tools/RESTApiRequest.java:355,431,448,285-292,629` | à corriger |
-| W-23 | INFO | Annotations de sécurité au niveau classe ignorées (sûr par défaut), `ProxyResource` toujours 403 | `filter/AuthenticationFilter.java:182-201`, `annotation/AnnotationTools.java:59-73` | à corriger |
-| W-24 | INFO | Divers : `isSecure()` derrière un proxy, `@RightAllowed(access=NONE)` toujours vrai, champs JWK non `volatile` | `filter/MySecurityContext.java:342,366`, `tools/JWTWrapper.java:47-48` | à corriger |
-| S-01 | INFO | Sample `basic` sûr dans l'ensemble, mais reprend CORS `*` ; `WebLauncherLocal` à ne jamais déployer | `sample/archidata/basic/` | à corriger |
-| D-16 | INFO | Les change streams livrent le document brut (champs `@DataNotRead`) | `dataStreamEvent/ChangeStreamWorker.java:217`, `dataStreamEvent/ChangeEvent.java:252` | à corriger |
-| D-17 | INFO | Pas de garde contre les écritures de masse (`Condition` vide accepté) | `dataAccess/DBAccessMongo.java:2391-2394`, `dataAccess/options/Condition.java` | à corriger |
-| D-18 | INFO | Valeur `@InitValue` écrite sans codec : en clair sur un champ `@DataEncrypt` | `dataAccess/DBAccessMongo.java:1340` | à corriger |
-| D-19 | INFO | Pagination : valeur brute dans un log WARN, en-tête `Link` construit depuis `Host` | `pagination/PaginationContextValueProvider.java:80,98`, `pagination/LinkHeaderBuilder.java:73` | à corriger |
-| D-20 | INFO | Durcissements divers : verrou de configuration contournable, `EncryptionKeyStore.register`, clé en variable d'environnement, MGF1-SHA1, index unique sur champ chiffré | `tools/ConfigBaseVariable.java:30-31,79,394`, `crypto/EncryptionKeyStore.java:45`, `crypto/RsaCipherProvider.java:20` | à corriger |
-| W4 | INFO | Actions GitHub non épinglées par SHA | tous les workflows | à corriger |
+| P1 | BASSE | `maven-assembly-plugin` sans version, mainClass factice, `scm` en `git://` et `ssh:` mal formé | `pom.xml` | corrigé (45ce2f9f) |
+| P2 | BASSE | SpotBugs sans FindSecBugs, pas de scan de dépendances en CI | `pom.xml`, `.github/workflows/maven.yml` | partiel (171f641a) : scan OSV informatif ajouté, FindSecBugs reste commenté |
+| W-21 | INFO | Pas de limitation de débit (#12) | global | documenté (e6ec6057) |
+| W-22 | INFO | `RESTApiRequest` : jeton journalisé avec `showIOStream`, pas de timeouts, en-têtes multipart non échappés | `tools/RESTApiRequest.java:355,431,448,285-292,629` | corrigé (44c0e709) |
+| W-23 | INFO | Annotations de sécurité au niveau classe ignorées (sûr par défaut), `ProxyResource` toujours 403 | `filter/AuthenticationFilter.java:182-201`, `annotation/AnnotationTools.java:59-73` | documenté (e6ec6057) |
+| W-24 | INFO | Divers : `isSecure()` derrière un proxy, `@RightAllowed(access=NONE)` toujours vrai, champs JWK non `volatile` | `filter/MySecurityContext.java:342,366`, `tools/JWTWrapper.java:47-48` | corrigé (d00c347c), documenté (e6ec6057) |
+| S-01 | INFO | Sample `basic` sûr dans l'ensemble, mais reprend CORS `*` ; `WebLauncherLocal` à ne jamais déployer | `sample/archidata/basic/` | corrigé (e071758a) |
+| D-16 | INFO | Les change streams livrent le document brut (champs `@DataNotRead`) | `dataStreamEvent/ChangeStreamWorker.java:217`, `dataStreamEvent/ChangeEvent.java:252` | documenté (3cfa478e) |
+| D-17 | INFO | Pas de garde contre les écritures de masse (`Condition` vide accepté) | `dataAccess/DBAccessMongo.java:2391-2394`, `dataAccess/options/Condition.java` | corrigé (5616c04c) |
+| D-18 | INFO | Valeur `@InitValue` écrite sans codec : en clair sur un champ `@DataEncrypt` | `dataAccess/DBAccessMongo.java:1340` | corrigé (50c12f06) |
+| D-19 | INFO | Pagination : valeur brute dans un log WARN, en-tête `Link` construit depuis `Host` | `pagination/PaginationContextValueProvider.java:80,98`, `pagination/LinkHeaderBuilder.java:73` | corrigé (2978378b) |
+| D-20 | INFO | Durcissements divers : verrou de configuration contournable, `EncryptionKeyStore.register`, clé en variable d'environnement, MGF1-SHA1, index unique sur champ chiffré | `tools/ConfigBaseVariable.java:30-31,79,394`, `crypto/EncryptionKeyStore.java:45`, `crypto/RsaCipherProvider.java:20` | partiel (6ae97026) : MGF1-SHA-256 non appliqué, lié à D-14 |
+| W4 | INFO | Actions GitHub non épinglées par SHA | tous les workflows | corrigé (171f641a, 19a75948, 50fe5852) |
 | W5 | INFO | maven.yml : mot de passe Mongo de CI en clair, image `mongo:latest` | `.github/workflows/maven.yml` | à corriger |
 | T1 | INFO | Mot de passe de test `base_db_password` (dev et CI uniquement) | docker-compose, `AGENTS.md`, `ConfigureDb`, sample | à corriger |
 | T2 | INFO | Fichiers parasites versionnés (`res.txt`, `.ts` de 18 Mo, `.pyc`, config IDE) | racine | à corriger |
 | A1 | INFO | Fichiers pour IA (`llms.txt`, `AGENTS.md`, `context7.json`, plugin) : rien de dangereux | racine, `claude-plugin/` | à corriger |
 | A2 | INFO | `SKILL.md` écrit dans un /tmp prévisible | `claude-plugin/archidata/skills/archidata/SKILL.md` | à corriger |
-| V1 | INFO | Restauration tar : contrôle de chemin par `startsWith` sans séparateur (doublon de D-05) | `backup/BackupEngine.java:720` | à corriger |
+| V1 | INFO | Restauration tar : contrôle de chemin par `startsWith` sans séparateur (doublon de D-05) | `backup/BackupEngine.java:720` | corrigé (b48e6f22, doublon de D-05) |
 
 Les constats marqués « décision requise » changent un comportement sur lequel s'appuient les applications : le propriétaire doit trancher avant la correction.
 
@@ -192,6 +192,8 @@ Les constats marqués « décision requise » changent un comportement sur leque
 
 ### Statut revérifié des points de l'audit d'avril 2026
 
+Mise à jour après les correctifs du 2026-10-16 : #3, #6, #7, #10, #11, #13, #14, #15 et #18 sont corrigés (voir W-11, W-12, W-03, W-01, W-02/W-17, W-13, W-14, W-18). Restent ouverts #8 (reporté, W-09), #12 (à la charge de l'application, W-21) et #16 (révocation absente ; `exp` et `nbf` vérifiés par W-16). Le texte ci-dessous est l'état constaté à l'ouverture de l'audit.
+
 Rouverts le 2026-10-16 : #3 (partiel, W-11), #7 (jamais corrigé, W-03), #10 et #11 (garde SSRF contournable, W-01), #13 (partiel, W-02 et W-17), #14 (partiel, W-13). Restent ouverts #6 (W-12), #8 (W-09), #12 (W-21), #15 (W-14), #16 (W-16), #18 (W-18). Confirmés corrigés : #1, #2, #4, #5, #9, #17 (dans le filtre ; reste le cas opt-in de `RESTApiRequest`, voir W-22), #19.
 
 ---
@@ -202,12 +204,12 @@ Rouverts le 2026-10-16 : #3 (partiel, W-11), #7 (jamais corrigé, W-03), #10 et 
 
 ### Corrigées
 - [x] #2 - `Math.random()` pour génération de tokens (CRITIQUE)
-- [ ] #3 - Path Traversal dans FrontGeneric.java (HIGH) (rouvert le 2026-10-16 : voir W-11)
+- [x] #3 - Path Traversal dans FrontGeneric.java (HIGH) (corrigé le 2026-10-16, voir W-11)
 - [x] #5 - Mot de passe DB dans DbConfig.toString() (HIGH)
-- [ ] #7 - Validation audience JWT jamais faite (HIGH) (rouvert le 2026-10-16 : voir W-03)
-- [ ] #10 - SSRF sans protection dans uploadDataFromUri (MEDIUM) (rouvert le 2026-10-16 : voir W-01)
-- [ ] #11 - SSRF bypass dans ProxyResource (MEDIUM) (rouvert le 2026-10-16 : voir W-01)
-- [ ] #13 - Upload fichiers sans validation type (MEDIUM) (rouvert le 2026-10-16 : voir W-02, W-17)
+- [x] #7 - Validation audience JWT jamais faite (HIGH) (corrigé le 2026-10-16, voir W-03)
+- [x] #10 - SSRF sans protection dans uploadDataFromUri (MEDIUM) (corrigé le 2026-10-16, voir W-01)
+- [x] #11 - SSRF bypass dans ProxyResource (MEDIUM) (corrigé le 2026-10-16, voir W-01)
+- [x] #13 - Upload fichiers sans validation type (MEDIUM) (corrigé le 2026-10-16, voir W-02, W-17)
 - [x] #17 - Tokens JWT complets dans les logs (LOW)
 
 ### Corrigées (cette itération)
@@ -215,16 +217,16 @@ Rouverts le 2026-10-16 : #3 (partiel, W-11), #7 (jamais corrigé, W-03), #10 et 
 - [x] #9 - Champs ConfigBaseVariable privés + setters avec lock/unlock sécurisé - voir MIGRATION.md
 
 - [x] #4 - Mot de passe DB par défaut supprimé, crash si non configuré
-- [ ] #14 - Noms de classes Java supprimés des erreurs client (message conservé, OID pour corrélation logs) (rouvert le 2026-10-16 : voir W-13)
+- [x] #14 - Noms de classes Java supprimés des erreurs client (message conservé, OID pour corrélation logs) (corrigé le 2026-10-16, voir W-13)
 - [x] #19 - Défaut API changé de 0.0.0.0:80 à localhost:80
 
 ### À faire (prochaine itération)
-- [ ] #6 - CORS wildcard * - CORSFilter.java:33-38
-- [ ] #8 - JWT dans les query parameters - AuthenticationFilter.java:145-155
-- [ ] #12 - Pas de rate limiting sur l'authentification
-- [ ] #15 - SSO public key potentiellement en HTTP - JWTWrapper.java:108-143
-- [ ] #16 - Pas de révocation JWT (pas de jti) - JWTWrapper.java
-- [ ] #18 - Swagger UI exposé en prod - openApiResource.java
+- [x] #6 - CORS wildcard * - CORSFilter.java:33-38 (corrigé le 2026-10-16, voir W-12)
+- [ ] #8 - JWT dans les query parameters - AuthenticationFilter.java:145-155 (reporté, voir W-09)
+- [ ] #12 - Pas de rate limiting sur l'authentification (documenté comme à la charge de l'application, voir W-21)
+- [x] #15 - SSO public key potentiellement en HTTP - JWTWrapper.java:108-143 (corrigé le 2026-10-16, voir W-14)
+- [ ] #16 - Pas de révocation JWT (pas de jti) - JWTWrapper.java (exp obligatoire et nbf vérifié depuis W-16, révocation toujours absente)
+- [x] #18 - Swagger UI exposé en prod - openApiResource.java (corrigé le 2026-10-16, voir W-18)
 
 ### Dépendances
 - [x] webp-imageio:0.2.2 - SUPPRIMÉ (libwebp native de 2021, vulnérable CVE-2023-4863). Lecture WebP couverte par TwelveMonkeys. Écriture WebP (thumbnails) à réintégrer quand une alternative safe existe.
