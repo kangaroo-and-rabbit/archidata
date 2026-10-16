@@ -1624,14 +1624,14 @@ public class DBAccessMongo implements Closeable {
 
 			final List<Skip> skips = options.get(Skip.class);
 			if (skips.size() == 1) {
-				retFind = retFind.skip((int) skips.get(0).getValue());
+				retFind = retFind.skip(Math.toIntExact(skips.get(0).getValue()));
 			} else if (skips.size() > 1) {
 				throw new DataAccessException("Request with multiple 'skip'...");
 			}
 
 			final List<Limit> limits = options.get(Limit.class);
 			if (limits.size() == 1) {
-				retFind = retFind.limit((int) limits.get(0).getValue());
+				retFind = retFind.limit(Math.toIntExact(limits.get(0).getValue()));
 			} else if (limits.size() > 1) {
 				throw new DataAccessException("Request with multiple 'limit'...");
 			}
@@ -2340,7 +2340,7 @@ public class DBAccessMongo implements Closeable {
 			// Apply limit
 			final List<Limit> limits = queryOptions.get(Limit.class);
 			if (!limits.isEmpty()) {
-				cursor = cursor.limit((int) limits.get(0).getValue());
+				cursor = cursor.limit(Math.toIntExact(limits.get(0).getValue()));
 			}
 
 			final List<Document> results = new ArrayList<>();

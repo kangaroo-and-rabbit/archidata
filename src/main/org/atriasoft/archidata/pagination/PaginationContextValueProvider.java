@@ -3,6 +3,7 @@ package org.atriasoft.archidata.pagination;
 import java.util.function.Function;
 
 import org.atriasoft.archidata.dataAccess.model.PaginationContext;
+import org.atriasoft.archidata.dataAccess.options.Skip;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.model.Parameter;
 import org.glassfish.jersey.server.spi.internal.ValueParamProvider;
@@ -75,7 +76,8 @@ public class PaginationContextValueProvider implements ValueParamProvider {
 		}
 		try {
 			final long parsed = Long.parseLong(raw);
-			return parsed >= 0L ? parsed : fallback;
+			// Clamp to what Skip accepts: such an offset is past any real collection (empty page).
+			return parsed >= 0L ? Math.min(parsed, Skip.MAX_VALUE) : fallback;
 		} catch (final NumberFormatException ex) {
 			LOGGER.warn("Ignoring non-numeric {} value '{}', falling back to {}", name, raw, fallback);
 			return fallback;

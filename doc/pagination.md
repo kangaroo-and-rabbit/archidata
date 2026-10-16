@@ -104,7 +104,7 @@ Wire format
 
 | Header | Type | Default | Meaning |
 |---|---|--:|---|
-| `X-Pagination-Offset` | long, ≥ 0 | `0` | Number of items to skip before the page |
+| `X-Pagination-Offset` | long, ≥ 0 | `0` | Number of items to skip before the page; clamped to `Skip.MAX_VALUE` (`Integer.MAX_VALUE`) |
 | `X-Pagination-Limit`  | long, > 0 | `50` | Maximum number of items in the page; clamped to `PaginationContext.MAX_LIMIT` (500) |
 
 Both values are also accepted as query parameters of the same name, so that

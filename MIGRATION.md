@@ -313,6 +313,17 @@ renvoyé comme un champ normal. Il est maintenant caché par une lecture standar
 niveau, et rendu avec `ReadAllColumn`. Le code qui lisait un tel champ sans `ReadAllColumn` le reçoit
 désormais `null` (ou la valeur par défaut du constructeur).
 
+### `Limit` et `Skip` validés (D-07)
+
+`new Limit(n)` lève `IllegalArgumentException` si `n <= 0` ou si `n > Limit.getMaxValue()` (10 000 par
+défaut, réglable avec `Limit.setMaxValue(long)`, au plus `Integer.MAX_VALUE`). Avant, `0` voulait dire
+« sans limite » pour MongoDB et une valeur de 2^32 devenait `0` par troncature en `int`. `new Skip(n)`
+refuse aussi `n > Integer.MAX_VALUE` (2^31 devenait négatif). L'offset de pagination
+(`X-Pagination-Offset`) est borné à `Skip.MAX_VALUE`.
+
+**Comment migrer** : borner toute valeur client avant de construire `Limit` (`Math.clamp`), et appeler
+`Limit.setMaxValue(...)` au démarrage si une requête interne dépasse 10 000 documents.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

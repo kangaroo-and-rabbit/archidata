@@ -290,6 +290,12 @@ Limit the number of results:
 new Limit(50)
 ```
 
+The value must be in `1..Limit.getMaxValue()` (10 000 by default, `Limit.setMaxValue(long)` to change
+it, up to `Integer.MAX_VALUE`), otherwise the constructor throws `IllegalArgumentException`: MongoDB
+reads `0` as "no limit" and a negative value as "one batch". `Skip` accepts `0..Integer.MAX_VALUE`
+(`Skip.MAX_VALUE`); neither value is truncated to an `int` any more. Clamp a value that comes from a
+client before building the option (`Math.clamp(value, 1, max)`).
+
 ### ReadAllColumn
 
 Include fields marked as `@DataNotRead` (such as `createdAt`, `updatedAt`, `deleted`):
