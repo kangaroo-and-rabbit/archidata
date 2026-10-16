@@ -3,12 +3,18 @@ package org.atriasoft.archidata.journal;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
+import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
+import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.bson.Document;
 import org.bson.json.JsonMode;
@@ -16,11 +22,13 @@ import org.bson.json.JsonWriterSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
 
 /**
@@ -55,6 +63,14 @@ import com.mongodb.client.model.UpdateOptions;
  * {@code updatedAt} can only be captured by the initial full capture (see
  * {@link #setInitialCapture(InitialCapture)}), never by the incremental runs — capturing them every
  * run would duplicate them forever.
+ *
+ * <p><b>Protected fields.</b> The capture copies the documents as they are stored. For a class
+ * registered with {@link #addClass}, its {@code @DataNotRead} fields (secrets, password hashes, tokens)
+ * are left out of the journal; the system fields ({@code createdAt}, {@code updatedAt}, {@code deleted})
+ * are kept. Its {@code @DataEncrypt} fields are copied in their stored form, that is encrypted. A
+ * collection registered by name ({@link #addCollection}, {@link #runAll()}) has no model: declare its
+ * sensitive fields with {@link #excludeFields(String, String...)}, and do not journalize token or session
+ * collections at all.
  */
 public class ChangeJournalEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeJournalEngine.class);
@@ -78,6 +94,8 @@ public class ChangeJournalEngine {
 	private final String journalCollectionName;
 	private final String markerCollectionName;
 	private final List<String> collectionNames = new ArrayList<>();
+	/** Database field names left out of the capture, per source collection. */
+	private final Map<String, Set<String>> excludedFields = new HashMap<>();
 	private int batchMaxDocuments = DEFAULT_BATCH_MAX_DOCUMENTS;
 	private int batchMaxBytes = DEFAULT_BATCH_MAX_BYTES;
 	private long safetyOverlapMillis = 0L;
@@ -135,8 +153,47 @@ public class ChangeJournalEngine {
 	 */
 	public void addClass(final Class<?>... classes) throws DataAccessException {
 		for (final Class<?> clazz : classes) {
-			addCollection(AnnotationTools.getTableName(clazz, null));
+			final String name = AnnotationTools.getTableName(clazz, null);
+			addCollection(name);
+			final DbClassModel model;
+			try {
+				model = DbClassModel.of(clazz);
+			} catch (final IntrospectionException ex) {
+				throw new DataAccessException("Cannot analyse the model of " + clazz.getCanonicalName(), ex);
+			}
+			for (final DbPropertyDescriptor desc : model.getAllFields()) {
+				// The secrets are left out; the system fields (createdAt, updatedAt, deleted) are
+				// @DataNotRead too but drive the capture and are kept. @DataEncrypt stays encrypted.
+				if (desc.isNotRead() && !desc.isGenericField()) {
+					excludeFields(name, desc.getDbFieldName());
+				}
+			}
 		}
+	}
+
+	/**
+	 * Leave fields out of the capture of a collection (in addition to the {@code @DataNotRead} fields of a
+	 * class registered with {@link #addClass}). Useful for the collections registered by name or captured
+	 * by {@link #runAll()}.
+	 * @param collectionName the source collection name
+	 * @param fieldNames the database field names (top level) to leave out
+	 */
+	public void excludeFields(final String collectionName, final String... fieldNames) {
+		final Set<String> set = this.excludedFields.computeIfAbsent(collectionName, it -> new LinkedHashSet<>());
+		for (final String field : fieldNames) {
+			if (!"_id".equals(field)) {
+				set.add(field);
+			}
+		}
+	}
+
+	/**
+	 * Returns the database field names left out of the capture of a collection.
+	 * @param collectionName the source collection name
+	 * @return the excluded field names (empty when none)
+	 */
+	public Set<String> getExcludedFields(final String collectionName) {
+		return Set.copyOf(this.excludedFields.getOrDefault(collectionName, Set.of()));
 	}
 
 	/**
@@ -411,7 +468,11 @@ public class ChangeJournalEngine {
 		final List<Document> batch = new ArrayList<>();
 		long batchBytes = 0L;
 		long count = 0L;
-		for (final Document doc : db.getCollection(name).find(filter).batchSize(CURSOR_BATCH_SIZE)) {
+		final Set<String> excluded = this.excludedFields.getOrDefault(name, Set.of());
+		final FindIterable<Document> base = db.getCollection(name).find(filter).batchSize(CURSOR_BATCH_SIZE);
+		final FindIterable<Document> find = excluded.isEmpty() ? base
+				: base.projection(Projections.exclude(new ArrayList<>(excluded)));
+		for (final Document doc : find) {
 			final String json = doc.toJson(settings);
 			batch.add(buildEntry(name, doc, json, runDate));
 			batchBytes += json.length();

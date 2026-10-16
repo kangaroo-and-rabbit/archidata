@@ -470,6 +470,15 @@ reste `null`.
   `@DataEncrypt`), et `Filters.regexLiteral(champ, texte[, options])` qui cite le texte
   (`Pattern.quote`). `Filters.regex` et `Filters.where` ne doivent jamais recevoir de valeur client.
 
+### Journal de changements : champs `@DataNotRead` exclus (D-03)
+
+`ChangeJournalEngine` copiait chaque document en entier dans `changeJournal`, champs `@DataNotRead`
+compris (empreintes, jetons). Pour une classe enregistrée avec `addClass`, ces champs ne sont plus
+copiés ; `createdAt`, `updatedAt` et `deleted` restent. Les champs `@DataEncrypt` sont copiés sous leur
+forme stockée, donc chiffrés. Pour une collection ajoutée par nom ou capturée par `runAll()`, déclarer
+les champs sensibles avec `excludeFields(collection, champs...)`. Les entrées déjà écrites ne sont pas
+modifiées : les purger si elles contiennent des secrets.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

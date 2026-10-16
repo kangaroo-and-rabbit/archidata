@@ -63,6 +63,22 @@ LOGGER.info("{} entries recorded at {}", report.totalCaptured(), report.runDate(
 Registering nothing and calling `runAll()` journalizes **every** collection discovered in the
 database, excluding the `system.*` ones and the journal's own collections.
 
+### Protected fields
+
+The capture copies each document as it is stored. What is kept out:
+
+- For a class registered with `addClass`, its `@DataNotRead` fields (password hashes, tokens,
+  secrets) are not copied (MongoDB projection). The system fields `createdAt`, `updatedAt` and
+  `deleted` are `@DataNotRead` too but are kept: they drive the capture.
+- `@DataEncrypt` fields are copied in their stored form, that is **encrypted**: the journal never
+  holds their clear value.
+- A collection registered by name (`addCollection`) or captured by `runAll()` has no model: declare its
+  sensitive fields with `journal.excludeFields("collection", "field1", "field2")`
+  (`getExcludedFields(collection)` lists them).
+
+Do not journalize the collections of tokens, sessions or reset codes at all: their history has no
+use and keeps secrets alive well after their revocation, in the database and in its backups.
+
 ### Scheduling it (the usual case)
 
 ```java
