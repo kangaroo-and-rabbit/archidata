@@ -525,3 +525,11 @@ Transactions
 ============
 
 Archidata supports MongoDB multi-document transactions. See [Connection Management — Transactions](connectionManagement.md#transactions).
+
+## Logs of the data layer
+
+At TRACE level, `org.atriasoft.archidata.dataAccess.DBAccessMongo` logs the filter of each read and
+every document received. The values of the protected fields (`@DataNotRead`, `@DataEncrypt`) are
+replaced by `***` at any depth of the filter or the document, and the JSON rendering only runs when
+TRACE is enabled. The other values (e-mails, tokens compared by a filter...) are logged as they are:
+never enable TRACE on this logger in production.

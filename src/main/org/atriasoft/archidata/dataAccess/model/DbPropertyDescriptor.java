@@ -38,6 +38,7 @@ public final class DbPropertyDescriptor {
 	private DbFieldAction action;
 	private final boolean apiReadOnly;
 	private final boolean notRead;
+	private final boolean encrypted;
 	private final String initValue;
 
 	// AddOn support (resolved in 2nd pass via resolveAddOn)
@@ -67,6 +68,7 @@ public final class DbPropertyDescriptor {
 		// API flags
 		this.apiReadOnly = property.hasAnnotation(ApiReadOnly.class);
 		this.notRead = property.hasAnnotation(DataNotRead.class);
+		this.encrypted = property.hasAnnotation(DataEncrypt.class);
 
 		// Value written at insertion when the field is null
 		final InitValue init = property.getAnnotation(InitValue.class);
@@ -183,6 +185,15 @@ public final class DbPropertyDescriptor {
 	 */
 	public boolean isNotRead() {
 		return this.notRead;
+	}
+
+	/**
+	 * Checks whether this field is encrypted in the database via {@code @DataEncrypt}.
+	 *
+	 * @return {@code true} if the field is encrypted
+	 */
+	public boolean isEncrypted() {
+		return this.encrypted;
 	}
 
 	/**

@@ -362,6 +362,13 @@ l'en-tête `Host` du client. Un client HTTP standard les résout contre l'URL de
 qui utilisait le lien tel quel comme URL absolue doit le résoudre (`URI.resolve`). Le WARN d'une valeur
 de pagination non numérique ne contient plus la valeur brute, seulement sa longueur.
 
+### Logs TRACE des lectures (D-09)
+
+La trace TRACE de chaque document reçu n'est plus calculée quand TRACE est désactivé (le JSON indenté
+était construit pour chaque document lu, même en production). Dans la trace du filtre et des
+documents, les valeurs des champs `@DataNotRead` et `@DataEncrypt` sont remplacées par `***`. Les
+autres valeurs restent écrites : TRACE sur `DBAccessMongo` reste interdit en production.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

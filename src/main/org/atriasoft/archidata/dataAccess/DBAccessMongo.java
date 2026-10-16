@@ -50,7 +50,6 @@ import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.Skip;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
-import org.atriasoft.archidata.db.BsonCodecs;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
@@ -60,7 +59,6 @@ import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.json.JsonWriterSettings;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1601,8 +1599,8 @@ public class DBAccessMongo implements Closeable {
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			if (filters != null) {
 				if (LOGGER.isTraceEnabled()) {
-					LOGGER.trace("filter = {}", BsonCodecs.toBsonDocument(filters)
-							.toJson(JsonWriterSettings.builder().indent(true).build()));
+					LOGGER.trace("filter = {}",
+							TraceMasker.toMaskedJson(filters, TraceMasker.protectedFieldNames(model)));
 				}
 			} else {
 				LOGGER.trace("filter = None");
@@ -1646,8 +1644,11 @@ public class DBAccessMongo implements Closeable {
 			try (cursor) {
 				while (cursor.hasNext()) {
 					final Document doc = cursor.next();
-					LOGGER.trace(" - receive data from DB: {}",
-							doc.toJson(JsonWriterSettings.builder().indent(true).build()));
+					// Guarded: the JSON rendering is costly and must not run when TRACE is off.
+					if (LOGGER.isTraceEnabled()) {
+						LOGGER.trace(" - receive data from DB: {}",
+								TraceMasker.toMaskedJson(doc, TraceMasker.protectedFieldNames(model)));
+					}
 					final Object data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
 					outs.add(data);
 				}
