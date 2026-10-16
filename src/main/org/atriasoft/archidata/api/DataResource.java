@@ -431,6 +431,7 @@ public class DataResource {
 	/**
 	 * Retrieves data by its ObjectId, supporting HTTP range requests for streaming.
 	 * @param sc The security context.
+	 * @param request The incoming request, used to answer 304 when the browser already has the data (ETag).
 	 * @param token Optional authorization token from query parameter.
 	 * @param range The HTTP Range header value for partial content requests.
 	 * @param oid The ObjectId of the data to retrieve.
@@ -471,6 +472,7 @@ public class DataResource {
 	/**
 	 * Retrieves a thumbnail of the data identified by the given ObjectId, resizing images if possible.
 	 * @param sc The security context.
+	 * @param request The incoming request, used to answer 304 when the browser already has the data (ETag).
 	 * @param token Optional authorization token from query parameter.
 	 * @param range The HTTP Range header value for partial content requests.
 	 * @param oid The ObjectId of the data to thumbnail.
@@ -574,6 +576,7 @@ public class DataResource {
 	/**
 	 * Retrieves data by its ObjectId with a user-friendly file name in the URL path (for browser downloads).
 	 * @param sc The security context.
+	 * @param request The incoming request, used to answer 304 when the browser already has the data (ETag).
 	 * @param token Optional authorization token from query parameter.
 	 * @param range The HTTP Range header value for partial content requests.
 	 * @param oid The ObjectId of the data to retrieve.
