@@ -26,13 +26,32 @@ for folder in "$@"; do
 done
 
 readonly PKG="org.atriasoft.archidata.annotation"
-# JAX-RS parameter annotations: a file that has one is a REST resource, whose @DefaultValue
-# belongs to Jersey and must stay.
-readonly JAXRS_PARAMS='@(Query|Path|Header|Form|Matrix|Cookie|Bean)Param\b'
+# JAX-RS parameter annotations (and Jersey multipart @FormDataParam): a file that has one is a
+# REST resource, whose @DefaultValue belongs to Jersey and must stay.
+readonly JAXRS_PARAMS='@(Query|Path|Header|Form|FormData|Matrix|Cookie|Bean)Param\b'
 
 changed=0
 fqn_files=()
 jaxrs_files=()
+wildcard_files=()
+
+# name_clash <file> <simple name>
+# True when <simple name> already denotes another type in the file: an import of a class with
+# that name (java.lang.reflect.Field, java.util.Collection...), a wildcard import that brings it
+# (java.lang.reflect.*, java.util.*), a type declared in the file, or a top-level type of the same
+# package (a <simple name>.java file in the same folder).
+name_clash() {
+	local file="$1" name="$2"
+	grep -E "^import\s+[A-Za-z0-9_.]+\.${name}\s*;" "$file" | grep -qvF "$PKG.${name}" && return 0
+	if [ "$name" = "Field" ]; then
+		grep -qE '^import\s+java\.lang\.reflect\.\*\s*;' "$file" && return 0
+	else
+		grep -qE '^import\s+java\.util\.\*\s*;' "$file" && return 0
+	fi
+	grep -qE "\b(class|interface|enum|record|@interface)\s+${name}\b" "$file" && return 0
+	[ -f "$(dirname "$file")/${name}.java" ] && return 0
+	return 1
+}
 
 # replace_import <file> <old import> <old annotation regex> <new import> <new annotation regex>
 # Swap the import when the old annotation is no longer used in the file; keep the old import
@@ -58,19 +77,25 @@ replace_import() {
 
 while IFS= read -r -d '' file; do
 	grep -qE 'jakarta\.persistence|jakarta\.ws\.rs\.DefaultValue' "$file" || continue
+	# A wildcard import hides which annotations are used: the file is left untouched.
+	if grep -qE '^import\s+jakarta\.persistence\.\*\s*;' "$file"; then
+		wildcard_files+=("$file")
+		continue
+	fi
 	before=$(md5sum <"$file")
 
-	# Name clash with java.lang.reflect.Field / java.util.Collection: write the archidata
-	# annotation with its full name in that file instead of importing it.
+	# Name clash with another Field / Collection type (import, type of the file or of its
+	# package): write the archidata annotation with its full name in that file instead of
+	# importing it.
 	field_ann="@Field"
 	field_import="$PKG.Field"
-	if grep -qE '^import java\.lang\.reflect\.Field;' "$file"; then
+	if name_clash "$file" Field; then
 		field_ann="@$PKG.Field"
 		field_import=""
 	fi
 	collection_ann="@Collection"
 	collection_import="$PKG.Collection"
-	if grep -qE '^import java\.util\.Collection;' "$file"; then
+	if name_clash "$file" Collection; then
 		collection_ann="@$PKG.Collection"
 		collection_import=""
 	fi
@@ -142,6 +167,12 @@ report "JPA relations: replace with @ManyToOneDoc / @OneToManyDoc / @ManyToManyD
 report "Other jakarta.persistence usages (not read by archidata: delete them, or find an archidata equivalent)" \
 	'jakarta\.persistence' "$@"
 
+if [ "${#wildcard_files[@]}" -gt 0 ]; then
+	echo "-- Not modified: 'import jakarta.persistence.*;' hides which annotations are used."
+	echo "   Replace the wildcard with explicit imports, then run the script again (or migrate by hand):"
+	printf '   %s\n' "${wildcard_files[@]}"
+	echo
+fi
 if [ "${#jaxrs_files[@]}" -gt 0 ]; then
 	echo "-- @DefaultValue left untouched in REST resources (JAX-RS parameters, handled by Jersey):"
 	echo "   check that none of them is on an entity field (it would need @InitValue)"
@@ -149,7 +180,7 @@ if [ "${#jaxrs_files[@]}" -gt 0 ]; then
 	echo
 fi
 if [ "${#fqn_files[@]}" -gt 0 ]; then
-	echo "-- Full name used for @Field/@Collection (the file imports java.lang.reflect.Field or java.util.Collection):"
+	echo "-- Full name used for @Field/@Collection (another Field/Collection type is imported, declared in the file or in its package):"
 	printf '   %s\n' "${fqn_files[@]}"
 	echo
 fi

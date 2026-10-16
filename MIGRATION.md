@@ -34,9 +34,10 @@ Le `@DefaultValue` de JAX-RS reste la bonne annotation sur les **paramètres** d
 (`@QueryParam("page") @DefaultValue("1") int page`) : c'est Jersey qui le gère, ne pas y toucher.
 Le nom `@InitValue` est distinct exprès : un mauvais import compilerait et serait ignoré.
 
-Collision de noms : dans un fichier qui importe aussi `java.lang.reflect.Field` ou
-`java.util.Collection`, écrire l'une des deux classes avec son nom complet
-(`@org.atriasoft.archidata.annotation.Field("nom")`).
+Collision de noms : dans un fichier où `Field` ou `Collection` désigne déjà un autre type (import
+de `java.lang.reflect.Field` ou `java.util.Collection`, import `java.lang.reflect.*` ou
+`java.util.*`, type de ce nom déclaré dans le fichier ou dans son package), écrire l'annotation avec
+son nom complet (`@org.atriasoft.archidata.annotation.Field("nom")`).
 
 ### Ce qui disparaît
 
@@ -80,9 +81,14 @@ Ce qu'il fait :
 - `import jakarta.persistence.Id` → `import org.atriasoft.archidata.annotation.Id` ;
 - `@Entity` sans attribut, `@GeneratedValue(...)` et leurs imports supprimés ;
 - `@DefaultValue(` → `@InitValue(` dans les fichiers **sans** paramètre JAX-RS (`@QueryParam`,
-  `@PathParam`, `@HeaderParam`, `@FormParam`, `@MatrixParam`, `@CookieParam`, `@BeanParam`) ;
-- les imports remplacés (nom complet de l'annotation à la place de l'import dans les fichiers qui
-  importent `java.lang.reflect.Field` ou `java.util.Collection`).
+  `@PathParam`, `@HeaderParam`, `@FormParam`, `@MatrixParam`, `@CookieParam`, `@BeanParam`, et
+  `@FormDataParam` du multipart Jersey) ;
+- les imports remplacés (nom complet de l'annotation à la place de l'import en cas de collision de
+  noms, voir ci-dessus).
+
+Il ne touche pas aux fichiers qui importent `jakarta.persistence.*` : le joker cache les annotations
+utilisées. Il les liste à part ; remplacer le joker par des imports explicites, puis relancer le
+script.
 
 Ce qu'il liste, à traiter à la main :
 
@@ -94,7 +100,8 @@ Ce qu'il liste, à traiter à la main :
 - les autres usages de `jakarta.persistence` (`@Transient`, `@Enumerated`, imports `*`...) ;
 - les fichiers de ressources REST dont il n'a pas touché les `@DefaultValue` (paramètres JAX-RS) :
   vérifier qu'aucun n'est sur un champ d'entité ;
-- les fichiers où il a écrit le nom complet de `@Field` / `@Collection`.
+- les fichiers où il a écrit le nom complet de `@Field` / `@Collection` ;
+- les fichiers non modifiés à cause de `import jakarta.persistence.*;`.
 
 Ensuite : organiser les imports (IDE), lancer le formateur, vérifier que
 `grep -rn "jakarta.persistence" src` ne trouve plus rien, puis lancer les tests. Voir
