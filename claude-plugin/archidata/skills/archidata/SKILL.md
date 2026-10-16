@@ -37,7 +37,8 @@ Copy `sample/archidata/basic/src/main/java/sample/archidata/basic/WebLauncher.ja
 registrations on the `ResourceConfig rc`:
 ```java
 rc.register(OptionFilter.class);           // CORS preflight
-rc.register(CORSFilter.class);
+rc.register(CORSFilter.class);             // origins from CORS_ALLOWED_ORIGINS
+rc.register(SecurityHeadersFilter.class);  // nosniff, Referrer-Policy, X-Frame-Options, HSTS (https)
 rc.register(MyAuthenticationFilter.class); // subclass of filter.AuthenticationFilter
 GenericCatcher.addAll(rc);                 // catcher.*: JSON errors with the right status
 ContextGenericTools.addJsr310(rc);         // Jackson mapper + ValidGroupInterceptor
@@ -147,8 +148,9 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
 
 ## Pitfalls (verified in the code)
 
-- **Launcher**: without `ContextGenericTools.addJsr310(rc)`, `@ValidGroup` is silently ignored
-  and dates are serialized differently; without `GenericCatcher.addAll(rc)`, errors are not
+- **Launcher**: register `SecurityHeadersFilter` too. Without `ContextGenericTools.addJsr310(rc)`,
+  `@ValidGroup` is silently ignored, dates are serialized differently and `@ApiReadOnly` request
+  properties are no longer dropped; without `GenericCatcher.addAll(rc)`, errors are not
   the archidata JSON with the right status.
 - **`@ValidGroup` does not check the `Default` group**: also put `@Valid` on the parameter and
   register `ValidationFeature`, or `@NotNull`/`@Size` without groups are never checked.
@@ -161,8 +163,11 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
 - **`createdAt` / `updatedAt` are `@DataNotRead`**: absent from default reads, use `ReadAllColumn`.
 - **Unicity only exists through a unique index**: use `@Index`/`@Indexed(unique = true)` and run
   `IndexEngine.synchronize()` at startup. `@Field` only renames a field.
-- **`updateById` without `FilterValue` rewrites every editable field, `null` included** (null =
-  `$unset`): pass the list of fields for a partial update (PATCH).
+- **`updateById` without `FilterValue` writes every editable field, `null` included** (null =
+  `$unset`), except the `@DataNotRead` and `@DataEncrypt` fields, which need a `FilterValue`
+  naming them. Pass the list of fields for a partial update (PATCH).
+- **`@ApiReadOnly`**: a client value in a request body is ignored; server code can still write it
+  (`insert`; `update` needs `ForceReadOnlyField`).
 - **Migrations**: collection `KAR_migration`. On an empty database only the init runs (the
   added migrations are marked done without running: the init must build the final state).
   An unknown last migration name (renamed) throws `MigrationException` and blocks the startup;
@@ -191,6 +196,26 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
   one-argument constructor always gives 400.
 - **Compile with `-parameters`** (`<maven.compiler.parameters>true</maven.compiler.parameters>`),
   or validation errors name the arguments `arg0`, `arg1`.
+
+## Security behaviour (verified in the code)
+
+- **CORS**: only the origins of `CORS_ALLOWED_ORIGINS` (comma separated) are reflected, with
+  credentials; without the list `*` and no credentials. It only concerns browsers.
+- **Swagger and OpenAPI are off by default** (404): set `API_DOC_ENABLED=true` to enable them.
+- **JWT audience**: `aud` (or, without `aud`, the `application` claim) must equal the application
+  name of `AuthenticationFilter`, else 401. `exp` is mandatory, `nbf` is checked.
+- **`SSO_ADDRESS` must be `https://`**, except for localhost or a loopback address.
+- **Limits**: `Limit` is 1..10 000 (`Limit.setMaxValue`), `Skip` 0..`Integer.MAX_VALUE`; relation
+  expansion stops at depth 5 (`RelationExpansion.setMaxDepth`) and on cycles.
+- **Write with an absent or empty `Condition`** (`update`, `delete*`, `restore`,
+  `updateBsonDocuments`) throws unless the call has `new AllowMassOperation()`.
+- **Names from a client**: check field names with `Filters.checkFieldName` and sort with
+  `OrderItem.ofClientField`; a client value matched as text goes through `Filters.regexLiteral`.
+- **Upload and download limits** are in `DataTools` (`setMaxUploadSize`, `setMaxRemoteDataSize`),
+  answer 413; `RESTApiRequest` times out after 120 s (10 s to connect).
+- **500 and 401 answers** carry a generic message and an `oid`; the cause is in the log.
+- **Backups** are `rw-------` with a `.sha256` file checked at restore, but stay in clear text.
+- **Database**: `DB_TLS` and `DB_AUTH_SOURCE` exist; a WARN is written if the DB user is `root`.
 
 ## Build tips for archidata applications
 

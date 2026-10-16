@@ -38,7 +38,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 | `db` | `DbConfig`, `DbIo`, `DbIoFactory` (connection pool) |
 | `exception` | `FailException`, `InputException`, `DataAccessException`, `SystemException`, `UnAuthorizedException` |
 | `externalRestApi` | `AnalyzeApi`, `OpenApiGenerateApi`, `TsGenerateApi`, `PythonGenerateApi`, `DotGenerateApi`, `DrawioGenerateApi` |
-| `filter` | `AuthenticationFilter`, `CORSFilter`, `OptionFilter`, `PartRight`, `MySecurityContext`, `DataAccessRetentionConnectionFilter` |
+| `filter` | `AuthenticationFilter`, `CORSFilter`, `SecurityHeadersFilter`, `OptionFilter`, `PartRight`, `MySecurityContext`, `DataAccessRetentionConnectionFilter` |
 | `index` | `IndexEngine` (declare + synchronize MongoDB indexes, `KAR_index` cache) |
 | `interceptor` | `ValidGroupInterceptor` (`@ValidGroup`) |
 | `journal` | `ChangeJournalEngine` (incremental capture of modified documents) |
@@ -138,8 +138,11 @@ Each point was checked against the code; the doc page gives the details.
 
 - **Launcher**: call `GenericCatcher.addAll(rc)` (JSON errors with the right HTTP status) and
   `ContextGenericTools.addJsr310(rc)`. The second one registers the Jackson mapper (ISO dates
-  instead of timestamps, archidata modules) and the `ValidGroupInterceptor`: without it,
-  `@ValidGroup` is silently ignored and the date format changes. See `sample/.../WebLauncher.java`.
+  instead of timestamps, archidata modules, and the drop of `@ApiReadOnly` properties of request
+  bodies) and the `ValidGroupInterceptor`: without it, `@ValidGroup` is silently ignored and the
+  date format changes. Also register `rc.register(SecurityHeadersFilter.class)` (`nosniff`,
+  `Referrer-Policy`, `X-Frame-Options`, HSTS over https only; a header already set by a resource is
+  kept). See `sample/.../WebLauncher.java`.
 - **`@ValidGroup` does not check the `Default` group** (the archidata groups do not extend it):
   also put `@Valid` on the parameter and register Jersey's `ValidationFeature`
   (`@Valid @ValidGroup(GroupCreate.class) final Task task`). See `doc/converters_and_beans.md`.
@@ -163,10 +166,14 @@ Each point was checked against the code; the doc page gives the details.
   and the replacement. See `doc/annotations.md` and `MIGRATION.md`.
 - **Unicity only exists through a unique index**: declare `@Index` / `@Indexed(unique = true)` and
   run `IndexEngine.addClass(...)` + `synchronize()` at startup. See `doc/indexes.md`.
-- **`updateById` without `FilterValue` rewrites every editable field, `null` included** (a null
-  field is `$unset`, unless it has an `@InitValue`). Pass
+- **`updateById` without `FilterValue` writes every editable field, `null` included** (a null
+  field is `$unset`, unless it has an `@InitValue`), **except** the `@DataNotRead` and
+  `@DataEncrypt` fields: those are written only when a `FilterValue` names them. Pass
   `new FilterValue(List.of("field1", "field2"))` for a partial update. `update(...)` with a
   `Condition` refuses to run without exactly one `FilterValue`. See `doc/database_access.md`.
+- **`@ApiReadOnly`**: a property sent by a client in a request body is ignored (dropped by the
+  server JSON provider registered by `addJsr310`; records and `@JsonCreator` constructors are not
+  filtered). Server code can still write it with `insert`; `update` needs `ForceReadOnlyField`.
 - **`MigrationEngine`**: the history is the `KAR_migration` collection. On an empty database
   only the initialization (`setInit`) runs, and the last migration is recorded as done (the
   migrations `add`ed are never played on a fresh install, so the init must create the final
@@ -217,3 +224,37 @@ Each point was checked against the code; the doc page gives the details.
   class and the field when the model is analysed. See `doc/data_model.md`.
 - **UUID primary keys** (`UUIDGenericData`, `UUIDGenericDataSoftDelete`) work for reads, filters
   and relations; the key is generated at insertion by `UuidUtils.nextUUID()`.
+
+## Security behaviour of archidata (checked in the code; details in `doc/security.md`, changes in `MIGRATION.md`)
+
+- **CORS**: `CORSFilter` reflects only the origins listed in `CORS_ALLOWED_ORIGINS` (comma
+  separated), with `Allow-Credentials: true`. Without the list it sends `*` and no credentials.
+  CORS only concerns browsers, not server-to-server calls.
+- **Swagger and OpenAPI are off by default**: `openApiResource` and `SwaggerUiExternal` answer
+  404 unless `API_DOC_ENABLED=true`. The Swagger UI files carry SRI hashes.
+- **JWT**: the audience is checked. The `aud` claim must list the application name given to
+  `AuthenticationFilter`; a token without `aud` is accepted only if its `application` claim equals
+  it. `exp` is mandatory and `nbf` is checked. `SSO_ADDRESS` (public key) must be `https://`
+  (`http://` only for localhost or a loopback address); the key refresh is rate-limited.
+- **Limits**: `Limit` goes from 1 to 10 000 (`Limit.setMaxValue`, at most `Integer.MAX_VALUE`),
+  `Skip` from 0 to `Integer.MAX_VALUE`. The expansion of relations stops at depth 5
+  (`RelationExpansion.setMaxDepth`) and on cycles.
+- **Writes without a condition**: `update`, `delete`, `deleteSoft`, `deleteHard`, `restore` and
+  `updateBsonDocuments` with a missing or empty `Condition` throw, unless the call carries
+  `new AllowMassOperation()`.
+- **Client-supplied names and values in queries**: validate a field name with
+  `Filters.checkFieldName(...)` or build the sort with `OrderItem.ofClientField(...)`; use
+  `Filters.regexLiteral(...)` for a client value matched as text (`Filters.regex` keeps the
+  pattern as is). `Filters.eq` writes an explicit `$eq`.
+- **Upload and download limits** live in `DataTools`: `setMaxUploadSize` (1 GiB by default) and
+  `setMaxRemoteDataSize` (50 MiB); beyond them the answer is 413 and the temporary file is
+  removed. Remote URLs are fetched by `SafeHttpFetcher` (pinned IP, redirects revalidated).
+  `RESTApiRequest` has a connection timeout of 10 s and a request timeout of 120 s by default.
+- **Error answers**: a 500 and a 401 carry a generic message and an `oid`; the real cause is in
+  the log under that `oid`. Throw a `FailException` for a message meant for the client.
+- **Backups**: archives are created `rw-------` with a `<archive>.sha256` file checked at restore;
+  they stay in clear (all fields, `@DataNotRead` included): protect the storage folder.
+- **Database connection**: `DB_TLS` (true to use TLS) and `DB_AUTH_SOURCE` (authentication
+  database) exist; a WARN is written once when the DB user is `root`.
+- **Change streams and the journal**: a change event carries the raw document (`@DataNotRead`
+  fields included): never relay it to a client. The change journal leaves `@DataNotRead` fields out.
