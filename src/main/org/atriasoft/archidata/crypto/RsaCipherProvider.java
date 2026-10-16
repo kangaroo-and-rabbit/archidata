@@ -2,11 +2,20 @@ package org.atriasoft.archidata.crypto;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.MGF1ParameterSpec;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 
 /**
  * Asymmetric {@link CipherProvider} backed by RSA-OAEP (SHA-256).
+ *
+ * <p>The OAEP parameters are explicit: SHA-256 digest, MGF1 with SHA-1 (what the SunJCE provider uses for
+ * {@code RSA/ECB/OAEPWithSHA-256AndMGF1Padding}). Other providers (BouncyCastle) read that transformation
+ * name as MGF1 with SHA-256, so the explicit parameters keep the stored data readable whatever the provider.
+ * MGF1-SHA-1 is kept on purpose: moving to MGF1-SHA-256 would make the data already stored unreadable, and
+ * the envelope carries no version to tell the two apart (see the pending format change).</p>
  *
  * <p>The public key encrypts and the private key decrypts. A provider holding only the public key
  * can encrypt but not decrypt (typical of a front-end server that must store secrets it cannot read
@@ -17,7 +26,10 @@ import javax.crypto.Cipher;
  */
 public final class RsaCipherProvider implements CipherProvider {
 
-	private static final String TRANSFORMATION = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
+	private static final String TRANSFORMATION = "RSA/ECB/OAEPPadding";
+	/** SHA-256 digest, MGF1-SHA-1: the parameters of the data already stored (SunJCE default). */
+	static final OAEPParameterSpec OAEP_PARAMETERS = new OAEPParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA1,
+			PSource.PSpecified.DEFAULT);
 
 	private final PublicKey publicKey;
 	private final PrivateKey privateKey;
@@ -57,7 +69,7 @@ public final class RsaCipherProvider implements CipherProvider {
 			throw new IllegalStateException("RSA provider has no public key: cannot encrypt");
 		}
 		final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-		cipher.init(Cipher.ENCRYPT_MODE, this.publicKey);
+		cipher.init(Cipher.ENCRYPT_MODE, this.publicKey, OAEP_PARAMETERS);
 		return cipher.doFinal(clear);
 	}
 
@@ -67,7 +79,7 @@ public final class RsaCipherProvider implements CipherProvider {
 			throw new IllegalStateException("RSA provider has no private key: cannot decrypt");
 		}
 		final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-		cipher.init(Cipher.DECRYPT_MODE, this.privateKey);
+		cipher.init(Cipher.DECRYPT_MODE, this.privateKey, OAEP_PARAMETERS);
 		return cipher.doFinal(payload);
 	}
 }

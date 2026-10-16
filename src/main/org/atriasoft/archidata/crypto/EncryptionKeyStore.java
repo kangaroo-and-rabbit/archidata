@@ -39,11 +39,24 @@ public final class EncryptionKeyStore {
 	 * Registers (or replaces) a named key provider. Intended for runtime injection of
 	 * organisation/sub-domain specific keys.
 	 *
+	 * <p>Once the configuration is locked ({@link ConfigBaseVariable#lock()}), a new name can still be
+	 * registered, but an existing key (the {@value #DEFAULT_KEY_NAME} one included) can no longer be replaced:
+	 * a hot swap would make the data encrypted with it unreadable, or encrypt new data with a key chosen by
+	 * whoever calls this method. The check and the registration are atomic.</p>
+	 *
 	 * @param name the logical key name referenced by {@code @DataEncrypt}.
 	 * @param provider the cipher provider.
+	 * @throws IllegalStateException if the configuration is locked and {@code name} is already registered.
 	 */
 	public static void register(final String name, final CipherProvider provider) {
-		PROVIDERS.put(name, provider);
+		ensureInitialized();
+		synchronized (EncryptionKeyStore.class) {
+			if (ConfigBaseVariable.isLocked() && PROVIDERS.containsKey(name)) {
+				throw new IllegalStateException(
+						"Configuration is locked: the encryption key '" + name + "' cannot be replaced");
+			}
+			PROVIDERS.put(name, provider);
+		}
 	}
 
 	/**
@@ -73,8 +86,10 @@ public final class EncryptionKeyStore {
 	 * Mainly used by tests between runs.
 	 */
 	public static void reset() {
-		PROVIDERS.clear();
-		initialized = false;
+		synchronized (EncryptionKeyStore.class) {
+			PROVIDERS.clear();
+			initialized = false;
+		}
 	}
 
 	private static void ensureInitialized() {

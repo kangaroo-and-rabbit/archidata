@@ -581,6 +581,17 @@ sont comptées ensemble sous la clé `__other__`.
 - `DB_USER` vaut toujours `root` par défaut, mais un WARN est écrit une fois : préférer un compte
   `readWrite` limité à la base de l'application.
 
+### `EncryptionKeyStore.register` et paramètres RSA-OAEP (D-20)
+
+- Une fois la configuration verrouillée (`ConfigBaseVariable.lock()`), `EncryptionKeyStore.register`
+  refuse de remplacer une clé existante, `default` comprise (`IllegalStateException`). Un nouveau nom
+  reste accepté. Enregistrer les clés avant `lock()`.
+- `RsaCipherProvider` fixe explicitement ses paramètres OAEP : SHA-256 et MGF1-SHA-1, c'est-à-dire
+  ce que SunJCE utilisait déjà. Les données ne changent pas et restent lisibles par les versions
+  précédentes ; elles le restent aussi avec un autre fournisseur JCE. Le passage à MGF1-SHA-256 n'est
+  **pas** fait : il rendrait illisibles les données déjà chiffrées, et l'enveloppe n'a pas de version
+  pour distinguer les deux formats (attend la décision sur le format de chiffrement).
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

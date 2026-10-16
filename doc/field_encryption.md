@@ -19,7 +19,12 @@ decrypt them on read — provided the server is explicitly authorized to decrypt
 |----------|-------------|-------------|-------------|-------|
 | AES-GCM  | symmetric   | the key     | the key     | one key encrypts and decrypts |
 | X25519   | asymmetric  | public      | private     | sealed box (ephemeral ECDH + AES-GCM) |
-| RSA      | asymmetric  | public      | private     | RSA-OAEP-SHA256, small payloads only |
+| RSA      | asymmetric  | public      | private     | RSA-OAEP (SHA-256, MGF1-SHA-1), small payloads only |
+
+The RSA-OAEP parameters are explicit (SHA-256 digest, MGF1 with SHA-1, the SunJCE default of
+`OAEPWithSHA-256AndMGF1Padding`): the data stays readable whatever the JCE provider, BouncyCastle
+included (which reads that name as MGF1-SHA-256). MGF1-SHA-256 is not used on purpose: the data
+already stored would no longer decrypt, and the envelope has no version to tell the two apart.
 
 > Ed25519 keys are signature keys and **cannot** encrypt. Generate X25519 keys for the asymmetric
 > sealed-box scheme (the JDK does not provide an Ed25519→X25519 conversion).
@@ -68,6 +73,10 @@ file path in `<NAME>_FILE` (the secret mounted under `/run/secrets/...`).
 EncryptionKeyStore.register("org42-pub", new X25519SealedBoxProvider(publicKey, null));
 EncryptionKeyStore.register("org42-priv", new X25519SealedBoxProvider(null, privateKey));
 ```
+
+Once the configuration is locked (`ConfigBaseVariable.lock()`), `register` still accepts a new name but
+refuses to replace an existing key, `default` included (`IllegalStateException`): register the keys
+before locking. The check and the registration are atomic.
 
 ## Generating keys
 
