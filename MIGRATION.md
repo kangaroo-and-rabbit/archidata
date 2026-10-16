@@ -369,6 +369,16 @@ l'extension du nom de fichier. **Qui est impacté** : un appelant qui envoyait u
 mauvaise extension (elle passe maintenant avec le bon type) ou un contenu qui n'est pas une image
 (refusé).
 
+### Swagger UI et spécification OpenAPI désactivés par défaut (W-18)
+
+`openApiResource` (`/openapi/swagger.json`) et `SwaggerUiExternal` répondent 404 tant que
+`API_DOC_ENABLED` ne vaut pas `true` (`ConfigBaseVariable.setApiDocEnabled("true")`). La page Swagger UI
+charge ses fichiers cdnjs avec SRI (`integrity` + `crossorigin`).
+
+**Qui est impacté** : un environnement de développement, ou un outil qui lit la spécification à chaud
+(génération de client), doit définir `API_DOC_ENABLED=true`. La génération de clients TypeScript /
+Python par `AnalyzeApi` ne passe pas par cet endpoint et n'est pas concernée.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

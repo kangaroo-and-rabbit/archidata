@@ -3,6 +3,7 @@ package org.atriasoft.archidata.api;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiDoc;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,10 @@ import jakarta.ws.rs.core.Response;
  * at startup to provide the analyzed API metadata. When configured, this
  * resource generates the spec from the archidata introspection system
  * (without depending on the Swagger scanner).
+ *
+ * <p>The endpoint is public ({@code @PermitAll}) but <b>disabled by default</b>: it answers 404 unless
+ * {@code API_DOC_ENABLED=true} ({@link ConfigBaseVariable#getApiDocEnabled()}). Enable it in development, or
+ * behind a network restriction.
  *
  * <p>Usage:
  * <pre>{@code
@@ -56,7 +61,8 @@ public class openApiResource {
 
 	/**
 	 * Returns the OpenAPI 3.0.3 specification as a JSON response.
-	 * @return A JSON response containing the OpenAPI specification, or a 503 error if not configured.
+	 * @return A JSON response containing the OpenAPI specification, a 404 when {@code API_DOC_ENABLED} is not
+	 *         {@code true}, or a 503 error if not configured.
 	 * @throws Exception If the spec generation fails.
 	 */
 	@GET
@@ -65,6 +71,10 @@ public class openApiResource {
 	@PermitAll
 	@ApiDoc(description = "Get the OpenAPI specification", group = "DEVELOPEMENT")
 	public Response getDescription() throws Exception {
+		if (!ConfigBaseVariable.getApiDocEnabled()) {
+			// Off by default: the specification maps the whole API for an anonymous caller.
+			return Response.status(Response.Status.NOT_FOUND).build();
+		}
 		if (analyzeApi == null) {
 			LOGGER.error("OpenAPI resource not configured. Call openApiResource.configure() at startup.");
 			return Response.status(Response.Status.SERVICE_UNAVAILABLE)

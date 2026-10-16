@@ -22,6 +22,11 @@ openApiResource.configure(api, "My Application API", "1.0.0");
 
 The `openApiResource` class provides a `GET /openapi/swagger.json` endpoint that serves the generated spec as JSON. The result is cached after the first request.
 
+The endpoint, and the Swagger UI page of `SwaggerUiExternal`, are **disabled by default**: they answer 404
+unless `API_DOC_ENABLED=true` (`ConfigBaseVariable.setApiDocEnabled("true")`). The specification maps the
+whole API for an anonymous caller: enable it in development, or behind a network restriction. The Swagger UI
+page loads its files from cdnjs with Subresource Integrity (`integrity` + `crossorigin`).
+
 ### 2. Annotate your models and endpoints
 
 Use `@ApiDoc` on your models, fields, and REST methods:

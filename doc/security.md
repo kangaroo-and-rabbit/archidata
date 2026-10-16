@@ -586,6 +586,14 @@ authentication`. The detail is logged with the `oid` of the answer. Messages thr
 [error handling](error_handling.md#what-the-client-sees).
 
 
+### API documentation
+
+`openApiResource` (`/openapi/swagger.json`) and `SwaggerUiExternal` are public (`@PermitAll`) and answer 404
+unless `API_DOC_ENABLED=true`. The Swagger UI page loads its scripts and stylesheet from cdnjs with an
+`integrity` hash and `crossorigin="anonymous"`: a modified file on the CDN is not run on the origin of the
+API.
+
+
 Migration Guide (Breaking Change)
 ==================================
 
