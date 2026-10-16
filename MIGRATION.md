@@ -308,6 +308,12 @@ un identifiant aléatoire (`SecureRandom`, supérieur à 2^40) dont le fichier e
 obtenu et jamais utilisé laisse un fichier vide : appeler `removeTemporaryFile(id)` dans un
 `finally`.
 
+### `FrontGeneric` : comparaison de chemins normalisés (W-11)
+
+Le fichier demandé doit rester dans `baseFrontFolder` au sens de `Path.startsWith(Path)` : un dossier
+frère au préfixe commun (`/data/front-old` pour `/data/front`) n'est plus accessible. Les messages 404
+et 415 ne recopient plus le nom demandé. Aucun impact pour un front servi normalement.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

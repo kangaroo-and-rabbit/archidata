@@ -523,6 +523,14 @@ thumbnail width. The thumbnail is still computed on every request that the brows
 `Cache-Control: private, immutable`) does not absorb: there is no server-side cache.
 
 
+### Static front files
+
+`FrontGeneric` resolves the requested file against the real path of `baseFrontFolder` and compares
+normalized `Path`s (`Path.startsWith(Path)`, whole name elements): `../front-old/config.json` is
+refused even when the base is `/data/front`, and so is a symbolic link that leads out of the base. The
+404 messages no longer repeat the requested name.
+
+
 Migration Guide (Breaking Change)
 ==================================
 

@@ -1,6 +1,9 @@
 package org.atriasoft.archidata.api;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -39,15 +42,46 @@ public class FrontGeneric {
 		return "";
 	}
 
-	private Response retrive(final String fileName) throws Exception {
-		String filePathName = this.baseFrontFolder + File.separator + fileName;
-		// Prevent path traversal: ensure resolved path stays within baseFrontFolder
-		final File baseDir = new File(this.baseFrontFolder).getCanonicalFile();
-		final File requestedFile = new File(filePathName).getCanonicalFile();
-		if (!requestedFile.getPath().startsWith(baseDir.getPath())) {
-			throw new NotFoundException("Access denied: path traversal detected");
+	/**
+	 * Resolves a requested file inside {@link #baseFrontFolder}, or refuses it.
+	 * <p>
+	 * The comparison is done on normalized {@link java.nio.file.Path}s ({@link java.nio.file.Path#startsWith(java.nio.file.Path)} compares whole
+	 * name elements): {@code ../front-old/x} is refused even when the base is {@code /data/front}. A
+	 * symbolic link that leads out of the base is refused too.
+	 * </p>
+	 * @param fileName The file asked for, relative to the base folder.
+	 * @return The resolved file, inside the base folder.
+	 * @throws NotFoundException If the file is outside the base folder (or the base folder does not exist).
+	 */
+	protected java.nio.file.Path resolveInBase(final String fileName) {
+		final java.nio.file.Path base;
+		try {
+			base = Paths.get(this.baseFrontFolder).toRealPath();
+		} catch (final IOException ex) {
+			LOGGER.error("Front folder is not available: {}", ex.getMessage());
+			throw new NotFoundException("Not found");
 		}
-		filePathName = requestedFile.getPath();
+		final java.nio.file.Path requested = base.resolve(fileName).normalize();
+		if (!requested.startsWith(base)) {
+			LOGGER.warn("Refuse a front path outside of the base folder");
+			throw new NotFoundException("Not found");
+		}
+		if (Files.exists(requested)) {
+			try {
+				if (!requested.toRealPath().startsWith(base)) {
+					LOGGER.warn("Refuse a front link that leads outside of the base folder");
+					throw new NotFoundException("Not found");
+				}
+			} catch (final IOException ex) {
+				throw new NotFoundException("Not found");
+			}
+		}
+		return requested;
+	}
+
+	private Response retrive(final String fileName) throws Exception {
+		// Prevent path traversal: the resolved path must stay within baseFrontFolder
+		String filePathName = resolveInBase(fileName).toString();
 		final String extention = getExtension(filePathName);
 		String mineType = null;
 		LOGGER.debug("try retrive : '{}' '{}'", filePathName, extention);
@@ -79,17 +113,17 @@ public class FrontGeneric {
 			} else if (extention.equalsIgnoreCase("webm")) {
 				mineType = "video/webm";
 			} else {
-				throw new NotSupportedException("Not supported model: '" + fileName + "'");
+				throw new NotSupportedException("Not supported file type");
 			}
 		} else {
 			mineType = "text/html";
-			filePathName = this.baseFrontFolder + File.separator + "index.html";
+			filePathName = resolveInBase("index.html").toString();
 		}
-		LOGGER.debug("    ==> '[}'", filePathName);
+		LOGGER.debug("    ==> '{}'", filePathName);
 		// reads input image
 		final File download = new File(filePathName);
 		if (!download.exists()) {
-			throw new NotFoundException("Not Found: '" + fileName + "' extension='" + extention + "'");
+			throw new NotFoundException("Not found");
 		}
 		final ResponseBuilder response = Response.ok(download);
 		// use this if I want to download the file:
