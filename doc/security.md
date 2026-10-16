@@ -626,6 +626,11 @@ token of a `@PermitTokenInURI` request: exclude the query string from it.
   `@RightAllowed` and `@DenyAll` on the method (or the interface method). A method without one is refused
   with 403, even if its class carries one.
 - **`MySecurityContext.isSecure()`** reflects the scheme seen by Grizzly: behind a TLS proxy it is false.
+- **`@RightAllowed(access = PartRight.NONE)`** is granted as soon as the right key exists in the token: it
+  protects nothing, use `READ` at least.
+- **`ProxyResource`** carries no security annotation, so `AuthenticationFilter` answers 403 to it: subclass it
+  and annotate the override to expose it.
+- **Token revocation**: none (no `jti` list). A stolen token stays valid until `exp`: keep lifetimes short.
 
 
 Migration Guide (Breaking Change)
