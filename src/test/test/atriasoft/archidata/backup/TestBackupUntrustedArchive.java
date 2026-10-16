@@ -131,6 +131,32 @@ public class TestBackupUntrustedArchive {
 	}
 
 	@Test
+	public void testLongLinesAcrossReadBlocks() throws Exception {
+		// Lines longer than the read block, CRLF and LF terminators, a last line without terminator.
+		final String big = "z".repeat(20_000);
+		final String content = "{\"_id\": 1, \"v\": \"" + big + "\"}\r\n" + "{\"_id\": 2, \"v\": \"b\"}\n"
+				+ "{\"_id\": 3, \"v\": \"" + big + big + "\"}";
+		final BackupEngine engine = engine();
+		engine.setRestoreMaxLineChars(50_000);
+		engine.restoreDeltaFile(archive(Map.of("longLines.json", content)));
+		final com.mongodb.client.MongoCollection<org.bson.Document> collection = ConfigureDb.da.getInterface()
+				.getDatabase().getCollection("longLines");
+		try {
+			Assertions.assertEquals(3, collection.countDocuments());
+			Assertions.assertEquals(big, collection.find(new org.bson.Document("_id", 1)).first().getString("v"));
+			Assertions.assertEquals("b", collection.find(new org.bson.Document("_id", 2)).first().getString("v"));
+			Assertions.assertEquals(big + big, collection.find(new org.bson.Document("_id", 3)).first().getString("v"));
+		} finally {
+			collection.drop();
+		}
+		final BackupEngine tooShort = engine();
+		tooShort.setRestoreMaxLineChars(30_000);
+		Assertions.assertThrows(IOException.class,
+				() -> tooShort.restoreDeltaFile(archive(Map.of("longLines.json", content))));
+		ConfigureDb.da.getInterface().getDatabase().getCollection("longLines").drop();
+	}
+
+	@Test
 	public void testUnsafeCollectionNamesAreRefused() throws Exception {
 		for (final String name : new String[] { "system.js.json", "bad$name.json", ".hidden.json" }) {
 			final Path file = archive(Map.of(name, "{\"_id\": 1}\n"));

@@ -121,6 +121,8 @@ public class BackupEngine {
 	public static final long DEFAULT_RESTORE_MAX_TOTAL_BYTES = 1024L * 1024 * 1024 * 1024;
 	/** Default maximum length (in characters) of one NDJSON document line at restore (64 Mi). */
 	public static final int DEFAULT_RESTORE_MAX_LINE_CHARS = 64 * 1024 * 1024;
+	/** Size of the blocks read by {@link #readBoundedLine} (a line is never read character by character). */
+	private static final int READ_LINE_CHUNK = 8192;
 	private static final Set<PosixFilePermission> OWNER_FILE = PosixFilePermissions.fromString("rw-------");
 	private static final Set<PosixFilePermission> OWNER_DIRECTORY = PosixFilePermissions.fromString("rwx------");
 	/** Matches the chunk suffix appended to secondary archive entries of a collection (e.g. {@code __000001}). */
@@ -614,22 +616,44 @@ public class BackupEngine {
 
 	/**
 	 * Read one line (without its terminator) with a bounded length.
+	 *
+	 * <p>The reader is consumed by blocks of characters: each block is marked, scanned
+	 * for the end of line, then the reader is reset and moved just after the terminator.
 	 * @return the line, or {@code null} at the end of the stream
 	 * @throws IOException if the line exceeds {@code maxChars}
 	 */
 	static String readBoundedLine(final BufferedReader reader, final int maxChars) throws IOException {
+		final char[] chunk = new char[READ_LINE_CHUNK];
 		final StringBuilder out = new StringBuilder();
-		int value;
 		boolean any = false;
-		while ((value = reader.read()) != -1) {
-			any = true;
-			if (value == '\n') {
+		while (true) {
+			reader.mark(chunk.length);
+			final int read = reader.read(chunk, 0, chunk.length);
+			if (read == -1) {
 				break;
 			}
-			if (out.length() >= maxChars) {
+			any = true;
+			int end = 0;
+			while (end < read && chunk[end] != '\n') {
+				end++;
+			}
+			if (out.length() + end > maxChars) {
 				throw new IOException("Archive line longer than " + maxChars + " characters: restore aborted");
 			}
-			out.append((char) value);
+			out.append(chunk, 0, end);
+			if (end < read) {
+				// End of line found: give back what follows the terminator.
+				reader.reset();
+				long toSkip = end + 1L;
+				while (toSkip > 0) {
+					final long skipped = reader.skip(toSkip);
+					if (skipped <= 0) {
+						throw new IOException("Can not move after the end of line in the archive");
+					}
+					toSkip -= skipped;
+				}
+				break;
+			}
 		}
 		if (!any) {
 			return null;
