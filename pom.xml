@@ -31,6 +31,14 @@
 	</scm>
 	<dependencyManagement>
 		<dependencies>
+			<!-- Align every jackson-* artifact on one version (first import wins, so before jersey-bom) -->
+			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>2.22.3</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
 			<dependency>
 				<groupId>org.glassfish.jersey</groupId>
 				<artifactId>jersey-bom</artifactId>
@@ -107,23 +115,19 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.22.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.22</version>
 		</dependency>
 		<!-- encode output in CSV -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-csv</artifactId>
-			<version>2.22.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.22.2</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.servlet</groupId>
