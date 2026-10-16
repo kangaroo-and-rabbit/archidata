@@ -18,6 +18,13 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.security.DigestInputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,10 +36,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -74,6 +83,13 @@ import com.mongodb.client.model.WriteModel;
  * Archives are stored in a configurable directory with a naming convention based on a base name
  * and a caller-provided sequence string (typically a date such as {@code "2025-06-20"}).
  * A {@link RetentionPolicy} can be applied via {@link #clean} to automatically remove old backups.
+ * <p>
+ * <b>Security.</b> An archive holds the whole database <b>in clear</b> (every field, {@code @DataNotRead}
+ * ones included; only the {@code @DataEncrypt} fields stay encrypted) and the media files. It is created
+ * readable by its owner only ({@code rw-------} on a POSIX file system, as is a store directory created by
+ * the engine), and a SHA-256 sum is written next to it ({@code <archive>.sha256}) and checked before any
+ * restore. Keep the archives on a storage reserved to the service, and encrypt them outside archidata if
+ * they leave it (no archive encryption yet).
  */
 public class BackupEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupEngine.class);
@@ -92,6 +108,10 @@ public class BackupEngine {
 	private static final String SUFFIX_PARTIAL = "_partial";
 	private static final String SUFFIX_DELTA = "_delta";
 	private static final String SUFFIX_JSON = ".json";
+	/** Suffix of the SHA-256 sidecar file written next to every archive. */
+	public static final String SUFFIX_SHA256 = ".sha256";
+	private static final Set<PosixFilePermission> OWNER_FILE = PosixFilePermissions.fromString("rw-------");
+	private static final Set<PosixFilePermission> OWNER_DIRECTORY = PosixFilePermissions.fromString("rwx------");
 	/** Matches the chunk suffix appended to secondary archive entries of a collection (e.g. {@code __000001}). */
 	private static final Pattern CHUNK_SUFFIX_PATTERN = Pattern.compile("__[0-9]+$");
 	/** Number of documents fetched per round-trip when iterating a collection cursor. */
@@ -116,6 +136,7 @@ public class BackupEngine {
 	private int restoreBatchMaxBytes = DEFAULT_RESTORE_BATCH_MAX_BYTES;
 	private int restoreBatchMaxDocuments = DEFAULT_RESTORE_BATCH_MAX_DOCUMENTS;
 	private boolean restoreRelaxedWriteConcern = true;
+	private boolean requireChecksum = false;
 
 	/**
 	 * Create a new backup engine.
@@ -189,6 +210,24 @@ public class BackupEngine {
 	}
 
 	/**
+	 * Require the SHA-256 sidecar file at restore. By default an archive without sidecar (written by an
+	 * older version) is restored with a warning; a sidecar that does not match always fails the restore.
+	 * @param value {@code true} to refuse an archive without {@code .sha256} file
+	 */
+	public void setRequireChecksum(final boolean value) {
+		this.requireChecksum = value;
+	}
+
+	/**
+	 * Returns the path of the SHA-256 sidecar file of an archive ({@code <archive>.sha256}).
+	 * @param archive the archive path
+	 * @return the sidecar path, next to the archive
+	 */
+	public static Path checksumPath(final Path archive) {
+		return archive.resolveSibling(archive.getFileName().toString() + SUFFIX_SHA256);
+	}
+
+	/**
 	 * Register model classes for backup. The MongoDB collection name is resolved from class annotations.
 	 * @param classes the model classes to register
 	 * @throws DataAccessException if a collection name cannot be resolved from the class annotations
@@ -209,8 +248,87 @@ public class BackupEngine {
 		}
 	}
 
-	private TarArchiveOutputStream openTarGzOutputStream(final Path tarGzPath) throws IOException {
-		final OutputStream fos = Files.newOutputStream(tarGzPath);
+	private static boolean isPosix(final Path path) {
+		return path.getFileSystem().supportedFileAttributeViews().contains("posix");
+	}
+
+	/** Create an empty file readable and writable by its owner only (replacing any previous one). */
+	private static void createPrivateFile(final Path path) throws IOException {
+		Files.deleteIfExists(path);
+		if (isPosix(path)) {
+			Files.createFile(path, PosixFilePermissions.asFileAttribute(OWNER_FILE));
+			return;
+		}
+		Files.createFile(path);
+		final File file = path.toFile();
+		if (!(file.setReadable(false, false) && file.setReadable(true, true) && file.setWritable(false, false)
+				&& file.setWritable(true, true))) {
+			LOGGER.warn("Cannot restrict the permissions of the backup file: {}", path);
+		}
+	}
+
+	/** Create the store directory when missing, accessible by its owner only. */
+	private static void createPrivateDirectories(final Path dir) throws IOException {
+		if (Files.isDirectory(dir)) {
+			return;
+		}
+		if (isPosix(dir)) {
+			Files.createDirectories(dir, PosixFilePermissions.asFileAttribute(OWNER_DIRECTORY));
+		} else {
+			Files.createDirectories(dir);
+		}
+	}
+
+	private static MessageDigest newSha256() throws IOException {
+		try {
+			return MessageDigest.getInstance("SHA-256");
+		} catch (final NoSuchAlgorithmException ex) {
+			throw new IOException("SHA-256 not available", ex);
+		}
+	}
+
+	private static String toHex(final byte[] digest) {
+		return HexFormat.of().formatHex(digest);
+	}
+
+	/** Compute the SHA-256 of a file, as lower-case hexadecimal. */
+	static String sha256Of(final Path file) throws IOException {
+		final MessageDigest digest = newSha256();
+		try (InputStream in = new DigestInputStream(Files.newInputStream(file), digest)) {
+			in.transferTo(OutputStream.nullOutputStream());
+		}
+		return toHex(digest.digest());
+	}
+
+	/**
+	 * Check an archive against its SHA-256 sidecar before restoring anything from it.
+	 * @throws IOException if the sums differ, or if the sidecar is missing while {@link #setRequireChecksum} is set
+	 */
+	private void verifyChecksum(final Path archive) throws IOException {
+		final Path sidecar = checksumPath(archive);
+		if (!Files.exists(sidecar)) {
+			if (this.requireChecksum) {
+				throw new IOException("Missing checksum file " + sidecar.getFileName() + ": archive refused");
+			}
+			LOGGER.warn("No checksum file for {}: the integrity of the archive is not verified", archive.getFileName());
+			return;
+		}
+		final String content = Files.readString(sidecar, StandardCharsets.US_ASCII).trim();
+		final String expected = content.split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
+		final String actual = sha256Of(archive);
+		if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII),
+				actual.getBytes(StandardCharsets.US_ASCII))) {
+			throw new IOException("Checksum mismatch for " + archive.getFileName() + ": archive refused");
+		}
+		LOGGER.info("Checksum verified for {}", archive.getFileName());
+	}
+
+	private TarArchiveOutputStream openTarGzOutputStream(final Path tarGzPath, final MessageDigest digest)
+			throws IOException {
+		createPrivateFile(tarGzPath);
+		final OutputStream fos = new DigestOutputStream(
+				Files.newOutputStream(tarGzPath, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING),
+				digest);
 		try {
 			final GzipCompressorOutputStream gcos = new GzipCompressorOutputStream(fos);
 			final TarArchiveOutputStream taos = new TarArchiveOutputStream(gcos);
@@ -763,18 +881,25 @@ public class BackupEngine {
 			final Date mediaModifiedSince) throws IOException, DataAccessException {
 		final Date now = Date.from(Instant.now());
 		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
-		// Ensure the store directory exists
-		Files.createDirectories(this.pathStore);
+		// Ensure the store directory exists (owner only when the engine creates it)
+		createPrivateDirectories(this.pathStore);
 		// Create a hidden file for the temporary generation
 		final Path outputFileTmp = this.pathStore.resolve("." + fileName + "_tmp");
 		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
-		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp)) {
+		final MessageDigest digest = newSha256();
+		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp, digest)) {
 			strategy.backup(tarOut);
 			if (this.enableStoreOrRestoreData) {
 				backupDataToStream(tarOut, mediaModifiedSince);
 			}
 		}
 		final Path outputFileFinal = this.pathStore.resolve(fileName);
+		// The sum (sha256sum format) is moved first: a new archive never sits next to an old sum, and an old
+		// archive next to the new sum fails the check (safe side).
+		final Path checksumTmp = this.pathStore.resolve("." + fileName + SUFFIX_SHA256 + "_tmp");
+		createPrivateFile(checksumTmp);
+		Files.writeString(checksumTmp, toHex(digest.digest()) + "  " + fileName + "\n", StandardCharsets.US_ASCII);
+		Files.move(checksumTmp, checksumPath(outputFileFinal), StandardCopyOption.REPLACE_EXISTING);
 		Files.move(outputFileTmp, outputFileFinal, StandardCopyOption.REPLACE_EXISTING);
 		LOGGER.info("Backup done in file: {}", outputFileFinal);
 		LOGGER.debug("Store in path: {} [ END ]", outputFileFinal);
@@ -885,6 +1010,7 @@ public class BackupEngine {
 			LOGGER.error("Can not restore, the DB {} already exist", this.baseName);
 			return false;
 		}
+		verifyChecksum(restoreFileName);
 		try (TarArchiveInputStream tarIn = openTarGzInputStream(restoreFileName)) {
 			restoreStreamToCollections(tarIn, collectionName, false);
 		}
@@ -916,6 +1042,7 @@ public class BackupEngine {
 		LOGGER.info("Restore delta: [START] BD: '{}' from file: '{}'", this.baseName, deltaFileName);
 		LOGGER.warn("Applying a delta upserts documents over the CURRENT database state without any "
 				+ "consistency check — make sure the base full backup of this delta was restored just before.");
+		verifyChecksum(deltaFileName);
 		try (TarArchiveInputStream tarIn = openTarGzInputStream(deltaFileName)) {
 			restoreStreamToCollections(tarIn, null, true);
 		}
@@ -1349,6 +1476,7 @@ public class BackupEngine {
 			} else {
 				LOGGER.info("Retention delete: {}", file.path().getFileName());
 				Files.deleteIfExists(file.path());
+				Files.deleteIfExists(checksumPath(file.path()));
 			}
 			deletedPaths.add(file.path());
 		}

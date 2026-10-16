@@ -503,6 +503,18 @@ forme stockée, donc chiffrés. Pour une collection ajoutée par nom ou capturé
 les champs sensibles avec `excludeFields(collection, champs...)`. Les entrées déjà écrites ne sont pas
 modifiées : les purger si elles contiennent des secrets.
 
+### Sauvegardes : permissions 0600 et somme SHA-256 (D-04, en partie)
+
+Les archives sont créées en `rw-------` (et le dossier de stockage en `rwx------` quand le moteur le
+crée) au lieu des permissions de l'umask. Une somme SHA-256 est écrite à côté de chaque archive
+(`<archive>.sha256`) et vérifiée avant toute restauration : une archive modifiée est refusée
+(`IOException`). Une archive sans fichier `.sha256` (version précédente) reste restaurable avec un
+WARN, sauf `setRequireChecksum(true)`. `clean(...)` supprime aussi le fichier `.sha256`.
+
+**Attention** : les archives restent **en clair** (toute la base, champs `@DataNotRead` compris ;
+seuls les champs `@DataEncrypt` restent chiffrés). Le chiffrement des sauvegardes attend une décision.
+Un outil qui copie ou synchronise les archives doit aussi copier les fichiers `.sha256`.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

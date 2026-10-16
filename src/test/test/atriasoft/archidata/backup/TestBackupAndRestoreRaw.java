@@ -90,6 +90,8 @@ public class TestBackupAndRestoreRaw {
 	 * @throws IOException if writing fails
 	 */
 	public void writeMapToTarGz(final Map<String, String> data, final Path output) throws IOException {
+		// A hand-made archive has no SHA-256 sidecar: drop the stale one of a previous backup of that name.
+		Files.deleteIfExists(BackupEngine.checksumPath(output));
 		try (OutputStream fileOut = Files.newOutputStream(output);
 				BufferedOutputStream bufferedOut = new BufferedOutputStream(fileOut);
 				GzipCompressorOutputStream gzipOut = new GzipCompressorOutputStream(bufferedOut);

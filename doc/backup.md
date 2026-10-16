@@ -69,6 +69,28 @@ Archive format
   collection size.
 - Media files, when enabled, are stored under `data/` and restored into
   `ConfigBaseVariable.getMediaDataFolder()` (see [tools.md](tools.md)).
+- A SHA-256 sum is written next to the archive, `<archive>.sha256` (`sha256sum`
+  format), and checked before any restore (`restoreFile`, `restoreDeltaFile`,
+  `restore`, `restoreLatest`): a mismatch throws `IOException` and nothing is
+  restored. An archive without sidecar (older version, hand-made archive) is
+  restored with a warning, unless `setRequireChecksum(true)`. `clean(...)`
+  deletes the sidecar with its archive. The sum detects a corruption or an
+  accidental change, not a deliberate one by someone who can write both files.
+
+Security
+--------
+
+**An archive holds the whole database in clear**: every field of every
+document, `@DataNotRead` ones included (password hashes, tokens), the change
+journal, and the media files. Only the `@DataEncrypt` fields stay encrypted, as
+long as their keys are not stored with the archives. archidata does not encrypt
+the archives yet.
+
+- The archive and its sidecar are created `rw-------` (owner only) on a POSIX
+  file system; a store directory created by the engine is `rwx------`. An
+  existing directory keeps its permissions: make it private to the service.
+- Do not store the archives on a volume shared with other services or users,
+  and encrypt them (outside archidata) before they leave the server.
 
 `EngineBackupType` selects the JSON dialect:
 
@@ -197,6 +219,8 @@ Reference
 | `setChunkMaxBytes(int)`, `setChunkMaxDocuments(int)` | archive chunk bounds |
 | `setRestoreBatchMaxBytes(int)`, `setRestoreBatchMaxDocuments(int)` | `insertMany` batch bounds at restore |
 | `setRestoreRelaxedWriteConcern(boolean)` | see above |
+| `setRequireChecksum(boolean)` | refuse an archive without `.sha256` sidecar (default `false`: warning) |
+| `checksumPath(Path)` (static), `SUFFIX_SHA256` | path of the sidecar of an archive |
 | `store(String)`, `storeDelta(String, Date)` | back up the registered collections (full, delta) |
 | `storeAll(String)`, `storeAllDelta(String, Date)` | same on every collection but `system.*`, no registration needed |
 | `restoreFile(Path, String)`, `restoreDeltaFile(Path)`, `restore(String sequence)`, `restoreLatest()` | restore from archives |

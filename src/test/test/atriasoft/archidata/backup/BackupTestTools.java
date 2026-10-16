@@ -17,6 +17,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.atriasoft.archidata.backup.BackupEngine;
 
 /** Shared helpers for the backup test classes: tar.gz inspection/creation, NDJSON counting, cleanup. */
 final class BackupTestTools {
@@ -45,8 +46,12 @@ final class BackupTestTools {
 		return result;
 	}
 
-	/** Write a map of entry name to textual content as a .tar.gz archive. */
+	/**
+	 * Write a map of entry name to textual content as a .tar.gz archive. A hand-made archive has no SHA-256
+	 * sidecar: a stale one left by a previous backup of the same name is removed (it would not match).
+	 */
 	static void writeMapToTarGz(final Map<String, String> data, final Path output) throws IOException {
+		Files.deleteIfExists(BackupEngine.checksumPath(output));
 		try (OutputStream fileOut = Files.newOutputStream(output);
 				GzipCompressorOutputStream gzipOut = new GzipCompressorOutputStream(fileOut);
 				TarArchiveOutputStream tarOut = new TarArchiveOutputStream(gzipOut)) {
