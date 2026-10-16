@@ -531,6 +531,27 @@ refused even when the base is `/data/front`, and so is a symbolic link that lead
 404 messages no longer repeat the requested name.
 
 
+### CORS
+
+`CORSFilter` reads the allowed origins from `CORS_ALLOWED_ORIGINS` (comma separated, see
+[tools](tools.md); `ConfigBaseVariable.setCorsAllowedOrigins` in code):
+
+| `CORS_ALLOWED_ORIGINS` | `Origin` of the request | Answer |
+|---|---|---|
+| not set | any | `Access-Control-Allow-Origin: *`, no `Access-Control-Allow-Credentials` |
+| set | in the list | that origin, `Vary: Origin`, `Access-Control-Allow-Credentials: true` |
+| set | not in the list, or absent | no CORS header at all |
+
+The comparison is exact (scheme, host and port: `https://app.example.com`, without trailing slash).
+Methods, allowed and exposed headers are sent only with an allowed origin. Override
+`CORSFilter.allowedOrigins()` to take the list from elsewhere.
+
+CORS only concerns browsers: it decides whether a page of another origin may read the answer. A
+server-to-server call (another back-end, a script, curl) ignores these headers and is not affected. It
+is not an access control either: the endpoints keep their `@RolesAllowed`. Set the list in production
+to the origins of the fronts, so that a page of another site visited by a user of the internal network
+cannot read the API.
+
 Migration Guide (Breaking Change)
 ==================================
 

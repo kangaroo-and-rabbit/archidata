@@ -314,6 +314,19 @@ Le fichier demandé doit rester dans `baseFrontFolder` au sens de `Path.startsWi
 frère au préfixe commun (`/data/front-old` pour `/data/front`) n'est plus accessible. Les messages 404
 et 415 ne recopient plus le nom demandé. Aucun impact pour un front servi normalement.
 
+### CORS : liste d'origines `CORS_ALLOWED_ORIGINS` (W-12)
+
+Nouvelle variable `CORS_ALLOWED_ORIGINS` (liste séparée par des virgules,
+`ConfigBaseVariable.setCorsAllowedOrigins`). Sans elle, `CORSFilter` envoie
+`Access-Control-Allow-Origin: *` mais **plus** `Access-Control-Allow-Credentials: true`. Avec elle,
+seule une origine de la liste reçoit les en-têtes CORS (origine renvoyée, `Vary: Origin`,
+`Access-Control-Allow-Credentials: true`) ; une autre origine n'en reçoit aucun.
+
+**Qui est impacté** : un front servi depuis une autre origine que l'API doit figurer dans la liste dès
+qu'elle est définie. Un front qui envoyait des cookies ou `credentials: 'include'` vers une API sans
+liste ne reçoit plus `Allow-Credentials` (les navigateurs refusaient déjà `*` avec des identifiants).
+Les appels serveur à serveur ne sont pas concernés : CORS ne s'applique qu'aux navigateurs.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)
