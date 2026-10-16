@@ -209,4 +209,13 @@ public class TestDataServing {
 		Assertions.assertTrue(response.body().contains(AuthenticationFilter.UNAUTHORIZED_MESSAGE), response.body());
 		Assertions.assertFalse(response.body().contains("Exception"), response.body());
 	}
+
+	@Test
+	public void everyAnswerCarriesTheSecurityHeaders() throws Exception {
+		final HttpResponse<byte[]> response = get("data/" + new org.bson.types.ObjectId().toHexString());
+		Assertions.assertEquals("no-referrer", response.headers().firstValue("Referrer-Policy").orElse(null));
+		Assertions.assertEquals("DENY", response.headers().firstValue("X-Frame-Options").orElse(null));
+		Assertions.assertEquals("nosniff", response.headers().firstValue("X-Content-Type-Options").orElse(null));
+		Assertions.assertTrue(response.headers().firstValue("Strict-Transport-Security").isEmpty());
+	}
 }

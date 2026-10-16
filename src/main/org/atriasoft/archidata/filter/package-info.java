@@ -9,8 +9,11 @@
  * and the {@code @RolesAllowed} / {@code @RightAllowed} rules, then installs a
  * {@link org.atriasoft.archidata.filter.MySecurityContext}. Extend it to plug the application's own
  * token validation.</li>
- * <li>{@link org.atriasoft.archidata.filter.CORSFilter}: adds the CORS headers to every response;
- * {@link org.atriasoft.archidata.filter.OptionFilter} answers the {@code OPTIONS} preflights.</li>
+ * <li>{@link org.atriasoft.archidata.filter.CORSFilter}: adds the CORS headers (origins of
+ * {@code CORS_ALLOWED_ORIGINS}); {@link org.atriasoft.archidata.filter.OptionFilter} answers the
+ * {@code OPTIONS} preflights.</li>
+ * <li>{@link org.atriasoft.archidata.filter.SecurityHeadersFilter}: default security headers
+ * ({@code nosniff}, {@code Referrer-Policy}, {@code X-Frame-Options}, HSTS over https).</li>
  * <li>{@link org.atriasoft.archidata.filter.DataAccessRetentionConnectionFilter}: one database
  * connection (and optional transaction) per request for the resources annotated
  * {@link org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection}.</li>
@@ -23,6 +26,7 @@
  * final ResourceConfig rc = new ResourceConfig();
  * rc.register(MyAuthFilter.class); // a subclass of AuthenticationFilter
  * rc.register(CORSFilter.class);
+ * rc.register(SecurityHeadersFilter.class);
  * rc.register(OptionFilter.class);
  * rc.register(DataAccessRetentionConnectionFilter.class);
  * }

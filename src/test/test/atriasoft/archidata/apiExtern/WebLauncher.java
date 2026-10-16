@@ -19,6 +19,7 @@ import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.filter.CORSFilter;
 import org.atriasoft.archidata.filter.DataAccessRetentionConnectionFilter;
 import org.atriasoft.archidata.filter.OptionFilter;
+import org.atriasoft.archidata.filter.SecurityHeadersFilter;
 import org.atriasoft.archidata.migration.MigrationEngine;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.ContextGenericTools;
@@ -118,6 +119,8 @@ public class WebLauncher {
 		rc.register(OptionFilter.class);
 		// remove cors ==> all time called by an other system...
 		rc.register(CORSFilter.class);
+		// default security headers on every answer
+		rc.register(SecurityHeadersFilter.class);
 		// global authentication system
 		rc.register(TestAuthenticationFilter.class);
 		// this is needed to manage the @DataAccessSingleConnection

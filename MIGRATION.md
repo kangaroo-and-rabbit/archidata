@@ -379,6 +379,15 @@ charge ses fichiers cdnjs avec SRI (`integrity` + `crossorigin`).
 (génération de client), doit définir `API_DOC_ENABLED=true`. La génération de clients TypeScript /
 Python par `AnalyzeApi` ne passe pas par cet endpoint et n'est pas concernée.
 
+### En-têtes de sécurité HTTP : `SecurityHeadersFilter` (W-19)
+
+Nouveau filtre de réponse à enregistrer comme `CORSFilter` (`rc.register(SecurityHeadersFilter.class)`) :
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, et
+`Strict-Transport-Security: max-age=31536000` seulement pour une requête reçue en https. Un en-tête déjà
+posé par la ressource est conservé. **À faire** dans chaque application : l'enregistrer dans le
+lanceur (le sample le fait). Un front qui doit être affiché dans une iframe pose son propre
+`X-Frame-Options`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

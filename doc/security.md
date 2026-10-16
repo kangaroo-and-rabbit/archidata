@@ -594,6 +594,31 @@ unless `API_DOC_ENABLED=true`. The Swagger UI page loads its scripts and stylesh
 API.
 
 
+### Security headers
+
+Register `SecurityHeadersFilter` next to `CORSFilter` (`rc.register(SecurityHeadersFilter.class)`, as the
+[sample](../sample/archidata/basic) does). It adds to every answer, unless the resource already set them:
+
+| Header | Value | Why |
+|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | the browser never guesses an executable type |
+| `Referrer-Policy` | `no-referrer` | an API URL (possibly with a token in its query string) never leaks to another site |
+| `X-Frame-Options` | `DENY` | no page of the server can be framed (clickjacking) |
+| `Strict-Transport-Security` | `max-age=31536000`, over https only | the browser refuses plain http afterwards |
+
+Behind a reverse proxy that terminates TLS, the server sees http and sends no HSTS: let the proxy send it.
+The files served by `DataResource` also get a sandbox CSP (see above). A front served by `FrontGeneric` that
+needs to be framed must set its own `X-Frame-Options`, or not register the filter.
+
+### Not handled by archidata
+
+- **Rate limiting**: none (brute force, enumeration, upload floods). Put it in the reverse proxy.
+- **Class-level security annotations**: `AuthenticationFilter` only reads `@RolesAllowed`, `@PermitAll`,
+  `@RightAllowed` and `@DenyAll` on the method (or the interface method). A method without one is refused
+  with 403, even if its class carries one.
+- **`MySecurityContext.isSecure()`** reflects the scheme seen by Grizzly: behind a TLS proxy it is false.
+
+
 Migration Guide (Breaking Change)
 ==================================
 
