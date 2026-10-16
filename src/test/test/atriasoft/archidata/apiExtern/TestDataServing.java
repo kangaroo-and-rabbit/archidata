@@ -218,4 +218,49 @@ public class TestDataServing {
 		Assertions.assertEquals("nosniff", response.headers().firstValue("X-Content-Type-Options").orElse(null));
 		Assertions.assertTrue(response.headers().firstValue("Strict-Transport-Security").isEmpty());
 	}
+
+	/** Number of descriptors of this process open on a file (Linux only, -1 elsewhere). */
+	static long openDescriptorsOn(final Path file) throws IOException {
+		final Path fds = Path.of("/proc/self/fd");
+		if (!Files.isDirectory(fds)) {
+			return -1;
+		}
+		final Path target = file.toRealPath();
+		long count = 0;
+		try (java.util.stream.Stream<Path> entries = Files.list(fds)) {
+			for (final Path entry : entries.toList()) {
+				try {
+					if (Files.readSymbolicLink(entry).equals(target)) {
+						count++;
+					}
+				} catch (final IOException ex) {
+					// descriptor closed meanwhile
+				}
+			}
+		}
+		return count;
+	}
+
+	@Test
+	public void headRangeRequestsDoNotLeakFileDescriptors() throws Exception {
+		final String oid = upload("leak.png", png(64, 64));
+		final Path media = Path
+				.of(org.atriasoft.archidata.api.DataResource.getFileData(new org.bson.types.ObjectId(oid)));
+		for (int iii = 0; iii < 20; iii++) {
+			final HttpRequest head = HttpRequest
+					.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/" + oid))
+					.header("Authorization", "Bearer " + Common.USER_TOKEN).header("Range", "bytes=0-9")
+					.method("HEAD", HttpRequest.BodyPublishers.noBody()).build();
+			Assertions.assertEquals(206, CLIENT.send(head, HttpResponse.BodyHandlers.discarding()).statusCode());
+		}
+		final long open = openDescriptorsOn(media);
+		Assertions.assertTrue(open <= 0, "descriptors left open on the media: " + open);
+		// a GET range still streams the bytes
+		final HttpRequest ranged = HttpRequest
+				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/" + oid))
+				.header("Authorization", "Bearer " + Common.USER_TOKEN).header("Range", "bytes=1-3").GET().build();
+		final HttpResponse<byte[]> partial = CLIENT.send(ranged, HttpResponse.BodyHandlers.ofByteArray());
+		Assertions.assertEquals(206, partial.statusCode());
+		Assertions.assertArrayEquals(new byte[] { 'P', 'N', 'G' }, partial.body());
+	}
 }

@@ -388,6 +388,13 @@ posé par la ressource est conservé. **À faire** dans chaque application : l'e
 lanceur (le sample le fait). Un front qui doit être affiché dans une iframe pose son propre
 `X-Frame-Options`.
 
+### `MediaStreamer` ouvre le fichier à l'écriture (W-20)
+
+Nouveau constructeur `MediaStreamer(File, long from, long length)` : le fichier n'est ouvert que dans
+`write()` et y est fermé. `DataResource` l'utilise ; une requête `HEAD` ou un client qui coupe ne
+laisse plus de descripteur ouvert. L'ancien constructeur `MediaStreamer(long, RandomAccessFile)` est
+déprécié.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

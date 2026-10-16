@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -858,11 +857,12 @@ public class DataResource {
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
 		// LOGGER.info("responseRange: {}", responseRange);
 		try {
-			final RandomAccessFile raf = new RandomAccessFile(file, "r");
-			raf.seek(from);
-
+			if (!file.canRead()) {
+				throw new FileNotFoundException(filename);
+			}
 			final long len = to - from + 1;
-			final MediaStreamer streamer = new MediaStreamer(len, raf);
+			// The file is opened when the body is written, and closed there (no leak on HEAD or abort)
+			final MediaStreamer streamer = new MediaStreamer(file, from, len);
 			final Response.ResponseBuilder out = Response.ok(streamer).status(Response.Status.PARTIAL_CONTENT)
 					.header("Accept-Ranges", "bytes").header("Content-Range", responseRange)
 					.header(HttpHeaders.CONTENT_LENGTH, streamer.getLenth())
