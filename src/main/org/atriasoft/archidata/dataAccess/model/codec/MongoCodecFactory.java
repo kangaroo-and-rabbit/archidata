@@ -49,7 +49,6 @@ public final class MongoCodecFactory {
 
 	private static final DateTimeFormatter LOCAL_DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-	/** Identity converter (for types that MongoDB driver accepts directly). */
 	/**
 	 * Whether the sub-object reader of the current thread returns the {@code @DataNotRead} fields of embedded
 	 * objects ({@code ReadAllColumn} on the current read). The readers are pre-compiled and shared, so the
@@ -57,6 +56,7 @@ public final class MongoCodecFactory {
 	 */
 	private static final ThreadLocal<Boolean> SUB_OBJECT_READ_ALL_COLUMN = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
+	/** Identity converter (for types that MongoDB driver accepts directly). */
 	private static final MongoTypeWriter IDENTITY_W = v -> v;
 	private static final MongoTypeReader IDENTITY_R = v -> v;
 
