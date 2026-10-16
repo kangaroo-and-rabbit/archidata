@@ -361,6 +361,14 @@ Un jeton sans `exp` est refusé proprement (avant : `NullPointerException` attra
 claim `nbf` présent doit être antérieur à maintenant plus 30 s. Les jetons de `generateJWToken` ont
 toujours un `exp` : aucun impact pour eux.
 
+### `uploadCover` : type détecté par le contenu (W-17)
+
+`DataTools.uploadCover` détecte le type avec Tika, refuse (HTTP 406) un contenu qui n'est pas une
+image de `SUPPORTED_IMAGE_MIME_TYPE`, et stocke le type détecté au lieu de celui déduit de
+l'extension du nom de fichier. **Qui est impacté** : un appelant qui envoyait une image avec une
+mauvaise extension (elle passe maintenant avec le bon type) ou un contenu qui n'est pas une image
+(refusé).
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

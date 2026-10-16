@@ -249,6 +249,10 @@ caller that does not move the file removes it with `removeTemporaryFile(id)`.
   `setMaxRemoteDataSize(long)` / `getMaxRemoteDataSize()` (default
   `DEFAULT_MAX_REMOTE_DATA_SIZE`, 50 MiB; a larger answer gives HTTP 413), which
   also bounds `ProxyResource`.
+- `uploadCover` detects the type from the content (Tika), accepts only
+  `SUPPORTED_IMAGE_MIME_TYPE` and stores the detected type; `uploadData`
+  checks the content against `SUPPORTED_UPLOAD_MIME_TYPES`
+  (`detectAcceptedMimeType(path, accepted)`, HTTP 406 otherwise).
 - Type detection: `getMimeType(byte[])`, `getMimeTypeFromFile(String)`,
   `bytesToHex`, `multipartCorrection`, and the constants
   `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,

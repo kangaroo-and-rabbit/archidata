@@ -554,6 +554,24 @@ public class DataTools {
 		}
 	}
 
+	/**
+	 * Detects the type of a file from its content (Tika) and checks it against a list.
+	 * @param filePath The file to analyze.
+	 * @param accepted The accepted MIME types.
+	 * @return The detected type, one of {@code accepted}.
+	 * @throws FailException HTTP 406 when the detected type is not accepted.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static String detectAcceptedMimeType(final String filePath, final String[] accepted)
+			throws FailException, IOException {
+		final String detectedMimeType = getMimeTypeFromFile(filePath);
+		if (!Arrays.asList(accepted).contains(detectedMimeType)) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
+					+ detectedMimeType + " - supported: " + String.join(", ", accepted));
+		}
+		return detectedMimeType;
+	}
+
 	/** All MIME types accepted for generic file upload. */
 	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp", MIME_SVG,
 			"audio/x-matroska", "video/x-matroska", "video/webm" };
@@ -732,11 +750,7 @@ public class DataTools {
 			try {
 				final String sha512 = saveTemporaryFile(fileInputStream, tmpUID, maxUploadSize);
 				// Validate MIME type from actual file content (not just extension)
-				final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
-				if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
-					throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
-							+ detectedMimeType + " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
-				}
+				detectAcceptedMimeType(getTmpFileInData(tmpUID), SUPPORTED_UPLOAD_MIME_TYPES);
 				Data data = getWithSha512(ioDb, sha512);
 				if (data == null) {
 					LOGGER.info("Need to add the data in the BDD ... ");
@@ -761,6 +775,10 @@ public class DataTools {
 
 	/**
 	 * Uploads a cover image from a multipart form submission and attaches it to a database entity.
+	 * <p>
+	 * The type is detected from the content and must be one of {@link #SUPPORTED_IMAGE_MIME_TYPE}; the stored
+	 * type is the detected one, not the one the file name suggests.
+	 * </p>
 	 * @param <CLASS_TYPE> The entity class type.
 	 * @param <ID_TYPE> The entity identifier type.
 	 * @param clazz The entity class.
@@ -790,11 +808,13 @@ public class DataTools {
 			final long tmpUID = getTmpDataId();
 			try {
 				final String sha512 = saveTemporaryFile(fileInputStream, tmpUID, maxUploadSize);
+				// The type comes from the content (Tika), not from the file name given by the client
+				final String mimeType = detectAcceptedMimeType(getTmpFileInData(tmpUID), SUPPORTED_IMAGE_MIME_TYPE);
 				Data data = getWithSha512(ioDb, sha512);
 				if (data == null) {
 					LOGGER.info("Need to add the data in the BDD ... ");
 					try {
-						data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
+						data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512, mimeType);
 					} catch (final IOException ex) {
 						throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 					}

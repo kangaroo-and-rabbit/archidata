@@ -205,4 +205,28 @@ class TestDataTools {
 			org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(null);
 		}
 	}
+
+	// ===== content type detection of the uploads (W-17) =====
+
+	@Test
+	void testDetectAcceptedMimeType() throws Exception {
+		final java.nio.file.Path picture = java.nio.file.Files.createTempFile("cover", ".txt");
+		final java.nio.file.Path text = java.nio.file.Files.createTempFile("cover", ".png");
+		try {
+			final java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(4, 4,
+					java.awt.image.BufferedImage.TYPE_INT_RGB);
+			javax.imageio.ImageIO.write(image, "png", picture.toFile());
+			java.nio.file.Files.writeString(text, "not a picture at all");
+			// the name says .txt, the content is a PNG: the content wins
+			Assertions.assertEquals("image/png",
+					DataTools.detectAcceptedMimeType(picture.toString(), DataTools.SUPPORTED_IMAGE_MIME_TYPE));
+			final org.atriasoft.archidata.exception.FailException ex = Assertions.assertThrows(
+					org.atriasoft.archidata.exception.FailException.class,
+					() -> DataTools.detectAcceptedMimeType(text.toString(), DataTools.SUPPORTED_IMAGE_MIME_TYPE));
+			Assertions.assertEquals(jakarta.ws.rs.core.Response.Status.NOT_ACCEPTABLE, ex.status);
+		} finally {
+			java.nio.file.Files.deleteIfExists(picture);
+			java.nio.file.Files.deleteIfExists(text);
+		}
+	}
 }
