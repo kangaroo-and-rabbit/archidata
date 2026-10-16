@@ -3,8 +3,10 @@ package org.atriasoft.archidata.tools;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 import org.atriasoft.archidata.filter.AuthenticationFilter;
 import org.bson.types.ObjectId;
@@ -64,6 +67,10 @@ public class JWTWrapper {
 	public static final Duration MIN_REFRESH_INTERVAL = Duration.ofSeconds(60);
 	/** When the last refresh was asked by {@link #validateToken} (nanoTime), {@code Long.MIN_VALUE} when never. */
 	private static final AtomicLong LAST_REFRESH_REQUEST = new AtomicLong(Long.MIN_VALUE);
+	/** A literal IPv4 address: four decimal bytes, without leading zero (no octal or short forms). */
+	private static final Pattern IPV4_LITERAL = Pattern.compile("(0|[1-9][0-9]{0,2})(\\.(0|[1-9][0-9]{0,2})){3}");
+	/** The characters of a literal IPv6 address (with an optional embedded IPv4 part), no zone. */
+	private static final Pattern IPV6_LITERAL = Pattern.compile("[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*");
 	/** Accept an {@code http://} SSO address that is not a loopback one. */
 	private static volatile boolean allowInsecureSsoAddress = false;
 	/**
@@ -150,13 +157,45 @@ public class JWTWrapper {
 		if (allowInsecureSsoAddress) {
 			return true;
 		}
-		final String host = uri.getHost();
-		if (host == null) {
+		return isLoopbackHost(uri.getHost());
+	}
+
+	/**
+	 * Tells whether a host is a loopback one, without any DNS resolution: the name {@code localhost}, a literal
+	 * IPv4 address in {@code 127.0.0.0/8} (four decimal bytes), or a literal IPv6 loopback address in brackets
+	 * ({@code [::1]}). A name that only looks like an address ({@code 127.evil.example}) is not one.
+	 * @param host The host of the URL, as {@link URI#getHost()} returns it (IPv6 in brackets).
+	 * @return {@code true} for a loopback host.
+	 */
+	static boolean isLoopbackHost(final String host) {
+		if (host == null || host.isEmpty()) {
 			return false;
 		}
-		final String bare = host.startsWith("[") ? host.substring(1, host.length() - 1) : host;
-		return "localhost".equalsIgnoreCase(bare) || bare.startsWith("127.") || "::1".equals(bare)
-				|| "0:0:0:0:0:0:0:1".equals(bare);
+		if ("localhost".equalsIgnoreCase(host)) {
+			return true;
+		}
+		if (host.startsWith("[") && host.endsWith("]")) {
+			final String literal = host.substring(1, host.length() - 1);
+			if (!IPV6_LITERAL.matcher(literal).matches()) {
+				return false;
+			}
+			try {
+				// A bracketed host is parsed as an IPv6 literal, never resolved.
+				return InetAddress.getByName(host).isLoopbackAddress();
+			} catch (final UnknownHostException ex) {
+				return false;
+			}
+		}
+		if (!IPV4_LITERAL.matcher(host).matches()) {
+			return false;
+		}
+		final String[] bytes = host.split("\\.");
+		for (final String item : bytes) {
+			if (Integer.parseInt(item) > 255) {
+				return false;
+			}
+		}
+		return "127".equals(bytes[0]);
 	}
 
 	/**

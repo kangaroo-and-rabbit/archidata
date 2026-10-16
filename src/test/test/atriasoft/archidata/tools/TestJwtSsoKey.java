@@ -90,6 +90,32 @@ class TestJwtSsoKey {
 				() -> JWTWrapper.initLocalTokenRemote("ftp://sso.example.com/karso/api/", "test"));
 	}
 
+	/** Whether the address is refused before any connection (and not because nothing listens there). */
+	private static boolean refusedAddress(final String address) {
+		try {
+			JWTWrapper.initLocalTokenRemote(address, "test");
+			return false;
+		} catch (final IOException ex) {
+			return ex.getMessage() != null && ex.getMessage().startsWith("The SSO address must use https");
+		} catch (final Exception ex) {
+			return false;
+		}
+	}
+
+	@Test
+	void onlyRealLoopbackHostsAreAcceptedOverHttp() {
+		// Port 1: nothing listens, an accepted address fails on the connection, not on the check.
+		for (final String host : new String[] { "127.0.0.1", "127.8.9.10", "localhost", "LocalHost", "[::1]",
+				"[0:0:0:0:0:0:0:1]" }) {
+			Assertions.assertFalse(refusedAddress("http://" + host + ":1/sso/"), host);
+		}
+		for (final String host : new String[] { "127.evil.example", "127.0.0.1.evil.example", "127.0.0.1.nip.io",
+				"localhost.evil.example", "127.1", "0177.0.0.1", "127.0.0.256", "2130706433", "[::2]",
+				"[::ffff:8.8.8.8]", "10.0.0.1" }) {
+			Assertions.assertTrue(refusedAddress("http://" + host + ":1/sso/"), host);
+		}
+	}
+
 	@Test
 	void loopbackHttpIsAcceptedAndSendsTheToken() throws Exception {
 		ConfigBaseVariable.setSsoToken("sso-secret");

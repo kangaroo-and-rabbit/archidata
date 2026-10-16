@@ -76,8 +76,9 @@ JWTWrapper.initLocalTokenRemote("https://sso.example.com/karso/api/", "my-app");
 `UpdateJwtPublicKey` (a daemon thread) calls it with `SSO_ADDRESS` and refreshes the key every 5 minutes.
 The fetch is protected:
 
-- the address must be `https://`; `http://` is accepted only for a loopback host (`localhost`, `127.x`,
-  `::1`) or after `JWTWrapper.setAllowInsecureSsoAddress(true)` (plain HTTP exposes `SSO_TOKEN` and lets
+- the address must be `https://`; `http://` is accepted only for a loopback host (the name `localhost`, a
+  literal IPv4 address `127.x.y.z` or the literal IPv6 `[::1]`, checked without any DNS resolution: a name
+  such as `127.evil.example` is not a loopback host) or after `JWTWrapper.setAllowInsecureSsoAddress(true)` (plain HTTP exposes `SSO_TOKEN` and lets
   anyone on the path replace the key, then forge tokens);
 - connection timeout 5 s, read timeout 10 s, answer bounded to 64 KiB, redirections not followed (they
   would carry `SSO_TOKEN` elsewhere);
