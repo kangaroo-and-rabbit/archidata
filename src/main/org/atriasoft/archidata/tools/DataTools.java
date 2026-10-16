@@ -8,11 +8,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
@@ -64,8 +66,10 @@ public class DataTools {
 	public static final long DEFAULT_MAX_UPLOAD_SIZE = 1024L * 1024 * 1024;
 	/** Largest upload accepted by {@link #uploadData} and {@link #uploadCover}. */
 	private static volatile long maxUploadSize = DEFAULT_MAX_UPLOAD_SIZE;
-	/** Counter for generating unique temporary file identifiers. */
-	private static long tmpFolderId = 1;
+	/** Source of the temporary file identifiers: unpredictable, shared by {@link DataTools} and {@link DataResource}. */
+	private static final SecureRandom TMP_ID_RANDOM = new SecureRandom();
+	/** Smallest temporary identifier: keeps clear of the small counters older code may still use. */
+	private static final long TMP_ID_BASE = 1L << 40;
 	/** SVG MIME type. Accepted for upload: an SVG rendered with &lt;img src&gt; does not run its scripts, and
 	 * {@link DataResource} serves it (like every active type, see {@link #isActiveMimeType(String)}) as an
 	 * attachment in a sandbox, so opening its URL directly does not run it on the origin of the API either. */
@@ -129,12 +133,33 @@ public class DataTools {
 		}
 	}
 
+	private static long randomTmpId() {
+		return TMP_ID_BASE + (TMP_ID_RANDOM.nextLong() & ((1L << 62) - 1));
+	}
+
 	/**
-	 * Returns the next unique temporary data identifier.
+	 * Returns a new unique temporary data identifier and reserves its file.
+	 * <p>
+	 * The identifier is random (unpredictable) and its file, {@link #getTmpFileInData(long)}, is created
+	 * atomically in the temporary folder ({@code DATA_TMP_FOLDER}): two callers, in this class or in
+	 * {@link DataResource}, never get the same file. The file is empty until saved; remove it with
+	 * {@link #removeTemporaryFile(long)} when it is not moved to the media folder.
+	 * </p>
 	 * @return A unique long identifier for temporary file storage.
 	 */
 	public static long getTmpDataId() {
-		return tmpFolderId++;
+		while (true) {
+			final long id = randomTmpId();
+			try {
+				Files.createFile(Paths.get(getTmpFileInData(id)));
+				return id;
+			} catch (final FileAlreadyExistsException ex) {
+				LOGGER.debug("Temporary id already used, draw another one");
+			} catch (final IOException ex) {
+				LOGGER.error("Can not reserve the temporary file: {}", ex.getMessage());
+				return id;
+			}
+		}
 	}
 
 	/**
@@ -153,11 +178,12 @@ public class DataTools {
 	}
 
 	/**
-	 * Returns a unique temporary folder path and creates the parent directory if needed.
+	 * Returns a unique (random) temporary folder path and creates the parent directory if needed. The folder
+	 * itself is not created.
 	 * @return The absolute path to a new temporary folder.
 	 */
 	public static String getTmpFolder() {
-		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId++;
+		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + randomTmpId();
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
 		} catch (final IOException e) {

@@ -297,6 +297,17 @@ sous-échantillonnée ; une image très fine donne une vignette d'au moins un pi
 **Qui est impacté** : un front qui demande la vignette d'une image géante reçoit 415 au lieu d'une
 vignette ; il peut afficher l'image d'origine.
 
+### Identifiants temporaires aléatoires et réservés (W-10)
+
+`DataTools.getTmpDataId()` et `DataResource.getTmpDataId()` partagent maintenant un seul générateur :
+un identifiant aléatoire (`SecureRandom`, supérieur à 2^40) dont le fichier est créé atomiquement dans
+`DATA_TMP_FOLDER`. Avant, deux compteurs partant de 1 distribuaient les mêmes numéros (fichiers
+écrasés entre deux uploads simultanés). `getTmpFolder()` renvoie aussi un nom aléatoire.
+
+**Qui est impacté** : le code qui supposait des identifiants petits ou croissants. Un identifiant
+obtenu et jamais utilisé laisse un fichier vide : appeler `removeTemporaryFile(id)` dans un
+`finally`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

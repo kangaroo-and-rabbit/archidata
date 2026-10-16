@@ -167,4 +167,42 @@ class TestDataTools {
 			DataTools.setMaxRemoteDataSize(DataTools.DEFAULT_MAX_REMOTE_DATA_SIZE);
 		}
 	}
+
+	// ===== temporary identifiers (W-10) =====
+
+	@Test
+	void testTmpDataIdsAreUniqueAndReserved() throws Exception {
+		final java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("archidata-tmp-id");
+		org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(dir.toString());
+		try {
+			final java.util.Set<Long> ids = java.util.concurrent.ConcurrentHashMap.newKeySet();
+			final java.util.List<Thread> threads = new java.util.ArrayList<>();
+			for (int iii = 0; iii < 8; iii++) {
+				final boolean useResource = iii % 2 == 0;
+				final Thread thread = new Thread(() -> {
+					for (int jjj = 0; jjj < 100; jjj++) {
+						ids.add(useResource ? org.atriasoft.archidata.api.DataResource.getTmpDataId()
+								: DataTools.getTmpDataId());
+					}
+				});
+				threads.add(thread);
+				thread.start();
+			}
+			for (final Thread thread : threads) {
+				thread.join();
+			}
+			Assertions.assertEquals(800, ids.size());
+			for (final long id : ids) {
+				Assertions.assertTrue(id > (1L << 40), "id not random enough: " + id);
+				Assertions.assertTrue(
+						java.nio.file.Files.exists(java.nio.file.Paths.get(DataTools.getTmpFileInData(id))));
+				DataTools.removeTemporaryFile(id);
+			}
+			try (java.util.stream.Stream<java.nio.file.Path> left = java.nio.file.Files.list(dir)) {
+				Assertions.assertEquals(0, left.count());
+			}
+		} finally {
+			org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(null);
+		}
+	}
 }

@@ -223,7 +223,10 @@ Data files: `DataTools`
 
 Storage of binary uploads (images, audio, video) with SHA-512 deduplication:
 a file is first saved in the temporary folder under a numeric id, then moved
-to its permanent path once its `Data` record is inserted.
+to its permanent path once its `Data` record is inserted. `getTmpDataId()`
+(and `DataResource.getTmpDataId()`, which delegates to it) draws a random id and
+creates its file atomically, so two uploads never share a temporary file; a
+caller that does not move the file removes it with `removeTemporaryFile(id)`.
 
 - Folders and temporary files: `createFolder`, `getTmpDataId`, `getTmpFileInData`,
   `getTmpFolder`, `saveTemporaryFile(InputStream | byte[], long id)`,

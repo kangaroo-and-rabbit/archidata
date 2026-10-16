@@ -92,8 +92,6 @@ public class DataResource {
 	public static final int MAX_THUMBNAIL_SOURCE_DIMENSION = 20_000;
 	/** Largest number of pixels of a picture a thumbnail is made from (100 Mpx). */
 	public static final long MAX_THUMBNAIL_SOURCE_PIXELS = 100_000_000L;
-	/** Counter for generating unique temporary file identifiers. */
-	private static long tmpFolderId = 1;
 
 	/** Default constructor used by the JAX-RS resource framework. */
 	public DataResource() {}
@@ -106,11 +104,12 @@ public class DataResource {
 	}
 
 	/**
-	 * Returns the next unique temporary data identifier.
+	 * Returns a new unique temporary data identifier: same generator as {@link DataTools#getTmpDataId()}
+	 * (random, file reserved atomically), so both classes can be mixed.
 	 * @return A unique long identifier for temporary file storage.
 	 */
 	public static long getTmpDataId() {
-		return tmpFolderId++;
+		return DataTools.getTmpDataId();
 	}
 
 	/**
@@ -119,13 +118,7 @@ public class DataResource {
 	 * @return The absolute path to the temporary file.
 	 */
 	public static String getTmpFileInData(final long tmpFolderId) {
-		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + tmpFolderId;
-		try {
-			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (final IOException e) {
-			LOGGER.error("Failed to create tmp data folder: {}", e.getMessage(), e);
-		}
-		return filePath;
+		return DataTools.getTmpFileInData(tmpFolderId);
 	}
 
 	/**
