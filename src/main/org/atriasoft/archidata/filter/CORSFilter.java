@@ -22,10 +22,14 @@ import jakarta.ws.rs.ext.Provider;
  * <li>not set: {@code Access-Control-Allow-Origin: *}, without {@code Access-Control-Allow-Credentials}
  * (browsers never send credentials to a {@code *} origin anyway);</li>
  * <li>set, and the {@code Origin} of the request is in the list: that origin is sent back, with
- * {@code Vary: Origin} and {@code Access-Control-Allow-Credentials: true};</li>
- * <li>set, and the origin is not in the list (or the request has none): no CORS header at all, the browser
+ * {@code Access-Control-Allow-Credentials: true};</li>
+ * <li>set, and the origin is not in the list (or the request has none): no CORS header, the browser
  * refuses to hand the response to the page.</li>
  * </ul>
+ * <p>
+ * When the list is set, every response carries {@code Vary: Origin} (origin allowed, refused or absent), so
+ * that a shared cache never serves the answer made for one origin to another one.
+ * </p>
  * <p>
  * CORS only binds browsers: a server-to-server call, a script or curl is not affected by these headers.
  * It is not an access control: the endpoints still need their {@code @RolesAllowed}.
@@ -61,12 +65,14 @@ public class CORSFilter implements ContainerResponseFilter {
 		if (allowed == null) {
 			headers.putSingle("Access-Control-Allow-Origin", "*");
 		} else {
+			// The answer depends on the Origin whatever it is (absent, refused or allowed): a shared cache must
+			// not hand the answer made for one origin to another one.
+			addVaryOrigin(headers);
 			final String origin = request.getHeaderString("Origin");
 			if (origin == null || !allowed.contains(origin)) {
 				return;
 			}
 			headers.putSingle("Access-Control-Allow-Origin", origin);
-			headers.add("Vary", "Origin");
 			headers.putSingle("Access-Control-Allow-Credentials", "true");
 		}
 		headers.putSingle("Access-Control-Allow-Range", "bytes");
@@ -77,5 +83,24 @@ public class CORSFilter implements ContainerResponseFilter {
 				"Origin, content-type, Content-type, Accept, Authorization, mime-type, filename, Range, X-Pagination-Offset, X-Pagination-Limit");
 		headers.putSingle("Access-Control-Allow-Methods",
 				"GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, ARCHIVE, RESTORE, CALL");
+	}
+
+	/**
+	 * Adds {@code Origin} to the {@code Vary} header, unless a {@code Vary} value already names it.
+	 * @param headers the response headers
+	 */
+	private static void addVaryOrigin(final MultivaluedMap<String, Object> headers) {
+		final List<Object> vary = headers.get("Vary");
+		if (vary != null) {
+			for (final Object value : vary) {
+				for (final String item : String.valueOf(value).split(",")) {
+					final String name = item.trim();
+					if (name.equalsIgnoreCase("Origin") || name.equals("*")) {
+						return;
+					}
+				}
+			}
+		}
+		headers.add("Vary", "Origin");
 	}
 }

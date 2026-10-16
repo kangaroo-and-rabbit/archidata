@@ -46,10 +46,31 @@ class TestCORSFilter {
 	}
 
 	@Test
-	void otherOriginGetsNoCorsHeader() throws Exception {
+	void otherOriginGetsNoCorsHeaderButVary() throws Exception {
 		ConfigBaseVariable.setCorsAllowedOrigins("https://app.example.com");
-		Assertions.assertTrue(filter("https://evil.example.com").isEmpty());
-		Assertions.assertTrue(filter("https://app.example.com.evil.com").isEmpty());
-		Assertions.assertTrue(filter(null).isEmpty());
+		for (final String origin : new String[] { "https://evil.example.com", "https://app.example.com.evil.com",
+				null }) {
+			final MultivaluedMap<String, Object> headers = filter(origin);
+			Assertions.assertEquals(java.util.Set.of("Vary"), headers.keySet(), "origin " + origin);
+			Assertions.assertEquals(java.util.List.of("Origin"), headers.get("Vary"), "origin " + origin);
+		}
+	}
+
+	@Test
+	void varyOriginIsNotDuplicated() throws Exception {
+		ConfigBaseVariable.setCorsAllowedOrigins("https://app.example.com");
+		final MultivaluedMap<String, Object> headers = FilterStubs.headers();
+		headers.add("Vary", "Accept-Encoding, origin");
+		new CORSFilter().filter(
+				FilterStubs.request("http://localhost/api/x", Map.of("Origin", "https://app.example.com")),
+				FilterStubs.response(headers));
+		Assertions.assertEquals(java.util.List.of("Accept-Encoding, origin"), headers.get("Vary"));
+		Assertions.assertEquals("https://app.example.com", headers.getFirst("Access-Control-Allow-Origin"));
+	}
+
+	@Test
+	void withoutListNoVary() throws Exception {
+		ConfigBaseVariable.setCorsAllowedOrigins(null);
+		Assertions.assertNull(filter("https://app.example.com").get("Vary"));
 	}
 }

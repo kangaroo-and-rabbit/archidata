@@ -320,7 +320,8 @@ Nouvelle variable `CORS_ALLOWED_ORIGINS` (liste séparée par des virgules,
 `ConfigBaseVariable.setCorsAllowedOrigins`). Sans elle, `CORSFilter` envoie
 `Access-Control-Allow-Origin: *` mais **plus** `Access-Control-Allow-Credentials: true`. Avec elle,
 seule une origine de la liste reçoit les en-têtes CORS (origine renvoyée, `Vary: Origin`,
-`Access-Control-Allow-Credentials: true`) ; une autre origine n'en reçoit aucun.
+`Access-Control-Allow-Credentials: true`) ; une autre origine n'en reçoit aucun. Toutes les
+réponses portent alors `Vary: Origin`, origine acceptée, refusée ou absente.
 
 **Qui est impacté** : un front servi depuis une autre origine que l'API doit figurer dans la liste dès
 qu'elle est définie. Un front qui envoyait des cookies ou `credentials: 'include'` vers une API sans

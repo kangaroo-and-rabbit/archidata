@@ -564,7 +564,10 @@ refused even when the base is `/data/front`, and so is a symbolic link that lead
 |---|---|---|
 | not set | any | `Access-Control-Allow-Origin: *`, no `Access-Control-Allow-Credentials` |
 | set | in the list | that origin, `Vary: Origin`, `Access-Control-Allow-Credentials: true` |
-| set | not in the list, or absent | no CORS header at all |
+| set | not in the list, or absent | no CORS header, only `Vary: Origin` |
+
+With the list set, `Vary: Origin` is on every answer (added once, unless a `Vary` already names
+`Origin`): a shared cache never serves the answer made for one origin to another one.
 
 The comparison is exact (scheme, host and port: `https://app.example.com`, without trailing slash).
 Methods, allowed and exposed headers are sent only with an allowed origin. Override
