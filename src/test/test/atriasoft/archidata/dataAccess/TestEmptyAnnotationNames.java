@@ -51,12 +51,15 @@ public class TestEmptyAnnotationNames {
 		final String message = errorOf(EmptyCollection.class);
 		Assertions.assertTrue(message.contains(EmptyCollection.class.getName()), message);
 		Assertions.assertTrue(message.contains("@Collection(\"\")"), message);
-		Assertions.assertThrows(DataAccessException.class, () -> AnnotationTools.getTableName(EmptyCollection.class));
+		Assertions.assertThrows(DataAccessException.class,
+				() -> AnnotationTools.getTableName(EmptyCollection.class, null));
+		Assertions.assertThrows(IllegalArgumentException.class,
+				() -> AnnotationTools.getTableName(EmptyCollection.class));
 	}
 
 	@Test
 	public void testBlankCollectionIsRejected() {
-		Assertions.assertThrows(DataAccessException.class, () -> AnnotationTools.getTableName(BlankCollection.class));
+		Assertions.assertThrows(DataAccessException.class, () -> AnnotationTools.checkTableName(BlankCollection.class));
 	}
 
 	@Test

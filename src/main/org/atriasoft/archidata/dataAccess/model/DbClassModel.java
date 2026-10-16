@@ -530,6 +530,7 @@ public final class DbClassModel {
 			throws IntrospectionException, DataAccessException {
 		checkNoLegacyAnnotation(clazz);
 		this.classModel = ClassModel.of(clazz);
+		AnnotationTools.checkTableName(clazz);
 		this.tableName = AnnotationTools.getTableName(clazz);
 		for (final PropertyDescriptor prop : this.classModel.getProperties()) {
 			if (prop.getField() != null) {

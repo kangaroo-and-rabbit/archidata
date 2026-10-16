@@ -394,6 +394,7 @@ public class AnnotationTools {
 				return data.get(0).getName();
 			}
 		}
+		checkTableName(clazz);
 		return AnnotationTools.getTableName(clazz);
 	}
 
@@ -401,22 +402,42 @@ public class AnnotationTools {
 	 * Returns the collection name from the {@link Collection} annotation of the class, or the class
 	 * simple name when the class is not annotated (the annotation is not inherited).
 	 *
+	 * <p>An empty or blank {@code @Collection("")} is rejected: {@link #checkTableName(Class)} throws a
+	 * {@link DataAccessException} when the entity model is analysed, and this method throws an
+	 * {@link IllegalArgumentException} if it is reached anyway.
+	 *
 	 * @param element the entity class
 	 * @return the collection name
-	 * @throws DataAccessException if the {@link Collection} name is empty or blank
+	 * @throws IllegalArgumentException if the {@link Collection} name is empty or blank
 	 */
-	public static String getTableName(final Class<?> element) throws DataAccessException {
+	public static String getTableName(final Class<?> element) {
 		final Collection annotation = element.getDeclaredAnnotation(Collection.class);
 		if (annotation == null) {
 			// when no annotation is detected, then the collection name is the class name
 			return element.getSimpleName();
 		}
 		if (annotation.value().isBlank()) {
-			throw new DataAccessException("Empty collection name on " + element.getName()
-					+ ": @Collection(\"\") is not allowed, give a name or remove the annotation to use the class"
-					+ " simple name");
+			throw new IllegalArgumentException(emptyTableNameMessage(element));
 		}
 		return annotation.value();
+	}
+
+	/**
+	 * Rejects an empty or blank {@link Collection} name.
+	 *
+	 * @param element the entity class
+	 * @throws DataAccessException if the {@link Collection} name is empty or blank
+	 */
+	public static void checkTableName(final Class<?> element) throws DataAccessException {
+		final Collection annotation = element.getDeclaredAnnotation(Collection.class);
+		if (annotation != null && annotation.value().isBlank()) {
+			throw new DataAccessException(emptyTableNameMessage(element));
+		}
+	}
+
+	private static String emptyTableNameMessage(final Class<?> element) {
+		return "Empty collection name on " + element.getName()
+				+ ": @Collection(\"\") is not allowed, give a name or remove the annotation to use the class simple name";
 	}
 
 	/**
