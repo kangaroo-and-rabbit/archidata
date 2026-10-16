@@ -2,7 +2,11 @@ package org.atriasoft.archidata.dataAccess;
 
 import java.util.regex.Pattern;
 
+import org.atriasoft.archidata.bean.exception.IntrospectionException;
+import org.atriasoft.archidata.dataAccess.model.DbClassModel;
+import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
 import org.bson.BsonType;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 
 /**
@@ -31,12 +35,87 @@ import org.bson.conversions.Bson;
  * to resolve the property name to the correct database field name, respecting
  * {@code @Field("...")} annotations. Results are cached for performance.
  *
+ * <h2>Values and field names coming from a client</h2>
+ * <ul>
+ * <li>{@code eq} always produces an explicit {@code {field: {$eq: value}}}: a {@code Map} or a
+ * {@code Document} value is compared as a literal, never read as operators. The other comparison
+ * helpers ({@code ne}, {@code gt}, {@code in}...) already wrap the value in their operator.</li>
+ * <li>Every string field name is checked by {@link #checkFieldName(String)}: no leading {@code $}
+ * ({@code $where}, {@code $expr}...), no NUL character. A name chosen by a client must also be checked
+ * against the model with {@link #checkFieldName(Class, String)}.</li>
+ * <li>{@link #regex(String, String)} and {@link #where(String)} must never receive a client value: a
+ * client regex is a ReDoS vector and {@code $where} runs JavaScript. To search a client text, use
+ * {@link #regexLiteral(String, String)}, which quotes it.</li>
+ * </ul>
+ *
  * @see org.atriasoft.archidata.dataAccess.options.Condition
  * @see com.mongodb.client.model.Filters
  */
 public final class Filters {
 
 	private Filters() {}
+
+	// ====================================================================
+	// Field name checks
+	// ====================================================================
+
+	/**
+	 * Checks the syntax of a field name used in a filter or a sort.
+	 *
+	 * <p>Rejects a {@code null} or empty name, a name starting with {@code $} (a top-level operator such as
+	 * {@code $where} or {@code $expr} instead of a field), and a name containing a NUL character. Every
+	 * string-based helper of this class applies it.
+	 *
+	 * @param fieldName the field name (possibly a dotted path)
+	 * @return the same name
+	 * @throws IllegalArgumentException if the name is invalid
+	 */
+	public static String checkFieldName(final String fieldName) {
+		if (fieldName == null || fieldName.isEmpty()) {
+			throw new IllegalArgumentException("Field name must not be empty");
+		}
+		if (fieldName.charAt(0) == '$') {
+			throw new IllegalArgumentException("Field name must not start with '$'");
+		}
+		if (fieldName.indexOf('\0') >= 0) {
+			throw new IllegalArgumentException("Field name must not contain a NUL character");
+		}
+		return fieldName;
+	}
+
+	/**
+	 * Checks a field name chosen by a client (filter or sort) against the model of an entity.
+	 *
+	 * <p>On top of {@link #checkFieldName(String)}, the first segment of the (dotted) name must be a field of
+	 * the entity, and it must not be a protected field ({@code @DataNotRead}, {@code @DataEncrypt}): a filter
+	 * or a sort on a hidden field would reveal its value by dichotomy.
+	 *
+	 * @param clazz the entity class
+	 * @param fieldName the database field name (or dotted path) sent by the client
+	 * @return the same name
+	 * @throws IllegalArgumentException if the name is invalid, unknown or protected
+	 */
+	public static String checkFieldName(final Class<?> clazz, final String fieldName) {
+		checkFieldName(fieldName);
+		final int dot = fieldName.indexOf('.');
+		final String root = dot < 0 ? fieldName : fieldName.substring(0, dot);
+		final DbClassModel model;
+		try {
+			model = DbClassModel.of(clazz);
+		} catch (final IntrospectionException ex) {
+			throw new IllegalArgumentException("Cannot analyse the model of " + clazz.getSimpleName(), ex);
+		}
+		for (final DbPropertyDescriptor desc : model.getAllFields()) {
+			if (root.equals(desc.getDbFieldName())) {
+				if (desc.isNotRead() || desc.isEncrypted()) {
+					throw new IllegalArgumentException("Field '" + root + "' of " + clazz.getSimpleName()
+							+ " cannot be used in a client filter or sort");
+				}
+				return fieldName;
+			}
+		}
+		throw new IllegalArgumentException("Unknown field '" + root + "' on " + clazz.getSimpleName());
+	}
 
 	// ====================================================================
 	// Comparison operators — String-based (delegate to MongoDB Filters)
@@ -56,7 +135,7 @@ public final class Filters {
 	 * @return the equality filter
 	 */
 	public static <TItem> Bson eq(final TItem value) {
-		return com.mongodb.client.model.Filters.eq(value);
+		return eq("_id", value);
 	}
 
 	/**
@@ -77,7 +156,9 @@ public final class Filters {
 	 * @return the equality filter
 	 */
 	public static <TItem> Bson eq(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.eq(fieldName, value);
+		// Explicit $eq: a value that is a Map / Document coming from a client is compared as a literal
+		// instead of being read as operators ({"$ne": ...}, {"$gt": ...}).
+		return new Document(checkFieldName(fieldName), new Document("$eq", value));
 	}
 
 	/**
@@ -95,7 +176,7 @@ public final class Filters {
 	 * @return the not-equal filter
 	 */
 	public static <TItem> Bson ne(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.ne(fieldName, value);
+		return com.mongodb.client.model.Filters.ne(checkFieldName(fieldName), value);
 	}
 
 	/**
@@ -113,7 +194,7 @@ public final class Filters {
 	 * @return the greater-than filter
 	 */
 	public static <TItem> Bson gt(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.gt(fieldName, value);
+		return com.mongodb.client.model.Filters.gt(checkFieldName(fieldName), value);
 	}
 
 	/**
@@ -131,7 +212,7 @@ public final class Filters {
 	 * @return the less-than filter
 	 */
 	public static <TItem> Bson lt(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.lt(fieldName, value);
+		return com.mongodb.client.model.Filters.lt(checkFieldName(fieldName), value);
 	}
 
 	/**
@@ -149,7 +230,7 @@ public final class Filters {
 	 * @return the greater-than-or-equal filter
 	 */
 	public static <TItem> Bson gte(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.gte(fieldName, value);
+		return com.mongodb.client.model.Filters.gte(checkFieldName(fieldName), value);
 	}
 
 	/**
@@ -167,7 +248,7 @@ public final class Filters {
 	 * @return the less-than-or-equal filter
 	 */
 	public static <TItem> Bson lte(final String fieldName, final TItem value) {
-		return com.mongodb.client.model.Filters.lte(fieldName, value);
+		return com.mongodb.client.model.Filters.lte(checkFieldName(fieldName), value);
 	}
 
 	/**
@@ -186,7 +267,7 @@ public final class Filters {
 	 */
 	@SafeVarargs
 	public static <TItem> Bson in(final String fieldName, final TItem... values) {
-		return com.mongodb.client.model.Filters.in(fieldName, values);
+		return com.mongodb.client.model.Filters.in(checkFieldName(fieldName), values);
 	}
 
 	/**
@@ -205,7 +286,7 @@ public final class Filters {
 	 * @return the in filter
 	 */
 	public static <TItem> Bson in(final String fieldName, final Iterable<TItem> values) {
-		return com.mongodb.client.model.Filters.in(fieldName, values);
+		return com.mongodb.client.model.Filters.in(checkFieldName(fieldName), values);
 	}
 
 	/**
@@ -224,7 +305,7 @@ public final class Filters {
 	 */
 	@SafeVarargs
 	public static <TItem> Bson nin(final String fieldName, final TItem... values) {
-		return com.mongodb.client.model.Filters.nin(fieldName, values);
+		return com.mongodb.client.model.Filters.nin(checkFieldName(fieldName), values);
 	}
 
 	/**
@@ -243,7 +324,7 @@ public final class Filters {
 	 * @return the not-in filter
 	 */
 	public static <TItem> Bson nin(final String fieldName, final Iterable<TItem> values) {
-		return com.mongodb.client.model.Filters.nin(fieldName, values);
+		return com.mongodb.client.model.Filters.nin(checkFieldName(fieldName), values);
 	}
 
 	// ====================================================================
@@ -394,7 +475,7 @@ public final class Filters {
 	 * @return the exists filter
 	 */
 	public static Bson exists(final String fieldName) {
-		return com.mongodb.client.model.Filters.exists(fieldName);
+		return com.mongodb.client.model.Filters.exists(checkFieldName(fieldName));
 	}
 
 	/**
@@ -413,7 +494,7 @@ public final class Filters {
 	 * @return the exists filter
 	 */
 	public static Bson exists(final String fieldName, final boolean exists) {
-		return com.mongodb.client.model.Filters.exists(fieldName, exists);
+		return com.mongodb.client.model.Filters.exists(checkFieldName(fieldName), exists);
 	}
 
 	/**
@@ -429,7 +510,7 @@ public final class Filters {
 	 * @return the type filter
 	 */
 	public static Bson type(final String fieldName, final BsonType type) {
-		return com.mongodb.client.model.Filters.type(fieldName, type);
+		return com.mongodb.client.model.Filters.type(checkFieldName(fieldName), type);
 	}
 
 	/**
@@ -448,7 +529,7 @@ public final class Filters {
 	 * @return the type filter
 	 */
 	public static Bson type(final String fieldName, final String type) {
-		return com.mongodb.client.model.Filters.type(fieldName, type);
+		return com.mongodb.client.model.Filters.type(checkFieldName(fieldName), type);
 	}
 
 	// ====================================================================
@@ -473,7 +554,7 @@ public final class Filters {
 	 * @return the modulo filter
 	 */
 	public static Bson mod(final String fieldName, final long divisor, final long remainder) {
-		return com.mongodb.client.model.Filters.mod(fieldName, divisor, remainder);
+		return com.mongodb.client.model.Filters.mod(checkFieldName(fieldName), divisor, remainder);
 	}
 
 	/**
@@ -488,12 +569,15 @@ public final class Filters {
 	 * Bson filter = Filters.regex("name", "^Jo");
 	 * }</pre>
 	 *
+	 * <p><strong>Never pass a client value as the pattern</strong> (ReDoS, unexpected matches): use
+	 * {@link #regexLiteral(String, String)} to search a client text.
+	 *
 	 * @param fieldName the field name
 	 * @param pattern the regex pattern string
 	 * @return the regex filter
 	 */
 	public static Bson regex(final String fieldName, final String pattern) {
-		return com.mongodb.client.model.Filters.regex(fieldName, pattern);
+		return com.mongodb.client.model.Filters.regex(checkFieldName(fieldName), pattern);
 	}
 
 	/**
@@ -514,7 +598,7 @@ public final class Filters {
 	 * @return the regex filter
 	 */
 	public static Bson regex(final String fieldName, final String pattern, final String options) {
-		return com.mongodb.client.model.Filters.regex(fieldName, pattern, options);
+		return com.mongodb.client.model.Filters.regex(checkFieldName(fieldName), pattern, options);
 	}
 
 	/**
@@ -532,7 +616,39 @@ public final class Filters {
 	 * @return the regex filter
 	 */
 	public static Bson regex(final String fieldName, final Pattern pattern) {
-		return com.mongodb.client.model.Filters.regex(fieldName, pattern);
+		return com.mongodb.client.model.Filters.regex(checkFieldName(fieldName), pattern);
+	}
+
+	/**
+	 * Creates a filter matching the documents whose field contains the given text, taken literally.
+	 *
+	 * <p>The text is quoted ({@link Pattern#quote(String)}): its regex metacharacters lose their meaning, so
+	 * a client search text can neither change the match nor cost a catastrophic backtracking (ReDoS).
+	 *
+	 * <pre>{@code
+	 * // "a.b" matches only "a.b", not "axb"
+	 * Bson filter = Filters.regexLiteral("title", userText);
+	 * }</pre>
+	 *
+	 * @param fieldName the field name
+	 * @param text the text to search, taken literally
+	 * @return the regex filter
+	 */
+	public static Bson regexLiteral(final String fieldName, final String text) {
+		return regex(fieldName, Pattern.quote(text));
+	}
+
+	/**
+	 * Creates a filter matching the documents whose field contains the given text, taken literally, with
+	 * regex options (for example {@code "i"} for a case-insensitive match).
+	 *
+	 * @param fieldName the field name
+	 * @param text the text to search, taken literally (quoted with {@link Pattern#quote(String)})
+	 * @param options the regex options
+	 * @return the regex filter
+	 */
+	public static Bson regexLiteral(final String fieldName, final String text, final String options) {
+		return regex(fieldName, Pattern.quote(text), options);
 	}
 
 	/**
@@ -557,6 +673,10 @@ public final class Filters {
 	 * // Match documents where two fields are equal using JavaScript
 	 * Bson filter = Filters.where("this.firstName === this.lastName");
 	 * }</pre>
+	 *
+	 * <p><strong>Never build the expression from a client value</strong>: it is JavaScript run by the
+	 * server. Prefer {@link #expr(Object)}; disable server-side JavaScript
+	 * ({@code security.javascriptEnabled: false}) when it is not needed.
 	 *
 	 * @param javaScriptExpression the JavaScript expression
 	 * @return the where filter
@@ -603,7 +723,7 @@ public final class Filters {
 	 */
 	@SafeVarargs
 	public static <TItem> Bson all(final String fieldName, final TItem... values) {
-		return com.mongodb.client.model.Filters.all(fieldName, values);
+		return com.mongodb.client.model.Filters.all(checkFieldName(fieldName), values);
 	}
 
 	/**
@@ -622,7 +742,7 @@ public final class Filters {
 	 * @return the all filter
 	 */
 	public static <TItem> Bson all(final String fieldName, final Iterable<TItem> values) {
-		return com.mongodb.client.model.Filters.all(fieldName, values);
+		return com.mongodb.client.model.Filters.all(checkFieldName(fieldName), values);
 	}
 
 	/**
@@ -642,7 +762,7 @@ public final class Filters {
 	 * @return the elemMatch filter
 	 */
 	public static Bson elemMatch(final String fieldName, final Bson filter) {
-		return com.mongodb.client.model.Filters.elemMatch(fieldName, filter);
+		return com.mongodb.client.model.Filters.elemMatch(checkFieldName(fieldName), filter);
 	}
 
 	/**
@@ -659,7 +779,7 @@ public final class Filters {
 	 * @return the size filter
 	 */
 	public static Bson size(final String fieldName, final int size) {
-		return com.mongodb.client.model.Filters.size(fieldName, size);
+		return com.mongodb.client.model.Filters.size(checkFieldName(fieldName), size);
 	}
 
 	// ====================================================================
@@ -722,7 +842,7 @@ public final class Filters {
 	 * @return the equality filter
 	 */
 	public static <T, R> Bson eq(final SerializableFunction<T, R> getter, final R value) {
-		return com.mongodb.client.model.Filters.eq(MethodReferenceResolver.resolveFieldName(getter), value);
+		return eq(MethodReferenceResolver.resolveFieldName(getter), value);
 	}
 
 	/**
@@ -1088,7 +1208,7 @@ public final class Filters {
 	 * @return the equality filter
 	 */
 	public static <T, V> Bson eq(final SerializableBiConsumer<T, V> setter, final V value) {
-		return com.mongodb.client.model.Filters.eq(MethodReferenceResolver.resolveFieldName(setter), value);
+		return eq(MethodReferenceResolver.resolveFieldName(setter), value);
 	}
 
 	/**
@@ -1244,7 +1364,7 @@ public final class Filters {
 	 * @return the equality filter
 	 */
 	public static <T, V> Bson eq(final SerializableBiFunction<T, V, ?> setter, final V value) {
-		return com.mongodb.client.model.Filters.eq(MethodReferenceResolver.resolveFieldName(setter), value);
+		return eq(MethodReferenceResolver.resolveFieldName(setter), value);
 	}
 
 	/**

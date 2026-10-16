@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.dataAccess.options;
 
+import org.atriasoft.archidata.dataAccess.Filters;
 import org.atriasoft.archidata.dataAccess.MethodReferenceResolver;
 import org.atriasoft.archidata.dataAccess.SerializableBiConsumer;
 import org.atriasoft.archidata.dataAccess.SerializableBiFunction;
@@ -39,12 +40,32 @@ public class OrderItem {
 	/**
 	 * Constructs an OrderItem with the specified field name and sort direction.
 	 *
+	 * <p>The name is checked by {@link Filters#checkFieldName(String)} (no leading {@code $}, no NUL). For a
+	 * name chosen by a client, use {@link #ofClientField(Class, String, Order)}.
+	 *
 	 * @param value the field name to sort by
 	 * @param order the sort direction
+	 * @throws IllegalArgumentException if the name is invalid
 	 */
 	public OrderItem(final String value, final Order order) {
-		this.value = value;
+		this.value = Filters.checkFieldName(value);
 		this.order = order;
+	}
+
+	/**
+	 * Creates an OrderItem on a field name sent by a client, checked against the model of the entity.
+	 *
+	 * <p>The field must exist and must not be protected ({@code @DataNotRead}, {@code @DataEncrypt}): sorting
+	 * on a hidden field reveals the order of its values. See {@link Filters#checkFieldName(Class, String)}.
+	 *
+	 * @param clazz the entity class
+	 * @param fieldName the database field name sent by the client
+	 * @param order the sort direction
+	 * @return the sort criterion
+	 * @throws IllegalArgumentException if the name is invalid, unknown or protected
+	 */
+	public static OrderItem ofClientField(final Class<?> clazz, final String fieldName, final Order order) {
+		return new OrderItem(Filters.checkFieldName(clazz, fieldName), order);
 	}
 
 	/**

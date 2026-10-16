@@ -444,6 +444,19 @@ chaîne (cycle, auto-référence) est relue sans que ses relations soient charg�
 provoquait une récursion jusqu'au `StackOverflowError`. Au-delà de ces limites, le champ de relation
 reste `null`.
 
+### `Filters` : `$eq` explicite, noms de champs vérifiés, `regexLiteral` (D-08)
+
+- `Filters.eq(champ, valeur)` produit `{champ: {$eq: valeur}}` au lieu de `{champ: valeur}` : une
+  valeur `Map` ou `Document` venue d'un JSON client est comparée telle quelle, sans être lue comme des
+  opérateurs. Le résultat est le même pour les valeurs typées, et les index partiels restent utilisés.
+  Un test qui compare le JSON d'un filtre doit attendre la nouvelle forme.
+- Tout nom de champ passé en chaîne à `Filters` ou à `new OrderItem(String, Order)` est vérifié :
+  ni `$` en tête, ni caractère nul (`IllegalArgumentException`).
+- Nouveaux : `Filters.checkFieldName(Classe.class, nom)` et `OrderItem.ofClientField(...)` pour un
+  nom de champ choisi par le client (le champ doit exister et ne pas être `@DataNotRead` ni
+  `@DataEncrypt`), et `Filters.regexLiteral(champ, texte[, options])` qui cite le texte
+  (`Pattern.quote`). `Filters.regex` et `Filters.where` ne doivent jamais recevoir de valeur client.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

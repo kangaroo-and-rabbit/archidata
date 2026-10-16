@@ -494,6 +494,26 @@ Filters.regex(User::getEmail, ".*@example\\.com")
 Filters.regex(User::getEmail, ".*@example\\.com", "i")  // case insensitive
 ```
 
+Never pass a client value as a regex pattern (ReDoS, unexpected matches), nor build a
+`Filters.where` expression from one (it is JavaScript run by MongoDB). To search a client text, use
+`Filters.regexLiteral`, which quotes it with `Pattern.quote`:
+
+```java
+Filters.regexLiteral("title", userText)        // "a.b" only matches "a.b"
+Filters.regexLiteral("title", userText, "i")   // case insensitive
+```
+
+### Values and field names from a client
+
+- `Filters.eq` always produces an explicit `{field: {$eq: value}}`: a `Map` or a `Document` parsed from
+  an untyped client JSON is compared as a literal, never read as operators (`{"$ne": null}`...).
+- Every string field name given to `Filters` or to `new OrderItem(String, Order)` is checked: no leading
+  `$` (`$where`, `$expr`), no NUL character (`IllegalArgumentException`).
+- A field name chosen by a client (dynamic filter, sort column) must be checked against the model:
+  `Filters.checkFieldName(Article.class, name)` or `OrderItem.ofClientField(Article.class, name, order)`.
+  The field must exist and must not be `@DataNotRead` / `@DataEncrypt` (filtering or sorting on a hidden
+  field reveals its value).
+
 ### Array operators
 
 ```java

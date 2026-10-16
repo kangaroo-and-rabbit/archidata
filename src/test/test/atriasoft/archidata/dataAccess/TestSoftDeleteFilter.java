@@ -66,8 +66,9 @@ public class TestSoftDeleteFilter {
 		final Document filter = Document
 				.parse(new Condition().getFilter(COLLECTION, null, "deleted").toBsonDocument().toJson());
 
-		// A '$or' would make any partial index on the living documents unusable.
-		Assertions.assertEquals("{\"deleted\": false}", filter.toJson());
+		// A '$or' would make any partial index on the living documents unusable. The explicit '$eq'
+		// (Filters.eq) is the same equality for the planner (see testPartialIndexOnLivingDocumentsIsUsed).
+		Assertions.assertEquals("{\"deleted\": {\"$eq\": false}}", filter.toJson());
 	}
 
 	@Test
