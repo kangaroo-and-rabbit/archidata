@@ -206,6 +206,38 @@ class TestDataTools {
 		}
 	}
 
+	@Test
+	void testTmpDataIdNeverReturnedWithoutItsFile() throws Exception {
+		// The temporary folder is below a regular file: the reservation can not succeed.
+		final java.nio.file.Path blocker = java.nio.file.Files.createTempFile("archidata-tmp-blocker", ".bin");
+		org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(blocker.resolve("sub").toString());
+		try {
+			Assertions.assertThrows(java.io.UncheckedIOException.class, DataTools::getTmpDataId);
+			Assertions.assertThrows(java.io.UncheckedIOException.class, DataTools::getTmpFolder);
+		} finally {
+			org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(null);
+			java.nio.file.Files.deleteIfExists(blocker);
+		}
+	}
+
+	@Test
+	void testTmpFoldersAreUniqueAndReserved() throws Exception {
+		final java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("archidata-tmp-folder");
+		org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(dir.toString());
+		try {
+			final java.util.Set<String> folders = new java.util.HashSet<>();
+			for (int iii = 0; iii < 50; iii++) {
+				final String folder = DataTools.getTmpFolder();
+				Assertions.assertTrue(folders.add(folder), "folder given twice: " + folder);
+				Assertions.assertTrue(java.nio.file.Files.isDirectory(java.nio.file.Paths.get(folder)));
+				java.nio.file.Files.delete(java.nio.file.Paths.get(folder));
+			}
+		} finally {
+			org.atriasoft.archidata.tools.ConfigBaseVariable.setTmpDataFolder(null);
+			java.nio.file.Files.deleteIfExists(dir);
+		}
+	}
+
 	// ===== content type detection of the uploads (W-17) =====
 
 	@Test

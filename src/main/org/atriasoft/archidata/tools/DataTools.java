@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -70,6 +71,8 @@ public class DataTools {
 	private static final SecureRandom TMP_ID_RANDOM = new SecureRandom();
 	/** Smallest temporary identifier: keeps clear of the small counters older code may still use. */
 	private static final long TMP_ID_BASE = 1L << 40;
+	/** Number of random names tried before giving up when reserving a temporary file or folder. */
+	private static final int TMP_RESERVE_ATTEMPTS = 16;
 	/** SVG MIME type. Accepted for upload: an SVG rendered with &lt;img src&gt; does not run its scripts, and
 	 * {@link DataResource} serves it (like every active type, see {@link #isActiveMimeType(String)}) as an
 	 * attachment in a sandbox, so opening its URL directly does not run it on the origin of the API either. */
@@ -146,9 +149,11 @@ public class DataTools {
 	 * {@link #removeTemporaryFile(long)} when it is not moved to the media folder.
 	 * </p>
 	 * @return A unique long identifier for temporary file storage.
+	 * @throws UncheckedIOException If the file cannot be created (an identifier is never returned without its
+	 *                              file), or if 16 random identifiers are all taken.
 	 */
 	public static long getTmpDataId() {
-		while (true) {
+		for (int attempt = 0; attempt < TMP_RESERVE_ATTEMPTS; attempt++) {
 			final long id = randomTmpId();
 			try {
 				Files.createFile(Paths.get(getTmpFileInData(id)));
@@ -156,10 +161,11 @@ public class DataTools {
 			} catch (final FileAlreadyExistsException ex) {
 				LOGGER.debug("Temporary id already used, draw another one");
 			} catch (final IOException ex) {
-				LOGGER.error("Can not reserve the temporary file: {}", ex.getMessage());
-				return id;
+				throw new UncheckedIOException("Can not reserve the temporary file", ex);
 			}
 		}
+		throw new UncheckedIOException(new IOException(
+				"Can not reserve a temporary file: " + TMP_RESERVE_ATTEMPTS + " identifiers already used"));
 	}
 
 	/**
@@ -178,18 +184,31 @@ public class DataTools {
 	}
 
 	/**
-	 * Returns a unique (random) temporary folder path and creates the parent directory if needed. The folder
-	 * itself is not created.
-	 * @return The absolute path to a new temporary folder.
+	 * Returns a unique (random) temporary folder and reserves it: the folder is created atomically (with
+	 * {@link Files#createDirectory}), so two callers never get the same one. The caller removes it when done.
+	 * @return The absolute path to the new, empty temporary folder.
+	 * @throws UncheckedIOException If the folder cannot be created, or if 16 random
+	 *                              names are all taken.
 	 */
 	public static String getTmpFolder() {
-		final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + randomTmpId();
 		try {
 			createFolder(ConfigBaseVariable.getTmpDataFolder() + File.separator);
-		} catch (final IOException e) {
-			LOGGER.error("Failed to create tmp folder: {}", e.getMessage(), e);
+		} catch (final IOException ex) {
+			throw new UncheckedIOException("Can not create the temporary data folder", ex);
 		}
-		return filePath;
+		for (int attempt = 0; attempt < TMP_RESERVE_ATTEMPTS; attempt++) {
+			final String filePath = ConfigBaseVariable.getTmpDataFolder() + File.separator + randomTmpId();
+			try {
+				Files.createDirectory(Paths.get(filePath));
+				return filePath;
+			} catch (final FileAlreadyExistsException ex) {
+				LOGGER.debug("Temporary folder already used, draw another one");
+			} catch (final IOException ex) {
+				throw new UncheckedIOException("Can not reserve the temporary folder", ex);
+			}
+		}
+		throw new UncheckedIOException(
+				new IOException("Can not reserve a temporary folder: " + TMP_RESERVE_ATTEMPTS + " names already used"));
 	}
 
 	/**
