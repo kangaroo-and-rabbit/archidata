@@ -54,6 +54,8 @@ public class JWTWrapper {
 	public static final int SSO_CONNECT_TIMEOUT_MS = 5_000;
 	/** Read timeout when fetching the SSO public key. */
 	public static final int SSO_READ_TIMEOUT_MS = 10_000;
+	/** Tolerance on the {@code nbf} claim for clocks that are not exactly in sync, in milliseconds. */
+	public static final long MAX_CLOCK_SKEW_MS = 30_000L;
 	/** Smallest RSA key accepted from the SSO, in bits. */
 	public static final int MIN_RSA_KEY_SIZE = 2048;
 	/** Largest answer accepted from the SSO public key endpoint. */
@@ -403,6 +405,11 @@ public class JWTWrapper {
 
 	/**
 	 * Validates a signed JWT token against the configured public key.
+	 * <p>
+	 * Checks, in order: the RS256/PS signature, the expiration ({@code exp} is mandatory, a token without it is
+	 * refused), {@code nbf} when present (with {@value #MAX_CLOCK_SKEW_MS} ms of tolerance), the issuer and,
+	 * when {@code application} is given, the audience.
+	 * </p>
 	 * @param signedToken The serialized JWT token to validate.
 	 * @param issuer The expected issuer claim.
 	 * @param application The application the token must be meant for (see
@@ -431,9 +438,20 @@ public class JWTWrapper {
 				requestPublicKeyRefresh();
 				return null;
 			}
-			if (!new Date().before(signedJWT.getJWTClaimsSet().getExpirationTime())) {
-				LOGGER.warn("JWT token is expired now = {} with={}", new Date(),
-						signedJWT.getJWTClaimsSet().getExpirationTime());
+			final Date now = new Date();
+			final Date expiration = signedJWT.getJWTClaimsSet().getExpirationTime();
+			if (expiration == null) {
+				// A token without expiration would be valid forever: refuse it.
+				LOGGER.warn("JWT token has no expiration time (exp)");
+				return null;
+			}
+			if (!now.before(expiration)) {
+				LOGGER.warn("JWT token is expired now = {} with={}", now, expiration);
+				return null;
+			}
+			final Date notBefore = signedJWT.getJWTClaimsSet().getNotBeforeTime();
+			if (notBefore != null && notBefore.getTime() > now.getTime() + MAX_CLOCK_SKEW_MS) {
+				LOGGER.warn("JWT token is not valid yet now = {} nbf={}", now, notBefore);
 				return null;
 			}
 			if (!issuer.equals(signedJWT.getJWTClaimsSet().getIssuer())) {

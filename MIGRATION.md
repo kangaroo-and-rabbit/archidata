@@ -355,6 +355,12 @@ journalisés en WARN, sans trace de pile.
 exemple `http://karso:80/...` dans un réseau Docker) : passer en `https://` ou appeler
 `JWTWrapper.setAllowInsecureSsoAddress(true)` au démarrage, avant de lancer `UpdateJwtPublicKey`.
 
+### JWT : `exp` obligatoire, `nbf` vérifié (W-16)
+
+Un jeton sans `exp` est refusé proprement (avant : `NullPointerException` attrapée par le filtre). Un
+claim `nbf` présent doit être antérieur à maintenant plus 30 s. Les jetons de `generateJWToken` ont
+toujours un `exp` : aucun impact pour eux.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

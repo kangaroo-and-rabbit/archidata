@@ -491,6 +491,14 @@ issuer, application)` does the same check when `application` is not `null`
 Test tokens must name the application of the filter of the test server, as `Common.USER_TOKEN` does
 with `TestAuthenticationFilter.APPLICATION_NAME`.
 
+### Token validation
+
+`JWTWrapper.validateToken` checks the RSA signature (`alg=none` and HMAC tokens are refused), then the
+expiration: a token **without** `exp` is refused (it would be valid forever), as is an expired one. A
+`nbf` (not before) claim, when present, must not be later than now plus 30 s of clock tolerance
+(`JWTWrapper.MAX_CLOCK_SKEW_MS`). Then come the issuer and the audience. There is no revocation list: keep
+the token lifetime short.
+
 ### Server-side requests (SSRF)
 
 `DataResource.uploadMediaFromUri` (`POST /data/uploadUri`), `DataTools.uploadCoverFromUri` and
