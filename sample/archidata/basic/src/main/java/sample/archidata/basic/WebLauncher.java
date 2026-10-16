@@ -9,6 +9,7 @@ import org.atriasoft.archidata.catcher.GenericCatcher;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.filter.CORSFilter;
 import org.atriasoft.archidata.filter.OptionFilter;
+import org.atriasoft.archidata.filter.SecurityHeadersFilter;
 import org.atriasoft.archidata.index.IndexEngine;
 import org.atriasoft.archidata.migration.MigrationEngine;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -34,7 +35,9 @@ import sample.archidata.basic.model.Task;
  * <p>All the configuration comes from the environment, read by {@link ConfigBaseVariable}:
  * {@code DB_HOST}, {@code DB_PORT}, {@code DB_USER}, {@code DB_PASSWORD} (mandatory),
  * {@code DB_DATABASE}, {@code API_ADDRESS} (address the server listens on),
- * {@code SSO_ADDRESS} (where the JWT public key is fetched)...
+ * {@code SSO_ADDRESS} (where the JWT public key is fetched, https only), {@code CORS_ALLOWED_ORIGINS}
+ * (origins of the fronts allowed to call the API from a browser, comma separated; unset: any origin,
+ * without credentials), {@code API_DOC_ENABLED} (OpenAPI / Swagger UI, off by default)...
  *
  * <p>Start-up order: migrations, then indexes, then the HTTP server.
  */
@@ -79,12 +82,15 @@ public class WebLauncher {
 		indexes.synchronize();
 	}
 
-	/** Configure Jersey and start the Grizzly HTTP server (non-blocking). */
-	public void process() throws Exception {
+	/** Configure Jersey: filters, error mappers, resources. */
+	public ResourceConfig buildResourceConfig() {
 		final ResourceConfig rc = new ResourceConfig();
-		// Answer the CORS pre-flight OPTIONS requests and add the CORS headers.
+		// Answer the CORS pre-flight OPTIONS requests and add the CORS headers. CORSFilter only answers the
+		// origins of CORS_ALLOWED_ORIGINS (set it in production to the address of the front).
 		rc.register(OptionFilter.class);
 		rc.register(CORSFilter.class);
+		// nosniff, Referrer-Policy, X-Frame-Options, and HSTS when the request came over https.
+		rc.register(SecurityHeadersFilter.class);
 		// JWT check + @PermitAll / @RolesAllowed enforcement. Without it, the role annotations are ignored.
 		rc.register(SampleAuthenticationFilter.class);
 		// Exception -> JSON error body with the right HTTP status (400 on validation errors, 404...).
@@ -97,6 +103,12 @@ public class WebLauncher {
 		rc.register(JacksonFeature.class);
 		// Bean Validation of the @Valid parameters.
 		rc.register(ValidationFeature.class);
+		return rc;
+	}
+
+	/** Configure Jersey and start the Grizzly HTTP server (non-blocking). */
+	public void process() throws Exception {
+		final ResourceConfig rc = buildResourceConfig();
 
 		// false = create the server without starting it: the JWT key updater is launched first.
 		this.server = GrizzlyHttpServerFactory.createHttpServer(getBaseURI(), rc, false);

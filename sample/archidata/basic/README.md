@@ -37,7 +37,7 @@ What each file shows
 | `src/main/java/.../api/TaskResource.java` | CRUD with `DataAccess`, `@PermitAll` / `@RolesAllowed`, `@Valid` + `@ValidGroup(GroupCreate/GroupUpdate)`, 404 through `NotFoundException`. |
 | `src/main/java/.../filter/SampleAuthenticationFilter.java` | The JWT filter: an `AuthenticationFilter` with the application name. |
 | `src/main/java/.../migration/Initialization.java` | The first `MigrationStep`, seeding data with `addAction`. |
-| `src/main/java/.../WebLauncher.java` | Production start-up: migrations, index synchronization, Jersey configuration, Grizzly server. Configuration from environment variables. |
-| `src/main/java/.../WebLauncherLocal.java` | Development start-up: hard-coded configuration, local RSA key and generated tokens (no SSO, the JWT key updater is disabled). |
+| `src/main/java/.../WebLauncher.java` | Production start-up: migrations, index synchronization, Jersey configuration (CORS from `CORS_ALLOWED_ORIGINS`, `SecurityHeadersFilter`), Grizzly server. Configuration from environment variables. |
+| `src/main/java/.../WebLauncherLocal.java` | Development start-up: hard-coded configuration, local RSA key and generated tokens (no SSO, the JWT key updater is disabled), CORS limited to the local front (`http://localhost:4200`). Never deploy it: it logs a valid ADMIN token, and refuses to start on a non-loopback address. |
 | `src/main/resources/logback.xml` | Logging at INFO (Logback defaults to DEBUG). |
 | `src/test/java/.../SampleTest.java` | Infrastructure-free checks: access annotations, validation groups, token round trip. |

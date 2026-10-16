@@ -16,6 +16,9 @@ import sample.archidata.basic.filter.SampleAuthenticationFilter;
  *
  * <p>Prints two tokens to use with curl ({@code Authorization: Bearer <token>}): one with the USER
  * role, one with the ADMIN role.
+ *
+ * <p><b>Never deploy this launcher</b>: it uses the tutorial database password, signs its own tokens and
+ * writes a valid ADMIN token in the log. It refuses to start when the API address is not a loopback one.
  */
 public class WebLauncherLocal extends WebLauncher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WebLauncherLocal.class);
@@ -25,6 +28,18 @@ public class WebLauncherLocal extends WebLauncher {
 		ConfigBaseVariable.setApiAddress("http://127.0.0.1:9000/sample/api/");
 		ConfigBaseVariable.setDbPassword("base_db_password");
 		ConfigBaseVariable.setBdDatabase("sample_basic");
+		// The front of the tutorial runs on the dev server of Vite/Angular: only it may call the API from a
+		// browser (credentials allowed). Other origins get no CORS header.
+		ConfigBaseVariable.setCorsAllowedOrigins("http://localhost:4200,http://127.0.0.1:4200");
+	}
+
+	/**
+	 * Tells whether the address the server listens on is a loopback one.
+	 * @return {@code true} for localhost / 127.x / ::1.
+	 */
+	public static boolean listensOnLoopback() {
+		final String host = java.net.URI.create(ConfigBaseVariable.getLocalAddress()).getHost();
+		return host != null && ("localhost".equals(host) || host.startsWith("127.") || "[::1]".equals(host));
 	}
 
 	/** The key is generated locally: do not let the SSO key updater replace it. */
@@ -52,6 +67,10 @@ public class WebLauncherLocal extends WebLauncher {
 	public static void main(final String[] args) throws Exception {
 		installLogBridge();
 		final WebLauncherLocal launcher = new WebLauncherLocal();
+		if (!listensOnLoopback()) {
+			LOGGER.error("WebLauncherLocal is a development launcher: it only listens on a loopback address");
+			return;
+		}
 		// Generate a local RSA key pair: the same process signs and checks the tokens.
 		JWTWrapper.initLocalToken(null);
 		LOGGER.info("USER  token: {}", createToken("user", "USER"));

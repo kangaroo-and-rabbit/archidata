@@ -5,8 +5,11 @@ import java.util.Set;
 
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.security.RightAllowed;
+import org.atriasoft.archidata.filter.CORSFilter;
 import org.atriasoft.archidata.filter.PartRight;
+import org.atriasoft.archidata.filter.SecurityHeadersFilter;
 import org.atriasoft.archidata.model.UserByToken;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.JWTWrapper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -90,5 +93,26 @@ public class SampleTest {
 		Assertions.assertNotNull(user);
 		Assertions.assertEquals(PartRight.READ_WRITE,
 				user.getRoleForKey(SampleAuthenticationFilter.APPLICATION_NAME, "ADMIN"));
+	}
+
+	/** The launcher registers the CORS filter (driven by CORS_ALLOWED_ORIGINS) and the security headers filter. */
+	@Test
+	public void launcherRegistersTheSecurityFilters() {
+		final Set<Class<?>> classes = new WebLauncher().buildResourceConfig().getClasses();
+		Assertions.assertTrue(classes.contains(CORSFilter.class));
+		Assertions.assertTrue(classes.contains(SecurityHeadersFilter.class));
+	}
+
+	/** The development launcher only allows the local front, and listens on loopback. */
+	@Test
+	public void localLauncherRestrictsCorsToTheLocalFront() {
+		try {
+			new WebLauncherLocal();
+			Assertions.assertEquals(java.util.List.of("http://localhost:4200", "http://127.0.0.1:4200"),
+					ConfigBaseVariable.getCorsAllowedOrigins());
+			Assertions.assertTrue(WebLauncherLocal.listensOnLoopback());
+		} finally {
+			ConfigBaseVariable.clearAllValue();
+		}
 	}
 }
