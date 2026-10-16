@@ -246,6 +246,17 @@ identifiants (`user:pass@`).
 privée) par ces méthodes : elle est refusée, y compris via une redirection. Utiliser un appel direct
 au service interne, pas une URL fournie par l'utilisateur.
 
+### Fichiers servis par `DataResource` : `nosniff`, sandbox, pièce jointe (W-02)
+
+Toutes les réponses de fichiers (`/data/{oid}`, `/data/{oid}/{name}`, `/data/thumbnail/{oid}`)
+portent `X-Content-Type-Options: nosniff` et `Content-Security-Policy: sandbox; default-src 'none'`.
+Un type actif (SVG, HTML, XHTML, XML, JavaScript, voir `DataTools.isActiveMimeType`) est en plus servi
+en `Content-Disposition: attachment`. Le SVG reste accepté à l'upload.
+
+**Qui est impacté** : un front qui ouvre l'URL d'un SVG dans un onglet (il est maintenant
+téléchargé). L'affichage par `<img>`, `<video>` ou `<audio>` ne change pas. Une ressource applicative
+qui sert elle-même des fichiers stockés doit appeler `DataTools.addSafeServingHeaders`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

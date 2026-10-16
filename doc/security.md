@@ -475,6 +475,19 @@ else as `application/octet-stream`, with `X-Content-Type-Options: nosniff`, and 
 should use `SafeHttpFetcher` too (see [tools](tools.md)).
 
 
+### Serving uploaded files
+
+A file uploaded by a user and served on the origin of the API must never run there: the front is
+usually served by the same server and keeps its token in `localStorage`. `DataResource` (`GET
+/data/{oid}`, `/data/{oid}/{name}`, `/data/thumbnail/{oid}`) adds to every answer
+`X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox; default-src 'none'`, and
+`Content-Disposition: attachment` when the type is active (SVG, HTML, XHTML, XML, JavaScript). An
+`<img src>` or `<video src>` still renders the file; opening its URL downloads it instead of running it.
+
+Choice: SVG remains accepted for upload (covers), because these headers already keep it from running.
+To refuse it, filter the type in the application before calling `DataTools.uploadData`.
+
+
 Migration Guide (Breaking Change)
 ==================================
 

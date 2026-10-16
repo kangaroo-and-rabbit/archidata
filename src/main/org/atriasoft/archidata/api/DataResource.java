@@ -564,6 +564,7 @@ public class DataResource {
 			// covers asks for every picture again on every render, and the server spends its
 			// time resizing them.
 			addCacheHeaders(out, etag);
+			DataTools.addSafeServingHeaders(out, ConfigBaseVariable.getThumbnailFormat());
 			return out.build();
 		}
 		try {
@@ -800,6 +801,7 @@ public class DataResource {
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
+			DataTools.addSafeServingHeaders(out, mimeType);
 			return out.build();
 
 		}
@@ -822,6 +824,7 @@ public class DataResource {
 			if (mimeType != null) {
 				out.type(mimeType);
 			}
+			DataTools.addSafeServingHeaders(out, mimeType);
 			return out.build();
 		} catch (final FileNotFoundException ex) {
 			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Fail to find the required file.", ex);

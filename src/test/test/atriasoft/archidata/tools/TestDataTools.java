@@ -135,4 +135,20 @@ class TestDataTools {
 		java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filePath1));
 		java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(filePath2));
 	}
+
+	// ===== active content types (W-02) =====
+
+	@Test
+	void testActiveMimeTypes() {
+		for (final String type : new String[] { "image/svg+xml", "text/html", "TEXT/HTML; charset=utf-8",
+				"application/xhtml+xml", "text/xml", "application/xml", "application/javascript", "text/javascript",
+				"application/rss+xml" }) {
+			Assertions.assertTrue(DataTools.isActiveMimeType(type), type);
+		}
+		for (final String type : new String[] { "image/png", "image/jpeg", "image/webp", "video/webm", "audio/webm",
+				"text/vtt", "application/octet-stream" }) {
+			Assertions.assertFalse(DataTools.isActiveMimeType(type), type);
+		}
+		Assertions.assertFalse(DataTools.isActiveMimeType(null));
+	}
 }

@@ -240,9 +240,15 @@ to its permanent path once its `Data` record is inserted.
   `SUPPORTED_VIDEO_MIME_TYPE`, `SUPPORTED_UPLOAD_MIME_TYPES`, `MIME_SVG`,
   `CHUNK_SIZE` (1 MiB), `CHUNK_SIZE_IN` (50 MiB).
 
-SVG is accepted because covers are only rendered with `<img>`, which does not
-run scripts. Do not serve user-uploaded SVG through `<embed>`, `<object>` or a
-direct download without sanitizing it.
+SVG stays accepted for upload: rendered with `<img>`, it does not run scripts.
+Opening its URL directly would run them on the origin of the API, so
+`DataResource` serves every stored data through
+`DataTools.addSafeServingHeaders(builder, mimeType)`: `X-Content-Type-Options:
+nosniff` and `Content-Security-Policy: sandbox; default-src 'none'` on every
+answer, plus `Content-Disposition: attachment` for an active type
+(`DataTools.isActiveMimeType`: SVG, HTML, XHTML, XML and any `+xml` type,
+JavaScript). An application that serves stored files with its own resource
+should call `addSafeServingHeaders` too.
 
 `SsrfGuard.validateUrl(String)` rejects, with an `InputException`, a missing
 or malformed URL, any scheme other than http/https, a URL with credentials

@@ -14,6 +14,8 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
 
 import org.apache.tika.Tika;
 import org.atriasoft.archidata.api.DataResource;
@@ -55,10 +57,50 @@ public class DataTools {
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
-	/** SVG MIME type. Allowed because we only render uploaded covers via &lt;img src&gt;
-	 * in the front, which does not execute embedded scripts. Do not serve SVGs via
-	 * direct download or &lt;embed&gt; / &lt;object&gt; without sanitisation. */
+	/** SVG MIME type. Accepted for upload: an SVG rendered with &lt;img src&gt; does not run its scripts, and
+	 * {@link DataResource} serves it (like every active type, see {@link #isActiveMimeType(String)}) as an
+	 * attachment in a sandbox, so opening its URL directly does not run it on the origin of the API either. */
 	public static final String MIME_SVG = "image/svg+xml";
+	/** Content-Security-Policy sent with every stored data: no script, no plugin, no request, unique origin. */
+	public static final String DATA_CONTENT_SECURITY_POLICY = "sandbox; default-src 'none'";
+	/** Types that a browser runs (scripts, documents) when the URL is opened directly. */
+	private static final Set<String> ACTIVE_MIME_TYPES = Set.of(MIME_SVG, "text/html", "application/xhtml+xml",
+			"text/xml", "application/xml", "application/javascript", "text/javascript", "application/ecmascript",
+			"text/ecmascript", "application/x-javascript", "text/xsl", "application/xslt+xml");
+
+	/**
+	 * Tells whether a content type is active: a browser that opens it directly would run scripts on the origin
+	 * serving it (HTML, SVG, XML documents, JavaScript).
+	 * @param mimeType The content type, parameters allowed ({@code text/html; charset=utf-8}); may be null.
+	 * @return {@code true} for an active type (any {@code +xml} type included).
+	 */
+	public static boolean isActiveMimeType(final String mimeType) {
+		if (mimeType == null) {
+			return false;
+		}
+		final String base = mimeType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
+		return ACTIVE_MIME_TYPES.contains(base) || base.endsWith("+xml");
+	}
+
+	/**
+	 * Adds the headers that keep a stored data from running on the origin of the API: always
+	 * {@code X-Content-Type-Options: nosniff} and {@link #DATA_CONTENT_SECURITY_POLICY}, and
+	 * {@code Content-Disposition: attachment} for an active type ({@link #isActiveMimeType(String)}).
+	 * @param builder The response being built.
+	 * @param mimeType The content type the data is served with.
+	 * @return The same builder.
+	 */
+	public static Response.ResponseBuilder addSafeServingHeaders(
+			final Response.ResponseBuilder builder,
+			final String mimeType) {
+		builder.header("X-Content-Type-Options", "nosniff");
+		builder.header("Content-Security-Policy", DATA_CONTENT_SECURITY_POLICY);
+		if (isActiveMimeType(mimeType)) {
+			builder.header("Content-Disposition", "attachment");
+		}
+		return builder;
+	}
+
 	/** Supported image MIME types for upload validation. */
 	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp", MIME_SVG };
 	/** Supported audio MIME types for upload validation. */
