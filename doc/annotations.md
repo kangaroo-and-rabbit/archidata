@@ -154,7 +154,9 @@ on insert like any other, but excluded from default reads; the `ReadAllColumn` q
 option returns it. Used for `createdAt`, `updatedAt`, `deleted`. A full update (`updateById` without
 `FilterValue`) never writes it: name it in a `FilterValue` to update it. `@DataNotRead` does not imply
 `@ApiReadOnly`. It also applies to the fields of embedded sub-objects (POJO or record, alone or in a
-collection): hidden by a standard read, returned with `ReadAllColumn`.
+collection): hidden by a standard read, returned with `ReadAllColumn`, and kept by a full update (see
+[database access](database_access.md#update): sub-fields in dot notation, a collection of such objects
+not written unless named in a `FilterValue`).
 
 ```java
 @DataNotRead

@@ -14,7 +14,7 @@
 		"createdAt and updatedAt carry @DataNotRead and are not returned by default reads: use the ReadAllColumn option.",
 		"Entity mapping uses archidata annotations: @Collection, @Field, @Id, @InitValue. JPA annotations (jakarta.persistence) and JAX-RS @DefaultValue on an entity field are not read: such an entity is rejected with a DataAccessException.",
 		"Unicity needs a unique index: declare @Indexed(unique = true) or @Index and call IndexEngine.synchronize() at startup; @Field only renames a field.",
-		"updateById without a FilterValue writes every editable field, null included, but not @DataNotRead and @DataEncrypt fields (they need a FilterValue naming them): pass the field list for a partial update.",
+		"updateById without a FilterValue writes every editable field, null included, but not @DataNotRead and @DataEncrypt fields (they need a FilterValue naming them); an embedded object holding such fields is written sub-field by sub-field in dot notation (hidden ones kept) and a List/Set/Map of such objects is not written unless a FilterValue names it: pass the field list for a partial update.",
 		"MigrationEngine stores its history in KAR_migration; an empty database only runs the init; an unknown last migration name throws MigrationException; revert is unsupported.",
 		"archidata brings no SLF4J backend (its logback is test-scoped on purpose): the application must declare logback-classic.",
 		"Change streams need a replica set; only the FullDocument mode given to start() counts (per-listener mode is deprecated and ignored); listeners run on the worker thread; stop() clears listeners.",

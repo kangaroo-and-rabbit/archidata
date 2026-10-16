@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.atriasoft.archidata.bean.ClassModel;
 import org.atriasoft.archidata.bean.TypeInfo;
@@ -553,6 +554,134 @@ public final class MongoCodecFactory {
 			}
 		}
 		return instance;
+	}
+
+	// ========== Embedded objects with protected fields (full update) ==========
+
+	/** Types written as a value (not as an embedded document) by {@link #buildWriter(TypeInfo)}. */
+	private static final Set<Class<?>> VALUE_TYPES = Set.of(Long.class, Integer.class, Float.class, Double.class,
+			Boolean.class, Short.class, Character.class, String.class, ObjectId.class, UUID.class, Date.class,
+			Instant.class, OffsetDateTime.class, LocalDate.class, LocalTime.class, Document.class);
+
+	/** Cache of {@link #hasProtectedSubFields(TypeInfo)}: the model of a class never changes. */
+	private static final Map<TypeInfo, Boolean> PROTECTED_SUB_FIELDS = new ConcurrentHashMap<>();
+
+	/**
+	 * Tells whether a field of this type is stored as one embedded document (a POJO or a record), and not as a
+	 * value, a list, a set or a map.
+	 *
+	 * @param typeInfo the declared type of the field
+	 * @return {@code true} for an embedded object
+	 */
+	public static boolean isEmbeddedObjectType(final TypeInfo typeInfo) {
+		final Class<?> raw = typeInfo.rawType();
+		if (raw.isPrimitive() || raw.isArray() || raw.isEnum() || raw.isInterface() || raw == Object.class) {
+			return false;
+		}
+		if (typeInfo.isCollection() || typeInfo.isMap() || typeInfo.isOptional()) {
+			return false;
+		}
+		return !VALUE_TYPES.contains(raw);
+	}
+
+	/**
+	 * Tells whether a field of this type holds, at any depth, embedded fields that a standard read leaves
+	 * {@code null}: {@code @DataNotRead} or {@code @DataEncrypt} fields of an embedded object, of the elements
+	 * of a list or a set, or of the values of a map.
+	 *
+	 * <p>Rewriting such a field as a whole from a read entity would erase them: a full update writes the
+	 * visible fields of an embedded object one by one ({@link #writeEmbeddedVisibleFields}) and leaves a list,
+	 * a set or a map of such objects untouched.
+	 *
+	 * @param typeInfo the declared type of the field
+	 * @return {@code true} when the type contains protected embedded fields
+	 */
+	public static boolean hasProtectedSubFields(final TypeInfo typeInfo) {
+		final Boolean cached = PROTECTED_SUB_FIELDS.get(typeInfo);
+		if (cached != null) {
+			return cached;
+		}
+		// Only the result of the root is cached: below it, a class met again (cycle) answers false.
+		final boolean out = hasProtectedSubFields(typeInfo, new HashSet<>());
+		PROTECTED_SUB_FIELDS.put(typeInfo, out);
+		return out;
+	}
+
+	private static boolean hasProtectedSubFields(final TypeInfo typeInfo, final Set<Class<?>> visiting) {
+		if (typeInfo == null) {
+			return false;
+		}
+		if (typeInfo.isCollection() || typeInfo.isMap()) {
+			return hasProtectedSubFields(resolveElementTypeInfo(typeInfo), visiting);
+		}
+		if (!isEmbeddedObjectType(typeInfo)) {
+			return false;
+		}
+		final Class<?> raw = typeInfo.rawType();
+		if (!visiting.add(raw)) {
+			return false;
+		}
+		try {
+			for (final DbPropertyDescriptor desc : DbClassModel.of(raw).getAllFields()) {
+				if (isProtectedSubField(desc) || hasProtectedSubFields(desc.getProperty().getTypeInfo(), visiting)) {
+					return true;
+				}
+			}
+			return false;
+		} catch (final IntrospectionException ex) {
+			LOGGER.debug("Can not analyse the embedded type {}: {}", raw.getName(), ex.getMessage());
+			return false;
+		} finally {
+			visiting.remove(raw);
+		}
+	}
+
+	private static boolean isProtectedSubField(final DbPropertyDescriptor desc) {
+		return desc.isNotRead() || desc.isEncrypted();
+	}
+
+	/**
+	 * Writes the visible fields of an embedded object in dot notation ({@code path.field}), for a full update.
+	 *
+	 * <p>The protected fields ({@code @DataNotRead}, {@code @DataEncrypt}) are not written, so the values
+	 * stored in the database stay. A visible field set to {@code null} is {@code $unset}. A nested embedded
+	 * object holding protected fields is written the same way (or {@code $unset} when {@code null}); a nested
+	 * list, set or map of such objects is not written at all. An object that is not stored yet is created by
+	 * its first non-null visible field (when every visible field is {@code null}, nothing is created).
+	 *
+	 * @param path the dotted path of the embedded object in the document
+	 * @param value the embedded object (not {@code null})
+	 * @param docSet the {@code $set} document to fill
+	 * @param docUnSet the {@code $unset} document to fill
+	 * @throws Exception if the model cannot be analysed or a value cannot be converted
+	 */
+	public static void writeEmbeddedVisibleFields(
+			final String path,
+			final Object value,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		for (final DbPropertyDescriptor desc : DbClassModel.of(value.getClass()).getAllFields()) {
+			final MongoFieldCodec codec = desc.getCodec();
+			if (codec == null || isProtectedSubField(desc)) {
+				continue;
+			}
+			final TypeInfo typeInfo = desc.getProperty().getTypeInfo();
+			if (!hasProtectedSubFields(typeInfo)) {
+				codec.writeToDoc(path, value, docSet, docUnSet);
+				continue;
+			}
+			if (!isEmbeddedObjectType(typeInfo)) {
+				// List, set or map of objects with protected fields: kept as stored.
+				continue;
+			}
+			final String subPath = path + "." + codec.getDbFieldName();
+			final Object subValue = desc.getProperty().getValue(value);
+			if (subValue == null) {
+				docUnSet.append(subPath, "");
+			} else {
+				writeEmbeddedVisibleFields(subPath, subValue, docSet, docUnSet);
+			}
+		}
 	}
 
 	// ========== Element codec builders ==========

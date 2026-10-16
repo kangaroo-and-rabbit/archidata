@@ -478,6 +478,20 @@ renvoyé comme un champ normal. Il est maintenant caché par une lecture standar
 niveau, et rendu avec `ReadAllColumn`. Le code qui lisait un tel champ sans `ReadAllColumn` le reçoit
 désormais `null` (ou la valeur par défaut du constructeur).
 
+Pour qu'un « lire puis mettre à jour » n'efface pas ces champs cachés, une mise à jour complète
+(`updateById` sans `FilterValue`, ou avec `FilterValue.getEditableFieldsNames`) ne réécrit plus en bloc
+un champ dont le type contient, à n'importe quelle profondeur, des champs `@DataNotRead` ou
+`@DataEncrypt` :
+
+- objet embarqué (POJO, record) : chaque sous-champ visible est écrit en notation pointée
+  (`credentials.user`, `null` = `$unset`), les sous-champs protégés restent tels qu'en base ; un objet
+  mis à `null` est supprimé en entier (`$unset`) ;
+- `List`, `Set` ou `Map` de tels objets : le champ n'est **pas** écrit par une mise à jour complète.
+
+**Comment migrer** : pour remplacer une telle liste (ou un objet en entier, champs cachés compris),
+nommer le champ dans un `FilterValue` (`new FilterValue("history")`). Une modification d'un élément
+d'une telle liste n'est plus enregistrée par un `updateById` sans `FilterValue`.
+
 ### `Limit` et `Skip` validés (D-07)
 
 `new Limit(n)` lève `IllegalArgumentException` si `n <= 0` ou si `n > Limit.getMaxValue()` (10 000 par

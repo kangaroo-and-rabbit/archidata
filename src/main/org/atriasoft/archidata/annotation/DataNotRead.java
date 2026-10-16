@@ -19,7 +19,8 @@ import java.lang.annotation.Target;
  * - The field IS written to the database on insert (like a normal field).
  * - A full update ({@code updateById} without {@code FilterValue}) never writes it: a standard read
  *   leaves it {@code null}, so a read-then-update would erase it. Name it in a {@code FilterValue}
- *   to update it.
+ *   to update it. In an embedded object it is kept too: the full update writes the other sub-fields in
+ *   dot notation, and does not write a list, set or map of such objects.
  * - It does not imply {@code @ApiReadOnly}: a client may still send it on insert.
  * - The field is NOT included in the default data retrieval process.
  * - To read the field, the query must include the {@code ReadAllColumn} option.

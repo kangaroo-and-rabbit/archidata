@@ -1496,6 +1496,21 @@ public class DBAccessMongo implements Closeable {
 						continue;
 					}
 				}
+				if (filterKey.isFullUpdate() && MongoCodecFactory.hasProtectedSubFields(prop.getTypeInfo())) {
+					// A read leaves the protected fields of embedded objects null: never rewrite them as a whole
+					// in a full update. An embedded object is written field by field (dot notation), a list,
+					// set or map of such objects is kept as stored (name it in a FilterValue to rewrite it).
+					if (MongoCodecFactory.isEmbeddedObjectType(prop.getTypeInfo())) {
+						final Object embedded = prop.getValue(data);
+						if (embedded == null) {
+							docUnSet.append(fieldName.inTable(), "");
+						} else {
+							MongoCodecFactory.writeEmbeddedVisibleFields(fieldName.inTable(), embedded, docSet,
+									docUnSet);
+						}
+					}
+					continue;
+				}
 				codec.writeToDoc(null, fieldName.inTable(), data, docSet, docUnSet);
 			}
 

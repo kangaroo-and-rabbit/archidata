@@ -38,6 +38,13 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
 public class FilterValue extends QueryOption {
 	/** The list of field names to include. */
 	public final List<String> filterValue;
+	/** Whether this list is the default one of a full update, see {@link #isFullUpdate()}. */
+	private final boolean fullUpdate;
+
+	private FilterValue(final List<String> filterValue, final boolean fullUpdate) {
+		this.filterValue = filterValue;
+		this.fullUpdate = fullUpdate;
+	}
 
 	/**
 	 * Creates a FilterValue from a list of field names.
@@ -45,7 +52,7 @@ public class FilterValue extends QueryOption {
 	 * @param filterValue the list of field names to include
 	 */
 	public FilterValue(final List<String> filterValue) {
-		this.filterValue = filterValue;
+		this(filterValue, false);
 	}
 
 	/**
@@ -54,7 +61,7 @@ public class FilterValue extends QueryOption {
 	 * @param filterValue the field names to include
 	 */
 	public FilterValue(final String... filterValue) {
-		this.filterValue = List.of(filterValue);
+		this(List.of(filterValue), false);
 	}
 
 	/**
@@ -74,6 +81,7 @@ public class FilterValue extends QueryOption {
 			resolved.add(MethodReferenceResolver.resolveFieldName(getter));
 		}
 		this.filterValue = resolved;
+		this.fullUpdate = false;
 	}
 
 	/**
@@ -93,6 +101,7 @@ public class FilterValue extends QueryOption {
 			resolved.add(MethodReferenceResolver.resolveFieldName(setter));
 		}
 		this.filterValue = resolved;
+		this.fullUpdate = false;
 	}
 
 	/**
@@ -112,6 +121,7 @@ public class FilterValue extends QueryOption {
 			resolved.add(MethodReferenceResolver.resolveFieldName(setter));
 		}
 		this.filterValue = resolved;
+		this.fullUpdate = false;
 	}
 
 	/**
@@ -131,6 +141,7 @@ public class FilterValue extends QueryOption {
 			resolved.add(ref.getFieldName());
 		}
 		this.filterValue = resolved;
+		this.fullUpdate = false;
 	}
 
 	/**
@@ -143,18 +154,34 @@ public class FilterValue extends QueryOption {
 	}
 
 	/**
+	 * Tells whether this is the field list of a full update ({@link #getEditableFieldsNames(Class)}, the
+	 * default of {@code updateById} without {@code FilterValue}) rather than a list of names chosen by the caller.
+	 *
+	 * <p>A full update never erases what a standard read hides: an embedded object holding {@code @DataNotRead}
+	 * or {@code @DataEncrypt} fields is written field by field in dot notation, its protected fields left as
+	 * stored, and a list, set or map of such objects is not written. Name the field in a {@code FilterValue}
+	 * to rewrite it as a whole.
+	 *
+	 * @return {@code true} for the field list of a full update
+	 */
+	public boolean isFullUpdate() {
+		return this.fullUpdate;
+	}
+
+	/**
 	 * Creates a FilterValue containing only the editable field names of the given class.
 	 *
 	 * <p>Excluded: the system-managed fields (primary key, timestamps, deleted marker) and the protected
 	 * fields ({@code @DataNotRead}, {@code @DataEncrypt}). This is the default field list of
 	 * {@code updateById} without {@code FilterValue}: a protected field is written only when a
-	 * {@code FilterValue} names it.
+	 * {@code FilterValue} names it. The list is marked as a full update ({@link #isFullUpdate()}): the
+	 * protected fields of embedded objects are kept too.
 	 *
 	 * @param clazz the entity class to inspect
 	 * @return a FilterValue with the editable field names
 	 */
 	public static FilterValue getEditableFieldsNames(final Class<?> clazz) {
-		return new FilterValue(AnnotationTools.getFieldsNamesFilter(clazz, false));
+		return new FilterValue(AnnotationTools.getFieldsNamesFilter(clazz, false), true);
 	}
 
 	/**

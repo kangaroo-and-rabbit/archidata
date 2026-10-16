@@ -109,6 +109,22 @@ name it in a `FilterValue`:
 da.updateById(user, userId, new FilterValue("passwordHash"));
 ```
 
+The same rule protects the hidden fields of **embedded objects** (a standard read leaves their
+`@DataNotRead` / `@DataEncrypt` fields `null` too). In a full update (no `FilterValue`, or
+`FilterValue.getEditableFieldsNames`), a field whose type holds such fields at any depth is written as
+follows:
+
+| Field type | Full update |
+|---|---|
+| embedded object (POJO, record) | each visible sub-field in dot notation (`credentials.user`, `null` = `$unset`), the protected ones left as stored; recursively for a nested embedded object |
+| embedded object set to `null` | `$unset` of the whole object (an explicit `null` deletes it, hidden fields included) |
+| `List`, `Set` or `Map` of such objects | **not written** (kept as stored) |
+
+To rewrite such a field as a whole (new list, hidden values included), name it in a `FilterValue`:
+`da.updateById(account, id, new FilterValue("history"))`. An embedded object that is not stored yet is
+created by its first non-null visible field; an object stored as a BSON `null` (written outside
+archidata) makes the dot-notation update fail.
+
 Update documents matching a condition:
 
 ```java

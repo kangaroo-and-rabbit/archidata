@@ -165,7 +165,9 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
   `IndexEngine.synchronize()` at startup. `@Field` only renames a field.
 - **`updateById` without `FilterValue` writes every editable field, `null` included** (null =
   `$unset`), except the `@DataNotRead` and `@DataEncrypt` fields, which need a `FilterValue`
-  naming them. Pass the list of fields for a partial update (PATCH).
+  naming them. Inside embedded objects too: an embedded object with such fields is written field by
+  field in dot notation (hidden ones kept), a `List`/`Set`/`Map` of such objects is not written
+  unless a `FilterValue` names it. Pass the list of fields for a partial update (PATCH).
 - **`@ApiReadOnly`**: a client value in a request body is ignored; server code can still write it
   (`insert`; `update` needs `ForceReadOnlyField`).
 - **Migrations**: collection `KAR_migration`. On an empty database only the init runs (the

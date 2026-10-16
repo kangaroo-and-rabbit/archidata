@@ -168,7 +168,10 @@ Each point was checked against the code; the doc page gives the details.
   run `IndexEngine.addClass(...)` + `synchronize()` at startup. See `doc/indexes.md`.
 - **`updateById` without `FilterValue` writes every editable field, `null` included** (a null
   field is `$unset`, unless it has an `@InitValue`), **except** the `@DataNotRead` and
-  `@DataEncrypt` fields: those are written only when a `FilterValue` names them. Pass
+  `@DataEncrypt` fields: those are written only when a `FilterValue` names them. The same holds
+  inside embedded objects: an embedded object holding such fields is written sub-field by sub-field
+  in dot notation (`credentials.user`; the object set to `null` is `$unset`), and a `List`/`Set`/`Map`
+  of such objects is **not written** by a full update (name it in a `FilterValue`). Pass
   `new FilterValue(List.of("field1", "field2"))` for a partial update. `update(...)` with a
   `Condition` refuses to run without exactly one `FilterValue`. See `doc/database_access.md`.
 - **`@ApiReadOnly`**: a property sent by a client in a request body is ignored (dropped by the
