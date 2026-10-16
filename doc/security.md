@@ -503,6 +503,16 @@ Choice: SVG remains accepted for upload (covers), because these headers already 
 To refuse it, filter the type in the application before calling `DataTools.uploadData`.
 
 
+### Upload limits
+
+`POST /data/upload` (`DataTools.uploadData`) and `DataTools.uploadCover` stop copying the stream above
+`DataTools.setMaxUploadSize` (1 GiB by default) and answer 413. The temporary file of an upload is
+always removed (refused type, data already stored, error), and the copy uses a 64 KiB buffer instead of
+one of 50 MiB per request. An application that copies a client stream itself should use the bounded
+`DataTools.saveTemporaryFile(stream, id, maxSize)`. Grizzly and Jersey do not limit the request body by
+themselves: put a limit in the reverse proxy too (`client_max_body_size` for nginx).
+
+
 Migration Guide (Breaking Change)
 ==================================
 

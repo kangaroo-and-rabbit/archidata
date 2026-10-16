@@ -74,7 +74,8 @@ import jakarta.ws.rs.core.StreamingOutput;
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
 	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	private static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 1MB chunks
+	/** Buffer used to copy an uploaded stream (a 50 MiB one per request let a few uploads fill the heap). */
+	private static final int CHUNK_SIZE_IN = 64 * 1024;
 	/** How long the browser may keep a data without asking again.
 	 *
 	 * <p>

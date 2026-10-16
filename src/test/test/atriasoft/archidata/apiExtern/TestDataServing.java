@@ -15,7 +15,9 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
+import org.atriasoft.archidata.exception.RESTErrorResponseException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.atriasoft.archidata.tools.DataTools;
 import org.atriasoft.archidata.tools.RESTApi;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -109,5 +111,43 @@ public class TestDataServing {
 		final HttpResponse<byte[]> thumbnail = get("data/thumbnail/" + oid);
 		Assertions.assertEquals(200, thumbnail.statusCode());
 		Assertions.assertEquals("nosniff", thumbnail.headers().firstValue("X-Content-Type-Options").orElse(null));
+	}
+
+	static long temporaryFiles() throws IOException {
+		final Path tmp = workDir.resolve("tmp");
+		if (!Files.exists(tmp)) {
+			return 0;
+		}
+		try (java.util.stream.Stream<Path> files = Files.list(tmp)) {
+			return files.count();
+		}
+	}
+
+	@Test
+	public void temporaryFilesAreAlwaysRemoved() throws Exception {
+		final byte[] content = png(20, 20);
+		final String first = upload("dup.png", content);
+		Assertions.assertEquals(0, temporaryFiles());
+		// same content again: the existing data is returned, the new temporary file must not stay
+		Assertions.assertEquals(first, upload("dup-again.png", content));
+		Assertions.assertEquals(0, temporaryFiles());
+		// refused content type
+		final RESTErrorResponseException refused = Assertions.assertThrows(RESTErrorResponseException.class,
+				() -> upload("notes.png", "just some text".getBytes(StandardCharsets.UTF_8)));
+		Assertions.assertEquals(406, refused.status);
+		Assertions.assertEquals(0, temporaryFiles());
+	}
+
+	@Test
+	public void uploadOverTheLimitIsRefused() throws Exception {
+		DataTools.setMaxUploadSize(1024);
+		try {
+			final RESTErrorResponseException ex = Assertions.assertThrows(RESTErrorResponseException.class,
+					() -> upload("large.png", new byte[4096]));
+			Assertions.assertEquals(413, ex.status);
+			Assertions.assertEquals(0, temporaryFiles());
+		} finally {
+			DataTools.setMaxUploadSize(DataTools.DEFAULT_MAX_UPLOAD_SIZE);
+		}
 	}
 }

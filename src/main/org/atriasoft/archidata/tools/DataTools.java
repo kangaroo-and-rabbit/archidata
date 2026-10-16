@@ -53,8 +53,17 @@ public class DataTools {
 
 	/** Read/write chunk size for streaming operations (1 MB). */
 	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	/** Input buffer size for file uploads (50 MB). */
+	/** Former input buffer size for file uploads (50 MB).
+	 * @deprecated No longer used: a 50 MiB buffer per upload let a few concurrent uploads fill the heap; the
+	 *             copy uses a 64 KiB buffer. */
+	@Deprecated
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
+	/** Buffer used to copy an uploaded stream to its temporary file. */
+	private static final int COPY_BUFFER_SIZE = 64 * 1024;
+	/** Default largest upload accepted by {@link #uploadData} and {@link #uploadCover} (1 GiB). */
+	public static final long DEFAULT_MAX_UPLOAD_SIZE = 1024L * 1024 * 1024;
+	/** Largest upload accepted by {@link #uploadData} and {@link #uploadCover}. */
+	private static volatile long maxUploadSize = DEFAULT_MAX_UPLOAD_SIZE;
 	/** Counter for generating unique temporary file identifiers. */
 	private static long tmpFolderId = 1;
 	/** SVG MIME type. Accepted for upload: an SVG rendered with &lt;img src&gt; does not run its scripts, and
@@ -286,6 +295,95 @@ public class DataTools {
 	}
 
 	/**
+	 * Returns the largest upload accepted by {@link #uploadData} and {@link #uploadCover}.
+	 * @return The limit in bytes.
+	 */
+	public static long getMaxUploadSize() {
+		return maxUploadSize;
+	}
+
+	/**
+	 * Sets the largest upload accepted by {@link #uploadData} and {@link #uploadCover} (and thus by
+	 * {@code POST /data/upload}). A larger upload is refused with HTTP 413 and its temporary file removed.
+	 * @param maxSize The limit in bytes, strictly positive.
+	 * @throws IllegalArgumentException If the limit is not strictly positive.
+	 */
+	public static void setMaxUploadSize(final long maxSize) {
+		if (maxSize <= 0) {
+			throw new IllegalArgumentException("The upload size limit must be positive: " + maxSize);
+		}
+		maxUploadSize = maxSize;
+	}
+
+	/**
+	 * Saves an input stream to a temporary file, up to a size limit, and returns its SHA-512 hash.
+	 * @param uploadedInputStream The input stream to save.
+	 * @param idData The temporary file identifier.
+	 * @param maxSize The largest size accepted, in bytes.
+	 * @return The SHA-512 hex string of the saved data.
+	 * @throws FailException HTTP 413 when the stream is larger than {@code maxSize} (the file is removed), HTTP
+	 *                       500 when the file cannot be written.
+	 */
+	public static String saveTemporaryFile(final InputStream uploadedInputStream, final long idData, final long maxSize)
+			throws FailException {
+		return saveFile(uploadedInputStream, getTmpFileInData(idData), maxSize);
+	}
+
+	/**
+	 * Saves an input stream to a file, up to a size limit, and computes its SHA-512 hash.
+	 * @param uploadedInputStream The input stream to save (closed at the end).
+	 * @param serverLocation The destination file path.
+	 * @param maxSize The largest size accepted, in bytes.
+	 * @return The SHA-512 hex string of the saved data.
+	 * @throws FailException HTTP 413 when the stream is larger than {@code maxSize} (the file is removed), HTTP
+	 *                       500 when the file cannot be written.
+	 */
+	public static String saveFile(
+			final InputStream uploadedInputStream,
+			final String serverLocation,
+			final long maxSize) throws FailException {
+		final MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("SHA-512");
+		} catch (final NoSuchAlgorithmException ex) {
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not find sha512 algorithms", ex);
+		}
+		boolean tooLarge = false;
+		try (InputStream input = uploadedInputStream;
+				OutputStream outputStream = new FileOutputStream(new File(serverLocation))) {
+			final byte[] bytes = new byte[COPY_BUFFER_SIZE];
+			long total = 0;
+			int read;
+			while ((read = input.read(bytes)) != -1) {
+				total += read;
+				if (total > maxSize) {
+					tooLarge = true;
+					break;
+				}
+				md.update(bytes, 0, read);
+				outputStream.write(bytes, 0, read);
+			}
+		} catch (final IOException ex) {
+			deleteQuietly(serverLocation);
+			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "Can not write in temporary file", ex);
+		}
+		if (tooLarge) {
+			deleteQuietly(serverLocation);
+			throw new FailException(Response.Status.REQUEST_ENTITY_TOO_LARGE,
+					"The uploaded data is too large (limit: " + maxSize + " bytes)");
+		}
+		return bytesToHex(md.digest());
+	}
+
+	private static void deleteQuietly(final String path) {
+		try {
+			Files.deleteIfExists(Paths.get(path));
+		} catch (final IOException ex) {
+			LOGGER.error("Can not delete temporary file '{}': {}", path, ex.getMessage());
+		}
+	}
+
+	/**
 	 * Saves a byte array to a temporary file and returns its SHA-512 hash.
 	 * @param uploadedInputStream The byte array to save.
 	 * @param idData The temporary file identifier.
@@ -320,7 +418,7 @@ public class DataTools {
 		String out = "";
 		try {
 			int read = 0;
-			final byte[] bytes = new byte[CHUNK_SIZE_IN];
+			final byte[] bytes = new byte[COPY_BUFFER_SIZE];
 			final MessageDigest md = MessageDigest.getInstance("SHA-512");
 			try (final OutputStream outputStream = new FileOutputStream(new File(serverLocation))) {
 				while ((read = uploadedInputStream.read(bytes)) != -1) {
@@ -515,32 +613,37 @@ public class DataTools {
 		final byte[] dataResponse = downloadRemoteData(url);
 
 		final long tmpUID = getTmpDataId();
-		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
-		Data data = getWithSha512(ioDb, sha512);
-		final String mimeType = getMimeType(dataResponse);
-		if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
-			throw new FailException(Response.Status.NOT_ACCEPTABLE,
-					clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not acceptable: " + mimeType
-							+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+		// The temporary file is removed whatever happens (refused type, existing data, error): once moved to
+		// the media folder it no longer exists there.
+		try {
+			final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
+			Data data = getWithSha512(ioDb, sha512);
+			final String mimeType = getMimeType(dataResponse);
+			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
+				throw new FailException(Response.Status.NOT_ACCEPTABLE,
+						clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not acceptable: "
+								+ mimeType + "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 
-		}
-		if (data == null) {
-			LOGGER.info("Need to add the data in the BDD ... ");
-			try {
-				data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
-			} catch (final IOException ex) {
-				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_MODIFIED,
-						clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
 			}
-		} else if (data.getDeleted()) {
-			LOGGER.error("Data already exist but deleted");
-			undelete(ioDb, data.getOid());
-			data.setDeleted(false);
-		} else {
-			LOGGER.error("Data already exist ... all good");
+			if (data == null) {
+				LOGGER.info("Need to add the data in the BDD ... ");
+				try {
+					data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
+				} catch (final IOException ex) {
+					throw new FailException(Response.Status.NOT_MODIFIED,
+							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+				}
+			} else if (data.getDeleted()) {
+				LOGGER.error("Data already exist but deleted");
+				undelete(ioDb, data.getOid());
+				data.setDeleted(false);
+			} else {
+				LOGGER.error("Data already exist ... all good");
+			}
+			ListInDbTools.addLink(clazz, id, null, data.getOid());
+		} finally {
+			removeTemporaryFile(tmpUID);
 		}
-		ListInDbTools.addLink(clazz, id, null, data.getOid());
 	}
 
 	/**
@@ -554,8 +657,8 @@ public class DataTools {
 		final byte[] dataResponse = downloadRemoteData(url);
 
 		final long tmpUID = getTmpDataId();
-		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
 			final DBAccessMongo ioDb = ctx.get();
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
@@ -568,7 +671,6 @@ public class DataTools {
 				try {
 					data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
 				} catch (final IOException ex) {
-					removeTemporaryFile(tmpUID);
 					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 				}
 			} else if (data.getDeleted()) {
@@ -579,6 +681,8 @@ public class DataTools {
 				LOGGER.error("Data already exist ... all good");
 			}
 			return data.getOid();
+		} finally {
+			removeTemporaryFile(tmpUID);
 		}
 	}
 
@@ -602,31 +706,33 @@ public class DataTools {
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
 
 			final long tmpUID = getTmpDataId();
-			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
-			// Validate MIME type from actual file content (not just extension)
-			final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
-			if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
-				removeTemporaryFile(tmpUID);
-				throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
-						+ detectedMimeType + " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
-			}
-			Data data = getWithSha512(ioDb, sha512);
-			if (data == null) {
-				LOGGER.info("Need to add the data in the BDD ... ");
-				try {
-					data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
-				} catch (final IOException ex) {
-					removeTemporaryFile(tmpUID);
-					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
+			try {
+				final String sha512 = saveTemporaryFile(fileInputStream, tmpUID, maxUploadSize);
+				// Validate MIME type from actual file content (not just extension)
+				final String detectedMimeType = getMimeTypeFromFile(getTmpFileInData(tmpUID));
+				if (!Arrays.asList(SUPPORTED_UPLOAD_MIME_TYPES).contains(detectedMimeType)) {
+					throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
+							+ detectedMimeType + " - supported: " + String.join(", ", SUPPORTED_UPLOAD_MIME_TYPES));
 				}
-			} else if (data.getDeleted()) {
-				LOGGER.error("Data already exist but deleted");
-				undelete(ioDb, data.getOid());
-				data.setDeleted(false);
-			} else {
-				LOGGER.error("Data already exist ... all good");
+				Data data = getWithSha512(ioDb, sha512);
+				if (data == null) {
+					LOGGER.info("Need to add the data in the BDD ... ");
+					try {
+						data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
+					} catch (final IOException ex) {
+						throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
+					}
+				} else if (data.getDeleted()) {
+					LOGGER.error("Data already exist but deleted");
+					undelete(ioDb, data.getOid());
+					data.setDeleted(false);
+				} else {
+					LOGGER.error("Data already exist ... all good");
+				}
+				return data.getOid();
+			} finally {
+				removeTemporaryFile(tmpUID);
 			}
-			return data.getOid();
 		}
 	}
 
@@ -660,25 +766,28 @@ public class DataTools {
 			}
 
 			final long tmpUID = getTmpDataId();
-			final String sha512 = saveTemporaryFile(fileInputStream, tmpUID);
-			Data data = getWithSha512(ioDb, sha512);
-			if (data == null) {
-				LOGGER.info("Need to add the data in the BDD ... ");
-				try {
-					data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
-				} catch (final IOException ex) {
-					removeTemporaryFile(tmpUID);
-					throw new FailException(Response.Status.NOT_MODIFIED,
-							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+			try {
+				final String sha512 = saveTemporaryFile(fileInputStream, tmpUID, maxUploadSize);
+				Data data = getWithSha512(ioDb, sha512);
+				if (data == null) {
+					LOGGER.info("Need to add the data in the BDD ... ");
+					try {
+						data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
+					} catch (final IOException ex) {
+						throw new FailException(Response.Status.NOT_MODIFIED,
+								clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+					}
+				} else if (data.getDeleted()) {
+					LOGGER.error("Data already exist but deleted");
+					undelete(ioDb, data.getOid());
+					data.setDeleted(false);
+				} else {
+					LOGGER.error("Data already exist ... all good");
 				}
-			} else if (data.getDeleted()) {
-				LOGGER.error("Data already exist but deleted");
-				undelete(ioDb, data.getOid());
-				data.setDeleted(false);
-			} else {
-				LOGGER.error("Data already exist ... all good");
+				ListInDbTools.addLink(clazz, id, "covers", data.getOid());
+			} finally {
+				removeTemporaryFile(tmpUID);
 			}
-			ListInDbTools.addLink(clazz, id, "covers", data.getOid());
 		}
 	}
 }

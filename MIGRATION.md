@@ -276,6 +276,17 @@ Le corps téléchargé par `uploadDataFromUri`, `uploadCoverFromUri` et `ProxyRe
 et borné par `DataTools.setMaxRemoteDataSize(long)` (50 Mio par défaut) : au-delà, HTTP 413. Avant,
 seule une taille d'exactement 50 Mio était refusée, et le corps entier était chargé en mémoire.
 
+### Taille maximale d'upload et fichiers temporaires supprimés (W-05)
+
+`uploadData` et `uploadCover` (donc `POST /data/upload`) refusent un fichier de plus de
+`DataTools.setMaxUploadSize(long)` (1 Gio par défaut) avec HTTP 413. Le fichier temporaire est
+supprimé dans tous les cas, y compris quand la donnée existe déjà ou que le type est refusé (avant, il
+restait dans `DATA_TMP_FOLDER`). `DataTools.CHUNK_SIZE_IN` est déprécié.
+
+**Qui est impacté** : une application qui téléverse plus de 1 Gio par ces méthodes doit relever la
+limite au démarrage. Les variantes non bornées de `saveTemporaryFile` restent disponibles pour les
+flux produits par le serveur lui-même (démultiplexage…).
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

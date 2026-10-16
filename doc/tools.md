@@ -227,7 +227,15 @@ to its permanent path once its `Data` record is inserted.
 
 - Folders and temporary files: `createFolder`, `getTmpDataId`, `getTmpFileInData`,
   `getTmpFolder`, `saveTemporaryFile(InputStream | byte[], long id)`,
-  `removeTemporaryFile`, `saveFile(InputStream | byte[], String path)`.
+  `removeTemporaryFile`, `saveFile(InputStream | byte[], String path)`. The
+  bounded variants `saveTemporaryFile(InputStream, long id, long maxSize)` and
+  `saveFile(InputStream, String path, long maxSize)` throw a `FailException`
+  (HTTP 413) and remove the file when the stream is larger than `maxSize`: use
+  them for any stream that comes from a client.
+- Upload limit: `setMaxUploadSize(long)` / `getMaxUploadSize()` (default
+  `DEFAULT_MAX_UPLOAD_SIZE`, 1 GiB) bound `uploadData` and `uploadCover`, hence
+  `POST /data/upload`. Every upload entry point removes its temporary file in a
+  `finally` (refused type, data already stored, error).
 - `Data` records: `getWithSha512`, `getWithId`, `createNewData` (two overloads,
   the short one deduces the MIME type from the extension), `undelete`.
 - Upload entry points: `uploadData(InputStream, FormDataContentDisposition)`,
@@ -241,7 +249,8 @@ to its permanent path once its `Data` record is inserted.
   `bytesToHex`, `multipartCorrection`, and the constants
   `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,
   `SUPPORTED_VIDEO_MIME_TYPE`, `SUPPORTED_UPLOAD_MIME_TYPES`, `MIME_SVG`,
-  `CHUNK_SIZE` (1 MiB), `CHUNK_SIZE_IN` (50 MiB).
+  `CHUNK_SIZE` (1 MiB), `CHUNK_SIZE_IN` (50 MiB, deprecated and unused: the
+  copies use a 64 KiB buffer).
 
 SVG stays accepted for upload: rendered with `<img>`, it does not run scripts.
 Opening its URL directly would run them on the origin of the API, so
