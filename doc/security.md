@@ -552,6 +552,16 @@ is not an access control either: the endpoints keep their `@RolesAllowed`. Set t
 to the origins of the fronts, so that a page of another site visited by a user of the internal network
 cannot read the API.
 
+### Error messages
+
+The error answers no longer carry internal details: an unexpected exception, a 5xx
+`WebApplicationException` and a raw Jackson error answer `Internal server error`; an invalid request
+body names the field or the position only; every 401 of `AuthenticationFilter` says `Missing or invalid
+authentication`. The detail is logged with the `oid` of the answer. Messages thrown on purpose
+(`FailException`, `InputException`, `SystemException`, validation) are unchanged. See
+[error handling](error_handling.md#what-the-client-sees).
+
+
 Migration Guide (Breaking Change)
 ==================================
 

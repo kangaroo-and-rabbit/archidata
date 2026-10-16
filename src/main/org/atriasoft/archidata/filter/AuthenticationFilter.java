@@ -128,6 +128,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	public static final String AUTHENTICATION_SCHEME = "Bearer";
 	/** The API key header name. */
 	public static final String APIKEY = "ApiKey";
+	/** Message of every 401 answer: why the token is refused is only logged. */
+	public static final String UNAUTHORIZED_MESSAGE = "Missing or invalid authentication";
 
 	/**
 	 * Constructs an authentication filter with the given application name and default issuer "Karso".
@@ -230,7 +232,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final boolean isApiToken = isTokenBasedAuthenticationApiKey(authorizationHeader);
 		if (!isApplicationToken && !isJwtToken && !isApiToken) {
 			LOGGER.warn("REJECTED unauthorized: /{}", requestContext.getUriInfo().getPath());
-			abortWithUnauthorized(requestContext, "REJECTED unauthorized: " + requestContext.getUriInfo().getPath());
+			abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 			return;
 		}
 		UserByToken userByToken = null;
@@ -241,13 +243,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			try {
 				userByToken = validateJwtToken(token);
 			} catch (final Exception e) {
+				// The cause stays in the log: it may come from the database of an API key check.
 				LOGGER.error("Fail to validate token: {}", e.getMessage());
-				abortWithUnauthorized(requestContext, "Fail to validate token: " + e.getMessage());
+				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
 			if (userByToken == null) {
 				LOGGER.warn("get a NULL user ...");
-				abortWithUnauthorized(requestContext, "get a NULL user ...");
+				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
 		} else {
@@ -261,12 +264,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
 				LOGGER.error("Fail to validate token: {}", e.getMessage());
-				abortWithUnauthorized(requestContext, "Fail to validate token: " + e.getMessage());
+				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
 			if (userByToken == null) {
 				LOGGER.warn("get a NULL application ...");
-				abortWithUnauthorized(requestContext, "get a NULL application ...");
+				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
 

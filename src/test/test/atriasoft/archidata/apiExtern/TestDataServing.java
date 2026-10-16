@@ -16,6 +16,7 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 
 import org.atriasoft.archidata.exception.RESTErrorResponseException;
+import org.atriasoft.archidata.filter.AuthenticationFilter;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.DataTools;
 import org.atriasoft.archidata.tools.RESTApi;
@@ -196,5 +197,16 @@ public class TestDataServing {
 		final BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(thumbnail.body()));
 		Assertions.assertEquals(ConfigBaseVariable.getThumbnailWidth(), image.getWidth());
 		Assertions.assertEquals(1, image.getHeight());
+	}
+
+	@Test
+	public void unauthorizedAnswerDoesNotExplainWhy() throws Exception {
+		final HttpRequest request = HttpRequest
+				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/upload"))
+				.header("Authorization", "Bearer not.a.token").POST(HttpRequest.BodyPublishers.noBody()).build();
+		final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+		Assertions.assertEquals(401, response.statusCode());
+		Assertions.assertTrue(response.body().contains(AuthenticationFilter.UNAUTHORIZED_MESSAGE), response.body());
+		Assertions.assertFalse(response.body().contains("Exception"), response.body());
 	}
 }

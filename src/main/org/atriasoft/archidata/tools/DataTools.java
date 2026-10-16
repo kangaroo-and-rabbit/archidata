@@ -632,8 +632,7 @@ public class DataTools {
 		SsrfGuard.validateUrl(url);
 		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
-			throw new InputException(clazz.getCanonicalName(),
-					"[" + id.toString() + "] Id does not exist or removed...");
+			throw new InputException("id", "Id does not exist or removed");
 		}
 		// Download data:
 		final byte[] dataResponse = downloadRemoteData(url);
@@ -646,9 +645,8 @@ public class DataTools {
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
 			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
-				throw new FailException(Response.Status.NOT_ACCEPTABLE,
-						clazz.getCanonicalName() + "[" + id.toString() + "] Data CoverType is not acceptable: "
-								+ mimeType + "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data CoverType is not acceptable: " + mimeType
+						+ " - supported: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 
 			}
 			if (data == null) {
@@ -656,8 +654,7 @@ public class DataTools {
 				try {
 					data = createNewData(ioDb, tmpUID, url, sha512, mimeType);
 				} catch (final IOException ex) {
-					throw new FailException(Response.Status.NOT_MODIFIED,
-							clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+					throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 				}
 			} else if (data.getDeleted()) {
 				LOGGER.error("Data already exist but deleted");
@@ -689,8 +686,8 @@ public class DataTools {
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
 			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
-				throw new FailException(Response.Status.NOT_ACCEPTABLE, " Data CoverType is not acceptable: " + mimeType
-						+ "support only: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
+				throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data CoverType is not acceptable: " + mimeType
+						+ " - supported: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 			}
 			if (data == null) {
 				LOGGER.info("Need to add the data in the BDD ... ");
@@ -787,8 +784,7 @@ public class DataTools {
 			LOGGER.info("    - fileMetaData: {}", fileMetaData);
 			final CLASS_TYPE media = ioDb.getById(clazz, id);
 			if (media == null) {
-				throw new InputException(clazz.getCanonicalName(),
-						"[" + id.toString() + "] Id does not exist or removed...");
+				throw new InputException("id", "Id does not exist or removed");
 			}
 
 			final long tmpUID = getTmpDataId();
@@ -800,8 +796,7 @@ public class DataTools {
 					try {
 						data = createNewData(ioDb, tmpUID, fileMetaData.getFileName(), sha512);
 					} catch (final IOException ex) {
-						throw new FailException(Response.Status.NOT_MODIFIED,
-								clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
+						throw new FailException(Response.Status.NOT_MODIFIED, "Can not create input media", ex);
 					}
 				} else if (data.getDeleted()) {
 					LOGGER.error("Data already exist but deleted");

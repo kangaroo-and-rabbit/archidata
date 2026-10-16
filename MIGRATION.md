@@ -327,6 +327,21 @@ qu'elle est définie. Un front qui envoyait des cookies ou `credentials: 'includ
 liste ne reçoit plus `Allow-Credentials` (les navigateurs refusaient déjà `*` avec des identifiants).
 Les appels serveur à serveur ne sont pas concernés : CORS ne s'applique qu'aux navigateurs.
 
+### Messages d'erreur sans détail interne (W-13, D-10)
+
+Ne renvoient plus le message brut de l'exception (il reste dans le log, sous l'`oid` de la réponse) :
+`ExceptionCatcher` (toute exception non gérée, dont `DataAccessException` et les erreurs du driver
+Mongo comme `E11000 … dup key`), `WebApplicationExceptionCatcher` pour un statut 5xx, et
+`JacksonExceptionCatcher` : `message` vaut `Internal server error`. `RequestBodyExceptionCatcher`
+renvoie `Unknown field 'x'`, `Invalid value for field 'a.b'` ou `Malformed JSON at line L, column C`
+au lieu du message Jackson (noms de classes, liste des propriétés). Les 401 d'`AuthenticationFilter`
+disent toujours `Missing or invalid authentication`. Les messages de `DataTools` ne contiennent plus de
+nom de classe. Les messages volontaires (`FailException`, `InputException`, `SystemException`,
+validation, `WebApplicationException` 4xx) ne changent pas.
+
+**Qui est impacté** : un client ou un test qui lisait le texte d'une erreur 500, d'une erreur de corps
+JSON ou d'un 401. Pour un message destiné au client, lever une `FailException`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

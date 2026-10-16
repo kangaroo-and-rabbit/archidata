@@ -85,7 +85,7 @@ so the generated TypeScript and Python clients know it) with
 |---|---|---|
 | `oid` | `ObjectId` (string) | unique id of this error occurrence, also written in the server log |
 | `name` | string | short error type, see the table above |
-| `message` | string | human-readable message (`exception.getMessage()`) |
+| `message` | string | human-readable message: `exception.getMessage()` for the archidata exceptions, validation and 4xx errors; a generic text otherwise (see "What the client sees") |
 | `time` | string | ISO-8601 instant of the error |
 | `status` | int | HTTP status code |
 | `statusMessage` | string | HTTP reason phrase (`Bad Request`...) |
@@ -93,6 +93,29 @@ so the generated TypeScript and Python clients know it) with
 
 `RestInputError` has three fields: `argument` (the parameter name), `path` (the
 property path inside the argument) and `message`.
+
+
+What the client sees
+--------------------
+
+The message of an exception thrown on purpose is sent back as is:
+`FailException`, `UnAuthorizedException`, `InputException`, `SystemException`,
+the validation messages and the message of a client error (4xx)
+`WebApplicationException` (`new NotFoundException("media NOT FOUND")`). Write
+them for the caller.
+
+Everything else may describe the server (host names of the cluster, MongoDB
+messages with the values of a duplicate key `E11000`, Java class names, the
+list of the properties of an entity): only the server log has it, under the
+`oid` of the answer.
+
+| Case | `message` sent back |
+|---|---|
+| any other `Exception` (`ExceptionCatcher`, `DataAccessException`, NPE, Mongo driver) | `Internal server error` (`ExceptionCatcher.GENERIC_MESSAGE`) |
+| a server error (5xx) `WebApplicationException` | `Internal server error` |
+| a raw `JacksonException` (`JacksonExceptionCatcher`) | `Internal server error` |
+| an invalid request body (`RequestBodyExceptionCatcher`) | `Unknown field 'x'`, `Invalid value for field 'a.b'`, `Malformed JSON at line L, column C` or `Invalid JSON body` (`RequestBodyExceptionCatcher.describe`) |
+| a 401 of `AuthenticationFilter` | `Missing or invalid authentication` (`AuthenticationFilter.UNAUTHORIZED_MESSAGE`), whatever the reason |
 
 ```json
 {
@@ -214,10 +237,10 @@ Pitfalls
 
 - `FailException` does not use the `inputError` list: only `InputException`
   and validation errors do.
-- The generic `ExceptionCatcher` returns `exception.getMessage()` to the
-  client. A message built from a database or file-system error can leak
-  internals: wrap such failures in a `SystemException` with a neutral message
-  and keep the detail in the log (the `oid` links both).
+- The generic `ExceptionCatcher` answers `Internal server error`: to give the
+  caller a precise message, throw a `FailException` or a `SystemException`
+  with a message written for it (never one built from a database or
+  file-system error), and keep the detail in the log (the `oid` links both).
 - A request rejected by a `ContainerRequestFilter` through
   `requestContext.abortWith(...)` never reaches the mappers. The archidata
   `AuthenticationFilter` builds its 401/403 answers itself with a

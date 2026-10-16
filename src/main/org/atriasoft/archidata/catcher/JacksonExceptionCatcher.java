@@ -32,8 +32,9 @@ public class JacksonExceptionCatcher implements ExceptionMapper<JacksonException
 	 */
 	@Override
 	public Response toResponse(final JacksonException exception) {
+		// The Jackson message names Java classes and lists the properties of the entity: log it only.
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR,
-				"Catch JSON Exception", exception.getMessage());
+				"Catch JSON Exception", ExceptionCatcher.GENERIC_MESSAGE);
 		LOGGER.error("Error OID={}: {}", ret.oid, exception.getMessage(), exception);
 		return Response.status(ret.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}

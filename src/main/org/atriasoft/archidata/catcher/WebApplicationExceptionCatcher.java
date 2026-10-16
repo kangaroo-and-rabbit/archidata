@@ -11,6 +11,10 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 /**
  * JAX-RS exception mapper that catches {@link WebApplicationException} instances
  * and converts them into standardized JSON error responses.
+ * <p>
+ * The message of a client error (4xx) is sent back; the message of a server error (5xx) is replaced by
+ * {@link ExceptionCatcher#GENERIC_MESSAGE} and only logged.
+ * </p>
  */
 public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplicationException> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(WebApplicationExceptionCatcher.class);
@@ -33,8 +37,13 @@ public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplic
 
 	private RestErrorResponse build(final WebApplicationException exception) {
 		LOGGER.error("WebApplicationException caught: {}", exception.getMessage(), exception);
-		return new RestErrorResponse(exception.getResponse().getStatusInfo().toEnum(), "Catch system exception",
-				exception.getMessage());
+		final Response.Status status = exception.getResponse().getStatusInfo().toEnum();
+		// A 4xx message describes the request (NotFoundException("...")); a 5xx one may describe the server
+		// (an InternalServerErrorException wrapping an IOException): it only goes to the log.
+		final String message = status != null && status.getFamily() == Response.Status.Family.SERVER_ERROR
+				? ExceptionCatcher.GENERIC_MESSAGE
+				: exception.getMessage();
+		return new RestErrorResponse(status, "Catch system exception", message);
 	}
 
 }

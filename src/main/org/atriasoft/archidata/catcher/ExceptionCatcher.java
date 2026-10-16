@@ -10,9 +10,15 @@ import jakarta.ws.rs.ext.ExceptionMapper;
 /**
  * JAX-RS exception mapper that catches any unhandled {@link Exception} as a fallback
  * and converts it into a standardized JSON error response with HTTP 500 status.
+ * <p>
+ * The answer carries {@link #GENERIC_MESSAGE} and the {@code oid} of the error, never the message of the
+ * exception, which is logged with its stack trace under the same {@code oid}.
+ * </p>
  */
 public class ExceptionCatcher implements ExceptionMapper<Exception> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCatcher.class);
+	/** Message sent back for an unexpected exception: the details stay in the log (search it by {@code oid}). */
+	public static final String GENERIC_MESSAGE = "Internal server error";
 
 	/** Default constructor used by the JAX-RS provider framework. */
 	public ExceptionCatcher() {}
@@ -32,8 +38,9 @@ public class ExceptionCatcher implements ExceptionMapper<Exception> {
 	}
 
 	private RestErrorResponse build(final Exception exception) {
-		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Internal Server Error",
-				exception.getMessage());
+		// The message of an unexpected exception can carry internal details (host names, driver messages, values
+		// of a duplicate key, class names): it only goes to the server log, under the oid of the answer.
+		return new RestErrorResponse(Response.Status.INTERNAL_SERVER_ERROR, "Internal Server Error", GENERIC_MESSAGE);
 	}
 
 }
