@@ -62,9 +62,10 @@ son nom complet (`@org.atriasoft.archidata.annotation.Field("nom")`).
   anciennes annotations compileraient de nouveau, et l'entité serait refusée à l'exécution
   (`DataAccessException`, voir « Échec rapide » ci-dessus).
 - API Java : `AnnotationTools.getLimitSize`, `getColumnNotNull`, `isUnique`, `getStrategy`,
-  `getManyToOne`, `getManyToMany`, `getOneToMany` sont supprimées et `getDefault` devient
-  `getInitValue` ; `DbPropertyDescriptor.isNullable`, `isUnique`, `getColumnLength`,
-  `getGenerationStrategy` sont supprimées et `getDefaultValue` devient `getInitValue`.
+  `getManyToOne`, `getManyToMany`, `getOneToMany` et `getDefault` (sans appelant) sont
+  supprimées ; `DbPropertyDescriptor.isNullable`, `isUnique`, `getColumnLength`,
+  `getGenerationStrategy` sont supprimées et `getDefaultValue` devient `getInitValue` ;
+  `DBAccessMongo.insertPrimaryKey_test` (sans appelant) est supprimée.
 
 ### Comment migrer
 

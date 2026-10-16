@@ -567,20 +567,6 @@ public class AnnotationTools {
 	}
 
 	/**
-	 * Retrieves the value of the {@link InitValue} annotation on a field.
-	 *
-	 * @param element the field to inspect
-	 * @return the initial value string, or {@code null} if not annotated
-	 */
-	public static String getInitValue(final Field element) {
-		final InitValue annotation = element.getDeclaredAnnotation(InitValue.class);
-		if (annotation == null) {
-			return null;
-		}
-		return annotation.value();
-	}
-
-	/**
 	 * Retrieves the {@code @DecimalMin} validation constraint from a field.
 	 *
 	 * @param element the field to inspect

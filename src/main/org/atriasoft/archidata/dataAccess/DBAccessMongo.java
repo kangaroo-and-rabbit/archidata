@@ -1222,69 +1222,6 @@ public class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Test variant of insertPrimaryKey that inserts data using the MongoDB codec registry directly.
-	 *
-	 * @param <T>    The type of the entity
-	 * @param data   The entity to insert
-	 * @param option Optional query options
-	 * @return The generated primary key (ObjectId or Long)
-	 * @throws Exception if insertion fails
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends Object> Object insertPrimaryKey_test(final T data, final QueryOption... option) throws Exception {
-		final Class<?> clazz = data.getClass();
-		final QueryOptions options = new QueryOptions(option);
-		final boolean directdata = options.exist(DirectData.class);
-		final DbClassModel model = DbClassModel.of(clazz);
-		final String collectionName = model.getTableName(options);
-		Long primaryKey = null;
-		try {
-			// Handle primary key for Long type
-			final DbPropertyDescriptor pkDesc = model.getPrimaryKey();
-			if (pkDesc != null && !directdata) {
-				final Class<?> pkType = pkDesc.getProperty().getType();
-				if (pkType == Long.class || pkType == long.class) {
-					primaryKey = getNextSequenceLongValue(collectionName, pkDesc.getProperty().getName());
-					pkDesc.getProperty().setValue(data, primaryKey);
-				}
-			}
-			// Handle creation timestamp
-			final DbPropertyDescriptor createTsDesc = model.getCreationTimestamp();
-			if (createTsDesc != null && !directdata) {
-				createTsDesc.getProperty().setValue(data, Date.from(Instant.now()));
-			}
-			// Handle update timestamp
-			final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
-			if (updateTsDesc != null && !directdata) {
-				updateTsDesc.getProperty().setValue(data, Date.from(Instant.now()));
-			}
-			// Handle deleted field: always written, even without a declared default value (same
-			// reason as the DELETED case of insertPrimaryKey).
-			final DbPropertyDescriptor deletedDesc = model.getDeletedField();
-			if (deletedDesc != null && !directdata) {
-				final String defVal = deletedDesc.getInitValue();
-				final Object defaultValue = defVal != null
-						? convertDefaultField(defVal, deletedDesc.getProperty().getField())
-						: Boolean.FALSE;
-				deletedDesc.getProperty().setValue(data, defaultValue);
-			}
-
-			final MongoCollection<T> collection = this.db.getDatabase().getCollection(collectionName, (Class<T>) clazz);
-			statistic.countInsertOne++;
-			final InsertOneResult res = this.session != null ? collection.insertOne(this.session, data)
-					: collection.insertOne(data);
-			if (primaryKey != null) {
-				return primaryKey;
-			}
-			final ObjectId insertedId = res.getInsertedId().asObjectId().getValue();
-			return insertedId;
-		} catch (final Exception ex) {
-			LOGGER.error("Fail Mongo request: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage());
-		}
-	}
-
-	/**
 	 * Inserts an entity into the database and returns its generated primary key.
 	 *
 	 * <p>Handles auto-generation of primary keys (ObjectId, UUID, or Long), creation and
