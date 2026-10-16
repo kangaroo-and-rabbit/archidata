@@ -390,6 +390,17 @@ La trace TRACE de chaque document reçu n'est plus calculée quand TRACE est dé
 documents, les valeurs des champs `@DataNotRead` et `@DataEncrypt` sont remplacées par `***`. Les
 autres valeurs restent écrites : TRACE sur `DBAccessMongo` reste interdit en production.
 
+### Écritures de masse refusées sans `AllowMassOperation` (D-17)
+
+Une écriture (`update`, `delete`, `deleteHard`, `deleteSoft`, `restore`, `updateBsonDocuments`) dont la
+condition est absente ou vide (`new Condition()`, `new Condition(Filters.empty())`) lève maintenant une
+`DataAccessException`. Avant, `new Condition()` passait le contrôle et visait toute la collection, et
+`updateBsonDocuments` sans condition modifiait tous les documents. Pour une opération de masse voulue,
+ajouter l'option `new AllowMassOperation()`. Les lectures ne changent pas.
+
+**Comment migrer** : chercher les écritures dont la condition est construite conditionnellement
+(`filters.isEmpty() ? Filters.empty() : ...`) et les `updateBsonDocuments` sans `Condition` (migrations).
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

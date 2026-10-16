@@ -33,6 +33,7 @@ import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoTypeReader;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
+import org.atriasoft.archidata.dataAccess.options.AllowMassOperation;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.dataAccess.options.DirectData;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
@@ -50,6 +51,7 @@ import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.dataAccess.options.Skip;
 import org.atriasoft.archidata.dataAccess.options.TransmitKey;
+import org.atriasoft.archidata.db.BsonCodecs;
 import org.atriasoft.archidata.db.DbConfig;
 import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
@@ -1428,7 +1430,7 @@ public class DBAccessMongo implements Closeable {
 		try {
 			final String collectionName = model.getTableName(options);
 			final String deletedFieldName = model.getDeletedFieldName();
-			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+			final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
 			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null,
 					statisticSoftDeleteField(options, deletedFieldName));
 			final Document docSet = new Document();
@@ -1541,34 +1543,66 @@ public class DBAccessMongo implements Closeable {
 	/**
 	 * Merges all {@link Condition} options into a single condition using logical AND.
 	 *
-	 * <p>If no conditions are present and {@code throwIfEmpty} is true, throws an exception.
-	 * Otherwise returns an empty condition.
+	 * <p>With {@code throwIfEmpty} (the writes: update, delete, restore, {@code updateBsonDocuments}), a missing
+	 * condition, or a condition without filter or with an empty filter ({@code new Condition()},
+	 * {@code Filters.empty()}), throws an exception unless the {@link AllowMassOperation} option is present:
+	 * an empty filter would target the whole collection. Otherwise returns an empty condition.
 	 *
 	 * @param options      The query options containing zero or more conditions
-	 * @param throwIfEmpty If true, throws a {@link DataAccessException} when no conditions are provided
+	 * @param throwIfEmpty If true, throws a {@link DataAccessException} when no (non-empty) condition is provided
 	 * @return The merged condition
-	 * @throws DataAccessException if throwIfEmpty is true and no conditions are present
+	 * @throws DataAccessException if throwIfEmpty is true, no non-empty condition is present and
+	 *                             {@link AllowMassOperation} is absent
 	 */
 	public Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException {
 		if (options == null) {
+			if (throwIfEmpty) {
+				throw new DataAccessException("request a write without any condition");
+			}
 			return new Condition();
 		}
-		final List<Condition> conditions = options.get(Condition.class);
-		if (conditions.size() == 0) {
-			if (throwIfEmpty) {
-				throw new DataAccessException("request a gets without any condition");
-			} else {
-				return new Condition();
+		final boolean allowMass = options.exist(AllowMassOperation.class);
+		final List<Bson> filters = new ArrayList<>();
+		for (final Condition elem : options.get(Condition.class)) {
+			if (!isEmptyFilter(elem.getFilter())) {
+				filters.add(elem.getFilter());
 			}
 		}
-		Condition condition = null;
-		if (conditions.size() == 1) {
-			condition = conditions.get(0);
-		} else {
-			condition = new Condition(Filters.and(conditions.stream().map(Condition::getFilter).toList()));
+		if (filters.isEmpty()) {
+			if (throwIfEmpty && !allowMass) {
+				throw new DataAccessException(
+						"request a write without any condition (or with an empty one): add a filter, or the option "
+								+ "AllowMassOperation to target the whole collection");
+			}
+			return new Condition();
 		}
-		return condition;
+		if (filters.size() == 1) {
+			return new Condition(filters.get(0));
+		}
+		return new Condition(Filters.and(filters));
+	}
+
+	/**
+	 * Returns the filter, or an empty document (match all) when it is {@code null}: a write accepted by
+	 * {@link #conditionFusionOrEmpty} with {@link AllowMassOperation} has no filter on a collection without
+	 * soft delete, and the driver refuses a {@code null} filter.
+	 *
+	 * @param filter the filter, may be {@code null}
+	 * @return a non-null filter
+	 */
+	private static Bson matchAllIfNull(final Bson filter) {
+		return filter != null ? filter : new Document();
+	}
+
+	/**
+	 * Tells whether a filter matches every document: {@code null} or an empty document.
+	 *
+	 * @param filter the filter
+	 * @return {@code true} if the filter does not restrict anything
+	 */
+	private static boolean isEmptyFilter(final Bson filter) {
+		return filter == null || BsonCodecs.toBsonDocument(filter).isEmpty();
 	}
 
 	/**
@@ -1891,7 +1925,7 @@ public class DBAccessMongo implements Closeable {
 		final String collectionName = model.getTableName(options);
 		final String deletedFieldName = model.getDeletedFieldName();
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
 		QueryStatistics.record(collectionName, Operation.DELETE, condition.getFilter(), null,
 				statisticSoftDeleteField(options, deletedFieldName));
 
@@ -1986,7 +2020,7 @@ public class DBAccessMongo implements Closeable {
 		final String collectionName = model.getTableName(options);
 		final String deletedFieldName = model.getDeletedFieldName();
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
 		QueryStatistics.record(collectionName, Operation.DELETE_SOFT, condition.getFilter(), null,
 				statisticSoftDeleteField(options, deletedFieldName));
 		final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
@@ -2104,7 +2138,7 @@ public class DBAccessMongo implements Closeable {
 			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
 		}
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-		final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
+		final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
 		QueryStatistics.record(collectionName, Operation.RESTORE, condition.getFilter(), null,
 				statisticSoftDeleteField(options, deletedFieldName));
 		final Document actions = new Document("$set", new Document(deletedFieldName, false));
@@ -2388,9 +2422,11 @@ public class DBAccessMongo implements Closeable {
 	 *
 	 * @param collectionName Name of the collection to update
 	 * @param updateDocument BSON Document containing MongoDB update operators
-	 * @param options        Query options including conditions for filtering which documents to update
+	 * @param options        Query options including conditions for filtering which documents to update; a
+	 *                       missing or empty condition is refused unless {@link AllowMassOperation} is given
 	 * @return Number of documents modified
-	 * @throws DataAccessException if update fails
+	 * @throws DataAccessException if update fails, or if the condition is missing or empty without
+	 *                             {@link AllowMassOperation}
 	 */
 	public long updateBsonDocuments(
 			final String collectionName,
@@ -2398,7 +2434,8 @@ public class DBAccessMongo implements Closeable {
 			final QueryOption... options) throws DataAccessException {
 		try {
 			final QueryOptions queryOptions = new QueryOptions(options);
-			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
+			// A missing or empty condition is refused, unless AllowMassOperation.
+			final Condition condition = conditionFusionOrEmpty(queryOptions, true);
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
 			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null, null);
@@ -2409,7 +2446,7 @@ public class DBAccessMongo implements Closeable {
 						: collection.updateMany(filters, updateDocument);
 				return result.getModifiedCount();
 			}
-			// If no filter, update all documents
+			// No filter: AllowMassOperation was given, update all documents
 			final UpdateResult result = this.session != null
 					? collection.updateMany(this.session, new Document(), updateDocument)
 					: collection.updateMany(new Document(), updateDocument);

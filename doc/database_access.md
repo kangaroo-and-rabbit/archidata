@@ -336,6 +336,19 @@ Allow updating fields marked as `@ApiReadOnly`:
 da.updateById(data, id, new ForceReadOnlyField(), new FilterValue("oid"))
 ```
 
+### AllowMassOperation
+
+A write (`update`, `delete`, `deleteHard`, `deleteSoft`, `restore`, `updateBsonDocuments`) whose condition
+is missing or empty (`new Condition()`, `new Condition(Filters.empty())`, a filter built conditionally that
+stayed empty) is refused with a `DataAccessException`. Pass `AllowMassOperation` to target the whole
+collection on purpose:
+
+```java
+da.updateBsonDocuments("article", new Document("$unset", new Document("legacy", "")), new AllowMassOperation());
+```
+
+An empty `Condition` combined with a real one is ignored (the real one applies). Reads are not concerned.
+
 ### OverrideTableName
 
 Access a different MongoDB collection than the one defined by the model class:

@@ -1003,9 +1003,11 @@ public class DataAccess {
 	 *
 	 * @param collectionName Name of the collection to update
 	 * @param updateDocument BSON Document containing MongoDB update operators
-	 * @param options        Query options including conditions for filtering which documents to update
+	 * @param options        Query options including conditions for filtering which documents to update; a
+	 *                       missing or empty condition is refused unless
+	 *                       {@link org.atriasoft.archidata.dataAccess.options.AllowMassOperation} is given
 	 * @return Number of documents modified
-	 * @throws DataAccessException          if update fails
+	 * @throws DataAccessException          if update fails, or if the condition is missing or empty
 	 * @throws InternalServerErrorException if database connection fails
 	 * @throws IOException                  if I/O error occurs
 	 */
