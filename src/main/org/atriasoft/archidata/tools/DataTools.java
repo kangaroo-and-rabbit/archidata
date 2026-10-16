@@ -32,9 +32,6 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.model.Filters;
 
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.Response;
 
 /**
@@ -395,6 +392,34 @@ public class DataTools {
 	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp", MIME_SVG,
 			"audio/x-matroska", "video/x-matroska", "video/webm" };
 
+	/** Largest body downloaded by {@link #uploadDataFromUri(String)} and {@link #uploadCoverFromUri}. */
+	private static final long MAX_REMOTE_DATA_SIZE = 50L * 1024 * 1024;
+	/** Client used to download the remote data: pinned validated address, no automatic redirection, timeouts. */
+	private static final SafeHttpFetcher REMOTE_FETCHER = new SafeHttpFetcher();
+
+	/**
+	 * Downloads a remote data with the SSRF-safe client.
+	 * @param url The URL given by the caller.
+	 * @return The non-empty body of the answer.
+	 * @throws InputException If the URL or a redirection targets a forbidden address.
+	 * @throws FailException If the remote answer is not a 200, is empty, too large, or cannot be read.
+	 */
+	private static byte[] downloadRemoteData(final String url) throws InputException, FailException {
+		final SafeHttpFetcher.Result response;
+		try {
+			response = REMOTE_FETCHER.get(url, MAX_REMOTE_DATA_SIZE);
+		} catch (final IOException ex) {
+			throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media", ex);
+		}
+		if (response.status() != 200) {
+			throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media");
+		}
+		if (response.body().length == 0) {
+			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Remote data is empty");
+		}
+		return response.body();
+	}
+
 	/**
 	 * Downloads an image from a URI and attaches it as a cover to a database entity.
 	 * @param <CLASS_TYPE> The entity class type.
@@ -421,29 +446,7 @@ public class DataTools {
 					"[" + id.toString() + "] Id does not exist or removed...");
 		}
 		// Download data:
-
-		final Client client = ClientBuilder.newClient();
-		byte[] dataResponse = null;
-		try {
-			final WebTarget target = client.target(url);
-			final Response response = target.request().get();
-			if (response.getStatus() != 200) {
-				throw new FailException(Response.Status.BAD_GATEWAY,
-						clazz.getCanonicalName() + "[" + id.toString() + "] Can not download the media");
-			}
-			dataResponse = response.readEntity(byte[].class);
-		} catch (final Exception ex) {
-			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR,
-					clazz.getCanonicalName() + "[" + id.toString() + "] can not create input media", ex);
-		}
-		if (dataResponse == null) {
-			throw new FailException(Response.Status.NOT_ACCEPTABLE,
-					clazz.getCanonicalName() + "[" + id.toString() + "] Data does not exist");
-		}
-		if (dataResponse.length == 0 || dataResponse.length == 50 * 1024 * 1024) {
-			throw new FailException(Response.Status.NOT_ACCEPTABLE, clazz.getCanonicalName() + "[" + id.toString()
-					+ "] Data size is not correct " + dataResponse.length);
-		}
+		final byte[] dataResponse = downloadRemoteData(url);
 
 		final long tmpUID = getTmpDataId();
 		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
@@ -481,27 +484,8 @@ public class DataTools {
 	 * @throws Exception If the download fails or the MIME type is unsupported.
 	 */
 	public static ObjectId uploadDataFromUri(final String url) throws Exception {
-		// Validate URL against SSRF attacks before fetching
-		SsrfGuard.validateUrl(url);
-		// Download data:
-		final Client client = ClientBuilder.newClient();
-		byte[] dataResponse = null;
-		try {
-			final WebTarget target = client.target(url);
-			final Response response = target.request().get();
-			if (response.getStatus() != 200) {
-				throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media");
-			}
-			dataResponse = response.readEntity(byte[].class);
-		} catch (final Exception ex) {
-			throw new FailException(Response.Status.INTERNAL_SERVER_ERROR, "[] can not create input media", ex);
-		}
-		if (dataResponse == null) {
-			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data does not exist");
-		}
-		if (dataResponse.length == 0 || dataResponse.length == 50 * 1024 * 1024) {
-			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data size is not correct " + dataResponse.length);
-		}
+		// Download data (the URL and every redirection are checked against SSRF):
+		final byte[] dataResponse = downloadRemoteData(url);
 
 		final long tmpUID = getTmpDataId();
 		final String sha512 = saveTemporaryFile(dataResponse, tmpUID);

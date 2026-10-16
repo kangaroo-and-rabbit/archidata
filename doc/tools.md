@@ -232,8 +232,8 @@ to its permanent path once its `Data` record is inserted.
   the short one deduces the MIME type from the extension), `undelete`.
 - Upload entry points: `uploadData(InputStream, FormDataContentDisposition)`,
   `uploadDataFromUri(String url)`, `uploadCover(...)`, `uploadCoverFromUri(...)`.
-  `uploadDataFromUri` and `uploadCoverFromUri` fetch the URL after
-  `SsrfGuard.validateUrl`.
+  `uploadDataFromUri` and `uploadCoverFromUri` fetch the URL with
+  `SafeHttpFetcher` (see below).
 - Type detection: `getMimeType(byte[])`, `getMimeTypeFromFile(String)`,
   `bytesToHex`, `multipartCorrection`, and the constants
   `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,
@@ -245,11 +245,38 @@ run scripts. Do not serve user-uploaded SVG through `<embed>`, `<object>` or a
 direct download without sanitizing it.
 
 `SsrfGuard.validateUrl(String)` rejects, with an `InputException`, a missing
-or malformed URL, any scheme other than http/https, an unresolvable host, and a
-host that resolves to a loopback, site-local, link-local or wildcard address.
-Use it before any server-side fetch of a user-supplied URL. It resolves the name
-once for the check: a DNS answer that changes between the check and the fetch
-(rebinding) is not covered.
+or malformed URL, any scheme other than http/https, a URL with credentials
+(`user:pass@`), an unresolvable host, and a host of which **any** resolved
+address is refused by `SsrfGuard.isForbidden(InetAddress)`: loopback, private
+(10/8, 172.16/12, 192.168/16), CGNAT (100.64/10), `0.0.0.0/8`, link-local
+(169.254/16, `fe80::/10`), multicast and reserved ranges, IPv6 ULA (`fc00::/7`),
+NAT64 (`64:ff9b::/96`), 6to4, Teredo, IPv4-compatible and IPv4-mapped IPv6
+addresses. The full list is in the javadoc of `SsrfGuard`.
+
+Validating is not enough to fetch: an HTTP client may follow a redirection to an
+internal address, or resolve the name a second time and get another answer
+(DNS rebinding). `SafeHttpFetcher` does the fetch safely:
+
+```java
+final SafeHttpFetcher.Result result = new SafeHttpFetcher().get(url, 10L * 1024 * 1024);
+if (result.status() == 200) {
+	final byte[] body = result.body();
+}
+```
+
+- it resolves the host once, checks every address, and opens the TCP connection to
+  the validated address itself (for https the certificate is still checked
+  against the host name);
+- it never follows a redirection on its own: each `Location` goes through the same
+  checks, at most 3 times (a further `3xx` is returned as is);
+- connection timeout 5 s, read timeout 30 s, 120 s for the whole exchange;
+- the body is bounded: a larger `Content-Length` or body throws a `FailException`
+  with HTTP 413.
+
+A refused URL throws `InputException`, a network failure or timeout
+`IOException`. The constructor
+`SafeHttpFetcher(Predicate<InetAddress> forbidden, connectMs, readMs, totalMs, maxRedirects)`
+changes the policy and the limits (the tests use it to reach a local server).
 
 `CleanupTools` purges old soft-deleted rows:
 

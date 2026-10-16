@@ -457,6 +457,24 @@ public class ArticleResource {
 ```
 
 
+Web hardening
+=============
+
+What archidata does to protect the API and its users, and what is left to the application.
+
+### Server-side requests (SSRF)
+
+`DataResource.uploadMediaFromUri` (`POST /data/uploadUri`), `DataTools.uploadCoverFromUri` and
+`ProxyResource` fetch a URL given by the caller. They go through `SafeHttpFetcher`: only `http` and
+`https`, the host resolved once and every address checked by `SsrfGuard.isForbidden` (private,
+loopback, link-local, CGNAT, multicast, ULA, NAT64, IPv4-mapped…), the connection opened to that
+validated address (no DNS rebinding), no automatic redirection (each `Location` is checked again, 3 at
+most), timeouts and a size limit. `ProxyResource` answers raster images with their type and anything
+else as `application/octet-stream`, with `X-Content-Type-Options: nosniff`, and no longer sends
+`Access-Control-Allow-Origin: *`. Any server-side fetch of a user-supplied URL in an application
+should use `SafeHttpFetcher` too (see [tools](tools.md)).
+
+
 Migration Guide (Breaking Change)
 ==================================
 
