@@ -84,7 +84,10 @@ class TestSubObjectDataNotRead {
 		Assertions.assertNull(read.key.secret());
 		Assertions.assertEquals("old", read.history.get(0).user);
 		Assertions.assertNull(read.history.get(0).passwordHash);
-		Assertions.assertNull(ConfigureDb.da.gets(Account.class).get(0).credentials.passwordHash);
+		// The collection also holds the accounts of the other tests: pick this one.
+		final Account listed = ConfigureDb.da.gets(Account.class).stream().filter(item -> id.equals(item._id))
+				.findFirst().orElseThrow();
+		Assertions.assertNull(listed.credentials.passwordHash);
 
 		final Account readAll = ConfigureDb.da.getById(Account.class, id, new ReadAllColumn());
 		Assertions.assertEquals("hash-1", readAll.credentials.passwordHash);
