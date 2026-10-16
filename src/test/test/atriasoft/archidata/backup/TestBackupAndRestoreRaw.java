@@ -188,7 +188,7 @@ public class TestBackupAndRestoreRaw {
 		Assertions.assertEquals(
 				"""
 						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}, "dataLong": 9953, "dataDoubles": [1.25, -1.66]}
-						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}, "dataDoubles": [152.8, 5.213546345E9]}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": "IGNORE"}, "updatedAt": {"$date": "IGNORE"}, "dataDoubles": [152.8, 5.213546345E+9]}
 						""",
 				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
 		Assertions.assertEquals(
@@ -214,7 +214,7 @@ public class TestBackupAndRestoreRaw {
 		Assertions.assertEquals(
 				"""
 						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}, "dataLong": {"$numberLong": "9953"}, "dataDoubles": [{"$numberDouble": "1.25"}, {"$numberDouble": "-1.66"}]}
-						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E9"}]}
+						{"_id": {"$oid":"IGNORE"}, "createdAt": {"$date": {"$numberLong":"IGNORE"}}, "updatedAt": {"$date": {"$numberLong":"IGNORE"}}, "dataDoubles": [{"$numberDouble": "152.8"}, {"$numberDouble": "5.213546345E+9"}]}
 						""",
 				revoveDateAndObjectId(dataExtract.get("DataStoreWithUpdate.json"), false));
 		Assertions.assertEquals(
