@@ -531,6 +531,22 @@ WARN, sauf `setRequireChecksum(true)`. `clean(...)` supprime aussi le fichier `.
 seuls les champs `@DataEncrypt` restent chiffrés). Le chiffrement des sauvegardes attend une décision.
 Un outil qui copie ou synchronise les archives doit aussi copier les fichiers `.sha256`.
 
+### Restauration d'une archive non fiable bornée (D-05)
+
+- Les chemins des médias sont comparés en `Path` normalisé : un dossier frère au même préfixe
+  (`/data/media-autre` pour `/data/media`) est refusé, et un lien symbolique existant du dossier
+  média qui pointe ailleurs n'est jamais suivi. Les entrées lien (symbolique ou physique) sont
+  ignorées avec un WARN ; avant, elles devenaient des fichiers vides.
+- Taille déclarée par entrée (`setRestoreMaxEntryBytes`, 64 Gio par défaut), taille totale
+  (`setRestoreMaxTotalBytes`, 1 Tio) et longueur d'une ligne de document (`setRestoreMaxLineChars`,
+  64 Mi caractères) bornées : au-delà, `IOException`.
+- Un nom de collection doit respecter `[A-Za-z0-9_-][A-Za-z0-9_.-]{0,119}` et ne pas commencer par
+  `system.` : sinon la restauration s'arrête (`IOException`).
+- Une séquence contenant `/`, `\`, `..` ou un caractère nul est refusée (`IllegalArgumentException`).
+
+**Qui est impacté** : une application dont une collection a un nom hors de ce motif, ou dont un
+fichier média dépasse 64 Gio, doit régler les bornes avant de restaurer.
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

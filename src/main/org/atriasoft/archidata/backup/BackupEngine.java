@@ -6,7 +6,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -16,6 +15,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
@@ -110,6 +110,17 @@ public class BackupEngine {
 	private static final String SUFFIX_JSON = ".json";
 	/** Suffix of the SHA-256 sidecar file written next to every archive. */
 	public static final String SUFFIX_SHA256 = ".sha256";
+	/**
+	 * Collection names accepted at restore: letters, digits, {@code _ - .}, not starting with a dot, at most
+	 * 120 characters. {@code system.*} is refused separately.
+	 */
+	private static final Pattern SAFE_COLLECTION_NAME = Pattern.compile("^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,119}$");
+	/** Default maximum declared size of a single archive entry accepted at restore (64 GiB, media files). */
+	public static final long DEFAULT_RESTORE_MAX_ENTRY_BYTES = 64L * 1024 * 1024 * 1024;
+	/** Default maximum total declared size of the entries of an archive accepted at restore (1 TiB). */
+	public static final long DEFAULT_RESTORE_MAX_TOTAL_BYTES = 1024L * 1024 * 1024 * 1024;
+	/** Default maximum length (in characters) of one NDJSON document line at restore (64 Mi). */
+	public static final int DEFAULT_RESTORE_MAX_LINE_CHARS = 64 * 1024 * 1024;
 	private static final Set<PosixFilePermission> OWNER_FILE = PosixFilePermissions.fromString("rw-------");
 	private static final Set<PosixFilePermission> OWNER_DIRECTORY = PosixFilePermissions.fromString("rwx------");
 	/** Matches the chunk suffix appended to secondary archive entries of a collection (e.g. {@code __000001}). */
@@ -137,6 +148,9 @@ public class BackupEngine {
 	private int restoreBatchMaxDocuments = DEFAULT_RESTORE_BATCH_MAX_DOCUMENTS;
 	private boolean restoreRelaxedWriteConcern = true;
 	private boolean requireChecksum = false;
+	private long restoreMaxEntryBytes = DEFAULT_RESTORE_MAX_ENTRY_BYTES;
+	private long restoreMaxTotalBytes = DEFAULT_RESTORE_MAX_TOTAL_BYTES;
+	private int restoreMaxLineChars = DEFAULT_RESTORE_MAX_LINE_CHARS;
 
 	/**
 	 * Create a new backup engine.
@@ -216,6 +230,33 @@ public class BackupEngine {
 	 */
 	public void setRequireChecksum(final boolean value) {
 		this.requireChecksum = value;
+	}
+
+	/**
+	 * Set the maximum declared size of a single archive entry accepted at restore. A larger entry aborts the
+	 * restore (protection against an archive that would fill the disk).
+	 * @param value maximum entry size in bytes (default {@link #DEFAULT_RESTORE_MAX_ENTRY_BYTES})
+	 */
+	public void setRestoreMaxEntryBytes(final long value) {
+		this.restoreMaxEntryBytes = value;
+	}
+
+	/**
+	 * Set the maximum total declared size of the entries of an archive accepted at restore (checked on each
+	 * pass over the archive). A larger archive aborts the restore.
+	 * @param value maximum total size in bytes (default {@link #DEFAULT_RESTORE_MAX_TOTAL_BYTES})
+	 */
+	public void setRestoreMaxTotalBytes(final long value) {
+		this.restoreMaxTotalBytes = value;
+	}
+
+	/**
+	 * Set the maximum length of one NDJSON document line at restore. A longer line aborts the restore
+	 * (protection against a memory exhaustion).
+	 * @param value maximum line length in characters (default {@link #DEFAULT_RESTORE_MAX_LINE_CHARS})
+	 */
+	public void setRestoreMaxLineChars(final int value) {
+		this.restoreMaxLineChars = value;
 	}
 
 	/**
@@ -550,7 +591,7 @@ public class BackupEngine {
 		long batchBytes = 0;
 		long count = 0;
 		String line;
-		while ((line = reader.readLine()) != null) {
+		while ((line = readBoundedLine(reader, this.restoreMaxLineChars)) != null) {
 			if (line.isBlank()) {
 				continue;
 			}
@@ -571,6 +612,68 @@ public class BackupEngine {
 		return count;
 	}
 
+	/**
+	 * Read one line (without its terminator) with a bounded length.
+	 * @return the line, or {@code null} at the end of the stream
+	 * @throws IOException if the line exceeds {@code maxChars}
+	 */
+	static String readBoundedLine(final BufferedReader reader, final int maxChars) throws IOException {
+		final StringBuilder out = new StringBuilder();
+		int value;
+		boolean any = false;
+		while ((value = reader.read()) != -1) {
+			any = true;
+			if (value == '\n') {
+				break;
+			}
+			if (out.length() >= maxChars) {
+				throw new IOException("Archive line longer than " + maxChars + " characters: restore aborted");
+			}
+			out.append((char) value);
+		}
+		if (!any) {
+			return null;
+		}
+		final int last = out.length() - 1;
+		if (last >= 0 && out.charAt(last) == '\r') {
+			out.setLength(last);
+		}
+		return out.toString();
+	}
+
+	/**
+	 * Check the declared size of an archive entry against the per-entry and total bounds.
+	 * @param entry the entry about to be read (or skipped)
+	 * @param totalBefore the total declared size of the entries met before it on this pass
+	 * @return the new total
+	 * @throws IOException if a bound is exceeded
+	 */
+	private long checkEntrySize(final TarArchiveEntry entry, final long totalBefore) throws IOException {
+		final long size = Math.max(0L, entry.getSize());
+		if (size > this.restoreMaxEntryBytes) {
+			throw new IOException("Archive entry '" + entry.getName() + "' is too large (" + size + " > "
+					+ this.restoreMaxEntryBytes + " bytes): restore aborted");
+		}
+		final long total = totalBefore + size;
+		if (total > this.restoreMaxTotalBytes) {
+			throw new IOException(
+					"Archive too large (more than " + this.restoreMaxTotalBytes + " bytes): restore aborted");
+		}
+		return total;
+	}
+
+	/**
+	 * Check a collection name read from an archive: safe characters only, and never a {@code system.*}
+	 * collection ({@code system.js} holds functions run by {@code $where}).
+	 * @param name the collection name
+	 * @throws IOException if the name is refused
+	 */
+	static void checkRestoredCollectionName(final String name) throws IOException {
+		if (name == null || !SAFE_COLLECTION_NAME.matcher(name).matches() || name.startsWith("system.")) {
+			throw new IOException("Archive collection name refused: '" + name + "' (restore aborted)");
+		}
+	}
+
 	private void restoreStreamToCollections(
 			final DBAccessMongo dbMongo,
 			final TarArchiveInputStream tarIn,
@@ -582,8 +685,10 @@ public class BackupEngine {
 		}
 		// Cumulative document count per collection (a collection can be split in multiple chunks)
 		final Map<String, Long> restoredCounts = new LinkedHashMap<>();
+		long totalBytes = 0L;
 		TarArchiveEntry entry;
 		while ((entry = tarIn.getNextEntry()) != null) {
+			totalBytes = checkEntrySize(entry, totalBytes);
 			if (entry.isDirectory() || !entry.getName().endsWith(SUFFIX_JSON)) {
 				continue;
 			}
@@ -594,6 +699,7 @@ public class BackupEngine {
 
 			final String entryBaseName = entry.getName().substring(0, entry.getName().length() - SUFFIX_JSON.length());
 			final String colName = baseCollectionName(entryBaseName);
+			checkRestoredCollectionName(colName);
 			if (collectionName != null && !collectionName.equals(colName)) {
 				LOGGER.info("Skip collection: {} (filtered)", entryBaseName);
 				continue;
@@ -816,11 +922,39 @@ public class BackupEngine {
 		}
 	}
 
+	/**
+	 * Tell whether a path, once its existing part is resolved (symbolic links followed), stays inside the
+	 * media folder.
+	 * @param target the normalized absolute target path
+	 * @param baseReal the real path of the media folder
+	 * @return {@code false} if the deepest existing ancestor (or the target itself) resolves elsewhere
+	 */
+	private static boolean resolvesInside(final Path target, final Path baseReal) {
+		Path existing = target;
+		while (existing != null && !Files.exists(existing, LinkOption.NOFOLLOW_LINKS)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return false;
+		}
+		try {
+			return existing.toRealPath().startsWith(baseReal);
+		} catch (final IOException ex) {
+			// Broken link or unreadable: refused.
+			return false;
+		}
+	}
+
 	private void extractTarToMediaFolder(final TarArchiveInputStream tarIn, final File mediaDirFile)
 			throws IOException {
 		LOGGER.info("Extract data to: {}", mediaDirFile.getAbsolutePath());
+		final Path base = mediaDirFile.toPath().toAbsolutePath().normalize();
+		Files.createDirectories(base);
+		final Path baseReal = base.toRealPath();
+		long totalBytes = 0L;
 		TarArchiveEntry entry;
 		while ((entry = tarIn.getNextEntry()) != null) {
+			totalBytes = checkEntrySize(entry, totalBytes);
 			// Remove base folder in the backup "data/":
 			String entryName = entry.getName();
 			if (entryName.startsWith("data/")) {
@@ -833,39 +967,39 @@ public class BackupEngine {
 			if (entryName.isEmpty()) {
 				continue;
 			}
-			final File outputFile = new File(mediaDirFile, entryName);
-			// check security to prevent path traversal attacks
-			if (!outputFile.getCanonicalPath().startsWith(mediaDirFile.getCanonicalPath())) {
+			// A link entry could point anywhere: never created (a backup made by the engine has none).
+			if (entry.isSymbolicLink() || entry.isLink()) {
+				LOGGER.warn("Input TAR link entry refused: {}", entry.getName());
+				continue;
+			}
+			if (!entry.isDirectory() && !entry.isFile()) {
+				LOGGER.warn("Input TAR special entry refused: {}", entry.getName());
+				continue;
+			}
+			// Path traversal: compare paths, not strings ("/data/media-other" starts with "/data/media").
+			final Path target = base.resolve(entryName).normalize();
+			if (!target.startsWith(base) || target.equals(base) || entryName.indexOf('\0') >= 0) {
 				LOGGER.warn("Input TAR too dangerous ignored: {}", entry.getName());
 				continue;
 			}
+			// An existing symbolic link (the target or one of its parents) must not redirect the write.
+			if (!resolvesInside(target, baseReal)) {
+				LOGGER.warn("Input TAR entry resolves outside the media folder, ignored: {}", entry.getName());
+				continue;
+			}
 			if (entry.isDirectory()) {
-				if (!outputFile.mkdirs() && !outputFile.exists()) {
-					LOGGER.warn("Fail to create the folder: {}", outputFile.getAbsolutePath());
-				}
-			} else {
-				// Create parent directories:
-				final File parentDir = outputFile.getParentFile();
-				if (parentDir != null && !parentDir.exists()) {
-					if (!parentDir.mkdirs()) {
-						LOGGER.warn("Fail to create parent folder: {}", parentDir.getAbsolutePath());
-						continue;
-					}
-				}
-				// Extract the file:
-				try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-					final byte[] buffer = new byte[8192];
-					int bytesRead = 0;
-					int totalBytesRead = 0;
-					while ((bytesRead = tarIn.read(buffer)) != -1) {
-						fos.write(buffer, 0, bytesRead);
-						totalBytesRead += bytesRead;
-					}
-					LOGGER.debug("File extracted: {} size: {}", entryName, totalBytesRead);
-				} catch (final IOException e) {
-					LOGGER.error("Fail to extract the file {} : {}", entryName, e.getMessage());
-					// continue with next file...
-				}
+				Files.createDirectories(target);
+				continue;
+			}
+			Files.createDirectories(target.getParent());
+			// Extract the file:
+			try (OutputStream fos = Files.newOutputStream(target, StandardOpenOption.CREATE,
+					StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
+				final long copied = tarIn.transferTo(fos);
+				LOGGER.debug("File extracted: {} size: {}", entryName, copied);
+			} catch (final IOException e) {
+				LOGGER.error("Fail to extract the file {} : {}", entryName, e.getMessage());
+				// continue with next file...
 			}
 		}
 	}
@@ -880,7 +1014,7 @@ public class BackupEngine {
 			final BackupCollectionStrategy strategy,
 			final Date mediaModifiedSince) throws IOException, DataAccessException {
 		final Date now = Date.from(Instant.now());
-		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
+		final String fileName = archiveFileName(sequence);
 		// Ensure the store directory exists (owner only when the engine creates it)
 		createPrivateDirectories(this.pathStore);
 		// Create a hidden file for the temporary generation
@@ -906,8 +1040,20 @@ public class BackupEngine {
 		return now;
 	}
 
+	/**
+	 * Build the archive file name of a sequence. The sequence becomes part of a path: a separator, a
+	 * {@code ..} or a NUL is refused, so that it can never leave the store directory.
+	 */
+	private String archiveFileName(final String sequence) {
+		if (sequence != null && (sequence.contains("/") || sequence.contains("\\") || sequence.contains("..")
+				|| sequence.indexOf('\0') >= 0)) {
+			throw new IllegalArgumentException("Invalid backup sequence: '" + sequence + "'");
+		}
+		return this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
+	}
+
 	private void executeRestore(final String sequence) throws IOException, DataAccessException {
-		final String fileName = this.baseName + (sequence != null ? "_" + sequence : "") + SUFFIX_TAR_GZ;
+		final String fileName = archiveFileName(sequence);
 		final Path restoreFileName = this.pathStore.resolve(fileName);
 		restoreFile(restoreFileName, null);
 	}

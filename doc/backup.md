@@ -92,6 +92,26 @@ the archives yet.
 - Do not store the archives on a volume shared with other services or users,
   and encrypt them (outside archidata) before they leave the server.
 
+Restoring an archive whose origin is not certain is bounded:
+
+- Media entries are extracted only inside the media folder: the target path is
+  normalized and compared as a `Path` (a sibling folder sharing the prefix,
+  `/data/media-other`, is refused), and an existing symbolic link of the media
+  folder that resolves elsewhere is never followed. Symbolic and hard link
+  entries, and special entries, are skipped with a warning.
+- The declared size of each entry (`setRestoreMaxEntryBytes`, 64 GiB by
+  default) and the total of an archive (`setRestoreMaxTotalBytes`, 1 TiB) are
+  bounded, as is the length of one document line (`setRestoreMaxLineChars`,
+  64 Mi characters): beyond them the restore stops with an `IOException`.
+- A collection name must match `[A-Za-z0-9_-][A-Za-z0-9_.-]{0,119}` and must not
+  be `system.*` (`system.js` holds functions run by `$where`): otherwise the
+  restore stops with an `IOException`.
+- A sequence containing `/`, `\`, `..` or a NUL is refused
+  (`IllegalArgumentException`): it can never leave the store directory.
+
+A delta restore still replaces existing documents by `_id`: restore only the
+archives you produced.
+
 `EngineBackupType` selects the JSON dialect:
 
 | Value | Output | Round trip |
@@ -220,6 +240,7 @@ Reference
 | `setRestoreBatchMaxBytes(int)`, `setRestoreBatchMaxDocuments(int)` | `insertMany` batch bounds at restore |
 | `setRestoreRelaxedWriteConcern(boolean)` | see above |
 | `setRequireChecksum(boolean)` | refuse an archive without `.sha256` sidecar (default `false`: warning) |
+| `setRestoreMaxEntryBytes(long)`, `setRestoreMaxTotalBytes(long)`, `setRestoreMaxLineChars(int)` | restore bounds (64 GiB, 1 TiB, 64 Mi characters) |
 | `checksumPath(Path)` (static), `SUFFIX_SHA256` | path of the sidecar of an archive |
 | `store(String)`, `storeDelta(String, Date)` | back up the registered collections (full, delta) |
 | `storeAll(String)`, `storeAllDelta(String, Date)` | same on every collection but `system.*`, no registration needed |
