@@ -1694,6 +1694,22 @@ public class DBAccessMongo implements Closeable {
 		if (doc == null) {
 			return null;
 		}
+		// @DataNotRead fields of embedded sub-objects are read only with ReadAllColumn, as at the top level.
+		final boolean previousReadAll = MongoCodecFactory
+				.setSubObjectReadAllColumn(QueryOptions.readAllColumn(options));
+		try {
+			return createObjectFromDocumentInternal(doc, type, options, lazyCall, batchCollector);
+		} finally {
+			MongoCodecFactory.setSubObjectReadAllColumn(previousReadAll);
+		}
+	}
+
+	private Object createObjectFromDocumentInternal(
+			final Object doc,
+			final Type type,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector) throws Exception {
 		// For non-Class types (ParameterizedType: List, Set, Map, etc.) use pre-compiled codec
 		if (!(type instanceof final Class<?> clazz)) {
 			return MongoCodecFactory.buildReader(TypeInfo.fromType(type)).fromMongo(doc);

@@ -295,6 +295,13 @@ fournie. Sur un champ `@DataEncrypt`, elle était stockée en clair, et la lectu
 d'une valeur normale du même champ. Les documents déjà écrits en clair par une `@InitValue` sur un
 champ `@DataEncrypt` restent illisibles : les réécrire avec un `updateById` nommant le champ.
 
+### `@DataNotRead` appliqué dans les sous-objets embarqués (D-02)
+
+Un champ `@DataNotRead` d'un objet embarqué (POJO ou record, seul ou dans une liste) était lu et
+renvoyé comme un champ normal. Il est maintenant caché par une lecture standard, comme au premier
+niveau, et rendu avec `ReadAllColumn`. Le code qui lisait un tel champ sans `ReadAllColumn` le reçoit
+désormais `null` (ou la valeur par défaut du constructeur).
+
 ---
 
 ## v0.49.0 - Filtre soft-delete simplifié en égalité (CHANGEMENT DE COMPORTEMENT)

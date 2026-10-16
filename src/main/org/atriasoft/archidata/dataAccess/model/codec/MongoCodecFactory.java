@@ -50,12 +50,34 @@ public final class MongoCodecFactory {
 	private static final DateTimeFormatter LOCAL_DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
 	/** Identity converter (for types that MongoDB driver accepts directly). */
+	/**
+	 * Whether the sub-object reader of the current thread returns the {@code @DataNotRead} fields of embedded
+	 * objects ({@code ReadAllColumn} on the current read). The readers are pre-compiled and shared, so the
+	 * option travels by thread; the default ({@code false}) keeps the fields hidden.
+	 */
+	private static final ThreadLocal<Boolean> SUB_OBJECT_READ_ALL_COLUMN = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
 	private static final MongoTypeWriter IDENTITY_W = v -> v;
 	private static final MongoTypeReader IDENTITY_R = v -> v;
 
 	private MongoCodecFactory() {}
 
 	// ========== Public API ==========
+
+	/**
+	 * Sets whether the embedded sub-objects read by the current thread return their {@code @DataNotRead} fields.
+	 *
+	 * <p>Called around a read by the data access layer, with the {@code ReadAllColumn} flag of the query:
+	 * restore the returned previous value in a {@code finally} block.
+	 *
+	 * @param readAllColumn {@code true} to read the {@code @DataNotRead} fields of sub-objects
+	 * @return the previous value, to restore after the read
+	 */
+	public static boolean setSubObjectReadAllColumn(final boolean readAllColumn) {
+		final boolean previous = SUB_OBJECT_READ_ALL_COLUMN.get();
+		SUB_OBJECT_READ_ALL_COLUMN.set(readAllColumn);
+		return previous;
+	}
 
 	/**
 	 * Build a complete field codec for a property with its resolved DB metadata.
@@ -495,12 +517,14 @@ public final class MongoCodecFactory {
 		}
 		final DbClassModel dbModel = DbClassModel.of(targetClass);
 		final ClassModel classModel = dbModel.getClassModel();
+		// @DataNotRead applies inside embedded objects too: hidden unless the read asked for ReadAllColumn.
+		final boolean readNotRead = SUB_OBJECT_READ_ALL_COLUMN.get();
 
 		if (classModel.isRecord()) {
 			// Records: collect all values then instantiate via canonical constructor
 			final Map<String, Object> values = new LinkedHashMap<>();
 			for (final DbPropertyDescriptor desc : dbModel.getAllFields()) {
-				if (desc.getAddOn() != null) {
+				if (desc.getAddOn() != null || (desc.isNotRead() && !readNotRead)) {
 					continue;
 				}
 				final MongoFieldCodec codec = desc.getCodec();
@@ -520,7 +544,7 @@ public final class MongoCodecFactory {
 		// POJOs: no-arg constructor + setters
 		final Object instance = classModel.newInstance();
 		for (final DbPropertyDescriptor desc : dbModel.getAllFields()) {
-			if (desc.getAddOn() != null) {
+			if (desc.getAddOn() != null || (desc.isNotRead() && !readNotRead)) {
 				continue;
 			}
 			final MongoFieldCodec codec = desc.getCodec();

@@ -153,7 +153,8 @@ generators (the generated type accepts `null`).
 on insert like any other, but excluded from default reads; the `ReadAllColumn` query
 option returns it. Used for `createdAt`, `updatedAt`, `deleted`. A full update (`updateById` without
 `FilterValue`) never writes it: name it in a `FilterValue` to update it. `@DataNotRead` does not imply
-`@ApiReadOnly`.
+`@ApiReadOnly`. It also applies to the fields of embedded sub-objects (POJO or record, alone or in a
+collection): hidden by a standard read, returned with `ReadAllColumn`.
 
 ```java
 @DataNotRead
