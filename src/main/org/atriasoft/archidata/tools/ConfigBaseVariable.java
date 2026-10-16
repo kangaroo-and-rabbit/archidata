@@ -46,6 +46,7 @@ public class ConfigBaseVariable {
 	private static String apiAdress;
 	private static String ssoAdress;
 	private static String ssoToken;
+	private static String ssoAllowInsecure;
 	private static String testMode;
 	private static String eMailFrom;
 	private static String eMailLogin;
@@ -405,6 +406,7 @@ public class ConfigBaseVariable {
 		apiAdress = System.getenv("API_ADDRESS");
 		ssoAdress = System.getenv("SSO_ADDRESS");
 		ssoToken = System.getenv("SSO_TOKEN");
+		ssoAllowInsecure = System.getenv("SSO_ALLOW_INSECURE");
 		testMode = System.getenv("TEST_MODE");
 		eMailFrom = System.getenv("EMAIL_FROM");
 		eMailLogin = System.getenv("EMAIL_LOGIN");
@@ -601,6 +603,15 @@ public class ConfigBaseVariable {
 	 */
 	public static String ssoToken() {
 		return ssoToken;
+	}
+
+	/**
+	 * Returns whether an {@code http://} {@code SSO_ADDRESS} to a host that is not a loopback one is accepted
+	 * ({@code SSO_ALLOW_INSECURE}, for a trusted private network such as an internal Docker network).
+	 * @return {@code true} when {@code SSO_ALLOW_INSECURE} is {@code true} (ignoring case); {@code false} by default.
+	 */
+	public static boolean getSsoAllowInsecure() {
+		return Boolean.parseBoolean(ssoAllowInsecure);
 	}
 
 	/**

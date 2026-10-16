@@ -78,12 +78,26 @@ The fetch is protected:
 
 - the address must be `https://`; `http://` is accepted only for a loopback host (the name `localhost`, a
   literal IPv4 address `127.x.y.z` or the literal IPv6 `[::1]`, checked without any DNS resolution: a name
-  such as `127.evil.example` is not a loopback host) or after `JWTWrapper.setAllowInsecureSsoAddress(true)` (plain HTTP exposes `SSO_TOKEN` and lets
-  anyone on the path replace the key, then forge tokens);
+  such as `127.evil.example` is not a loopback host), or for any host with `SSO_ALLOW_INSECURE=true`
+  (`JWTWrapper.setAllowInsecureSsoAddress(true)` in code): plain HTTP exposes `SSO_TOKEN` and lets anyone
+  on the path replace the key, then forge tokens;
 - connection timeout 5 s, read timeout 10 s, answer bounded to 64 KiB, redirections not followed (they
   would carry `SSO_TOKEN` elsewhere);
 - an RSA key under 2048 bits is refused; the thumbprint of a new key is logged at INFO;
 - `SSO_TOKEN` and the answer are never logged.
+
+A refused `SSO_ADDRESS` fails loudly at startup: `new UpdateJwtPublicKey()` throws an
+`IllegalStateException` whose message names `SSO_ALLOW_INSECURE` (without it, the key would never be
+loaded and every request would answer 401). On a trusted private network, an internal Docker network for
+example, allow plain HTTP explicitly; a single WARN is written at startup:
+
+```yaml
+services:
+  karideo_back_service:
+    environment:
+      SSO_ADDRESS: http://karso_back_service:80/karso/api/
+      SSO_ALLOW_INSECURE: "true"  # internal Docker network only
+```
 
 A token with an unknown signature asks the thread for an immediate refresh (the SSO may have rotated its
 key), at most once per `JWTWrapper.MIN_REFRESH_INTERVAL` (60 s): anonymous clients sending bad tokens

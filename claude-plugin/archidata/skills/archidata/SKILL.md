@@ -204,7 +204,9 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
 - **Swagger and OpenAPI are off by default** (404): set `API_DOC_ENABLED=true` to enable them.
 - **JWT audience**: `aud` (or, without `aud`, the `application` claim) must equal the application
   name of `AuthenticationFilter`, else 401. `exp` is mandatory, `nbf` is checked.
-- **`SSO_ADDRESS` must be `https://`**, except for localhost or a loopback address.
+- **`SSO_ADDRESS` must be `https://`**, except for `localhost` or a literal loopback IP. An `http://`
+  address to another host (internal Docker network: `http://karso_back_service:80/karso/api/`) needs
+  `SSO_ALLOW_INSECURE=true`; without it `new UpdateJwtPublicKey()` throws at startup.
 - **Limits**: `Limit` is 1..10 000 (`Limit.setMaxValue`), `Skip` 0..`Integer.MAX_VALUE`; relation
   expansion stops at depth 5 (`RelationExpansion.setMaxDepth`) and on cycles.
 - **Write with an absent or empty `Condition`** (`update`, `delete*`, `restore`,

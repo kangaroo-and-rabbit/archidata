@@ -235,7 +235,10 @@ Each point was checked against the code; the doc page gives the details.
 - **JWT**: the audience is checked. The `aud` claim must list the application name given to
   `AuthenticationFilter`; a token without `aud` is accepted only if its `application` claim equals
   it. `exp` is mandatory and `nbf` is checked. `SSO_ADDRESS` (public key) must be `https://`
-  (`http://` only for localhost or a loopback address); the key refresh is rate-limited.
+  (`http://` only for `localhost` or a literal loopback IP, or for any host with
+  `SSO_ALLOW_INSECURE=true`, e.g. `http://karso_back_service:80/karso/api/` on an internal Docker
+  network; a single WARN at startup). Without it, such an address makes `new UpdateJwtPublicKey()`
+  throw at startup (message naming the variable). The key refresh is rate-limited.
 - **Limits**: `Limit` goes from 1 to 10 000 (`Limit.setMaxValue`, at most `Integer.MAX_VALUE`),
   `Skip` from 0 to `Integer.MAX_VALUE`. The expansion of relations stops at depth 5
   (`RelationExpansion.setMaxDepth`) and on cycles.

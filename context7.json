@@ -26,7 +26,7 @@
 		"Compile the application with -parameters, otherwise validation errors name the arguments arg0, arg1.",
 		"CORS: set CORS_ALLOWED_ORIGINS (comma separated); without it CORSFilter sends * and no credentials. CORS only concerns browsers.",
 		"Swagger UI and the OpenAPI spec are disabled by default (404): set API_DOC_ENABLED=true to enable them.",
-		"The JWT audience is checked: aud, or the application claim when aud is missing, must equal the application name. exp is mandatory. SSO_ADDRESS must be https (http only for localhost).",
+		"The JWT audience is checked: aud, or the application claim when aud is missing, must equal the application name. exp is mandatory. SSO_ADDRESS must be https (http only for localhost or a literal loopback IP, or for any host with SSO_ALLOW_INSECURE=true, e.g. an internal Docker network); otherwise new UpdateJwtPublicKey() throws at startup.",
 		"A client value for an @ApiReadOnly field is ignored; server code can still write it. Limit is 1..10000 and relation expansion stops at depth 5.",
 		"update, delete and restore with a missing or empty Condition throw unless the call carries AllowMassOperation.",
 		"Validate a client field name with Filters.checkFieldName or OrderItem.ofClientField; use Filters.regexLiteral for a client value matched as text.",

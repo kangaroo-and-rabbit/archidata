@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -73,6 +74,8 @@ public class JWTWrapper {
 	private static final Pattern IPV6_LITERAL = Pattern.compile("[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*");
 	/** Accept an {@code http://} SSO address that is not a loopback one. */
 	private static volatile boolean allowInsecureSsoAddress = false;
+	/** Whether the WARN about an accepted plain http SSO address was already written. */
+	private static final AtomicBoolean INSECURE_SSO_WARNED = new AtomicBoolean(false);
 	/**
 	 * Optional hook invoked when {@link #validateToken} detects an invalid signature.
 	 * Set by {@code UpdateJwtPublicKey} to trigger an immediate re-fetch of the SSO public key
@@ -90,10 +93,10 @@ public class JWTWrapper {
 	}
 
 	/**
-	 * Allows an {@code http://} SSO address that is not a loopback one. By default
-	 * {@link #initLocalTokenRemote(String, String)} only accepts {@code https://}, or {@code http://} to
-	 * {@code localhost} / a loopback address: over plain HTTP, anyone on the path can read {@code SSO_TOKEN} and
-	 * replace the public key with their own (and then forge any token).
+	 * Allows an {@code http://} SSO address that is not a loopback one, like the environment variable
+	 * {@code SSO_ALLOW_INSECURE=true}. By default {@link #initLocalTokenRemote(String, String)} only accepts
+	 * {@code https://}, or {@code http://} to {@code localhost} / a loopback address: over plain HTTP, anyone on
+	 * the path can read {@code SSO_TOKEN} and replace the public key with their own (and then forge any token).
 	 * @param allow {@code true} to accept plain HTTP (a private network you trust, for example).
 	 */
 	public static void setAllowInsecureSsoAddress(final boolean allow) {
@@ -142,7 +145,8 @@ public class JWTWrapper {
 
 	/**
 	 * Tells whether the SSO public key may be fetched from this URL: {@code https}, or {@code http} to a
-	 * loopback host, or any {@code http} when {@link #setAllowInsecureSsoAddress(boolean)} allows it.
+	 * loopback host, or any {@code http} when {@code SSO_ALLOW_INSECURE} or
+	 * {@link #setAllowInsecureSsoAddress(boolean)} allows it (a WARN is written the first time).
 	 * @param uri The URL of the public key.
 	 * @return {@code true} when the URL may be used.
 	 */
@@ -154,10 +158,75 @@ public class JWTWrapper {
 		if (!"http".equalsIgnoreCase(scheme)) {
 			return false;
 		}
-		if (allowInsecureSsoAddress) {
+		if (isLoopbackHost(uri.getHost())) {
 			return true;
 		}
-		return isLoopbackHost(uri.getHost());
+		if (isInsecureSsoAddressAllowed()) {
+			if (!INSECURE_SSO_WARNED.getAndSet(true)) {
+				LOGGER.warn("SSO_ALLOW_INSECURE: the JWT public key is fetched over plain http from {}: anyone on "
+						+ "this network can read SSO_TOKEN and replace the key. Keep it to a trusted private network.",
+						describeHost(uri));
+			}
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Whether a plain {@code http} SSO address to a host that is not a loopback one is accepted: environment
+	 * variable {@code SSO_ALLOW_INSECURE=true} ({@link ConfigBaseVariable#getSsoAllowInsecure()}) or
+	 * {@link #setAllowInsecureSsoAddress(boolean)}.
+	 */
+	private static boolean isInsecureSsoAddressAllowed() {
+		return allowInsecureSsoAddress || ConfigBaseVariable.getSsoAllowInsecure();
+	}
+
+	/** The host (and port) of a URL for a message, never its user information. */
+	private static String describeHost(final URI uri) {
+		final String authority = uri.getRawAuthority();
+		if (authority == null) {
+			return uri.getScheme() + "://?";
+		}
+		return uri.getScheme() + "://" + authority.substring(authority.lastIndexOf('@') + 1);
+	}
+
+	/**
+	 * Checks that the public key of the SSO may be fetched from this address, see
+	 * {@link #initLocalTokenRemote(String, String)}. {@code UpdateJwtPublicKey} calls it when it is created, so
+	 * that a refused {@code SSO_ADDRESS} stops the startup instead of failing at every refresh.
+	 * @param ssoUri The base URI of the SSO service ({@code SSO_ADDRESS}).
+	 * @throws IllegalStateException If the address is malformed, or not {@code https} and not allowed: the
+	 *                               message names {@code SSO_ALLOW_INSECURE}.
+	 */
+	public static void checkSsoAddress(final String ssoUri) {
+		final String refusal = ssoAddressRefusal(ssoUri);
+		if (refusal != null) {
+			throw new IllegalStateException(refusal);
+		}
+	}
+
+	/**
+	 * Returns why an SSO address is refused, or {@code null} when it is accepted.
+	 * @param ssoUri The base URI of the SSO service.
+	 * @return The refusal message, or {@code null}.
+	 */
+	private static String ssoAddressRefusal(final String ssoUri) {
+		final URI uri;
+		try {
+			uri = new URI(ssoUri + "public_key");
+		} catch (final URISyntaxException ex) {
+			return "Invalid SSO address (SSO_ADDRESS): " + ex.getReason();
+		}
+		if (isAcceptableSsoUri(uri)) {
+			return null;
+		}
+		if ("http".equalsIgnoreCase(uri.getScheme())) {
+			return "The SSO address must use https (http is only accepted for a loopback host): " + describeHost(uri)
+					+ ". Over plain http anyone on the network can read SSO_TOKEN and replace the JWT public key. "
+					+ "Use https, or set the environment variable SSO_ALLOW_INSECURE=true if this network is "
+					+ "trusted (an internal Docker network, for example).";
+		}
+		return "The SSO address must use https (http is only accepted for a loopback host): " + describeHost(uri);
 	}
 
 	/**
@@ -201,8 +270,8 @@ public class JWTWrapper {
 	/**
 	 * Initializes the JWT public key by fetching it from a remote SSO server.
 	 * <p>
-	 * The address must be {@code https://} (or {@code http://} to a loopback host, see
-	 * {@link #setAllowInsecureSsoAddress(boolean)}); the connection and the read time out
+	 * The address must be {@code https://} (or {@code http://} to a loopback host, or any {@code http://} with
+	 * {@code SSO_ALLOW_INSECURE=true} or {@link #setAllowInsecureSsoAddress(boolean)}); the connection and the read time out
 	 * ({@value #SSO_CONNECT_TIMEOUT_MS} ms, {@value #SSO_READ_TIMEOUT_MS} ms); redirections are not followed;
 	 * the answer is bounded and the key must be an RSA key of at least {@value #MIN_RSA_KEY_SIZE} bits.
 	 * {@code SSO_TOKEN} is sent in the {@code ApiKey} header and never logged.
@@ -214,15 +283,15 @@ public class JWTWrapper {
 	 */
 	public static void initLocalTokenRemote(final String ssoUri, final String application)
 			throws IOException, ParseException {
+		final String refusal = ssoAddressRefusal(ssoUri);
+		if (refusal != null) {
+			throw new IOException(refusal);
+		}
 		final URI uri;
 		try {
 			uri = new URI(ssoUri + "public_key");
 		} catch (final URISyntaxException ex) {
 			throw new IOException("Invalid SSO address", ex);
-		}
-		if (!isAcceptableSsoUri(uri)) {
-			throw new IOException("The SSO address must use https (http is only accepted for a loopback host): "
-					+ uri.getScheme() + "://" + uri.getHost());
 		}
 		final HttpURLConnection con = (HttpURLConnection) uri.toURL().openConnection();
 		try {

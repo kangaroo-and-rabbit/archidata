@@ -117,6 +117,31 @@ class TestJwtSsoKey {
 	}
 
 	@Test
+	void plainHttpDockerAddressFailsLoudlyUnlessAllowed() {
+		final String docker = "http://karso_back_service:80/karso/api/";
+		final IllegalStateException ex = Assertions.assertThrows(IllegalStateException.class,
+				() -> JWTWrapper.checkSsoAddress(docker));
+		Assertions.assertTrue(ex.getMessage().contains("SSO_ALLOW_INSECURE=true"), ex.getMessage());
+		Assertions.assertTrue(ex.getMessage().contains("karso_back_service:80"), ex.getMessage());
+		Assertions.assertDoesNotThrow(() -> JWTWrapper.checkSsoAddress("https://sso.example.com/karso/api/"));
+		Assertions.assertDoesNotThrow(() -> JWTWrapper.checkSsoAddress("http://127.0.0.1:1/karso/api/"));
+		// The startup (creation of the refresh thread) stops on the refused address.
+		ConfigBaseVariable.setSsoAddress(docker);
+		try {
+			final IllegalStateException atStartup = Assertions.assertThrows(IllegalStateException.class,
+					org.atriasoft.archidata.UpdateJwtPublicKey::new);
+			Assertions.assertTrue(atStartup.getMessage().contains("SSO_ALLOW_INSECURE"), atStartup.getMessage());
+			JWTWrapper.setAllowInsecureSsoAddress(true);
+			Assertions.assertDoesNotThrow(() -> JWTWrapper.checkSsoAddress(docker));
+			Assertions.assertDoesNotThrow(org.atriasoft.archidata.UpdateJwtPublicKey::new);
+		} finally {
+			JWTWrapper.setAllowInsecureSsoAddress(false);
+			ConfigBaseVariable.setSsoAddress(null);
+		}
+		Assertions.assertDoesNotThrow(org.atriasoft.archidata.UpdateJwtPublicKey::new);
+	}
+
+	@Test
 	void loopbackHttpIsAcceptedAndSendsTheToken() throws Exception {
 		ConfigBaseVariable.setSsoToken("sso-secret");
 		try {

@@ -8,7 +8,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Daemon thread that periodically refreshes the JWT public key from a remote SSO server.
  *
- * <p>If no SSO address is configured, the thread exits immediately.</p>
+ * <p>If no SSO address is configured, the thread exits immediately. A refused address (see
+ * {@link JWTWrapper#checkSsoAddress(String)}) makes the constructor throw.</p>
  *
  * <p>Behavior:</p>
  * <ul>
@@ -25,9 +26,22 @@ public class UpdateJwtPublicKey extends Thread {
 	private static final long RETRY_INTERVAL_MS_SUCCESS = 5L * 60_000L;
 	private volatile boolean kill = false;
 
-	/** Creates a new daemon thread for JWT public key updates. */
+	/**
+	 * Creates a new daemon thread for JWT public key updates.
+	 *
+	 * <p>A configured {@code SSO_ADDRESS} is checked here, at startup: a refused address (plain {@code http} to
+	 * a host that is not a loopback one, without {@code SSO_ALLOW_INSECURE=true}) stops the application with a
+	 * message that names the variable, instead of a key that is never loaded and a 401 on every request.</p>
+	 *
+	 * @throws IllegalStateException If {@code SSO_ADDRESS} is set and refused, see
+	 *                               {@link JWTWrapper#checkSsoAddress(String)}.
+	 */
 	public UpdateJwtPublicKey() {
 		setDaemon(true);
+		final String address = ConfigBaseVariable.getSSOAddress();
+		if (address != null) {
+			JWTWrapper.checkSsoAddress(address);
+		}
 	}
 
 	/** {@inheritDoc} */
@@ -36,6 +50,13 @@ public class UpdateJwtPublicKey extends Thread {
 		if (ConfigBaseVariable.getSSOAddress() == null) {
 			LOGGER.warn("SSO INTERFACE is not provided ==> work alone.");
 			// No SSO provided, kill the thread.
+			return;
+		}
+		try {
+			JWTWrapper.checkSsoAddress(ConfigBaseVariable.getSSOAddress());
+		} catch (final IllegalStateException ex) {
+			// The address can not become valid by retrying: say it once, loudly, and stop.
+			LOGGER.error("JWT public key will never be loaded, every token is refused: {}", ex.getMessage());
 			return;
 		}
 		// Allow JWTWrapper.validateToken to trigger an immediate refresh on signature mismatch.

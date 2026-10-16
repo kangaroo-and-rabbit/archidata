@@ -47,7 +47,8 @@ as text.
 | `DB_TLS` | `setDbTls` | `getDBTls()` | `false` | `true` adds `tls=true` to the connection URL (`DbConfig.setTls` per configuration) |
 | `DB_AUTH_SOURCE` | `setDbAuthSource` | `getDBAuthSource()` | none: `admin` for `root`, the driver default otherwise | authentication database of the account (`DbConfig.setAuthSource` per configuration) |
 | `API_ADDRESS` | `setApiAddress` | `getLocalAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
-| `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `JWTWrapper.setAllowInsecureSsoAddress(true)` is called |
+| `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `SSO_ALLOW_INSECURE` is `true` |
+| `SSO_ALLOW_INSECURE` | (`JWTWrapper.setAllowInsecureSsoAddress`) | `getSsoAllowInsecure()` | `false` | `true` accepts an `http://` `SSO_ADDRESS` to any host (trusted private network only, WARN at startup); without it such an address stops the startup |
 | `SSO_TOKEN` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
 | `TEST_MODE` | `setTestMode` | `getTestMode()` | `false` | test flag, exposed by the health check of the applications |
 | `EMAIL_FROM`, `EMAIL_LOGIN`, `EMAIL_PASSWORD` | `setEMailFrom`, `setEMailLogin`, `setEMailPassword` | `getEMailConfig()` | none | outgoing mail account. The getter returns a record `EMailConfig(from, login, password)`, or `null` unless **all three** are set |

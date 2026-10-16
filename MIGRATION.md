@@ -346,15 +346,27 @@ JSON ou d'un 401. Pour un message destiné au client, lever une `FailException`.
 ### Clé publique SSO : https obligatoire, délais, rechargement limité (W-14, W-15)
 
 `JWTWrapper.initLocalTokenRemote` (donc `UpdateJwtPublicKey` avec `SSO_ADDRESS`) refuse une adresse
-`http://` sauf vers `localhost` / une adresse de bouclage, ou après
-`JWTWrapper.setAllowInsecureSsoAddress(true)`. Délais de 5 s (connexion) et 10 s (lecture), réponse
+`http://` sauf vers `localhost` / une adresse IP littérale de bouclage (`127.x.y.z`, `[::1]`, sans
+résolution DNS : `127.evil.example` est refusé), ou avec la variable d'environnement
+`SSO_ALLOW_INSECURE=true` (en Java : `JWTWrapper.setAllowInsecureSsoAddress(true)`). Délais de 5 s (connexion) et 10 s (lecture), réponse
 bornée à 64 Kio, redirections non suivies, clé RSA de moins de 2048 bits refusée. Un jeton à signature
 inconnue ne déclenche plus qu'un rechargement de la clé par minute au plus. Les jetons invalides sont
 journalisés en WARN, sans trace de pile.
 
-**Qui est impacté** : un déploiement dont `SSO_ADDRESS` est en `http://` vers un autre hôte (par
-exemple `http://karso:80/...` dans un réseau Docker) : passer en `https://` ou appeler
-`JWTWrapper.setAllowInsecureSsoAddress(true)` au démarrage, avant de lancer `UpdateJwtPublicKey`.
+**Qui est impacté** : un déploiement dont `SSO_ADDRESS` est en `http://` vers un autre hôte, par
+exemple `http://karso_back_service:80/karso/api/` dans un réseau Docker interne. Sans changement,
+l'application **ne démarre plus** : `new UpdateJwtPublicKey()` lève une `IllegalStateException` dont
+le message nomme `SSO_ALLOW_INSECURE` (avant : la clé n'était jamais chargée, et chaque requête
+répondait 401). Passer en `https://`, ou, si le réseau est de confiance, ajouter
+`SSO_ALLOW_INSECURE=true` (un WARN unique est alors écrit au démarrage) :
+
+```yaml
+services:
+  karideo_back_service:
+    environment:
+      SSO_ADDRESS: http://karso_back_service:80/karso/api/
+      SSO_ALLOW_INSECURE: "true"  # réseau Docker interne uniquement
+```
 
 ### JWT : `exp` obligatoire, `nbf` vérifié (W-16)
 
