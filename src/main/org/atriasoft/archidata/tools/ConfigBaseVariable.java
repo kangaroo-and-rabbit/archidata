@@ -56,6 +56,7 @@ public class ConfigBaseVariable {
 	private static byte[] encryptDefaultKey;
 	private static String encryptKeysDir;
 	private static String corsAllowedOrigins;
+	private static String apiDocEnabled;
 	private static Class<?>[] dbInterfacesClasses;
 
 	/**
@@ -351,6 +352,15 @@ public class ConfigBaseVariable {
 	}
 
 	/**
+	 * Enables or disables the API documentation endpoints (OpenAPI specification and Swagger UI).
+	 * @param value {@code "true"} to enable them, anything else (or {@code null}) to answer 404.
+	 */
+	public static void setApiDocEnabled(final String value) {
+		checkNotLocked("apiDocEnabled");
+		apiDocEnabled = value;
+	}
+
+	/**
 	 * Reloads all configuration values from environment variables and unlocks the configuration.
 	 * Only works if reconfiguration is allowed. Primarily used for testing.
 	 *
@@ -385,6 +395,7 @@ public class ConfigBaseVariable {
 		encryptDefaultKey = readSecretBytes("DATA_ENCRYPT_KEY");
 		encryptKeysDir = System.getenv("DATA_ENCRYPT_KEYS_DIR");
 		corsAllowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+		apiDocEnabled = System.getenv("API_DOC_ENABLED");
 		dbInterfacesClasses = new Class<?>[0];
 	}
 
@@ -694,5 +705,14 @@ public class ConfigBaseVariable {
 			return null;
 		}
 		return Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).filter(item -> !item.isEmpty()).toList();
+	}
+
+	/**
+	 * Returns whether the API documentation endpoints ({@code openApiResource}, {@code SwaggerUiExternal}) answer
+	 * ({@code API_DOC_ENABLED}). Defaults to {@code false}: they answer 404.
+	 * @return {@code true} when {@code API_DOC_ENABLED} is {@code true} (ignoring case).
+	 */
+	public static boolean getApiDocEnabled() {
+		return Boolean.parseBoolean(apiDocEnabled);
 	}
 }

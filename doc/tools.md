@@ -57,6 +57,7 @@ as text.
 | `QUERY_STATISTICS_FILE` | `setQueryStatisticsFile` | `getQueryStatisticsFile()` | none (mode off) | enables the [query statistics](statistics.md); path of the report |
 | `QUERY_STATISTICS_PERIOD` | `setQueryStatisticsPeriod` | `getQueryStatisticsPeriod()` | `*/10 * * * *` | cron expression of the report flush |
 | `CORS_ALLOWED_ORIGINS` | `setCorsAllowedOrigins` | `getCorsAllowedOrigins()` (`List<String>`) | none (`null`) | origins allowed by `CORSFilter`, comma separated; unset: any origin, without credentials (see [security](security.md#cors)) |
+| `API_DOC_ENABLED` | `setApiDocEnabled` | `getApiDocEnabled()` (`boolean`) | `false` | serve the OpenAPI specification and Swagger UI (`openApiResource`, `SwaggerUiExternal`); otherwise they answer 404 |
 | (none) | `setBbInterfacesClasses(Class<?>[])` | `getBbInterfacesClasses()` | empty array | the entity classes the data layer manages (used by `DbConfig`) |
 
 Empty strings are treated as "unset" only for the thumbnail and query-statistics

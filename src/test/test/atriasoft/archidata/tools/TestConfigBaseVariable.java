@@ -237,4 +237,15 @@ class TestConfigBaseVariable {
 				ConfigBaseVariable.getCorsAllowedOrigins());
 		ConfigBaseVariable.setCorsAllowedOrigins(null);
 	}
+
+	@Test
+	void testApiDocEnabled() {
+		ConfigBaseVariable.setApiDocEnabled(null);
+		Assertions.assertFalse(ConfigBaseVariable.getApiDocEnabled());
+		ConfigBaseVariable.setApiDocEnabled("yes");
+		Assertions.assertFalse(ConfigBaseVariable.getApiDocEnabled());
+		ConfigBaseVariable.setApiDocEnabled("TRUE");
+		Assertions.assertTrue(ConfigBaseVariable.getApiDocEnabled());
+		ConfigBaseVariable.setApiDocEnabled(null);
+	}
 }
