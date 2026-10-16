@@ -44,6 +44,7 @@ public class User extends OIDGenericDataSoftDelete {
 	private Date lastConnection = null;
 
 	@InitValue("'0'")
+	@ApiReadOnly
 	private Boolean blocked = false;
 	@Size(max = 512)
 	@ApiReadOnly

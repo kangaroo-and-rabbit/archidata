@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.tools;
 
+import org.atriasoft.archidata.converter.jackson.ApiReadOnlyDeserializerModifier;
 import org.atriasoft.archidata.converter.jackson.JacksonModules;
 import org.atriasoft.archidata.interceptor.ValidGroupInterceptor;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
@@ -35,10 +36,15 @@ public class ContextGenericTools {
 
 	/**
 	 * Add support of Jackson jsr310 for data and time serialization and un-serialization.
+	 *
+	 * <p>The registered mapper also ignores the {@code @ApiReadOnly} properties of request bodies
+	 * ({@link ApiReadOnlyDeserializerModifier}): a client cannot set them. {@link #createObjectMapper()} does
+	 * not, so it still reads them back from server responses.</p>
 	 * @param rc Resource exception model.
 	 */
 	public static void addJsr310(final ResourceConfig rc) {
 		final ObjectMapper objectMapper = createObjectMapper();
+		objectMapper.registerModule(ApiReadOnlyDeserializerModifier.module());
 		// configure jackson provider for JSON mapper
 		final JacksonJaxbJsonProvider provider = new JacksonJaxbJsonProvider();
 		provider.setMapper(objectMapper);

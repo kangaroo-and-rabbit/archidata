@@ -223,6 +223,31 @@ Nouvelle méthode `header(key, value)` pour ajouter un en-tête à la requête. 
 
 ---
 
+## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche web et de l'authentification (CHANGEMENT DE COMPORTEMENT)
+
+Ce lot corrige les constats de l'audit de sécurité de la couche web (W-xx). Plusieurs corrections
+changent un comportement observable ; chaque point dit qui est concerné.
+
+### Téléchargements côté serveur : `SafeHttpFetcher` (W-01)
+
+`uploadDataFromUri`, `uploadCoverFromUri` et `ProxyResource` ne passent plus par le client Jersey
+mais par `SafeHttpFetcher` : nom résolu une seule fois, **toutes** les adresses vérifiées, connexion
+à l'adresse validée, aucune redirection suivie automatiquement (chaque `Location` est revalidée, 3 au
+plus), délais de 5 s (connexion), 30 s (lecture) et 120 s (échange complet). `SsrfGuard` refuse en
+plus CGNAT (`100.64.0.0/10`), `0.0.0.0/8`, le multicast, les plages réservées, les ULA IPv6
+(`fc00::/7`), NAT64, 6to4, Teredo, les adresses IPv4 mappées ou compatibles IPv6, et une URL avec
+identifiants (`user:pass@`).
+
+`ProxyResource` renvoie le type amont seulement pour une image matricielle (sinon
+`application/octet-stream`), ajoute `X-Content-Type-Options: nosniff` et n'envoie plus
+`Access-Control-Allow-Origin: *` (le `CORSFilter` s'en charge).
+
+**Qui est impacté** : une application qui télécharge depuis une URL interne (réseau Docker, IP
+privée) par ces méthodes : elle est refusée, y compris via une redirection. Utiliser un appel direct
+au service interne, pas une URL fournie par l'utilisateur.
+
+---
+
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)
 
 Ce lot corrige les constats de l'audit de sécurité de la couche données (D-xx) et le mass
@@ -243,6 +268,24 @@ champs protégés : ils ne sont écrits que si un `FilterValue` les nomme
 **Comment migrer** : chercher les `updateById` sans `FilterValue` qui doivent écrire un champ
 `@DataNotRead` ou `@DataEncrypt` (changement de mot de passe, de secret, de valeur chiffrée) et
 nommer ce champ dans un `FilterValue`.
+
+### Les champs `@ApiReadOnly` d'un corps de requête sont ignorés (W-08)
+
+Le provider JSON du serveur (`ContextGenericTools.addJsr310(rc)`) jette en silence toute propriété
+`@ApiReadOnly` d'un corps de requête, comme `@JsonProperty(access = READ_ONLY)`. Avant, un endpoint
+`POST` qui passait l'entité désérialisée à `insert` sans `@ValidGroup(GroupCreate.class)` laissait le
+client écrire un champ en lecture seule (mass assignment). Le client reçoit toujours ces champs dans
+les réponses ; `RESTApiRequest` et `createObjectMapper()` ne filtrent rien. `insert` et `update`
+gardent leur comportement côté serveur (`ForceReadOnlyField` reste nécessaire pour un update).
+
+`User.blocked` porte maintenant `@ApiReadOnly` : un client ne peut plus l'envoyer, et un `updateById`
+qui doit l'écrire passe `ForceReadOnlyField` (karso le fait déjà).
+
+**Qui est impacté** : un endpoint qui lit un champ `@ApiReadOnly` dans le corps de la requête (la
+valeur arrive maintenant `null`), et un corps qui faisait échouer `@Null(groups = GroupCreate.class)`
+sur un champ en lecture seule (la requête passe maintenant, la valeur étant ignorée). Les propriétés
+d'un constructeur (records, `@JsonCreator`) ne sont pas filtrées. Pour recevoir une valeur du client,
+utiliser un DTO d'entrée sans `@ApiReadOnly`.
 
 ---
 

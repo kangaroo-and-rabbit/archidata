@@ -65,10 +65,10 @@ public class TestValidator {
 		LOGGER.debug("error on input:{}", exception);
 		Assertions.assertNotNull(exception.getMessage());
 		Assertions.assertNotNull(exception.inputError);
+		// 'value' is @ApiReadOnly: the server JSON mapper drops it from the body, so its
+		// @Null(groups = GroupCreate.class) constraint holds; only the @Min(5) query parameter fails.
 		Assertions.assertEquals(1, exception.inputError.size());
-		Assertions.assertEquals(null, exception.inputError.get(0).argument);
-		Assertions.assertEquals("value", exception.inputError.get(0).path);
-		Assertions.assertEquals("must be null", exception.inputError.get(0).message);
+		Assertions.assertEquals("must be greater than or equal to 5", exception.inputError.get(0).message);
 	}
 
 	@Test

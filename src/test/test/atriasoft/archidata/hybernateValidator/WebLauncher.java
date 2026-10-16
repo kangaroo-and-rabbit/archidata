@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.core.UriBuilder;
+import test.atriasoft.archidata.hybernateValidator.resource.TestResourceApiReadOnly;
 import test.atriasoft.archidata.hybernateValidator.resource.TestResourceValidGroup;
 import test.atriasoft.archidata.hybernateValidator.resource.TestResourceValidator;
 
@@ -109,6 +110,7 @@ public class WebLauncher {
 		// add default resource:
 		rc.register(TestResourceValidator.class);
 		rc.register(TestResourceValidGroup.class);
+		rc.register(TestResourceApiReadOnly.class);
 		// enable jersey specific validations (@Valid
 		rc.register(ValidationFeature.class);
 

@@ -444,8 +444,20 @@ public class User { }
 
 ### @ApiReadOnly
 
-Targets: field, method. Excluded from the create and update variants; the data access layer also
-skips it on write unless `ForceReadOnlyField` is used. Applied to ids and timestamps.
+Targets: field, method. Excluded from the create and update variants; `update` / `updateById` also
+skip it unless `ForceReadOnlyField` is used. Applied to ids and timestamps.
+
+**Request bodies**: the JSON provider registered by `ContextGenericTools.addJsr310(rc)` drops every
+`@ApiReadOnly` property (field, getter or setter) of a request body, as
+`@JsonProperty(access = READ_ONLY)` would: the value sent by the client is ignored silently (no 400,
+since a front often sends back the whole object it read, id and timestamps included) and the property
+keeps the value its constructor gives it. This protects `insert` against mass assignment, since
+`insert` writes the fields as they are in the Java object. Server code that sets an `@ApiReadOnly`
+field itself before `insert` (a hash, a size, a counter) still persists it; no option is needed.
+`ContextGenericTools.createObjectMapper()` (used by `RESTApiRequest`, backups...) does not drop
+anything: a client still reads the read-only fields of a response. Properties set through a
+constructor (records, `@JsonCreator`) are not filtered: do not put a field the client must not set in
+an input record.
 
 ### @ApiNotNull
 
