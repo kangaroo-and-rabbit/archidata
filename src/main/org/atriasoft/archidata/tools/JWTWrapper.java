@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -198,6 +199,10 @@ public class JWTWrapper {
 	}
 
 	/** Create a token with the provided elements.
+	 * <p>
+	 * The token carries the standard {@code aud} claim set to {@code application}, in addition to the
+	 * {@code application} claim, so that only that application accepts it.
+	 * </p>
 	 * @param userID UniqueId of the USER (global unique ID).
 	 * @param userLogin Login of the user (never change).
 	 * @param issuer The one who provides the token.
@@ -240,6 +245,10 @@ public class JWTWrapper {
 			final JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder().subject(serializeUserId)
 					.claim("login", userLogin).claim("application", application).issuer(issuer).issueTime(now)
 					.expirationTime(expiration);
+			// Standard audience claim: the application the token is meant for (checked by AuthenticationFilter).
+			if (application != null) {
+				builder.audience(application);
+			}
 			// add roles if needed:
 			if (roles != null) {
 				builder.claim("roles", roles);
@@ -264,10 +273,38 @@ public class JWTWrapper {
 	}
 
 	/**
+	 * Tells whether a token is meant for an application.
+	 * <p>
+	 * A token with an {@code aud} claim must list the application in it. A token without {@code aud} (issued
+	 * before the audience was written) must carry the application in its {@code application} claim.
+	 * </p>
+	 * @param claims The claims of the token.
+	 * @param application The name of the application validating the token.
+	 * @return {@code true} when the token is meant for this application.
+	 */
+	public static boolean isForApplication(final JWTClaimsSet claims, final String application) {
+		final List<String> audience = claims.getAudience();
+		if (audience != null && !audience.isEmpty()) {
+			if (audience.contains(application)) {
+				return true;
+			}
+			LOGGER.warn("JWT audience mismatch: expected='{}' got={}", application, audience);
+			return false;
+		}
+		final Object tokenApplication = claims.getClaim("application");
+		if (application.equals(tokenApplication)) {
+			return true;
+		}
+		LOGGER.warn("JWT application mismatch (no audience): expected='{}' got='{}'", application, tokenApplication);
+		return false;
+	}
+
+	/**
 	 * Validates a signed JWT token against the configured public key.
 	 * @param signedToken The serialized JWT token to validate.
 	 * @param issuer The expected issuer claim.
-	 * @param application The expected application claim (currently unused).
+	 * @param application The application the token must be meant for (see
+	 *                    {@link #isForApplication(JWTClaimsSet, String)}), or {@code null} to skip this check.
 	 * @return The validated claims set, or {@code null} if validation fails.
 	 */
 	public static JWTClaimsSet validateToken(final String signedToken, final String issuer, final String application) {
@@ -300,12 +337,8 @@ public class JWTWrapper {
 				LOGGER.error("JWT issuer is wrong: '{}' != '{}'", issuer, signedJWT.getJWTClaimsSet().getIssuer());
 				return null;
 			}
-			if (application != null) {
-				final String tokenApplication = (String) signedJWT.getJWTClaimsSet().getClaim("application");
-				if (!application.equals(tokenApplication)) {
-					LOGGER.error("JWT application mismatch: expected='{}' got='{}'", application, tokenApplication);
-					return null;
-				}
+			if (application != null && !isForApplication(signedJWT.getJWTClaimsSet(), application)) {
+				return null;
 			}
 			// the element must be validated outside ...
 			// LOGGER.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");

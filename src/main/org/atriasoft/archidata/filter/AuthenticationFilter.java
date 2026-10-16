@@ -68,6 +68,13 @@ import jakarta.ws.rs.ext.Provider;
  * A request without any usable token is answered with 401.
  * </p>
  *
+ * <h2>Audience</h2>
+ * <p>
+ * A JWT is accepted only when it is meant for {@link #applicationName}: its {@code aud} claim lists the
+ * name, or, for a token without {@code aud}, its {@code application} claim equals it. A token issued by
+ * the same SSO for another application is answered with 401.
+ * </p>
+ *
  * <h2>Security context</h2>
  * <p>
  * On success the filter installs a {@link MySecurityContext} built from the {@link UserByToken}
@@ -112,7 +119,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationFilter.class);
 	@Context
 	private ResourceInfo resourceInfo;
-	/** The application name used as a prefix for role-based access control. */
+	/** The application name used as a prefix for role-based access control and as the expected JWT audience. */
 	protected final String applicationName;
 	/** The JWT issuer used for token validation. */
 	protected final String issuer;
@@ -125,7 +132,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	/**
 	 * Constructs an authentication filter with the given application name and default issuer "Karso".
 	 *
-	 * @param applicationName the application name used for role-based access control
+	 * @param applicationName the application name used for role-based access control and as the expected JWT audience
 	 */
 	public AuthenticationFilter(final String applicationName) {
 		this(applicationName, "Karso");
@@ -134,7 +141,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	/**
 	 * Constructs an authentication filter with the given application name and issuer.
 	 *
-	 * @param applicationName the application name used for role-based access control
+	 * @param applicationName the application name used for role-based access control and as the expected JWT audience
 	 * @param issuer the JWT issuer identifier for token validation
 	 */
 	public AuthenticationFilter(final String applicationName, final String issuer) {
@@ -400,7 +407,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	 */
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
 		// logger.debug(" validate token : " + authorization);
-		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, null);
+		// The token must be meant for this application (aud claim, or application claim of an older token)
+		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, this.applicationName);
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
 			LOGGER.error("The token is not valid: '{}...'",

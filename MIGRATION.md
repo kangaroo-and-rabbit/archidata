@@ -257,6 +257,19 @@ en `Content-Disposition: attachment`. Le SVG reste accepté à l'upload.
 téléchargé). L'affichage par `<img>`, `<video>` ou `<audio>` ne change pas. Une ressource applicative
 qui sert elle-même des fichiers stockés doit appeler `DataTools.addSafeServingHeaders`.
 
+### Audience des JWT vérifiée (W-03)
+
+`generateJWToken` écrit le claim standard `aud` (nom de l'application), en plus de `application`.
+`AuthenticationFilter` refuse (401) un jeton dont `aud` ne contient pas le nom d'application passé à
+son constructeur. Un jeton **sans** `aud` (émis par un archidata plus ancien) est accepté seulement si
+son claim `application` vaut ce nom.
+
+**Qui est impacté** : un jeton émis pour une autre application, ou pour un nom différent (suffixe
+`-dev`, majuscules), est maintenant refusé. Les jetons de test doivent porter le nom d'application du
+filtre du serveur de test. Vérifié : les jetons de karso (`users/get_token`, `oauth2/token`,
+`application/get_token`, qui retirent `-dev`) et les jetons de test d'archidata, karso, karideo et
+karusic sont compatibles.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

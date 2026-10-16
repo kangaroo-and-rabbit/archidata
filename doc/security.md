@@ -102,7 +102,7 @@ final String token = JWTWrapper.generateJWToken(
 	userId,          // Object: user ID (must be an ObjectId: AuthenticationFilter rejects other types)
 	"john.doe",      // String: user login
 	"my-app",        // String: issuer
-	"my-app",        // String: application
+	"my-app",        // String: application (also written as the standard "aud" claim)
 	roles,           // Map<String, Object>: roles map (can be null)
 	rights,          // Map<String, Object>: rights map (can be null)
 	60               // int: timeout in minutes
@@ -461,6 +461,19 @@ Web hardening
 =============
 
 What archidata does to protect the API and its users, and what is left to the application.
+
+### Token audience
+
+`JWTWrapper.generateJWToken` writes the standard `aud` claim with the application name, next to the
+`application` claim. `AuthenticationFilter` accepts a JWT only when it is meant for the application
+name given to its constructor: `aud` must contain it, or, for a token without `aud` (issued by an older
+archidata), `application` must equal it. Otherwise the answer is 401. Several applications that trust
+the same SSO key therefore no longer accept each other's tokens. `JWTWrapper.validateToken(token,
+issuer, application)` does the same check when `application` is not `null`
+(`JWTWrapper.isForApplication(claims, application)` exposes it).
+
+Test tokens must name the application of the filter of the test server, as `Common.USER_TOKEN` does
+with `TestAuthenticationFilter.APPLICATION_NAME`.
 
 ### Server-side requests (SSRF)
 
