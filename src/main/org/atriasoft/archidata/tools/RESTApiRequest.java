@@ -12,6 +12,7 @@ import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -64,6 +65,11 @@ public class RESTApiRequest {
 	private String verb = "GET";
 	private boolean showIOStream = false;
 	private boolean formatBody = false;
+	/** Default connection timeout. */
+	public static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(10);
+	/** Default timeout of a request (until the response headers are received). */
+	public static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(120);
+	private Duration requestTimeout = DEFAULT_REQUEST_TIMEOUT;
 
 	/**
 	 * Attempts to pretty-print a JSON string. Returns the original string if parsing fails.
@@ -372,6 +378,21 @@ public class RESTApiRequest {
 	}
 
 	/**
+	 * Sets the timeout of this request (until the response headers are received). The default is
+	 * {@link #DEFAULT_REQUEST_TIMEOUT}; the connection itself times out after {@link #DEFAULT_CONNECT_TIMEOUT}.
+	 * @param timeout The timeout, strictly positive.
+	 * @return This request instance for chaining.
+	 * @throws IllegalArgumentException If the timeout is null, zero or negative.
+	 */
+	public RESTApiRequest timeout(final Duration timeout) {
+		if (timeout == null || timeout.isNegative() || timeout.isZero()) {
+			throw new IllegalArgumentException("The timeout must be positive: " + timeout);
+		}
+		this.requestTimeout = timeout;
+		return this;
+	}
+
+	/**
 	 * Enables pretty-printing of JSON bodies (for debugging).
 	 * @return This request instance for chaining.
 	 */
@@ -433,7 +454,7 @@ public class RESTApiRequest {
 	 */
 	public HttpResponse<byte[]> fetchByte() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
-		final HttpClient client = HttpClient.newHttpClient();
+		final HttpClient client = newClient();
 		final HttpResponse<byte[]> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
 		displayResponse(httpResponse);
 		return httpResponse;
@@ -450,10 +471,15 @@ public class RESTApiRequest {
 	 */
 	public HttpResponse<String> fetchString() throws IOException, InterruptedException, RESTErrorResponseException {
 		final HttpRequest request = generateRequest();
-		final HttpClient client = HttpClient.newHttpClient();
+		final HttpClient client = newClient();
 		final HttpResponse<String> httpResponse = client.send(request, HttpResponse.BodyHandlers.ofString());
 		displayResponse(httpResponse);
 		return httpResponse;
+	}
+
+	private static HttpClient newClient() {
+		// No redirection is followed (HttpClient default), the connection is bounded in time.
+		return HttpClient.newBuilder().connectTimeout(DEFAULT_CONNECT_TIMEOUT).build();
 	}
 
 	/**
@@ -509,7 +535,7 @@ public class RESTApiRequest {
 	 */
 	private Builder createRequestBuilder(final String urlOffset) {
 		Builder requestBuilding = HttpRequest.newBuilder().version(Version.HTTP_1_1)
-				.uri(URI.create(this.url + urlOffset));
+				.uri(URI.create(this.url + urlOffset)).timeout(this.requestTimeout);
 		if (this.token != null) {
 			requestBuilding = requestBuilding.header(HttpHeaders.AUTHORIZATION, this.tokenKey + " " + this.token);
 		}

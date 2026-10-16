@@ -403,6 +403,12 @@ qu'au niveau TRACE (la taille reste en INFO). `MySecurityContext.getRole` journa
 **Qui est impacté** : un test qui lisait les corps dans les logs INFO : passer le logger
 `org.atriasoft.archidata.tools.RESTApiRequest` en TRACE.
 
+### `RESTApiRequest` : délais par défaut (W-22)
+
+Connexion bornée à 10 s et requête à 120 s par défaut (`RESTApiRequest.timeout(Duration)` pour changer
+la seconde). Avant, un appel pouvait rester bloqué indéfiniment. **Qui est impacté** : un appel légitime
+de plus de 120 s (export, sauvegarde) doit passer `.timeout(...)`.
+
 ---
 
 ## Prochaine version (après v0.50.2) - Corrections de sécurité de la couche données (CHANGEMENT DE COMPORTEMENT)

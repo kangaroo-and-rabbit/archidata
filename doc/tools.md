@@ -120,7 +120,8 @@ trailing slashes removed). It returns a new `RESTApiRequest` each call.
 | body | `bodyJson(Object)`, `bodyAsJson(String)`, `bodyMap(Map<String,Object>)`, `bodyString(String)` / `bodyString(String, contentType)`, `bodyByte(byte[], contentType)`, `bodyMultipart(Map<String,Object>)` (a `File` value is sent as binary, anything else as text) |
 | query | `queryParam(String key, Object... values)`: repeats allowed, `Date` and `ZonedDateTime` formatted in ISO, `null` becomes the text `null` |
 | header | `header(String key, String value)`: adds a custom header (same key replaces the previous value) |
-| debug | `showIOStream()`, `formatBody()` (pretty-print the JSON body) |
+| timeout | `timeout(Duration)`: timeout of the request, default `DEFAULT_REQUEST_TIMEOUT` (120 s); the connection times out after `DEFAULT_CONNECT_TIMEOUT` (10 s). A timeout throws `java.net.http.HttpTimeoutException` (an `IOException`) |
+| debug | `showIOStream()` (verb, URL and headers at INFO with the credentials masked, bodies at TRACE), `formatBody()` (pretty-print the JSON body) |
 | send | `fetch(Class<T>)`, `fetchList(Class<T>)`, `fetch()` (no body), `fetchString()`, `fetchByte()`, `generateRequest()` (build the `HttpRequest` without sending) |
 
 Errors: `fetch`, `fetch(Class)` and `fetchList` throw `RESTErrorResponseException`

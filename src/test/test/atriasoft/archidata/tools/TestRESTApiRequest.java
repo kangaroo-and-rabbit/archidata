@@ -41,6 +41,14 @@ class TestRESTApiRequest {
 		server.createContext("/ko", exchange -> reply(exchange, 404,
 				"{\"name\":\"Request Fail\",\"message\":\"nope\",\"time\":\"t\",\"status\":404,\"statusMessage\":\"Not Found\"}"));
 		server.createContext("/html", exchange -> reply(exchange, 502, "<html>bad gateway</html>"));
+		server.createContext("/slow", exchange -> {
+			try {
+				Thread.sleep(2_000);
+			} catch (final InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+			reply(exchange, 200, "late");
+		});
 		server.start();
 		baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
 	}
@@ -114,5 +122,12 @@ class TestRESTApiRequest {
 		Assertions.assertEquals("http://h/data/1?x=2&ApiKey=***",
 				RESTApiRequest.maskUrl("http://h/data/1?x=2&ApiKey=k"));
 		Assertions.assertEquals("http://h/data/1?x=2", RESTApiRequest.maskUrl("http://h/data/1?x=2"));
+	}
+
+	@Test
+	void requestTimesOut() {
+		Assertions.assertThrows(java.net.http.HttpTimeoutException.class,
+				() -> new RESTApiRequest(baseUrl + "/slow", null, null).timeout(java.time.Duration.ofMillis(300))
+						.fetchString());
 	}
 }
