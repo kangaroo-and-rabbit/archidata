@@ -66,6 +66,40 @@ largeur nulle) deviennent `\r`, `\n`, `\t`, `\uXXXX`, et le backslash est doubl�
 d'échappement ne se confonde pas avec un texte littéral. Le format des logs ne change que pour ces
 valeurs ; aucune migration n'est nécessaire.
 
+### `Filters.checkFieldName(Class, String)` résout tous les segments du chemin (CS-01)
+
+Jusqu'ici la garde ne vérifiait que le premier segment d'un nom pointé : `credentials.passwordHash`,
+`history.0.passwordHash` ou `key.secret` passaient, et un filtre `gt` / `lt` / `regexLiteral` ou un tri
+permettait de retrouver par dichotomie la valeur d'un champ `@DataNotRead` / `@DataEncrypt` d'un objet
+embarqué. Désormais chaque segment est résolu dans le modèle (objets embarqués, éléments de `List` /
+`Set`, valeurs de `Map`) et le nom est refusé (`IllegalArgumentException`) si :
+
+- un segment est inconnu pour une classe modélisée (comme pour la racine) ;
+- un segment est un champ protégé, à n'importe quelle profondeur ;
+- le chemin se termine sur un objet embarqué, une liste, un set ou une map d'objets dont la classe a des
+  champs protégés (`credentials`, `history`...) : comparer ou trier le sous-document entier les atteindrait ;
+- le chemin dépasse 64 segments, ou est ambigu (segment numérique après une liste de maps dont les valeurs
+  ont des champs protégés : indice de tableau ou clé de map) ;
+- le chemin se termine sur, ou passe sous, un champ déclaré `Object`, interface ou classe abstraite (y
+  compris du JDK : `Serializable`, `Number`...) : la valeur est écrite par la classe réelle (champs protégés compris) mais relue par le type
+  déclaré, la garde ne peut pas savoir ce qu'elle contient (pour des données libres, utiliser une classe
+  modélisée ou `org.bson.Document`) ; il en va de même d'une `List`, d'un `Set` ou d'une `Map` brute (sans
+  type générique), dont les éléments sont écrits par leur propre classe, et d'un sous-document qui en
+  contient un à n'importe quelle profondeur (`Wrapper { Object inner; }`).
+
+Après une liste, un segment numérique est un indice (ignoré) ; après une map, le segment suivant est une
+clé (n'importe quelle chaîne). Pour un type libre explicite (`org.bson.Document`, `JsonNode`,
+classe JDK concrète) ou une relation, la suite du chemin est acceptée comme avant. La protection suit le type
+**déclaré** : avec une classe de base concrète contenant une sous-classe, un champ ajouté par la
+sous-classe est refusé comme inconnu, mais la comparaison du sous-document entier n'est pas détectée.
+`OrderItem.ofClientField` passe par la même vérification.
+
+Action : si une application acceptait un nom client pointé vers un sous-champ protégé (ou vers un
+sous-document qui en contient), elle reçoit maintenant une `IllegalArgumentException` (à traduire en 400).
+Les noms de champs visibles (`credentials.user`, `history.0.user`, `map.k.label`) sont inchangés. Seule
+la garde `checkFieldName` change : `Filters.eq(...)` et les autres helpers à nom de champ libre ne
+connaissent toujours pas le modèle, c'est à l'appelant de vérifier un nom venant d'un client.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

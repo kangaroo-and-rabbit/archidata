@@ -550,8 +550,26 @@ Filters.regexLiteral("title", userText, "i")   // case insensitive
   `$` (`$where`, `$expr`), no NUL character (`IllegalArgumentException`).
 - A field name chosen by a client (dynamic filter, sort column) must be checked against the model:
   `Filters.checkFieldName(Article.class, name)` or `OrderItem.ofClientField(Article.class, name, order)`.
-  The field must exist and must not be `@DataNotRead` / `@DataEncrypt` (filtering or sorting on a hidden
-  field reveals its value).
+  Every segment of a dotted name is resolved: each one must be a field of the entity, or of the embedded
+  class reached so far, and none may be `@DataNotRead` / `@DataEncrypt` (filtering or sorting on a hidden
+  field reveals its value by dichotomy). That covers the fields of embedded objects
+  (`credentials.passwordHash`), of list and set elements (`history.passwordHash`, `history.0.passwordHash`:
+  after a list an optional numeric segment is an array index) and of map values (`map.someKey.secret`:
+  after a map the next segment is a key, any string). A name that ends on an embedded object, a list, a
+  set or a map of objects whose class holds protected fields (`credentials`, `history`) is refused too:
+  comparing or sorting the whole sub-document would reach them. The rest of the path is accepted without
+  check below an explicit free-form position (`org.bson.Document`, `JsonNode`, a plain value,
+  a concrete JDK class) and below a relation field. Refused: a path too deep (more than 64 segments), ambiguous (a
+  numeric segment after a list of maps whose values hold protected fields), and a position declared as
+  `Object`, as an interface or as an abstract class (JDK ones such as `Serializable` or `Number` included),
+  as a whole or below it, and a raw (non-generic) `List`, `Set` or `Map`, whose elements are written by
+  their own class: such a
+  value is written by the class of the value (protected fields included) and read back by the declared
+  type, so the guard cannot know what it holds (use a modeled class, or `org.bson.Document`, for free-form
+  data). Protection follows the declared type: with a concrete base class holding a subclass instance, a
+  field added by the subclass is refused as unknown, but comparing the whole base-class sub-document is
+  not detected as reaching it. A sub-document that holds such a position at any depth
+  (`Wrapper { Object inner; }`) is refused as a whole too.
 
 ### Array operators
 

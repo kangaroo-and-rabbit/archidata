@@ -3,8 +3,7 @@ package org.atriasoft.archidata.dataAccess;
 import java.util.regex.Pattern;
 
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
-import org.atriasoft.archidata.dataAccess.model.DbClassModel;
-import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.FieldPathCursor;
 import org.bson.BsonType;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -86,9 +85,33 @@ public final class Filters {
 	/**
 	 * Checks a field name chosen by a client (filter or sort) against the model of an entity.
 	 *
-	 * <p>On top of {@link #checkFieldName(String)}, the first segment of the (dotted) name must be a field of
-	 * the entity, and it must not be a protected field ({@code @DataNotRead}, {@code @DataEncrypt}): a filter
-	 * or a sort on a hidden field would reveal its value by dichotomy.
+	 * <p>On top of {@link #checkFieldName(String)}, <strong>every</strong> segment of the (dotted) name is
+	 * resolved against the model, and the name is refused when:
+	 * <ul>
+	 * <li>a segment names no field of the entity, or of the embedded class reached so far;</li>
+	 * <li>a segment is a protected field ({@code @DataNotRead}, {@code @DataEncrypt}), at the root or inside
+	 * an embedded object ({@code credentials.passwordHash}, {@code history.0.passwordHash},
+	 * {@code map.someKey.secret}): a filter or a sort on a hidden value would reveal it by dichotomy;</li>
+	 * <li>the name ends on an embedded object, a list, a set or a map of embedded objects whose class has
+	 * protected fields (at any depth): comparing or sorting the whole sub-document would reach them;</li>
+	 * <li>the name ends on, or runs below, a position declared as {@code Object}, any interface or abstract
+	 * class (JDK ones such as {@code Serializable} or {@code Number} included): such a value is written by the class of the value (protected fields
+	 * included) and read back by the declared type, so nothing can be told about it;</li>
+	 * <li>the path is deeper than {@link FieldPathCursor#MAX_DEPTH}, or ambiguous (a numeric segment after
+	 * a list of maps whose values hold protected fields: array index or map key).</li>
+	 * </ul>
+	 *
+	 * <p>Resolution rules: after a list or a set, an optional numeric segment (array index) is skipped and
+	 * the next segment is a field of the element type; after a map, the next segment is a key (any string)
+	 * and resolution goes on in the value type. Accepted without further check: the rest of the path below
+	 * an explicit free-form position ({@code org.bson.Document}, {@code JsonNode}, a plain value or a
+	 * concrete JDK class) and below a relation field (stored as a key). A raw (non-generic) list, set or map
+	 * is <em>not</em> free-form: its elements are written by their own class, so it is refused like a
+	 * polymorphic type, as a whole (also when an embedded class holds one) and below it.
+	 *
+	 * <p>Protection follows the <em>declared</em> type: a concrete base class holding an instance of a
+	 * subclass is resolved by the fields of the base class only (a field added by the subclass is refused as
+	 * unknown, but comparing the whole base-class sub-document is not detected as reaching it).
 	 *
 	 * @param clazz the entity class
 	 * @param fieldName the database field name (or dotted path) sent by the client
@@ -97,24 +120,32 @@ public final class Filters {
 	 */
 	public static String checkFieldName(final Class<?> clazz, final String fieldName) {
 		checkFieldName(fieldName);
-		final int dot = fieldName.indexOf('.');
-		final String root = dot < 0 ? fieldName : fieldName.substring(0, dot);
-		final DbClassModel model;
+		FieldPathCursor cursor;
 		try {
-			model = DbClassModel.of(clazz);
+			cursor = FieldPathCursor.of(clazz);
 		} catch (final IntrospectionException ex) {
 			throw new IllegalArgumentException("Cannot analyse the model of " + clazz.getSimpleName(), ex);
 		}
-		for (final DbPropertyDescriptor desc : model.getAllFields()) {
-			if (root.equals(desc.getDbFieldName())) {
-				if (desc.isNotRead() || desc.isEncrypted()) {
-					throw new IllegalArgumentException("Field '" + root + "' of " + clazz.getSimpleName()
+		for (final String segment : fieldName.split("\\.", -1)) {
+			cursor = cursor.step(segment);
+			switch (cursor.status()) {
+				case UNKNOWN:
+					throw new IllegalArgumentException("Unknown field '" + segment + "' on " + clazz.getSimpleName());
+				case PROTECTED:
+					throw new IllegalArgumentException("Field '" + segment + "' of " + clazz.getSimpleName()
 							+ " cannot be used in a client filter or sort");
-				}
-				return fieldName;
+				case UNSAFE:
+					throw new IllegalArgumentException("Field path '" + fieldName + "' of " + clazz.getSimpleName()
+							+ " is too deep, ambiguous or typed by a polymorphic type for a client filter or sort");
+				default:
+					break;
 			}
 		}
-		throw new IllegalArgumentException("Unknown field '" + root + "' on " + clazz.getSimpleName());
+		if (cursor.holdsProtectedSubFields()) {
+			throw new IllegalArgumentException("Field '" + fieldName + "' of " + clazz.getSimpleName()
+					+ " holds protected fields and cannot be used as a whole in a client filter or sort");
+		}
+		return fieldName;
 	}
 
 	// ====================================================================

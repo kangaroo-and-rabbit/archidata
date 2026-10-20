@@ -563,6 +563,24 @@ public final class MongoCodecFactory {
 			Boolean.class, Short.class, Character.class, String.class, ObjectId.class, UUID.class, Date.class,
 			Instant.class, OffsetDateTime.class, LocalDate.class, LocalTime.class, Document.class);
 
+	/**
+	 * Tells whether the writer ({@link #buildWriter(TypeInfo)}) encodes a field of this declared type through
+	 * {@link #writeSubObject}, that is as an embedded document built from the class of the <em>value</em>
+	 * (not the declared type): everything but the primitives and boxed types, {@code String}, {@code ObjectId},
+	 * {@code UUID}, the dates and times, the enums, {@code org.bson.Document}, and the lists, sets and maps
+	 * (whose elements are encoded the same way, by their own type).
+	 *
+	 * @param typeInfo the declared type of the field
+	 * @return {@code true} when the stored fields depend on the class of the value
+	 */
+	public static boolean isWrittenByRuntimeClass(final TypeInfo typeInfo) {
+		final Class<?> raw = typeInfo.rawType();
+		if (raw.isPrimitive() || raw.isEnum() || VALUE_TYPES.contains(raw)) {
+			return false;
+		}
+		return !(typeInfo.isList() || typeInfo.isSet() || typeInfo.isMap());
+	}
+
 	/** Cache of {@link #hasProtectedSubFields(TypeInfo)}: the model of a class never changes. */
 	private static final Map<TypeInfo, Boolean> PROTECTED_SUB_FIELDS = new ConcurrentHashMap<>();
 
@@ -691,8 +709,11 @@ public final class MongoCodecFactory {
 	 * For List/Set: returns the first type argument.
 	 * For Map: returns the second type argument (the value type).
 	 * Falls back to the raw elementType class if generic info is unavailable.
+	 *
+	 * @param parentTypeInfo the type of the list, set or map
+	 * @return the type of its elements (values), or {@code null} when it cannot be known
 	 */
-	private static TypeInfo resolveElementTypeInfo(final TypeInfo parentTypeInfo) {
+	public static TypeInfo resolveElementTypeInfo(final TypeInfo parentTypeInfo) {
 		final Type generic = parentTypeInfo.genericType();
 		if (generic instanceof final ParameterizedType pt) {
 			final Type[] args = pt.getActualTypeArguments();

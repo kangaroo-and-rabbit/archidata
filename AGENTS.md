@@ -255,7 +255,8 @@ Each point was checked against the code; the doc page gives the details.
   remote document (no cascade, no link added or removed). The ids listed in a relation field of a client body
   are not checked against the caller's rights: validate them. See `doc/database_access.md`.
 - **Client-supplied names and values in queries**: validate a field name with
-  `Filters.checkFieldName(...)` or build the sort with `OrderItem.ofClientField(...)`; use
+  `Filters.checkFieldName(...)` or build the sort with `OrderItem.ofClientField(...)` (every segment
+  of a dotted path is resolved: a protected field of an embedded object is refused); use
   `Filters.regexLiteral(...)` for a client value matched as text (`Filters.regex` keeps the
   pattern as is). `Filters.eq` writes an explicit `$eq`.
 - **Upload and download limits** live in `DataTools`: `setMaxUploadSize` (1 GiB by default) and
