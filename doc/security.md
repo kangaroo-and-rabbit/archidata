@@ -565,6 +565,16 @@ several GiB. The thumbnail is still computed on every request that the browser c
 `Cache-Control: private, immutable`) does not absorb: there is no server-side cache.
 
 
+### Client-controlled values in the logs
+
+A request path (percent-decoded: `%0D%0A` becomes a real CR/LF), a token prefix, an uploaded file name or a
+remote URL is written in the logs through `LogSanitizer.clean(...)`, which escapes CR, LF, TAB, the other
+control characters and the Unicode format characters (bidi overrides such as U+202E, zero-width
+characters) (`\r`, `\n`, `\t`, `\uXXXX`), and doubles the backslash (`\\`) so that an escape sequence cannot
+be confused with a literal one: a caller cannot forge log lines. Do the same in application
+code for any client string you log (`LOGGER.warn("... {}", LogSanitizer.clean(value))`).
+
+
 ### Static front files
 
 `FrontGeneric` resolves the requested file against the real path of `baseFrontFolder` and compares

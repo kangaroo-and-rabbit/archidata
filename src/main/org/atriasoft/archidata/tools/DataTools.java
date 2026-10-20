@@ -664,7 +664,7 @@ public class DataTools {
 			final String url) throws Exception {
 
 		LOGGER.info("    - id: {}", id);
-		LOGGER.info("    - url: {} ", url);
+		LOGGER.info("    - url: {} ", LogSanitizer.clean(url));
 		final CLASS_TYPE media = ioDb.getById(clazz, id);
 		if (media == null) {
 			throw new InputException("id", "Id does not exist or removed");
@@ -758,10 +758,10 @@ public class DataTools {
 			final FormDataContentDisposition fileMetaData) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo ioDb = ctx.get();
-			LOGGER.info("Upload media file: {}", fileMetaData);
-			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
+			LOGGER.info("Upload media file: {}", LogSanitizer.clean(fileMetaData));
+			LOGGER.info("    - file_name: {} ", LogSanitizer.clean(fileMetaData.getFileName()));
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
-			LOGGER.info("    - fileMetaData: {}", fileMetaData);
+			LOGGER.info("    - fileMetaData: {}", LogSanitizer.clean(fileMetaData));
 
 			final long tmpUID = getTmpDataId();
 			try {
@@ -812,11 +812,11 @@ public class DataTools {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo ioDb = ctx.get();
 			// public NodeSmall uploadFile(final FormDataMultiPart form) {
-			LOGGER.info("Upload media file: {}", fileMetaData);
+			LOGGER.info("Upload media file: {}", LogSanitizer.clean(fileMetaData));
 			LOGGER.info("    - id: {}", id);
-			LOGGER.info("    - file_name: {} ", fileMetaData.getFileName());
+			LOGGER.info("    - file_name: {} ", LogSanitizer.clean(fileMetaData.getFileName()));
 			LOGGER.info("    - fileInputStream: {}", fileInputStream);
-			LOGGER.info("    - fileMetaData: {}", fileMetaData);
+			LOGGER.info("    - fileMetaData: {}", LogSanitizer.clean(fileMetaData));
 			final CLASS_TYPE media = ioDb.getById(clazz, id);
 			if (media == null) {
 				throw new InputException("id", "Id does not exist or removed");

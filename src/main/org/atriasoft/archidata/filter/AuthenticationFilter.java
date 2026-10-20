@@ -16,6 +16,7 @@ import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.SystemException;
 import org.atriasoft.archidata.model.UserByToken;
 import org.atriasoft.archidata.tools.JWTWrapper;
+import org.atriasoft.archidata.tools.LogSanitizer;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,19 +185,19 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
 		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
-		 * logger.debug("-----------------------------------------------------"); logger.debug("   for:{}", requestContext.getUriInfo().getPath()); */
+		 * logger.debug("-----------------------------------------------------"); logger.debug("   for:{}", LogSanitizer.clean(requestContext.getUriInfo().getPath())); */
 
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
 		if (AnnotationTools.methodHasAnnotation(method, DenyAll.class)) {
-			LOGGER.debug("   ==> deny all {}", requestContext.getUriInfo().getPath());
+			LOGGER.debug("   ==> deny all {}", LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			abortWithForbidden(requestContext, "Access blocked !!!");
 			return;
 		}
 
 		// Access allowed for all
 		if (AnnotationTools.methodHasAnnotation(method, PermitAll.class)) {
-			// logger.debug(" ==> permit all " + requestContext.getUriInfo().getPath());
+			// logger.debug(" ==> permit all " + LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			// no control ...
 			return;
 		}
@@ -204,7 +205,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final boolean hasRolesAllowed = AnnotationTools.methodHasAnnotation(method, RolesAllowed.class);
 		final boolean hasRightAllowed = AnnotationTools.methodHasAnnotation(method, RightAllowed.class);
 		if (!hasRolesAllowed && !hasRightAllowed) {
-			LOGGER.error("   ==> missing @RolesAllowed or @RightAllowed {}", requestContext.getUriInfo().getPath());
+			LOGGER.error("   ==> missing @RolesAllowed or @RightAllowed {}",
+					LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			abortWithForbidden(requestContext, "Access ILLEGAL !!!");
 			return;
 		}
@@ -231,7 +233,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final boolean isJwtToken = isTokenBasedAuthenticationBearer(authorizationHeader);
 		final boolean isApiToken = isTokenBasedAuthenticationApiKey(authorizationHeader);
 		if (!isApplicationToken && !isJwtToken && !isApiToken) {
-			LOGGER.warn("REJECTED unauthorized: /{}", requestContext.getUriInfo().getPath());
+			LOGGER.warn("REJECTED unauthorized: /{}", LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 			return;
 		}
@@ -244,7 +246,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				userByToken = validateJwtToken(token);
 			} catch (final Exception e) {
 				// The cause stays in the log: it may come from the database of an API key check.
-				LOGGER.error("Fail to validate token: {}", e.getMessage());
+				LOGGER.error("Fail to validate token: {}", LogSanitizer.clean(e.getMessage()));
 				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
@@ -263,7 +265,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			try {
 				userByToken = validateToken(token);
 			} catch (final Exception e) {
-				LOGGER.error("Fail to validate token: {}", e.getMessage());
+				LOGGER.error("Fail to validate token: {}", LogSanitizer.clean(e.getMessage()));
 				abortWithUnauthorized(requestContext, UNAUTHORIZED_MESSAGE);
 				return;
 			}
@@ -300,7 +302,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 		// Both must pass (AND logic):
 		if (!roleOk || !rightOk) {
-			LOGGER.error("REJECTED not enough rights : {}", requestContext.getUriInfo().getPath());
+			LOGGER.error("REJECTED not enough rights : {}", LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
 					.entity(new RestErrorResponse(Response.Status.FORBIDDEN, "FORBIDDEN", "Not enough RIGHT !!!"))
 					.build());
@@ -415,7 +417,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// check the token is valid !!! (signed and coherent issuer...
 		if (ret == null) {
 			LOGGER.error("The token is not valid: '{}...'",
-					authorization.substring(0, Math.min(authorization.length(), 20)));
+					LogSanitizer.clean(authorization.substring(0, Math.min(authorization.length(), 20))));
 			return null;
 		}
 		// check userID

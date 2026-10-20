@@ -57,6 +57,15 @@ miniature de 256 × 5 120 000 pixels (~5 Go de raster). La hauteur de la miniatu
 sont réduits en gardant le rapport d'aspect (largeur d'au moins 1 pixel). Aucun changement pour les images
 de rapport hauteur/largeur inférieur ou égal à 4.
 
+### Caractères de contrôle neutralisés dans les logs (CS-07)
+
+Le chemin de requête, le préfixe de token, le nom de fichier et l'URL fournis par le client sont écrits dans
+les logs de `AuthenticationFilter` et `DataTools` via `LogSanitizer.clean(...)` : CR, LF, TAB et les autres
+caractères de contrôle et les caractères de format Unicode (surcharges bidi comme U+202E, caractères de
+largeur nulle) deviennent `\r`, `\n`, `\t`, `\uXXXX`, et le backslash est doublé (`\\`) pour qu'une séquence
+d'échappement ne se confonde pas avec un texte littéral. Le format des logs ne change que pour ces
+valeurs ; aucune migration n'est nécessaire.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,
