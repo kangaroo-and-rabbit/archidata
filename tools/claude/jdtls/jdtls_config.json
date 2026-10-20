@@ -9,8 +9,6 @@
   "server": {
     "java_home": "/usr/lib/jvm/java-25-openjdk",
     "jdtls_path": "/usr/share/java/jdtls",
-    "workspace_base": "/tmp/jdtls-workspaces",
-    "socket_path": "/tmp/jdtls-server.sock",
     "log_level": "ERROR"
   }
 }

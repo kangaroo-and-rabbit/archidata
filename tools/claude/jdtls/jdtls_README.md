@@ -147,7 +147,7 @@ Found 15 reference(s):
 
 - Utilise le protocole LSP (Language Server Protocol)
 - Communique avec jdtls via JSON-RPC sur stdin/stdout
-- Index stocké dans `/tmp/jdtls-workspace-archidata/`
+- Index stocké dans `$XDG_RUNTIME_DIR/archidata-jdtls/workspaces/jdtls-archidata/` (sinon `${XDG_CACHE_HOME:-~/.cache}/archidata-jdtls/...`), répertoire privé 0700 ; un répertoire existant appartenant à un autre utilisateur ou modifiable par d autres est refusé. PID et log du démon sont dans le même répertoire
 - Nécessite Java 21+ (utilise Java 25)
 
 ## Limitations (mode standalone)

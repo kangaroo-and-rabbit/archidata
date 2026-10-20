@@ -27,7 +27,6 @@ Système de serveur jdtls persistant avec support multi-projets pour accélérer
   "server": {
     "java_home": "/usr/lib/jvm/java-25-openjdk",
     "jdtls_path": "/usr/share/java/jdtls",
-    "workspace_base": "/tmp/jdtls-workspaces",
     "log_level": "ERROR"
   }
 }
@@ -74,7 +73,7 @@ tools/claude/jdtls/jdtls_daemon.sh status
 **Sortie :**
 ```
 jdtls daemon is RUNNING (PID: 12345)
-Logs: /tmp/jdtls_daemon.log
+Logs: /run/user/1000/archidata-jdtls/jdtls_daemon.log
 
 Configured projects:
   archidata: RUNNING auto-start
@@ -82,6 +81,9 @@ Configured projects:
   kangaroo: RUNNING auto-start
     Path: /home/heero/dev/perso/kangaroo_and_rabbit/kangaroo
 ```
+
+Le dossier d'état (PID, log, socket, workspaces) est privé à l'utilisateur (mode 0700) : `$XDG_RUNTIME_DIR/archidata-jdtls`
+(chemin absolu requis), sinon `$XDG_CACHE_HOME/archidata-jdtls`, sinon `~/.cache/archidata-jdtls`.
 
 ### Arrêter le serveur
 

@@ -12,6 +12,8 @@ import threading
 import time
 from pathlib import Path
 
+from jdtls_private import workspace_dir
+
 class JDTLSClient:
     def __init__(self, workspace_path, java_home="/usr/lib/jvm/java-25-openjdk"):
         self.workspace_path = Path(workspace_path).resolve()
@@ -24,8 +26,7 @@ class JDTLSClient:
 
     def start(self):
         """Start the jdtls process"""
-        workspace_data = f"/tmp/jdtls-workspace-{self.workspace_path.name}"
-        os.makedirs(workspace_data, exist_ok=True)
+        workspace_data = str(workspace_dir(self.workspace_path.name))
 
         env = os.environ.copy()
         env["JAVA_HOME"] = self.java_home

@@ -15,6 +15,8 @@ import signal
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from jdtls_private import workspace_dir
+
 class JDTLSInstance:
     """Manages a single jdtls instance for one project"""
 
@@ -31,8 +33,7 @@ class JDTLSInstance:
 
     def start(self):
         """Start the jdtls process for this project"""
-        workspace_data = Path(self.config["workspace_base"]) / f"jdtls-{self.project_name}"
-        workspace_data.mkdir(parents=True, exist_ok=True)
+        workspace_data = workspace_dir(self.project_name)
 
         env = os.environ.copy()
         env["JAVA_HOME"] = self.config["java_home"]
