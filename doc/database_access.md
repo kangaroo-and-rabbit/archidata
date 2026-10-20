@@ -620,6 +620,10 @@ Archidata supports MongoDB multi-document transactions. See [Connection Manageme
 
 At TRACE level, `org.atriasoft.archidata.dataAccess.DBAccessMongo` logs the filter of each read and
 every document received. The values of the protected fields (`@DataNotRead`, `@DataEncrypt`) are
-replaced by `***` at any depth of the filter or the document, and the JSON rendering only runs when
-TRACE is enabled. The other values (e-mails, tokens compared by a filter...) are logged as they are:
+replaced by `***` where they stand, by position and not by name: the document is walked with the model, so
+the protected fields of embedded objects, of list and set elements and of map values are masked, and so is
+a dotted filter key designating one (`credentials.passwordHash`, `history.0.passwordHash`,
+`map.someKey.secret`), inside `$and`, `$or`, `$elemMatch` and operator documents. A column renamed by
+`OptionRenameColumn` is masked under its new name. Below the root, a key the model does not know (a
+field added by a subclass of the declared type, for example) is masked too. The JSON rendering only runs when TRACE is enabled. The other values (e-mails, tokens compared by a filter...) are logged as they are:
 never enable TRACE on this logger in production.

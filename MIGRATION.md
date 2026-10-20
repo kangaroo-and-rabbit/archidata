@@ -100,6 +100,20 @@ Les noms de champs visibles (`credentials.user`, `history.0.user`, `map.k.label`
 la garde `checkFieldName` change : `Filters.eq(...)` et les autres helpers à nom de champ libre ne
 connaissent toujours pas le modèle, c'est à l'appelant de vérifier un nom venant d'un client.
 
+### Les logs TRACE masquent les champs protégés des objets embarqués (CS-05)
+
+Le masquage des logs TRACE de `DBAccessMongo` (filtre et document reçu) ne connaissait que les champs
+protégés de premier niveau, par leur nom : `credentials.passwordHash` (clé pointée d'un filtre) et
+`credentials: {passwordHash: ...}` (document reçu) étaient écrits en clair. Le masquage se fait maintenant
+par position, en parcourant le document avec le modèle : champs `@DataNotRead` / `@DataEncrypt` des objets
+embarqués, des éléments de `List` / `Set` et des valeurs de `Map`, clés pointées de filtre
+(`history.0.passwordHash`, `map.k.secret`), y compris sous `$and` / `$or` / `$elemMatch`, et colonne
+renommée par `OptionRenameColumn`. Sous la racine, une clé inconnue du modèle (champ ajouté par une
+sous-classe du type déclaré) est masquée aussi, de même que toute la valeur d'un opérateur de filtre qui ne
+s'applique pas à la position (`$expr`, `$where`, `$function`, `$jsonSchema`, `$text`...). Aucune action requise ; les valeurs visibles restent loguées telles
+quelles, et TRACE ne doit toujours pas être activé en production. Les anciens fichiers de log TRACE
+peuvent contenir ces valeurs en clair : à purger.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

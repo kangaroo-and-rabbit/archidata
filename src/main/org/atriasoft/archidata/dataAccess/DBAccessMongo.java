@@ -1739,8 +1739,7 @@ public class DBAccessMongo implements Closeable {
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
 			if (filters != null) {
 				if (LOGGER.isTraceEnabled()) {
-					LOGGER.trace("filter = {}",
-							TraceMasker.toMaskedJson(filters, TraceMasker.protectedFieldNames(model)));
+					LOGGER.trace("filter = {}", TraceMasker.toMaskedJson(filters, clazz, options, true));
 				}
 			} else {
 				LOGGER.trace("filter = None");
@@ -1790,7 +1789,7 @@ public class DBAccessMongo implements Closeable {
 					// Guarded: the JSON rendering is costly and must not run when TRACE is off.
 					if (LOGGER.isTraceEnabled()) {
 						LOGGER.trace(" - receive data from DB: {}",
-								TraceMasker.toMaskedJson(doc, TraceMasker.protectedFieldNames(model)));
+								TraceMasker.toMaskedJson(doc, clazz, options, false));
 					}
 					final Object primaryKey = pkColumn != null ? doc.get(pkColumn) : null;
 					final Object data;
