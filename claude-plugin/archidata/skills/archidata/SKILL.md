@@ -20,10 +20,14 @@ embeds its own documentation:
 
 ```bash
 V=0.50.2   # the version from the pom
-unzip -p ~/.m2/repository/org/atria-soft/archidata/$V/archidata-$V.jar META-INF/archidata/llms-full.txt > /tmp/archidata-$V-llms-full.txt
-grep -n "^FILE: " /tmp/archidata-$V-llms-full.txt   # table of contents (one page per FILE: separator)
+JAR=~/.m2/repository/org/atria-soft/archidata/$V/archidata-$V.jar
+unzip -p "$JAR" META-INF/archidata/llms-full.txt | grep -n "^FILE: "   # table of contents (one page per FILE: separator)
+unzip -p "$JAR" META-INF/archidata/llms-full.txt | sed -n '120,260p'     # read a range of lines
+unzip -p "$JAR" META-INF/archidata/llms-full.txt | grep -n -i "FilterValue"   # search
 ```
 
+Do not save the text under a fixed name in `/tmp` (another local user could plant it): pipe
+`unzip -p` as above, or write it under a private directory made with `mktemp -d`.
 If the jar is missing, run `mvn dependency:resolve` first. Jars older than 0.50.3 do not
 contain it: use the `-sources.jar` (javadoc) or the docs on GitHub at the matching tag.
 `META-INF/archidata/AGENTS.md` in the same jar lists the pitfalls below.
