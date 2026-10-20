@@ -282,7 +282,11 @@ def RESTUrl(request: RESTRequestType, rest_config: RESTConfig | None = None) -> 
     url = f"{rest_config.server.rstrip('/')}/{rest_model.end_point.lstrip('/')}"
     if request.params:
         for key, value in request.params.items():
-            url = url.replace(f"{{{key}}}", quote(_to_url_value(value), safe=""))
+            raw = _to_url_value(value)
+            # A value made only of dots is resolved as a path traversal by the URL parser.
+            if raw in (".", ".."):
+                raise ValueError(f"Invalid path parameter '{key}': {raw!r} is not allowed")
+            url = url.replace(f"{{{key}}}", quote(raw, safe=""))
     query: list[tuple[str, str]] = []
     if request.queries:
         for key, value in request.queries.items():

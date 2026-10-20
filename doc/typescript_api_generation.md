@@ -26,6 +26,16 @@ Annotations
 
 See [Data Model - @ApiDoc](data_model.md#apidoc) and [Data Model - @ApiGenerationMode](data_model.md#apigenerationmode) for details, and the [annotations reference](annotations.md) for every API annotation.
 
+Path parameters
+---------------
+
+Each value of `params` is percent-encoded (`encodeURIComponent`) before it is
+put into the URL: `/`, `?` and `#` stay inside their path segment, so a value
+taken from a route or from stored data cannot redirect the authenticated call
+to another endpoint. A value that is exactly `.` or `..` is refused with an
+`Error` naming the parameter (the URL parser would resolve it as a dot
+segment). Query parameters go through `URLSearchParams`, which encodes them.
+
 Pagination
 ----------
 

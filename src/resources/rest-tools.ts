@@ -151,7 +151,12 @@ export function RESTUrl({
   )}/${removeLeadingSlashes(restModel.endPoint)}`;
   if (params !== undefined) {
     for (let key of Object.keys(params)) {
-      generateUrl = replaceAll(generateUrl, `{${key}}`, `${params[key]}`);
+      const rawValue = String(params[key]);
+      // A value made only of dots is resolved by the URL parser as a path traversal.
+      if (rawValue === '.' || rawValue === '..') {
+        throw new Error(`Invalid path parameter '${key}': '${rawValue}' is not allowed`);
+      }
+      generateUrl = replaceAll(generateUrl, `{${key}}`, encodeURIComponent(rawValue));
     }
   }
   if (

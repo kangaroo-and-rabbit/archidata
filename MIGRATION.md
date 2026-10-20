@@ -31,6 +31,24 @@ trouvait pas le document (par exemple `updateById` sur un document supprimé log
 qu'un client liste dans un champ de relation ne sont toujours pas vérifiés par archidata (un enfant
 listé est rattaché quel que soit son propriétaire) : l'application doit les valider.
 
+### Les clients TypeScript et Python encodent les paramètres de chemin (CS-03)
+
+Le runtime TypeScript généré (`rest-tools.ts`, `RESTUrl`) encode désormais chaque valeur de
+`params` avec `encodeURIComponent` avant de la placer dans l'URL (le runtime Python le faisait déjà
+avec `quote(..., safe="")`). Une valeur contenant `../`, `/`, `?` ou `#` ne peut plus modifier le
+chemin ou la requête appelés avec l'en-tête `Authorization` de l'utilisateur.
+
+Changement de comportement :
+
+- un appelant qui passait volontairement un `/` brut dans un paramètre de chemin envoie maintenant
+  `%2F` (le serveur le décode dans la valeur du paramètre, mais le routage ne voit plus un segment
+  de plus) ;
+- une valeur exactement égale à `.` ou `..` est refusée : `Error` en TypeScript, `ValueError` en
+  Python, avec le nom du paramètre (les navigateurs et urllib3 normalisent ces segments).
+
+Régénérer le client pour récupérer le nouveau `rest-tools.ts` / `rest_tools.py`. Les paramètres de
+requête (`queries`) sont déjà encodés (`URLSearchParams` côté TypeScript) et ne changent pas.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

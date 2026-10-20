@@ -101,6 +101,10 @@ API:
   `dict`), the query parameters (optional, `None` = not sent), the headers,
   `offset` / `limit` for a paginated endpoint, `accept` when the endpoint
   produces several media types;
+- each path parameter is percent-encoded (`quote(..., safe="")`), so `/`, `?`
+  and `#` stay inside their path segment; a value that is exactly `.` or `..`
+  raises a `ValueError` naming the parameter (the HTTP client would normalize
+  the dot segment);
 - a paginated endpoint takes `offset` / `limit`, sent as the
   `X-Pagination-Offset` / `X-Pagination-Limit` headers, and returns
   `Pagination[T]` assembled from the item list body plus the `X-Total-Count`
