@@ -86,7 +86,9 @@ public class DataResource {
 	private static final String DATA_CACHE_CONTROL = "private, max-age=31536000, immutable";
 	/** Largest width or height of a picture a thumbnail is made from. */
 	public static final int MAX_THUMBNAIL_SOURCE_DIMENSION = 20_000;
-	/** Largest number of pixels of a picture a thumbnail is made from (100 Mpx). */
+	/** A thumbnail is at most this many times higher than its configured width (output raster bound). */
+	public static final int MAX_THUMBNAIL_HEIGHT_FACTOR = 4;
+	/** Largest number of pixels of a source picture that is decoded for a thumbnail (100 Mpx). */
 	public static final long MAX_THUMBNAIL_SOURCE_PIXELS = 100_000_000L;
 
 	/** Default constructor used by the JAX-RS resource framework. */
@@ -440,6 +442,26 @@ public class DataResource {
 	}
 
 	/**
+	 * Computes the size of a thumbnail: the requested width and the height that keeps the aspect ratio, unless
+	 * that height exceeds {@link #MAX_THUMBNAIL_HEIGHT_FACTOR} times the requested width. In that case both sides
+	 * are scaled down so that the height fits, keeping the aspect ratio (width at least 1 px). A tall, narrow
+	 * picture (1 x 20000) would otherwise ask for a raster of several GiB.
+	 * @param sourceWidth Width of the source image (positive).
+	 * @param sourceHeight Height of the source image (positive).
+	 * @param thumbnailWidth Requested thumbnail width.
+	 * @return An array {width, height}, both at least 1.
+	 */
+	static int[] thumbnailSize(final int sourceWidth, final int sourceHeight, final int thumbnailWidth) {
+		final long maxHeight = Math.max(1L, (long) thumbnailWidth * MAX_THUMBNAIL_HEIGHT_FACTOR);
+		final long height = Math.max(1L, (long) sourceHeight * thumbnailWidth / sourceWidth);
+		if (height <= maxHeight) {
+			return new int[] { thumbnailWidth, (int) height };
+		}
+		final long width = Math.max(1L, (long) thumbnailWidth * maxHeight / height);
+		return new int[] { (int) width, (int) maxHeight };
+	}
+
+	/**
 	 * Retrieves a thumbnail of the data identified by the given ObjectId, resizing images if possible.
 	 * @param sc The security context.
 	 * @param request The incoming request, used to answer 304 when the browser already has the data (ETag).
@@ -485,13 +507,14 @@ public class DataResource {
 		if (value.getMimeType().contentEquals("image/jpeg") || value.getMimeType().contentEquals("image/png")
 		// || value.mimeType.contentEquals("image/webp")
 		) {
-			final int scaledWidth = ConfigBaseVariable.getThumbnailWidth();
+			final int thumbnailWidth = ConfigBaseVariable.getThumbnailWidth();
 			// reads input image: dimensions checked on the header first, then decoded sub-sampled
-			final BufferedImage inputImage = readThumbnailSource(inputFile, scaledWidth);
+			final BufferedImage inputImage = readThumbnailSource(inputFile, thumbnailWidth);
 			LOGGER.debug("input size image: {}x{} type={}", inputImage.getWidth(), inputImage.getHeight(),
 					inputImage.getType());
-			final int scaledHeight = Math.max(1,
-					(int) ((float) inputImage.getHeight() / (float) inputImage.getWidth() * scaledWidth));
+			final int[] scaledSize = thumbnailSize(inputImage.getWidth(), inputImage.getHeight(), thumbnailWidth);
+			final int scaledWidth = scaledSize[0];
+			final int scaledHeight = scaledSize[1];
 			// creates output image (a decoded image may have a custom type, that BufferedImage refuses)
 			final int outputType = inputImage.getColorModel().hasAlpha() ? BufferedImage.TYPE_INT_ARGB
 					: BufferedImage.TYPE_INT_RGB;

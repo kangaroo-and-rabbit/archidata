@@ -558,7 +558,10 @@ themselves: put a limit in the reverse proxy too (`client_max_body_size` for ngi
 and answers 415 above 20 000 pixels on a side or 100 Mpx in all
 (`DataResource.MAX_THUMBNAIL_SOURCE_DIMENSION`, `MAX_THUMBNAIL_SOURCE_PIXELS`): a PNG of a few KiB
 can declare a picture of several GiB. The picture is then decoded sub-sampled, at about twice the
-thumbnail width. The thumbnail is still computed on every request that the browser cache (ETag,
+thumbnail width. The output is bounded too: its height never exceeds
+`DataResource.MAX_THUMBNAIL_HEIGHT_FACTOR` (4) times the thumbnail width, so, for a thumbnail width of 256, a
+1 x 20 000 picture gives a thumbnail of 1 x 1024 pixels (both sides scaled down, aspect ratio kept) instead of a raster of
+several GiB. The thumbnail is still computed on every request that the browser cache (ETag,
 `Cache-Control: private, immutable`) does not absorb: there is no server-side cache.
 
 

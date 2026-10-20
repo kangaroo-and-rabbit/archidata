@@ -49,6 +49,14 @@ Changement de comportement :
 Régénérer le client pour récupérer le nouveau `rest-tools.ts` / `rest_tools.py`. Les paramètres de
 requête (`queries`) sont déjà encodés (`URLSearchParams` côté TypeScript) et ne changent pas.
 
+### Dimensions de sortie des miniatures bornées (CS-02)
+
+`GET /data/thumbnail/{oid}` bornait la source mais pas la sortie : une image 1 × 20 000 donnait une
+miniature de 256 × 5 120 000 pixels (~5 Go de raster). La hauteur de la miniature est maintenant au plus
+`4 ×` la largeur configurée (`THUMBNAIL_WIDTH`, 256 par défaut, donc 1024 pixels). Au-delà, les deux côtés
+sont réduits en gardant le rapport d'aspect (largeur d'au moins 1 pixel). Aucun changement pour les images
+de rapport hauteur/largeur inférieur ou égal à 4.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

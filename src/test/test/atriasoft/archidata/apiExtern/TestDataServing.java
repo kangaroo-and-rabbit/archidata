@@ -15,6 +15,7 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
+import org.atriasoft.archidata.api.DataResource;
 import org.atriasoft.archidata.exception.RESTErrorResponseException;
 import org.atriasoft.archidata.filter.AuthenticationFilter;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -197,6 +198,17 @@ public class TestDataServing {
 		final BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(thumbnail.body()));
 		Assertions.assertEquals(ConfigBaseVariable.getThumbnailWidth(), image.getWidth());
 		Assertions.assertEquals(1, image.getHeight());
+	}
+
+	@Test
+	public void thumbnailOfTallNarrowPictureIsBounded() throws Exception {
+		final String oid = upload("tall.png", png(1, 20_000));
+		final HttpResponse<byte[]> thumbnail = get("data/thumbnail/" + oid);
+		Assertions.assertEquals(200, thumbnail.statusCode());
+		final BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(thumbnail.body()));
+		final int maxHeight = ConfigBaseVariable.getThumbnailWidth() * DataResource.MAX_THUMBNAIL_HEIGHT_FACTOR;
+		Assertions.assertEquals(maxHeight, image.getHeight());
+		Assertions.assertTrue(image.getWidth() >= 1 && image.getWidth() < ConfigBaseVariable.getThumbnailWidth());
 	}
 
 	@Test
