@@ -551,6 +551,14 @@ public class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
+	 * <strong>Scope:</strong> a {@link Condition} passed in the options is ANDed with the id (for instance an owner
+	 * filter). The relation side effects of the update (cascade on {@code @OneToManyDoc} children, links of
+	 * {@code @ManyToManyDoc} / {@code @ManyToOneDoc}) follow it: when the condition matches nothing, or the
+	 * document is soft-deleted (without {@link AccessDeletedItems}), the update returns 0 and no remote document
+	 * changes.
+	 * </p>
+	 *
+	 * <p>
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
@@ -1389,6 +1397,15 @@ public class DBAccessMongo implements Closeable {
 	 * to update. Without conditions, the operation will fail with an exception.
 	 * </p>
 	 *
+	 * <p>
+	 * <strong>Relation side effects</strong> ({@code @OneToManyDoc}, {@code @ManyToManyDoc},
+	 * {@code @ManyToOneDoc} fields written by the update) follow the same filter as the update: the stored state
+	 * is read with the merged {@link Condition}s, the primary key of {@link TransmitKey} and the soft-delete
+	 * exclusion (unless {@link AccessDeletedItems}), and the side effects run only when the update matched a
+	 * document. A condition that matches nothing, or a soft-deleted target, changes no remote document. Run the
+	 * call inside a {@link TransactionContext} to make the update and its side effects atomic.
+	 * </p>
+	 *
 	 * @param <T>     The type of the entity
 	 * @param data    The entity data containing the update values
 	 * @param options Query options including FilterValue (required) and Condition
@@ -1419,13 +1436,17 @@ public class DBAccessMongo implements Closeable {
 		final DbClassModel model = DbClassModel.of(clazz);
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
-		// Some mode need to get the previous data to perform a correct update...
+		// The relation add-ons diff the stored document against the new values: load it with the filter of
+		// the update itself, so that a document the update does not reach never feeds a side effect (CS-04).
 		Object previousData = null;
 		if (model.needsPreviousDataForUpdate()) {
 			final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
-			previousData = this.getById(data.getClass(), transmitKey.get(0).getKey(), new AccessDeletedItems(),
-					new ReadAllColumn());
+			if (transmitKey.size() == 1) {
+				previousData = readPreviousDataForUpdate(clazz, transmitKey.get(0).getKey(), condition, options);
+			}
 		}
+		// A relation field to synchronize whose stored document the update does not reach.
+		boolean relationSideEffectSkipped = false;
 
 		// real add in the BDD:
 		try {
@@ -1463,8 +1484,12 @@ public class DBAccessMongo implements Closeable {
 						throw new DataAccessException(
 								"Fail to transmit Key to update the async update... (must have only 1)");
 					}
-					desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
-							desc.getProperty().getValue(data), asyncActions, options);
+					if (previousData == null && desc.isPreviousDataNeeded()) {
+						relationSideEffectSkipped = true;
+					} else {
+						desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
+								desc.getProperty().getValue(data), asyncActions, options);
+					}
 				}
 				if (!desc.canInsert()) {
 					continue;
@@ -1527,6 +1552,20 @@ public class DBAccessMongo implements Closeable {
 			statistic.countUpdateMany++;
 			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 					: collection.updateMany(filters, actions);
+			if (ret.getMatchedCount() == 0) {
+				// The update reached no document (caller's condition, soft delete): its relation side effects
+				// must not run either, they would escape the caller's scope (CS-04).
+				if (!asyncActions.isEmpty()) {
+					LOGGER.debug("update of {} matched no document: {} relation side effect(s) dropped", collectionName,
+							asyncActions.size());
+				}
+				return ret.getModifiedCount();
+			}
+			if (relationSideEffectSkipped) {
+				LOGGER.warn("update of {} applied to a document not reachable when its previous state was read "
+						+ "(concurrent write?): its relation fields were written without synchronizing the remote "
+						+ "documents", collectionName);
+			}
 			List<LazyGetter> actionsAsync = asyncActions;
 			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
 				final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
@@ -1540,6 +1579,42 @@ public class DBAccessMongo implements Closeable {
 			LOGGER.error("Error in update: {}", ex.getMessage(), ex);
 			throw ex;
 		}
+	}
+
+	/**
+	 * Reads the stored state of the document an update targets, for the relation side effects of its add-on
+	 * fields.
+	 *
+	 * <p>The read uses the filter of the update itself: the merged conditions of the caller, the soft-delete
+	 * exclusion (unless {@link AccessDeletedItems}) and the collection ({@link OverrideTableName}), restricted to
+	 * the transmitted primary key. A document the update does not reach is not returned.
+	 *
+	 * @param clazz      the entity class
+	 * @param primaryKey the primary key transmitted by {@link TransmitKey}
+	 * @param condition  the merged condition of the update
+	 * @param options    the options of the update
+	 * @return the stored entity (all columns), or {@code null} when the update does not reach it
+	 * @throws Exception if the read fails
+	 */
+	private Object readPreviousDataForUpdate(
+			final Class<?> clazz,
+			final Object primaryKey,
+			final Condition condition,
+			final QueryOptions options) throws Exception {
+		final QueryOptions readOptions = new QueryOptions();
+		readOptions.add(condition);
+		readOptions.add(new Condition(getTableIdCondition(clazz, primaryKey, options)));
+		for (final OverrideTableName elem : options.get(OverrideTableName.class)) {
+			readOptions.add(elem);
+		}
+		for (final OptionSpecifyType elem : options.get(OptionSpecifyType.class)) {
+			readOptions.add(elem);
+		}
+		if (options.exist(AccessDeletedItems.class)) {
+			readOptions.add(new AccessDeletedItems());
+		}
+		readOptions.add(new ReadAllColumn());
+		return getRaw(clazz, readOptions);
 	}
 
 	/**

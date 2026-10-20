@@ -250,6 +250,10 @@ Each point was checked against the code; the doc page gives the details.
 - **Writes without a condition**: `update`, `delete`, `deleteSoft`, `deleteHard`, `restore` and
   `updateBsonDocuments` with a missing or empty `Condition` throw, unless the call carries
   `new AllowMassOperation()`.
+- **Relation side effects of an update follow its `Condition`**: `updateById(body, id, new Condition(owner))`
+  that matches nothing (or a soft-deleted target, without `AccessDeletedItems`) returns 0 and changes no
+  remote document (no cascade, no link added or removed). The ids listed in a relation field of a client body
+  are not checked against the caller's rights: validate them. See `doc/database_access.md`.
 - **Client-supplied names and values in queries**: validate a field name with
   `Filters.checkFieldName(...)` or build the sort with `OrderItem.ofClientField(...)`; use
   `Filters.regexLiteral(...)` for a client value matched as text (`Filters.regex` keeps the

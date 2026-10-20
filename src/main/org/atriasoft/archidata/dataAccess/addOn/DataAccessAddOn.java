@@ -117,8 +117,14 @@ public interface DataAccessAddOn {
 	}
 
 	/** Performs asynchronous update operations for add-on fields after the main update.
+	 *
+	 * <p>The update reads {@code previousData} with its own filter (caller's conditions, primary key, soft-delete
+	 * exclusion): when the add-on needs it ({@link #isPreviousDataNeeded}) and the update does not reach the
+	 * document, this method is not called. The actions collected run only when the main update matched a
+	 * document.
 	 * @param ioDb         The database access instance
-	 * @param previousData The entity data before the update
+	 * @param previousData The stored entity the update reaches, before the update (all columns); never
+	 *                     {@code null} when {@link #isPreviousDataNeeded} is {@code true}
 	 * @param localId      Local ID (primary key) of the entity being updated
 	 * @param desc         Property descriptor that is updated
 	 * @param data         The new data being applied

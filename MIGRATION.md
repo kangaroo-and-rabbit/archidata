@@ -1,5 +1,36 @@
 # Migration Guide
 
+## Prochaine version (après v0.51.3) - Corrections de sécurité de l'audit du 2026-10-20 (CHANGEMENT DE COMPORTEMENT)
+
+Ce lot corrige des constats de l'audit de sécurité du 2026-10-20 (CS-xx). Chaque point dit qui est
+concerné.
+
+### Effets de bord des relations limités au document atteint par `update()` (CS-04)
+
+`update()` (et donc `updateById`) lisait l'état stocké du document par sa seule clé primaire, avec
+`AccessDeletedItems`, puis exécutait les effets de bord des champs de relation après le `updateMany`,
+que celui-ci ait trouvé un document ou non. Une `Condition` de l'appelant (filtre de propriétaire
+`updateById(body, id, new Condition(Filters.eq("ownerId", moi)))`) ne protégeait donc que le document
+lui-même : `PUT /parent/<idVictime>` avec `{"children": []}` supprimait (`cascadeUpdate = DELETE`) ou
+détachait (`SET_NULL`) les enfants de la victime, rattachait à son document les ids listés, et
+ajoutait ou retirait son id des documents distants (`@ManyToManyDoc`, `@ManyToOneDoc`). Même chose sur
+un document supprimé logiquement, que la mise à jour principale ignore.
+
+Désormais l'état stocké est lu avec le filtre de la mise à jour (conditions de l'appelant, clé
+primaire, exclusion des documents supprimés sauf `AccessDeletedItems`, `OverrideTableName`), et les
+effets de bord ne s'exécutent que si le `updateMany` a trouvé un document (`matchedCount > 0`). Une
+mise à jour qui ne trouve rien renvoie `0` et ne modifie aucun document distant. `updateById` sur un
+id inexistant d'une entité à relations renvoie `0` au lieu de lever une `IntrospectionException`.
+
+Aucune transaction n'est ouverte automatiquement : appeler `update` dans un `TransactionContext` rend
+la mise à jour et ses effets de bord atomiques (replica set requis).
+
+**Qui est impacté** : une application qui comptait sur les effets de bord d'une mise à jour qui ne
+trouvait pas le document (par exemple `updateById` sur un document supprimé logiquement sans
+`AccessDeletedItems`, pour nettoyer ses liens) : ajouter `AccessDeletedItems` à l'appel. Les ids
+qu'un client liste dans un champ de relation ne sont toujours pas vérifiés par archidata (un enfant
+listé est rattaché quel que soit son propriétaire) : l'application doit les valider.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

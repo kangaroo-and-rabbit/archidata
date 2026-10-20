@@ -290,6 +290,11 @@ The key of a relation field must be an `ObjectId`, a `Long` or a `UUID` (a `List
 another key type (for example `String`) is rejected when the model is analysed, with an error
 naming the class and the field; it used to be silently ignored.
 
+The links are maintained by the writes of the data layer. On an update, these side effects follow the
+`Condition` of the caller: an update that matches no document (an owner filter that excludes it, a
+soft-deleted target) changes no remote document. See
+[Scoped update and relation side effects](database_access.md#scoped-update-and-relation-side-effects).
+
 Expanding a relation runs a read of the target entities, which expands their own relations in turn.
 This is bounded: at most `RelationExpansion.getMaxDepth()` nested levels (5 by default,
 `RelationExpansion.setMaxDepth(int)` to change it), and an entity already expanded higher on the same

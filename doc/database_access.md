@@ -136,6 +136,29 @@ da.update(updateData,
 );
 ```
 
+#### Scoped update and relation side effects
+
+A `Condition` passed to `updateById` is ANDed with the id, which scopes the write (an owner filter, for
+example):
+
+```java
+da.updateById(body, parentId, new Condition(Filters.eq("ownerId", currentUserId)));
+```
+
+Writing a relation field also changes other documents: `@OneToManyDoc` children removed from the list are
+deleted or unlinked (`cascadeUpdate`), the ids added are re-parented, and `@ManyToManyDoc` /
+`@ManyToOneDoc` links are added to or removed from the remote documents. These **side effects follow the
+filter of the update**: the stored document they are computed from is read with the caller's `Condition`,
+the id and the soft-delete exclusion, and they run only when the update matched a document. When the
+condition matches nothing, or the document is soft-deleted (without `AccessDeletedItems`), the update returns
+`0` and no remote document changes.
+
+The side effects are separate writes made after the main update. Inside a `TransactionContext` (see
+[Connection Management](connectionManagement.md)) they belong to its transaction; without one, a concurrent
+write between the read of the stored document and the update can leave the remote links out of date (a WARN
+is logged when that is detected). archidata does not check that the caller may modify the documents a
+relation field lists: validate the ids of a client body before the update.
+
 ### Delete
 
 Delete by ID (auto-detects soft delete vs hard delete based on the model):

@@ -208,6 +208,9 @@ public class DataAccess {
 	 * DataAccess.updateById(updateData, userId, new FilterValue(List.of("email")));
 	 * </pre>
 	 *
+	 * <p>A {@link Condition} in the options is ANDed with the id; the relation side effects follow it (none when
+	 * it matches nothing or the document is soft-deleted), see {@link DBAccessMongo#updateById}.
+	 *
 	 * @param <T>       The type of entity
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
 	 * @param data      Entity data to update
