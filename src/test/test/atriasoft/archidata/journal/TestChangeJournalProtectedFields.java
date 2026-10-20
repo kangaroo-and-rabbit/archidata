@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.atriasoft.archidata.annotation.Collection;
@@ -18,6 +19,7 @@ import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import test.atriasoft.archidata.ConfigureDb;
@@ -25,6 +27,11 @@ import test.atriasoft.archidata.ConfigureDb;
 /** D-03: the journal never copies the {@code @DataNotRead} fields, and keeps {@code @DataEncrypt} encrypted. */
 public class TestChangeJournalProtectedFields {
 	private static final String COLLECTION = "journalProtected";
+	private static final String NESTED_COLLECTION = "journalProtectedNested";
+	private static final String POLY_COLLECTION = "journalProtectedPoly";
+	private static final String BASE_COLLECTION = "journalProtectedBase";
+	private static final String MULTI_COLLECTION = "journalProtectedMulti";
+	private static final String RAW_COLLECTION = "journalProtectedRaw";
 
 	/** Journalized entity with secrets. */
 	@Collection(COLLECTION)
@@ -36,11 +43,92 @@ public class TestChangeJournalProtectedFields {
 		public String encrypted;
 	}
 
+	/** Embedded POJO with a hidden and an encrypted field. */
+	public static class Credentials {
+		public String user;
+		@DataNotRead
+		public String passwordHash;
+		@DataEncrypt
+		public String pin;
+		public Credentials parent;
+	}
+
+	/** Embedded record with a hidden component. */
+	public record ApiKey(
+			String label,
+			@DataNotRead String secret) {}
+
+	/** Journalized entity with secrets inside embedded objects. */
+	@Collection(NESTED_COLLECTION)
+	public static class NestedAccount extends OIDGenericDataSoftDelete {
+		public String login;
+		public Credentials credentials;
+		public List<Credentials> history;
+		public Map<String, ApiKey> keys;
+		public Map<String, List<Credentials>> keyHistory;
+	}
+
+	/** Concrete base class of an embedded value. */
+	public static class Base {
+		public String label;
+	}
+
+	/** Subclass adding a field unknown to the declared type {@link Base}. */
+	public static class Derived extends Base {
+		public String extra;
+	}
+
+	/** Entity with a top-level polymorphic field (the runtime value carries a hidden field). */
+	@Collection(POLY_COLLECTION)
+	public static class PolyAccount extends OIDGenericDataSoftDelete {
+		public String login;
+		public Object payload;
+	}
+
+	/** Entity with a concrete base class that holds a subclass. */
+	@Collection(BASE_COLLECTION)
+	public static class BaseHolder extends OIDGenericDataSoftDelete {
+		public String login;
+		public Base base;
+	}
+
+	/** Embedded class holding a polymorphic field. */
+	public static class Wrapper {
+		public String name;
+		public Object inner;
+	}
+
+	/** Entity with a raw map and an embedded polymorphic field. */
+	@Collection(RAW_COLLECTION)
+	public static class RawAccount extends OIDGenericDataSoftDelete {
+		public String login;
+		@SuppressWarnings("rawtypes")
+		public Map rawMap;
+		public Wrapper wrapper;
+	}
+
+	/** First model of a collection shared by two classes. */
+	@Collection(MULTI_COLLECTION)
+	public static class MultiA extends OIDGenericDataSoftDelete {
+		public Credentials credentials;
+	}
+
+	/** Second model of the same collection, unaware of the field of the first one. */
+	@Collection(MULTI_COLLECTION)
+	public static class MultiB extends OIDGenericDataSoftDelete {
+		public Base base;
+	}
+
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();
 		final byte[] aesKey = Base64.getDecoder().decode(EncryptionKeyGenerator.generateAesKeyBase64());
 		EncryptionKeyStore.register(EncryptionKeyStore.DEFAULT_KEY_NAME, new AesGcmCipherProvider(aesKey));
+		JournalTestTools.dropJournal();
+	}
+
+	@BeforeEach
+	public void resetJournal() {
 		JournalTestTools.dropJournal();
 	}
 
@@ -87,5 +175,146 @@ public class TestChangeJournalProtectedFields {
 				Assertions.assertTrue(data.contains("kept"), data);
 			}
 		}
+	}
+
+	private static Credentials credentials(final String user, final String hash, final String pin) {
+		final Credentials out = new Credentials();
+		out.user = user;
+		out.passwordHash = hash;
+		out.pin = pin;
+		return out;
+	}
+
+	/** CS-06: the {@code @DataNotRead} fields of embedded objects, lists and maps are not journalized. */
+	@Test
+	public void testNestedProtectedFieldsAreNotJournalized() throws Exception {
+		final NestedAccount account = new NestedAccount();
+		account.login = "alice";
+		account.credentials = credentials("alice-user", "embedded-hash-secret", "embedded-pin-clear");
+		account.credentials.parent = credentials("parent-user", "parent-hash-secret", "parent-pin-clear");
+		account.history = List.of(credentials("old-1", "list-hash-secret-1", "list-pin-clear-1"),
+				credentials("old-2", "list-hash-secret-2", "list-pin-clear-2"));
+		account.keys = Map.of("main", new ApiKey("main-label", "map-secret-value"));
+		account.keyHistory = Map.of("k", List.of(credentials("deep-user", "deep-hash-secret", "deep-pin-clear")));
+		ConfigureDb.da.insert(account);
+
+		final ChangeJournalEngine engine = new ChangeJournalEngine();
+		engine.addClass(NestedAccount.class);
+		engine.run();
+
+		final List<Document> entries = JournalTestTools.journalEntries();
+		Assertions.assertEquals(1, entries.size());
+		final String data = entries.get(0).getString("data");
+		for (final String secret : List.of("embedded-hash-secret", "parent-hash-secret", "list-hash-secret-1",
+				"list-hash-secret-2", "map-secret-value", "deep-hash-secret")) {
+			Assertions.assertFalse(data.contains(secret), secret + " journalized in: " + data);
+		}
+		// The encrypted fields are never copied in clear.
+		for (final String clear : List.of("embedded-pin-clear", "list-pin-clear-1", "deep-pin-clear")) {
+			Assertions.assertFalse(data.contains(clear), clear + " journalized in: " + data);
+		}
+
+		final Document captured = Document.parse(data);
+		Assertions.assertEquals("alice", captured.getString("login"));
+		final Document credentials = captured.get("credentials", Document.class);
+		Assertions.assertEquals("alice-user", credentials.getString("user"));
+		Assertions.assertFalse(credentials.containsKey("passwordHash"));
+		Assertions.assertNotNull(credentials.get("pin"));
+		final Document parent = credentials.get("parent", Document.class);
+		Assertions.assertEquals("parent-user", parent.getString("user"));
+		Assertions.assertFalse(parent.containsKey("passwordHash"));
+		final List<Document> history = captured.getList("history", Document.class);
+		Assertions.assertEquals(2, history.size());
+		Assertions.assertEquals("old-1", history.get(0).getString("user"));
+		Assertions.assertFalse(history.get(0).containsKey("passwordHash"));
+		Assertions.assertFalse(history.get(1).containsKey("passwordHash"));
+		final Document main = captured.get("keys", Document.class).get("main", Document.class);
+		Assertions.assertEquals("main-label", main.getString("label"));
+		Assertions.assertFalse(main.containsKey("secret"));
+		final Document deep = captured.get("keyHistory", Document.class).getList("k", Document.class).get(0);
+		Assertions.assertEquals("deep-user", deep.getString("user"));
+		Assertions.assertFalse(deep.containsKey("passwordHash"));
+		// The system fields are kept.
+		Assertions.assertTrue(captured.containsKey("updatedAt"));
+		Assertions.assertTrue(captured.containsKey("deleted"));
+	}
+
+	private static String capturedData(final ChangeJournalEngine engine) throws Exception {
+		engine.run();
+		final List<Document> entries = JournalTestTools.journalEntries();
+		Assertions.assertEquals(1, entries.size());
+		return entries.get(0).getString("data");
+	}
+
+	/** A top-level Object field is written by the class of its value: nothing under it is journalized. */
+	@Test
+	public void testTopLevelPolymorphicFieldIsNotJournalized() throws Exception {
+		final PolyAccount account = new PolyAccount();
+		account.login = "carol";
+		account.payload = credentials("poly-user", "poly-hash-secret", "poly-pin-clear");
+		ConfigureDb.da.insert(account);
+
+		final ChangeJournalEngine engine = new ChangeJournalEngine();
+		engine.addClass(PolyAccount.class);
+		final String data = capturedData(engine);
+		Assertions.assertFalse(data.contains("poly-hash-secret"), data);
+		Assertions.assertFalse(data.contains("poly-pin-clear"), data);
+		Assertions.assertEquals("carol", Document.parse(data).getString("login"));
+	}
+
+	/** A field stored by the class of the value, unknown to the declared type, is not journalized. */
+	@Test
+	public void testFieldAddedByASubclassIsNotJournalized() throws Exception {
+		final BaseHolder holder = new BaseHolder();
+		holder.login = "dave";
+		final Derived derived = new Derived();
+		derived.label = "base-label";
+		derived.extra = "extra-secret-value";
+		holder.base = derived;
+		ConfigureDb.da.insert(holder);
+
+		final ChangeJournalEngine engine = new ChangeJournalEngine();
+		engine.addClass(BaseHolder.class);
+		final String data = capturedData(engine);
+		Assertions.assertFalse(data.contains("extra-secret-value"), data);
+		Assertions.assertEquals("base-label", Document.parse(data).get("base", Document.class).getString("label"));
+	}
+
+	/** Two classes on one collection: every one of them is applied, the last one does not replace the first. */
+	@Test
+	public void testSeveralClassesOnOneCollectionAreAllApplied() throws Exception {
+		JournalTestTools.database().getCollection(MULTI_COLLECTION).deleteMany(new Document());
+		JournalTestTools.database().getCollection(MULTI_COLLECTION)
+				.insertOne(new Document("credentials",
+						new Document("user", "multi-user").append("passwordHash", "multi-hash-secret"))
+								.append("base", new Document("label", "multi-label")).append("updatedAt", new Date()));
+
+		final ChangeJournalEngine engine = new ChangeJournalEngine();
+		engine.addClass(MultiA.class, MultiB.class);
+		final String data = capturedData(engine);
+		Assertions.assertFalse(data.contains("multi-hash-secret"), data);
+		Assertions.assertTrue(data.contains("multi-label"), data);
+	}
+
+	/** A raw map and an embedded Object are written by the class of their values: nothing under them is kept. */
+	@Test
+	public void testRawMapAndEmbeddedPolymorphicFieldAreNotJournalized() throws Exception {
+		final RawAccount account = new RawAccount();
+		account.login = "erin";
+		account.rawMap = Map.of("k", new ApiKey("raw-label", "raw-map-secret-value"));
+		account.wrapper = new Wrapper();
+		account.wrapper.name = "wrapper-name";
+		account.wrapper.inner = credentials("inner-user", "inner-hash-secret", "inner-pin-clear");
+		ConfigureDb.da.insert(account);
+
+		final ChangeJournalEngine engine = new ChangeJournalEngine();
+		engine.addClass(RawAccount.class);
+		final String data = capturedData(engine);
+		Assertions.assertFalse(data.contains("raw-map-secret-value"), data);
+		Assertions.assertFalse(data.contains("inner-hash-secret"), data);
+		Assertions.assertFalse(data.contains("inner-pin-clear"), data);
+		final Document captured = Document.parse(data);
+		Assertions.assertEquals("erin", captured.getString("login"));
+		Assertions.assertEquals("wrapper-name", captured.get("wrapper", Document.class).getString("name"));
 	}
 }

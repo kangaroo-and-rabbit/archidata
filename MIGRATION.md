@@ -114,6 +114,23 @@ s'applique pas à la position (`$expr`, `$where`, `$function`, `$jsonSchema`, `$
 quelles, et TRACE ne doit toujours pas être activé en production. Les anciens fichiers de log TRACE
 peuvent contenir ces valeurs en clair : à purger.
 
+### Le journal des modifications omet les champs `@DataNotRead` des objets embarqués (CS-06)
+
+`ChangeJournalEngine.addClass` ne retirait que les champs `@DataNotRead` de premier niveau : ceux d'un
+objet embarqué, des éléments d'une `List` / `Set` ou des valeurs d'une `Map` étaient copiés tels quels
+dans le champ `data` de chaque entrée du journal, contrairement à ce que promettent la Javadoc et
+`doc/change_journal.md`. Désormais ils sont retirés à tout niveau (parcours du document avec le modèle,
+en Java : la clé d'une `Map` est dynamique, une projection fixe ne peut pas l'exprimer). Les champs
+`@DataEncrypt` d'un objet embarqué restent copiés sous leur forme chiffrée, comme ceux du premier niveau ;
+les champs système (`createdAt`, `updatedAt`, `deleted`) restent copiés. Par prudence, sous la racine,
+une clé inconnue du modèle (champ ajouté par une sous-classe du type déclaré, valeur d'un champ déclaré
+`Object` / interface / classe abstraite) est retirée aussi, et toutes les classes enregistrées pour une
+même collection sont appliquées.
+
+Action : **les entrées déjà écrites par les versions précédentes peuvent contenir ces secrets en clair**
+(et les sauvegardes de la base aussi). Purger les entrées du journal des collections concernées, puis
+changer les secrets exposés si le journal ou ses sauvegardes ont été accessibles à des tiers.
+
 ## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
 
 - `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,

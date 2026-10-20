@@ -70,6 +70,17 @@ The capture copies each document as it is stored. What is kept out:
 - For a class registered with `addClass`, its `@DataNotRead` fields (password hashes, tokens,
   secrets) are not copied (MongoDB projection). The system fields `createdAt`, `updatedAt` and
   `deleted` are `@DataNotRead` too but are kept: they drive the capture.
+- The `@DataNotRead` fields **inside embedded objects** are not copied either: those of an embedded
+  object, of the elements of a `List` / `Set` and of the values of a `Map` (the key of a map is dynamic, so
+  they are removed in Java before the document is serialized, at any depth). The `@DataEncrypt` fields
+  of embedded objects stay encrypted, like the top-level ones. A value declared `Object`, as an interface or
+  as an abstract class is written by the class of the value, which the model cannot know: the fields
+  inside such a sub-document are dropped from the entry (fail closed), and so is, below the root, any key
+  the model does not know (a field added by a subclass of the declared type, for example). Every class
+  registered with `addClass` for the same collection is applied.
+- Journal entries written **before this protection** (versions up to v0.51.3) may hold those nested
+  secrets in clear in their `data`: purge them (delete the entries of the collections concerned from the
+  journal collection, or age them out with [`ChangeJournalPurge`](#retention-purge)) and, if the secrets were exposed, rotate them.
 - `@DataEncrypt` fields are copied in their stored form, that is **encrypted**: the journal never
   holds their clear value.
 - A collection registered by name (`addCollection`) or captured by `runAll()` has no model: declare its

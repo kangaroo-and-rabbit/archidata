@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.FieldPathCursor;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.bson.Document;
 import org.bson.json.JsonMode;
@@ -66,7 +68,8 @@ import com.mongodb.client.model.UpdateOptions;
  *
  * <p><b>Protected fields.</b> The capture copies the documents as they are stored. For a class
  * registered with {@link #addClass}, its {@code @DataNotRead} fields (secrets, password hashes, tokens)
- * are left out of the journal; the system fields ({@code createdAt}, {@code updatedAt}, {@code deleted})
+ * are left out of the journal, also when they stand inside an embedded object, the elements of a list
+ * or a set, or the values of a map; the system fields ({@code createdAt}, {@code updatedAt}, {@code deleted})
  * are kept. Its {@code @DataEncrypt} fields are copied in their stored form, that is encrypted. A
  * collection registered by name ({@link #addCollection}, {@link #runAll()}) has no model: declare its
  * sensitive fields with {@link #excludeFields(String, String...)}, and do not journalize token or session
@@ -96,6 +99,8 @@ public class ChangeJournalEngine {
 	private final List<String> collectionNames = new ArrayList<>();
 	/** Database field names left out of the capture, per source collection. */
 	private final Map<String, Set<String>> excludedFields = new HashMap<>();
+	/** Root of the model of every class registered for a source collection (several classes may share one). */
+	private final Map<String, List<FieldPathCursor>> nestedProtection = new HashMap<>();
 	private int batchMaxDocuments = DEFAULT_BATCH_MAX_DOCUMENTS;
 	private int batchMaxBytes = DEFAULT_BATCH_MAX_BYTES;
 	private long safetyOverlapMillis = 0L;
@@ -167,6 +172,13 @@ public class ChangeJournalEngine {
 				if (desc.isNotRead() && !desc.isGenericField()) {
 					excludeFields(name, desc.getDbFieldName());
 				}
+			}
+			// Every class is walked at capture time, the walker decides what is protected (embedded objects,
+			// polymorphic values...). Several classes on one collection: all of them are applied.
+			try {
+				this.nestedProtection.computeIfAbsent(name, it -> new ArrayList<>()).add(FieldPathCursor.of(clazz));
+			} catch (final IntrospectionException ex) {
+				throw new DataAccessException("Cannot analyse the model of " + clazz.getCanonicalName(), ex);
 			}
 		}
 	}
@@ -472,7 +484,11 @@ public class ChangeJournalEngine {
 		final FindIterable<Document> base = db.getCollection(name).find(filter).batchSize(CURSOR_BATCH_SIZE);
 		final FindIterable<Document> find = excluded.isEmpty() ? base
 				: base.projection(Projections.exclude(new ArrayList<>(excluded)));
+		final List<FieldPathCursor> nested = this.nestedProtection.getOrDefault(name, List.of());
 		for (final Document doc : find) {
+			for (final FieldPathCursor root : nested) {
+				removeNestedSecrets(doc, root);
+			}
 			final String json = doc.toJson(settings);
 			batch.add(buildEntry(name, doc, json, runDate));
 			batchBytes += json.length();
@@ -484,6 +500,55 @@ public class ChangeJournalEngine {
 		}
 		flush(journal, batch);
 		return count;
+	}
+
+	/**
+	 * Remove, at any depth, the {@code @DataNotRead} fields of the embedded objects, of the elements of the
+	 * lists and sets, and of the values of the maps. The top level is already cut by the projection (and keeps
+	 * its system fields); {@code @DataEncrypt} fields stay, in their stored (encrypted) form. Fails closed:
+	 * below the root, a key the model does not know (stored by the class of the value, for example a field
+	 * added by a subclass) and a position that cannot be resolved with certainty (polymorphic type, too
+	 * deep) are dropped.
+	 */
+	private static void removeNestedSecrets(final Map<String, Object> doc, final FieldPathCursor position) {
+		final Iterator<Map.Entry<String, Object>> iterator = doc.entrySet().iterator();
+		while (iterator.hasNext()) {
+			final Map.Entry<String, Object> entry = iterator.next();
+			final FieldPathCursor next = position.member(entry.getKey());
+			switch (next.status()) {
+				case PROTECTED:
+					if (position.depth() > 0 && next.field().isNotRead()) {
+						iterator.remove();
+					}
+					break;
+				case UNSAFE:
+					iterator.remove();
+					break;
+				case UNKNOWN:
+					if (position.depth() > 0) {
+						iterator.remove();
+					}
+					break;
+				case OK:
+					if (!next.isFreeForm()) {
+						removeNestedSecretsFromValue(entry.getValue(), next);
+					}
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void removeNestedSecretsFromValue(final Object value, final FieldPathCursor position) {
+		if (value instanceof final Map<?, ?> sub) {
+			removeNestedSecrets((Map<String, Object>) sub, position);
+		} else if (value instanceof final List<?> list) {
+			for (final Object item : list) {
+				removeNestedSecretsFromValue(item, position);
+			}
+		}
 	}
 
 	/** Write the pending entries and clear the batch. No-op on an empty batch. */
