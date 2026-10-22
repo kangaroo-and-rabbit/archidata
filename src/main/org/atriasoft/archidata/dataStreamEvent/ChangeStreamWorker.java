@@ -2,6 +2,8 @@ package org.atriasoft.archidata.dataStreamEvent;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.bson.BsonDocument;
@@ -13,8 +15,8 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.MongoChangeStreamCursor;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.OperationType;
@@ -41,6 +43,15 @@ import com.mongodb.client.model.changestream.OperationType;
  * STOPPED) and statistics like the number of events processed.
  * </p>
  *
+ * <p>
+ * A change stream opened without a start point begins when its {@code aggregate} runs on the server,
+ * on this thread: the worker tells the manager when that first attempt is over, so that a registration
+ * returns only once a write made after it is sure to be notified. After {@link #stop()}, the worker
+ * ends when its current {@code getMore} returns (the server waits at most its await time, 1 s by
+ * default, when there is no change), and the manager does not dispatch any event it reads after it
+ * was stopped.
+ * </p>
+ *
  * @see ChangeNotificationManager
  * @see ChangeEvent
  * @see WorkerStatus
@@ -58,6 +69,11 @@ public class ChangeStreamWorker implements Runnable {
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
 	private BsonDocument resumeToken = null;
 	private final AtomicLong eventsProcessed = new AtomicLong(0);
+	/** Released when the first attempt to open the change stream is over, whether it opened it or failed. */
+	private final CountDownLatch firstOpenAttemptDone = new CountDownLatch(1);
+	/** Released when {@link #run()} returns. */
+	private final CountDownLatch ended = new CountDownLatch(1);
+	private volatile boolean streamOpen = false;
 
 	/**
 	 * Constructs a new ChangeStreamWorker for the specified collection.
@@ -91,6 +107,15 @@ public class ChangeStreamWorker implements Runnable {
 	/** {@inheritDoc} */
 	@Override
 	public void run() {
+		try {
+			runLoop();
+		} finally {
+			this.firstOpenAttemptDone.countDown();
+			this.ended.countDown();
+		}
+	}
+
+	private void runLoop() {
 		LOGGER.info("ChangeStreamWorker started for collection: {}", this.collectionName);
 		this.status = WorkerStatus.RUNNING;
 		Thread.currentThread().setName("ChangeStreamWorker_" + this.collectionName);
@@ -182,9 +207,27 @@ public class ChangeStreamWorker implements Runnable {
 			LOGGER.info("Resuming change stream for collection {} with resume token", this.collectionName);
 		}
 
-		try (MongoCursor<ChangeStreamDocument<Document>> cursor = changeStreamBuilder.iterator()) {
-			while (this.running && cursor.hasNext()) {
-				final ChangeStreamDocument<Document> changeDoc = cursor.next();
+		// The aggregate runs here: from now on, every change of the collection reaches this cursor
+		final MongoChangeStreamCursor<ChangeStreamDocument<Document>> cursor;
+		try {
+			cursor = changeStreamBuilder.cursor();
+			this.streamOpen = true;
+		} finally {
+			// Opened or failed, the first attempt is over: a registration does not wait for the retries
+			this.firstOpenAttemptDone.countDown();
+		}
+		try (cursor) {
+			while (this.running) {
+				// tryNext() returns null after an empty getMore, so the stop flag is checked at least once per
+				// server await time; hasNext() would block until a change arrives, whatever stop() says
+				final ChangeStreamDocument<Document> changeDoc = cursor.tryNext();
+				if (changeDoc == null) {
+					if (cursor.getServerCursor() == null) {
+						// The server closed the stream (invalidate): open it again
+						return;
+					}
+					continue;
+				}
 
 				// Save resume token for resilience
 				this.resumeToken = changeDoc.getResumeToken();
@@ -192,10 +235,12 @@ public class ChangeStreamWorker implements Runnable {
 				// Convert to ChangeEvent and notify manager
 				final ChangeEvent event = convertToChangeEvent(changeDoc);
 				if (event != null) {
-					this.manager.notifyChange(event);
+					this.manager.notifyChange(this, event);
 					this.eventsProcessed.incrementAndGet();
 				}
 			}
+		} finally {
+			this.streamOpen = false;
 		}
 	}
 
@@ -224,10 +269,44 @@ public class ChangeStreamWorker implements Runnable {
 
 	/**
 	 * Signals the worker to stop watching the change stream. The worker will
-	 * complete its current operation and then exit gracefully.
+	 * complete its current operation and then exit gracefully: it ends when its current
+	 * {@code getMore} returns, at most the server's await time (1 s by default) when there is no change.
 	 */
 	public void stop() {
 		this.running = false;
+	}
+
+	/**
+	 * Tells whether {@link #stop()} was called.
+	 *
+	 * @return true once the worker was asked to stop
+	 */
+	boolean isStopRequested() {
+		return !this.running;
+	}
+
+	/**
+	 * Waits until the first attempt to open the change stream is over.
+	 *
+	 * @param timeout the maximum time to wait
+	 * @param unit the unit of {@code timeout}
+	 * @return true when the stream is open: a change made after this call returns true reaches the worker
+	 * @throws InterruptedException if the calling thread is interrupted while waiting
+	 */
+	boolean awaitStreamOpen(final long timeout, final TimeUnit unit) throws InterruptedException {
+		return this.firstOpenAttemptDone.await(timeout, unit) && this.streamOpen;
+	}
+
+	/**
+	 * Waits until the worker has ended (its {@link #run()} returned).
+	 *
+	 * @param timeout the maximum time to wait
+	 * @param unit the unit of {@code timeout}
+	 * @return true when the worker has ended
+	 * @throws InterruptedException if the calling thread is interrupted while waiting
+	 */
+	boolean awaitEnd(final long timeout, final TimeUnit unit) throws InterruptedException {
+		return this.ended.await(timeout, unit);
 	}
 
 	/**

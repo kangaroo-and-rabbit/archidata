@@ -1,5 +1,21 @@
 # Migration Guide
 
+## Prochaine version (après v0.51.1) - Change streams : un `stop()` suivi d'un `start()` ne perd plus d'écriture (CHANGEMENT DE COMPORTEMENT)
+
+- `start(...)`, `registerListener(...)`, `register()` d'un `ListenerRegistrationBuilder`,
+  `watchCollection(...)` et `watch(name).start()` rendent la main une fois ouverts les change streams
+  des collections qu'ils démarrent (10 s au plus, puis un WARN nomme la collection). Avant, ils
+  rendaient la main avant l'`aggregate` qui ouvre le stream : une écriture faite juste après
+  n'était jamais notifiée. Chaque enregistrement coûte donc quelques millisecondes (une connexion
+  par stream) ; `registerListener(listener, Set<String>)` ouvre les streams en parallèle.
+- `stop()` rend la main une fois ses workers terminés : environ 1 s (le temps d'attente d'un
+  `getMore` côté serveur), au lieu de 1,5 s avec les workers encore vivants. Un worker encore actif
+  après 5 s est interrompu, et une ERROR nomme ceux qui restent 5 s plus tard. Un événement lu par
+  un worker arrêté n'est plus jamais transmis aux listeners d'un `start()` suivant.
+- `start(DbConfig)` sur un manager déjà démarré dans le même mode ferme le client qu'il vient de
+  créer et garde le sien (avant, il remplaçait la référence et le client d'origine n'était jamais
+  fermé).
+
 ## Prochaine version (après v0.50.2) - Annotations propres à archidata à la place de JPA (BREAKING CHANGE)
 
 archidata ne lit plus aucune annotation JPA (`jakarta.persistence`), ni le `@DefaultValue` de
