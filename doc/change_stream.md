@@ -69,6 +69,14 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   `watch(name).start()` is called, or after `watchAllCollections()`. Global listeners (registered
   without a collection) do not create workers on their own: they only receive events from
   collections that are already watched.
+- **A stream begins when its worker opens it, so registering waits for it.** The worker runs the
+  `aggregate` that opens the change stream on its own thread, and a stream opened without a start
+  point only sees the changes made after that. `start(...)`, `registerListener(...)`, `register()` of
+  a `ListenerRegistrationBuilder`, `watchCollection(...)` and `watch(name).start()` therefore return
+  only once the streams of the collections they start are open (at most 10 s in all, then a WARN
+  names the collection): a write made after they return is notified. Opening a stream takes a
+  connection of its own, a few milliseconds; `registerListener(listener, Set<String>)` opens the
+  streams of its collections in parallel.
 - **The FullDocument mode is global.** It is fixed by `start(..., mode)` and applied to every worker.
   There is one worker per collection, so a listener cannot get another mode: the `mode` argument
   of `registerListener(..., mode)`, `withMode(...)` and `CollectionWatchBuilder.fullDocument(...)`
@@ -95,6 +103,12 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   1 s; other `MongoCommandException` / `MongoException` set `RECONNECTING` and retry after 5 s;
   any other exception sets `ERROR` and retries after 5 s. The loop ends only on `stop()`
   (`STOPPED`). The delay is fixed (no exponential backoff, no retry limit).
+- **Stopping.** A worker reads its stream with `tryNext()`: a `getMore` with no change returns after
+  the server's await time (1 s by default), and the worker then sees it was stopped. `stop()` waits
+  for every worker to end (so about 1 s), interrupts the ones still running after 5 s (a listener
+  that does not return), waits 5 s more and logs an ERROR naming the ones left. An event a stopped
+  worker still reads is never dispatched (the manager checks that the worker is still the one of its
+  collection), so `stop()` then `start()` is safe, even right away in the same JVM.
 - **Two kinds of filtering.** Server-side (`CollectionWatchBuilder`, an aggregation `$match`
   pipeline) reduces network traffic but is attached to the collection, not to a listener.
   Client-side (`ListenerRegistrationBuilder`, a `Predicate<ChangeEvent>`) is per listener and can
@@ -112,9 +126,9 @@ Lifecycle:
 |---|---|
 | `static getInstance()` | the singleton |
 | `start(MongoDatabase)` | mode `DEFAULT` |
-| `start(MongoDatabase, FullDocument)` | throws `IllegalArgumentException` on `null`. If already running with the same mode: no-op. With another mode: `stop()` then restart, which **clears all listeners** |
-| `start()`, `start(DbConfig)`, `start(DbConfig, FullDocument)` | build and own a `MongoClient`; throw `DataAccessException` |
-| `stop()` | stops workers, shuts the pool down (1 s then `shutdownNow`), clears workers, listeners and resume tokens, closes an owned client, resets the global mode to `UPDATE_LOOKUP` |
+| `start(MongoDatabase, FullDocument)` | throws `IllegalArgumentException` on `null`. If already running with the same mode: no-op. With another mode: `stop()` then restart, which **clears all listeners**. With listeners already registered, returns once their streams are open (at most 10 s) |
+| `start()`, `start(DbConfig)`, `start(DbConfig, FullDocument)` | build and own a `MongoClient`; throw `DataAccessException`. If already running with the same mode, the new client is closed and the manager keeps its own |
+| `stop()` | stops the workers and clears workers, listeners and resume tokens, then waits for the workers to end (about 1 s; interrupt after 5 s, ERROR after 5 s more), closes an owned client, resets the global mode to `UPDATE_LOOKUP` |
 | `isRunning()` | |
 
 Collections:
@@ -133,7 +147,7 @@ Listeners:
 | Method | Notes |
 |---|---|
 | `registerListener(listener)` | global listener (all watched collections) |
-| `registerListener(listener, String)` / `(listener, Set<String>)` | collection listeners; the overloads with a `FullDocument` argument ignore it |
+| `registerListener(listener, String)` / `(listener, Set<String>)` | collection listeners; the overloads with a `FullDocument` argument ignore it. When running, returns once the streams of the collections are open |
 | `createListenerBuilder(listener)` / `(listener, String)` / `(listener, Set<String>)` | returns a `ListenerRegistrationBuilder` (client-side filters) |
 | `unregisterListener(listener)` | removes it everywhere (matched with `equals`) |
 | `unregisterListener(listener, String)` | removes it from one collection only |
@@ -263,6 +277,10 @@ carries the raw document, `@DataNotRead` fields included.
   token), so register listeners afterwards. `setDefaultFullDocumentMode` does not touch running workers.
 - **`stop()` forgets everything**: listeners, resume tokens and the owned client. After a
   restart events produced while stopped are not replayed.
+- **Registering blocks until the stream is open**, a few milliseconds per collection (a
+  connection is opened for each stream). Registering 50 collections one call at a time opens them
+  one after the other; pass a `Set<String>` to open them in parallel. If MongoDB does not answer, each
+  registration waits at most 10 s and logs a WARN.
 - **Events can be lost** across restarts or when the oplog window is exceeded; resume tokens are
   not persisted. Treat notifications as hints (invalidate, refresh), not as a durable log. Use the
   [change journal](change_journal.md) if you need history.
@@ -293,6 +311,8 @@ used by the other integration tests (`ConfigureDb.configure()`):
 - `MultiCollectionTest`: several collections and global listeners.
 - `FullDocumentModesTest`: effect of the global mode (one test is `@Disabled` as flaky).
 - `ChangeNotificationIntegrationTest`: end-to-end behaviour including worker restarts.
+- `TestChangeStreamRestart`: a write right after `registerListener()` is notified, also after
+  `stop()` then `start()` in the same JVM, and `stop()` returns once its workers have ended.
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 

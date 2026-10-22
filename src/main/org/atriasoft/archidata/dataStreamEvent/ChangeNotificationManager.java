@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.dataStreamEvent;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,6 +85,16 @@ import com.mongodb.client.model.changestream.FullDocument;
  * receive events concurrently.
  * </p>
  *
+ * <p>
+ * Lifecycle guarantees: a change stream begins when its worker opens it on the server, not when the
+ * listener is registered. So {@code start(...)}, {@code registerListener(...)}, {@code register()} of a
+ * listener builder and {@code watchCollection(...)} return only once the streams of the collections
+ * they watch are open (at most 10 s, a warning is logged beyond):
+ * a write made after they return is notified. {@code stop()} returns only once its workers have ended
+ * (bounded, an error names the workers still running), and an event read by a stopped worker is never
+ * dispatched, so {@code stop()} then {@code start()} is safe.
+ * </p>
+ *
  * @see ChangeEvent
  * @see ChangeNotificationListener
  * @see ChangeStreamWorker
@@ -93,6 +104,12 @@ import com.mongodb.client.model.changestream.FullDocument;
 public class ChangeNotificationManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeNotificationManager.class);
 	private static final ChangeNotificationManager INSTANCE = new ChangeNotificationManager();
+	/** Longest wait, in {@code start(...)} or a registration, for the change streams to be open. */
+	static final long STREAM_OPEN_TIMEOUT_MS = 10_000;
+	/** Longest wait, in {@code stop()}, for the workers to end before they are interrupted. */
+	static final long STOP_TIMEOUT_MS = 5_000;
+	/** Longest wait, in {@code stop()}, for the workers to end once interrupted. */
+	static final long STOP_AFTER_INTERRUPT_TIMEOUT_MS = 5_000;
 
 	// Thread pool for Change Stream workers
 	private ExecutorService executorService;
@@ -166,6 +183,11 @@ public class ChangeNotificationManager {
 	 * This method initializes the worker thread pool and starts the executor pool.
 	 * The specified mode will be used globally for all collections.
 	 *
+	 * <p>
+	 * When listeners are already registered, it returns once the change streams of their collections
+	 * are open (at most 10 s).
+	 * </p>
+	 *
 	 * @param database The MongoDB database instance to watch for changes
 	 * @param mode The FullDocument mode to use for all collections
 	 * @throws IllegalArgumentException if database or mode is null
@@ -177,40 +199,56 @@ public class ChangeNotificationManager {
 		if (mode == null) {
 			throw new IllegalArgumentException("FullDocument mode cannot be null");
 		}
+		startInternal(database, mode, null);
+	}
 
+	/**
+	 * Starts the manager on a database, owning {@code ownedClient} when it is not null.
+	 *
+	 * @return true when the manager was started (it then owns {@code ownedClient}), false when it was already
+	 *         running with that mode (the caller keeps {@code ownedClient})
+	 */
+	private boolean startInternal(
+			final MongoDatabase database,
+			final FullDocument mode,
+			final MongoClient ownedClient) {
+		final List<ChangeStreamWorker> started;
 		this.lock.writeLock().lock();
 		try {
-			if (this.running) {
+			while (this.running) {
 				// Check if we're trying to start with a different mode
-				if (!this.globalFullDocumentMode.equals(mode)) {
-					LOGGER.info(
-							"ChangeNotificationManager is running with mode {} but requested mode is {}. Restarting with new mode.",
-							this.globalFullDocumentMode, mode);
-					// Need to stop and restart with new mode
-					this.lock.writeLock().unlock();
-					try {
-						stop();
-					} finally {
-						this.lock.writeLock().lock();
-					}
-				} else {
+				if (this.globalFullDocumentMode.equals(mode)) {
 					LOGGER.debug("ChangeNotificationManager is already running with mode {}", mode);
-					return;
+					return false;
+				}
+				LOGGER.info(
+						"ChangeNotificationManager is running with mode {} but requested mode is {}. Restarting with new mode.",
+						this.globalFullDocumentMode, mode);
+				// Need to stop and restart with new mode
+				this.lock.writeLock().unlock();
+				try {
+					stop();
+				} finally {
+					this.lock.writeLock().lock();
 				}
 			}
 
 			this.database = database;
+			this.ownedMongoClient = ownedClient;
 			this.globalFullDocumentMode = mode;
 			this.executorService = Executors.newCachedThreadPool();
 			this.running = true;
 
 			// Start workers for all registered collections
-			startAllWorkers();
+			started = startAllWorkers();
 
 			LOGGER.info("ChangeNotificationManager started with mode: {}", mode);
 		} finally {
 			this.lock.writeLock().unlock();
 		}
+		// Outside the lock: a worker that already delivers events takes the read lock
+		awaitStreamsOpen(started);
+		return true;
 	}
 
 	/**
@@ -252,13 +290,19 @@ public class ChangeNotificationManager {
 			throw new IllegalArgumentException("FullDocument mode cannot be null");
 		}
 
+		MongoClient mongoClient = null;
+		boolean owned = false;
 		try {
-			final MongoClient mongoClient = createMongoClient(dbConfig);
-			this.ownedMongoClient = mongoClient;
+			mongoClient = createMongoClient(dbConfig);
 			final MongoDatabase databaseTmp = mongoClient.getDatabase(dbConfig.getDbName());
-			start(databaseTmp, mode);
+			// The client is handed over under the lock: a running manager keeps the client it owns
+			owned = startInternal(databaseTmp, mode, mongoClient);
 		} catch (final Exception e) {
 			throw new DataAccessException("Failed to connect to MongoDB: " + e.getMessage());
+		} finally {
+			if (!owned && mongoClient != null) {
+				mongoClient.close();
+			}
 		}
 	}
 
@@ -287,19 +331,27 @@ public class ChangeNotificationManager {
 	 * The shutdown process:
 	 * </p>
 	 * <ol>
-	 * <li>Signals all workers to stop</li>
-	 * <li>Waits up to 1 second for graceful shutdown</li>
-	 * <li>Forces shutdown if workers don't stop within timeout</li>
-	 * <li>Waits an additional 500ms for forced shutdown to complete</li>
+	 * <li>Signals all workers to stop and clears the workers, listeners and resume tokens: an event a
+	 * stopping worker still reads is not dispatched</li>
+	 * <li>Waits for every worker to end: a worker ends when its current {@code getMore} returns (at most
+	 * the server's await time, 1 s by default)</li>
+	 * <li>Interrupts the workers still running after 5 s (a slow listener), waits
+	 * 5 s more, and logs an error naming the workers that are still
+	 * running</li>
+	 * <li>Closes the MongoClient the manager owns</li>
 	 * </ol>
 	 *
 	 * <p>
-	 * After stopping, the manager can be restarted by calling start() again. If
+	 * After stopping, the manager can be restarted by calling start() again: the workers of the stopped
+	 * manager have ended, and none of them dispatches an event to the listeners of the new start. If
 	 * the manager is not running, this method logs a warning and returns without
 	 * action.
 	 * </p>
 	 */
 	public void stop() {
+		final List<ChangeStreamWorker> stopping;
+		final ExecutorService executor;
+		final MongoClient client;
 		this.lock.writeLock().lock();
 		try {
 			if (!this.running) {
@@ -310,25 +362,11 @@ public class ChangeNotificationManager {
 			this.running = false;
 
 			// Stop all workers and save their tokens
+			stopping = new ArrayList<>(this.workers.values());
 			for (final String collectionName : new HashSet<>(this.workers.keySet())) {
 				stopWorkerForCollection(collectionName);
 			}
-
-			// Shutdown executor
-			this.executorService.shutdown();
-			try {
-				final long start = System.currentTimeMillis();
-				if (!this.executorService.awaitTermination(1, TimeUnit.SECONDS)) {
-					this.executorService.shutdownNow();
-					// Give shutdownNow a brief moment to complete
-					this.executorService.awaitTermination(500, TimeUnit.MILLISECONDS);
-				}
-				final long end = System.currentTimeMillis();
-				LOGGER.info("Executor shutdown completed in {} seconds", (end - start) * 0.001);
-			} catch (final InterruptedException e) {
-				this.executorService.shutdownNow();
-				Thread.currentThread().interrupt();
-			}
+			executor = this.executorService;
 
 			// Clear all state
 			this.workers.clear();
@@ -337,18 +375,94 @@ public class ChangeNotificationManager {
 			this.resumeTokens.clear();
 			this.database = null;
 
-			// Close owned MongoClient if we created one
-			if (this.ownedMongoClient != null) {
-				this.ownedMongoClient.close();
-				this.ownedMongoClient = null;
-			}
+			client = this.ownedMongoClient;
+			this.ownedMongoClient = null;
 
 			// Reset global mode to UPDATE_LOOKUP for next test
 			this.globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;
-
-			LOGGER.info("ChangeNotificationManager stopped");
 		} finally {
 			this.lock.writeLock().unlock();
+		}
+		// Outside the lock: a stopping worker may be waiting for the read lock to dispatch an event (which
+		// notifyChange then drops). The next start() does not touch anything this generation still uses.
+		awaitWorkersEnd(executor, stopping);
+
+		// Close owned MongoClient if we created one, once its workers no longer use it
+		if (client != null) {
+			client.close();
+		}
+
+		LOGGER.info("ChangeNotificationManager stopped");
+	}
+
+	/**
+	 * Waits for the workers of a stopped manager to end, interrupts the ones still running after
+	 * {@link #STOP_TIMEOUT_MS} and reports the ones that survive the interrupt.
+	 */
+	private static void awaitWorkersEnd(final ExecutorService executor, final List<ChangeStreamWorker> stopping) {
+		final long start = System.nanoTime();
+		executor.shutdown();
+		try {
+			List<String> running = workersStillRunning(stopping, STOP_TIMEOUT_MS);
+			if (!running.isEmpty()) {
+				LOGGER.warn("{} change stream worker(s) still running {} ms after stop(), interrupting them: {}",
+						running.size(), STOP_TIMEOUT_MS, running);
+				executor.shutdownNow();
+				running = workersStillRunning(stopping, STOP_AFTER_INTERRUPT_TIMEOUT_MS);
+				if (!running.isEmpty()) {
+					LOGGER.error(
+							"{} change stream worker(s) still running after stop() and an interrupt (they dispatch no more"
+									+ " event but keep their thread and connection): {}",
+							running.size(), running);
+				}
+			}
+		} catch (final InterruptedException e) {
+			executor.shutdownNow();
+			Thread.currentThread().interrupt();
+		}
+		LOGGER.info("Change stream workers stopped in {} ms", TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
+	}
+
+	/**
+	 * Waits at most {@code timeoutMs} in all for the workers to end.
+	 *
+	 * @return the collections whose worker is still running
+	 */
+	private static List<String> workersStillRunning(final List<ChangeStreamWorker> workers, final long timeoutMs)
+			throws InterruptedException {
+		final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+		final List<String> running = new ArrayList<>();
+		for (final ChangeStreamWorker worker : workers) {
+			if (!worker.awaitEnd(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS)) {
+				running.add(worker.getCollectionName());
+			}
+		}
+		return running;
+	}
+
+	/**
+	 * Waits, at most {@link #STREAM_OPEN_TIMEOUT_MS} in all, until the change streams of the workers are open,
+	 * and warns about the ones that are not: a write made before such a stream opens is not notified. Must be
+	 * called without holding the lock.
+	 */
+	private static void awaitStreamsOpen(final List<ChangeStreamWorker> workers) {
+		if (workers.isEmpty()) {
+			return;
+		}
+		final long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(STREAM_OPEN_TIMEOUT_MS);
+		try {
+			for (final ChangeStreamWorker worker : workers) {
+				final boolean open = worker.awaitStreamOpen(Math.max(0, deadline - System.nanoTime()),
+						TimeUnit.NANOSECONDS);
+				if (!open && !worker.isStopRequested()) {
+					LOGGER.warn(
+							"Change stream of collection {} not open (it failed, or is still opening after {} ms): a write"
+									+ " made before it opens is not notified",
+							worker.getCollectionName(), STREAM_OPEN_TIMEOUT_MS);
+				}
+			}
+		} catch (final InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -380,7 +494,8 @@ public class ChangeNotificationManager {
 	 *
 	 * <p>
 	 * Note: You still need to register listeners to actually receive events. This
-	 * method only starts the workers.
+	 * method only starts the workers. When the manager is running, it returns once their change
+	 * streams are open (at most 10 s).
 	 * </p>
 	 *
 	 * @param collectionNames One or more collection names to watch
@@ -666,6 +781,7 @@ public class ChangeNotificationManager {
 			final FullDocument mode,
 			final Predicate<ChangeEvent> clientFilter) {
 		warnIgnoredMode(mode);
+		final List<ChangeStreamWorker> toAwait = new ArrayList<>();
 		this.lock.writeLock().lock();
 		try {
 			final ListenerRegistration registration = new ListenerRegistration(listener, clientFilter);
@@ -681,8 +797,11 @@ public class ChangeNotificationManager {
 							.add(registration);
 
 					// Auto-watch if manager is running and no worker exists
-					if (this.running && !this.workers.containsKey(collectionName)) {
-						startWorkerForCollection(collectionName);
+					if (this.running) {
+						final ChangeStreamWorker worker = startWorkerForCollection(collectionName);
+						if (worker != null) {
+							toAwait.add(worker);
+						}
 					}
 				}
 
@@ -692,6 +811,8 @@ public class ChangeNotificationManager {
 		} finally {
 			this.lock.writeLock().unlock();
 		}
+		// A write made once the registration returns must reach the listener: wait for the streams to be open
+		awaitStreamsOpen(toAwait);
 	}
 
 	/**
@@ -855,11 +976,18 @@ public class ChangeNotificationManager {
 	// ========== Internal Methods ==========
 
 	/**
-	 * Called by ChangeStreamWorker when an event arrives
+	 * Called by ChangeStreamWorker when an event arrives. An event read by a worker that is no longer the
+	 * worker of its collection (stopped by {@code stop()} or {@code unwatchCollection()}) is dropped: it must
+	 * not reach the listeners of a later start.
 	 */
-	void notifyChange(final ChangeEvent event) {
+	void notifyChange(final ChangeStreamWorker source, final ChangeEvent event) {
 		this.lock.readLock().lock();
 		try {
+			if (this.workers.get(source.getCollectionName()) != source) {
+				LOGGER.debug("Event of collection {} read by a stopped worker: not dispatched",
+						source.getCollectionName());
+				return;
+			}
 			this.totalEventsProcessed.incrementAndGet();
 
 			final String collectionName = event.getCollectionName();
@@ -913,16 +1041,21 @@ public class ChangeNotificationManager {
 		return this.globalFullDocumentMode;
 	}
 
-	private void startAllWorkers() {
+	private List<ChangeStreamWorker> startAllWorkers() {
 		// Get all collections that need watching
 		final Set<String> collectionsToWatch = new HashSet<>(this.collectionListeners.keySet());
 
 		// Collections from explicit watch() calls
 		collectionsToWatch.addAll(this.collectionPipelines.keySet());
 
+		final List<ChangeStreamWorker> started = new ArrayList<>();
 		for (final String collectionName : collectionsToWatch) {
-			startWorkerForCollection(collectionName);
+			final ChangeStreamWorker worker = startWorkerForCollection(collectionName);
+			if (worker != null) {
+				started.add(worker);
+			}
 		}
+		return started;
 	}
 
 	private void stopWorkerForCollection(final String collectionName) {
@@ -938,14 +1071,20 @@ public class ChangeNotificationManager {
 		}
 	}
 
-	private void startWorkerForCollection(final String collectionName) {
-		if (this.workers.containsKey(collectionName)) {
-			return; // Already running
+	/**
+	 * Starts the worker of a collection unless it has one. Called with the write lock held.
+	 *
+	 * @return the worker of the collection (the one already running, or the new one), null without database
+	 */
+	private ChangeStreamWorker startWorkerForCollection(final String collectionName) {
+		final ChangeStreamWorker existing = this.workers.get(collectionName);
+		if (existing != null) {
+			return existing; // Already running
 		}
 
 		if (this.database == null) {
 			LOGGER.warn("Cannot start worker - database not set");
-			return;
+			return null;
 		}
 
 		final MongoCollection<org.bson.Document> collection = this.database.getCollection(collectionName);
@@ -965,22 +1104,27 @@ public class ChangeNotificationManager {
 		this.executorService.submit(worker);
 
 		LOGGER.info("Started ChangeStreamWorker for collection: {} with mode: {}", collectionName, mode);
+		return worker;
 	}
 
 	private void watchCollectionInternal(final String collectionName, final List<Bson> pipeline) {
+		ChangeStreamWorker worker = null;
 		this.lock.writeLock().lock();
 		try {
 			if (pipeline != null) {
 				this.collectionPipelines.put(collectionName, pipeline);
 			}
 
-			if (this.running && !this.workers.containsKey(collectionName)) {
-				startWorkerForCollection(collectionName);
+			if (this.running) {
+				worker = startWorkerForCollection(collectionName);
 			}
 
 			LOGGER.info("Watching collection: {}", collectionName);
 		} finally {
 			this.lock.writeLock().unlock();
+		}
+		if (worker != null) {
+			awaitStreamsOpen(List.of(worker));
 		}
 	}
 
