@@ -291,7 +291,9 @@ Jackson node, a `Map` with non-`String` keys) is refused too, because what it ho
 Field com.app.Account.free is a free-form org.bson.Document holding, under 'list.0.x', a java.util.concurrent.atomic.AtomicReference, which is not a value archidata accepts in a Document (a BSON or JDK value, an enum, a Document or a Map with String keys, a List, a Collection or an array of them): what it holds would not be checked; put only values, Documents, Lists and Maps in a Document, or declare a field with the class it holds
 ```
 
-The raw writes (`updateBsonDocuments`, the driver collection) do not go through this check.
+The raw writes (`insertBsonDocument`, `updateBsonDocuments`, the driver collection) do not go through this
+check; the client still refuses to encode there an object of the application holding a `@DataNotRead` or
+`@DataEncrypt` field (see [Raw access to the driver](database_access.md#raw-access-to-the-driver)).
 
 **Not handled.** The other classes of the JDK, of BSON and of Jackson (`BigDecimal`,
 `LocalDateTime`, `Optional`, `Decimal128`, `ObjectNode`...) and the arrays of values or of such

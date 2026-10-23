@@ -102,7 +102,9 @@ attribute. Makes it the primary key (action `PRIMARY_KEY`). The key is generated
 by the application and inserted with the `DirectPrimaryKey` option. Stored as `_id` when combined
 with `@Field("_id")`, as in `OIDGenericData` and `UUIDGenericData` (`GenericData` keeps `id`).
 `OIDGenericData` also keeps the driver's `@BsonId`: the MongoDB POJO codec registered by
-`DbIoMongo` (`PojoCodecProvider.automatic(true)`) reads it to map the property to `_id`.
+`DbIoMongo` (`PojoCodecProvider.automatic(true)`) reads it to map the property to `_id`. That codec
+refuses to encode an object holding a `@DataNotRead` or `@DataEncrypt` field, which an `OIDGenericData`
+does (`createdAt`, `updatedAt`): see [Raw access to the driver](database_access.md#raw-access-to-the-driver).
 
 ```java
 @Id

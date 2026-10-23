@@ -256,7 +256,7 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
     (`AtomicReference`, `Optional`, `Map.Entry`), `StringBuilder`, nœud Jackson, sous-classe d'une valeur
     (`java.sql.Timestamp`), `Map` à clé non `String` (message `which is not a value archidata accepts in a
     Document`).
-  Les API brutes (`updateBsonDocuments`, collection du driver) ne passent pas par ce contrôle.
+  Les API brutes (`updateBsonDocuments`, collection du driver) ne passent pas par ce contrôle (voir F).
 - **B. Clé primaire déclarée `Object`** : exemptée du refus (le support par `OptionSpecifyType` de
   `getTableIdCondition` est gardé) ; sa valeur est vérifiée à l'écriture (insert, `DirectPrimaryKey`,
   codec) : `ObjectId`, `UUID`, `String`, `Long`, `Integer` ou `Short`, sinon `DataAccessException`. Tout
@@ -288,6 +288,30 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
   drapeaux de la lecture ; une classe qui ne s'analyse pas compte comme en contenant un), un WARN est écrit
   une fois par champ d'entité (`Field com.app.Account.node`), mémoire vidée avec le cache ; sinon DEBUG,
   comme avant.
+- **F. API brutes du driver** : le codec POJO automatique et le codec des records du driver ignorent
+  `@DataNotRead` / `@DataEncrypt`. `DbIoMongo` les garde (`db/ProtectedFieldCodecGuard`) : une classe de
+  l'application qui porte un tel champ à une profondeur quelconque atteinte par les types déclarés des
+  propriétés que le driver écrit (`List`, `Map`, tableaux, arguments de type) refuse d'être encodée, valeur
+  `null` comprise, `ProtectedFieldEncodingException`, rien n'est écrit.
+  - Propriétés parcourues : celles du modèle de classe du driver (`ClassModel.builder` + conventions par
+    défaut, propriétés lisibles) : champ public, champ ou propriété avec getter public (type du champ et type
+    de retour du getter), superclasses comprises ; chaque composant d'un record. Un champ `transient`, marqué
+    `@BsonIgnore` ou privé sans getter n'est pas écrit par le driver, donc pas vérifié. Une propriété lisible
+    sans champ ni getter public (setter seul) : l'accesseur du driver lève avant d'écrire, rien à vérifier. Un
+    modèle qui ne se construit pas : refus (fail-closed).
+  - POJO : une `Convention` ajoutée après celles par défaut remplace la `PropertySerialization` de chaque
+    propriété (sauf une clé primaire qui ne mène à aucun champ protégé) par une qui lève ; le drapeau
+    `inline` (`@BsonExtraElements`, lu au décodage) est repris de l'ancienne. Une sous-classe à l'exécution,
+    ou la valeur d'un champ typé par une variable de type, est encodée par son propre modèle, donc refusée.
+  - Record : enveloppe du registre (`CodecProvider` qui délègue les deux `get`, arguments de type compris) ;
+    le codec d'un record qui porte un champ protégé lève à l'encodage et délègue le décodage.
+  - Écarté : envelopper aussi le codec des POJO. `LazyPropertyModelCodec` du driver ne spécialise un type
+    générique (`Box<String>`) ni n'applique `@BsonProperty(useDiscriminator)` que si le codec est un
+    `PojoCodec` (classe du paquet du driver) : l'enveloppe aurait changé le décodage. La convention ne touche
+    que le test de sérialisation, utilisé par l'encodeur seul (vérifié par `javap` sur bson 5.13.0).
+  - Décodage inchangé (test : un document à champs protégés relu par des collections typées, POJO imbriqué,
+    liste, record, générique spécialisé ; le même test passe sans la garde). Une classe dont les champs ne
+    s'analysent pas est refusée.
 
 ## Changements de comportement (avant → après, qui est concerné)
 
@@ -311,6 +335,7 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
 | 16 | Classe de bibliothèque (GeoJSON, `jakarta.*`, JTS...) comme type de champ, avec une propriété polymorphe | Refusée à l'analyse (démarrage), même si la propriété est toujours `null` | À vérifier (checklist) |
 | 17 | Données déjà stockées (champs de sous-classe, contenu de champs `Object`) | Restent en base ; plus projetées pour un objet embarqué ; retirées par une écriture seulement là où le champ est réécrit entier (MIGRATION.md, « Données déjà en base ») ; à nettoyer | Bases qui ont stocké des sous-classes |
 | 18 | `OptionSpecifyType(champ, Y, true)` sur un `List<X>` : liste transférée entière, décodée par `Y`, un sous-champ protégé de `X` rendu si `Y` le déclare sans protection | Projetée par les feuilles de `Y` moins ce que `X` ou `Y` protège, filtrée par `X` en Java : un sous-champ protégé de `X` n'est jamais rendu (sauf `ReadAllColumn` / déchiffrement) | Aucun usage relevé |
+| 19 | Objet de l'application à champ `@DataNotRead` / `@DataEncrypt` (à toute profondeur, valeur `null` comprise) passé au driver directement (collection typée, `Document`, `Updates`, `Filters`, `insertBsonDocument`, `updateBsonDocuments`) : écrit avec tous ses champs, `@DataEncrypt` en clair | Refusé à l'encodage (`ProtectedFieldEncodingException`, `DataAccessException` par `insertBsonDocument` / `updateBsonDocuments`), rien n'est écrit ; décodage inchangé | Toute entité sur un modèle de base (`GenericTiming` : `createdAt`, `updatedAt`) écrite par le driver ; aucune écriture de ce genre relevée dans les applications (le driver n'y reçoit que des `Document` de valeurs) |
 
 Ce qui ne change pas : l'objet Java rendu par une lecture, hors #4 (éléments `null` et non-documents
 d'une liste projetée jusqu'aux feuilles, indices décalés) et #5 (scalaire relu `null`) ; le document écrit
@@ -357,6 +382,14 @@ MIGRATION.md « Retour arrière »).
   declared java.lang.Object but holds a java.util.Date: such a key only takes an ObjectId, a UUID, a
   String, a Long, an Integer or a Short`.
 - Pas de nouveau log au refus : l'exception porte le message.
+- Encodage refusé par le driver (#19) : `The MongoDB driver refuses to encode com.app.Holder: its field
+  'inner.secret' (com.app.Secretive.secret) is marked @DataNotRead, which the codecs of the driver ignore
+  (the value would be written like any other field). Write the object through DataAccess (insert,
+  updateById...), which applies these annotations, or pass a Document of plain values` (`the value would be
+  written in clear` pour `@DataEncrypt`). DEBUG, logger `org.atriasoft.archidata.db.ProtectedFieldCodecGuard`,
+  une fois par classe de l'application qui atteint les codecs du driver : `MongoDB driver codec for
+  application class com.app.Holder: refuses to encode it (inner.secret)` ou `...: no protected field`
+  (`application record` pour un record).
 - TRACE inchangé (`filter = ...`, ` - receive data from DB: ...`) : le document reçu ne contient plus
   les sous-champs protégés.
 
@@ -379,7 +412,12 @@ MIGRATION.md « Retour arrière »).
 - Types concrets non gérés par le codec (`BigDecimal`, tableaux, `LocalDateTime`...) : ni refusés ni
   gérés, inchangé.
 - `Document` : les API brutes (`updateBsonDocuments`, `getInterface().getDatabase()`) ne passent pas par la
-  liste d'autorisation.
+  liste d'autorisation ; elles refusent seulement un objet de l'application qui porte un champ protégé (§6 F).
+  Un objet sans champ protégé y est encodé par le driver, tous champs compris.
+- Garde du driver (§6 F) : le champ typé par une variable de type n'est vérifié que par la classe de sa
+  valeur (une valeur `null` passe, rien de protégé n'est écrit). Un autre `MongoClient` construit par
+  l'application n'a pas la garde, ni celui que `ChangeNotificationManager.createMongoClient` ouvre pour ses
+  change streams (registre par défaut du driver ; il ne fait que lire).
 - `OptionSpecifyType(champ, Y, true)` : une clé que la classe déclarée ne connaît pas mais que `Y` déclare
   est transférée et relue (données anciennes d'une sous-classe comprises), comme avant.
 - Mise à jour positionnelle (`liste.N`) calculée sur une liste relue jusqu'aux feuilles : indices décalés
@@ -445,6 +483,12 @@ nouvelle version sur les mêmes données.
 12. **Retour arrière** : sur la copie de la base, écrire avec le SNAPSHOT puis relire avec l'ancien jar
     (mêmes valeurs attendues, éléments `null` des listes compris) ; vérifié sur archidata, voir
     MIGRATION.md « Retour arrière ».
+13. **API brutes du driver** (#19) : chercher dans le code les écritures directes
+    (`getInterface().getDatabase()`, `getCollection(..., X.class)`, `Updates.set(`, `Filters.eq(` avec un
+    objet, `insertBsonDocument`, `updateBsonDocuments`) et ce qu'elles reçoivent ; puis faire tourner la
+    suite de tests back et chercher `ProtectedFieldEncodingException` / `refuses to encode` dans la sortie.
+    En DEBUG (logger `org.atriasoft.archidata.db.ProtectedFieldCodecGuard`), les lignes `MongoDB driver codec
+    for application` listent les classes de l'application qui atteignent les codecs du driver.
 
 ## Essayer le jar SNAPSHOT
 
@@ -473,5 +517,11 @@ mvn -U package -Dexec.skip=true
    qui contiennent un sous-champ protégé, tests (projection envoyée, `ReadAllColumn` / `FilterValue`,
    listes, `null` et mises à jour, records, `@Field`, héritage, `Set`, clé de map, expansion de relation,
    `getsRaw`, pagination et `OptionSpecifyType` via le profiler, collisions, récursion, WARN / DEBUG des
-   coupes, cache), doc (`database_access.md`, MIGRATION, AGENTS.md).
-4. `[DOC] (security) ...` : SECURITY_AUDIT.md, point CS-01 mis à jour.
+   coupes, cache), doc (`database_access.md`, `annotations.md`, MIGRATION, AGENTS.md, SECURITY_AUDIT.md
+   point CS-01).
+4. `[FIX] (db) the MongoDB driver refuses to encode an application object holding @DataNotRead or
+   @DataEncrypt fields` : `ProtectedFieldCodecGuard` (convention du codec POJO, enveloppe des records),
+   `ProtectedFieldEncodingException`, tests (`TestProtectedFieldEncoding` : `updateBsonDocuments`,
+   `insertBsonDocument`, driver brut à toute profondeur, sous-classe, variable de type, entité sur modèle de
+   base, objets sans champ protégé, décodage inchangé), doc (`database_access.md`, `security.md`,
+   `data_model.md`, `annotations.md`, MIGRATION, AGENTS.md, SECURITY_AUDIT.md).

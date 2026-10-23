@@ -246,6 +246,17 @@ Each point was checked against the code; the doc page gives the details.
   `AtomicReference`, `Map.Entry`) or a Jackson node. A value of an application class written under a
   JDK type archidata does not model (a subclass of `BigDecimal`) is refused. Data stored before stays in the database. See
   `doc/data_model.md` and `MIGRATION.md`.
+- **Raw driver writes refuse protected fields**: the MongoDB client of `DbIoMongo` refuses to
+  encode an object of the application holding a `@DataNotRead` or `@DataEncrypt` field at any depth
+  reachable through the declared types of the properties the driver writes (a `null` value on the path
+  included; a `transient` field, a field marked `@BsonIgnore` or a private field without getter is not
+  written, so not checked), wherever the driver meets it: a typed collection, a value of a `Document`, `Updates.set`, `Filters.eq`, `insertBsonDocument`,
+  `updateBsonDocuments`. It throws `ProtectedFieldEncodingException` (a `DataAccessException` from
+  `insertBsonDocument` / `updateBsonDocuments`) and writes nothing. Every entity on an archidata base
+  model is concerned (`GenericTiming` carries `@DataNotRead createdAt` / `updatedAt`): write it through
+  `DataAccess`, or pass a `Document` of plain values. Decoding through the driver is unchanged (it reads
+  the protected fields). The client `ChangeNotificationManager` opens for its change streams has no such
+  guard: it only reads. See `doc/database_access.md` ("Raw access to the driver").
 - **UUID primary keys** (`UUIDGenericData`, `UUIDGenericDataSoftDelete`) work for reads, filters
   and relations; the key is generated at insertion by `UuidUtils.nextUUID()`.
 

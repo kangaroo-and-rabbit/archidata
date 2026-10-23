@@ -52,6 +52,15 @@ import com.mongodb.event.ClusterListener;
  * Use {@link #forceReconnect()} to drop the cached clients (admin lever for
  * the rare case where the driver fails to recover).
  * </p>
+ *
+ * <p>
+ * The codecs of the client refuse to encode an application object holding a
+ * field marked {@code @DataNotRead} or {@code @DataEncrypt}, at any depth
+ * reachable through its declared types: the driver would write it as is (in
+ * clear for {@code @DataEncrypt}). The raw APIs of the driver then throw a
+ * {@link org.atriasoft.archidata.exception.ProtectedFieldEncodingException};
+ * decoding is unchanged.
+ * </p>
  */
 public class DbIoMongo extends DbIo implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DbIoMongo.class);
@@ -127,13 +136,15 @@ public class DbIoMongo extends DbIo implements Closeable {
 	private static MongoClient createSharedClient(final DbConfig config) {
 		final ConnectionString connectionString = new ConnectionString(config.getUrl());
 		final CodecRegistry offsetDateTimeCodecRegistry = CodecRegistries.fromCodecs(new OffsetDateTimeCodec());
-		final CodecRegistry pojoCodecRegistry = CodecRegistries
-				.fromProviders(PojoCodecProvider.builder().automatic(true).build());
-		final CodecRegistry codecRegistry = CodecRegistries.fromRegistries(//
+		// The automatic POJO codec and the record codec ignore @DataNotRead and @DataEncrypt: the guard makes them
+		// refuse to encode an application object holding such a field (decoding is unchanged).
+		final CodecRegistry pojoCodecRegistry = CodecRegistries.fromProviders(PojoCodecProvider.builder()
+				.automatic(true).conventions(ProtectedFieldCodecGuard.conventions()).build());
+		final CodecRegistry codecRegistry = ProtectedFieldCodecGuard.guardRecords(CodecRegistries.fromRegistries(//
 				MongoClientSettings.getDefaultCodecRegistry(), //
 				CodecRegistries.fromCodecs(new UuidCodec(UuidRepresentation.STANDARD)), //
 				pojoCodecRegistry, //
-				offsetDateTimeCodecRegistry);
+				offsetDateTimeCodecRegistry));
 		final MongoClientSettings clientSettings = MongoClientSettings.builder() //
 				.applyConnectionString(connectionString) //
 				.codecRegistry(codecRegistry) //

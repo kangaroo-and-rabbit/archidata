@@ -694,6 +694,45 @@ Transactions
 
 Archidata supports MongoDB multi-document transactions. See [Connection Management — Transactions](connectionManagement.md#transactions).
 
+## Raw access to the driver
+
+`insertBsonDocument`, `getBsonDocument(s)`, `updateBsonDocuments` and the driver objects reached through
+`da.getInterface().getDatabase()` bypass the model: archidata neither checks nor converts what they write
+(the allowlist of a `Document` field, see [Data model](data_model.md), does not apply). One rule still holds:
+the codecs of the client of `DbIoMongo` refuse to encode an object of the application that holds a field marked
+`@DataNotRead` or `@DataEncrypt`. The codecs of the driver (automatic POJO codec, record codec) ignore these
+annotations: they would write such a field like any other, a `@DataEncrypt` one in clear.
+
+The refusal applies wherever the driver meets the object: a typed collection
+(`getCollection("account", Account.class).insertOne(account)`), a value put in a `Document`, in
+`Updates.set(...)` or in `Filters.eq(...)`, the document of `insertBsonDocument` and the update of
+`updateBsonDocuments`. It follows the declared types: a class is refused as soon as it holds such a field at
+any depth reachable through the declared types of the properties the driver writes (through `List`, `Map`,
+arrays and type arguments), even when the value on that path is `null` or the list empty. These properties are
+those of the class model of the driver: a public field, a field or a property with a public getter (checked
+through the field and the return type of the getter), of the class or of a superclass, and every component of a
+record. A field the driver does not write (`transient`, marked `@BsonIgnore`, private without getter) is not
+checked. A value whose
+runtime class holds one (a subclass under a field of its base class) is refused too, and so is the value of a
+field typed by a type variable (`T value` in a `Wrapper<T>`) whose class holds one. Every entity on an
+archidata base model is concerned: `GenericTiming` (so `GenericData`, `OIDGenericData`, `UUIDGenericData` and
+their subclasses) carries `@DataNotRead createdAt` and `updatedAt`, the soft-delete bases `@DataNotRead
+deleted`.
+
+Nothing is written. The driver API throws a `ProtectedFieldEncodingException`
+(`org.atriasoft.archidata.exception`, a `RuntimeException`); `insertBsonDocument` and `updateBsonDocuments`
+throw a `DataAccessException` with the same message:
+
+```
+The MongoDB driver refuses to encode com.app.Holder: its field 'inner.secret' (com.app.Secretive.secret) is marked @DataNotRead, which the codecs of the driver ignore (the value would be written like any other field). Write the object through DataAccess (insert, updateById...), which applies these annotations, or pass a Document of plain values.
+```
+
+Write the entity through `DataAccess`, or build a `Document` of values. An object without such a field is
+still encoded by the driver, with all its fields. Decoding is unchanged: a typed collection decodes every field
+it finds, protected ones included, since the driver does not know these annotations; read through `DataAccess`
+to apply them. `ChangeNotificationManager` opens its own client for its change streams (`createMongoClient`),
+with the default codecs of the driver and without this guard: it only reads.
+
 ## Logs of the data layer
 
 At TRACE level, `org.atriasoft.archidata.dataAccess.DBAccessMongo` logs the filter of each read and

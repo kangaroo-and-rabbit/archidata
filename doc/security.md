@@ -641,6 +641,17 @@ Behind a reverse proxy that terminates TLS, the server sees http and sends no HS
 The files served by `DataResource` also get a sandbox CSP (see above). A front served by `FrontGeneric` that
 needs to be framed must set its own `X-Frame-Options`, or not register the filter.
 
+### Protected fields and the raw driver
+
+The codecs of the MongoDB client of `DbIoMongo` refuse to encode an object of the application holding a
+`@DataNotRead` or `@DataEncrypt` field at any depth among the properties the driver writes
+(`ProtectedFieldEncodingException`, nothing written): the codecs of the driver ignore these annotations and
+would write such a field like any other, a `@DataEncrypt` one in clear. This covers the raw APIs
+(`insertBsonDocument`, `updateBsonDocuments`, the driver collection, `Updates`, `Filters`). Decoding through the
+driver is unchanged and does not apply the annotations. `ChangeNotificationManager` opens a second client for its
+change streams, without this guard: it only reads. See
+[Raw access to the driver](database_access.md#raw-access-to-the-driver).
+
 ### Logs
 
 No credential is logged in clear: the JWT is truncated to its first 20 characters when refused,

@@ -8,7 +8,8 @@ champ de classe de base, ou toute valeur d'un champ `Object` / interface / class
 brute, écrivait en base des champs (y compris `@DataNotRead` / `@DataEncrypt`) qu'aucune lecture ne
 rendait, mais qu'un filtre comparant le sous-document entier pouvait atteindre. Et toute lecture
 transférait les objets embarqués entiers, sous-champs protégés compris, pour les jeter ensuite en Java.
-Désormais archidata ne stocke que ce qu'il sait relire, et ne transfère que ce que la lecture rend.
+Désormais archidata ne stocke que ce qu'il sait relire, et ne transfère que ce que la lecture rend ; et le
+client MongoDB refuse d'encoder, par les API brutes, un objet de l'application qui porte un champ protégé.
 
 ### Un champ au type polymorphe ou non typé est refusé à l'analyse du modèle
 
@@ -146,8 +147,9 @@ JDK value, an enum, a Document or a Map with String keys, a List, a Collection o
 holds would not be checked; put only values, Documents, Lists and Maps in a Document, or declare a field with
 the class it holds` (`a java.util.HashMap with a java.lang.Integer key` pour une clé non `String`). Qui est
 concerné : un `Document` qui contient une autre classe que celles listées ; la convertir en valeur, `Document`,
-`List` ou `Map` avant l'écriture. Les API brutes (`updateBsonDocuments`, la collection du driver) ne passent pas
-par ce contrôle.
+`List` ou `Map` avant l'écriture. Les API brutes (`insertBsonDocument`, `updateBsonDocuments`, la collection
+du driver) ne passent pas par ce contrôle ; elles refusent en revanche un objet de l'application qui porte un
+champ `@DataNotRead` / `@DataEncrypt` (voir « Le driver refuse d'encoder un objet qui porte un champ protégé »).
 
 API :
 
@@ -259,6 +261,42 @@ Ce qui change pour l'application :
 - **`DBAccessMongo.generateSelectField(...)`** et `DbClassModel.generateSelectFields(...)` rendent les
   chemins feuilles (et le chemin sentinelle), plus les seuls noms de premier niveau.
 - Sinon, l'objet Java relu est le même qu'avant.
+
+### Le driver refuse d'encoder un objet qui porte un champ protégé
+
+Avant : le client MongoDB ouvert par `DbIoMongo` enregistre le codec POJO automatique du driver
+(`PojoCodecProvider.automatic(true)`) et le codec des records. Ces codecs ignorent `@DataNotRead` et
+`@DataEncrypt` : un objet de l'application passé directement au driver (collection typée
+`getCollection("account", Account.class)`, valeur d'un `Document`, de `Updates.set(...)` ou de
+`Filters.eq(...)`, document de `insertBsonDocument`, mise à jour de `updateBsonDocuments`) était écrit avec
+tous ses champs, `@DataNotRead` compris et `@DataEncrypt` **en clair**.
+
+Après : l'encodage d'un tel objet lève `ProtectedFieldEncodingException` (`org.atriasoft.archidata.exception`,
+une `RuntimeException`) ; `insertBsonDocument` et `updateBsonDocuments` la rendent en `DataAccessException` avec
+le même message. Rien n'est écrit. La règle suit les types déclarés : une classe est refusée dès qu'elle porte
+un tel champ à une profondeur quelconque atteinte par les types déclarés des propriétés que le driver écrit (à
+travers `List`, `Map`, tableaux et arguments de type), même si la valeur sur le chemin est `null` ou la liste
+vide. Ces propriétés sont celles du modèle de classe du driver : champ public, champ ou propriété avec un getter
+public (vérifiés par le champ et le type de retour du getter), de la classe ou d'une superclasse, et chaque
+composant d'un record. Un champ que le driver n'écrit pas (`transient`, marqué `@BsonIgnore`, privé sans getter)
+n'est pas vérifié. Une valeur dont la classe réelle en porte un (sous-classe sous un champ de sa classe
+de base) est refusée aussi, comme la valeur d'un champ typé par une variable de type (`T value` d'un
+`Wrapper<T>`) dont la classe en porte un.
+
+```
+The MongoDB driver refuses to encode com.app.Holder: its field 'inner.secret' (com.app.Secretive.secret) is marked @DataNotRead, which the codecs of the driver ignore (the value would be written like any other field). Write the object through DataAccess (insert, updateById...), which applies these annotations, or pass a Document of plain values.
+```
+
+Qui est concerné : une application qui écrit un objet de l'application par le driver directement. **Toute
+entité sur un modèle de base d'archidata l'est** : `GenericTiming` (donc `GenericData`, `OIDGenericData`,
+`UUIDGenericData` et leurs sous-classes) porte `@DataNotRead createdAt` et `updatedAt`, les bases à
+suppression douce `@DataNotRead deleted`. L'écrire par `DataAccess` (`insert`, `updateById`...), ou construire
+un `Document` de valeurs. Un objet sans champ protégé reste encodé par le driver, tous champs compris. La
+lecture par le driver (collection typée) est inchangée : elle décode tous les champs présents, protégés
+compris (le driver ignore ces annotations). Les écritures d'archidata lui-même ne passent au driver que des
+`Document` de valeurs : elles ne changent pas (aucune classe de l'application n'atteint les codecs du driver
+dans la suite de tests d'archidata, hors le test de ce refus). La garde est sur le client de `DbIoMongo` ; le
+client que `ChangeNotificationManager` ouvre pour ses change streams n'en a pas : il ne fait que lire.
 
 ### Données déjà en base
 
@@ -511,7 +549,10 @@ mêmes valeurs initiales. Sans annotation, la collection porte toujours le nom s
 `@BsonId` (`org.bson.codecs.pojo.annotations`) n'est pas une annotation JPA : il **reste** à côté
 de `@Id @Field("_id")`. `DbIoMongo` enregistre le codec POJO du driver
 (`PojoCodecProvider.automatic(true)`), qui le lit pour envoyer la propriété dans `_id` ;
-`OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` le gardent.
+`OIDGenericData`, `ChangeJournalEntry` et `ChangeJournalMarker` le gardent. Depuis la version qui suit
+v0.51.3, ce codec refuse d'encoder un objet qui porte un champ `@DataNotRead` / `@DataEncrypt`, ce que fait
+une entité sur `OIDGenericData` (`createdAt`, `updatedAt`) : voir « Le driver refuse d'encoder un objet qui
+porte un champ protégé ».
 
 Le `@DefaultValue` de JAX-RS reste la bonne annotation sur les **paramètres** d'une ressource REST
 (`@QueryParam("page") @DefaultValue("1") int page`) : c'est Jersey qui le gère, ne pas y toucher.
