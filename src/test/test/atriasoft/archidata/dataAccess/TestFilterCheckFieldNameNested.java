@@ -46,6 +46,24 @@ class TestFilterCheckFieldNameNested {
 		public Object inner;
 	}
 
+	/** Entity whose embedded class holds a polymorphic field: refused when its model is analysed. */
+	@Collection("checkFieldNameNestedPoly")
+	public static class PolyAccount {
+		@Id
+		public ObjectId _id = null;
+		public String name;
+		public Wrapper wrapper;
+	}
+
+	/** Abstract entity holding a polymorphic field: its model is checked like a concrete one, and refused. */
+	@Collection("checkFieldNameNestedAbstract")
+	public abstract static class AbstractPolyAccount {
+		@Id
+		public ObjectId _id = null;
+		public String name;
+		public Object payload;
+	}
+
 	/** Concrete base class. */
 	public static class Base {
 		public String label;
@@ -56,14 +74,6 @@ class TestFilterCheckFieldNameNested {
 		@DataNotRead
 		public String secret;
 	}
-
-	/** Abstract declared type. */
-	public abstract static class Shape {
-		public String name;
-	}
-
-	/** Interface declared type. */
-	public interface Marker {}
 
 	/** Entity embedding an object, a list, a set and maps of objects. */
 	@Collection("checkFieldNameNested")
@@ -83,19 +93,7 @@ class TestFilterCheckFieldNameNested {
 		public List<Plain> plains;
 		public Document attributes;
 		public Map<String, String> labels;
-		public Map<String, Object> free;
-		public Object payload;
-		@SuppressWarnings("rawtypes")
-		public Map rawMap;
-		@SuppressWarnings("rawtypes")
-		public List rawList;
-		public Wrapper wrapper;
-		public java.io.Serializable ser;
-		public Number number;
 		public java.math.BigDecimal price;
-		public Shape shape;
-		public Marker marker;
-		public List<Object> payloads;
 		public Base base;
 		@DataNotRead
 		public String token;
@@ -218,47 +216,35 @@ class TestFilterCheckFieldNameNested {
 	}
 
 	@Test
-	void testPolymorphicDeclaredTypesAreRefused() {
-		// Written by the class of the value, read by the declared type: nothing can be told, fail closed.
-		rejected("payload");
-		rejected("payload.passwordHash");
-		rejected("payload.anything");
-		rejected("shape");
-		rejected("shape.name");
-		rejected("marker");
-		rejected("marker.x");
-		rejected("payloads");
-		rejected("payloads.0");
-		rejected("payloads.0.x");
-		rejected("free");
-		rejected("free.any.thing.0");
-		// JDK interfaces and abstract classes are written by the class of the value too.
-		rejected("ser");
-		rejected("ser.hash");
-		rejected("number");
-		rejected("number.x");
-		// A concrete JDK class stays a plain value.
+	void testConcreteJdkClassStaysAPlainValue() {
 		accepted("price");
+		// What a class archidata does not model holds is not known: nothing below it is safe.
+		rejected("price.scale");
+		rejected("price.secret");
 	}
 
 	@Test
-	void testRawCollectionsAndNestedPolymorphismAreRefused() {
-		// A raw list, set or map writes each element by its own class: nothing can be told.
-		rejected("rawMap");
-		rejected("rawMap.k");
-		rejected("rawMap.k.secret");
-		rejected("rawList");
-		rejected("rawList.0");
-		rejected("rawList.0.secret");
-		// A sub-document holding a polymorphic field is refused as a whole, not only below it.
-		rejected("wrapper");
-		rejected("wrapper.inner");
-		rejected("wrapper.inner.x");
-		accepted("wrapper.name");
+	void testAbstractRootIsCheckedLikeAConcreteOne() {
+		// Its fields are checked when the model is analysed: the polymorphic field refuses the whole model.
+		final IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> Filters.checkFieldName(AbstractPolyAccount.class, "payload.secret"));
+		Assertions.assertTrue(ex.getMessage().contains("Cannot analyse the model of AbstractPolyAccount"),
+				ex.getMessage());
+	}
+
+	@Test
+	void testPolymorphicModelIsRefusedAsAWhole() {
+		// Object, interfaces, abstract classes and raw collections are refused when the model is analysed
+		// (TestDeclaredTypeRefusal): no path of such an entity can be checked.
+		final IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class,
+				() -> Filters.checkFieldName(PolyAccount.class, "name"));
+		Assertions.assertTrue(ex.getMessage().contains("Cannot analyse the model of PolyAccount"), ex.getMessage());
 	}
 
 	@Test
 	void testConcreteBaseClassIsResolvedByItsDeclaredFields() {
+		// Only the fields of the declared class are stored: the whole sub-document holds nothing else.
+		accepted("base");
 		accepted("base.label");
 		// A field added by a subclass is unknown to the declared type.
 		rejected("base.secret");

@@ -190,6 +190,120 @@ public Boolean deleted = null;
 
 Use the `AccessDeletedItems` query option to include soft-deleted documents.
 
+Field Types
+===========
+
+A persisted field (a public field, or a property with a getter) is stored according to its
+**declared** type, never to the class of the value it holds.
+
+| Declared type | Stored as |
+| --- | --- |
+| primitives and boxed types, `String`, `Character` | BSON value |
+| `ObjectId`, `UUID` | BSON value |
+| `Date`, `Instant`, `OffsetDateTime` | BSON date (UTC, the offset is lost) |
+| `LocalDate` (`yyyy-MM-dd` string), `LocalTime` (nanoseconds of the day) | BSON value |
+| an enum | its name |
+| `org.bson.Document` | free-form sub-document of values, `Document`s, `List`s and `Map`s, stored and read back as it is (see below) |
+| `List<X>`, `Set<X>` | BSON array (a `Set` is read back as a `HashSet`) |
+| `Map<K, V>` | sub-document whose keys are the keys as strings (`String`, `Integer`, `Long`, `Short`, `ObjectId`, enum) |
+| a concrete class or a record of the application | embedded sub-document, with the fields of that class |
+
+**Embedded objects are written by their declared type.** The fields stored for an embedded object
+are those of the declared class (type of the field, element type of a `List` / `Set`, value type
+of a `Map`), at any depth, and it is read back as that class. A value of a subclass is stored with
+the fields of the declared class only: the fields the subclass adds are dropped, and a warning is
+logged once per field and per class of value
+(`Field com.app.Holder.base is declared com.app.Base but holds a com.app.Derived: only the fields of Base are stored, the fields Derived adds are dropped ([extra, secret])`).
+A value that is not an instance of the declared class (reached through a raw type) is refused with
+a `DataAccessException`.
+
+**Refused declared types.** A declared type that does not tell which fields are stored is refused
+when the model of the entity is analysed (`DbClassModel.of`, on the first use of the entity: insert,
+read, `IndexEngine`, change journal, `Filters.checkFieldName`...), for every persisted field
+reachable from the entity, at any depth of its embedded classes:
+
+- `Object`, an interface or an abstract class, JDK ones included (`Serializable`, `Number`,
+  `CharSequence`, `Comparable`, Jackson `JsonNode`...), and a type variable (`T`, erased to `Object`);
+- a raw `List`, `Set` or `Map`, or one whose element (value) type is a wildcard (`List<?>`,
+  `List<? extends X>`) or a type variable (`List<T>`);
+- a collection that is neither a `List` nor a `Set` (`Collection<X>`, `Iterable<X>`, `Queue<X>`...);
+- an array of a class of the application or of one of the above (`Point[]`, `Object[]`,
+  `Serializable[][]`): an array is not stored element by element;
+- a `List`, `Set` or `Map` whose element (value) type is one of the above.
+
+An abstract class (or an interface) of the application used as the root of a model (an abstract
+entity checked by `Filters.checkFieldName`, for example) is checked like a concrete one.
+
+The refusal follows the declaration, whatever the package of the class: a class of a library used as
+the type of a field (`com.mongodb.client.model.geojson.Point`, a `jakarta.*`, JTS or Joda class...) is
+walked as an embedded object like a class of the application, and a single property of it declared
+`Object`, an interface or an abstract class refuses the entity at startup, even when it always holds
+`null` (`field Point.coordinateReferenceSystem (path location.coordinateReferenceSystem) is declared
+com.mongodb.client.model.geojson.CoordinateReferenceSystem, which can hold any class ...`). Store such a
+value in an `org.bson.Document` (a GeoJSON `Point` put in a `Document` is encoded by the driver), or
+declare a concrete DTO of the application with the fields to keep.
+
+**One exemption: a primary key declared `Object`** (`@Id public Object _id`), whose class is given on
+each call by an `OptionSpecifyType("_id", ObjectId.class)` (or chosen by the value passed to
+`DirectPrimaryKey`). Its value is written as it is once checked to be a key value: an `ObjectId`, a
+`UUID`, a `String`, a `Long`, an `Integer` or a `Short`; any other class is refused
+(`Field com.app.Keyed._id is a primary key declared java.lang.Object but holds a java.util.Date: such a key only takes an ObjectId, a UUID, a String, a Long, an Integer or a Short`).
+Any other field declared `Object` (or an interface, an abstract class, an unbound type variable),
+alone or as the element of a `List`, `Set` or `Map`, stays refused **with or without**
+`OptionSpecifyType`: the option no longer makes such a field usable.
+
+The exception is an `IntrospectionException` (`DB model creation failed for Account`) whose cause, a
+`DataAccessException`, names the entity, the field, its path, the declared type and the replacement:
+
+```
+Unsupported field type on com.app.Account: field Wrapper.inner (path wrapper.inner) is declared java.lang.Object, which can hold any class (Object, an interface or an abstract class), and archidata stores and reads an embedded value by its declared type only; declare a concrete class (or a List, Set or Map of one), or org.bson.Document for free-form content (see MIGRATION.md)
+```
+
+Replace such a field with a concrete class (or a `List`, `Set` or `Map` of one), or with
+`org.bson.Document` for free-form content. The relation fields (`@ManyToOneDoc`, `@OneToManyDoc`,
+`@ManyToManyDoc`) are checked by their own rules (see below).
+
+**A `Document` holds values only.** A field declared `org.bson.Document` (or a `List`, `Set` or `Map` of
+them) is written as it is, but its content is checked first, at any depth, against an allowlist; anything
+else fails the write with a `DataAccessException`, and nothing is stored. Accepted:
+
+- `null` and the values: `String`, the boxed primitives (`Character` included), `BigDecimal`, `ObjectId`,
+  `UUID`, `Date`, `Instant`, `OffsetDateTime`, `LocalDate`, `LocalTime`, `LocalDateTime`, `Pattern`, the
+  enums (stored by their name) and the arrays of primitives (`byte[]`...); the exact class counts (a
+  subclass of `Date` such as `java.sql.Timestamp` is refused);
+- the BSON types: any `BsonValue` (`BsonDocument`, `BsonArray`...), `Binary`, `Decimal128`, `Code`, `Symbol`,
+  `MinKey`, `MaxKey`, `BSONTimestamp`, `JsonObject`, and a GeoJSON `Geometry` of the driver (`Point`...);
+- walked: a `Map` with `String` keys (`Document` included), a `Collection` (`List`, `Set`...), an array of
+  objects, the scope of a `CodeWithScope` and the id of a `DBRef`, at most 100 levels deep (the limit of
+  MongoDB).
+
+A value of a class of the application (a POJO, a record, an implementation of `Bson`) is refused because
+the driver would encode it field by field with its `@DataNotRead` and `@DataEncrypt` fields in clear:
+
+```
+Field com.app.Account.free is a free-form org.bson.Document holding, under 'list.1.deep.k', a com.app.Secret, a class of the application: the driver would store all its fields (@DataNotRead and @DataEncrypt ones included, in clear); put only values, Documents, Lists and Maps in a Document, or declare a field with that class
+```
+
+Any other class (a JDK wrapper such as `AtomicReference`, `Optional` or `Map.Entry`, a `StringBuilder`, a
+Jackson node, a `Map` with non-`String` keys) is refused too, because what it holds would not be checked:
+
+```
+Field com.app.Account.free is a free-form org.bson.Document holding, under 'list.0.x', a java.util.concurrent.atomic.AtomicReference, which is not a value archidata accepts in a Document (a BSON or JDK value, an enum, a Document or a Map with String keys, a List, a Collection or an array of them): what it holds would not be checked; put only values, Documents, Lists and Maps in a Document, or declare a field with the class it holds
+```
+
+The raw writes (`updateBsonDocuments`, the driver collection) do not go through this check.
+
+**Not handled.** The other classes of the JDK, of BSON and of Jackson (`BigDecimal`,
+`LocalDateTime`, `Optional`, `Decimal128`, `ObjectNode`...) and the arrays of values or of such
+classes (`byte[]`, `String[]`, `BigDecimal[]`...) are neither refused nor modeled: the codec does not
+convert them, so they do not read back. Do not use them on an entity (`LocalDateTime` is not
+supported: use `OffsetDateTime` or `Instant`). Writing there a value of a class of the application (a
+subclass of `BigDecimal`, an implementation of `org.bson.conversions.Bson`, an array of them) fails
+with a `DataAccessException`
+(`Field com.app.Account.price is declared java.math.BigDecimal, a type archidata does not model, but holds a com.app.Money, a class of the application: it cannot be stored there; declare the field with that class`),
+and `Filters.checkFieldName` refuses any path below such a field (`price.scale`); the change journal
+copies such a field without its sub-keys and the TRACE masking masks them.
+
 API Annotations
 ===============
 

@@ -1,7 +1,5 @@
 package org.atriasoft.archidata.dataAccess.model.codec;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -20,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.atriasoft.archidata.bean.ClassModel;
+import org.atriasoft.archidata.bean.PropertyDescriptor;
 import org.atriasoft.archidata.bean.TypeInfo;
 import org.atriasoft.archidata.bean.accessor.PropertyGetter;
 import org.atriasoft.archidata.bean.accessor.PropertySetter;
@@ -27,6 +26,8 @@ import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.crypto.FieldEncryptionContext;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules;
+import org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules.Kind;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.Document;
@@ -113,7 +114,30 @@ public final class MongoCodecFactory {
 			final TypeInfo typeInfo,
 			final String dbFieldName,
 			final FieldEncryptionContext encryptCtx) {
-		MongoTypeWriter writer = buildWriter(typeInfo);
+		return buildFieldCodec(getter, setter, typeInfo, dbFieldName, encryptCtx, null);
+	}
+
+	/**
+	 * Build a complete field codec, optionally wrapping the converters with field encryption, for a field whose
+	 * qualified name is known (used in the warning logged when a value of a subclass is stored).
+	 *
+	 * @param getter the pre-built lambda getter for the property
+	 * @param setter the pre-built lambda setter for the property (may be null for read-only)
+	 * @param typeInfo the resolved type info for the property
+	 * @param dbFieldName the MongoDB field name
+	 * @param encryptCtx the field encryption context, or {@code null} for a clear field
+	 * @param qualifiedFieldName the field as {@code com.app.Owner.field}, or {@code null} when unknown
+	 * @return a pre-compiled MongoFieldCodec
+	 */
+	public static MongoFieldCodec buildFieldCodec(
+			final PropertyGetter getter,
+			final PropertySetter setter,
+			final TypeInfo typeInfo,
+			final String dbFieldName,
+			final FieldEncryptionContext encryptCtx,
+			final String qualifiedFieldName) {
+		MongoTypeWriter writer = buildWriter(typeInfo,
+				qualifiedFieldName == null ? null : "Field " + qualifiedFieldName);
 		MongoTypeReader reader = buildReader(typeInfo);
 		if (encryptCtx != null) {
 			if (typeInfo.rawType() != String.class) {
@@ -158,10 +182,24 @@ public final class MongoCodecFactory {
 	 * Build a standalone writer for a given type.
 	 * Used for collection element conversion and sub-object recursion.
 	 *
+	 * <p>An embedded object is written with the model of this <em>declared</em> type, at any depth (elements of
+	 * lists and sets, values of maps): a value of a subclass is stored with the fields of the declared type only
+	 * (a warning is logged once). A declared type that does not tell which fields are stored ({@code Object}, an
+	 * interface, an abstract class, a raw or unresolved list, set or map) gives a writer that refuses every value:
+	 * a persisted field so declared is refused earlier, when the model is analysed ({@link DeclaredTypeRules}).
+	 *
 	 * @param typeInfo the resolved type information for the value to convert
 	 * @return a pre-compiled writer lambda
 	 */
 	public static MongoTypeWriter buildWriter(final TypeInfo typeInfo) {
+		return buildWriter(typeInfo, null);
+	}
+
+	/**
+	 * @param site how the value is named in the warning of a subclass ({@code "Field com.app.Owner.field"},
+	 *        {@code "An element of field ..."}), or {@code null} when unknown
+	 */
+	private static MongoTypeWriter buildWriter(final TypeInfo typeInfo, final String site) {
 		final Class<?> raw = typeInfo.rawType();
 
 		// --- Primitives and boxed: identity (MongoDB driver handles them natively) ---
@@ -221,12 +259,18 @@ public final class MongoCodecFactory {
 
 		// --- BSON Document (must be checked before Map, since Document implements Map) ---
 		if (raw == Document.class) {
-			return IDENTITY_W;
+			// Free-form content, handed to the driver as it is: the driver would encode a class of the application
+			// with its own model (every field, @DataNotRead and @DataEncrypt ones in clear). Checked by an allowlist.
+			return v -> {
+				FreeFormContentGuard.check(v, site);
+				return v;
+			};
 		}
 
 		// --- List<E> ---
 		if (typeInfo.isList()) {
-			final MongoTypeWriter elementWriter = buildElementWriterFromTypeInfo(typeInfo);
+			final MongoTypeWriter elementWriter = buildElementWriterFromTypeInfo(typeInfo,
+					elementSite("An element of", site));
 			return v -> {
 				final List<?> list = (List<?>) v;
 				final List<Object> out = new ArrayList<>(list.size());
@@ -239,7 +283,8 @@ public final class MongoCodecFactory {
 
 		// --- Set<E> (stored as List in MongoDB) ---
 		if (typeInfo.isSet()) {
-			final MongoTypeWriter elementWriter = buildElementWriterFromTypeInfo(typeInfo);
+			final MongoTypeWriter elementWriter = buildElementWriterFromTypeInfo(typeInfo,
+					elementSite("An element of", site));
 			return v -> {
 				final Set<?> set = (Set<?>) v;
 				final List<Object> out = new ArrayList<>(set.size());
@@ -252,7 +297,8 @@ public final class MongoCodecFactory {
 
 		// --- Map<K, V> ---
 		if (typeInfo.isMap()) {
-			final MongoTypeWriter valueWriter = buildElementWriterFromTypeInfo(typeInfo);
+			final MongoTypeWriter valueWriter = buildElementWriterFromTypeInfo(typeInfo,
+					elementSite("A value of", site));
 			return v -> {
 				final Map<?, ?> map = (Map<?, ?>) v;
 				final Document doc = new Document();
@@ -265,8 +311,49 @@ public final class MongoCodecFactory {
 			};
 		}
 
-		// --- Sub-object (POJO/record) → recursive Document ---
-		return MongoCodecFactory::writeSubObject;
+		// --- Sub-object (POJO/record) → recursive Document, by the declared type ---
+		final Kind kind = DeclaredTypeRules.kindOf(typeInfo);
+		if (kind == Kind.EMBEDDED) {
+			return v -> writeSubObject(v, raw, site);
+		}
+		if (kind.isRefused()) {
+			return refusingWriter(typeInfo);
+		}
+		// A JDK, BSON or Jackson class the codec does not model (BigDecimal, arrays...): unchanged, by its own class,
+		// unless the value is a class of the application (a subclass of a JDK class, an implementation of a BSON
+		// interface, an array of them): it would be stored with its own model while the position is not modeled.
+		return v -> {
+			final Class<?> runtime = v.getClass();
+			if (runtime != raw && DeclaredTypeRules.isApplicationClass(DeclaredTypeRules.innermostComponent(runtime))) {
+				throw new DataAccessException((site == null ? "A value" : site) + " is declared " + raw.getName()
+						+ ", a type archidata does not model, but holds a " + runtime.getName()
+						+ ", a class of the application: it cannot be stored there; declare the field with that class");
+			}
+			return writeSubObject(v, runtime, null);
+		};
+	}
+
+	/** Name the elements (or values) of a collection (or map) in the warning of a subclass. */
+	private static String elementSite(final String prefix, final String site) {
+		if (site == null) {
+			return null;
+		}
+		return prefix + " " + Character.toLowerCase(site.charAt(0)) + site.substring(1);
+	}
+
+	/**
+	 * A writer for a declared type that does not tell which fields are stored: refuses every value (fail closed).
+	 * A persisted field so declared is refused when the model is analysed; this writer is reached only through
+	 * the public {@link #buildWriter(TypeInfo)}.
+	 */
+	private static MongoTypeWriter refusingWriter(final TypeInfo typeInfo) {
+		final String declared = typeInfo.genericType().getTypeName();
+		return v -> {
+			throw new DataAccessException("Cannot store a value declared " + declared
+					+ ": archidata stores an embedded value by its declared type only, and this type does not tell"
+					+ " which fields to store (Object, an interface, an abstract class, or a list, set or map whose"
+					+ " element type is unknown)");
+		};
 	}
 
 	/**
@@ -462,12 +549,17 @@ public final class MongoCodecFactory {
 	// ========== Sub-object recursive helpers ==========
 
 	/**
-	 * Convert a Java POJO/record to a MongoDB Document (recursive writer).
-	 * Replaces the old {@code convertInDocument()} for sub-objects.
+	 * Convert a Java POJO/record to a MongoDB Document (recursive writer), with the model of the declared class:
+	 * a value of a subclass is stored with the fields of the declared class only.
+	 *
+	 * @param data the value (not {@code null})
+	 * @param declaredClass the declared class of the value
+	 * @param site how the value is named in the warning of a subclass, or {@code null}
 	 */
-	private static Object writeSubObject(final Object data) throws Exception {
-		final Class<?> clazz = data.getClass();
-		final DbClassModel dbModel = DbClassModel.of(clazz);
+	private static Object writeSubObject(final Object data, final Class<?> declaredClass, final String site)
+			throws Exception {
+		checkDeclaredInstance(data, declaredClass, site);
+		final DbClassModel dbModel = DbClassModel.of(declaredClass);
 		final Document out = new Document();
 
 		// Regular fields
@@ -558,48 +650,82 @@ public final class MongoCodecFactory {
 
 	// ========== Embedded objects with protected fields (full update) ==========
 
-	/** Types written as a value (not as an embedded document) by {@link #buildWriter(TypeInfo)}. */
-	private static final Set<Class<?>> VALUE_TYPES = Set.of(Long.class, Integer.class, Float.class, Double.class,
-			Boolean.class, Short.class, Character.class, String.class, ObjectId.class, UUID.class, Date.class,
-			Instant.class, OffsetDateTime.class, LocalDate.class, LocalTime.class, Document.class);
+	/** Keys ({@code site|declared class|runtime class}) of the subclass warnings already logged. */
+	private static final Set<String> SUBCLASS_WARNINGS = ConcurrentHashMap.newKeySet();
 
 	/**
-	 * Tells whether the writer ({@link #buildWriter(TypeInfo)}) encodes a field of this declared type through
-	 * {@link #writeSubObject}, that is as an embedded document built from the class of the <em>value</em>
-	 * (not the declared type): everything but the primitives and boxed types, {@code String}, {@code ObjectId},
-	 * {@code UUID}, the dates and times, the enums, {@code org.bson.Document}, and the lists, sets and maps
-	 * (whose elements are encoded the same way, by their own type).
-	 *
-	 * @param typeInfo the declared type of the field
-	 * @return {@code true} when the stored fields depend on the class of the value
+	 * Check that a value is an instance of its declared class, and log once per place and runtime class that a
+	 * subclass is stored with the fields of the declared class only.
 	 */
-	public static boolean isWrittenByRuntimeClass(final TypeInfo typeInfo) {
-		final Class<?> raw = typeInfo.rawType();
-		if (raw.isPrimitive() || raw.isEnum() || VALUE_TYPES.contains(raw)) {
-			return false;
+	private static void checkDeclaredInstance(final Object data, final Class<?> declaredClass, final String site)
+			throws DataAccessException {
+		final Class<?> runtimeClass = data.getClass();
+		if (runtimeClass == declaredClass) {
+			return;
 		}
-		return !(typeInfo.isList() || typeInfo.isSet() || typeInfo.isMap());
+		final String name = site == null ? "A value" : site;
+		if (!declaredClass.isInstance(data)) {
+			throw new DataAccessException(name + " is declared " + declaredClass.getName() + " but holds a "
+					+ runtimeClass.getName() + ", which is not one: it cannot be stored");
+		}
+		if (!SUBCLASS_WARNINGS.add(name + "|" + declaredClass.getName() + "|" + runtimeClass.getName())) {
+			return;
+		}
+		LOGGER.warn(
+				"{} is declared {} but holds a {}: only the fields of {} are stored, the fields {} adds are"
+						+ " dropped ({})",
+				name, declaredClass.getName(), runtimeClass.getName(), declaredClass.getSimpleName(),
+				runtimeClass.getSimpleName(), addedFieldNames(declaredClass, runtimeClass));
+	}
+
+	/** Names of the readable properties a subclass adds to its declared class (names only, never a value). */
+	private static List<String> addedFieldNames(final Class<?> declaredClass, final Class<?> runtimeClass) {
+		final List<String> out = new ArrayList<>();
+		try {
+			final Set<String> declared = new HashSet<>();
+			for (final PropertyDescriptor prop : ClassModel.of(declaredClass).getProperties()) {
+				declared.add(prop.getName());
+			}
+			for (final PropertyDescriptor prop : ClassModel.of(runtimeClass).getProperties()) {
+				if (prop.canRead() && !declared.contains(prop.getName())) {
+					out.add(prop.getName());
+				}
+			}
+		} catch (final IntrospectionException ex) {
+			LOGGER.debug("Can not list the fields of {}: {}", runtimeClass.getName(), ex.getMessage());
+		}
+		return out;
 	}
 
 	/** Cache of {@link #hasProtectedSubFields(TypeInfo)}: the model of a class never changes. */
 	private static final Map<TypeInfo, Boolean> PROTECTED_SUB_FIELDS = new ConcurrentHashMap<>();
 
 	/**
-	 * Tells whether a field of this type is stored as one embedded document (a POJO or a record), and not as a
-	 * value, a list, a set or a map.
+	 * Tells whether a field of this type is stored as one embedded document modeled by archidata: a concrete
+	 * class (a POJO or a record) of the application, and not a value, a list, a set, a map, a class of the JDK,
+	 * of BSON or of Jackson ({@link DeclaredTypeRules.Kind#EMBEDDED}).
 	 *
 	 * @param typeInfo the declared type of the field
 	 * @return {@code true} for an embedded object
 	 */
 	public static boolean isEmbeddedObjectType(final TypeInfo typeInfo) {
-		final Class<?> raw = typeInfo.rawType();
-		if (raw.isPrimitive() || raw.isArray() || raw.isEnum() || raw.isInterface() || raw == Object.class) {
-			return false;
-		}
-		if (typeInfo.isCollection() || typeInfo.isMap() || typeInfo.isOptional()) {
-			return false;
-		}
-		return !VALUE_TYPES.contains(raw);
+		return DeclaredTypeRules.kindOf(typeInfo) == Kind.EMBEDDED;
+	}
+
+	/**
+	 * Told whether the writer encoded a field of this declared type with the class of its value rather than with
+	 * the declared type. No type is written that way any more: an embedded object is written by its declared type,
+	 * at any depth, and a field whose declared type does not tell what it holds is refused when the model is
+	 * analysed.
+	 *
+	 * @param typeInfo the declared type of the field (not read)
+	 * @return always {@code false}
+	 * @deprecated nothing is written by the class of its value any more; the type rules are in
+	 *             {@link DeclaredTypeRules}
+	 */
+	@Deprecated(since = "0.51.4")
+	public static boolean isWrittenByRuntimeClass(final TypeInfo typeInfo) {
+		return false;
 	}
 
 	/**
@@ -629,10 +755,16 @@ public final class MongoCodecFactory {
 		if (typeInfo == null) {
 			return false;
 		}
-		if (typeInfo.isCollection() || typeInfo.isMap()) {
-			return hasProtectedSubFields(resolveElementTypeInfo(typeInfo), visiting);
+		final Kind kind = DeclaredTypeRules.kindOf(typeInfo);
+		if (kind == Kind.LIST_OR_SET || kind == Kind.MAP) {
+			return hasProtectedSubFields(DeclaredTypeRules.elementOf(typeInfo), visiting);
 		}
-		if (!isEmbeddedObjectType(typeInfo)) {
+		if (kind.isRefused()) {
+			// A type that does not tell what it holds: refused when a model is analysed, so not reachable from
+			// an entity. Counted as holding protected fields all the same (fail closed).
+			return true;
+		}
+		if (kind != Kind.EMBEDDED) {
 			return false;
 		}
 		final Class<?> raw = typeInfo.rawType();
@@ -647,8 +779,10 @@ public final class MongoCodecFactory {
 			}
 			return false;
 		} catch (final IntrospectionException ex) {
+			// Not reachable from an accepted model (an embedded class that cannot be analysed fails its root):
+			// counted as holding protected fields all the same (fail closed).
 			LOGGER.debug("Can not analyse the embedded type {}: {}", raw.getName(), ex.getMessage());
-			return false;
+			return true;
 		} finally {
 			visiting.remove(raw);
 		}
@@ -659,15 +793,41 @@ public final class MongoCodecFactory {
 	}
 
 	/**
-	 * Writes the visible fields of an embedded object in dot notation ({@code path.field}), for a full update.
+	 * Writes the visible fields of an embedded object in dot notation ({@code path.field}), for a full update,
+	 * with the model of the class of the value.
+	 *
+	 * @param path the dotted path of the embedded object in the document
+	 * @param value the embedded object (not {@code null})
+	 * @param docSet the {@code $set} document to fill
+	 * @param docUnSet the {@code $unset} document to fill
+	 * @throws Exception if the model cannot be analysed or a value cannot be converted
+	 * @deprecated the class of the value may be a subclass of the declared type of the field, whose added fields
+	 *             would be written: use
+	 *             {@link #writeEmbeddedVisibleFields(String, DbPropertyDescriptor, Object, Document, Document)},
+	 *             which writes by the declared type
+	 */
+	@Deprecated(since = "0.51.4")
+	public static void writeEmbeddedVisibleFields(
+			final String path,
+			final Object value,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		writeEmbeddedVisibleFields(path, value, value.getClass(), null, docSet, docUnSet);
+	}
+
+	/**
+	 * Writes the visible fields of an embedded object in dot notation ({@code path.field}), for a full update,
+	 * with the model of the declared type of the field.
 	 *
 	 * <p>The protected fields ({@code @DataNotRead}, {@code @DataEncrypt}) are not written, so the values
 	 * stored in the database stay. A visible field set to {@code null} is {@code $unset}. A nested embedded
 	 * object holding protected fields is written the same way (or {@code $unset} when {@code null}); a nested
 	 * list, set or map of such objects is not written at all. An object that is not stored yet is created by
-	 * its first non-null visible field (when every visible field is {@code null}, nothing is created).
+	 * its first non-null visible field (when every visible field is {@code null}, nothing is created). A value of
+	 * a subclass is written with the fields of the declared type only (a warning is logged once).
 	 *
 	 * @param path the dotted path of the embedded object in the document
+	 * @param field the field holding the embedded object: its declared type gives the fields written
 	 * @param value the embedded object (not {@code null})
 	 * @param docSet the {@code $set} document to fill
 	 * @param docUnSet the {@code $unset} document to fill
@@ -675,10 +835,23 @@ public final class MongoCodecFactory {
 	 */
 	public static void writeEmbeddedVisibleFields(
 			final String path,
+			final DbPropertyDescriptor field,
 			final Object value,
 			final Document docSet,
 			final Document docUnSet) throws Exception {
-		for (final DbPropertyDescriptor desc : DbClassModel.of(value.getClass()).getAllFields()) {
+		writeEmbeddedVisibleFields(path, value, field.getProperty().getType(), "Field " + qualifiedName(field), docSet,
+				docUnSet);
+	}
+
+	private static void writeEmbeddedVisibleFields(
+			final String path,
+			final Object value,
+			final Class<?> declaredClass,
+			final String site,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		checkDeclaredInstance(value, declaredClass, site);
+		for (final DbPropertyDescriptor desc : DbClassModel.of(declaredClass).getAllFields()) {
 			final MongoFieldCodec codec = desc.getCodec();
 			if (codec == null || isProtectedSubField(desc)) {
 				continue;
@@ -697,9 +870,27 @@ public final class MongoCodecFactory {
 			if (subValue == null) {
 				docUnSet.append(subPath, "");
 			} else {
-				writeEmbeddedVisibleFields(subPath, subValue, docSet, docUnSet);
+				writeEmbeddedVisibleFields(subPath, subValue, typeInfo.rawType(), "Field " + qualifiedName(desc),
+						docSet, docUnSet);
 			}
 		}
+	}
+
+	/**
+	 * Name a field as {@code com.app.Owner.field}, with the class that declares it.
+	 *
+	 * @param desc the field
+	 * @return the qualified name of the field
+	 */
+	public static String qualifiedName(final DbPropertyDescriptor desc) {
+		final PropertyDescriptor prop = desc.getProperty();
+		Class<?> owner = null;
+		if (prop.getField() != null) {
+			owner = prop.getField().getDeclaringClass();
+		} else if (prop.getGetter() != null) {
+			owner = prop.getGetter().getDeclaringClass();
+		}
+		return (owner == null ? "?" : owner.getName()) + "." + prop.getName();
 	}
 
 	// ========== Element codec builders ==========
@@ -711,36 +902,23 @@ public final class MongoCodecFactory {
 	 * Falls back to the raw elementType class if generic info is unavailable.
 	 *
 	 * @param parentTypeInfo the type of the list, set or map
-	 * @return the type of its elements (values), or {@code null} when it cannot be known
+	 * @return the type of its elements (values), or {@code null} when it cannot be known (raw type, wildcard,
+	 *         type variable): see {@link DeclaredTypeRules#elementOf(TypeInfo)}
 	 */
 	public static TypeInfo resolveElementTypeInfo(final TypeInfo parentTypeInfo) {
-		final Type generic = parentTypeInfo.genericType();
-		if (generic instanceof final ParameterizedType pt) {
-			final Type[] args = pt.getActualTypeArguments();
-			if (parentTypeInfo.isMap() && args.length > 1) {
-				return TypeInfo.fromType(args[1]);
-			}
-			if (args.length > 0) {
-				return TypeInfo.fromType(args[0]);
-			}
-		}
-		// Fallback: use raw elementType
-		final Class<?> elementType = parentTypeInfo.elementType();
-		if (elementType == null) {
-			return null;
-		}
-		return TypeInfo.ofRaw(elementType);
+		return DeclaredTypeRules.elementOf(parentTypeInfo);
 	}
 
 	/**
-	 * Build a writer for collection/map element types, preserving full generic type info.
+	 * Build a writer for collection/map element types, preserving full generic type info. An unknown element
+	 * type (raw type, wildcard, type variable) gives a writer that refuses the elements.
 	 */
-	private static MongoTypeWriter buildElementWriterFromTypeInfo(final TypeInfo parentTypeInfo) {
+	private static MongoTypeWriter buildElementWriterFromTypeInfo(final TypeInfo parentTypeInfo, final String site) {
 		final TypeInfo elementTi = resolveElementTypeInfo(parentTypeInfo);
 		if (elementTi == null) {
-			return MongoCodecFactory::writeSubObject;
+			return refusingWriter(parentTypeInfo);
 		}
-		return buildWriter(elementTi);
+		return buildWriter(elementTi, site);
 	}
 
 	/**

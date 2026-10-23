@@ -28,6 +28,7 @@ import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.model.DbFieldAction;
 import org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor;
+import org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules;
 import org.atriasoft.archidata.dataAccess.model.ReadFieldSelector;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
@@ -1295,6 +1296,10 @@ public class DBAccessMongo implements Closeable {
 								throw new DataAccessException(
 										"Fail to Insert data in DB.. when use 'DirectData.class' or 'DirectPrimaryKey.class' you need to provide a primary key...");
 							}
+							if (DeclaredTypeRules.isUntypedPrimaryKey(desc)) {
+								DeclaredTypeRules.checkPrimaryKeyValue(primaryKeyValue,
+										"Field " + MongoCodecFactory.qualifiedName(desc));
+							}
 							uniqueId = primaryKeyValue;
 							docSet.append(fieldName.inTable(), primaryKeyValue);
 						}
@@ -1530,7 +1535,7 @@ public class DBAccessMongo implements Closeable {
 						if (embedded == null) {
 							docUnSet.append(fieldName.inTable(), "");
 						} else {
-							MongoCodecFactory.writeEmbeddedVisibleFields(fieldName.inTable(), embedded, docSet,
+							MongoCodecFactory.writeEmbeddedVisibleFields(fieldName.inTable(), desc, embedded, docSet,
 									docUnSet);
 						}
 					}

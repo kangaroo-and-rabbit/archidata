@@ -82,8 +82,6 @@ public class TestTraceMasking {
 		public List<Credentials> history;
 		public Map<String, ApiKey> map;
 		public Base base;
-		@SuppressWarnings("rawtypes")
-		public Map rawMap;
 		@DataNotRead
 		public String hiddenToken;
 	}
@@ -251,14 +249,24 @@ public class TestTraceMasking {
 
 	@Test
 	public void testTraceMasksUnknownFieldsOfEmbeddedObjects() throws Exception {
-		// The writer encodes by the class of the value: "extra" is stored under a field typed Base.
+		// The writer encodes by the declared type: "extra" of the subclass is not stored.
 		final TracedNested entity = new TracedNested();
-		entity.name = "unknown-name";
+		entity.name = "unknown-new-name";
 		final Derived derived = new Derived();
 		derived.label = "base-label";
-		derived.extra = "extra-secret-value";
+		derived.extra = "extra-new-value";
 		entity.base = derived;
 		ConfigureDb.da.insert(entity);
+		final Document stored = ConfigureDb.da.getInterface().getDatabase().getCollection("traceMaskingNested")
+				.find(new Document("name", "unknown-new-name")).first();
+		Assertions.assertNotNull(stored);
+		Assertions.assertEquals(new Document("label", "base-label"), stored.get("base"));
+
+		// A document written by an older version (which wrote the fields of the subclass): "extra" is in the
+		// database, unknown to the model, and masked.
+		ConfigureDb.da.getInterface().getDatabase().getCollection("traceMaskingNested")
+				.insertOne(new Document("name", "unknown-name").append("base",
+						new Document("label", "base-label").append("extra", "extra-secret-value")));
 
 		final String readLogs = traceOf(
 				() -> ConfigureDb.da.gets(TracedNested.class, new Condition(Filters.eq("name", "unknown-name"))));
@@ -276,17 +284,18 @@ public class TestTraceMasking {
 	}
 
 	@Test
-	public void testTraceMasksRawMapAndExpressionOperators() throws Exception {
-		// A raw Map writes each value by its own class: the hidden field of the value is stored.
-		final TracedNested entity = new TracedNested();
-		entity.name = "raw-name";
-		entity.rawMap = Map.of("k", new ApiKey("raw-label", "raw-map-secret-value"));
-		ConfigureDb.da.insert(entity);
+	public void testTraceMasksLegacyMapValuesAndExpressionOperators() throws Exception {
+		// A map is transferred whole: a key of a value written by an older version is unknown, and masked.
+		ConfigureDb.da.getInterface().getDatabase().getCollection("traceMaskingNested").insertOne(
+				new Document("name", "raw-name").append("map", new Document("k", new Document("label", "raw-label")
+						.append("secret", "raw-map-secret-value").append("legacy", "legacy-map-value"))));
 
 		final String readLogs = traceOf(
 				() -> ConfigureDb.da.gets(TracedNested.class, new Condition(Filters.eq("name", "raw-name"))));
 		Assertions.assertTrue(readLogs.contains("raw-name"), readLogs);
+		Assertions.assertTrue(readLogs.contains("raw-label"), readLogs);
 		Assertions.assertFalse(readLogs.contains("raw-map-secret-value"), readLogs);
+		Assertions.assertFalse(readLogs.contains("legacy-map-value"), readLogs);
 
 		// $expr can name any field: the whole expression is masked.
 		final String filterLogs = traceOf(() -> ConfigureDb.da.gets(TracedNested.class, new Condition(

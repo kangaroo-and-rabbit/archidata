@@ -73,11 +73,13 @@ The capture copies each document as it is stored. What is kept out:
 - The `@DataNotRead` fields **inside embedded objects** are not copied either: those of an embedded
   object, of the elements of a `List` / `Set` and of the values of a `Map` (the key of a map is dynamic, so
   they are removed in Java before the document is serialized, at any depth). The `@DataEncrypt` fields
-  of embedded objects stay encrypted, like the top-level ones. A value declared `Object`, as an interface or
-  as an abstract class is written by the class of the value, which the model cannot know: the fields
-  inside such a sub-document are dropped from the entry (fail closed), and so is, below the root, any key
-  the model does not know (a field added by a subclass of the declared type, for example). Every class
-  registered with `addClass` for the same collection is applied.
+  of embedded objects stay encrypted, like the top-level ones. Below the root, any key the model does not
+  know is dropped from the entry (fail closed): for example a field added by a subclass of the declared
+  type, written by a version up to v0.51.3 (embedded objects are now written by their declared type, see
+  [Field Types](data_model.md#field-types)), or a sub-key of a field declared with a JDK class archidata
+does not model (`BigDecimal`, `Locale`, `URI`...: the field is copied as an empty sub-document). Every class registered with `addClass` for the same
+  collection is applied; a class whose model is refused (a field declared `Object`, as an interface, as
+  an abstract class or as a raw collection) makes `addClass` throw a `DataAccessException`.
 - Journal entries written **before this protection** (versions up to v0.51.3) may hold those nested
   secrets in clear in their `data`: purge them (delete the entries of the collections concerned from the
   journal collection, or age them out with [`ChangeJournalPurge`](#retention-purge)) and, if the secrets were exposed, rotate them.

@@ -227,6 +227,25 @@ Each point was checked against the code; the doc page gives the details.
   `ObjectId`, a `Long` or a `UUID` (a `List` of them on the collection side), or the target
   entity itself to expand it. Any other type (`String`...) is rejected with an error naming the
   class and the field when the model is analysed. See `doc/data_model.md`.
+- **An embedded object is written by its declared type**, at any depth (insert, full and partial
+  update): a subclass instance stores only the fields of the declared class (one WARN per field and
+  class names the dropped fields, never their values). A persisted field declared `Object`, as an
+  interface or an abstract class (`Serializable`, `Number`, `JsonNode` included), as a raw
+  `List`/`Set`/`Map`, as another `Collection`/`Iterable`, as an array of an application class, or
+  as a collection whose element type is one of these or a wildcard (`List<Object>`,
+  `Map<String, Object>` included) is refused when the model is
+  analysed (`DataAccessException` "Unsupported field type on ..."), library classes walked as
+  embedded objects included (one `Object`/interface property of a GeoJSON, `jakarta.*` or JTS class
+  blocks the startup, even when always `null`). Use a concrete class (a DTO), or `org.bson.Document`
+  for free-form content. `OptionSpecifyType` does not lift the refusal; its one use left is a
+  primary key declared `Object`, exempt, whose value must be an `ObjectId`, `UUID`, `String`, `Long`,
+  `Integer` or `Short`. The content of a `Document` is checked at write, at any depth, by an
+  allowlist: BSON and JDK values (exact class), enums, `Map`s with `String` keys, `Collection`s and
+  arrays of them; anything else is refused, an application class (the driver would store its
+  `@DataNotRead`/`@DataEncrypt` fields in clear) as well as a JDK wrapper (`Optional`,
+  `AtomicReference`, `Map.Entry`) or a Jackson node. A value of an application class written under a
+  JDK type archidata does not model (a subclass of `BigDecimal`) is refused. Data stored before stays in the database. See
+  `doc/data_model.md` and `MIGRATION.md`.
 - **UUID primary keys** (`UUIDGenericData`, `UUIDGenericDataSoftDelete`) work for reads, filters
   and relations; the key is generated at insertion by `UuidUtils.nextUUID()`.
 

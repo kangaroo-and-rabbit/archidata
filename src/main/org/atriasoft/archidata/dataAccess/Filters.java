@@ -94,9 +94,11 @@ public final class Filters {
 	 * {@code map.someKey.secret}): a filter or a sort on a hidden value would reveal it by dichotomy;</li>
 	 * <li>the name ends on an embedded object, a list, a set or a map of embedded objects whose class has
 	 * protected fields (at any depth): comparing or sorting the whole sub-document would reach them;</li>
-	 * <li>the name ends on, or runs below, a position declared as {@code Object}, any interface or abstract
-	 * class (JDK ones such as {@code Serializable} or {@code Number} included): such a value is written by the class of the value (protected fields
-	 * included) and read back by the declared type, so nothing can be told about it;</li>
+	 * <li>the name runs below a class of the JDK or of Jackson that is not a value ({@code BigDecimal},
+	 * {@code Locale}, {@code URI}, {@code LocalDateTime}...): archidata does not model what it holds;</li>
+	 * <li>the model of the entity is refused ({@code IllegalArgumentException} "Cannot analyse the model"): a
+	 * persisted field declared {@code Object}, an interface, an abstract class or a raw collection, at any
+	 * depth (see {@code DeclaredTypeRules});</li>
 	 * <li>the path is deeper than {@link FieldPathCursor#MAX_DEPTH}, or ambiguous (a numeric segment after
 	 * a list of maps whose values hold protected fields: array index or map key).</li>
 	 * </ul>
@@ -104,14 +106,12 @@ public final class Filters {
 	 * <p>Resolution rules: after a list or a set, an optional numeric segment (array index) is skipped and
 	 * the next segment is a field of the element type; after a map, the next segment is a key (any string)
 	 * and resolution goes on in the value type. Accepted without further check: the rest of the path below
-	 * an explicit free-form position ({@code org.bson.Document}, {@code JsonNode}, a plain value or a
-	 * concrete JDK class) and below a relation field (stored as a key). A raw (non-generic) list, set or map
-	 * is <em>not</em> free-form: its elements are written by their own class, so it is refused like a
-	 * polymorphic type, as a whole (also when an embedded class holds one) and below it.
+	 * a BSON type ({@code org.bson.Document}...), a plain value, a relation field (stored as a key) and a
+	 * primary key declared {@code Object}.
 	 *
-	 * <p>Protection follows the <em>declared</em> type: a concrete base class holding an instance of a
-	 * subclass is resolved by the fields of the base class only (a field added by the subclass is refused as
-	 * unknown, but comparing the whole base-class sub-document is not detected as reaching it).
+	 * <p>Protection follows the <em>declared</em> type, as the writes do: a field added by a subclass is not
+	 * stored, and refused as unknown. Such a field stored by an older version stays in the database until it
+	 * is cleaned: comparing the whole sub-document still reaches it (see MIGRATION.md).
 	 *
 	 * @param clazz the entity class
 	 * @param fieldName the database field name (or dotted path) sent by the client

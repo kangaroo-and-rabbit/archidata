@@ -1,5 +1,203 @@
 # Migration Guide
 
+## Prochaine version (après v0.51.3) - Objets embarqués écrits par leur type déclaré (CHANGEMENT DE COMPORTEMENT)
+
+Suite du point CS-01 resté ouvert (SECURITY_AUDIT.md) : archidata écrivait un objet embarqué avec la
+classe **réelle** de la valeur et le relisait avec la classe **déclarée**. Une sous-classe stockée sous un
+champ de classe de base, ou toute valeur d'un champ `Object` / interface / classe abstraite / collection
+brute, écrivait en base des champs (y compris `@DataNotRead` / `@DataEncrypt`) qu'aucune lecture ne
+rendait, mais qu'un filtre comparant le sous-document entier pouvait atteindre. Désormais archidata ne
+stocke que ce qu'il sait relire.
+
+### Un champ au type polymorphe ou non typé est refusé à l'analyse du modèle
+
+Avant : accepté ; les données étaient écrites par la classe réelle et relues mal (objet vide, échec, ou
+champs perdus). Après : le modèle de l'entité est refusé à sa première analyse (`DbClassModel.of`, donc au
+premier insert, lecture, `IndexEngine.addClass`, `ChangeJournalEngine.addClass`, `Filters.checkFieldName`...),
+comme une annotation JPA. Sont refusés, pour toute propriété persistée (champ public ou getter) qui n'est pas
+une relation, à la racine et dans toute classe embarquée atteignable (champs, éléments de `List` / `Set`,
+valeurs de `Map`, à toute profondeur, cycles compris) :
+
+| Type déclaré | Remplacement |
+| --- | --- |
+| `Object`, une variable de type (`T`) (sauf la clé primaire, voir plus bas) | la classe concrète, ou `org.bson.Document` pour un contenu libre |
+| une interface ou une classe abstraite, y compris du JDK (`Serializable`, `Number`, `CharSequence`, `Comparable`) et Jackson `JsonNode` | la classe concrète, ou `org.bson.Document` |
+| `List` / `Set` / `Map` bruts, `List<?>`, `List<? extends X>`, `List<T>` | `List<MaClasse>`, `Set<MaClasse>`, `Map<String, MaClasse>` |
+| `Collection<X>`, `Iterable<X>`, `Queue<X>`, `ArrayDeque<X>`... | `List<X>` ou `Set<X>` |
+| un tableau d'une classe de l'application ou d'un des cas ci-dessus (`Point[]`, `Object[]`, `Serializable[][]`) | `List<Point>` ou `Set<Point>` |
+| `List` / `Set` / `Map` dont l'élément ou la valeur est l'un des cas ci-dessus, dont les plus courants `List<Object>` et `Map<String, Object>` (aussi `List<List<Object>>`, `Set<MonInterface>`) | idem, sur l'élément : `List<MaClasse>`, `Map<String, MaClasse>` ; pour un contenu libre, un `org.bson.Document` (à la place d'une `Map<String, Object>`) ou une `List<Document>` |
+
+L'exception est une `IntrospectionException` (`DB model creation failed for Account`) dont la cause,
+une `DataAccessException`, dit tout :
+
+```
+Unsupported field type on com.app.Account: field Wrapper.inner (path wrapper.inner) is declared java.lang.Object, which can hold any class (Object, an interface or an abstract class), and archidata stores and reads an embedded value by its declared type only; declare a concrete class (or a List, Set or Map of one), or org.bson.Document for free-form content (see MIGRATION.md)
+```
+
+Variantes : `..., whose element type java.lang.Object can hold any class ...` (élément d'une liste),
+`(path free.<key>) ... whose value type ...` (valeur d'une map), `which is a raw type whose element type is
+unknown`, `which has an element type that cannot be resolved (a wildcard or a type variable)`, `which is a
+collection that is neither a List nor a Set: only List, Set and Map are stored as collections; declare a List
+or a Set`, `which is an array of a class of the application (or of a type that can hold any class), which
+archidata does not store element by element: ...`. Une classe refusée n'est pas gardée en cache : chaque appel
+relève la même erreur. Une classe abstraite (ou une interface) de l'application analysée comme racine (entité
+abstraite passée à `Filters.checkFieldName`, au masquage TRACE ou au journal) est vérifiée comme une classe
+concrète.
+
+**Clé primaire déclarée `Object`** : exemptée du refus, et toujours gérée comme avant (`@Id public Object
+_id`, son type donné à chaque appel par `OptionSpecifyType("_id", ObjectId.class)`, insertion avec
+`DirectPrimaryKey`). Nouveau : sa valeur est vérifiée à l'écriture, elle doit être un `ObjectId`, un `UUID`,
+une `String`, un `Long`, un `Integer` ou un `Short` ; sinon `DataAccessException` `Field com.app.Keyed._id is a
+primary key declared java.lang.Object but holds a com.app.Credentials: such a key only takes an ObjectId, a
+UUID, a String, a Long, an Integer or a Short`. Le refus reste entier pour **tout autre champ** déclaré
+`Object`, interface, classe abstraite ou générique non résolu (`List<T>`), même lu avec `OptionSpecifyType`
+(simple ou liste) : l'option ne lève pas le refus, le modèle est refusé avant qu'elle soit lue.
+
+**Le refus suit la déclaration, y compris dans les classes de bibliothèques.** Toute classe qui n'est ni du
+JDK (`java.`, `javax.`, `jdk.`, `sun.`, `com.sun.`), ni de Jackson (`com.fasterxml.`), ni de BSON (`org.bson.`)
+est parcourue comme un objet embarqué : `jakarta.*`, JTS, les classes GeoJSON du driver
+(`com.mongodb.client.model.geojson.Point`), Joda-Time... Une seule propriété (champ public ou getter) déclarée
+`Object`, interface ou classe abstraite dans une telle classe bloque le démarrage, même si elle vaut toujours
+`null`. Exemple vérifié : un champ `com.mongodb.client.model.geojson.Point location` donne `field
+Point.coordinateReferenceSystem (path location.coordinateReferenceSystem) is declared
+com.mongodb.client.model.geojson.CoordinateReferenceSystem, which can hold any class ...`. Contournement : un
+`org.bson.Document` (pour un point GeoJSON : `new Document("type", "Point").append("coordinates", List.of(lon,
+lat))`, ou l'objet GeoJSON du driver placé **dans** un `Document`, écrit par le codec du driver), ou une classe
+concrète de l'application (DTO) convertie à l'entrée et à la sortie.
+
+Non refusés, comportement inchangé : les types valeur (primitifs et boxés, `String`, `Character`,
+`ObjectId`, `UUID`, `Date`, `Instant`, `OffsetDateTime`, `LocalDate`, `LocalTime`, enums), les types BSON
+(`org.bson.Document`, contenu libre relu à l'identique, mais voir « Le contenu d'un `Document` est vérifié
+par une liste d'autorisation » plus bas), les relations (`@ManyToOneDoc`, `@OneToManyDoc`, `@ManyToManyDoc`), les classes
+concrètes de l'application. Les autres classes du JDK, de BSON et de
+Jackson (`BigDecimal`, `LocalDateTime`, `Optional`, `Decimal128`, `ObjectNode`) et les tableaux de valeurs
+ou de ces classes (`byte[]`, `String[]`, `BigDecimal[]`) ne sont ni refusés ni gérés : le codec ne les convertit
+pas (aller-retour en échec avant comme après). Deux changements les concernent :
+
+- y écrire une valeur d'une classe de l'application (sous-classe de `BigDecimal`, implémentation de
+  `org.bson.conversions.Bson`, tableau de telles classes) échoue (`DataAccessException` `Field
+  com.app.Account.price is declared java.math.BigDecimal, a type archidata does not model, but holds a
+  com.app.Money, a class of the application: it cannot be stored there; declare the field with that class`) :
+  elle était écrite avec son propre modèle, champs protégés compris, à une position que le garde des filtres
+  croyait libre ;
+- tout ce qui est stocké **sous** un tel champ (`Locale`, `URI`, `BigDecimal`, `LocalDateTime`...) est
+  traité comme inconnu : `Filters.checkFieldName` / `OrderItem.ofClientField` refusent le chemin
+  (`price.scale`), le journal retire les clés (le champ y est copié vide), le masquage TRACE les masque. Le
+  champ lui-même reste accepté par `checkFieldName`.
+
+Qui est concerné : une entité (ou un objet embarqué) qui déclare un tel champ ou un getter de ce type. Les
+applications relevées (karso, karideo, karusic, karentory) et `sample/archidata/basic` n'en ont pas. Pour
+le vérifier sans attendre un appel : `DbClassModel.of(MonEntite.class)` dans un test, pour chaque entité.
+
+### Un objet embarqué est écrit par son type déclaré
+
+Avant : `insert`, `updateById` complet (y compris l'écriture champ par champ des objets embarqués à champs
+protégés) et partiel (`FilterValue`) écrivaient un objet embarqué, un élément de `List` / `Set` ou une
+valeur de `Map` avec le modèle de sa classe réelle. Après : avec le modèle de son type déclaré, à toute
+profondeur. Une valeur d'une sous-classe ne stocke que les champs du type déclaré ; les champs ajoutés par
+la sous-classe sont perdus, et un WARN est écrit une fois par champ et par classe réelle (noms seulement,
+jamais de valeur), logger `org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory` :
+
+```
+Field com.app.Holder.base is declared com.app.Base but holds a com.app.Derived: only the fields of Base are stored, the fields Derived adds are dropped ([extra, secret])
+```
+
+(`An element of field ...` pour un élément de liste ou de set, `A value of field ...` pour une valeur de
+map.) Une valeur qui n'est pas une instance du type déclaré (glissée par un type brut) fait échouer
+l'écriture : `DataAccessException` `An element of field com.app.Holder.bases is declared com.app.Base but
+holds a java.lang.String, which is not one: it cannot be stored`.
+
+Qui est concerné : une application qui range une sous-classe sous un champ déclaré avec la classe de base.
+La lecture rendait déjà la classe de base sans les champs ajoutés : seul le contenu de la base change.
+Action : chercher `but holds a` dans les logs ; si les champs de la sous-classe doivent être gardés,
+déclarer la sous-classe sur le champ. Une sous-classe anonyme ou « double accolade » (`new Base() {{ label
+= "x"; }}`) est une sous-classe : même WARN (classe réelle `com.app.Service$1`), seuls les champs de `Base`
+sont écrits, comme pour toute sous-classe. Une valeur dont la classe a été chargée par un autre classloader
+que la classe déclarée (rechargement à chaud, plugin ; atteignable par un élément de `List` / `Set` ou une
+valeur de `Map`, pas par un champ typé) n'est pas une instance de la classe déclarée : l'écriture échoue
+(`... which is not one: it cannot be stored`) au lieu d'écrire la valeur par sa propre classe.
+
+**Le contenu d'un `Document` est vérifié par une liste d'autorisation.** Avant : un `org.bson.Document`
+(champ, élément de `List<Document>`, valeur de `Map<String, Document>`) était passé tel quel au driver, qui
+encode un objet de l'application qu'il contient avec son codec POJO automatique, **tous ses champs**,
+`@DataNotRead` compris et `@DataEncrypt` **en clair**. Après : le contenu est parcouru à l'écriture (`insert`,
+mise à jour complète ou partielle, à toute profondeur) et n'est accepté que s'il est fait de :
+
+- `null` et des valeurs : `String`, les primitifs boxés (`Character` compris), `BigDecimal`, `ObjectId`,
+  `UUID`, `Date`, `Instant`, `OffsetDateTime`, `LocalDate`, `LocalTime`, `LocalDateTime`, `Pattern`, les enums
+  (écrits par leur nom), les tableaux de primitifs (`byte[]`...) ; la classe exacte compte (une sous-classe de
+  `Date` comme `java.sql.Timestamp` est refusée) ;
+- des types BSON : tout `BsonValue` (`BsonDocument`, `BsonArray`...), `Binary`, `Decimal128`, `Code`, `Symbol`,
+  `MinKey`, `MaxKey`, `BSONTimestamp`, `JsonObject`, une `Geometry` GeoJSON du driver (`Point`...) ;
+- parcourus : une `Map` à clés `String` (`Document` compris), une `Collection` (`List`, `Set`...), un tableau
+  d'objets, la portée d'un `CodeWithScope`, l'id d'un `DBRef` ; au plus 100 niveaux (la limite de MongoDB).
+
+Tout le reste fait échouer l'écriture, rien n'est écrit. Une classe de l'application (POJO, record,
+implémentation de `Bson`) : `DataAccessException` `Field com.app.Account.free is a free-form org.bson.Document
+holding, under 'list.1.deep.k', a com.app.Credentials, a class of the application: the driver would store all
+its fields (@DataNotRead and @DataEncrypt ones included, in clear); put only values, Documents, Lists and Maps
+in a Document, or declare a field with that class` (`An element of field ...` pour un élément de liste). Toute
+autre classe (une enveloppe du JDK comme `AtomicReference`, `Optional` ou `Map.Entry`, un `StringBuilder`, un
+nœud Jackson, une `Map` à clé non `String`), dont le contenu ne serait pas vérifié : `Field
+com.app.Account.free is a free-form org.bson.Document holding, under 'list.0.x', a
+java.util.concurrent.atomic.AtomicReference, which is not a value archidata accepts in a Document (a BSON or
+JDK value, an enum, a Document or a Map with String keys, a List, a Collection or an array of them): what it
+holds would not be checked; put only values, Documents, Lists and Maps in a Document, or declare a field with
+the class it holds` (`a java.util.HashMap with a java.lang.Integer key` pour une clé non `String`). Qui est
+concerné : un `Document` qui contient une autre classe que celles listées ; la convertir en valeur, `Document`,
+`List` ou `Map` avant l'écriture. Les API brutes (`updateBsonDocuments`, la collection du driver) ne passent pas
+par ce contrôle.
+
+API :
+
+- `MongoCodecFactory.writeEmbeddedVisibleFields(String, Object, Document, Document)` est dépréciée (elle
+  écrit par la classe réelle) : utiliser `writeEmbeddedVisibleFields(String, DbPropertyDescriptor, Object,
+  Document, Document)`.
+- `MongoCodecFactory.isEmbeddedObjectType` ne répond plus `true` pour une classe du JDK, de BSON ou de
+  Jackson, ni pour une classe abstraite : seulement pour une classe concrète de l'application.
+- `MongoCodecFactory.buildWriter(TypeInfo)` d'un type `Object` / interface / abstrait, ou d'une collection
+  sans type d'élément, rend un writer qui refuse toute valeur (`DataAccessException`).
+- `OptionSpecifyType` n'est pas dépréciée : elle sert à la clé primaire déclarée `Object` (seul usage
+  restant). Pour un champ `Object`, interface ou abstrait, elle ne lève pas le refus (le modèle est refusé
+  avant). Sur un champ `List<X>` d'une classe concrète, `OptionSpecifyType("champ", Y.class, true)` fait
+  toujours relire les éléments comme des `Y` (inchangé) : les éléments sont écrits par `X`, et un sous-champ
+  protégé de `X` est rendu si `Y` déclare un champ du même nom sans `@DataNotRead`. Sur tout autre champ, la
+  lecture ignore l'option.
+- `MongoCodecFactory.isWrittenByRuntimeClass` (ajoutée après v0.51.3, dans aucune version publiée) est
+  dépréciée et répond toujours `false` : plus rien n'est écrit par la classe de la valeur. Les règles de
+  type sont dans `org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules`.
+- `MongoCodecFactory.resolveElementTypeInfo` (publique) rend `null` quand le type des éléments est inconnu :
+  joker (`List<?>`, `List<? extends X>`), variable de type (`List<T>`) ou tableau générique, où elle levait
+  une `IllegalArgumentException` (`Cannot resolve Type`), et pour un type tableau, où elle rendait le type
+  de ses composants.
+
+### Données déjà en base
+
+Les documents écrits avant gardent les champs de sous-classe et le contenu des anciens champs `Object` :
+rien n'est réécrit automatiquement. Une mise à jour complète ne les retire pas non plus (elle ne touche que
+les champs du modèle). Les relire ne les expose pas (la lecture Java les ignore, le masquage TRACE et le
+journal retirent les clés inconnues du modèle), mais un filtre qui compare le sous-document entier peut
+encore les atteindre. Pour les repérer (mongosh) :
+
+```js
+db.Account.aggregate([
+  { $project: { keys: { $objectToArray: "$base" } } },
+  { $unwind: "$keys" },
+  { $group: { _id: "$keys.k", count: { $sum: 1 } } }
+])
+// liste d'objets : ajouter { $unwind: "$history" } avant le $project, sur "$history"
+```
+
+Pour les retirer (une clé inconnue du modèle, ici `extra`) :
+
+```java
+DataAccess.updateBsonDocuments("Account", new Document("$unset", new Document("base.extra", "")),
+		new Condition(Filters.exists("base.extra")));
+// dans chaque élément d'une liste :
+DataAccess.updateBsonDocuments("Account", new Document("$unset", new Document("history.$[].extra", "")),
+		new Condition(Filters.exists("history.extra")));
+```
+
 ## Prochaine version (après v0.51.3) - Corrections de sécurité de l'audit du 2026-10-20 (CHANGEMENT DE COMPORTEMENT)
 
 Ce lot corrige des constats de l'audit de sécurité du 2026-10-20 (CS-xx). Chaque point dit qui est
@@ -80,18 +278,18 @@ embarqué. Désormais chaque segment est résolu dans le modèle (objets embarqu
   champs protégés (`credentials`, `history`...) : comparer ou trier le sous-document entier les atteindrait ;
 - le chemin dépasse 64 segments, ou est ambigu (segment numérique après une liste de maps dont les valeurs
   ont des champs protégés : indice de tableau ou clé de map) ;
-- le chemin se termine sur, ou passe sous, un champ déclaré `Object`, interface ou classe abstraite (y
-  compris du JDK : `Serializable`, `Number`...) : la valeur est écrite par la classe réelle (champs protégés compris) mais relue par le type
-  déclaré, la garde ne peut pas savoir ce qu'elle contient (pour des données libres, utiliser une classe
-  modélisée ou `org.bson.Document`) ; il en va de même d'une `List`, d'un `Set` ou d'une `Map` brute (sans
-  type générique), dont les éléments sont écrits par leur propre classe, et d'un sous-document qui en
-  contient un à n'importe quelle profondeur (`Wrapper { Object inner; }`).
+- le chemin dépend d'un champ déclaré `Object`, interface, classe abstraite ou collection brute : un tel
+  modèle est désormais refusé dès son analyse (section « Objets embarqués écrits par leur type déclaré »
+  ci-dessus), `checkFieldName` lève alors `IllegalArgumentException("Cannot analyse the model of ...")`.
 
 Après une liste, un segment numérique est un indice (ignoré) ; après une map, le segment suivant est une
-clé (n'importe quelle chaîne). Pour un type libre explicite (`org.bson.Document`, `JsonNode`,
-classe JDK concrète) ou une relation, la suite du chemin est acceptée comme avant. La protection suit le type
-**déclaré** : avec une classe de base concrète contenant une sous-classe, un champ ajouté par la
-sous-classe est refusé comme inconnu, mais la comparaison du sous-document entier n'est pas détectée.
+clé (n'importe quelle chaîne). Sous un type BSON (`org.bson.Document`...), une valeur, une relation ou une clé
+primaire déclarée `Object`, la suite du chemin est acceptée comme avant. Sous un type du JDK ou de Jackson qui
+n'est pas une valeur (`Locale`, `URI`, `BigDecimal`, `LocalDateTime`, `Optional`...), la suite du chemin est
+**refusée** (`Field path 'price.scale' of Account is too deep, ambiguous or typed by a polymorphic type for a
+client filter or sort`) ; le journal retire aussi ces clés et le masquage TRACE les masque (voir « Objets
+embarqués écrits par leur type déclaré »). La protection suit le type **déclaré**, comme
+l'écriture : un champ ajouté par une sous-classe n'est plus stocké, et refusé comme inconnu.
 `OrderItem.ofClientField` passe par la même vérification.
 
 Action : si une application acceptait un nom client pointé vers un sous-champ protégé (ou vers un

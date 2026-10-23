@@ -1,16 +1,10 @@
 package org.atriasoft.archidata.dataAccess.model;
 
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.atriasoft.archidata.bean.TypeInfo;
 import org.atriasoft.archidata.bean.exception.IntrospectionException;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Position inside the document of an entity, followed segment by segment through the embedded objects, the
@@ -32,14 +26,12 @@ import com.fasterxml.jackson.databind.JsonNode;
  * index.</li>
  * </ul>
  *
- * <p>Protection follows the <strong>declared</strong> type. Two consequences. A declared type that can hold
- * any class ({@code Object}, any interface or abstract class, JDK ones such as {@code Serializable} or
- * {@code Number} included) is written by the class
- * of the value and read back by the declared type: the protected fields of the real class are stored and
- * never returned, so a position typed so is refused as a whole and nothing below it is trusted
- * ({@link Status#UNSAFE}). A concrete base class holding an instance of a subclass is resolved by the fields
- * of the base class only: a field added by the subclass is unknown (refused), but a comparison of the whole
- * base-class sub-document is not detected as reaching it.
+ * <p>Protection follows the <strong>declared</strong> type, as the codec does: an embedded value is written and
+ * read with the fields of its declared type only ({@link DeclaredTypeRules}), so a field added by a subclass is
+ * never stored, and a model holding a type that can hold any class ({@code Object}, an interface, an abstract
+ * class) or a raw list, set or map is refused when it is analysed. Such positions cannot be met any more; the
+ * cursor still answers {@link Status#UNSAFE} for them (defence in depth, fail closed). A key stored before
+ * (by an older version, which wrote the fields of the subclass) is unknown to the model: {@link Status#UNKNOWN}.
  *
  * <p>The cursor is immutable. Once it is not {@link Status#OK}, or is free-form, a further step returns
  * the same cursor.
@@ -58,7 +50,10 @@ public final class FieldPathCursor {
 		UNKNOWN,
 		/** A protected field ({@code @DataNotRead} or {@code @DataEncrypt}) was reached. */
 		PROTECTED,
-		/** The path is too deep, ambiguous, or below a polymorphic type: it must be treated like a protected one (fail closed). */
+		/**
+		 * The path is too deep, ambiguous, or below a type archidata does not model (a polymorphic type, a class of
+		 * the JDK that is not a value, an array): it must be treated like a protected one (fail closed).
+		 */
 		UNSAFE
 	}
 
@@ -119,9 +114,9 @@ public final class FieldPathCursor {
 	}
 
 	/**
-	 * Tells whether the position cannot be modeled (a value, {@code Object}, {@code org.bson.Document},
-	 * {@code JsonNode}, a relation key...): any further segment is accepted and nothing
-	 * below is known as protected.
+	 * Tells whether the position holds free-form content (a value, {@code org.bson.Document}, a relation key, a
+	 * primary key declared {@code Object}):
+	 * any further segment is accepted and nothing below is known as protected.
 	 *
 	 * @return {@code true} for a free-form position
 	 */
@@ -131,9 +126,12 @@ public final class FieldPathCursor {
 
 	/**
 	 * Tells whether the position holds, at any depth, a protected field: it is an embedded object (or a
-	 * list, a set, a map of them) that has {@code @DataNotRead} or {@code @DataEncrypt} fields, or that holds
-	 * below it a position the model cannot resolve (a polymorphic type, a raw list, set or map), at any
-	 * depth. Comparing, sorting or projecting such a position as a whole would reach those fields.
+	 * list, a set, a map of them) that has {@code @DataNotRead} or {@code @DataEncrypt} fields, at any depth.
+	 * Comparing, sorting or projecting such a position as a whole would reach those fields.
+	 *
+	 * <p>A position the model cannot resolve below (a polymorphic type, a raw list, set or map) cannot be met:
+	 * a model holding one is refused when it is analysed ({@link DeclaredTypeRules}). Should one be reached all
+	 * the same, it counts as holding protected fields (fail closed).
 	 *
 	 * @return {@code true} when protected fields lie below the position
 	 */
@@ -141,8 +139,7 @@ public final class FieldPathCursor {
 		if (this.status != Status.OK || this.freeForm || this.type == null) {
 			return false;
 		}
-		return MongoCodecFactory.hasProtectedSubFields(this.type)
-				|| holdsUnsafeContent(this.type, new HashSet<>(), 0, this.depth > 0);
+		return MongoCodecFactory.hasProtectedSubFields(this.type);
 	}
 
 	/**
@@ -216,19 +213,31 @@ public final class FieldPathCursor {
 			}
 			return new FieldPathCursor(value, null, Status.OK, false, this.depth + 1);
 		}
-		if (this.depth > 0 && isPolymorphic(current)) {
-			// Written by the class of the value, whatever it is: nothing below can be told apart.
+		final DeclaredTypeRules.Kind kind = DeclaredTypeRules.kindOf(current);
+		// The root may be an abstract entity class (or an interface) of the application: it is modeled, and its
+		// fields checked, like a concrete one.
+		final boolean modeledRoot = this.depth == 0 && DeclaredTypeRules.isModeledRoot(current.rawType());
+		if (kind.isRefused() && !modeledRoot) {
+			// Refused when the model is analysed, so not reachable: fail closed all the same.
 			return new FieldPathCursor(current, null, Status.UNSAFE, false, this.depth + 1);
 		}
-		if (!isModeled(current)) {
+		if (kind == DeclaredTypeRules.Kind.OPAQUE) {
+			// A JDK or Jackson class archidata does not model (BigDecimal, an array...): what it holds is not
+			// known, so nothing below it can be told safe (a value of a class of the application is refused there
+			// when it is written).
+			return new FieldPathCursor(current, null, Status.UNSAFE, false, this.depth + 1);
+		}
+		if (kind != DeclaredTypeRules.Kind.EMBEDDED && !modeledRoot) {
 			return freeForm(null);
 		}
 		final DbClassModel model;
 		try {
 			model = DbClassModel.of(current.rawType());
 		} catch (final Exception ex) {
+			// Not reachable from an accepted model (an embedded class that cannot be analysed fails its root):
+			// nothing is known below, fail closed all the same.
 			LOGGER.debug("Can not analyse the type {}: {}", current.rawType().getName(), ex.getMessage());
-			return freeForm(null);
+			return new FieldPathCursor(current, null, Status.UNSAFE, false, this.depth + 1);
 		}
 		for (final DbPropertyDescriptor desc : model.getAllFields()) {
 			if (!segment.equals(desc.getDbFieldName())) {
@@ -242,6 +251,10 @@ public final class FieldPathCursor {
 				// A relation is stored as a key: nothing to resolve below it.
 				return freeForm(desc);
 			}
+			if (DeclaredTypeRules.isUntypedPrimaryKey(desc)) {
+				// A primary key declared Object holds a key value (checked when it is written).
+				return freeForm(desc);
+			}
 			return new FieldPathCursor(desc.getProperty().getTypeInfo(), desc, Status.OK, false, this.depth + 1);
 		}
 		return new FieldPathCursor(current, null, Status.UNKNOWN, false, this.depth);
@@ -249,7 +262,7 @@ public final class FieldPathCursor {
 
 	private static TypeInfo elementOf(final TypeInfo parent) {
 		try {
-			return MongoCodecFactory.resolveElementTypeInfo(parent);
+			return DeclaredTypeRules.elementOf(parent);
 		} catch (final RuntimeException ex) {
 			LOGGER.debug("Can not resolve the element type of {}: {}", parent.genericType(), ex.getMessage());
 			return null;
@@ -273,82 +286,8 @@ public final class FieldPathCursor {
 		return true;
 	}
 
-	/**
-	 * Tells whether the type holds, at any depth, a position the model cannot resolve: a polymorphic type, or a
-	 * raw list, set or map (elements written by their own class). Walks the lists, sets, maps and the fields of
-	 * the embedded classes; a class met again (cycle) answers {@code false} and the depth is bounded.
-	 *
-	 * @param checkSelf whether the type itself counts (it does for an embedded position, not for the root)
-	 */
-	private static boolean holdsUnsafeContent(
-			final TypeInfo typeInfo,
-			final Set<Class<?>> visiting,
-			final int level,
-			final boolean checkSelf) {
-		if (typeInfo == null || level > MAX_DEPTH) {
-			return level > MAX_DEPTH;
-		}
-		if (isExplicitFreeForm(typeInfo)) {
-			return false;
-		}
-		if (typeInfo.isCollection() || typeInfo.isMap()) {
-			final TypeInfo element = elementOf(typeInfo);
-			return element == null || holdsUnsafeContent(element, visiting, level + 1, true);
-		}
-		if (checkSelf && isPolymorphic(typeInfo)) {
-			return true;
-		}
-		if (!isModeled(typeInfo) || !visiting.add(typeInfo.rawType())) {
-			return false;
-		}
-		try {
-			for (final DbPropertyDescriptor desc : DbClassModel.of(typeInfo.rawType()).getAllFields()) {
-				if (desc.getAddOn() == null
-						&& holdsUnsafeContent(desc.getProperty().getTypeInfo(), visiting, level + 1, true)) {
-					return true;
-				}
-			}
-			return false;
-		} catch (final Exception ex) {
-			LOGGER.debug("Can not analyse the type {}: {}", typeInfo.rawType().getName(), ex.getMessage());
-			return false;
-		} finally {
-			visiting.remove(typeInfo.rawType());
-		}
-	}
-
-	/** Explicit free-form types, accepted whatever they hold: {@code org.bson.*} (such as {@code Document}) and Jackson {@code JsonNode}. */
+	/** Explicit free-form types, accepted whatever they hold: the BSON types ({@code org.bson.*}, such as {@code Document}). */
 	private static boolean isExplicitFreeForm(final TypeInfo typeInfo) {
-		final Class<?> raw = typeInfo.rawType();
-		return raw.getName().startsWith("org.bson.") || JsonNode.class.isAssignableFrom(raw);
-	}
-
-	/**
-	 * A declared type whose value can be of any class: {@code Object}, or an interface or an abstract class
-	 * (of the application or of the JDK: {@code Serializable}, {@code Number}, {@code Comparable}...). The
-	 * codec encodes such a value through {@link MongoCodecFactory#isWrittenByRuntimeClass(TypeInfo)}, by the
-	 * class of the value, and the reader drops what the declared type does not know: the protected fields of
-	 * the real class are stored and never returned, they cannot be found from the declared type, so nothing
-	 * below such a position is trusted. Not polymorphic: the types the codec writes as values, the collections
-	 * and maps (their elements are checked on their own), the concrete classes, and the explicit free-form
-	 * types ({@code org.bson.*} such as {@code Document}, and Jackson {@code JsonNode}).
-	 */
-	private static boolean isPolymorphic(final TypeInfo typeInfo) {
-		final Class<?> raw = typeInfo.rawType();
-		if (isExplicitFreeForm(typeInfo) || typeInfo.isCollection() || typeInfo.isMap()
-				|| !MongoCodecFactory.isWrittenByRuntimeClass(typeInfo)) {
-			return false;
-		}
-		return raw == Object.class || raw.isInterface() || Modifier.isAbstract(raw.getModifiers());
-	}
-
-	/** An embedded class of the application: not a JDK, BSON or Jackson type, which have no modeled fields. */
-	private static boolean isModeled(final TypeInfo typeInfo) {
-		if (!MongoCodecFactory.isEmbeddedObjectType(typeInfo)) {
-			return false;
-		}
-		final String name = typeInfo.rawType().getName();
-		return !(name.startsWith("java.") || name.startsWith("javax.") || name.startsWith("org.bson.")
-				|| name.startsWith("com.fasterxml."));
+		return DeclaredTypeRules.kindOf(typeInfo) == DeclaredTypeRules.Kind.FREE_FORM;
 	}
 }

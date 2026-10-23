@@ -13,6 +13,7 @@ import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.crypto.AesGcmCipherProvider;
 import org.atriasoft.archidata.crypto.EncryptionKeyGenerator;
 import org.atriasoft.archidata.crypto.EncryptionKeyStore;
+import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.journal.ChangeJournalEngine;
 import org.atriasoft.archidata.model.OIDGenericDataSoftDelete;
 import org.bson.Document;
@@ -73,12 +74,7 @@ public class TestChangeJournalProtectedFields {
 		public String label;
 	}
 
-	/** Subclass adding a field unknown to the declared type {@link Base}. */
-	public static class Derived extends Base {
-		public String extra;
-	}
-
-	/** Entity with a top-level polymorphic field (the runtime value carries a hidden field). */
+	/** Entity with a top-level polymorphic field: refused when its model is analysed. */
 	@Collection(POLY_COLLECTION)
 	public static class PolyAccount extends OIDGenericDataSoftDelete {
 		public String login;
@@ -98,7 +94,7 @@ public class TestChangeJournalProtectedFields {
 		public Object inner;
 	}
 
-	/** Entity with a raw map and an embedded polymorphic field. */
+	/** Entity with a raw map and an embedded polymorphic field: refused when its model is analysed. */
 	@Collection(RAW_COLLECTION)
 	public static class RawAccount extends OIDGenericDataSoftDelete {
 		public String login;
@@ -246,32 +242,31 @@ public class TestChangeJournalProtectedFields {
 		return entries.get(0).getString("data");
 	}
 
-	/** A top-level Object field is written by the class of its value: nothing under it is journalized. */
+	/** An entity with an Object field, a raw map or an embedded Object field cannot be journalized: refused. */
 	@Test
-	public void testTopLevelPolymorphicFieldIsNotJournalized() throws Exception {
-		final PolyAccount account = new PolyAccount();
-		account.login = "carol";
-		account.payload = credentials("poly-user", "poly-hash-secret", "poly-pin-clear");
-		ConfigureDb.da.insert(account);
-
-		final ChangeJournalEngine engine = new ChangeJournalEngine();
-		engine.addClass(PolyAccount.class);
-		final String data = capturedData(engine);
-		Assertions.assertFalse(data.contains("poly-hash-secret"), data);
-		Assertions.assertFalse(data.contains("poly-pin-clear"), data);
-		Assertions.assertEquals("carol", Document.parse(data).getString("login"));
+	public void testPolymorphicModelsAreRefused() throws Exception {
+		for (final Class<?> clazz : List.of(PolyAccount.class, RawAccount.class)) {
+			final ChangeJournalEngine engine = new ChangeJournalEngine();
+			final DataAccessException ex = Assertions.assertThrows(DataAccessException.class,
+					() -> engine.addClass(clazz));
+			Throwable cause = ex;
+			while (cause.getCause() != null) {
+				cause = cause.getCause();
+			}
+			Assertions.assertTrue(cause.getMessage().startsWith("Unsupported field type on " + clazz.getName()),
+					cause.getMessage());
+		}
 	}
 
-	/** A field stored by the class of the value, unknown to the declared type, is not journalized. */
+	/** A field written by an older version under a concrete base class, unknown to it, is not journalized. */
 	@Test
 	public void testFieldAddedByASubclassIsNotJournalized() throws Exception {
-		final BaseHolder holder = new BaseHolder();
-		holder.login = "dave";
-		final Derived derived = new Derived();
-		derived.label = "base-label";
-		derived.extra = "extra-secret-value";
-		holder.base = derived;
-		ConfigureDb.da.insert(holder);
+		// Today the writer stores the fields of the declared type only: the document comes from an older version.
+		JournalTestTools.database().getCollection(BASE_COLLECTION).deleteMany(new Document());
+		JournalTestTools.database().getCollection(BASE_COLLECTION)
+				.insertOne(new Document("login", "dave")
+						.append("base", new Document("label", "base-label").append("extra", "extra-secret-value"))
+						.append("updatedAt", new Date()));
 
 		final ChangeJournalEngine engine = new ChangeJournalEngine();
 		engine.addClass(BaseHolder.class);
@@ -294,27 +289,5 @@ public class TestChangeJournalProtectedFields {
 		final String data = capturedData(engine);
 		Assertions.assertFalse(data.contains("multi-hash-secret"), data);
 		Assertions.assertTrue(data.contains("multi-label"), data);
-	}
-
-	/** A raw map and an embedded Object are written by the class of their values: nothing under them is kept. */
-	@Test
-	public void testRawMapAndEmbeddedPolymorphicFieldAreNotJournalized() throws Exception {
-		final RawAccount account = new RawAccount();
-		account.login = "erin";
-		account.rawMap = Map.of("k", new ApiKey("raw-label", "raw-map-secret-value"));
-		account.wrapper = new Wrapper();
-		account.wrapper.name = "wrapper-name";
-		account.wrapper.inner = credentials("inner-user", "inner-hash-secret", "inner-pin-clear");
-		ConfigureDb.da.insert(account);
-
-		final ChangeJournalEngine engine = new ChangeJournalEngine();
-		engine.addClass(RawAccount.class);
-		final String data = capturedData(engine);
-		Assertions.assertFalse(data.contains("raw-map-secret-value"), data);
-		Assertions.assertFalse(data.contains("inner-hash-secret"), data);
-		Assertions.assertFalse(data.contains("inner-pin-clear"), data);
-		final Document captured = Document.parse(data);
-		Assertions.assertEquals("erin", captured.getString("login"));
-		Assertions.assertEquals("wrapper-name", captured.get("wrapper", Document.class).getString("name"));
 	}
 }

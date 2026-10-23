@@ -126,7 +126,16 @@ public final class DbPropertyDescriptor {
 			}
 			this.codec = MongoCodecFactory.buildFieldCodec(this.property.getRawGetter(),
 					this.property.canWrite() ? this.property.getRawSetter() : null, this.property.getTypeInfo(),
-					this.dbFieldName, encryptCtx);
+					this.dbFieldName, encryptCtx, MongoCodecFactory.qualifiedName(this));
+			if (DeclaredTypeRules.isUntypedPrimaryKey(this)) {
+				// A primary key declared Object: written as it is, once its value is checked to be a key value.
+				final String site = "Field " + MongoCodecFactory.qualifiedName(this);
+				this.codec = new MongoFieldCodec(this.property.getRawGetter(),
+						this.property.canWrite() ? this.property.getRawSetter() : null, this.dbFieldName, value -> {
+							DeclaredTypeRules.checkPrimaryKeyValue(value, site);
+							return value;
+						}, this.codec.getReader(), false);
+			}
 		}
 	}
 

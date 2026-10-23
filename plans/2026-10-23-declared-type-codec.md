@@ -115,11 +115,23 @@ stores and reads an embedded value by its declared type only; declare a concrete
 Set or Map of one), or org.bson.Document for free-form content (see MIGRATION.md)
 ```
 
-Variantes de la partie centrale : `..., whose element type java.lang.Object can hold any class (...)`
-pour une collection ; `is declared java.util.Map, a raw type whose element type is unknown` ;
-`is declared java.util.List<?>, whose element type cannot be resolved` ;
-`is declared java.util.Collection<java.lang.String>: only List, Set and Map are stored as
-collections; declare a List or a Set of it`.
+Variantes de la partie centrale (texte exact de l'implémentation) :
+
+- collection : `is declared java.util.List<java.lang.Object>, whose element type java.lang.Object
+  can hold any class (...)` (`value type` pour une `Map`) ;
+- type brut : `is declared java.util.Map, which is a raw type whose value type is unknown, and
+  archidata stores and reads a value by its declared type only; declare the value type as a concrete
+  class (List<MyClass>, Set<MyClass>, Map<String, MyClass>), or use org.bson.Document for free-form
+  content` ;
+- joker ou variable de type : `is declared java.util.List<?>, which has an element type that cannot
+  be resolved (a wildcard or a type variable), and archidata stores ...` (même fin) ;
+- autre collection : `is declared java.util.Collection<java.lang.String>, which is a collection
+  that is neither a List nor a Set: only List, Set and Map are stored as collections; declare a List
+  or a Set`.
+
+Toutes se terminent par ` (see MIGRATION.md)`. Une classe embarquée dont l'introspection échoue
+fait maintenant échouer le modèle racine (« DB model creation failed for X: an embedded class
+cannot be analysed »), au lieu d'un échec à la première écriture.
 
 Une classe refusée est retirée du cache des modèles : chaque nouvel appel relève la même erreur.
 
@@ -176,10 +188,30 @@ relation (champs de premier niveau, inclus entiers), `readPreviousDataForUpdate`
 profondeur maximale, ambiguïté indice / clé) mais un modèle qui en contient ne peut plus être
 construit : ces branches deviennent du code mort gardé comme garde. Simplification : le pré-parcours
 `holdsUnsafeContent` (recherche d'une position polymorphe sous un sous-document) est supprimé, le
-refus à l'analyse le remplace ; `MongoCodecFactory.isWrittenByRuntimeClass` (non publié) est
-supprimé, les règles de type sont regroupées dans une classe (`DeclaredTypeRules`) partagée par le
+refus à l'analyse le remplace ; `MongoCodecFactory.isWrittenByRuntimeClass` (non publié) est gardé
+déprécié et répond toujours `false`, les règles de type sont regroupées dans une classe (`DeclaredTypeRules`) partagée par le
 refus, le curseur et la projection. Le masquage TRACE et le journal continuent de retirer, sous la
 racine, une clé inconnue du modèle : c'est ce qui protège les **données écrites avant**.
+
+### 5. Ajouts après la revue de sécurité automatique
+
+- **Racine abstraite** : le contrôle sautait une racine abstraite (ou une interface) de l'application, alors
+  que le curseur des filtres la parcourt (fail-open). Elle est maintenant vérifiée comme une classe concrète
+  (`DeclaredTypeRules.isModeledRoot`).
+- **Filet fail-closed** : `MongoCodecFactory.hasProtectedSubFields` répond `true` pour un type refusé
+  (inatteignable depuis un modèle accepté) : comparer ou trier une telle position en entier est refusé.
+- **Types non modélisés (`OPAQUE`)** : le writer écrivait la valeur par sa propre classe ; une valeur d'une
+  classe de l'application (sous-classe de `BigDecimal`, implémentation de `org.bson.conversions.Bson`, tableau
+  de telles classes) était donc écrite avec son modèle, champs protégés compris, à une position que le curseur
+  croyait libre. Elle est maintenant refusée à l'écriture (`DataAccessException` `... is declared
+  java.math.BigDecimal, a type archidata does not model, but holds a com.app.Money, a class of the
+  application: it cannot be stored there; declare the field with that class`). Le curseur répond `UNSAFE`
+  sous une position `OPAQUE` (au lieu de libre) : `checkFieldName("price.scale")` refusé, clés masquées en
+  TRACE et retirées du journal.
+- **Tableaux** : un tableau d'une classe de l'application ou d'un type refusé (`Point[]`, `Object[]`,
+  `Serializable[][]`, `List<Point[]>`) est refusé à l'analyse (le codec ne l'écrit pas élément par élément).
+  Les tableaux de valeurs ou de classes JDK (`byte[]`, `String[]`, `BigDecimal[]`) restent `OPAQUE`
+  (non gérés, inchangés). Aucune entité des applications relevées ne déclare de tableau.
 
 ## Changements de comportement (avant → après, qui est concerné)
 
@@ -194,6 +226,10 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
 | 7 | `FilterValue("obj.inconnu")` poussé tel quel | Retiré (sentinelle) ; plus de transfert de clés inconnues du modèle | idem |
 | 8 | `generateSelectField(...)` renvoyait les noms de premier niveau | Renvoie les chemins feuilles (et la sentinelle) | Code qui inspectait cette liste (aucun relevé) |
 | 9 | `OptionSpecifyType` pour un champ `Object` | Sans objet (le champ est refusé) : déprécié | Aucun usage relevé |
+| 11 | Racine abstraite de l'application : champs non vérifiés | Vérifiée comme une classe concrète | Entité abstraite passée à `checkFieldName` / TRACE / journal |
+| 12 | Valeur d'une classe de l'application sous un type JDK non modélisé : écrite par son modèle | Refusée à l'écriture | Aucune application relevée |
+| 13 | Chemin sous un type JDK non modélisé (`price.scale`) : libre | `UNSAFE` (refusé, masqué, retiré du journal) | Filtres clients sur un tel sous-chemin (aucun relevé) |
+| 14 | Tableau d'une classe de l'application ou de type refusé : accepté, non relu | Refusé à l'analyse | Aucune application relevée |
 | 10 | Données déjà stockées (champs de sous-classe, contenu de champs `Object`) | Restent en base ; plus projetées pour un objet embarqué ; à nettoyer | Bases qui ont stocké des sous-classes |
 
 Ce qui ne change pas : les valeurs Java rendues par une lecture (hors #4) ; les écritures d'une
@@ -204,9 +240,14 @@ pointée, listes non réécrites) ; les filtres ; le journal ; le masquage TRACE
 
 - WARN (une fois par classe déclarante, champ, classe réelle), logger
   `org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory` :
-  `Field com.app.Holder.base declares com.app.Base but holds a com.app.Derived: only the fields of
+  `Field com.app.Holder.base is declared com.app.Base but holds a com.app.Derived: only the fields of
   Base are stored, the fields Derived adds are dropped ([extra, secret])` (noms seulement, jamais de
-  valeur).
+  valeur). Pour un élément de liste ou une valeur de map, le préfixe devient `An element of field
+  com.app.Holder.bases` / `A value of field com.app.Holder.byKey`. Le WARN est émis pour toute
+  sous-classe, même si elle n'ajoute aucun champ (liste vide `[]`).
+- Erreur (`DataAccessException`) pour une valeur qui n'est pas une instance du type déclaré :
+  `An element of field com.app.Account.bases is declared com.app.Base but holds a java.lang.String,
+  which is not one: it cannot be stored`.
 - DEBUG, logger `org.atriasoft.archidata.dataAccess.model.ReadFieldSelector` (ou classe de
   projection) : champ projeté entier faute de pouvoir le développer (budget dépassé).
 - Pas de nouveau log au refus : l'exception porte le message.

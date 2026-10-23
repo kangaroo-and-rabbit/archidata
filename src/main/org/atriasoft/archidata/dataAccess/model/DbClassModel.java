@@ -65,6 +65,9 @@ public final class DbClassModel {
 	/** Flag to track if addon contexts have been built (lazy, after model is in cache). */
 	private volatile boolean addonContextsBuilt;
 
+	/** Flag set once the declared types of the persisted fields passed {@link DeclaredTypeRules}. */
+	private volatile boolean declaredTypesChecked;
+
 	/** Track classes currently building their addon contexts to break circular references. */
 	private static final ThreadLocal<java.util.Set<Class<?>>> BUILDING_CONTEXTS = ThreadLocal
 			.withInitial(java.util.HashSet::new);
@@ -100,19 +103,38 @@ public final class DbClassModel {
 	 * <p>AddOn contexts are built lazily after the model is in the cache to avoid
 	 * circular reference issues (e.g. class A references class B which references A).
 	 *
+	 * <p>The first call also checks the declared type of every persisted field, at any depth of the embedded
+	 * objects ({@link DeclaredTypeRules}): a field declared {@code Object}, with an interface or an abstract
+	 * class, or with a raw or unresolved {@code List} / {@code Set} / {@code Map} is refused. A refused class is
+	 * removed from the cache, so every call reports the same error.
+	 *
 	 * @param clazz the entity class to model
 	 * @return the cached or newly created DbClassModel for the class
-	 * @throws IntrospectionException if the class cannot be introspected
+	 * @throws IntrospectionException if the class cannot be introspected, or is refused (the cause is then a
+	 *         {@link DataAccessException} naming the class, the field, the declared type and the replacement)
 	 */
 	public static DbClassModel of(final Class<?> clazz) throws IntrospectionException {
+		final DbClassModel model = ofUnchecked(clazz);
+		model.ensureDeclaredTypesChecked();
+		model.ensureAddonContextsBuilt();
+		return model;
+	}
+
+	/**
+	 * Get or create the model of a class without checking its declared types nor building its add-on contexts:
+	 * used by the type check itself to walk the embedded classes.
+	 *
+	 * @param clazz the class to model
+	 * @return the cached or newly created model
+	 * @throws IntrospectionException if the class cannot be introspected
+	 */
+	static DbClassModel ofUnchecked(final Class<?> clazz) throws IntrospectionException {
 		final DbClassModel existing = CACHE.get(clazz);
 		if (existing != null) {
-			existing.ensureAddonContextsBuilt();
 			return existing;
 		}
-		final DbClassModel model;
 		try {
-			model = CACHE.computeIfAbsent(clazz, cls -> {
+			return CACHE.computeIfAbsent(clazz, cls -> {
 				try {
 					return new DbClassModel(cls, registeredAddOns);
 				} catch (final IntrospectionException | DataAccessException e) {
@@ -128,8 +150,6 @@ public final class DbClassModel {
 			}
 			throw e;
 		}
-		model.ensureAddonContextsBuilt();
-		return model;
 	}
 
 	/**
@@ -385,6 +405,32 @@ public final class DbClassModel {
 			selector.collectProjectionPaths(desc, options, fields);
 		}
 		return fields;
+	}
+
+	// ========== Declared type check ==========
+
+	/**
+	 * Check the declared types of the persisted fields once (see {@link DeclaredTypeRules}). Runs outside the
+	 * cache computation, so it may model the embedded classes; two threads may both run it, the result is the
+	 * same. On a refusal the model is removed from the cache.
+	 */
+	private void ensureDeclaredTypesChecked() throws IntrospectionException {
+		if (this.declaredTypesChecked) {
+			return;
+		}
+		final Class<?> clazz = this.classModel.getClassType();
+		try {
+			DeclaredTypeRules.checkDeclaredTypes(this);
+		} catch (final DataAccessException ex) {
+			CACHE.remove(clazz, this);
+			throw new IntrospectionException("DB model creation failed for " + clazz.getSimpleName(), ex);
+		} catch (final IntrospectionException ex) {
+			CACHE.remove(clazz, this);
+			throw new IntrospectionException(
+					"DB model creation failed for " + clazz.getSimpleName() + ": an embedded class cannot be analysed",
+					ex);
+		}
+		this.declaredTypesChecked = true;
 	}
 
 	// ========== Lazy addon context initialization ==========

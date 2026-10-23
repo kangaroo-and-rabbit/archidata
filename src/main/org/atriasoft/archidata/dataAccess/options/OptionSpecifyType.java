@@ -3,7 +3,11 @@ package org.atriasoft.archidata.dataAccess.options;
 /**
  * Query option to specify the concrete type of an element when the model declares it as {@link Object}.
  *
- * <p>This is useful for deserialization when the actual type cannot be inferred from the model definition.
+ * <p>Its one remaining use is a primary key declared {@code Object} ({@code @Id public Object _id}): pass the
+ * class of the key ({@code ObjectId}, {@code UUID}, {@code String}, {@code Long}...) on each call that reads
+ * the entity or names it by its key. Any other field declared {@code Object} (or with an interface, an abstract
+ * class, an unresolved generic type) is refused when the model is analysed, with or without this option, and an
+ * embedded value is stored with the fields of its declared type only (see MIGRATION.md).
  */
 public class OptionSpecifyType extends QueryOption {
 	/** The field name whose type is being specified. */

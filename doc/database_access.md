@@ -406,12 +406,19 @@ new OptionRenameColumn("fieldName", "newFieldName")
 
 ### OptionSpecifyType
 
-Specify the concrete type of a field declared as `Object`:
+Gives the class to read for a **primary key declared `Object`** (`@Id public Object _id`), the one
+field declared `Object` that the model accepts:
 
 ```java
-new OptionSpecifyType("data", MyConcreteClass.class)
-new OptionSpecifyType("items", ItemClass.class, true)  // is a list
+final OptionSpecifyType keyType = new OptionSpecifyType("_id", ObjectId.class);
+final Keyed inserted = DataAccess.insert(value, new DirectPrimaryKey(), keyType);
+final Keyed read = DataAccess.getById(Keyed.class, id, keyType);
 ```
+
+Such a key is written as it is once its value is checked to be an `ObjectId`, a `UUID`, a `String`, a
+`Long`, an `Integer` or a `Short`. Any other field declared `Object`, as an interface, as an abstract
+class or as an unbound type variable (alone or in a `List`, `Set` or `Map`) is refused when the model is
+analysed, **with or without** this option (see [Field Types](data_model.md#field-types)).
 
 
 Type-Safe Utilities
@@ -558,18 +565,15 @@ Filters.regexLiteral("title", userText, "i")   // case insensitive
   after a map the next segment is a key, any string). A name that ends on an embedded object, a list, a
   set or a map of objects whose class holds protected fields (`credentials`, `history`) is refused too:
   comparing or sorting the whole sub-document would reach them. The rest of the path is accepted without
-  check below an explicit free-form position (`org.bson.Document`, `JsonNode`, a plain value,
-  a concrete JDK class) and below a relation field. Refused: a path too deep (more than 64 segments), ambiguous (a
-  numeric segment after a list of maps whose values hold protected fields), and a position declared as
-  `Object`, as an interface or as an abstract class (JDK ones such as `Serializable` or `Number` included),
-  as a whole or below it, and a raw (non-generic) `List`, `Set` or `Map`, whose elements are written by
-  their own class: such a
-  value is written by the class of the value (protected fields included) and read back by the declared
-  type, so the guard cannot know what it holds (use a modeled class, or `org.bson.Document`, for free-form
-  data). Protection follows the declared type: with a concrete base class holding a subclass instance, a
-  field added by the subclass is refused as unknown, but comparing the whole base-class sub-document is
-  not detected as reaching it. A sub-document that holds such a position at any depth
-  (`Wrapper { Object inner; }`) is refused as a whole too.
+  check below an explicit free-form position (`org.bson.Document`, a plain value), below a relation
+  field and below a primary key declared `Object`. Refused: a path too deep (more than 64 segments), an ambiguous one (a numeric segment after a
+  list of maps whose values hold protected fields), and a path below a class archidata does not model
+  (`price.scale` under a `BigDecimal`, `Locale`, `URI`, `LocalDateTime`..., below an array): what it
+  holds is not known. Protection follows the
+  declared type, as the writer does ([Field Types](data_model.md#field-types)): a field added by a
+  subclass of the declared class is never stored, and refused as unknown. An entity with a field declared
+  `Object`, as an interface, as an abstract class or as a raw collection cannot be modeled at all:
+  `checkFieldName` then throws `IllegalArgumentException("Cannot analyse the model of ...")`.
 
 ### Array operators
 
