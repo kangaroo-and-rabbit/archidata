@@ -1,5 +1,30 @@
 # Audit de Sécurité - archidata (2026-04-15)
 
+## Audit du 2026-10-20
+
+Scan complet du dépôt avec le plugin Claude Security (`claude-security`, profondeur `medium`) au commit `0741e0b6` : 16 composants, 51 chercheurs, chaque candidat soumis à un panel de vérification. 15 constats retenus, regroupés ci-dessous en 7 identifiants CS-xx et 3 doublons d'identifiants existants. Aucun constat CRITIQUE ni HAUTE. Le rapport brut (`CLAUDE-SECURITY-20261020-130020/`) n'est pas versionné. Chemins relatifs à `src/main/org/atriasoft/archidata/` sauf mention contraire. Les changements de comportement sont décrits dans `MIGRATION.md`.
+
+### Tableau récapitulatif
+
+| ID | Sévérité | Titre | Emplacement | Statut |
+|----|----------|-------|-------------|--------|
+| CS-01 | MOYENNE | `Filters.checkFieldName` ne vérifiait que le premier segment : filtre ou tri client sur un sous-champ `@DataNotRead`/`@DataEncrypt` d'un objet embarqué, donc oracle sur le secret (F1, F4) | `dataAccess/Filters.java`, `dataAccess/model/FieldPathCursor.java` | corrigé (80118e90) |
+| CS-02 | MOYENNE | Dimensions de sortie des miniatures non bornées : une image 1 × 20 000 donne un raster de plusieurs Go (F2) | `api/DataResource.java` | corrigé (1f33afa6) |
+| CS-03 | MOYENNE | Client TypeScript généré : paramètres de chemin insérés sans encodage, traversée de chemin côté client avec le jeton de l'utilisateur (F3) | `src/resources/rest-tools.ts`, `src/resources/python/rest_tools.py` | corrigé (e46b599d) |
+| CS-04 | MOYENNE | `update()` exécutait les effets de bord des relations même quand la `Condition` de l'appelant ne trouvait aucun document (filtre de propriétaire contourné) (F5) | `dataAccess/DBAccessMongo.java` | corrigé (734de831) |
+| CS-05 | BASSE | Masquage des logs TRACE : champs protégés des objets embarqués, clés pointées et colonnes renommées en clair (F6, F11, F12) | `dataAccess/TraceMasker.java` | corrigé (d065eb1e) |
+| CS-06 | BASSE | Journal des modifications : secrets `@DataNotRead` des objets embarqués recopiés dans le journal (F7) | `journal/ChangeJournalEngine.java` | corrigé (aaf92f29) ; purger les entrées écrites jusqu'à v0.51.3 |
+| CS-07 | BASSE | Falsification de logs : chemin de requête et nom de fichier d'upload journalisés sans neutraliser CR/LF (F8, F9) | `filter/AuthenticationFilter.java`, `tools/DataTools.java`, `tools/LogSanitizer.java` | corrigé (7796b5df) |
+| F10 | BASSE | JWT complet accepté dans la query string des URL de média, mis en cache un an | `filter/AuthenticationFilter.java`, `api/DataResource.java` | doublon de W-09 : reporté |
+| F13 | BASSE | `SKILL.md` écrit dans un /tmp prévisible | `claude-plugin/archidata/skills/archidata/SKILL.md` | doublon de A2 : corrigé (bc0ef7dd) |
+| F14, F15 | BASSE | jdtls : PID lu dans un fichier prévisible de /tmp puis tué, workspace prévisible réutilisé | `tools/claude/jdtls/` | doublon de S2 : corrigé (2a8ecdaf) |
+
+### Points restant ouverts
+
+- **CS-01, polymorphisme** : un champ déclaré avec une classe de base concrète qui contient une sous-classe dotée d'un champ `@DataNotRead` stocke ce champ (l'écriture suit la classe réelle). Le nom `base.secret` est refusé, mais une comparaison du sous-document entier (`{base: {$gt: {...}}}`) ne peut pas être détectée, faute de pouvoir énumérer les sous-classes. Les positions déclarées `Object`, interface ou classe abstraite, et les `List`/`Set`/`Map` sans type d'élément résolu, sont refusées en bloc, de même que l'objet embarqué qui en contient une (le journal les retire, les logs TRACE les masquent).
+- **CS-04** : les ids qu'un client liste dans un champ de relation ne sont pas vérifiés par archidata (un enfant listé est rattaché quel que soit son propriétaire) ; sans `TransactionContext`, la mise à jour et ses effets de bord ne sont pas atomiques.
+- **CS-06** : une clé stockée inconnue du modèle sous la racine est désormais retirée du journal et masquée dans les logs TRACE (choix fail-closed).
+
 ## Audit du 2026-10-16
 
 Audit défensif en lecture seule au commit `edac0b99`, en trois volets : web et authentification (W-xx, S-01), données et services (D-xx), dépendances, build et scripts (D1-D3, W1-W5, R1, E1, S1-S2, P1-P2, T1-T2, A1-A2, V1). Chemins relatifs à `src/main/org/atriasoft/archidata/` sauf mention contraire. Aucun constat CRITIQUE, aucun secret réel trouvé, aucune régression de sécurité caractérisée depuis 2026-06-01.
@@ -56,7 +81,7 @@ Total : 64 constats, soit 0 CRITIQUE, 5 HAUTE, 17 MOYENNE, 25 BASSE, 17 INFO.
 | D-14 | BASSE | Chiffrement de champ : pas d'AAD, pas d'identifiant de clé, phrase de passe acceptée comme clé | `crypto/CryptoTools.java:58-62`, `crypto/EncryptedEnvelope.java:41-49`, `crypto/KeyMaterialLoader.java:48-60` | décision requise |
 | D-15 | BASSE | Logs INFO des en-têtes HTTP (`Authorization`), des corps et du principal | `tools/RESTApiRequest.java:485-488,629,645-650`, `filter/MySecurityContext.java:220-223` | corrigé (430c71b5) |
 | S1 | BASSE | `configure_precommit.bash` lie un fichier inexistant ; `pre-commit` utilise `eval` | `tools/` | corrigé (b0876dad) |
-| S2 | BASSE | jdtls : PID, log, socket, workspace prévisibles dans /tmp, `.pyc` versionné, chemins absolus | `tools/claude/jdtls/` | à corriger |
+| S2 | BASSE | jdtls : PID, log, socket, workspace prévisibles dans /tmp, `.pyc` versionné, chemins absolus | `tools/claude/jdtls/` | corrigé (2a8ecdaf) |
 | P1 | BASSE | `maven-assembly-plugin` sans version, mainClass factice, `scm` en `git://` et `ssh:` mal formé | `pom.xml` | corrigé (45ce2f9f) |
 | P2 | BASSE | SpotBugs sans FindSecBugs, pas de scan de dépendances en CI | `pom.xml`, `.github/workflows/maven.yml` | partiel (171f641a) : scan OSV informatif ajouté, FindSecBugs reste commenté |
 | W-21 | INFO | Pas de limitation de débit (#12) | global | documenté (e6ec6057) |
@@ -74,7 +99,7 @@ Total : 64 constats, soit 0 CRITIQUE, 5 HAUTE, 17 MOYENNE, 25 BASSE, 17 INFO.
 | T1 | INFO | Mot de passe de test `base_db_password` (dev et CI uniquement) | docker-compose, `AGENTS.md`, `ConfigureDb`, sample | à corriger |
 | T2 | INFO | Fichiers parasites versionnés (`res.txt`, `.ts` de 18 Mo, `.pyc`, config IDE) | racine | à corriger |
 | A1 | INFO | Fichiers pour IA (`llms.txt`, `AGENTS.md`, `context7.json`, plugin) : rien de dangereux | racine, `claude-plugin/` | à corriger |
-| A2 | INFO | `SKILL.md` écrit dans un /tmp prévisible | `claude-plugin/archidata/skills/archidata/SKILL.md` | à corriger |
+| A2 | INFO | `SKILL.md` écrit dans un /tmp prévisible | `claude-plugin/archidata/skills/archidata/SKILL.md` | corrigé (bc0ef7dd) |
 | V1 | INFO | Restauration tar : contrôle de chemin par `startsWith` sans séparateur (doublon de D-05) | `backup/BackupEngine.java:720` | corrigé (b48e6f22, doublon de D-05) |
 
 Les constats marqués « décision requise » changent un comportement sur lequel s'appuient les applications : le propriétaire doit trancher avant la correction.
