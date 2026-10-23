@@ -145,7 +145,9 @@ public class TestReadFieldSelection {
 	public void testWholeFieldWinsOverItsSubPaths() throws Exception {
 		final Set<String> fields = nestedProjectionOf(
 				new QueryOptions(new FilterValue("simpleObject", "simpleObject.name")));
-		Assertions.assertEquals(Set.of("_id", "simpleObject"), fields);
+		// The whole embedded object, projected down to its leaf fields.
+		Assertions.assertEquals(Set.of("_id", "simpleObject.name", "simpleObject.count", "simpleObject.active",
+				"simpleObject.status", "simpleObject.tags"), fields);
 	}
 
 	@Test

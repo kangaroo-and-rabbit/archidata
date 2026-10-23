@@ -1,13 +1,14 @@
 # Migration Guide
 
-## Prochaine version (après v0.51.3) - Objets embarqués écrits par leur type déclaré (CHANGEMENT DE COMPORTEMENT)
+## Prochaine version (après v0.51.3) - Objets embarqués écrits par leur type déclaré, lectures projetées jusqu'aux feuilles (CHANGEMENT DE COMPORTEMENT)
 
 Suite du point CS-01 resté ouvert (SECURITY_AUDIT.md) : archidata écrivait un objet embarqué avec la
 classe **réelle** de la valeur et le relisait avec la classe **déclarée**. Une sous-classe stockée sous un
 champ de classe de base, ou toute valeur d'un champ `Object` / interface / classe abstraite / collection
 brute, écrivait en base des champs (y compris `@DataNotRead` / `@DataEncrypt`) qu'aucune lecture ne
-rendait, mais qu'un filtre comparant le sous-document entier pouvait atteindre. Désormais archidata ne
-stocke que ce qu'il sait relire.
+rendait, mais qu'un filtre comparant le sous-document entier pouvait atteindre. Et toute lecture
+transférait les objets embarqués entiers, sous-champs protégés compris, pour les jeter ensuite en Java.
+Désormais archidata ne stocke que ce qu'il sait relire, et ne transfère que ce que la lecture rend.
 
 ### Un champ au type polymorphe ou non typé est refusé à l'analyse du modèle
 
@@ -161,8 +162,9 @@ API :
   restant). Pour un champ `Object`, interface ou abstrait, elle ne lève pas le refus (le modèle est refusé
   avant). Sur un champ `List<X>` d'une classe concrète, `OptionSpecifyType("champ", Y.class, true)` fait
   toujours relire les éléments comme des `Y` (inchangé) : les éléments sont écrits par `X`, et un sous-champ
-  protégé de `X` est rendu si `Y` déclare un champ du même nom sans `@DataNotRead`. Sur tout autre champ, la
-  lecture ignore l'option.
+  que `X` protège n'est rendu que si la lecture le rend (`ReadAllColumn`, déchiffrement activé), même si `Y`
+  le déclare sans protection (voir « Les lectures projettent les objets embarqués jusqu'aux feuilles »). Sur
+  tout autre champ, la lecture ignore l'option.
 - `MongoCodecFactory.isWrittenByRuntimeClass` (ajoutée après v0.51.3, dans aucune version publiée) est
   dépréciée et répond toujours `false` : plus rien n'est écrit par la classe de la valeur. Les règles de
   type sont dans `org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules`.
@@ -171,32 +173,163 @@ API :
   une `IllegalArgumentException` (`Cannot resolve Type`), et pour un type tableau, où elle rendait le type
   de ses composants.
 
+### Les lectures projettent les objets embarqués jusqu'aux feuilles
+
+Avant : la projection MongoDB d'une lecture nommait les champs de premier niveau ; un objet embarqué était
+transféré entier (sous-champs `@DataNotRead`, `@DataEncrypt` et clés inconnues du modèle compris) puis
+filtré en Java. Après : il est projeté champ par champ, par son type déclaré (`credentials.user`), pour
+toute lecture (`get*`, relations développées, `readPreviousDataForUpdate`, pagination) :
+
+| Type déclaré | Avant | Après |
+| --- | --- | --- |
+| valeur, `org.bson.Document`, classe JDK, relation | entier | entier (inchangé) |
+| objet embarqué | entier | ses sous-champs rendus par la lecture, à toute profondeur |
+| objet embarqué dont aucun sous-champ n'est rendu | entier | `champ._archidata_presence_` : relu vide, `null` reste `null` |
+| `List` / `Set` d'objets embarqués | entière | ses chemins feuilles **seulement si** la lecture cache un sous-champ des éléments ; sinon entière |
+| `Map` | entière | entière (clés dynamiques) : les sous-champs protégés de ses valeurs transitent, sans log, et la lecture Java les jette |
+| `FilterValue("obj.secret")` sans `ReadAllColumn` | `obj.secret` transféré puis jeté | non transféré (`obj` relu vide, comme avant) |
+| `FilterValue("obj.cleInconnue")` | poussé tel quel | non transféré (`obj` relu vide, comme avant) |
+| `FilterValue("obj")` | `obj` entier | `obj` jusqu'aux feuilles |
+| `List<X>` lu en `List<Y>` (`OptionSpecifyType("champ", Y.class, true)`) | entière | les feuilles de `Y`, moins les sous-champs que `X` ou `Y` protège (liste développée dès que `X` protège un sous-champ des éléments, que `Y` le déclare ou non) |
+
+Un sous-champ est laissé de côté quand la lecture Java le laisserait vide : `@DataNotRead` sans
+`ReadAllColumn`, `@DataEncrypt` quand `DATA_DECRYPT_ENABLE` n'est pas `true`, relation d'un objet embarqué
+(jamais relue). Un `FilterValue` ne le fait pas relire (il restreint la lecture, il n'ouvre pas un champ
+protégé) : seuls `ReadAllColumn` et le déchiffrement activé le rendent. La liste ne contient jamais `a` et
+`a.b` (le plus large gagne).
+
+**Bornes.** Au-delà de 8 niveaux sous le champ (type récursif) ou de 256 chemins pour un champ, la position
+est projetée entière ; la lecture Java jette toujours ce qu'elle ne rend pas. Quand la partie projetée
+entière contient un sous-champ que la lecture ne rend pas, ce sous-champ est **transféré** depuis la base :
+un WARN le dit, une fois par champ d'entité (logger `org.atriasoft.archidata.dataAccess.model.LeafProjection`) :
+
+```
+Field com.app.Account.node (declared com.app.Node) is projected whole at 'node.child.child.child.child.child.child.child.child' because it is deeper than 8 levels, and it holds sub-fields this read does not return (@DataNotRead, @DataEncrypt): they are transferred from the database, then dropped by the Java read
+```
+
+(`because it develops into more than 256 projection paths` pour la borne des chemins, la position étant
+alors le champ lui-même.) Sans sous-champ protégé dans la partie coupée, un log DEBUG seulement (message
+contenant `projected whole`). Le WARN ne couvre que ces coupes : une `Map` est transférée entière sans log. Action : chercher `is projected whole at` dans les logs ; pour que rien de
+protégé ne soit transféré, réduire la profondeur ou la largeur du type, ou sortir les champs protégés de la
+partie coupée.
+
+**`OptionSpecifyType`.** Un champ que la lecture décode avec une autre classe (la clé primaire déclarée
+`Object`, ou `isList` sur un champ `List<X>` lu en `List<Y>`) est projeté par les feuilles de `Y`, moins tout
+sous-champ que `Y` **ou `X`** (la classe qui a écrit les valeurs) protège, sauf si la lecture le rend
+(`ReadAllColumn`, déchiffrement activé). Les deux classes sont parcourues côte à côte sur les clés du
+document : un sous-champ que seul `Y` connaît est projeté par `Y` ; une position que `Y` prend entière (une
+valeur, une `Map`, un `Document`) alors que `X` y protège un sous-champ est projetée par `X` ; la liste est
+développée dès que `X` protège un sous-champ des éléments, que `Y` le déclare ou non. Ce que la projection
+doit transférer entier (une `Map`, une partie coupée par les bornes) est filtré en Java par `X` avant que `Y`
+le décode : un sous-champ que `X` protège et que la lecture ne rend pas n'atteint jamais `Y`, même si `Y` le
+déclare sans protection. Avant, le champ était transféré entier et décodé par `Y`, qui rendait un tel
+sous-champ. Quand la lecture le rend, `Y` décode la valeur stockée avec son propre type : un sous-champ
+`@DataEncrypt` de `X` est stocké chiffré, donc, déchiffrement activé, `Y` reçoit la valeur en clair seulement
+s'il le marque aussi `@DataEncrypt` ; déclaré `String` simple, il reçoit l'enveloppe stockée (le chiffré en
+Base64) ; déclaré d'un autre type, la lecture échoue (`DataAccessException`) ; comme avant. Partout ailleurs
+la lecture ignore l'option, la projection aussi.
+
+Les chemins d'un champ lu entier ne dépendent que de son type déclaré (et de la classe d'un
+`OptionSpecifyType`), de `ReadAllColumn` et de `DATA_DECRYPT_ENABLE` : ils sont calculés une fois par clé et
+gardés en cache (borné à 4096 entrées, vidé avec `DbClassModel.clearCache()` / `setAddOns`) ; seuls les
+chemins pointés d'un `FilterValue` sont résolus à chaque lecture. Conséquence : les logs DEBUG d'un champ
+entier sont écrits une seule fois par clé, au premier champ rencontré de ce type ; le WARN est écrit une fois
+par champ d'entité (sa mémoire est vidée avec le cache).
+
+Ce qui change pour l'application :
+
+- **Éléments `null` d'une liste, indices décalés** : une `List` / `Set` d'objets embarqués projetée jusqu'aux
+  feuilles perd ses éléments `null` **et ses éléments qui ne sont pas des sous-documents** (une chaîne
+  stockée par erreur) : MongoDB les retire de la réponse, donc les indices de la liste relue ne sont plus
+  ceux de la base dès qu'un tel élément précède. Concerne seulement les listes dont l'élément a un sous-champ
+  caché par la lecture (une lecture `ReadAllColumn` avec le déchiffrement activé les relit entières, `null`
+  compris). Vérifié par `TestLeafProjectionCases.testNullListElementsAgainstTheUpdates` :
+  - une mise à jour complète (`updateById` sans `FilterValue`) n'écrit pas ces listes : le document est
+    inchangé ;
+  - `updateById(..., new FilterValue(List.of("liste")))` après une lecture par défaut réécrit la liste telle
+    qu'elle a été relue : sans ses `null` (un élément passe de l'indice 2 à 1) et, comme avant, sans les
+    sous-champs cachés des éléments (jamais relus) ;
+  - **risque** : un indice calculé sur la liste relue (par le serveur, ou par un client qui a affiché la
+    liste relue) puis utilisé pour une mise à jour positionnelle en base (`updateBsonDocuments` avec
+    `liste.N.champ` en `$set` / `$unset`) vise un autre élément dès qu'un `null` le précède en base.
+    Désigner l'élément par un de ses champs (filtre `{"liste.id": ...}` et `liste.$.champ`), ou calculer
+    l'indice sur le document brut (`getBsonDocument`).
+- **Valeur d'un type inattendu** : une chaîne (ou un nombre) stockée là où un objet embarqué est déclaré est
+  relue `null` au lieu de faire échouer la lecture.
+- **`DBAccessMongo.generateSelectField(...)`** et `DbClassModel.generateSelectFields(...)` rendent les
+  chemins feuilles (et le chemin sentinelle), plus les seuls noms de premier niveau.
+- Sinon, l'objet Java relu est le même qu'avant.
+
 ### Données déjà en base
 
 Les documents écrits avant gardent les champs de sous-classe et le contenu des anciens champs `Object` :
-rien n'est réécrit automatiquement. Une mise à jour complète ne les retire pas non plus (elle ne touche que
-les champs du modèle). Les relire ne les expose pas (la lecture Java les ignore, le masquage TRACE et le
-journal retirent les clés inconnues du modèle), mais un filtre qui compare le sous-document entier peut
-encore les atteindre. Pour les repérer (mongosh) :
+rien n'est réécrit automatiquement. Une écriture de la nouvelle version en retire une partie, selon la
+position de l'ancienne clé (règles de `DBAccessMongo` et `MongoCodecFactory.writeEmbeddedVisibleFields`) :
+
+| Où est l'ancienne clé | Mise à jour complète (`updateById` sans `FilterValue`) | `FilterValue` qui nomme le champ de premier niveau |
+| --- | --- | --- |
+| dans un objet embarqué qui n'a **aucun** sous-champ `@DataNotRead` / `@DataEncrypt` (à aucune profondeur), ou dans une liste / map de tels objets | retirée : le champ est réécrit entier | retirée |
+| directement dans un objet embarqué qui a un sous-champ protégé (à une profondeur quelconque) | **reste** : seuls ses sous-champs visibles sont écrits, en notation pointée (`credentials.user`) | retirée : le champ est réécrit entier (ses sous-champs protégés aussi, avec la valeur de l'objet passé) |
+| dans un élément d'une `List` / `Set`, ou une valeur d'une `Map`, dont la classe a un sous-champ protégé | **reste** : la liste ou la map n'est pas écrite | retirée (même remarque) |
+| au premier niveau du document, hors modèle | reste | reste |
+
+Ce qui reste se repère et se nettoie à la main. Les relire ne les expose pas : ils ne sont plus transférés
+pour un objet embarqué (projection jusqu'aux feuilles), et sous une `Map`, une liste sans sous-champ caché ou
+au-delà de 8 niveaux, la lecture Java les ignore ; le masquage TRACE et le journal retirent les clés inconnues
+du modèle. Exception : une lecture `OptionSpecifyType("champ", Y.class, true)` dont la classe `Y` déclare la
+clé la relit (comme avant). Et un filtre qui compare le sous-document entier peut encore les atteindre. Pour lister les clés
+présentes (mongosh ; comparer au modèle) :
 
 ```js
+// objet embarqué
 db.Account.aggregate([
-  { $project: { keys: { $objectToArray: "$base" } } },
-  { $unwind: "$keys" },
+  { $project: { keys: { $objectToArray: "$credentials" } } }, { $unwind: "$keys" },
   { $group: { _id: "$keys.k", count: { $sum: 1 } } }
 ])
-// liste d'objets : ajouter { $unwind: "$history" } avant le $project, sur "$history"
+// éléments d'une liste
+db.Account.aggregate([
+  { $unwind: "$history" }, { $match: { history: { $type: "object" } } },
+  { $project: { keys: { $objectToArray: "$history" } } }, { $unwind: "$keys" },
+  { $group: { _id: "$keys.k", count: { $sum: 1 } } }
+])
+// valeurs d'une map
+db.Account.aggregate([
+  { $project: { values: { $objectToArray: "$byKey" } } }, { $unwind: "$values" },
+  { $match: { "values.v": { $type: "object" } } },
+  { $project: { keys: { $objectToArray: "$values.v" } } }, { $unwind: "$keys" },
+  { $group: { _id: "$keys.k", count: { $sum: 1 } } }
+])
 ```
 
-Pour les retirer (une clé inconnue du modèle, ici `extra`) :
+Pour retirer une clé inconnue du modèle (ici `extra`) aux trois positions qui la gardent (vérifié sur
+MongoDB 8.3, avec des éléments `null` et des valeurs `null` présents, qui restent intacts) :
 
-```java
-DataAccess.updateBsonDocuments("Account", new Document("$unset", new Document("base.extra", "")),
-		new Condition(Filters.exists("base.extra")));
-// dans chaque élément d'une liste :
-DataAccess.updateBsonDocuments("Account", new Document("$unset", new Document("history.$[].extra", "")),
-		new Condition(Filters.exists("history.extra")));
+```js
+// objet embarqué à sous-champ protégé
+db.Account.updateMany({ "credentials.extra": { $exists: true } }, { $unset: { "credentials.extra": "" } })
+// chaque élément d'une liste
+db.Account.updateMany({ "history.extra": { $exists: true } }, { $unset: { "history.$[].extra": "" } })
+// chaque valeur d'une map (pipeline : les clés de la map sont dynamiques)
+db.Account.updateMany({ byKey: { $type: "object" } }, [
+  { $set: { byKey: { $arrayToObject: { $map: {
+    input: { $objectToArray: "$byKey" }, as: "e",
+    in: { k: "$$e.k", v: { $cond: [ { $eq: [ { $type: "$$e.v" }, "object" ] },
+      { $unsetField: { field: "extra", input: "$$e.v" } }, "$$e.v" ] } } } } } } }
+])
 ```
+
+Les deux premiers s'écrivent aussi en Java :
+`DataAccess.updateBsonDocuments("Account", new Document("$unset", new Document("history.$[].extra", "")), new Condition(Filters.exists("history.extra")))`.
+
+### Retour arrière
+
+Les documents écrits par la nouvelle version se relisent à l'identique avec l'ancien jar : elle écrit les
+mêmes encodages, seulement moins de clés (champs de sous-classe retirés, valeurs refusées), et la sentinelle
+`_archidata_presence_` n'existe que dans la projection, jamais en base. Vérifié : un document écrit par la
+nouvelle version (sous-classe sous un champ de base, objet à `@DataNotRead`, liste avec un `null`, map,
+`Document`, record, `Set`, enum, `Instant`) relu par le jar de acffd1f (`getById` par défaut et
+`ReadAllColumn`, `gets`) donne les mêmes valeurs Java que relu par la nouvelle version, sauf l'élément `null`
+de la liste, que l'ancien jar rend (lecture par défaut). Revenir en arrière rouvre les fuites corrigées ici.
 
 ## Prochaine version (après v0.51.3) - Corrections de sécurité de l'audit du 2026-10-20 (CHANGEMENT DE COMPORTEMENT)
 

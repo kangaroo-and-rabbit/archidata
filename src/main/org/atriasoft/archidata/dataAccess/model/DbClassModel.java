@@ -95,6 +95,7 @@ public final class DbClassModel {
 	public static void setAddOns(final List<DataAccessAddOn> addOns) {
 		registeredAddOns = new ArrayList<>(addOns);
 		CACHE.clear(); // Force rebuild with new add-ons
+		LeafProjection.clearCache();
 	}
 
 	/**
@@ -153,10 +154,11 @@ public final class DbClassModel {
 	}
 
 	/**
-	 * Clear the global cache. Useful for testing.
+	 * Clear the global cache, and the projection paths computed from it. Useful for testing.
 	 */
 	public static void clearCache() {
 		CACHE.clear();
+		LeafProjection.clearCache();
 	}
 
 	// ========== Public API ==========
@@ -390,9 +392,13 @@ public final class DbClassModel {
 	/**
 	 * Generate the list of field names for SELECT/projection from an already resolved selector.
 	 *
+	 * <p>An embedded object is projected down to its leaf fields (its protected sub-fields left out), see
+	 * {@link ReadFieldSelector}. The list never holds a path and one of its sub-paths (MongoDB refuses that
+	 * collision): the widest is kept.
+	 *
 	 * @param selector the resolved read selector of the query
 	 * @param options the query options for column renaming
-	 * @return a list of resolved field names for the projection
+	 * @return a list of resolved field names (or dotted paths) for the projection
 	 */
 	public List<String> generateSelectFields(final ReadFieldSelector selector, final QueryOptions options) {
 		final List<String> fields = new ArrayList<>();
@@ -400,11 +406,11 @@ public final class DbClassModel {
 			if (!selector.isRead(desc, options)) {
 				continue;
 			}
-			// Not simply the field name: a query asking for a part of an embedded sub-document
-			// projects the dotted sub-paths instead of the whole field.
+			// Not simply the field name: an embedded object is projected down to its leaf fields, and a
+			// query asking for a part of an embedded sub-document projects the dotted sub-paths.
 			selector.collectProjectionPaths(desc, options, fields);
 		}
-		return fields;
+		return LeafProjection.normalize(fields);
 	}
 
 	// ========== Declared type check ==========

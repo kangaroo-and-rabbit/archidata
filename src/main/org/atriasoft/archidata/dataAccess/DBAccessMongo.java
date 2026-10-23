@@ -58,7 +58,6 @@ import org.atriasoft.archidata.db.DbIo;
 import org.atriasoft.archidata.db.DbIoFactory;
 import org.atriasoft.archidata.db.DbIoMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
-import org.atriasoft.archidata.tools.TypeUtils;
 import org.atriasoft.archidata.tools.UuidUtils;
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -1884,7 +1883,6 @@ public class DBAccessMongo implements Closeable {
 			return MongoCodecFactory.buildReader(TypeInfo.ofRaw(clazz)).fromMongo(doc);
 		}
 		// POJO path: Document → Java object with AddOn/OptionSpecifyType support
-		final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 		final DbClassModel dbModel = DbClassModel.of(clazz);
 		// Same selector as the projection: a field excluded from the transfer is not mapped, and an
 		// excluded AddOn field does not trigger the extra queries its resolution would have needed.
@@ -1906,28 +1904,17 @@ public class DBAccessMongo implements Closeable {
 				}
 				final FieldName fieldName = desc.getFieldName(options);
 
-				// Check for OptionSpecifyType override (rare runtime type change)
-				MongoTypeReader overrideReader = null;
-				for (final OptionSpecifyType specify : specificTypes) {
-					if (specify.name.equals(desc.getProperty().getName())) {
-						TypeInfo overrideType;
-						if (specify.isList) {
-							if (desc.getProperty().getTypeInfo().isList()) {
-								overrideType = new TypeInfo(List.class, specify.clazz, null,
-										TypeUtils.listOf(specify.clazz));
-								overrideReader = MongoCodecFactory.buildReader(overrideType);
-							}
-						} else if (desc.getProperty().getType() == Object.class) {
-							overrideType = TypeInfo.ofRaw(specify.clazz);
-							overrideReader = MongoCodecFactory.buildReader(overrideType);
-						}
-						break;
-					}
-				}
-
-				if (overrideReader != null) {
-					// Rare path: runtime type override
-					codec.readFromDoc(documentModel, fieldName.inTable(), overrideReader, data);
+				// OptionSpecifyType override (rare runtime type change): the same rule as the projection.
+				final TypeInfo overrideType = ReadFieldSelector.overriddenReadType(desc, options);
+				if (overrideType != null) {
+					// The value was written by the declared type: the sub-fields it protects are removed before the
+					// other class decodes it (that class may declare such a sub-field without protection).
+					final Document restricted = documentModel.containsKey(fieldName.inTable())
+							? new Document(fieldName.inTable(),
+									selector.restrictToDeclaredType(desc, documentModel.get(fieldName.inTable())))
+							: documentModel;
+					codec.readFromDoc(restricted, fieldName.inTable(), MongoCodecFactory.buildReader(overrideType),
+							data);
 				} else {
 					// Fast path: pre-compiled codec
 					codec.readFromDoc(documentModel, fieldName.inTable(), data);

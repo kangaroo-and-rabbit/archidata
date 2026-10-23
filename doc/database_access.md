@@ -269,6 +269,58 @@ Rules:
 - The restriction applies to the **top level only**: the entities loaded behind a relation are read
   in full, with their own options.
 
+#### Embedded objects are projected down to their leaf fields
+
+Every read (with or without `FilterValue`) projects an embedded object field by field, by its
+declared type, so that what the read does not return does not leave the database, except in a part
+transferred whole: a `Map`, and a part cut by the bounds below.
+
+| Declared type of the field | Projection |
+| --- | --- |
+| a value, `org.bson.Document`, a JDK class, a relation | the field itself, as before |
+| an embedded object | the paths of the sub-fields the read returns (`credentials.user`), at any depth |
+| an embedded object whose sub-fields are all left out | `credentials._archidata_presence_`: MongoDB answers `{}`, the object is read back empty (and `null` stays `null`) |
+| a `List` / `Set` of embedded objects (nested lists included) | its leaf paths (`history.user`) **only when the read leaves a sub-field of the elements out**; whole otherwise |
+| a `Map` | whole (its keys are dynamic): the protected sub-fields of its values are transferred, without a log, and the Java read drops them |
+
+Left out of an embedded object: a `@DataNotRead` sub-field without `ReadAllColumn`, a `@DataEncrypt`
+sub-field when the decryption is disabled (`DATA_DECRYPT_ENABLE`), a relation of the embedded object
+(never read back), and any key the model does not know (written by an older version, see
+[Field Types](data_model.md#field-types)). The Java object is the same as before, with two
+exceptions: a list projected down to its leaves loses its `null` elements and its elements that are not
+sub-documents (MongoDB drops them, so the indexes of the list read back shift), and a value stored with a
+type that does not match the model (a string where an object is declared) is read `null` instead of
+failing. A full update does not write such a list (the stored one, `null` elements included, stays), but
+`FilterValue("history")` rewrites it as read; an index computed on the list read back must not be used for
+a positional update (`history.2.user` through `updateBsonDocuments`): compute it on the raw document
+(`getBsonDocument`), or match the element by one of its fields.
+
+A `FilterValue` does not make a protected sub-field readable (it restricts the read, it does not open a
+protected field): only `ReadAllColumn` and the decryption return it.
+
+Bounds: below 8 levels under the top-level field (a recursive type), or beyond 256 paths for one
+field, the position is projected whole; the Java read still drops what it does not return. When the part
+projected whole holds a sub-field the read does not return, that sub-field **is transferred** from the
+database, and a WARN of `org.atriasoft.archidata.dataAccess.model.LeafProjection` says so, once per entity
+field:
+
+```
+Field com.app.Account.node (declared com.app.Node) is projected whole at 'node.child.child.child.child.child.child.child.child' because it is deeper than 8 levels, and it holds sub-fields this read does not return (@DataNotRead, @DataEncrypt): they are transferred from the database, then dropped by the Java read
+```
+
+(`because it develops into more than 256 projection paths` for the path bound, the position then being the
+field itself.) When the part cut holds no protected sub-field, only a DEBUG log is written (`... projected
+whole`). The WARN covers these cuts only: a `Map` is transferred whole without one. To transfer nothing protected, make the type shallower or narrower, or move the protected fields out
+of the part cut. A field the read decodes with another class because of an `OptionSpecifyType` is projected
+by the rule of [OptionSpecifyType](#optionspecifytype); anywhere else the read ignores the option, and so does
+the projection.
+`DBAccessMongo.generateSelectField(...)` returns these paths, never a path and one of its sub-paths.
+
+The paths of a field read whole depend only on its declared type, `ReadAllColumn` and the decryption flag:
+they are computed once per (type, flags) and kept in a bounded cache (4096 entries, emptied by
+`DbClassModel.clearCache()` and `setAddOns`); only the dotted paths of a `FilterValue` are resolved on each
+read. The DEBUG logs of a field read whole are therefore written once per (type, flags).
+
 ```java
 // Left at their default value (null / 0), not fetched:
 final Article light = da.getById(Article.class, id, new FilterValue(Article::getTitle));
@@ -279,8 +331,8 @@ light.getOid();      // present anyway
 
 #### Reaching inside an embedded sub-document
 
-A `FilterValue` entry may be a dotted path. It is pushed to MongoDB as-is, so only that part of the
-sub-document is transferred and the top-level field is rebuilt partially:
+A `FilterValue` entry may be a dotted path. Only that part of the sub-document is transferred and the
+top-level field is rebuilt partially:
 
 ```java
 final Article light = da.getById(Article.class, id,
@@ -292,8 +344,13 @@ light.getAuthor().getAvatar().getSmall();  // present
 ```
 
 - Naming both a field and one of its sub-paths reads the **whole** field — the widest wins
-  (`new FilterValue("author", "author.name")` reads all of `author`).
-- Paths can go as deep as the document does (`a.b.c`).
+  (`new FilterValue("author", "author.name")` reads all of `author`, down to its leaf fields).
+- Paths can go as deep as the document does (`a.b.c`). The path is resolved in the model: through an
+  embedded object, the elements of a list (a list does not consume a segment) and a map key; a path
+  that ends on an embedded object is projected down to its leaf fields. Below a value,
+  `org.bson.Document` or a JDK class, the rest of the path is pushed as it is.
+- A segment naming a sub-field the read does not return (`"author.password"` without `ReadAllColumn`)
+  or no sub-field of the model is not transferred: the embedded object comes back empty, as before.
 - The prefix must be a real field of the entity: `new FilterValue("authr.name")` raises a
   `DataAccessException`.
 - **Dotted paths are rejected in a `FilterOmit`**: the projection archidata builds is an inclusion,
@@ -419,6 +476,23 @@ Such a key is written as it is once its value is checked to be an `ObjectId`, a 
 `Long`, an `Integer` or a `Short`. Any other field declared `Object`, as an interface, as an abstract
 class or as an unbound type variable (alone or in a `List`, `Set` or `Map`) is refused when the model is
 analysed, **with or without** this option (see [Field Types](data_model.md#field-types)).
+
+With `isList`, the option also reads the elements of a `List<X>` field as another class `Y`
+(`new OptionSpecifyType("history", Y.class, true)`); without `isList`, on any field not declared `Object`,
+the read ignores it. The elements were written by `X`, and the protection of `X` holds: the field is
+projected down to the leaf fields of `Y`, less every sub-field that `Y` **or `X`** protects (unless the read
+returns it: `ReadAllColumn`, decryption enabled). The two classes are walked side by side on the document
+keys: a sub-field only `Y` knows is projected by `Y`; a position `Y` takes whole (a value, a `Map`, a
+`Document`) while `X` protects a sub-field below it is projected by `X`; the list is developed as soon as `X`
+protects a sub-field of its elements, whether `Y` declares that sub-field or not. What the projection has to
+transfer whole (a `Map`, a part cut by the bounds above) is filtered in Java by `X` before `Y` decodes it: a
+sub-field `X` protects and the read does not return never reaches `Y`, even when `Y` declares it without
+protection.
+
+When the read returns such a sub-field, `Y` decodes the stored value with its own type. A `@DataEncrypt`
+sub-field of `X` is stored encrypted: with the decryption enabled, `Y` gets the clear value only when it marks
+that sub-field `@DataEncrypt` too; declared as a plain `String`, it gets the stored envelope (the Base64
+ciphertext); declared with another type, the read fails (`DataAccessException`).
 
 
 Type-Safe Utilities

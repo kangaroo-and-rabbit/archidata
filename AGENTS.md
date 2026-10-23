@@ -288,5 +288,20 @@ Each point was checked against the code; the doc page gives the details.
   they stay in clear (all fields, `@DataNotRead` included): protect the storage folder.
 - **Database connection**: `DB_TLS` (true to use TLS) and `DB_AUTH_SOURCE` (authentication
   database) exist; a WARN is written once when the DB user is `root`.
+- **Reads project embedded objects down to their leaf fields** (by the declared type): a
+  `@DataNotRead` sub-field (without `ReadAllColumn`), a `@DataEncrypt` one (decryption disabled), a
+  relation of an embedded object and a key unknown to the model are not transferred. A `Map` is read
+  whole (the protected sub-fields of its values are transferred without a log, then dropped in Java);
+  a `List`/`Set` of embedded objects is developed only when the read hides a sub-field of its
+  elements, and then loses its `null` and non-document elements: the indexes of the list read back
+  shift, never use them for a positional update (`list.N`). Cut at 8 levels / 256 paths per field
+  (read whole): when the part cut holds a protected sub-field, it is transferred and a WARN
+  `... is projected whole at '...'` names the entity field (once per field); otherwise DEBUG only.
+  `OptionSpecifyType(field, Y, true)` on a `List<X>` projects the leaves of `Y` less what `X` or `Y`
+  protects (developed as soon as `X` protects a sub-field of the elements, declared by `Y` or not), and
+  filters by `X` in Java what is transferred whole: `Y` never gets a sub-field `X` protects that the
+  read does not return. With the decryption enabled, a `@DataEncrypt` sub-field of `X` reaches `Y` as
+  stored: the clear value only if `Y` marks it `@DataEncrypt` too, the ciphertext for a plain `String`,
+  a failed read for another type. See `doc/database_access.md`.
 - **Change streams and the journal**: a change event carries the raw document (`@DataNotRead`
   fields included): never relay it to a client. The change journal leaves `@DataNotRead` fields out.

@@ -100,11 +100,18 @@ Non refusé :
   `UUID`, `Date`, `Instant`, `OffsetDateTime`, `LocalDate`, `LocalTime`, les enums ;
 - `org.bson.Document` (contenu libre, aller-retour vérifié) ;
 - les relations (champ avec add-on) ;
+- la clé primaire déclarée `Object` (seule exemption, voir §6 B) ;
 - les classes concrètes du JDK, de BSON et de Jackson qui ne sont pas des types valeur
   (`BigDecimal`, `LocalDateTime`, `Decimal128`, `ObjectNode`...) et les tableaux (`byte[]`...) : ni
   parcourues ni refusées. **Elles ne sont pas gérées par le codec aujourd'hui** (aller-retour en
   échec) et ne le sont pas davantage après : comportement inchangé, hors périmètre ;
 - les clés de `Map` (écrites en chaîne, visibles).
+
+Le refus suit la déclaration, quel que soit le paquet : une classe de bibliothèque hors JDK, Jackson et
+BSON (`com.mongodb.client.model.geojson.Point`, `jakarta.*`, JTS, Joda...) est parcourue comme une classe
+embarquée, et une seule de ses propriétés `Object` / interface / abstraite bloque le démarrage, même toujours
+`null` (vérifié : `Point.coordinateReferenceSystem`). Contournement : la stocker dans un `Document`, ou
+déclarer un DTO concret.
 
 Message (`DataAccessException`, cause de l'`IntrospectionException`) :
 
@@ -142,9 +149,12 @@ La projection est calculée depuis le modèle déclaré :
 - champ valeur, `Document`, `Map`, tableau, classe JDK, relation (add-on) : inclus entier, comme
   avant ;
 - objet embarqué (classe de l'application) : remplacé par ses sous-champs, récursivement ;
-- `List` / `Set` d'objets embarqués **dont la classe a des champs protégés** (`@DataNotRead` ou
-  `@DataEncrypt`, à toute profondeur) : projetée par ses sous-champs (`history.user`) ; une liste
-  d'objets **sans** champ protégé reste incluse entière. **Écart volontaire** : la projection
+- `List` / `Set` d'objets embarqués (listes imbriquées comprises, MongoDB traverse les tableaux
+  imbriqués, vérifié sur 8.3.9) : projetée par ses sous-champs (`history.user`) **seulement si la
+  lecture cache un sous-champ des éléments** (à toute profondeur) ; sinon incluse entière. *Implémenté
+  ainsi plutôt que « la classe a des champs protégés »* : une lecture `ReadAllColumn` avec déchiffrement
+  (`readPreviousDataForUpdate`, relecture complète) ne cache rien et relit la liste entière, `null`
+  compris, comme avant. **Écart volontaire** : la projection
   `liste.champ` fait disparaître les éléments `null` (vérifié) ; la limiter aux listes qui ont
   quelque chose à cacher garde les autres listes exactement comme avant, et une mise à jour complète
   ne réécrit justement pas ces listes-là (règle D-02), donc aucun `null` n'est perdu en base par un
@@ -157,12 +167,18 @@ La projection est calculée depuis le modèle déclaré :
   sentinelle `champ._archidata_presence_`, que MongoDB rend comme un sous-document vide
   (vérifié) : l'objet est relu vide, comme avant, et non `null` ;
 - `Map<String, X>` : incluse entière (la clé est dynamique, une projection fixe ne peut pas la
-  nommer) ; le filtre Java de `readSubObject` reste la barrière ;
+  nommer) ; les sous-champs protégés de ses valeurs transitent sans log (le WARN ne couvre que les
+  coupes) ; le filtre Java de `readSubObject` reste la barrière ;
 - type récursif ou très profond : coupé à 8 niveaux sous le champ de premier niveau, inclus entier
   en dessous ; au-delà de 256 chemins pour un même champ de premier niveau, le champ est inclus
-  entier (log DEBUG) ;
+  entier. Quand la partie incluse entière contient un sous-champ que la lecture ne rend pas, il
+  transite : WARN une fois par champ d'entité (§6 E) ; sinon log DEBUG ;
 - collisions : la liste finale ne contient jamais `a` et `a.b` (le plus large gagne, comme le
-  « whole field wins » actuel), ni de doublon.
+  « whole field wins » actuel), ni de doublon ;
+- cache : les chemins d'un champ lu entier ne dépendent que de (type déclaré, classe d'un
+  `OptionSpecifyType`, `ReadAllColumn`, déchiffrement activé) ; ils sont calculés une fois par clé, relatifs au champ, dans une
+  `ConcurrentHashMap` bornée à 4096 entrées (au-delà, calculés à chaque lecture), vidée avec le cache des
+  modèles. Seuls les chemins pointés d'un `FilterValue` sont résolus à chaque lecture.
 
 `FilterValue` (lecture partielle) : un chemin pointé est résolu segment par segment dans le modèle
 (objet embarqué, élément de liste, clé de map puis type de valeur) :
@@ -173,6 +189,16 @@ La projection est calculée depuis le modèle déclaré :
   objet Java qu'avant) ;
 - sous un `Document`, une valeur ou une clé de map, la suite du chemin est poussée telle quelle,
   comme avant ;
+- précision d'implémentation : une clé de map consomme un segment, puis la suite est résolue dans le
+  type de valeur (développée jusqu'aux feuilles si c'est un objet embarqué) ; un segment numérique après
+  une liste est cherché comme un champ de l'élément, donc remplacé par la sentinelle : même résultat
+  qu'avant (MongoDB traite `liste.0.x` comme un nom de champ dans chaque élément, vérifié) ;
+- un champ que la lecture décode avec une autre classe à cause d'un `OptionSpecifyType` (clé primaire
+  `Object`, ou `isList` sur une `List`) : le chemin est résolu dans la classe lue, un segment que la
+  classe déclarée protège donnant la sentinelle, puis développé comme un champ entier (§6) ; ailleurs la
+  lecture ignore l'option, la projection aussi ;
+- un `FilterValue` ne fait pas relire un champ protégé (règle 2 de `ReadFieldSelector` avant la liste
+  blanche) : seuls `ReadAllColumn` et le déchiffrement le rendent ;
 - inchangé : le premier segment est contrôlé (champ inconnu = `DataAccessException`), la clé
   primaire est toujours lue, `FilterOmit` reste limité aux champs de premier niveau, un nom renommé
   par `OptionRenameColumn` garde ses sous-chemins.
@@ -213,6 +239,56 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
   Les tableaux de valeurs ou de classes JDK (`byte[]`, `String[]`, `BigDecimal[]`) restent `OPAQUE`
   (non gérés, inchangés). Aucune entité des applications relevées ne déclare de tableau.
 
+### 6. Ajouts après la revue du 2026-10-23
+
+- **A. `Document` contenant un objet de l'application** : le driver l'encodait par son
+  `PojoCodecProvider.automatic(true)` (`DbIoMongo`), tous champs compris (`@DataNotRead`, `@DataEncrypt` en
+  clair). L'écriture d'un champ `Document` (et de ses listes / maps, à toute profondeur) parcourt maintenant
+  son contenu par une **liste d'autorisation qui échoue fermée** (`FreeFormContentGuard`) :
+  - acceptés (classe exacte) : `String`, primitifs boxés, `BigDecimal`, `ObjectId`, `UUID`, `Date`,
+    `Instant`, `OffsetDateTime`, `LocalDate`, `LocalTime`, `LocalDateTime`, `Pattern`, `Binary`,
+    `Decimal128`, `Code`, `Symbol`, `MinKey`, `MaxKey`, `BSONTimestamp`, `JsonObject` ; et les enums, tout
+    `BsonValue`, une `Geometry` GeoJSON du driver, les tableaux de primitifs ;
+  - parcourus : `Map` à clés `String` (`Document` compris), `Collection`, tableau d'objets, portée d'un
+    `CodeWithScope`, id d'un `DBRef` ; profondeur bornée à 100 ;
+  - tout le reste est refusé (`DataAccessException` qui nomme le champ et le chemin dans le `Document`) :
+    une classe de l'application (message d'origine), et toute autre classe, enveloppe JDK
+    (`AtomicReference`, `Optional`, `Map.Entry`), `StringBuilder`, nœud Jackson, sous-classe d'une valeur
+    (`java.sql.Timestamp`), `Map` à clé non `String` (message `which is not a value archidata accepts in a
+    Document`).
+  Les API brutes (`updateBsonDocuments`, collection du driver) ne passent pas par ce contrôle.
+- **B. Clé primaire déclarée `Object`** : exemptée du refus (le support par `OptionSpecifyType` de
+  `getTableIdCondition` est gardé) ; sa valeur est vérifiée à l'écriture (insert, `DirectPrimaryKey`,
+  codec) : `ObjectId`, `UUID`, `String`, `Long`, `Integer` ou `Short`, sinon `DataAccessException`. Tout
+  autre champ `Object` / interface / abstrait / variable de type reste refusé, avec ou sans
+  `OptionSpecifyType`. `OptionSpecifyType` n'est donc plus dépréciée (écart à la version précédente du
+  plan) : son usage restant est cette clé.
+- **C. `FieldPathCursor`** : une exception à l'analyse d'une classe embarquée donnait une position libre
+  (fail-open) ; elle donne `UNSAFE`. Inatteignable en pratique (une classe embarquée qui ne s'analyse pas
+  fait échouer son modèle racine), d'où l'absence de test ; `hasProtectedSubFields` répond de même `true`.
+- **D. Cache de la projection par défaut** : voir §3 (clé = type déclaré, classe d'un `OptionSpecifyType`,
+  `ReadAllColumn`, déchiffrement ; borné, thread-safe ; vidé par `DbClassModel.clearCache` / `setAddOns`,
+  puisque les add-ons changent les champs relus).
+- **Projection et `OptionSpecifyType`** : la projection suit exactement la lecture (`ReadFieldSelector.
+  overriddenReadType`, partagé par la projection et `DBAccessMongo`) : l'option n'a d'effet que sur la clé
+  primaire `Object` et, avec `isList`, sur un champ `List<X>` lu en `List<Y>` ; une option posée sur un champ
+  ordinaire ne change rien. Quand elle s'applique, le champ est projeté par les feuilles de `Y` **moins tout
+  sous-champ que `Y` ou `X` protège** (sauf si la lecture le rend : `ReadAllColumn`, déchiffrement) : `Y` et
+  `X` sont parcourus côte à côte sur les clés du document ; une clé que seul `Y` connaît est projetée par
+  `Y` ; une position que `Y` prend entière (valeur, `Map`, `Document`) alors que `X` y protège un sous-champ
+  est projetée par `X` ; une liste est développée dès que `X` protège un sous-champ de ses éléments, même
+  sous une clé que `Y` ne déclare pas (`storedHidesOutside` ; sans cela la liste, que `Y` seul ne fait pas
+  développer, transitait entière). Ce que la projection doit transférer entier (une `Map`, une partie coupée) est
+  ensuite filtré en Java par `X` (`LeafProjection.restrict` : retire, à toute profondeur, les sous-champs que
+  `X` protège ; une classe qui ne s'analyse pas donne un document vide) avant que `Y` le décode. Avant :
+  champ transféré entier et décodé par `Y`, qui rendait un sous-champ protégé de `X` déclaré sans protection
+  dans `Y`.
+- **E. WARN des coupes** : la coupe à 8 niveaux et la borne de 256 chemins restent. Quand la partie
+  incluse entière contient réellement un sous-champ que la lecture ne rend pas (`hidesBelow`, qui suit les
+  drapeaux de la lecture ; une classe qui ne s'analyse pas compte comme en contenant un), un WARN est écrit
+  une fois par champ d'entité (`Field com.app.Account.node`), mémoire vidée avec le cache ; sinon DEBUG,
+  comme avant.
+
 ## Changements de comportement (avant → après, qui est concerné)
 
 | # | Avant | Après | Qui est concerné |
@@ -220,21 +296,30 @@ racine, une clé inconnue du modèle : c'est ce qui protège les **données écr
 | 1 | Entité avec un champ (ou getter) `Object`, interface, abstrait, collection brute, `Collection<X>`, à toute profondeur embarquée : acceptée, données écrites mais mal relues | Refusée à l'analyse du modèle (exception au premier accès) | Aucune des applications relevées ; tests d'archidata qui en avaient (adaptés) |
 | 2 | Sous-classe sous un champ de classe de base : tous ses champs stockés | Seuls les champs du type déclaré sont stockés, WARN une fois | Aucune application relevée |
 | 3 | Objet embarqué projeté entier | Projeté par ses sous-champs ; sous-champs protégés non transférés | Toutes les lectures d'entités à objets embarqués ; résultat Java identique |
-| 4 | Liste / set d'objets à champs protégés : éléments `null` relus | Les éléments `null` (et non-documents) ne sont plus rendus | Listes d'objets embarqués à champs protégés contenant des `null` |
-| 5 | `FilterValue("obj")` : `obj` projeté entier | Développé jusqu'aux feuilles | Lecture partielle ; résultat Java identique |
-| 6 | `FilterValue("obj.secret")` : le secret transitait, jeté en Java | Non transféré (sentinelle : objet vide comme avant) | idem |
-| 7 | `FilterValue("obj.inconnu")` poussé tel quel | Retiré (sentinelle) ; plus de transfert de clés inconnues du modèle | idem |
-| 8 | `generateSelectField(...)` renvoyait les noms de premier niveau | Renvoie les chemins feuilles (et la sentinelle) | Code qui inspectait cette liste (aucun relevé) |
-| 9 | `OptionSpecifyType` pour un champ `Object` | Sans objet (le champ est refusé) : déprécié | Aucun usage relevé |
+| 4 | Liste / set d'objets à champs protégés : éléments `null` relus | Les éléments `null` (et non-documents) ne sont plus rendus quand la lecture cache un sous-champ des éléments | Listes d'objets embarqués à champs protégés contenant des `null` |
+| 5 | Valeur scalaire stockée là où un objet embarqué est déclaré : lecture en échec | Relue `null` | Données incohérentes |
+| 6 | `FilterValue("obj")` : `obj` projeté entier | Développé jusqu'aux feuilles | Lecture partielle ; résultat Java identique |
+| 7 | `FilterValue("obj.secret")` : le secret transitait, jeté en Java | Non transféré (sentinelle : objet vide comme avant) | idem |
+| 8 | `FilterValue("obj.inconnu")` poussé tel quel | Retiré (sentinelle) ; plus de transfert de clés inconnues du modèle | idem |
+| 9 | `generateSelectField(...)` renvoyait les noms de premier niveau | Renvoie les chemins feuilles (et la sentinelle) | Code qui inspectait cette liste (aucun relevé) |
+| 10 | `OptionSpecifyType` sur un champ `Object` | Seule la clé primaire `Object` reste acceptée (valeur vérifiée) ; tout autre champ `Object` est refusé avec ou sans l'option ; option non dépréciée ; projection suivant la lecture (#18) | Aucun usage relevé |
 | 11 | Racine abstraite de l'application : champs non vérifiés | Vérifiée comme une classe concrète | Entité abstraite passée à `checkFieldName` / TRACE / journal |
 | 12 | Valeur d'une classe de l'application sous un type JDK non modélisé : écrite par son modèle | Refusée à l'écriture | Aucune application relevée |
-| 13 | Chemin sous un type JDK non modélisé (`price.scale`) : libre | `UNSAFE` (refusé, masqué, retiré du journal) | Filtres clients sur un tel sous-chemin (aucun relevé) |
+| 13 | Chemin sous un type JDK non modélisé (`price.scale`, `Locale`, `URI`...) : libre | `UNSAFE` (refusé par `checkFieldName`, masqué en TRACE, retiré du journal) | Filtres clients sur un tel sous-chemin (aucun relevé) |
 | 14 | Tableau d'une classe de l'application ou de type refusé : accepté, non relu | Refusé à l'analyse | Aucune application relevée |
-| 10 | Données déjà stockées (champs de sous-classe, contenu de champs `Object`) | Restent en base ; plus projetées pour un objet embarqué ; à nettoyer | Bases qui ont stocké des sous-classes |
+| 15 | `Document` contenant un objet de l'application (écrit par le driver, champs protégés en clair) ou toute autre classe hors liste d'autorisation (enveloppe JDK, nœud Jackson, `java.sql.Timestamp`, `Map` à clé non `String`) : passé tel quel au driver | Refusé à l'écriture, rien n'est écrit | Aucun champ `Document` relevé dans les applications |
+| 16 | Classe de bibliothèque (GeoJSON, `jakarta.*`, JTS...) comme type de champ, avec une propriété polymorphe | Refusée à l'analyse (démarrage), même si la propriété est toujours `null` | À vérifier (checklist) |
+| 17 | Données déjà stockées (champs de sous-classe, contenu de champs `Object`) | Restent en base ; plus projetées pour un objet embarqué ; retirées par une écriture seulement là où le champ est réécrit entier (MIGRATION.md, « Données déjà en base ») ; à nettoyer | Bases qui ont stocké des sous-classes |
+| 18 | `OptionSpecifyType(champ, Y, true)` sur un `List<X>` : liste transférée entière, décodée par `Y`, un sous-champ protégé de `X` rendu si `Y` le déclare sans protection | Projetée par les feuilles de `Y` moins ce que `X` ou `Y` protège, filtrée par `X` en Java : un sous-champ protégé de `X` n'est jamais rendu (sauf `ReadAllColumn` / déchiffrement) | Aucun usage relevé |
 
-Ce qui ne change pas : les valeurs Java rendues par une lecture (hors #4) ; les écritures d'une
-entité sans sous-classe ; la mise à jour complète des objets embarqués à champs protégés (notation
-pointée, listes non réécrites) ; les filtres ; le journal ; le masquage TRACE.
+Ce qui ne change pas : l'objet Java rendu par une lecture, hors #4 (éléments `null` et non-documents
+d'une liste projetée jusqu'aux feuilles, indices décalés) et #5 (scalaire relu `null`) ; le document écrit
+pour une entité dont chaque valeur est une instance exacte de son type déclaré et dont les `Document` ne
+contiennent que des valeurs (hors #2, #12, #15) ; la mise à jour complète des objets embarqués à champs
+protégés (notation pointée, listes / sets / maps de tels objets non réécrits) ; les filtres, le journal et
+le masquage TRACE, hors chemins sous un type JDK non modélisé (#13) et hors clés inconnues du modèle (déjà
+retirées avant). Les documents écrits par la nouvelle version se relisent avec l'ancien jar (vérifié,
+MIGRATION.md « Retour arrière »).
 
 ## Logs
 
@@ -248,8 +333,29 @@ pointée, listes non réécrites) ; les filtres ; le journal ; le masquage TRACE
 - Erreur (`DataAccessException`) pour une valeur qui n'est pas une instance du type déclaré :
   `An element of field com.app.Account.bases is declared com.app.Base but holds a java.lang.String,
   which is not one: it cannot be stored`.
-- DEBUG, logger `org.atriasoft.archidata.dataAccess.model.ReadFieldSelector` (ou classe de
-  projection) : champ projeté entier faute de pouvoir le développer (budget dépassé).
+- WARN, logger `org.atriasoft.archidata.dataAccess.model.LeafProjection`, quand une partie coupée contient
+  un sous-champ que la lecture ne rend pas (une fois par champ d'entité, mémoire vidée avec le cache) :
+  `Field com.app.Account.node (declared com.app.Node) is projected whole at
+  'node.child.child.child.child.child.child.child.child' because it is deeper than 8 levels, and it holds
+  sub-fields this read does not return (@DataNotRead, @DataEncrypt): they are transferred from the
+  database, then dropped by the Java read` (`because it develops into more than 256 projection paths` pour
+  la borne des chemins).
+- DEBUG, même logger, pour une coupe sans sous-champ protégé : `Field 'x' (declared T) develops into more
+  than 256 projection paths: projected whole`, `Embedded object 'x.y...' is deeper than 8 levels: projected
+  whole`, `Path 'x.y' develops into more than 256 projection paths: projected whole`. Une fois par clé du
+  cache pour un champ lu entier, au premier champ rencontré ; à chaque lecture pour un chemin de
+  `FilterValue`.
+- Erreur à l'écriture d'un `Document` (#15) : `Field com.app.Account.free is a free-form
+  org.bson.Document holding, under 'list.1.deep.k', a com.app.Secret, a class of the application: the
+  driver would store all its fields (@DataNotRead and @DataEncrypt ones included, in clear); put only
+  values, Documents, Lists and Maps in a Document, or declare a field with that class` ; pour une autre
+  classe hors liste : `... holding, under 'list.0.x', a java.util.Optional, which is not a value archidata
+  accepts in a Document (a BSON or JDK value, an enum, a Document or a Map with String keys, a List, a
+  Collection or an array of them): what it holds would not be checked; put only values, Documents, Lists
+  and Maps in a Document, or declare a field with the class it holds`.
+- Erreur à l'écriture d'une clé primaire `Object` (#10) : `Field com.app.Keyed._id is a primary key
+  declared java.lang.Object but holds a java.util.Date: such a key only takes an ObjectId, a UUID, a
+  String, a Long, an Integer or a Short`.
 - Pas de nouveau log au refus : l'exception porte le message.
 - TRACE inchangé (`filter = ...`, ` - receive data from DB: ...`) : le document reçu ne contient plus
   les sous-champs protégés.
@@ -260,13 +366,24 @@ pointée, listes non réécrites) ; les filtres ; le journal ; le masquage TRACE
   en base. Ils ne transitent plus pour un objet embarqué (projection par feuilles) mais transitent
   encore sous une `Map` ou une liste d'objets sans champ protégé (jetés en Java), et un filtre qui
   compare le sous-document entier peut encore les atteindre tant qu'ils ne sont pas nettoyés.
-  Nettoyage proposé dans MIGRATION.md (`updateBsonDocuments` + `$unset`, et un pipeline pour
-  repérer les clés inconnues).
-- `Map<String, X>` dont les valeurs ont des champs protégés : transfert entier, filtre Java.
-- Type récursif / très profond : coupé à 8 niveaux, entier en dessous.
+  Une mise à jour complète ne les retire que là où elle réécrit le champ entier. Repérage et nettoyage
+  (mongosh, vérifiés) dans MIGRATION.md « Données déjà en base ».
+- `Map<String, X>` dont les valeurs ont des champs protégés : transfert entier, filtre Java, sans log.
+- `OptionSpecifyType(champ, Y, true)`, déchiffrement activé : un sous-champ `@DataEncrypt` de `X` est
+  décodé par `Y` tel que stocké : en clair seulement si `Y` le marque aussi `@DataEncrypt`, l'enveloppe
+  chiffrée (Base64) pour une `String` simple, une lecture en échec pour un autre type (comme avant).
+- Type récursif / très profond (8 niveaux) ou très large (256 chemins pour un champ) : la partie coupée
+  est transférée entière ; un sous-champ protégé qu'elle contient transite (jeté en Java), signalé par un
+  WARN une fois par champ d'entité (§6 E).
 - Éléments `null` d'une liste d'objets à champs protégés : plus rendus (changement #4).
 - Types concrets non gérés par le codec (`BigDecimal`, tableaux, `LocalDateTime`...) : ni refusés ni
   gérés, inchangé.
+- `Document` : les API brutes (`updateBsonDocuments`, `getInterface().getDatabase()`) ne passent pas par la
+  liste d'autorisation.
+- `OptionSpecifyType(champ, Y, true)` : une clé que la classe déclarée ne connaît pas mais que `Y` déclare
+  est transférée et relue (données anciennes d'une sous-classe comprises), comme avant.
+- Mise à jour positionnelle (`liste.N`) calculée sur une liste relue jusqu'aux feuilles : indices décalés
+  par les éléments `null` / non-documents (#4).
 
 ## Validation sur une application (checklist)
 
@@ -277,7 +394,19 @@ nouvelle version sur les mêmes données.
    la sortie `DB model creation failed for` / `Unsupported field type on`. Pour forcer l'analyse de
    toutes les entités sans dépendre des appels, un test d'une ligne par entité :
    `DbClassModel.of(MonEntite.class)` (lève l'`IntrospectionException` si refus).
-2. **WARN** : rechercher `but holds a` dans les logs après les écritures (aucune attendue).
+   - Chercher dans les entités et leurs classes embarquées les types de bibliothèque (`geojson`,
+     `jakarta.`, `org.locationtech`, `org.joda`...) : refusés si une de leurs propriétés est polymorphe (#16).
+   - Chercher les types JDK non modélisés (`BigDecimal`, `Locale`, `URI`, `URL`, `LocalDateTime`,
+     `Duration`, `Optional`...) : leurs sous-chemins sont refusés par `checkFieldName` (#13), et ils ne
+     relisent toujours pas.
+   - Chercher les champs `Document` (`List<Document>`, `Map<String, Document>`) et ce qu'on y met : un
+     POJO, un record, une enveloppe JDK (`Optional`...), un nœud Jackson, un `java.sql.Timestamp` ou une
+     `Map` à clé non `String` dedans est refusé à l'écriture (#15) ; grep `but holds a` / `free-form
+     org.bson.Document holding` dans les logs.
+2. **WARN** : rechercher `but holds a` dans les logs après les écritures (aucune attendue). Penser aux
+   sous-classes anonymes ou « double accolade » (`new Base() {{ ... }}`, classe réelle `...$1`) : WARN,
+   seuls les champs de `Base` sont écrits ; une valeur chargée par un autre classloader (rechargement à
+   chaud, plugin) est refusée (`which is not one`).
 3. **Écritures** : pour une entité à objets embarqués (et listes, maps), insérer et mettre à jour
    (complète puis `FilterValue`), puis comparer le document brut (`mongosh`
    `db.<coll>.findOne({_id: ...})`) avec l'ancienne version : identique.
@@ -300,8 +429,22 @@ nouvelle version sur les mêmes données.
 7. **Mises à jour** : `updateById` complet d'une entité dont un objet embarqué a un `@DataNotRead` :
    le secret reste en base ; `updateById` avec `FilterValue` qui le nomme : il est écrit.
 8. **Pagination et comptage** : une page `gets` + `count` donnent les mêmes résultats qu'avant.
-9. **Données anciennes** : repérer les clés inconnues des sous-documents (pipeline de MIGRATION.md),
-   décider du nettoyage.
+9. **Données anciennes** : repérer les clés inconnues des sous-documents (pipelines de MIGRATION.md),
+   décider du nettoyage ; une mise à jour complète ne les retire que là où le champ est réécrit entier.
+10. **Projection entière** : faire les lectures habituelles et chercher dans les logs le WARN
+    `is projected whole at` (logger `org.atriasoft.archidata.dataAccess.model.LeafProjection`, niveau WARN,
+    pas besoin de DEBUG) : chaque ligne nomme un champ d'entité dont une partie coupée (8 niveaux / 256
+    chemins) transfère des sous-champs protégés (jetés en Java) ; aucune attendue sans type récursif ou très
+    large. En DEBUG, `projected whole` sans WARN signale une coupe sans sous-champ protégé (sans risque).
+    Si l'application utilise `OptionSpecifyType(..., true)`, vérifier que la lecture ne rend plus les
+    sous-champs protégés de la classe déclarée (#18).
+11. **Indices de liste** : chercher les mises à jour positionnelles en base (`updateBsonDocuments` avec
+    `.N.`, `$[]` exclu) dont l'indice vient d'une liste relue (par le serveur ou par un client), sur des
+    listes d'objets à champs protégés pouvant contenir des `null` : l'indice relu peut viser un autre
+    élément (#4). Un `FilterValue("liste")` après une lecture par défaut réécrit la liste sans ses `null`.
+12. **Retour arrière** : sur la copie de la base, écrire avec le SNAPSHOT puis relire avec l'ancien jar
+    (mêmes valeurs attendues, éléments `null` des listes compris) ; vérifié sur archidata, voir
+    MIGRATION.md « Retour arrière ».
 
 ## Essayer le jar SNAPSHOT
 
@@ -319,10 +462,16 @@ mvn -U package -Dexec.skip=true
 1. `[DOC] (plans) ...` : ce fichier.
 2. `[FIX] (dataAccess) an embedded object is written by its declared type; a polymorphic or untyped
    entity field is refused when the model is analysed` : `DeclaredTypeRules`, refus dans
-   `DbClassModel.of`, writer par type déclaré + WARN, `FieldPathCursor` simplifié,
-   `OptionSpecifyType` déprécié, tests (refus, formes exemptées, sous-classe, `Document`), tests
-   existants adaptés, doc (`data_model.md`, MIGRATION, AGENTS.md).
+   `DbClassModel.of`, writer par type déclaré + WARN, `FieldPathCursor` simplifié (et `UNSAFE` sur une
+   classe embarquée qui ne s'analyse pas), contenu des `Document` vérifié par liste d'autorisation, clé primaire `Object` exemptée
+   et vérifiée (`OptionSpecifyType` gardée pour elle), tests (refus, formes exemptées, sous-classe,
+   `Document`, classe de bibliothèque, clé `Object`), tests existants adaptés, doc (`data_model.md`,
+   `database_access.md`, `change_journal.md`, MIGRATION, AGENTS.md).
 3. `[FEAT] (dataAccess) reads project the embedded objects down to their leaf fields, protected
-   sub-fields left out` : projection, tests (projection envoyée, `ReadAllColumn` / `FilterValue`,
-   listes, maps, collisions, récursion, TRACE), doc (`database_access.md`, MIGRATION).
+   sub-fields left out` : projection, cache des chemins par défaut, `OptionSpecifyType` projeté par la
+   classe lue moins les champs protégés de la classe déclarée et filtré par elle en Java, WARN des coupes
+   qui contiennent un sous-champ protégé, tests (projection envoyée, `ReadAllColumn` / `FilterValue`,
+   listes, `null` et mises à jour, records, `@Field`, héritage, `Set`, clé de map, expansion de relation,
+   `getsRaw`, pagination et `OptionSpecifyType` via le profiler, collisions, récursion, WARN / DEBUG des
+   coupes, cache), doc (`database_access.md`, MIGRATION, AGENTS.md).
 4. `[DOC] (security) ...` : SECURITY_AUDIT.md, point CS-01 mis à jour.

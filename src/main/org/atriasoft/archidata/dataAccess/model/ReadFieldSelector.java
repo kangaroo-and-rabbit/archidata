@@ -3,11 +3,15 @@ package org.atriasoft.archidata.dataAccess.model;
 import java.util.List;
 
 import org.atriasoft.archidata.annotation.AnnotationTools.FieldName;
+import org.atriasoft.archidata.bean.TypeInfo;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.FilterOmit;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
+import org.atriasoft.archidata.dataAccess.options.OptionSpecifyType;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
 import org.atriasoft.archidata.exception.DataAccessException;
+import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.atriasoft.archidata.tools.TypeUtils;
 
 /**
  * Resolves which fields of an entity are read from the database.
@@ -40,6 +44,15 @@ import org.atriasoft.archidata.exception.DataAccessException;
  * inclusion, and MongoDB does not allow mixing inclusions and exclusions in one projection. List
  * what to keep with a {@link FilterValue} instead.
  *
+ * <p><b>Embedded objects are projected down to their leaf fields</b>, by their declared type: a
+ * sub-field the read does not return ({@code @DataNotRead} without {@link ReadAllColumn},
+ * {@code @DataEncrypt} when the decryption is disabled), a relation of an embedded object and a key
+ * the model does not know are not transferred. A {@code Map} is included whole (the protected sub-fields of its
+ * values are transferred, without a log, then dropped by the Java read); a {@code List} /
+ * {@code Set} of embedded objects is projected down to its leaves only when the read hides a sub-field
+ * of its elements. A dotted {@link FilterValue} path is resolved the same way. The rules are those of
+ * {@code LeafProjection}.
+ *
  * <p>Field names are matched on the structural name — the same one {@code FilterValue}/{@code
  * FilterOmit} use for updates, so {@code new FilterValue(User::getName)} designates the same field
  * on a read and on a write. An unknown name is rejected: silently reading nothing would be a much
@@ -54,13 +67,16 @@ public final class ReadFieldSelector {
 	private final List<String> omit;
 	/** Primary key descriptor, always read whatever the filters say. May be {@code null}. */
 	private final DbPropertyDescriptor primaryKey;
+	/** The read entity class, to name a field in a log. May be {@code null}. */
+	private final Class<?> entity;
 
 	private ReadFieldSelector(final boolean readAllColumns, final List<String> include, final List<String> omit,
-			final DbPropertyDescriptor primaryKey) {
+			final DbPropertyDescriptor primaryKey, final Class<?> entity) {
 		this.readAllColumns = readAllColumns;
 		this.include = include;
 		this.omit = omit;
 		this.primaryKey = primaryKey;
+		this.entity = entity;
 	}
 
 	/**
@@ -92,8 +108,9 @@ public final class ReadFieldSelector {
 			final boolean readAllColumns,
 			final QueryOptions options) throws DataAccessException {
 		final DbPropertyDescriptor primaryKey = model == null ? null : model.getPrimaryKey();
+		final Class<?> entity = model == null ? null : model.getClassModel().getClassType();
 		if (options == null) {
-			return new ReadFieldSelector(readAllColumns, null, null, primaryKey);
+			return new ReadFieldSelector(readAllColumns, null, null, primaryKey, entity);
 		}
 		final List<FilterValue> includes = options.get(FilterValue.class);
 		if (includes.size() > 1) {
@@ -115,7 +132,7 @@ public final class ReadFieldSelector {
 				}
 			}
 		}
-		return new ReadFieldSelector(readAllColumns, include, omit, primaryKey);
+		return new ReadFieldSelector(readAllColumns, include, omit, primaryKey, entity);
 	}
 
 	/** Reject a restriction naming a field the entity does not have — a typo must not read nothing. */
@@ -182,8 +199,15 @@ public final class ReadFieldSelector {
 	}
 
 	/**
-	 * Append the projection paths of a read field: the field itself, or the dotted sub-paths when
-	 * the query only asks for a part of an embedded sub-document.
+	 * Append the projection paths of a read field: the field itself, or the paths of the leaf fields of
+	 * an embedded object (a protected sub-field left out), or the dotted sub-paths when the query only
+	 * asks for a part of an embedded sub-document. The paths of several fields may overlap
+	 * ({@code FilterValue("a.b", "a.b.c")}): {@link DbClassModel#generateSelectFields} keeps the widest.
+	 *
+	 * <p>A field the read decodes with another class than the declared one ({@link #overriddenReadType}) is
+	 * projected down to the leaf fields of that class, less every sub-field protected in it or in the declared class
+	 * at the same key (and that this read does not return): the values were written by the declared class, whose
+	 * protection holds whatever the class the read uses. A sub-field only the read class knows is projected by it.
 	 *
 	 * @param desc the field to project (must be {@link #isRead} first)
 	 * @param options the query options (used to resolve a renamed column), may be {@code null}
@@ -194,15 +218,18 @@ public final class ReadFieldSelector {
 			final QueryOptions options,
 			final List<String> out) {
 		final FieldName fieldName = desc.getFieldName(options);
+		final boolean modeled = desc.getAddOn() == null && desc.getCodec() != null;
+		final TypeInfo readType = modeled ? overriddenReadType(desc, options) : null;
+		final boolean decryptEnabled = ConfigBaseVariable.getDataDecryptEnabled();
 		if (this.include == null) {
-			out.add(fieldName.inTable());
+			appendWhole(desc, fieldName.inTable(), modeled, readType, decryptEnabled, out);
 			return;
 		}
 		final String struct = fieldName.inStruct();
 		// The whole field is asked for: it wins over any sub-path of the same field.
 		for (final String path : this.include) {
 			if (path.equals(struct)) {
-				out.add(fieldName.inTable());
+				appendWhole(desc, fieldName.inTable(), modeled, readType, decryptEnabled, out);
 				return;
 			}
 		}
@@ -210,14 +237,91 @@ public final class ReadFieldSelector {
 		for (final String path : this.include) {
 			if (path.length() > struct.length() && path.charAt(struct.length()) == '.' && path.startsWith(struct)) {
 				// Rebuilt on the table name: a renamed column keeps its sub-path.
-				out.add(fieldName.inTable() + path.substring(struct.length()));
+				final String subPath = path.substring(struct.length() + 1);
+				if (!modeled) {
+					out.add(fieldName.inTable() + "." + subPath);
+				} else if (readType == null) {
+					LeafProjection.appendSubPath(site(desc), fieldName.inTable(), desc.getProperty().getTypeInfo(),
+							subPath, this.readAllColumns, decryptEnabled, out);
+				} else {
+					LeafProjection.appendSubPathAs(site(desc), fieldName.inTable(), desc.getProperty().getTypeInfo(),
+							readType, subPath, this.readAllColumns, decryptEnabled, out);
+				}
 				partial = true;
 			}
 		}
 		if (!partial) {
 			// Read without being listed: the primary key.
-			out.add(fieldName.inTable());
+			appendWhole(desc, fieldName.inTable(), modeled, readType, decryptEnabled, out);
 		}
+	}
+
+	private void appendWhole(
+			final DbPropertyDescriptor desc,
+			final String inTable,
+			final boolean modeled,
+			final TypeInfo readType,
+			final boolean decryptEnabled,
+			final List<String> out) {
+		if (!modeled) {
+			out.add(inTable);
+		} else if (readType == null) {
+			LeafProjection.appendWhole(site(desc), inTable, desc.getProperty().getTypeInfo(), this.readAllColumns,
+					decryptEnabled, out);
+		} else {
+			LeafProjection.appendWholeAs(site(desc), inTable, desc.getProperty().getTypeInfo(), readType,
+					this.readAllColumns, decryptEnabled, out);
+		}
+	}
+
+	/** How a field is named in a log: {@code "Field com.app.Account.tree"}. */
+	private String site(final DbPropertyDescriptor desc) {
+		return "Field " + (this.entity == null ? "?" : this.entity.getName()) + "." + desc.getProperty().getName();
+	}
+
+	/**
+	 * Gives the type a read decodes a field with when an {@link OptionSpecifyType} changes it: the read honours the
+	 * option (the first one naming the field) only on a field declared {@code Object} (the primary key, the one
+	 * such field the model accepts), read as the given class, and, with {@code isList}, on a {@code List} field,
+	 * read as a {@code List} of the given class. Anywhere else the read ignores the option, and so does the
+	 * projection.
+	 *
+	 * @param desc the field
+	 * @param options the query options, may be {@code null}
+	 * @return the type the read decodes the field with, or {@code null} when it is the declared one
+	 */
+	public static TypeInfo overriddenReadType(final DbPropertyDescriptor desc, final QueryOptions options) {
+		if (options == null) {
+			return null;
+		}
+		for (final OptionSpecifyType specify : options.get(OptionSpecifyType.class)) {
+			if (specify.name.equals(desc.getProperty().getName())) {
+				if (specify.isList) {
+					return desc.getProperty().getTypeInfo().isList()
+							? new TypeInfo(List.class, specify.clazz, null, TypeUtils.listOf(specify.clazz))
+							: null;
+				}
+				return desc.getProperty().getType() == Object.class ? TypeInfo.ofRaw(specify.clazz) : null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Removes from the value of a field read from the database the sub-fields its declared type protects and this
+	 * read does not return ({@code @DataNotRead} without {@link ReadAllColumn}, {@code @DataEncrypt} when the
+	 * decryption is disabled), at any depth; the other keys are kept. Called before the value is decoded with the
+	 * class of an {@link OptionSpecifyType}, which may declare such a sub-field without protection: what the
+	 * projection had to transfer whole (a {@code Map}, a part cut by the depth or the path limit) is filtered by the
+	 * declared type all the same.
+	 *
+	 * @param desc the field
+	 * @param value the value read from the database (not modified), may be {@code null}
+	 * @return the value restricted to what the declared type returns
+	 */
+	public Object restrictToDeclaredType(final DbPropertyDescriptor desc, final Object value) {
+		return LeafProjection.restrict(value, desc.getProperty().getTypeInfo(), this.readAllColumns,
+				ConfigBaseVariable.getDataDecryptEnabled());
 	}
 
 	/**

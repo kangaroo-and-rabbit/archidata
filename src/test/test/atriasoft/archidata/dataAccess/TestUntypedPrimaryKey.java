@@ -8,6 +8,7 @@ import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.dataAccess.Filters;
+import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
 import org.atriasoft.archidata.dataAccess.options.DirectPrimaryKey;
 import org.atriasoft.archidata.dataAccess.options.FilterValue;
@@ -82,6 +83,11 @@ public class TestUntypedPrimaryKey {
 	public void testTheModelIsAccepted() throws Exception {
 		Assertions.assertNotNull(DbClassModel.of(Keyed.class));
 		Assertions.assertEquals("_id", Filters.checkFieldName(Keyed.class, "_id"));
+		// The key is projected whole, with or without its OptionSpecifyType; the embedded object to its leaves.
+		Assertions.assertEquals(List.of("_id", "name", "credentials.user"),
+				ConfigureDb.da.generateSelectField(Keyed.class, new QueryOptions()));
+		Assertions.assertEquals(List.of("_id", "name", "credentials.user"), ConfigureDb.da
+				.generateSelectField(Keyed.class, new QueryOptions(new OptionSpecifyType("_id", ObjectId.class))));
 	}
 
 	@Test
