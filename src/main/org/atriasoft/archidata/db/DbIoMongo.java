@@ -2,8 +2,6 @@ package org.atriasoft.archidata.db;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -67,8 +65,6 @@ public class DbIoMongo extends DbIo implements Closeable {
 
 	/** Shared {@link MongoClient} pool keyed by the resolved connection URL. */
 	private static final ConcurrentHashMap<String, MongoClient> CLIENT_CACHE = new ConcurrentHashMap<>();
-	/** Private lock: {@code synchronized} on a public static method locks a {@link Class} anyone can hold. */
-	private static final Object RECONNECT_LOCK = new Object();
 	private static final AtomicBoolean SHUTDOWN_HOOK_INSTALLED = new AtomicBoolean(false);
 
 	private MongoClient mongoClient = null;
@@ -176,9 +172,12 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * Closes every cached {@link MongoClient}. Intended for JVM shutdown only.
 	 */
 	public static void shutdownAll() {
-		final List<MongoClient> toClose = new ArrayList<>(CLIENT_CACHE.values());
-		CLIENT_CACHE.clear();
-		for (final MongoClient client : toClose) {
+		// Removed one by one: a client added meanwhile is either closed here or stays in the cache, never lost open.
+		for (final String url : CLIENT_CACHE.keySet()) {
+			final MongoClient client = CLIENT_CACHE.remove(url);
+			if (client == null) {
+				continue;
+			}
 			try {
 				client.close();
 			} catch (final Exception e) {
@@ -193,10 +192,8 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * recover from a MongoDB outage on its own.
 	 */
 	public static void forceReconnect() {
-		synchronized (RECONNECT_LOCK) {
-			LOGGER.warn("Force-reconnect requested: dropping {} cached MongoClient(s)", CLIENT_CACHE.size());
-			shutdownAll();
-		}
+		LOGGER.warn("Force-reconnect requested: dropping {} cached MongoClient(s)", CLIENT_CACHE.size());
+		shutdownAll();
 	}
 
 	/**
