@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.bson.BsonDocument;
+import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
@@ -254,8 +255,8 @@ public class ChangeStreamWorker implements Runnable {
 			final BsonDocument documentKey = changeDoc.getDocumentKey();
 			final Object oid = documentKey != null ? documentKey.get("_id") : null;
 
-			final Instant timestamp = changeDoc.getClusterTime() != null
-					? Instant.ofEpochSecond(changeDoc.getClusterTime().getTime())
+			final BsonTimestamp clusterTime = changeDoc.getClusterTime();
+			final Instant timestamp = clusterTime != null ? Instant.ofEpochSecond(clusterTime.getTime())
 					: Instant.now();
 
 			return new ChangeEvent(operationType, this.collectionName, this.collectionName, // entityName = collectionName for now

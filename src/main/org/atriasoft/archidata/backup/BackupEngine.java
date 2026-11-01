@@ -265,9 +265,14 @@ public class BackupEngine {
 	 * Returns the path of the SHA-256 sidecar file of an archive ({@code <archive>.sha256}).
 	 * @param archive the archive path
 	 * @return the sidecar path, next to the archive
+	 * @throws IllegalArgumentException if the path has no file name (a file system root)
 	 */
 	public static Path checksumPath(final Path archive) {
-		return archive.resolveSibling(archive.getFileName().toString() + SUFFIX_SHA256);
+		final Path name = archive.getFileName();
+		if (name == null) {
+			throw new IllegalArgumentException("Not the path of an archive: " + archive);
+		}
+		return archive.resolveSibling(name.toString() + SUFFIX_SHA256);
 	}
 
 	/**
@@ -926,7 +931,11 @@ public class BackupEngine {
 
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(mediaPath)) {
 			for (final Path entry : stream) {
-				final String fileName = entry.getFileName().toString();
+				final Path name = entry.getFileName();
+				if (name == null) {
+					continue;
+				}
+				final String fileName = name.toString();
 
 				// Ignore the folder history_restore
 				if (Files.isDirectory(entry) && fileName.equals("history_restore")) {
@@ -1015,7 +1024,10 @@ public class BackupEngine {
 				Files.createDirectories(target);
 				continue;
 			}
-			Files.createDirectories(target.getParent());
+			final Path targetParent = target.getParent();
+			if (targetParent != null) {
+				Files.createDirectories(targetParent);
+			}
 			// Extract the file:
 			try (OutputStream fos = Files.newOutputStream(target, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
@@ -1393,7 +1405,11 @@ public class BackupEngine {
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.pathStore, prefix + "*" + SUFFIX_TAR_GZ)) {
 			for (final Path filePath : stream) {
-				final String fileName = filePath.getFileName().toString();
+				final Path name = filePath.getFileName();
+				if (name == null) {
+					continue;
+				}
+				final String fileName = name.toString();
 				// Skip hidden temporary files
 				if (fileName.startsWith(".")) {
 					continue;

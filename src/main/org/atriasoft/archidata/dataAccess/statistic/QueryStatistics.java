@@ -264,6 +264,10 @@ public final class QueryStatistics {
 			final QueryStatReport report = buildReport();
 			final Path target = path.toAbsolutePath();
 			final Path parent = target.getParent();
+			if (parent == null) {
+				LOGGER.error("Query statistics: '{}' is not a file path", path);
+				return;
+			}
 			Files.createDirectories(parent);
 			// Unpredictable private name in the same directory (never follows a planted link), then atomic move.
 			final boolean posix = parent.getFileSystem().supportedFileAttributeViews().contains("posix");
