@@ -2,6 +2,7 @@ package org.atriasoft.archidata.externalRestApi.model;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -66,10 +67,10 @@ public class ClassEnumModel extends ClassModel {
 
 	/**
 	 * Returns the map of enum constant names to their serialized values.
-	 * @return the enum values map
+	 * @return a read-only view of the enum values map
 	 */
 	public Map<String, Object> getListOfValues() {
-		return this.listOfValues;
+		return Collections.unmodifiableMap(this.listOfValues);
 	}
 
 	@Override

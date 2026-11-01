@@ -284,10 +284,11 @@ public final class ClassModel {
 
 		if (bestConstructor != null && bestMatchCount > 0) {
 			// Build constructor arguments
-			final Object[] args = new Object[bestConstructor.parameterCount()];
-			for (int i = 0; i < bestConstructor.parameterNames().length; i++) {
-				args[i] = values.get(bestConstructor.parameterNames()[i]);
-				remaining.remove(bestConstructor.parameterNames()[i]);
+			final String[] parameterNames = bestConstructor.parameterNames();
+			final Object[] args = new Object[parameterNames.length];
+			for (int i = 0; i < parameterNames.length; i++) {
+				args[i] = values.get(parameterNames[i]);
+				remaining.remove(parameterNames[i]);
 			}
 			instance = bestConstructor.newInstance(args);
 		} else if (this.defaultConstructor != null) {

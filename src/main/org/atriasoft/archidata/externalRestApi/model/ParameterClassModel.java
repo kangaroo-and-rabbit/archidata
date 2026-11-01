@@ -37,9 +37,18 @@ public record ParameterClassModel(
 			// by default the Read group is the default.
 			this.groups = new Class<?>[] { GroupRead.class };
 		} else {
-			this.groups = groups;
+			this.groups = groups.clone();
 		}
 		this.model = model;
+	}
+
+	/**
+	 * The validation groups to apply.
+	 * @return a copy of the groups
+	 */
+	@Override
+	public Class<?>[] groups() {
+		return this.groups.clone();
 	}
 
 	/**

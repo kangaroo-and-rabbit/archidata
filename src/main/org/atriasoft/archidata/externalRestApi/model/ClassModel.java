@@ -5,6 +5,7 @@ import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,12 +67,12 @@ public abstract class ClassModel {
 
 	/**
 	 * Returns the set of models this model depends on.
-	 * @return the dependency models
+	 * @return a read-only view of the dependency models
 	 * @deprecated use {@link #getDependencyGroupModels()} instead
 	 */
 	@Deprecated
 	public Set<ClassModel> getDependencyModels() {
-		return this.dependencyModels;
+		return Collections.unmodifiableSet(this.dependencyModels);
 	}
 
 	/**

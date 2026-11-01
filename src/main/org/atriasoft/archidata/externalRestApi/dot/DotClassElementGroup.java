@@ -13,7 +13,7 @@ public class DotClassElementGroup {
 
 	/**
 	 * Gets all registered DOT class elements.
-	 * @return the list of all registered elements
+	 * @return the immutable list of all registered elements
 	 */
 	public List<DotClassElement> getDotElements() {
 		return this.dotElements;
@@ -21,10 +21,10 @@ public class DotClassElementGroup {
 
 	/**
 	 * Constructs a new group with the given list of DOT class elements.
-	 * @param tsElements the list of DOT class elements to register
+	 * @param tsElements the list of DOT class elements to register, copied
 	 */
 	public DotClassElementGroup(final List<DotClassElement> tsElements) {
-		this.dotElements = tsElements;
+		this.dotElements = List.copyOf(tsElements);
 	}
 
 	/**

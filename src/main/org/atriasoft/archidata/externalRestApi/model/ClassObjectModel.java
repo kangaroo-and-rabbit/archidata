@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -413,11 +414,11 @@ public class ClassObjectModel extends ClassModel {
 
 	/**
 	 * Returns the groups for which optional fields should be treated as nullable.
-	 * @return the array of group classes, empty when every usage is concerned ({@code @ApiOptionalIsNullable} without
+	 * @return a copy of the array of group classes, empty when every usage is concerned ({@code @ApiOptionalIsNullable} without
 	 *         groups), or {@code null} if the class is not annotated
 	 */
 	public Class<?>[] getOptionalIsNullableGroups() {
-		return this.optionalIsNullableGroups;
+		return this.optionalIsNullableGroups == null ? null : this.optionalIsNullableGroups.clone();
 	}
 
 	/**
@@ -446,10 +447,10 @@ public class ClassObjectModel extends ClassModel {
 
 	/**
 	 * Returns the list of field properties for this model.
-	 * @return the field properties
+	 * @return a read-only view of the field properties
 	 */
 	public List<FieldProperty> getFields() {
-		return this.fields;
+		return Collections.unmodifiableList(this.fields);
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.externalRestApi;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
@@ -80,10 +81,10 @@ public class AnalyzeApi {
 
 	/**
 	 * Returns all registered API group models.
-	 * @return the list of API group models
+	 * @return a read-only view of the API group models
 	 */
 	public List<ApiGroupModel> getAllApi() {
-		return this.apiModels;
+		return Collections.unmodifiableList(this.apiModels);
 	}
 
 	/**

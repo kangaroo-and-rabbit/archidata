@@ -45,6 +45,10 @@ les points ci-dessous sont les seuls changements visibles.
   mais ne copie pas les tableaux d'octets : ils peuvent contenir toute une base.
 - `DbConfig.getClasses()` rend une liste immuable, et `DbConfig.clone()` ne rend plus jamais `null`.
 - `DbIo.getConfig()` rend une copie : la modifier n'a pas d'effet sur la connexion.
+- Les modèles des générateurs (`AnalyzeApi.getAllApi()`, `ClassObjectModel.getFields()`,
+  `ClassEnumModel.getListOfValues()`, `ClassModel.getDependencyModels()`, les `*ClassElementGroup`, `PyImportModel`)
+  rendent des vues en lecture seule ; `ConstructorDescriptor`, `ParameterClassModel`, `ParameterClassModelList` et
+  `ImportModel.PairElem` copient leurs tableaux.
 - `ChangeEvent.getResumeToken()` et `ChangeStreamWorker.getResumeToken()` rendent une copie : un écouteur ne peut plus
   déplacer la position de reprise que les autres utilisent.
 

@@ -1,5 +1,7 @@
 package org.atriasoft.archidata.externalRestApi.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
@@ -23,15 +25,24 @@ public record ParameterClassModelList(
 	 * Constructs a parameter class model list with explicit settings.
 	 * @param valid whether the parameters should be validated
 	 * @param groups the validation groups to apply
-	 * @param models the list of class models
+	 * @param models the list of class models, copied
 	 * @param optional whether the parameter is optional
 	 */
 	public ParameterClassModelList(final boolean valid, final Class<?>[] groups, final List<ClassModel> models,
 			final boolean optional) {
 		this.valid = valid;
-		this.groups = groups;
-		this.models = models;
+		this.groups = groups == null ? null : groups.clone();
+		this.models = Collections.unmodifiableList(new ArrayList<>(models));
 		this.optional = optional;
+	}
+
+	/**
+	 * The validation groups to apply.
+	 * @return a copy of the groups, or {@code null} if none was declared
+	 */
+	@Override
+	public Class<?>[] groups() {
+		return this.groups == null ? null : this.groups.clone();
 	}
 
 	/**

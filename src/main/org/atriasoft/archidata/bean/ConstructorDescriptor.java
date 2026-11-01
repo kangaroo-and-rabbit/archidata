@@ -24,6 +24,34 @@ public record ConstructorDescriptor(
 		TypeInfo[] parameterTypes) {
 
 	/**
+	 * Compact constructor copying the arrays.
+	 */
+	public ConstructorDescriptor {
+		parameterNames = parameterNames.clone();
+		parameterTypes = parameterTypes.clone();
+	}
+
+	/**
+	 * The parameter names.
+	 *
+	 * @return a copy of the names
+	 */
+	@Override
+	public String[] parameterNames() {
+		return this.parameterNames.clone();
+	}
+
+	/**
+	 * The type information of each parameter.
+	 *
+	 * @return a copy of the types
+	 */
+	@Override
+	public TypeInfo[] parameterTypes() {
+		return this.parameterTypes.clone();
+	}
+
+	/**
 	 * The number of parameters.
 	 *
 	 * @return the parameter count

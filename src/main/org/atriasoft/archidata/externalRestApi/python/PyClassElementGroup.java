@@ -23,10 +23,10 @@ public class PyClassElementGroup {
 
 	/**
 	 * Constructs a new group with the given list of Python class elements.
-	 * @param elements the list of Python class elements to register
+	 * @param elements the list of Python class elements to register, copied
 	 */
 	public PyClassElementGroup(final List<PyClassElement> elements) {
-		this.elements = elements;
+		this.elements = List.copyOf(elements);
 	}
 
 	/**
@@ -45,7 +45,7 @@ public class PyClassElementGroup {
 
 	/**
 	 * Gets all registered Python class elements.
-	 * @return the list of all registered elements
+	 * @return the immutable list of all registered elements
 	 */
 	public List<PyClassElement> getPyElements() {
 		return this.elements;

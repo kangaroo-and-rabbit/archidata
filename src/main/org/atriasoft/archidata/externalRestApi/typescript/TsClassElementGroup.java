@@ -17,7 +17,7 @@ public class TsClassElementGroup {
 
 	/**
 	 * Gets all registered TypeScript class elements.
-	 * @return the list of all registered elements
+	 * @return the immutable list of all registered elements
 	 */
 	public List<TsClassElement> getTsElements() {
 		return this.tsElements;
@@ -25,10 +25,10 @@ public class TsClassElementGroup {
 
 	/**
 	 * Constructs a new group with the given list of TypeScript class elements.
-	 * @param tsElements the list of TypeScript class elements to register
+	 * @param tsElements the list of TypeScript class elements to register, copied
 	 */
 	public TsClassElementGroup(final List<TsClassElement> tsElements) {
-		this.tsElements = tsElements;
+		this.tsElements = List.copyOf(tsElements);
 	}
 
 	/**

@@ -42,6 +42,22 @@ public class ImportModel {
 			boolean valid,
 			Class<?>[] groups) {
 
+		/**
+		 * Compact constructor copying the groups.
+		 */
+		public PairElem {
+			groups = groups == null ? null : groups.clone();
+		}
+
+		/**
+		 * The validation groups to consider.
+		 * @return a copy of the groups
+		 */
+		@Override
+		public Class<?>[] groups() {
+			return this.groups == null ? null : this.groups.clone();
+		}
+
 		@Override
 		public boolean equals(final Object o) {
 			if (this == o) {
