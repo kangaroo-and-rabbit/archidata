@@ -115,7 +115,7 @@ SpotBugs
 --------
 
 `mvn verify` fails on any finding that `spotbugs-exclude.xml` does not list with its reason, before the signature of the
-artifacts. Run it alone with:
+artifacts (`-Dgpg.skip=true` without a GPG key). Run it alone with:
 
 ```bash
 mvn compile spotbugs:check

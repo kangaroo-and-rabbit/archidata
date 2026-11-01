@@ -62,7 +62,8 @@ Tests live in `src/test/test/atriasoft/archidata/` (same package layout).
   `package`, which starts the server: always pass `-Dexec.skip=true` there. archidata itself has
   no exec plugin, so the flag is harmless here and keeps one command for every project.
 - `mvn verify` runs SpotBugs (`check`, before the signature): a new finding fails the build and the CI. Fix it; an
-  exclusion goes in `spotbugs-exclude.xml` (class + pattern + field or method) with a reason, never a whole category.
+  exclusion goes in `spotbugs-exclude.xml` (class + pattern, plus the field or the method unless the pattern is about
+  the class itself) with a reason, never a whole category.
   `-Dspotbugs.skip=true` skips it locally.
 - Only one `target/` directory is shared: never run two Maven builds of this repository at the
   same time (serialize them, e.g. with `flock`).
