@@ -21,8 +21,8 @@ import jakarta.ws.rs.core.StreamingOutput;
  */
 public final class MediaStreamer implements StreamingOutput {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaStreamer.class);
-	private final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	final byte[] buf = new byte[this.CHUNK_SIZE];
+	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+	final byte[] buf = new byte[CHUNK_SIZE];
 	private long length;
 	private final File file;
 	private final long from;

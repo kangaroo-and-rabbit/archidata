@@ -77,6 +77,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  */
 public final class QueryStatistics {
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryStatistics.class);
+	/** Private lock: {@code synchronized} on a public static method locks a {@link Class} anyone can hold. */
+	private static final Object FLUSH_LOCK = new Object();
 	private static final String CRON_TASK_NAME = "archidata-query-statistics-flush";
 
 	/** Default maximum number of distinct query shapes kept. */
@@ -251,10 +253,16 @@ public final class QueryStatistics {
 
 	/**
 	 * Writes the current counters to the JSON file, atomically. Does nothing when the mode is
-	 * disabled. Never propagates an exception. Synchronized: the periodic flush and the shutdown hook
-	 * share the same temporary file.
+	 * disabled. Never propagates an exception. One flush at a time: the periodic flush and the shutdown
+	 * hook write the same file.
 	 */
-	public static synchronized void flush() {
+	public static void flush() {
+		synchronized (FLUSH_LOCK) {
+			writeReport();
+		}
+	}
+
+	private static void writeReport() {
 		final String file = ConfigBaseVariable.getQueryStatisticsFile();
 		if (file == null) {
 			return;

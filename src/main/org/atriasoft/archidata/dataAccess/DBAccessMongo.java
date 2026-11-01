@@ -138,7 +138,7 @@ public final class DBAccessMongo implements Closeable {
 	};
 
 	/** Global statistics for all MongoDB operations performed through this class. */
-	public static MongoDbStatistic statistic = new MongoDbStatistic();
+	public static final MongoDbStatistic statistic = new MongoDbStatistic();
 
 	/**
 	 * Returns the soft-delete field a query implicitly filters on, for {@link QueryStatistics}.
