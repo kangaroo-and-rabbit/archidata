@@ -8,8 +8,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -18,7 +16,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The path parameters of the generated clients are percent-encoded, and the values {@code .} and
- * {@code ..} are refused (CS-03). Runs the real runtimes ({@code rest-tools.ts} with node, its {@code enum} blocks rewritten for node 26,
+ * {@code ..} are refused (CS-03). Runs the real runtimes ({@code rest-tools.ts} with node,
  * {@code rest_tools.py} with python3); a test is skipped when its interpreter (or the Python
  * dependencies of the runtime) is missing.
  */
@@ -42,20 +40,6 @@ public class TestRestToolsPathEncoding {
 		}
 	}
 
-	/**
-	 * Rewrites the {@code enum} blocks as plain objects. Node 26 removed
-	 * {@code --experimental-transform-types}: node now only strips the types, and an {@code enum} cannot be
-	 * stripped. The objects keep the same values, and the runtime under test does not depend on the difference.
-	 */
-	private static String enumsToObjects(final String source) {
-		final String out = Pattern.compile("export enum (\\w+) \\{(.*?)\\n\\}", Pattern.DOTALL).matcher(source)
-				.replaceAll(block -> Matcher.quoteReplacement("export const " + block.group(1) + " = {"
-						+ block.group(2).replaceAll("(?m)^(\\s*\\w+) = ", "$1: ") + "\n}"));
-		Assertions.assertFalse(Pattern.compile("\\benum\\s+\\w+\\s*\\{").matcher(out).find(),
-				"an enum was not rewritten: node would refuse the runtime");
-		return out;
-	}
-
 	/** {@code --experimental-strip-types} runs TypeScript from node 22.7 on. */
 	private static boolean nodeSupportsTypeScript() {
 		try {
@@ -77,13 +61,14 @@ public class TestRestToolsPathEncoding {
 	public void typeScriptEncodesPathParameters(@TempDir final Path dir) throws Exception {
 		Assumptions.assumeTrue(nodeSupportsTypeScript(), "node >= 22.7 not available");
 		// node resolves ES modules with their extension: point the runtime to the stub model.
-		Files.writeString(dir.resolve("rest-tools.ts"), enumsToObjects(
-				Files.readString(Paths.get("src/resources/rest-tools.ts")).replace("'./model'", "'./model.ts'")));
+		Files.writeString(dir.resolve("rest-tools.ts"),
+				Files.readString(Paths.get("src/resources/rest-tools.ts")).replace("'./model'", "'./model.ts'"));
 		Files.writeString(dir.resolve("model.ts"),
 				"export class RestErrorResponse {}\nexport function isRestErrorResponse(a: any): boolean { return false; }\n");
 		Files.writeString(dir.resolve("t.ts"),
 				"""
-						import { RESTUrl } from './rest-tools.ts';
+						import { HTTPMimeType, HTTPRequestModel, RESTRequestJson, RESTUrl, fetchProgress } from './rest-tools.ts';
+						console.log(HTTPMimeType.JSON, HTTPRequestModel.GET);
 						const m: any = { endPoint: 'data/{oid}/{name}' };
 						const cfg: any = { server: 'http://h/api' };
 						console.log(RESTUrl({ restModel: m, restConfig: cfg, params: { oid: '1', name: '../../user/x?y#z' } } as any));
@@ -95,6 +80,39 @@ public class TestRestToolsPathEncoding {
 								console.log('REFUSED ' + (e as Error).message);
 							}
 						}
+						const plain: any = { endPoint: 'x' };
+						console.log('QUERY ' + RESTUrl({ restModel: plain, restConfig: cfg, queries: { a: undefined, b: [1, null], c: null } } as any));
+						console.log('EMPTY ' + RESTUrl({ restModel: plain, restConfig: cfg, queries: { a: undefined } } as any));
+						// The token travels in the URL, and must not reach the console through it.
+						(globalThis as any).fetch = async () =>
+							new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } });
+						await RESTRequestJson({ restModel: { endPoint: 'x', tokenInUrl: true }, restConfig: { server: 'http://h/api', token: 'secret-token' } } as any);
+						// What XMLHttpRequest gives for a 204: an empty body, and no header to read.
+						class FakeXhr {
+							static DONE = 4;
+							readyState = 4;
+							status = 204;
+							statusText = '';
+							response = '';
+							upload = { addEventListener() {} };
+							loadend: any;
+							addEventListener(name: string, callback: any) {
+								if (name === 'loadend') {
+									this.loadend = callback;
+								}
+							}
+							open() {}
+							setRequestHeader() {}
+							getAllResponseHeaders() {
+								return '';
+							}
+							send() {
+								this.loadend();
+							}
+						}
+						(globalThis as any).XMLHttpRequest = FakeXhr;
+						const empty = await fetchProgress('http://h/api/x', { method: 'DELETE', headers: {}, body: null } as any, {});
+						console.log('NO-CONTENT ' + empty.status);
 						""");
 		final List<String> command = new ArrayList<>(List.of("node", "--no-warnings"));
 		// On by default in recent versions, where this option may disappear as the transform one did.
@@ -104,6 +122,12 @@ public class TestRestToolsPathEncoding {
 		command.add("t.ts");
 		final String out = run(dir, command.toArray(String[]::new));
 		Assertions.assertTrue(out.contains("http://h/api/data/1/..%2F..%2Fuser%2Fx%3Fy%23z"), out);
+		Assertions.assertTrue(out.contains("application/json GET"), out);
+		Assertions.assertTrue(out.contains("QUERY http://h/api/x?b=1\n"), out);
+		Assertions.assertTrue(out.contains("EMPTY http://h/api/x\n"), out);
+		Assertions.assertTrue(out.contains("Have no check of MODEL in API: x"), out);
+		Assertions.assertFalse(out.contains("secret-token"), out);
+		Assertions.assertTrue(out.contains("NO-CONTENT 204"), out);
 		Assertions.assertFalse(out.contains("NOT-REFUSED"), out);
 		Assertions.assertEquals(2, out.split("REFUSED ", -1).length - 1, out);
 	}
@@ -119,7 +143,7 @@ public class TestRestToolsPathEncoding {
 				"from pydantic import BaseModel\n\n\nclass RestErrorResponse(BaseModel):\n    pass\n");
 		Files.writeString(dir.resolve("t.py"),
 				"""
-						from pkg.rest_tools import RESTConfig, RESTModel, RESTRequestType, RESTUrl
+						from pkg.rest_tools import RESTConfig, RESTError, RESTModel, RESTRequestType, RESTUrl
 						cfg = RESTConfig(server="http://h/api")
 						model = RESTModel(end_point="data/{oid}/{name}")
 						def url(name):
@@ -131,10 +155,13 @@ public class TestRestToolsPathEncoding {
 						        print("NOT-REFUSED")
 						    except ValueError as e:
 						        print("REFUSED " + str(e))
+						print("ERROR " + str(RESTError("failed", status=999, url="http://h/api/x?Authorization=Bearer+secret-token")))
 						""");
 		final String out = run(dir, "python3", "t.py");
 		Assertions.assertTrue(out.contains("http://h/api/data/1/..%2F..%2Fuser%2Fx%3Fy%23z"), out);
 		Assertions.assertFalse(out.contains("NOT-REFUSED"), out);
 		Assertions.assertEquals(2, out.split("REFUSED ", -1).length - 1, out);
+		Assertions.assertTrue(out.contains("ERROR "), out);
+		Assertions.assertFalse(out.contains("secret-token"), out);
 	}
 }

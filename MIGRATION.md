@@ -1,5 +1,19 @@
 # Migration Guide
 
+## Prochaine version (après v0.52.0) - `rest-tools.ts` strict, sans `enum`, sans jeton dans la console
+
+Le runtime du client TypeScript passe le mode `strict` de TypeScript et le format des fronts. Il suffit de
+régénérer le client (`GenerateApi`) : le code qui utilise le client ne change pas.
+
+- `HTTPMimeType` et `HTTPRequestModel` ne sont plus des `enum` mais des objets `as const` accompagnés d'un type du
+  même nom : `HTTPMimeType.JSON` et `accept: HTTPMimeType` s'écrivent comme avant, et les valeurs sont identiques.
+  Le type accepte en plus la chaîne littérale (`'application/json'`). Seul un membre utilisé **comme type** change :
+  `HTTPMimeType.JSON` s'écrit alors `(typeof HTTPMimeType)['JSON']`, comme le fait le générateur pour `produce`.
+- La console du navigateur et les journaux du client Python ne reçoivent plus l'URL complète : avec `tokenInUrl` ou
+  `token_in_url`, elle contenait le jeton. `RESTError.url` du client Python perd aussi sa partie requête.
+- Une valeur de requête `undefined` ou `null` n'est plus envoyée : `?limit=undefined` faisait échouer l'appel.
+- `fetchProgress` termine sa promesse sur un 204 ou une réponse sans en-tête lisible, au lieu de rester en attente.
+
 ## Prochaine version (après v0.51.3) - Secrets lus depuis des fichiers
 
 Les mots de passe restaient dans l'environnement, donc dans `docker compose config`, `docker inspect` et

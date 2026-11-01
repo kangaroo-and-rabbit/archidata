@@ -202,7 +202,8 @@ class RESTError(Exception):
         self.message = message
         self.status = status
         self.name = name
-        self.url = url
+        # Without the query string: it may hold the token (token_in_url).
+        self.url = url.split("?", 1)[0] if url else url
         #: The server error body, when it follows the archidata ``RestErrorResponse`` shape.
         self.response = response
         #: The raw server body, for the other cases.
@@ -399,7 +400,9 @@ def RESTRequest(request: RESTRequestType) -> ModelResponseHttp:
         body, content_type = _encode_body(rest_model, request.data)
         if content_type is not None:
             headers["Content-Type"] = content_type
-    logger.debug("%s %s", rest_model.request_type.value, url)
+    # Never the query string in the logs: it may hold the token (token_in_url).
+    url_path = url.split("?", 1)[0]
+    logger.debug("%s %s", rest_model.request_type.value, url_path)
     try:
         response = _get_http_pool().request(
             rest_model.request_type.value,
@@ -417,7 +420,7 @@ def RESTRequest(request: RESTRequestType) -> ModelResponseHttp:
             "Request failed after %d retries: %s %s",
             rest_config.retries,
             rest_model.request_type.value,
-            url,
+            url_path,
         )
         raise RESTError(
             str(ex),

@@ -49,3 +49,12 @@
   fichier, car elle reste exposée dans l'environnement.
 - Texte : retours à la ligne de fin retirés. Binaire (`DATA_ENCRYPT_KEY`) : octets inchangés. `<NOM>` vide reste
   une valeur pour le texte, comme avant, et « non défini » pour le binaire.
+
+## Client TypeScript (`src/resources/rest-tools.ts`)
+
+- Copié tel quel dans `src/back-api/` de chaque front, où le lint et le format l'excluent : il se vérifie ici. Il doit
+  passer `tsc --strict` et l'`oxfmt` des fronts, seule protection contre la dérive.
+- TypeScript effaçable uniquement (pas d'`enum`) : `TestRestToolsPathEncoding` l'exécute directement avec node.
+- Ne jamais journaliser une URL complète, ni ici ni dans `python/rest_tools.py` : avec `tokenInUrl`, elle contient le jeton.
+- Le champ `message` de l'erreur 999 (panne réseau) reste un objet `Error` : `isRestErrorResponse` le refuse, et les fronts
+  s'en servent pour distinguer une panne réseau d'une erreur du serveur.

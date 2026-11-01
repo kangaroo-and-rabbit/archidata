@@ -401,11 +401,11 @@ public class TsApiGeneration {
 					String lastElement = null;
 
 					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						lastElement = "HTTPMimeType.JSON";
+						lastElement = "(typeof HTTPMimeType)['JSON']";
 						toolImports.add("HTTPMimeType");
 					}
 					if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
-						lastElement = "HTTPMimeType.MULTIPART";
+						lastElement = "(typeof HTTPMimeType)['MULTIPART']";
 						toolImports.add("HTTPMimeType");
 					}
 					if (lastElement != null) {

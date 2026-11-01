@@ -3,31 +3,37 @@
  * @copyright 2024, Edouard DUPIN, all right reserved
  * @license MPL-2
  */
-import { RestErrorResponse, isRestErrorResponse } from './model';
+import { type RestErrorResponse, isRestErrorResponse } from './model';
 
-export enum HTTPRequestModel {
-  ARCHIVE = 'ARCHIVE',
-  CALL = 'CALL',
-  DELETE = 'DELETE',
-  HEAD = 'HEAD',
-  GET = 'GET',
-  OPTION = 'OPTION',
-  PATCH = 'PATCH',
-  POST = 'POST',
-  PUT = 'PUT',
-  RESTORE = 'RESTORE',
-}
-export enum HTTPMimeType {
-  ALL = '*/*',
-  CSV = 'text/csv',
-  IMAGE = 'image/*',
-  IMAGE_JPEG = 'image/jpeg',
-  IMAGE_PNG = 'image/png',
-  JSON = 'application/json',
-  MULTIPART = 'multipart/form-data',
-  OCTET_STREAM = 'application/octet-stream',
-  TEXT_PLAIN = 'text/plain',
-}
+// Plain objects rather than `enum`: same use as a value and as a type, and the
+// file stays erasable TypeScript, which node runs without a transformation.
+export const HTTPRequestModel = {
+  ARCHIVE: 'ARCHIVE',
+  CALL: 'CALL',
+  DELETE: 'DELETE',
+  HEAD: 'HEAD',
+  GET: 'GET',
+  OPTION: 'OPTION',
+  PATCH: 'PATCH',
+  POST: 'POST',
+  PUT: 'PUT',
+  RESTORE: 'RESTORE',
+} as const;
+export type HTTPRequestModel =
+  (typeof HTTPRequestModel)[keyof typeof HTTPRequestModel];
+
+export const HTTPMimeType = {
+  ALL: '*/*',
+  CSV: 'text/csv',
+  IMAGE: 'image/*',
+  IMAGE_JPEG: 'image/jpeg',
+  IMAGE_PNG: 'image/png',
+  JSON: 'application/json',
+  MULTIPART: 'multipart/form-data',
+  OCTET_STREAM: 'application/octet-stream',
+  TEXT_PLAIN: 'text/plain',
+} as const;
+export type HTTPMimeType = (typeof HTTPMimeType)[keyof typeof HTTPMimeType];
 
 export interface RESTConfig {
   // base of the server: http(s)://my.server.org/plop/api/
@@ -122,7 +128,11 @@ export interface RESTRequestType {
   callbacks?: RESTCallbacks;
 }
 
-function replaceAll(input, searchValue, replaceValue) {
+function replaceAll(
+  input: string,
+  searchValue: string,
+  replaceValue: string
+): string {
   return input.split(searchValue).join(replaceValue);
 }
 
@@ -150,30 +160,38 @@ export function RESTUrl({
     restConfig.server
   )}/${removeLeadingSlashes(restModel.endPoint)}`;
   if (params !== undefined) {
-    for (let key of Object.keys(params)) {
-      const rawValue = String(params[key]);
+    for (const [key, value] of Object.entries(params)) {
+      const rawValue = String(value);
       // A value made only of dots is resolved by the URL parser as a path traversal.
       if (rawValue === '.' || rawValue === '..') {
-        throw new Error(`Invalid path parameter '${key}': '${rawValue}' is not allowed`);
+        throw new Error(
+          `Invalid path parameter '${key}': '${rawValue}' is not allowed`
+        );
       }
-      generateUrl = replaceAll(generateUrl, `{${key}}`, encodeURIComponent(rawValue));
+      generateUrl = replaceAll(
+        generateUrl,
+        `{${key}}`,
+        encodeURIComponent(rawValue)
+      );
     }
   }
   if (
     queries === undefined &&
-    ((restConfig.token === undefined && restConfig.tokenApi === undefined) || restModel.tokenInUrl !== true)
+    ((restConfig.token === undefined && restConfig.tokenApi === undefined) ||
+      restModel.tokenInUrl !== true)
   ) {
     return generateUrl;
   }
   const searchParams = new URLSearchParams();
   if (queries !== undefined) {
-    for (let key of Object.keys(queries)) {
-      const value = queries[key];
+    for (const [key, value] of Object.entries(queries)) {
       if (Array.isArray(value)) {
         for (const element of value) {
-          searchParams.append(`${key}`, `${element}`);
+          if (!isNullOrUndefined(element)) {
+            searchParams.append(`${key}`, `${element}`);
+          }
         }
-      } else {
+      } else if (!isNullOrUndefined(value)) {
         searchParams.append(`${key}`, `${value}`);
       }
     }
@@ -184,7 +202,8 @@ export function RESTUrl({
   if (restConfig.tokenApi !== undefined && restModel.tokenInUrl === true) {
     searchParams.append('Authorization', `ApiKey ${restConfig.tokenApi}`);
   }
-  return generateUrl + '?' + searchParams.toString();
+  const query = searchParams.toString();
+  return query === '' ? generateUrl : `${generateUrl}?${query}`;
 }
 
 export function fetchProgress(
@@ -224,14 +243,14 @@ export function fetchProgress(
     }
     if (abortHandle) {
       abortHandle.abort = () => {
+        // Without the query string: it may hold the token (tokenInUrl).
+        const path = generateUrl.split('?')[0];
         if (xhr.io) {
-          console.log(`Request abort on the XMLHttpRequest: ${generateUrl}`);
+          console.log(`Request abort on the XMLHttpRequest: ${path}`);
           xhr.io.abort();
           return true;
         }
-        console.log(
-          `Request abort (FAIL) on the XMLHttpRequest: ${generateUrl}`
-        );
+        console.log(`Request abort (FAIL) on the XMLHttpRequest: ${path}`);
         return false;
       };
     }
@@ -252,7 +271,9 @@ export function fetchProgress(
         return;
       }
       // Stream is ended, transform in a generic response:
-      const response = new Response(xhr.io.response, {
+      // These statuses refuse any body, even an empty one.
+      const hasBody = ![204, 205, 304].includes(xhr.io.status);
+      const response = new Response(hasBody ? xhr.io.response : null, {
         status: xhr.io.status,
         statusText: xhr.io.statusText,
       });
@@ -267,7 +288,7 @@ export function fetchProgress(
           const key = header.substring(0, firstColonIndex).trim();
           const value = header.substring(firstColonIndex + 1).trim();
           response.headers.set(key, value);
-        } else {
+        } else if (header !== '') {
           response.headers.set(header, '');
         }
       });
@@ -294,7 +315,7 @@ export function RESTRequest({
   callbacks,
 }: RESTRequestType): Promise<ModelResponseHttp> {
   // Create the URL PATH:
-  let generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
+  const generateUrl = RESTUrl({ restModel, restConfig, data, params, queries });
   if (restConfig.token !== undefined && restModel.tokenInUrl !== true) {
     headers['Authorization'] = `Bearer ${restConfig.token}`;
   }
@@ -490,9 +511,12 @@ export function RESTRequestJson<TYPE>(
     RESTRequest(request)
       .then((value: ModelResponseHttp) => {
         if (isNullOrUndefined(checker)) {
-          console.log(`Have no check of MODEL in API: ${RESTUrl(request)}`);
+          // Not RESTUrl: the complete URL may hold the token (tokenInUrl).
+          console.log(
+            `Have no check of MODEL in API: ${request.restModel.endPoint}`
+          );
           resolve(value.data);
-        } else if (checker === undefined || checker(value.data)) {
+        } else if (checker(value.data)) {
           resolve(value.data);
         } else {
           reject({
@@ -589,8 +613,10 @@ export function RESTRequestPaginatedJson<TYPE>(
           total,
           offset,
           limit,
-          hasNext: linkHeader !== undefined && linkHeader.includes('rel="next"'),
-          hasPrev: linkHeader !== undefined && linkHeader.includes('rel="prev"'),
+          hasNext:
+            linkHeader !== undefined && linkHeader.includes('rel="next"'),
+          hasPrev:
+            linkHeader !== undefined && linkHeader.includes('rel="prev"'),
           linkHeader,
         });
       })
@@ -603,7 +629,7 @@ export function RESTRequestPaginatedJson<TYPE>(
 export function RESTRequestVoid(request: RESTRequestType): Promise<void> {
   return new Promise((resolve, reject) => {
     RESTRequest(request)
-      .then((value: ModelResponseHttp) => {
+      .then(() => {
         resolve();
       })
       .catch((reason: RestErrorResponse) => {
