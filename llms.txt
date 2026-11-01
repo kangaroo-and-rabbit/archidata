@@ -25,7 +25,7 @@ Read the pitfalls first: launcher registration (`GenericCatcher.addAll`, `Contex
 - [Security and authentication](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/security.md): JWT, `AuthenticationFilter`, `@RolesAllowed`, `@RightAllowed`, `PartRight`
 - [Error handling](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/error_handling.md): exception catchers, exception to HTTP status mapping, `FailException`
 - [Converters, validation groups and beans](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/converters_and_beans.md): Jackson setup, `@ValidGroup`, custom types
-- [Tools](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/tools.md): `ConfigBaseVariable` (environment), `RESTApi` client, `JWTWrapper`, `DataTools` uploads
+- [Tools](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/tools.md): `ConfigBaseVariable` (environment), `SecretReader` (secrets in files), `RESTApi` client, `JWTWrapper`, `DataTools` uploads
 - [Connection management](https://raw.githubusercontent.com/kangaroo-and-rabbit/archidata/develop/doc/connectionManagement.md): persistent connections, transactions, virtual threads
 
 ## Client generation

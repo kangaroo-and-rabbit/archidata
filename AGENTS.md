@@ -265,6 +265,11 @@ Each point was checked against the code; the doc page gives the details.
 - **CORS**: `CORSFilter` reflects only the origins listed in `CORS_ALLOWED_ORIGINS` (comma
   separated), with `Allow-Credentials: true`. Without the list it sends `*` and no credentials.
   CORS only concerns browsers, not server-to-server calls.
+- **Secrets**: `DB_PASSWORD`, `SSO_TOKEN`, `EMAIL_PASSWORD` and `DATA_ENCRYPT_KEY` go through
+  `SecretReader`: `<NAME>_FILE` wins over `<NAME>`, an unreadable or empty file fails at startup
+  without falling back, a value in the environment raises a WARN and is refused with
+  `SECRETS_FILE_ONLY=true`. Applications use `ConfigBaseVariable.readSecret` for their own secrets,
+  never `System.getenv`. Never log a secret, only the name of its variable.
 - **Swagger and OpenAPI are off by default**: `openApiResource` and `SwaggerUiExternal` answer
   404 unless `API_DOC_ENABLED=true`. The Swagger UI files carry SRI hashes.
 - **JWT**: the audience is checked. The `aud` claim must list the application name given to

@@ -1,9 +1,5 @@
 package org.atriasoft.archidata.tools;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -14,7 +10,9 @@ import org.slf4j.LoggerFactory;
  * Central configuration holder initialized from environment variables.
  *
  * <p>All fields are populated from the corresponding environment variables at class loading
- * and can be set via setters before the configuration is locked. Once {@link #lock()} is called,
+ * and can be set via setters before the configuration is locked. Secrets are read through
+ * {@link SecretReader}, so {@code <NAME>_FILE} is accepted for each of them; an unusable secret file
+ * stops the application here, at startup. Once {@link #lock()} is called,
  * no further modifications are allowed unless {@link #allowReconfiguration(boolean)} was called
  * with {@code true} beforehand (typically only in test environments).</p>
  *
@@ -28,6 +26,7 @@ public class ConfigBaseVariable {
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ConfigBaseVariable.class);
+	private static final SecretReader SECRETS = new SecretReader(System::getenv);
 
 	private static boolean locked = false;
 	private static boolean reconfigurationAllowed = false;
@@ -401,16 +400,16 @@ public class ConfigBaseVariable {
 		dbKeepConnected = System.getenv("DB_KEEP_CONNECTED");
 		dbTls = System.getenv("DB_TLS");
 		dbAuthSource = System.getenv("DB_AUTH_SOURCE");
-		dbPassword = System.getenv("DB_PASSWORD");
+		dbPassword = readSecret("DB_PASSWORD");
 		bdDatabase = System.getenv("DB_DATABASE");
 		apiAdress = System.getenv("API_ADDRESS");
 		ssoAdress = System.getenv("SSO_ADDRESS");
-		ssoToken = System.getenv("SSO_TOKEN");
+		ssoToken = readSecret("SSO_TOKEN");
 		ssoAllowInsecure = System.getenv("SSO_ALLOW_INSECURE");
 		testMode = System.getenv("TEST_MODE");
 		eMailFrom = System.getenv("EMAIL_FROM");
 		eMailLogin = System.getenv("EMAIL_LOGIN");
-		eMailPassword = System.getenv("EMAIL_PASSWORD");
+		eMailPassword = readSecret("EMAIL_PASSWORD");
 		thumbnailFormat = System.getenv("THUMBNAIL_FORMAT");
 		thumbnailWidth = System.getenv("THUMBNAIL_WIDTH");
 		dataDecryptEnable = System.getenv("DATA_DECRYPT_ENABLE");
@@ -424,27 +423,29 @@ public class ConfigBaseVariable {
 	}
 
 	/**
-	 * Reads a secret value either from the file pointed to by {@code <name>_FILE} (the Docker secrets
-	 * convention) or, as a fallback, from the inline environment variable {@code <name>}.
+	 * Reads a secret of the application, from {@code <name>_FILE} or from the variable {@code <name>}.
+	 *
+	 * @param name the base environment variable name.
+	 * @return the secret, or {@code null} if neither variable is defined.
+	 * @throws IllegalStateException if the file cannot be read or is empty, or if the secret is in the
+	 *         environment while {@code SECRETS_FILE_ONLY=true}.
+	 * @see SecretReader#read(String)
+	 */
+	public static String readSecret(final String name) {
+		return SECRETS.read(name);
+	}
+
+	/**
+	 * Reads a binary secret of the application, from {@code <name>_FILE} or from the variable {@code <name>}.
 	 *
 	 * @param name the base environment variable name.
 	 * @return the secret bytes, or {@code null} if neither variable is defined.
+	 * @throws IllegalStateException if the file cannot be read or is empty, or if the secret is in the
+	 *         environment while {@code SECRETS_FILE_ONLY=true}.
+	 * @see SecretReader#readBytes(String)
 	 */
-	private static byte[] readSecretBytes(final String name) {
-		final String filePath = System.getenv(name + "_FILE");
-		if (filePath != null && !filePath.isEmpty()) {
-			try {
-				return Files.readAllBytes(Path.of(filePath));
-			} catch (final IOException e) {
-				LOGGER.error("Failed to read secret file for {}_FILE: {}", name, filePath, e);
-				return null;
-			}
-		}
-		final String inline = System.getenv(name);
-		if (inline != null && !inline.isEmpty()) {
-			return inline.getBytes(StandardCharsets.UTF_8);
-		}
-		return null;
+	public static byte[] readSecretBytes(final String name) {
+		return SECRETS.readBytes(name);
 	}
 
 	static {
@@ -537,7 +538,7 @@ public class ConfigBaseVariable {
 	public static String getDBPassword() {
 		if (dbPassword == null) {
 			throw new IllegalStateException(
-					"DB_PASSWORD is not configured. Set the DB_PASSWORD environment variable or call setDbPassword().");
+					"DB_PASSWORD is not configured. Set DB_PASSWORD_FILE or DB_PASSWORD, or call setDbPassword().");
 		}
 		return dbPassword;
 	}

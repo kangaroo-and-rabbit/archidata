@@ -652,6 +652,17 @@ driver is unchanged and does not apply the annotations. `ChangeNotificationManag
 change streams, without this guard: it only reads. See
 [Raw access to the driver](database_access.md#raw-access-to-the-driver).
 
+### Secrets in the configuration
+
+`DB_PASSWORD`, `SSO_TOKEN`, `EMAIL_PASSWORD` and `DATA_ENCRYPT_KEY` accept `<NAME>_FILE`, a path to a file
+mounted in the container, so that the configuration and `docker inspect` hold no value. A value left in the
+environment raises a WARN, and `SECRETS_FILE_ONLY=true` turns it into a refusal to start. An unreadable secret
+file stops the startup. Applications read their own secrets with `ConfigBaseVariable.readSecret`. See
+[Secrets](tools.md#secrets).
+
+This protects against a value leaking through a read of the configuration, not against an account able to run
+`docker exec` in the container.
+
 ### Logs
 
 No credential is logged in clear: the JWT is truncated to its first 20 characters when refused,

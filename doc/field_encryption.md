@@ -58,8 +58,9 @@ public class UserSecret extends GenericData {
 
 ### From Docker secrets (file-based, recommended)
 
-Any secret can be provided either inline via `<NAME>` or, following the Docker convention, via a
-file path in `<NAME>_FILE` (the secret mounted under `/run/secrets/...`).
+The key can be provided either inline via `DATA_ENCRYPT_KEY` or, following the Docker convention, via a
+file path in `DATA_ENCRYPT_KEY_FILE` (the secret mounted under `/run/secrets/...`). The file is read as is,
+and an unreadable or empty file stops the startup. See [Secrets](tools.md#secrets).
 
 | Variable | Meaning |
 |----------|---------|

@@ -1,5 +1,33 @@
 # Migration Guide
 
+## Prochaine version (après v0.51.3) - Secrets lus depuis des fichiers
+
+Les mots de passe restaient dans l'environnement, donc dans `docker compose config`, `docker inspect` et
+`/proc/<pid>/environ`. `DB_PASSWORD`, `SSO_TOKEN` et `EMAIL_PASSWORD` acceptent désormais `<NOM>_FILE`, comme
+`DATA_ENCRYPT_KEY`. Le mode direct continue de fonctionner, sans rien changer aux déploiements existants, à
+part le WARN et le cas `DATA_ENCRYPT_KEY_FILE` ci-dessous. Détails : section Secrets de `doc/tools.md`.
+
+### `DATA_ENCRYPT_KEY_FILE` illisible arrête le démarrage (CHANGEMENT DE COMPORTEMENT)
+
+Avant : l'erreur était journalisée et la clé restait `null`, ce qui n'échouait qu'au premier champ chiffré.
+Après : le chargement de `ConfigBaseVariable` échoue, de même pour un fichier vide. L'application reçoit une
+`ExceptionInInitializerError`, dont la cause `IllegalStateException` nomme la variable, sans sa valeur ni le
+chemin ; ce n'est pas une `Exception`, donc un `catch (Exception)` ne l'attrape pas. Il en va de même pour les
+trois nouvelles variables `_FILE` ; aucun repli sur `<NOM>` n'est fait.
+
+### Migrer un site
+
+1. Écrire chaque secret dans son propre fichier, droits `root:<gid du site> 0440`.
+2. Déclarer le fichier dans `secrets:`, ajouter `group_add`, remplacer `DB_PASSWORD` par `DB_PASSWORD_FILE`.
+3. Vérifier qu'aucun WARN `Secret ... is set in the environment` ne reste au démarrage.
+4. Ajouter `SECRETS_FILE_ONLY=true` : la variable directe, si elle revient, empêchera alors de démarrer. Toute
+   autre valeur que `true` ou `false` empêche aussi de démarrer.
+
+### Secrets propres aux applications
+
+Remplacer `System.getenv` par `ConfigBaseVariable.readSecret` (`readSecretBytes` pour du binaire), au
+démarrage, pour bénéficier des mêmes règles.
+
 ## Prochaine version (après v0.51.3) - Objets embarqués écrits par leur type déclaré, lectures projetées jusqu'aux feuilles (CHANGEMENT DE COMPORTEMENT)
 
 Suite du point CS-01 resté ouvert (SECURITY_AUDIT.md) : archidata écrivait un objet embarqué avec la

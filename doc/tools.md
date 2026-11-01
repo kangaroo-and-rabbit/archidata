@@ -41,7 +41,7 @@ as text.
 | `DB_HOST` | `setDbHost` | `getDBHost()` | `localhost` | MongoDB host |
 | `DB_PORT` | `setDbPort` | `getDBPort()` (`int`) | `27017` | MongoDB port |
 | `DB_USER` | `setDbUser` | `getDBLogin()` | `root` | MongoDB user. `root` is the cluster administrator: a WARN is written once; prefer an account with the `readWrite` role on the application database only |
-| `DB_PASSWORD` | `setDbPassword` | `getDBPassword()` | none: **throws `IllegalStateException`** when unset | MongoDB password |
+| `DB_PASSWORD` or `DB_PASSWORD_FILE` | `setDbPassword` | `getDBPassword()` | none: **throws `IllegalStateException`** when unset | MongoDB password (see [Secrets](#secrets)) |
 | `DB_DATABASE` | `setBdDatabase` | `getDBName()` | none (`null`) | database name |
 | `DB_KEEP_CONNECTED` | `setDbKeepConnected` | `getDBKeepConnected()` | `false` | keep the connection open between operations (see [Connection management](connectionManagement.md)) |
 | `DB_TLS` | `setDbTls` | `getDBTls()` | `false` | `true` adds `tls=true` to the connection URL (`DbConfig.setTls` per configuration) |
@@ -49,9 +49,9 @@ as text.
 | `API_ADDRESS` | `setApiAddress` | `getLocalAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
 | `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `SSO_ALLOW_INSECURE` is `true` |
 | `SSO_ALLOW_INSECURE` | (`JWTWrapper.setAllowInsecureSsoAddress`) | `getSsoAllowInsecure()` | `false` | `true` accepts an `http://` `SSO_ADDRESS` to any host (trusted private network only, WARN at startup); without it such an address stops the startup |
-| `SSO_TOKEN` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
+| `SSO_TOKEN` or `SSO_TOKEN_FILE` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
 | `TEST_MODE` | `setTestMode` | `getTestMode()` | `false` | test flag, exposed by the health check of the applications |
-| `EMAIL_FROM`, `EMAIL_LOGIN`, `EMAIL_PASSWORD` | `setEMailFrom`, `setEMailLogin`, `setEMailPassword` | `getEMailConfig()` | none | outgoing mail account. The getter returns a record `EMailConfig(from, login, password)`, or `null` unless **all three** are set |
+| `EMAIL_FROM`, `EMAIL_LOGIN`, `EMAIL_PASSWORD` or `EMAIL_PASSWORD_FILE` | `setEMailFrom`, `setEMailLogin`, `setEMailPassword` | `getEMailConfig()` | none | outgoing mail account. The getter returns a record `EMailConfig(from, login, password)`, or `null` unless **all three** are set |
 | `THUMBNAIL_FORMAT` | `setThumbnailFormat` | `getThumbnailFormat()` | `png` | format of the generated thumbnails |
 | `THUMBNAIL_WIDTH` | `setThumbnailWidth` | `getThumbnailWidth()` (`int`) | `256` | width in pixels of the thumbnails |
 | `DATA_DECRYPT_ENABLE` | `setDataDecryptEnable` | `getDataDecryptEnabled()` | `false` | allow the decryption of `@DataEncrypt` fields on read; when off the field comes back unset (see [Field encryption](field_encryption.md)) |
@@ -66,13 +66,60 @@ as text.
 Empty strings are treated as "unset" only for the thumbnail and query-statistics
 values and the encryption key; for the others an empty variable is a value.
 
+### Secrets
+
+`DB_PASSWORD`, `SSO_TOKEN`, `EMAIL_PASSWORD` and `DATA_ENCRYPT_KEY` go through `SecretReader`, which accepts
+two sources: the file named by `<NAME>_FILE`, or the value of `<NAME>`. Use the file: an environment variable
+is shown by `docker inspect`, `docker compose config` and `/proc/<pid>/environ`, a file path reveals nothing.
+
+```yaml
+services:
+  my_back:
+    environment:
+      DB_PASSWORD_FILE: /run/secrets/my_db_password
+      SECRETS_FILE_ONLY: "true"
+    group_add: ["5001"]
+    secrets: [my_db_password]
+secrets:
+  my_db_password:
+    file: /workspace/docker/secrets/my_site/db_password
+```
+
+Without Swarm, Compose bind-mounts the file with the rights it has on the host: keep it `root:<gid> 0440`
+and give the container that group with `group_add`.
+
+| Situation | Result |
+|---|---|
+| `<NAME>_FILE` set | the file is used; for text, line breaks at its end are removed, and for `DATA_ENCRYPT_KEY` the bytes stay unchanged |
+| `<NAME>` set, no file | the value is used, with a WARN giving the name of the variable, never its value |
+| both set | the file wins, with the same WARN: the value is still exposed in the environment |
+| `<NAME>_FILE` set, file unreadable, empty or holding only line breaks | failure at startup, no fallback on `<NAME>`. The error names the variable but not its value, in case a password was left there |
+| `SECRETS_FILE_ONLY=true` and a value in `<NAME>` | failure at startup, even when a file is also given. An empty `<NAME>` counts as undefined |
+| `SECRETS_FILE_ONLY` other than `true` or `false` | failure at startup: a typo must not turn the check off |
+
+The `<NAME>` of a secret holds a value, its `<NAME>_FILE` holds a path, and neither guesses from the content
+(a value starting with `/` is a value). A tool can therefore tell what is sensitive from the name alone.
+
+The failures happen while `ConfigBaseVariable` loads, so they reach the application as an
+`ExceptionInInitializerError`, whose cause gives the name of the variable.
+
+An application reads its own secrets the same way, and they follow the same rules:
+
+```java
+public static final String GOOGLE_BOOKS_KEY = ConfigBaseVariable.readSecret("ORG_MYAPP_GOOGLE_BOOKS_KEY");
+```
+
+`readSecretBytes(String)` is the binary variant. Read them once at startup, as here: a getter calling
+`readSecret` would fail at its first use, and would repeat the WARN at each call.
+
 ### Other environment variables
 
-Two variables are read outside `ConfigBaseVariable`:
+Three variables are read outside `ConfigBaseVariable`:
 
 | Variable | Read by | Role |
 |---|---|---|
 | `UUID_SERVER_ID` | `UuidUtils` (once, at class loading) | numeric id of this server, folded into the UUIDs so that several instances do not collide. Default: 1 |
+| `SECRETS_FILE_ONLY` | `SecretReader` | `true` refuses any secret given in the environment (see [Secrets](#secrets)) |
 | `ARCHIDATA_GENERATE_ZOD_ENUM` | the TypeScript generator | when set (any value), enums are generated as `zod.enum([...])` |
 
 ### Lock

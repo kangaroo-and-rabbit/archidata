@@ -35,3 +35,17 @@
 - `@jakarta.annotation.Nullable` (seule annotation `@Nullable` reconnue par le générateur)
   rend le champ optionnel même avec `@NotNull`, avec le suffixe ci-dessus : `.nullable()`, ou
   `.optional()` sous `@JsonInclude(NON_NULL)`.
+
+## Secrets (`SecretReader`, `ConfigBaseVariable.readSecret`)
+
+- Une variable secrète a deux formes distinctes : `<NOM>` contient une valeur, `<NOM>_FILE` un chemin. Pas de
+  détection par le contenu (`/` au début, préfixe) : le nom seul doit dire si une variable est sensible, pour que
+  les hooks et les contrôles n'aient jamais à lire les valeurs, et un mot de passe peut commencer par `/`.
+- Le fichier gagne. Illisible ou vide : échec au démarrage, jamais de repli sur `<NOM>`. L'erreur nomme la variable
+  sans sa valeur ni la cause, qui la répète : un mot de passe laissé dans `_FILE` pendant une migration ne doit pas
+  atteindre les journaux.
+- `SECRETS_FILE_ONLY` n'accepte que `true` ou `false` : une faute de frappe ne doit pas couper le contrôle.
+- Valeur dans `<NOM>` : WARN avec le nom seul ; refus de démarrer si `SECRETS_FILE_ONLY=true`, même à côté d'un
+  fichier, car elle reste exposée dans l'environnement.
+- Texte : retours à la ligne de fin retirés. Binaire (`DATA_ENCRYPT_KEY`) : octets inchangés. `<NOM>` vide reste
+  une valeur pour le texte, comme avant, et « non défini » pour le binaire.
