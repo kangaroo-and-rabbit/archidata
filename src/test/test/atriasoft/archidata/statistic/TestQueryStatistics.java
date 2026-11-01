@@ -18,6 +18,7 @@ import org.atriasoft.archidata.dataAccess.statistic.QueryStatistics;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.LoggerFactory;
@@ -35,10 +36,20 @@ public class TestQueryStatistics {
 	@TempDir
 	Path tempDir;
 
+	/**
+	 * The first record arms the periodic flush. On a tick it would write in {@link #tempDir} during a test: its
+	 * short-lived temporary file would be counted by a test, or be there while the folder is deleted.
+	 */
+	@BeforeEach
+	public void setUp() {
+		ConfigBaseVariable.setQueryStatisticsPeriod("0 0 1 1 *");
+	}
+
 	@AfterEach
 	public void tearDown() {
 		QueryStatistics.reset();
 		ConfigBaseVariable.setQueryStatisticsFile(null);
+		ConfigBaseVariable.setQueryStatisticsPeriod(null);
 	}
 
 	/**
