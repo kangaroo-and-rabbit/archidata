@@ -2,6 +2,7 @@ package org.atriasoft.archidata.journal;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public record ChangeJournalReport(
 	 */
 	public ChangeJournalReport {
 		runDate = DateTools.copyOf(runDate);
-		capturedByCollection = Collections.unmodifiableMap(capturedByCollection);
+		capturedByCollection = Collections.unmodifiableMap(new LinkedHashMap<>(capturedByCollection));
 		failedCollections = List.copyOf(failedCollections);
 	}
 

@@ -39,8 +39,8 @@ les points ci-dessous sont les seuls changements visibles.
 - `Pagination` copie la liste reçue et `getItems()` rend une liste en lecture seule, comme l'annonce sa documentation.
 - `QueryOptions.getAll()` et `RepairReport.getDetails()` rendent une vue en lecture seule : écrire dedans lève
   `UnsupportedOperationException`. Passer par `add(...)` et `addDetail(...)`.
-- `OrderBy(List)`, `DbConfig`, `MigrationEngine(List, init)`, `RightRoleMapper(Map)`, `JwtPayload`, `BackupSnapshot` et
-  `ChangeStreamWorker` copient ce qu'ils reçoivent : modifier la liste ensuite n'a plus d'effet. Pour
+- `OrderBy(List)`, `DbConfig`, `MigrationEngine(List, init)`, `RightRoleMapper(Map)`, `JwtPayload`, `BackupSnapshot`,
+  `ChangeJournalReport` et `ChangeStreamWorker` copient ce qu'ils reçoivent : modifier la liste ensuite n'a plus d'effet. Pour
   `MigrationEngine`, `add()` n'écrit plus dans la liste de l'appelant. `BackupSnapshot` rend une carte en lecture seule,
   mais ne copie pas les tableaux d'octets : ils peuvent contenir toute une base.
 - `DbConfig.getClasses()` rend une liste immuable, et `DbConfig.clone()` ne rend plus jamais `null`.
