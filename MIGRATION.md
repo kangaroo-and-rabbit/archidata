@@ -1,5 +1,21 @@
 # Migration Guide
 
+## Prochaine version (après v0.52.2) - Correctifs SpotBugs (CHANGEMENT DE COMPORTEMENT)
+
+SpotBugs ne vérifiait rien : un filtre d'inclusion vide n'autorisait aucun constat. Il est maintenant bloquant, et ses
+215 constats sont traités (`plans/2026-11-01-spotbugs.md`). Aucune signature utilisée par les applications ne change ;
+les points ci-dessous sont les seuls changements visibles.
+
+### `UserByToken`
+
+- `hasRight(group, key, value)` répondait toujours `false`. Il compare maintenant le rôle aux bits demandés, comme
+  `MySecurityContext.hasResourceRight`. `value` : un `PartRight`, son nom, son code ou un `Boolean` (`true` demande
+  `READ_WRITE`). Un code qui appelait cette méthode et ignorait son résultat `false` peut voir son comportement changer.
+- `getRight()` est en lecture seule : `getRight().put(...)` lève `UnsupportedOperationException`. Passer par
+  `setRight(...)`.
+- `setRoles` et `setRight` copient la carte reçue : la modifier ensuite n'a plus d'effet sur l'entité.
+- `getRoles()` ne change pas et reste modifiable (`getRoles().put(...)`, utilisé par les filtres des applications).
+
 ## Prochaine version (après v0.52.0) - `rest-tools.ts` strict, sans `enum`, sans jeton dans la console
 
 Le runtime du client TypeScript passe le mode `strict` de TypeScript et le format des fronts. Il suffit de
