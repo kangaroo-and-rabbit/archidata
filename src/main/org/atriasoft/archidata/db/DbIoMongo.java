@@ -119,16 +119,18 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * Opens a MongoDB connection by reusing the shared {@link MongoClient} for
 	 * the configured URL, or creating it on first use.
 	 *
-	 * @throws IOException if the connection cannot be established
+	 * @throws IOException if the connection cannot be established, or if the configuration has no database name
 	 */
 	@Override
 	synchronized public void openImplement() throws IOException {
-		final String dbUrl = this.config.getUrl();
 		final String dbName = this.config.getDbName();
-		this.mongoClient = CLIENT_CACHE.computeIfAbsent(dbUrl, url -> createSharedClient(this.config));
 		if (dbName == null) {
-			LOGGER.error("Connect on the DB: host:{} port:{}", this.config.getHostname(), this.config.getPort());
+			// MongoDB has no default database: refuse before a shared client is created for this URL.
+			throw new IOException("No database name configured for host:" + this.config.getHostname() + " port:"
+					+ this.config.getPort());
 		}
+		final String dbUrl = this.config.getUrl();
+		this.mongoClient = CLIENT_CACHE.computeIfAbsent(dbUrl, url -> createSharedClient(this.config));
 		this.dataBase = this.mongoClient.getDatabase(dbName);
 		installShutdownHookOnce();
 	}

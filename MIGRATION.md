@@ -16,6 +16,12 @@ les points ci-dessous sont les seuls changements visibles.
 - `setRoles` et `setRight` copient la carte reçue : la modifier ensuite n'a plus d'effet sur l'entité.
 - `getRoles()` ne change pas et reste modifiable (`getRoles().put(...)`, utilisé par les filtres des applications).
 
+### Base de données
+
+- Une configuration sans nom de base (`DbConfig.getDbName()` à `null`) lève maintenant une `IOException` claire à
+  l'ouverture de la connexion, avant de créer le client partagé. Elle échouait déjà, avec une
+  `IllegalArgumentException` du pilote après un simple journal d'erreur.
+
 ### Erreurs REST
 
 - Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper
