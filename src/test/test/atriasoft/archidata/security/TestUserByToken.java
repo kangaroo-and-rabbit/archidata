@@ -50,17 +50,19 @@ public class TestUserByToken {
 	}
 
 	@Test
-	void noneMatchesOnlyARoleOfNone() {
-		Assertions.assertTrue(this.user.hasRight(APP, "NONE_ROLE", PartRight.NONE));
-		// (right & 0) == 0 is true for every role: NONE must not become a way to pass the check.
-		Assertions.assertFalse(this.user.hasRight(APP, "READ_ROLE", PartRight.NONE));
-		Assertions.assertFalse(this.user.hasRight(APP, "FULL_ROLE", PartRight.NONE));
+	void askingForNoneIsNeverGranted() {
+		// (right & 0) == 0 is true for every role: NONE must not become a way to pass the check, and a computed false
+		// or 0 must not read as an access for a role explicitly set to NONE.
+		for (final Object value : new Object[] { PartRight.NONE, "NONE", 0L, 0, 0.0d, false }) {
+			Assertions.assertFalse(this.user.hasRight(APP, "NONE_ROLE", value), () -> "value=" + value);
+			Assertions.assertFalse(this.user.hasRight(APP, "READ_ROLE", value), () -> "value=" + value);
+			Assertions.assertFalse(this.user.hasRight(APP, "FULL_ROLE", value), () -> "value=" + value);
+		}
 	}
 
 	@Test
 	void hasRightOfAMissingRoleIsFalse() {
-		Assertions.assertFalse(this.user.hasRight(APP, "UNKNOWN", PartRight.NONE));
-		Assertions.assertFalse(this.user.hasRight(APP, "UNKNOWN", false));
+		Assertions.assertFalse(this.user.hasRight(APP, "UNKNOWN", PartRight.READ));
 		Assertions.assertFalse(this.user.hasRight("other", "READ_ROLE", PartRight.READ));
 	}
 
@@ -83,8 +85,6 @@ public class TestUserByToken {
 		Assertions.assertFalse(this.user.hasRight(APP, "READ_ROLE", true));
 		Assertions.assertFalse(this.user.hasRight(APP, "WRITE_ROLE", true));
 		Assertions.assertFalse(this.user.hasRight(APP, "NONE_ROLE", true));
-		Assertions.assertTrue(this.user.hasRight(APP, "NONE_ROLE", false));
-		Assertions.assertFalse(this.user.hasRight(APP, "READ_ROLE", false));
 	}
 
 	@Test
@@ -146,6 +146,23 @@ public class TestUserByToken {
 		Assertions.assertThrows(UnsupportedOperationException.class,
 				() -> right.get(APP).put("articles", PartRight.READ_WRITE));
 		Assertions.assertEquals(PartRight.READ, this.user.getRightForKey(APP, "articles"));
+	}
+
+	@Test
+	void aMissingMapGrantsNothing() {
+		final Map<String, Map<String, PartRight>> roles = new HashMap<>();
+		roles.put(APP, null);
+		this.user.setRoles(roles);
+		this.user.setRight(roles);
+		Assertions.assertNull(this.user.getRoleForKey(APP, "ROLE"));
+		Assertions.assertNull(this.user.getRightForKey(APP, "ROLE"));
+		Assertions.assertFalse(this.user.hasRight(APP, "ROLE", PartRight.READ));
+
+		this.user.setRoles(null);
+		this.user.setRight(null);
+		Assertions.assertNull(this.user.getRoleForKey(APP, "ROLE"));
+		Assertions.assertNull(this.user.getRightForKey(APP, "ROLE"));
+		Assertions.assertFalse(this.user.hasRight(APP, "ROLE", PartRight.READ));
 	}
 
 	@Test

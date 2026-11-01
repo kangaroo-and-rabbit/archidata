@@ -68,12 +68,14 @@
   `failOnError=false`.
 - Pas de filtre d'inclusion : un include vide n'autorise aucun constat, ce qui a fait passer ce contrôle sans rien
   vérifier jusqu'à la v0.52.2.
-- Une exclusion nomme une classe et un motif, avec un champ ou une méthode, et donne sa raison. Pas de catégorie entière.
+- Une exclusion nomme une classe et un motif, avec un champ ou une méthode sauf si le motif porte sur la classe
+  elle-même (nommage), et donne sa raison. Pas de catégorie entière.
   Elle n'est acceptable que si la correction casse un comportement ou une API utilisée, ou si le constat est faux.
 - Un 0 ne prouve rien tout seul. Pour vérifier le contrôle : injecter un bug évident sur une copie (`new String()`), le
   build doit échouer dessus ; retirer `excludeFilterFile`, SpotBugs doit remonter le nombre exact de constats exclus.
 - Exposition d'état : une écriture dans une copie se perd sans bruit. Quand rien n'écrit, une vue en lecture seule est
   préférée ; quand les appelants écrivent (`UserByToken.getRoles()`, listes des beans), le constat est exclu. Les
   tableaux et les `Date` sont copiés. Tri complet : `plans/2026-11-01-spotbugs.md`.
-- `UserByToken.hasRight` suit le masque de bits de `PartRight`, comme `hasResourceRight`. `NONE` ne correspond qu'à
-  `NONE`, `true` demande `READ_WRITE`, toute valeur qui ne décrit pas un droit répond `false`.
+- `UserByToken.hasRight` suit le masque de bits de `PartRight`, comme `hasResourceRight`.
+  `true` demande `READ_WRITE` ; demander `NONE` (`false`, `0`) répond toujours `false`, toute valeur qui ne décrit pas
+  un droit aussi.
