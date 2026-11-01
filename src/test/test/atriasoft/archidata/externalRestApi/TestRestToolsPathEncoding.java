@@ -5,7 +5,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -14,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * The path parameters of the generated clients are percent-encoded, and the values {@code .} and
- * {@code ..} are refused (CS-03). Runs the real runtimes ({@code rest-tools.ts} with node,
+ * {@code ..} are refused (CS-03). Runs the real runtimes ({@code rest-tools.ts} with node, its {@code enum} blocks rewritten for node 26,
  * {@code rest_tools.py} with python3); a test is skipped when its interpreter (or the Python
  * dependencies of the runtime) is missing.
  */
@@ -38,7 +42,21 @@ public class TestRestToolsPathEncoding {
 		}
 	}
 
-	/** {@code --experimental-transform-types} exists since node 22.7. */
+	/**
+	 * Rewrites the {@code enum} blocks as plain objects. Node 26 removed
+	 * {@code --experimental-transform-types}: node now only strips the types, and an {@code enum} cannot be
+	 * stripped. The objects keep the same values, and the runtime under test does not depend on the difference.
+	 */
+	private static String enumsToObjects(final String source) {
+		final String out = Pattern.compile("export enum (\\w+) \\{(.*?)\\n\\}", Pattern.DOTALL).matcher(source)
+				.replaceAll(block -> Matcher.quoteReplacement("export const " + block.group(1) + " = {"
+						+ block.group(2).replaceAll("(?m)^(\\s*\\w+) = ", "$1: ") + "\n}"));
+		Assertions.assertFalse(Pattern.compile("\\benum\\s+\\w+\\s*\\{").matcher(out).find(),
+				"an enum was not rewritten: node would refuse the runtime");
+		return out;
+	}
+
+	/** {@code --experimental-strip-types} runs TypeScript from node 22.7 on. */
 	private static boolean nodeSupportsTypeScript() {
 		try {
 			final Process process = new ProcessBuilder("node", "--version").redirectErrorStream(true).start();
@@ -59,8 +77,8 @@ public class TestRestToolsPathEncoding {
 	public void typeScriptEncodesPathParameters(@TempDir final Path dir) throws Exception {
 		Assumptions.assumeTrue(nodeSupportsTypeScript(), "node >= 22.7 not available");
 		// node resolves ES modules with their extension: point the runtime to the stub model.
-		Files.writeString(dir.resolve("rest-tools.ts"),
-				Files.readString(Paths.get("src/resources/rest-tools.ts")).replace("'./model'", "'./model.ts'"));
+		Files.writeString(dir.resolve("rest-tools.ts"), enumsToObjects(
+				Files.readString(Paths.get("src/resources/rest-tools.ts")).replace("'./model'", "'./model.ts'")));
 		Files.writeString(dir.resolve("model.ts"),
 				"export class RestErrorResponse {}\nexport function isRestErrorResponse(a: any): boolean { return false; }\n");
 		Files.writeString(dir.resolve("t.ts"),
@@ -78,7 +96,13 @@ public class TestRestToolsPathEncoding {
 							}
 						}
 						""");
-		final String out = run(dir, "node", "--experimental-transform-types", "--no-warnings", "t.ts");
+		final List<String> command = new ArrayList<>(List.of("node", "--no-warnings"));
+		// On by default in recent versions, where this option may disappear as the transform one did.
+		if (available("node", "--experimental-strip-types", "--version")) {
+			command.add("--experimental-strip-types");
+		}
+		command.add("t.ts");
+		final String out = run(dir, command.toArray(String[]::new));
 		Assertions.assertTrue(out.contains("http://h/api/data/1/..%2F..%2Fuser%2Fx%3Fy%23z"), out);
 		Assertions.assertFalse(out.contains("NOT-REFUSED"), out);
 		Assertions.assertEquals(2, out.split("REFUSED ", -1).length - 1, out);
