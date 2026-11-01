@@ -177,7 +177,8 @@ Immutable value object built by the worker.
 - `getFullDocument()` (`org.bson.Document`, may be `null`), `hasFullDocument()`.
 - `getUpdatedFields()` / `getRemovedFields()` return names of changed/removed fields for updates,
   empty sets otherwise. `getUpdateDescription()` gives the driver object.
-- `getTimestamp()` (cluster time, or receive time if absent), `getResumeToken()`.
+- `getTimestamp()` (cluster time, or receive time if absent), `getResumeToken()` (a copy: a listener
+  cannot move the position the others resume from).
 - `toJson()` / `toJsonExtended()` serialize the full document, or return `null` without one.
 - The full document is the **raw stored document**: no archidata read rule applies to it. Its
   `@DataNotRead` fields (password hashes, tokens) are present in clear, and its `@DataEncrypt`
