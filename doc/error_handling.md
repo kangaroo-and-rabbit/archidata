@@ -61,7 +61,7 @@ Exception to HTTP mapping
 | `SystemException` | `SystemExceptionCatcher` | `exception.status` (default 500) | `System error` |
 | `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
-| any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception | `Catch system exception` |
+| any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception, a code `Response.Status` does not list (499, 599...) included | `Catch system exception` |
 | `RequestBodyException`: a request body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`), wrapped by `RequestBodyReaderInterceptor` around the reading of the entity | `RequestBodyExceptionCatcher` | 400 | `Catch JSON Exception` |
 | any other `com.fasterxml.jackson.core.JacksonException`: a parsing done by the server itself (upstream response, stored document), a serialization or class definition failure | `JacksonExceptionCatcher` | 500 | `Catch JSON Exception` |
 | any other `Exception` (including `DataAccessException`) | `ExceptionCatcher` | 500 | `Internal Server Error` |

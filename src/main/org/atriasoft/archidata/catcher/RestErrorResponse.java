@@ -83,6 +83,18 @@ public class RestErrorResponse {
 	 * @param message the human-readable error message
 	 */
 	public RestErrorResponse(final Response.Status status, final String error, final String message) {
+		this((Response.StatusType) status, error, message);
+	}
+
+	/**
+	 * Constructs a REST error response for any HTTP status, including a code that {@link Response.Status} does not
+	 * list (for which {@code toEnum()} returns {@code null}), with the current timestamp and no input validation
+	 * errors.
+	 * @param status the HTTP response status
+	 * @param error the error name or type identifier
+	 * @param message the human-readable error message
+	 */
+	public RestErrorResponse(final Response.StatusType status, final String error, final String message) {
 		this.time = Instant.now().toString();
 		this.name = error;
 		this.message = message;
