@@ -67,8 +67,9 @@ jobs:
         run: DB_HOST="127.0.0.1" mvn -B verify -Dgpg.skip=true
       - name: find the element
         run: find . -name "dependency-graph.json"
+      # The Test step has just run the SpotBugs check on these classes
       - name: Install the library locally for the sample
-        run: mvn -B install -DskipTests -Dgpg.skip=true
+        run: mvn -B install -DskipTests -Dgpg.skip=true -Dspotbugs.skip=true
       - name: Build and test the sample
         run: mvn -B -f sample/archidata/basic/pom.xml verify -Darchidata.version=$(mvn -q help:evaluate -Dexpression=project.version -DforceStdout)
 
