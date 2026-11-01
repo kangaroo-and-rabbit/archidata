@@ -2,6 +2,7 @@ package test.atriasoft.archidata.model;
 
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -58,6 +59,15 @@ class TestModelDates {
 		given.setTime(0L);
 		report.runDate().setTime(0L);
 		Assertions.assertEquals(new Date(TIME), report.runDate());
+	}
+
+	@Test
+	void theReportKeepsItsCounters() {
+		final Map<String, Long> captured = new HashMap<>();
+		captured.put("one", 1L);
+		final ChangeJournalReport report = new ChangeJournalReport(new Date(TIME), captured, List.of());
+		captured.put("two", 2L);
+		Assertions.assertEquals(1L, report.totalCaptured());
 	}
 
 	@Test
