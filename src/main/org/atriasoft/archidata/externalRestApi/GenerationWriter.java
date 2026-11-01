@@ -98,7 +98,7 @@ public class GenerationWriter {
 			final Path fullPath = outputDir.resolve(entry.getKey()).normalize();
 			generatedPaths.add(fullPath);
 			final Path pathParent = fullPath.getParent();
-			if (Files.notExists(pathParent)) {
+			if (pathParent != null && Files.notExists(pathParent)) {
 				Files.createDirectories(pathParent);
 			}
 			if (Files.exists(fullPath)) {
@@ -148,9 +148,10 @@ public class GenerationWriter {
 		}
 		try (final DirectoryStream<Path> stream = Files.newDirectoryStream(directory)) {
 			for (final Path entry : stream) {
+				final Path name = entry.getFileName();
 				if (Files.isDirectory(entry)) {
 					collectFilesWithExtension(entry, fileExtension, result);
-				} else if (entry.getFileName().toString().endsWith(fileExtension)) {
+				} else if (name != null && name.toString().endsWith(fileExtension)) {
 					result.add(entry.normalize());
 				}
 			}

@@ -1204,6 +1204,7 @@ public class DBAccessMongo implements Closeable {
 	 * @param collectionName The collection name used as the counter key
 	 * @param fieldName      The field name for the sequence (defaults to "sequence_id" if null or empty)
 	 * @return The next sequence value
+	 * @throws IllegalStateException if the database returns no counter
 	 */
 	public long getNextSequenceLongValue(final String collectionName, String fieldName) {
 		if (fieldName == null || fieldName.isEmpty()) {
@@ -1229,7 +1230,11 @@ public class DBAccessMongo implements Closeable {
 				: countersCollection.findOneAndUpdate(filter, update, options);
 
 		// Return the new sequence value...
-		return updatedCounter.getLong(fieldName);
+		final Long value = updatedCounter == null ? null : updatedCounter.getLong(fieldName);
+		if (value == null) {
+			throw new IllegalStateException("No value for the sequence " + collectionName + "." + fieldName);
+		}
+		return value;
 	}
 
 	/**

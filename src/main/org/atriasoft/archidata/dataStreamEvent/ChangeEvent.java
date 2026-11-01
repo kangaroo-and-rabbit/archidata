@@ -225,10 +225,12 @@ public class ChangeEvent {
 	 * @return Set of field names that were updated, or empty set if not an update
 	 */
 	public Set<String> getUpdatedFields() {
-		if (this.updateDescription == null || this.updateDescription.getUpdatedFields() == null) {
+		final BsonDocument updatedFields = this.updateDescription == null ? null
+				: this.updateDescription.getUpdatedFields();
+		if (updatedFields == null) {
 			return Collections.emptySet();
 		}
-		return this.updateDescription.getUpdatedFields().keySet();
+		return updatedFields.keySet();
 	}
 
 	/**

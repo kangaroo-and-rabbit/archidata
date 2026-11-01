@@ -131,10 +131,11 @@ public final class EncryptionKeyStore {
 		}
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
 			for (final Path file : stream) {
-				if (!Files.isRegularFile(file)) {
+				final Path fileName = file.getFileName();
+				if (fileName == null || !Files.isRegularFile(file)) {
 					continue;
 				}
-				final String name = stripExtension(file.getFileName().toString());
+				final String name = stripExtension(fileName.toString());
 				try {
 					PROVIDERS.putIfAbsent(name, KeyMaterialLoader.fromBytes(Files.readAllBytes(file)));
 					LOGGER.info("Loaded encryption key '{}'", name);
