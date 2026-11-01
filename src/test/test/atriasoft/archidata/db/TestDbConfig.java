@@ -1,5 +1,6 @@
 package test.atriasoft.archidata.db;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.db.DbConfig;
@@ -59,5 +60,34 @@ class TestDbConfig {
 	@AfterEach
 	void restoreConfiguration() {
 		ConfigBaseVariable.clearAllValue();
+	}
+
+	@Test
+	void testClassesAreCopied() throws DataAccessException {
+		final List<Class<?>> classes = new ArrayList<>(List.of(String.class));
+		final DbConfig config = new DbConfig("localhost", 27017, "root", "pass", "db", false, classes);
+		classes.add(Long.class);
+		Assertions.assertEquals(List.of(String.class), config.getClasses());
+		Assertions.assertThrows(UnsupportedOperationException.class, () -> config.getClasses().add(Long.class));
+	}
+
+	@Test
+	void testNullClassesStayNull() throws DataAccessException {
+		Assertions.assertNull(new DbConfig("localhost", 27017, "root", "pass", "db", false, null).getClasses());
+	}
+
+	@Test
+	void testCloneIsAnIndependentEqualCopy() throws DataAccessException {
+		final DbConfig config = withPort(27018);
+		config.setTls(true);
+		config.setAuthSource("admin");
+		final DbConfig copy = config.clone();
+		Assertions.assertNotSame(config, copy);
+		Assertions.assertEquals(config, copy);
+		Assertions.assertEquals(config.hashCode(), copy.hashCode());
+		copy.setDbName("other");
+		Assertions.assertEquals("db", config.getDbName());
+		Assertions.assertTrue(copy.isTls());
+		Assertions.assertEquals("admin", copy.getAuthSource());
 	}
 }

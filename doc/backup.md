@@ -218,8 +218,9 @@ engine.restore(before);                               // drops and refills those
 ```
 
 `snapshot()` captures only the registered collections, `snapshotAll()` all of
-them. A `BackupSnapshot` is a record holding `Map<String, byte[]> collections()`
-(newline-delimited JSON bytes, same format as the archive entries) with
+them. A `BackupSnapshot` is a record holding a read-only
+`Map<String, byte[]> collections()` (newline-delimited JSON bytes, same format as
+the archive entries; the arrays are not copied, do not write to them) with
 `size()` and `isEmpty()`. Unlike the archive restore, `restore(BackupSnapshot)`
 **drops** every collection present in the snapshot first; collections absent
 from it are left alone. The whole content is held in memory: do not use it on

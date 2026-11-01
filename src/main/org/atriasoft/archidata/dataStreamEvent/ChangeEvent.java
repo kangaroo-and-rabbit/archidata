@@ -72,7 +72,7 @@ public class ChangeEvent {
 		this.fullDocument = fullDocument;
 		this.updateDescription = updateDescription;
 		this.timestamp = timestamp;
-		this.resumeToken = resumeToken;
+		this.resumeToken = resumeToken == null ? null : resumeToken.clone();
 	}
 
 	// Getters
@@ -151,10 +151,10 @@ public class ChangeEvent {
 	 * Gets the resume token for this change event. This token can be used to
 	 * resume the change stream from this point if the stream is interrupted.
 	 *
-	 * @return The resume token
+	 * @return A copy of the resume token
 	 */
 	public BsonDocument getResumeToken() {
-		return this.resumeToken;
+		return this.resumeToken == null ? null : this.resumeToken.clone();
 	}
 
 	// Helper methods

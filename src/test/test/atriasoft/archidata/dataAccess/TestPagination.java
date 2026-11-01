@@ -1,5 +1,7 @@
 package test.atriasoft.archidata.dataAccess;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.model.Pagination;
@@ -87,9 +89,25 @@ class TestPagination {
 	void exposesAccessors() {
 		final List<String> items = List.of("a", "b", "c");
 		final Pagination<String> page = new Pagination<>(items, 50L, 10L, 3L);
-		Assertions.assertSame(items, page.getItems());
+		Assertions.assertEquals(items, page.getItems());
 		Assertions.assertEquals(50L, page.getTotal());
 		Assertions.assertEquals(10L, page.getOffset());
 		Assertions.assertEquals(3L, page.getLimit());
+	}
+
+	@Test
+	void keepsItsItems() {
+		final List<String> items = new ArrayList<>(List.of("a", "b"));
+		final Pagination<String> page = new Pagination<>(items, 50L, 0L, 2L);
+		items.add("c");
+		Assertions.assertEquals(List.of("a", "b"), page.getItems());
+		Assertions.assertThrows(UnsupportedOperationException.class, () -> page.getItems().add("c"));
+	}
+
+	@Test
+	void acceptsANullItem() {
+		// List.copyOf would refuse it, and the list of a page could always hold one.
+		final Pagination<String> page = new Pagination<>(Arrays.asList("a", null), 2L, 0L, 2L);
+		Assertions.assertEquals(2, page.getItems().size());
 	}
 }

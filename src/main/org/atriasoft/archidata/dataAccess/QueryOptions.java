@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.dataAccess;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
@@ -55,10 +56,10 @@ public class QueryOptions {
 	/**
 	 * Returns all query options in this container.
 	 *
-	 * @return The list of all stored query options
+	 * @return A read-only view of the stored query options: use {@link #add(QueryOption)} to add one
 	 */
 	public List<QueryOption> getAll() {
-		return this.options;
+		return Collections.unmodifiableList(this.options);
 	}
 
 	/**

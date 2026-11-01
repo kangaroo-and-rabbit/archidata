@@ -1,5 +1,7 @@
 package org.atriasoft.archidata.model.token;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -35,4 +37,25 @@ public record JwtPayload(
 		// Expiration (timestamp)
 		@NotNull Long exp,
 		// Create time (timestamp)
-		@NotNull Long iat) {}
+		@NotNull Long iat) {
+
+	/**
+	 * Compact constructor copying the roles and the rights into unmodifiable maps.
+	 */
+	public JwtPayload {
+		roles = unmodifiableCopy(roles);
+		right = unmodifiableCopy(right);
+	}
+
+	private static Map<String, Map<String, Long>> unmodifiableCopy(final Map<String, Map<String, Long>> source) {
+		if (source == null) {
+			return null;
+		}
+		final Map<String, Map<String, Long>> out = new LinkedHashMap<>();
+		for (final Map.Entry<String, Map<String, Long>> entry : source.entrySet()) {
+			final Map<String, Long> group = entry.getValue();
+			out.put(entry.getKey(), group == null ? null : Collections.unmodifiableMap(new LinkedHashMap<>(group)));
+		}
+		return Collections.unmodifiableMap(out);
+	}
+}

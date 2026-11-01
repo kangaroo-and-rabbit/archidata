@@ -1,5 +1,7 @@
 package org.atriasoft.archidata.dataAccess.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,7 +31,7 @@ public class Pagination<T> {
 	/**
 	 * Constructs a Pagination wrapping the given slice.
 	 *
-	 * @param items the items in this page (never {@code null}; empty if
+	 * @param items the items in this page, copied (never {@code null}; empty if
 	 *              {@code offset >= total})
 	 * @param total the total number of items matching the query, ignoring
 	 *              pagination (must be {@code >= 0})
@@ -51,7 +53,7 @@ public class Pagination<T> {
 		if (limit <= 0L) {
 			throw new IllegalArgumentException("limit must be > 0, got: " + limit);
 		}
-		this.items = items;
+		this.items = Collections.unmodifiableList(new ArrayList<>(items));
 		this.total = total;
 		this.offset = offset;
 		this.limit = limit;
@@ -60,7 +62,7 @@ public class Pagination<T> {
 	/**
 	 * Returns the items in this page.
 	 *
-	 * @return the items (never {@code null})
+	 * @return a read-only list of the items (never {@code null})
 	 */
 	public List<T> getItems() {
 		return this.items;

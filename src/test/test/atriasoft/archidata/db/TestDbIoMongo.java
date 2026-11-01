@@ -22,4 +22,14 @@ class TestDbIoMongo {
 		}
 		Assertions.assertEquals(clientsBefore, DbIoMongo.getSharedClientCount());
 	}
+
+	@Test
+	void theConfigurationOfAnOpenConnectionCannotBeChanged() throws DataAccessException, IOException {
+		final DbConfig config = new DbConfig("localhost", 27017, "user", "pass", "db", false, List.of());
+		try (DbIoMongo io = new DbIoMongo(config)) {
+			io.getConfig().setDbName("other");
+			Assertions.assertEquals("db", io.getConfig().getDbName());
+			Assertions.assertTrue(io.compatible(config));
+		}
+	}
 }

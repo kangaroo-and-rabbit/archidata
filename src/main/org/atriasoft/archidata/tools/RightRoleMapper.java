@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.tools;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,10 +52,14 @@ public class RightRoleMapper {
 	/**
 	 * Constructs a mapper with the given role-to-rights mapping.
 	 *
-	 * @param roleToRights mapping from role names to lists of right definitions
+	 * @param roleToRights mapping from role names to lists of right definitions, copied
 	 */
 	public RightRoleMapper(final Map<String, List<RightDefinition>> roleToRights) {
-		this.roleToRights = roleToRights;
+		final Map<String, List<RightDefinition>> copy = new HashMap<>();
+		for (final Map.Entry<String, List<RightDefinition>> entry : roleToRights.entrySet()) {
+			copy.put(entry.getKey(), List.copyOf(entry.getValue()));
+		}
+		this.roleToRights = Collections.unmodifiableMap(copy);
 	}
 
 	/**
