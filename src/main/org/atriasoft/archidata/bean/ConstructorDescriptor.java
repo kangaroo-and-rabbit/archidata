@@ -52,6 +52,16 @@ public record ConstructorDescriptor(
 	}
 
 	/**
+	 * The name of a parameter, without the copy of {@link #parameterNames()}: this runs for each decoded object.
+	 *
+	 * @param index the zero-based index of the parameter
+	 * @return the parameter name
+	 */
+	public String parameterName(final int index) {
+		return this.parameterNames[index];
+	}
+
+	/**
 	 * The number of parameters.
 	 *
 	 * @return the parameter count
