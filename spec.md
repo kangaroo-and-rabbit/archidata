@@ -58,3 +58,22 @@
 - Ne jamais journaliser une URL complète, ni ici ni dans `python/rest_tools.py` : avec `tokenInUrl`, elle contient le jeton.
 - Le champ `message` de l'erreur 999 (panne réseau) reste un objet `Error` : `isRestErrorResponse` le refuse, et les fronts
   s'en servent pour distinguer une panne réseau d'une erreur du serveur.
+
+## Analyse statique (SpotBugs)
+
+- `mvn verify` lance `spotbugs:check` (seuil par défaut, tests exclus) : tout constat non listé dans
+  `spotbugs-exclude.xml` fait échouer le build, en local comme en CI. L'exécution est déclarée avant `maven-gpg-plugin`,
+  pour que le contrôle passe avant la signature, donc avant `mvn deploy`.
+- La CI passe par ce contrôle natif (`mvn -B verify -Dgpg.skip=true`), sans étape dédiée, sans `continue-on-error` ni
+  `failOnError=false`.
+- Pas de filtre d'inclusion : un include vide n'autorise aucun constat, ce qui a fait passer ce contrôle sans rien
+  vérifier jusqu'à la v0.52.2.
+- Une exclusion nomme une classe et un motif, avec un champ ou une méthode, et donne sa raison. Pas de catégorie entière.
+  Elle n'est acceptable que si la correction casse un comportement ou une API utilisée, ou si le constat est faux.
+- Un 0 ne prouve rien tout seul. Pour vérifier le contrôle : injecter un bug évident sur une copie (`new String()`), le
+  build doit échouer dessus ; retirer `excludeFilterFile`, SpotBugs doit remonter le nombre exact de constats exclus.
+- Exposition d'état : une écriture dans une copie se perd sans bruit. Quand rien n'écrit, une vue en lecture seule est
+  préférée ; quand les appelants écrivent (`UserByToken.getRoles()`, listes des beans), le constat est exclu. Les
+  tableaux et les `Date` sont copiés. Tri complet : `plans/2026-11-01-spotbugs.md`.
+- `UserByToken.hasRight` suit le masque de bits de `PartRight`, comme `hasResourceRight`. `NONE` ne correspond qu'à
+  `NONE`, `true` demande `READ_WRITE`, toute valeur qui ne décrit pas un droit répond `false`.

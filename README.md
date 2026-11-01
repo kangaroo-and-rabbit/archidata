@@ -111,11 +111,14 @@ Enable the pre-commit checker
 
 > **Note:** You can change the code in `.git/hooks/pre-commit` by replacing `formatter:verify` with `formatter:format` to auto-format the code at every commit.
 
-Run SpotBugs
-------------
+SpotBugs
+--------
+
+`mvn verify` fails on any finding that `spotbugs-exclude.xml` does not list with its reason, before the signature of the
+artifacts. Run it alone with:
 
 ```bash
-mvn spotbugs:check
+mvn compile spotbugs:check
 ```
 
 
