@@ -47,6 +47,26 @@ public record JwtPayload(
 		right = unmodifiableCopy(right);
 	}
 
+	/**
+	 * The roles, structured as {@code Map<application, Map<roleName, accessLevel>>}.
+	 *
+	 * @return the unmodifiable roles map, or {@code null} if the token has none
+	 */
+	@Override
+	public @Nullable Map<@NotNull String, Map<@NotNull String, @NotNull Long>> roles() {
+		return this.roles == null ? null : Collections.unmodifiableMap(this.roles);
+	}
+
+	/**
+	 * The fine-grained rights, structured as {@code Map<application, Map<rightName, accessLevel>>}.
+	 *
+	 * @return the unmodifiable rights map, or {@code null} if the token has none
+	 */
+	@Override
+	public @Nullable Map<@NotNull String, Map<@NotNull String, @NotNull Long>> right() {
+		return this.right == null ? null : Collections.unmodifiableMap(this.right);
+	}
+
 	private static Map<String, Map<String, Long>> unmodifiableCopy(final Map<String, Map<String, Long>> source) {
 		if (source == null) {
 			return null;

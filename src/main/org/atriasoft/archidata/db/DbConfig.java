@@ -239,7 +239,7 @@ public final class DbConfig implements Cloneable {
 	 * @return the immutable list of classes
 	 */
 	public List<Class<?>> getClasses() {
-		return this.classes;
+		return this.classes == null ? null : List.copyOf(this.classes);
 	}
 
 	/**

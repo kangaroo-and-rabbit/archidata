@@ -89,8 +89,8 @@ public class TestUserByToken {
 
 	@Test
 	void aValueThatDescribesNoRightGrantsNothing() {
-		for (final Object value : new Object[] { null, "ADMIN", "", 4L, -1, 1.5d, Double.NaN,
-				Double.POSITIVE_INFINITY, new Object() }) {
+		for (final Object value : new Object[] { null, "ADMIN", "", 4L, -1, 1.5d, Double.NaN, Double.POSITIVE_INFINITY,
+				new Object() }) {
 			Assertions.assertFalse(this.user.hasRight(APP, "FULL_ROLE", value), () -> "value=" + value);
 			Assertions.assertFalse(this.user.hasRight(APP, "NONE_ROLE", value), () -> "value=" + value);
 		}
