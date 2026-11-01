@@ -8,3 +8,6 @@ env_dev_arch/data/
 .claude/
 site/
 *.tar.gz.sha256
+
+# Left by `mvn versions:*` run by hand: untracked, it makes ./deliver refuse the working tree.
+*.versionsBackup
