@@ -28,7 +28,7 @@ import jakarta.ws.rs.core.Context;
  * <p>Contains all metadata about the endpoint: HTTP method, path, parameters,
  * return types, consumed/produced media types, and security roles.
  */
-public class ApiModel {
+public final class ApiModel {
 	/** Logger instance. */
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
 

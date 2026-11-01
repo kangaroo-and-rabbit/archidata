@@ -7,14 +7,14 @@ package org.atriasoft.archidata.dataAccess.options;
  * negative value as "a single batch", so both are rejected instead of silently returning everything. The
  * maximum ({@value #DEFAULT_MAX_VALUE} by default) is set with {@link #setMaxValue(long)}.
  */
-public class Limit extends QueryOption {
+public final class Limit extends QueryOption {
 	/** Default maximum accepted by the constructor. */
 	public static final long DEFAULT_MAX_VALUE = 10_000L;
 
 	private static volatile long maxValue = DEFAULT_MAX_VALUE;
 
 	/** The maximum number of results to return. */
-	protected final long limit;
+	private final long limit;
 
 	/**
 	 * Constructs a Limit option with the specified maximum result count.

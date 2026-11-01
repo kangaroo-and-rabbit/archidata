@@ -12,7 +12,7 @@ import java.util.Set;
  *
  * <p>Used to model {@code Map<K, V>} fields in API generation.
  */
-public class ClassMapModel extends ClassModel {
+public final class ClassMapModel extends ClassModel {
 	/** The class model for the map key type. */
 	public ClassModel keyModel;
 	/** The class model for the map value type. */

@@ -20,7 +20,7 @@ record OrderedElement(
  * <p>Collects all annotated methods from the class and creates {@link ApiModel}
  * instances for each endpoint, sorted alphabetically by method name.
  */
-public class ApiGroupModel {
+public final class ApiGroupModel {
 	/** Logger instance. */
 	static final Logger LOGGER = LoggerFactory.getLogger(ApiGroupModel.class);
 

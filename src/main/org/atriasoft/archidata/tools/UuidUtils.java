@@ -66,7 +66,7 @@ public class UuidUtils {
 		return bb.array();
 	}
 
-	private static class Generator {
+	private static final class Generator {
 		private long base;
 		private final long offset;
 		private long previous;

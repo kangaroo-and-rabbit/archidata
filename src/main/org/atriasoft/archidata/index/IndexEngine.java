@@ -60,7 +60,7 @@ import com.mongodb.client.model.ReturnDocument;
  * and propagates: a unique index that duplicated data rejects is a problem to fix, not to log and
  * forget while the server starts anyway.
  */
-public class IndexEngine {
+public final class IndexEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(IndexEngine.class);
 
 	/** Default collection caching what has already been synchronized. */

@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * and registered data classes. Provides a connection URL builder for MongoDB.
  * </p>
  */
-public class DbConfig implements Cloneable {
+public final class DbConfig implements Cloneable {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
 	/** Port used when none is given (MongoDB default). */
 	private static final int DEFAULT_PORT = 27017;

@@ -19,7 +19,7 @@ import java.util.Set;
  * {@code getDependencyGroupModels()} to the item type, so the generated DTOs
  * for {@code T} are produced exactly as before.
  */
-public class ClassPaginationModel extends ClassModel {
+public final class ClassPaginationModel extends ClassModel {
 
 	/** The class model for the item type of the paginated list. */
 	public ClassModel valueModel;
