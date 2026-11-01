@@ -22,4 +22,13 @@ class TestAnnotationCreator {
 		// Default values from the annotation definition
 		Assertions.assertNotNull(annotation);
 	}
+
+	@Test
+	void testToStringListsTheValues() {
+		final ApiGenerationMode annotation = AnnotationCreator.createAnnotation(ApiGenerationMode.class, "read", true,
+				"create", new Object[] { "nested" });
+		// Used to print the hash of the array: "...ApiGenerationMode[Ljava.lang.Object;@1b2c6ec2".
+		Assertions.assertEquals("@" + ApiGenerationMode.class.getName() + "[read, true, create, [nested]]",
+				annotation.toString());
+	}
 }

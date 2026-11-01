@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 
 /**
  * Factory for creating annotation instances at runtime using dynamic proxies.
@@ -34,7 +35,7 @@ public class AnnotationCreator {
 							return annotationClass;
 						}
 						if ("toString".equals(method.getName())) {
-							return "@" + annotationClass.getName() + values;
+							return "@" + annotationClass.getName() + Arrays.deepToString(values);
 						}
 						for (int i = 0; i < values.length; i += 2) {
 							if (method.getName().equals(values[i])) {
