@@ -9,6 +9,7 @@ import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupRead;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
+import org.atriasoft.archidata.tools.DateTools;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -121,7 +122,7 @@ public class Data extends OIDGenericDataSoftDelete {
 	 * @return the analysis timestamp
 	 */
 	public Date getStreamsAnalyzedAt() {
-		return this.streamsAnalyzedAt;
+		return DateTools.copyOf(this.streamsAnalyzedAt);
 	}
 
 	/**
@@ -129,6 +130,6 @@ public class Data extends OIDGenericDataSoftDelete {
 	 * @param streamsAnalyzedAt the analysis timestamp to set
 	 */
 	public void setStreamsAnalyzedAt(final Date streamsAnalyzedAt) {
-		this.streamsAnalyzedAt = streamsAnalyzedAt;
+		this.streamsAnalyzedAt = DateTools.copyOf(streamsAnalyzedAt);
 	}
 }

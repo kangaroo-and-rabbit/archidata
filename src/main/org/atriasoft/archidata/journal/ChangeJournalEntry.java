@@ -6,6 +6,7 @@ import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.Field;
 import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
+import org.atriasoft.archidata.tools.DateTools;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
@@ -127,7 +128,7 @@ public class ChangeJournalEntry {
 	 * @return the source document date, or {@code null} if the document carries none
 	 */
 	public Date getSourceUpdatedAt() {
-		return this.sourceUpdatedAt;
+		return DateTools.copyOf(this.sourceUpdatedAt);
 	}
 
 	/**
@@ -135,7 +136,7 @@ public class ChangeJournalEntry {
 	 * @param sourceUpdatedAt the source document date
 	 */
 	public void setSourceUpdatedAt(final Date sourceUpdatedAt) {
-		this.sourceUpdatedAt = sourceUpdatedAt;
+		this.sourceUpdatedAt = DateTools.copyOf(sourceUpdatedAt);
 	}
 
 	/**
@@ -143,7 +144,7 @@ public class ChangeJournalEntry {
 	 * @return the record date
 	 */
 	public Date getRecordedAt() {
-		return this.recordedAt;
+		return DateTools.copyOf(this.recordedAt);
 	}
 
 	/**
@@ -151,6 +152,6 @@ public class ChangeJournalEntry {
 	 * @param recordedAt the record date
 	 */
 	public void setRecordedAt(final Date recordedAt) {
-		this.recordedAt = recordedAt;
+		this.recordedAt = DateTools.copyOf(recordedAt);
 	}
 }

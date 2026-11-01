@@ -3,6 +3,7 @@ package org.atriasoft.archidata.model;
 import java.util.Date;
 
 import org.atriasoft.archidata.annotation.Collection;
+import org.atriasoft.archidata.tools.DateTools;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -64,7 +65,7 @@ public class GenericToken extends OIDGenericDataSoftDelete {
 	 * @return the expiration date
 	 */
 	public Date getEndValidity() {
-		return this.endValidity;
+		return DateTools.copyOf(this.endValidity);
 	}
 
 	/**
@@ -72,7 +73,7 @@ public class GenericToken extends OIDGenericDataSoftDelete {
 	 * @param endValidity the expiration date to set
 	 */
 	public void setEndValidity(final Date endValidity) {
-		this.endValidity = endValidity;
+		this.endValidity = DateTools.copyOf(endValidity);
 	}
 
 	/**

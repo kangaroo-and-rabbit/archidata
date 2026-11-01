@@ -9,6 +9,7 @@ import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
 import org.atriasoft.archidata.annotation.checker.GroupCreate;
 import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
+import org.atriasoft.archidata.tools.DateTools;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -59,7 +60,7 @@ public class GenericTiming {
 	 * @return the creation date
 	 */
 	public Date getCreatedAt() {
-		return this.createdAt;
+		return DateTools.copyOf(this.createdAt);
 	}
 
 	/**
@@ -67,7 +68,7 @@ public class GenericTiming {
 	 * @param createdAt the creation date to set
 	 */
 	public void setCreatedAt(final Date createdAt) {
-		this.createdAt = createdAt;
+		this.createdAt = DateTools.copyOf(createdAt);
 	}
 
 	/**
@@ -75,7 +76,7 @@ public class GenericTiming {
 	 * @return the last update date
 	 */
 	public Date getUpdatedAt() {
-		return this.updatedAt;
+		return DateTools.copyOf(this.updatedAt);
 	}
 
 	/**
@@ -83,6 +84,6 @@ public class GenericTiming {
 	 * @param updatedAt the last update date to set
 	 */
 	public void setUpdatedAt(final Date updatedAt) {
-		this.updatedAt = updatedAt;
+		this.updatedAt = DateTools.copyOf(updatedAt);
 	}
 }
