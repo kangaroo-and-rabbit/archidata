@@ -650,19 +650,19 @@ public class ConfigBaseVariable {
 
 	/**
 	 * Returns the registered database interface classes.
-	 * @return An array of database interface classes.
+	 * @return A copy of the array of database interface classes.
 	 */
 	public static Class<?>[] getBbInterfacesClasses() {
-		return dbInterfacesClasses;
+		return dbInterfacesClasses == null ? null : dbInterfacesClasses.clone();
 	}
 
 	/**
 	 * Sets the database interface classes for data access registration.
-	 * @param data The array of database interface classes to register.
+	 * @param data The array of database interface classes to register, copied.
 	 */
 	public static void setBbInterfacesClasses(final Class<?>[] data) {
 		checkNotLocked("dbInterfacesClasses");
-		dbInterfacesClasses = data;
+		dbInterfacesClasses = data == null ? null : data.clone();
 	}
 
 	/**

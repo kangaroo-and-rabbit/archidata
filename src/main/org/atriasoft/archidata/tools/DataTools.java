@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -118,11 +119,12 @@ public class DataTools {
 	}
 
 	/** Supported image MIME types for upload validation. */
-	public static final String[] SUPPORTED_IMAGE_MIME_TYPE = { "image/jpeg", "image/png", "image/webp", MIME_SVG };
+	public static final List<String> SUPPORTED_IMAGE_MIME_TYPE = List.of("image/jpeg", "image/png", "image/webp",
+			MIME_SVG);
 	/** Supported audio MIME types for upload validation. */
-	public static final String[] SUPPORTED_AUDIO_MIME_TYPE = { "audio/x-matroska" };
+	public static final List<String> SUPPORTED_AUDIO_MIME_TYPE = List.of("audio/x-matroska");
 	/** Supported video MIME types for upload validation. */
-	public static final String[] SUPPORTED_VIDEO_MIME_TYPE = { "video/x-matroska", "video/webm" };
+	public static final List<String> SUPPORTED_VIDEO_MIME_TYPE = List.of("video/x-matroska", "video/webm");
 
 	/**
 	 * Creates a directory (and parent directories) if it does not already exist.
@@ -583,8 +585,21 @@ public class DataTools {
 	 */
 	public static String detectAcceptedMimeType(final String filePath, final String[] accepted)
 			throws FailException, IOException {
+		return detectAcceptedMimeType(filePath, Arrays.asList(accepted));
+	}
+
+	/**
+	 * Detects the type of a file from its content (Tika) and checks it against a list.
+	 * @param filePath The file to analyze.
+	 * @param accepted The accepted MIME types.
+	 * @return The detected type, one of {@code accepted}.
+	 * @throws FailException HTTP 406 when the detected type is not accepted.
+	 * @throws IOException If the file cannot be read.
+	 */
+	public static String detectAcceptedMimeType(final String filePath, final List<String> accepted)
+			throws FailException, IOException {
 		final String detectedMimeType = getMimeTypeFromFile(filePath);
-		if (!Arrays.asList(accepted).contains(detectedMimeType)) {
+		if (!accepted.contains(detectedMimeType)) {
 			throw new FailException(Response.Status.NOT_ACCEPTABLE, "File content type is not acceptable: "
 					+ detectedMimeType + " - supported: " + String.join(", ", accepted));
 		}
@@ -592,8 +607,8 @@ public class DataTools {
 	}
 
 	/** All MIME types accepted for generic file upload. */
-	public static final String[] SUPPORTED_UPLOAD_MIME_TYPES = { "image/jpeg", "image/png", "image/webp", MIME_SVG,
-			"audio/x-matroska", "video/x-matroska", "video/webm" };
+	public static final List<String> SUPPORTED_UPLOAD_MIME_TYPES = List.of("image/jpeg", "image/png", "image/webp",
+			MIME_SVG, "audio/x-matroska", "video/x-matroska", "video/webm");
 
 	/** Default largest body downloaded from a remote URL (50 MiB). */
 	public static final long DEFAULT_MAX_REMOTE_DATA_SIZE = 50L * 1024 * 1024;
@@ -641,10 +656,11 @@ public class DataTools {
 		if (response.status() != 200) {
 			throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media");
 		}
-		if (response.body().length == 0) {
+		final byte[] body = response.body();
+		if (body.length == 0) {
 			throw new FailException(Response.Status.NOT_ACCEPTABLE, "Remote data is empty");
 		}
-		return response.body();
+		return body;
 	}
 
 	/**
@@ -679,7 +695,7 @@ public class DataTools {
 			final String sha512 = saveTemporaryFile(dataResponse, tmpUID);
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
-			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
+			if (!SUPPORTED_IMAGE_MIME_TYPE.contains(mimeType)) {
 				throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data CoverType is not acceptable: " + mimeType
 						+ " - supported: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 
@@ -720,7 +736,7 @@ public class DataTools {
 			final DBAccessMongo ioDb = ctx.get();
 			Data data = getWithSha512(ioDb, sha512);
 			final String mimeType = getMimeType(dataResponse);
-			if (!Arrays.asList(SUPPORTED_IMAGE_MIME_TYPE).contains(mimeType)) {
+			if (!SUPPORTED_IMAGE_MIME_TYPE.contains(mimeType)) {
 				throw new FailException(Response.Status.NOT_ACCEPTABLE, "Data CoverType is not acceptable: " + mimeType
 						+ " - supported: " + String.join(", ", SUPPORTED_IMAGE_MIME_TYPE));
 			}

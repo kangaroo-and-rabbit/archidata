@@ -73,7 +73,24 @@ public class SafeHttpFetcher {
 	public record Result(
 			int status,
 			String contentType,
-			byte[] body) {}
+			byte[] body) {
+		/**
+		 * Compact constructor copying the body.
+		 */
+		public Result {
+			body = body == null ? null : body.clone();
+		}
+
+		/**
+		 * Returns the body of the last hop.
+		 *
+		 * @return a copy of the body: keep it in a variable rather than calling this method twice
+		 */
+		@Override
+		public byte[] body() {
+			return this.body == null ? null : this.body.clone();
+		}
+	}
 
 	private final Predicate<InetAddress> forbidden;
 	private final int connectTimeoutMs;

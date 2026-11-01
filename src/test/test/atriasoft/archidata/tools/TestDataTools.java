@@ -287,4 +287,13 @@ class TestDataTools {
 			java.nio.file.Files.deleteIfExists(text);
 		}
 	}
+
+	@Test
+	void theAcceptedTypesCannotBeWidened() {
+		// The arrays they replace could be changed by any code, and they decide what an upload may contain.
+		Assertions.assertThrows(UnsupportedOperationException.class,
+				() -> DataTools.SUPPORTED_UPLOAD_MIME_TYPES.add("text/html"));
+		Assertions.assertThrows(UnsupportedOperationException.class,
+				() -> DataTools.SUPPORTED_IMAGE_MIME_TYPE.set(0, "text/html"));
+	}
 }

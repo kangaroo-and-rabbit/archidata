@@ -38,6 +38,8 @@ class TestRESTApiRequest {
 			LAST_CUSTOM_HEADER.set(exchange.getRequestHeaders().getFirst("X-Custom"));
 			reply(exchange, 200, "hello");
 		});
+		server.createContext("/echo", exchange -> reply(exchange, 200,
+				new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
 		server.createContext("/ko", exchange -> reply(exchange, 404,
 				"{\"name\":\"Request Fail\",\"message\":\"nope\",\"time\":\"t\",\"status\":404,\"statusMessage\":\"Not Found\"}"));
 		server.createContext("/html", exchange -> reply(exchange, 502, "<html>bad gateway</html>"));
@@ -129,5 +131,14 @@ class TestRESTApiRequest {
 		Assertions.assertThrows(java.net.http.HttpTimeoutException.class,
 				() -> new RESTApiRequest(baseUrl + "/slow", null, null).timeout(java.time.Duration.ofMillis(300))
 						.fetchString());
+	}
+
+	@Test
+	void bodyByteSendsTheBytesItReceived() throws Exception {
+		final byte[] given = "before".getBytes(StandardCharsets.UTF_8);
+		final RESTApiRequest request = new RESTApiRequest(baseUrl + "/echo", null, null).post().bodyByte(given,
+				"text/plain");
+		System.arraycopy("after!".getBytes(StandardCharsets.UTF_8), 0, given, 0, given.length);
+		Assertions.assertEquals("before", request.fetchString().body());
 	}
 }

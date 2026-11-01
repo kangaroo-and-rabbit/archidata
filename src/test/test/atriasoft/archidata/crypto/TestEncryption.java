@@ -341,6 +341,15 @@ public class TestEncryption {
 	}
 
 	@Test
+	public void testParsedEnvelopeKeepsItsPayload() {
+		final byte[] given = { 1, 2, 3 };
+		final EncryptedEnvelope.Parsed parsed = new EncryptedEnvelope.Parsed(EncryptionScheme.AES_GCM, given);
+		given[0] = 9;
+		parsed.payload()[1] = 9;
+		Assertions.assertArrayEquals(new byte[] { 1, 2, 3 }, parsed.payload());
+	}
+
+	@Test
 	public void testEnvelopeEmptyPayloadRoundTrip() {
 		final String envelope = EncryptedEnvelope.encode(EncryptionScheme.AES_GCM, new byte[0]);
 		Assertions.assertTrue(EncryptedEnvelope.isEnvelope(envelope));
