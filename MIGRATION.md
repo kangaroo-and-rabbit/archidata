@@ -16,6 +16,11 @@ les points ci-dessous sont les seuls changements visibles.
 - `setRoles` et `setRight` copient la carte reçue : la modifier ensuite n'a plus d'effet sur l'entité.
 - `getRoles()` ne change pas et reste modifiable (`getRoles().put(...)`, utilisé par les filtres des applications).
 
+### Erreurs REST
+
+- Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper
+  (`NullPointerException`), donc répondait un 500. Elle répond maintenant avec son code et le JSON d'erreur habituel.
+
 ## Prochaine version (après v0.52.0) - `rest-tools.ts` strict, sans `enum`, sans jeton dans la console
 
 Le runtime du client TypeScript passe le mode `strict` de TypeScript et le format des fronts. Il suffit de

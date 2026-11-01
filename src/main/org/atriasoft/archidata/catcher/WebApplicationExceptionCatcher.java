@@ -31,16 +31,17 @@ public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplic
 	public Response toResponse(final WebApplicationException exception) {
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error OID={}", ret.oid);
-		return Response.status(exception.getResponse().getStatusInfo().toEnum()).entity(ret)
-				.type(MediaType.APPLICATION_JSON).build();
+		return Response.status(exception.getResponse().getStatusInfo()).entity(ret).type(MediaType.APPLICATION_JSON)
+				.build();
 	}
 
 	private RestErrorResponse build(final WebApplicationException exception) {
 		LOGGER.error("WebApplicationException caught: {}", exception.getMessage(), exception);
-		final Response.Status status = exception.getResponse().getStatusInfo().toEnum();
+		// Not toEnum(): it is null for a code that Response.Status does not list (499, 599...).
+		final Response.StatusType status = exception.getResponse().getStatusInfo();
 		// A 4xx message describes the request (NotFoundException("...")); a 5xx one may describe the server
 		// (an InternalServerErrorException wrapping an IOException): it only goes to the log.
-		final String message = status != null && status.getFamily() == Response.Status.Family.SERVER_ERROR
+		final String message = status.getFamily() == Response.Status.Family.SERVER_ERROR
 				? ExceptionCatcher.GENERIC_MESSAGE
 				: exception.getMessage();
 		return new RestErrorResponse(status, "Catch system exception", message);
