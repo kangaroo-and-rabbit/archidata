@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +101,9 @@ public class UserByToken {
 
 	/**
 	 * Gets the roles map. The outer map key is the group name, the inner map key is the role name.
+	 * <p>
+	 * This is the live map, and it stays writable: applications add a role to the token of an application key with
+	 * {@code getRoles().put(...)}. {@link #getRight()} is read-only.
 	 * @return the roles map
 	 */
 	public Map<String, Map<String, PartRight>> getRoles() {
@@ -107,27 +111,49 @@ public class UserByToken {
 	}
 
 	/**
-	 * Sets the roles map.
+	 * Sets the roles map. The map is copied: changing it afterwards does not change the roles of this entity.
 	 * @param roles the roles map to set
 	 */
 	public void setRoles(final Map<String, Map<String, PartRight>> roles) {
-		this.roles = roles;
+		this.roles = copyRights(roles);
 	}
 
 	/**
 	 * Gets the fine-grained rights map. The outer map key is the group name, the inner map key is the right name.
-	 * @return the rights map
+	 * @return a read-only view of the rights map: writing to it throws {@link UnsupportedOperationException}, use
+	 *         {@link #setRight(Map)}
 	 */
 	public Map<String, Map<String, PartRight>> getRight() {
-		return this.right;
+		if (this.right == null) {
+			return null;
+		}
+		final Map<String, Map<String, PartRight>> out = new HashMap<>();
+		for (final Map.Entry<String, Map<String, PartRight>> entry : this.right.entrySet()) {
+			final Map<String, PartRight> rightGroup = entry.getValue();
+			out.put(entry.getKey(), rightGroup == null ? null : Collections.unmodifiableMap(rightGroup));
+		}
+		return Collections.unmodifiableMap(out);
 	}
 
 	/**
-	 * Sets the fine-grained rights map.
+	 * Sets the fine-grained rights map. The map is copied: changing it afterwards does not change the rights of this
+	 * entity.
 	 * @param right the rights map to set
 	 */
 	public void setRight(final Map<String, Map<String, PartRight>> right) {
-		this.right = right;
+		this.right = copyRights(right);
+	}
+
+	private static Map<String, Map<String, PartRight>> copyRights(final Map<String, Map<String, PartRight>> source) {
+		if (source == null) {
+			return null;
+		}
+		final Map<String, Map<String, PartRight>> out = new HashMap<>();
+		for (final Map.Entry<String, Map<String, PartRight>> entry : source.entrySet()) {
+			final Map<String, PartRight> group = entry.getValue();
+			out.put(entry.getKey(), group == null ? null : new HashMap<>(group));
+		}
+		return out;
 	}
 
 	/**
@@ -182,51 +208,55 @@ public class UserByToken {
 	}
 
 	/**
-	 * Checks whether the entity has a specific role value for a given group and key.
-	 * Supports Boolean, String, Long, and Double value types.
+	 * Checks whether the role {@code key} of a group gives the access described by {@code value}.
+	 * <p>
+	 * The role is a {@link PartRight} bitmask, so a role grants what its bits include, as
+	 * {@link org.atriasoft.archidata.filter.MySecurityContext#hasResourceRight} and
+	 * {@link org.atriasoft.archidata.filter.MySecurityContext#checkRightInGroup} do: {@code READ_WRITE} satisfies
+	 * {@code READ} and {@code WRITE}; {@code READ} does not satisfy {@code WRITE}. {@code value} can be:
+	 * <ul>
+	 * <li>a {@link PartRight};</li>
+	 * <li>a {@code String}, the name of a right ({@link PartRight#fromString(String)});</li>
+	 * <li>a {@code Long}, an {@code Integer} or a whole {@code Double}, the code of a right
+	 * ({@link PartRight#fromValue(long)});</li>
+	 * <li>a {@code Boolean}: {@code true} asks for {@code READ_WRITE}, like a role without {@code :r} or {@code :w}
+	 * suffix in {@link org.atriasoft.archidata.filter.MySecurityContext#isUserInRole(String)}, {@code false} asks for
+	 * {@code NONE}.</li>
+	 * </ul>
+	 * {@code NONE} grants nothing, it does not match every role: it only matches a role whose value is {@code NONE}.
+	 * Anything else ({@code null}, an unknown name or code, another type) grants nothing.
 	 * @param group the group name
 	 * @param key the role key within the group
-	 * @param value the expected value to compare against
-	 * @return {@code true} if the role exists and matches the given value, {@code false} otherwise
+	 * @param value the access to check
+	 * @return {@code true} if the role exists and gives this access, {@code false} otherwise
 	 */
 	public boolean hasRight(final String group, final String key, final Object value) {
-		final Object data = getRoleForKey(group, key);
-		if (data == null) {
+		final PartRight held = getRoleForKey(group, key);
+		final PartRight asked = toPartRight(value);
+		if (held == null || asked == null) {
 			return false;
 		}
-		if (data instanceof final Boolean elem) {
-			if (value instanceof final Boolean castVal) {
-				if (elem.equals(castVal)) {
-					return true;
-				}
-			}
-			return false;
+		if (asked == PartRight.NONE) {
+			return held == PartRight.NONE;
 		}
-		if (data instanceof final String elem) {
-			if (value instanceof final String castVal) {
-				if (elem.equals(castVal)) {
-					return true;
-				}
-			}
-			return false;
+		return (held.getValue() & asked.getValue()) == asked.getValue();
+	}
+
+	/** The {@link PartRight} described by a value, {@code null} when it describes none. */
+	private static PartRight toPartRight(final Object value) {
+		try {
+			return switch (value) {
+				case final PartRight elem -> elem;
+				case final Boolean elem -> elem ? PartRight.READ_WRITE : PartRight.NONE;
+				case final String elem -> PartRight.fromString(elem);
+				case final Long elem -> PartRight.fromValue(elem.longValue());
+				case final Integer elem -> PartRight.fromValue(elem.intValue());
+				case final Double elem when elem == Math.rint(elem) -> PartRight.fromValue(elem.longValue());
+				case null, default -> null;
+			};
+		} catch (final IllegalArgumentException ex) {
+			return null;
 		}
-		if (data instanceof final Long elem) {
-			if (value instanceof final Long castVal) {
-				if (elem.equals(castVal)) {
-					return true;
-				}
-			}
-			return false;
-		}
-		if (data instanceof final Double elem) {
-			if (value instanceof final Double castVal) {
-				if (elem.equals(castVal)) {
-					return true;
-				}
-			}
-			return false;
-		}
-		return false;
 	}
 
 }

@@ -349,6 +349,16 @@ public Response getCurrentUser(@Context final SecurityContext sc) {
 | `hasResourceRight(app, rightName, required)` | `boolean` | Check resource right with bitmask logic: `(user & required) == required` |
 | `getResourceRight(app, rightName)` | `PartRight` | Get the raw right value for a resource |
 
+#### On `UserByToken`
+
+`hasRight(group, key, value)` checks a **role**, with the same bitmask logic: `READ_WRITE` satisfies `READ` and `WRITE`,
+`READ` does not satisfy `WRITE`. `value` is a `PartRight`, its name, its code (`Long`, `Integer`, whole `Double`), or a
+`Boolean` (`true` asks for `READ_WRITE`, `false` for `NONE`). `NONE` only matches a role whose value is `NONE`. A missing
+role, or a value that describes no right, answers `false`.
+
+`setRoles` and `setRight` copy the map they receive. `getRight()` is read-only. `getRoles()` stays the live, writable map:
+an `AuthenticationFilter` subclass adds the role of an application key with `getRoles().put(...)`.
+
 
 RightRoleMapper — Generating Rights from Roles
 ===============================================
