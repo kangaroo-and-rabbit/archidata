@@ -67,6 +67,8 @@ public class DbIoMongo extends DbIo implements Closeable {
 
 	/** Shared {@link MongoClient} pool keyed by the resolved connection URL. */
 	private static final ConcurrentHashMap<String, MongoClient> CLIENT_CACHE = new ConcurrentHashMap<>();
+	/** Private lock: {@code synchronized} on a public static method locks a {@link Class} anyone can hold. */
+	private static final Object RECONNECT_LOCK = new Object();
 	private static final AtomicBoolean SHUTDOWN_HOOK_INSTALLED = new AtomicBoolean(false);
 
 	private MongoClient mongoClient = null;
@@ -190,9 +192,11 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * recreates a fresh one. Use as an admin lever when the driver fails to
 	 * recover from a MongoDB outage on its own.
 	 */
-	public static synchronized void forceReconnect() {
-		LOGGER.warn("Force-reconnect requested: dropping {} cached MongoClient(s)", CLIENT_CACHE.size());
-		shutdownAll();
+	public static void forceReconnect() {
+		synchronized (RECONNECT_LOCK) {
+			LOGGER.warn("Force-reconnect requested: dropping {} cached MongoClient(s)", CLIENT_CACHE.size());
+			shutdownAll();
+		}
 	}
 
 	/**

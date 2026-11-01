@@ -41,6 +41,7 @@ public class openApiResource {
 	private static String apiTitle = "API";
 	private static String apiVersion = "1.0.0";
 	private static String cachedSpec;
+	private static final Object SPEC_LOCK = new Object();
 
 	/** Default constructor used by the JAX-RS resource framework. */
 	public openApiResource() {}
@@ -53,10 +54,22 @@ public class openApiResource {
 	 * @param version the API version
 	 */
 	public static void configure(final AnalyzeApi api, final String title, final String version) {
-		analyzeApi = api;
-		apiTitle = title;
-		apiVersion = version;
-		cachedSpec = null; // invalidate cache
+		synchronized (SPEC_LOCK) {
+			analyzeApi = api;
+			apiTitle = title;
+			apiVersion = version;
+			cachedSpec = null; // invalidate cache
+		}
+	}
+
+	/** The specification, generated at the first call after {@link #configure}. */
+	private static String specification() throws Exception {
+		synchronized (SPEC_LOCK) {
+			if (cachedSpec == null) {
+				cachedSpec = OpenApiGenerateApi.generateJson(analyzeApi, apiTitle, apiVersion);
+			}
+			return cachedSpec;
+		}
 	}
 
 	/**
@@ -80,9 +93,6 @@ public class openApiResource {
 			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
 					.entity("{\"error\": \"OpenAPI not configured\"}").type(MediaType.APPLICATION_JSON).build();
 		}
-		if (cachedSpec == null) {
-			cachedSpec = OpenApiGenerateApi.generateJson(analyzeApi, apiTitle, apiVersion);
-		}
-		return Response.ok(cachedSpec, MediaType.APPLICATION_JSON).build();
+		return Response.ok(specification(), MediaType.APPLICATION_JSON).build();
 	}
 }
