@@ -195,7 +195,7 @@ public final class PropertyDescriptor {
 	 * @return unmodifiable map of annotation class to annotation instance
 	 */
 	public Map<Class<? extends Annotation>, Annotation> getAllAnnotations() {
-		return this.annotationCache;
+		return Collections.unmodifiableMap(this.annotationCache);
 	}
 
 	// ========== Value access ==========

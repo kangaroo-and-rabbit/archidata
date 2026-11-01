@@ -22,7 +22,10 @@ import org.junit.jupiter.api.Test;
 class TestModelDates {
 	private static final long TIME = 1_000_000L;
 
-	private static <T> void keepsItsDate(final T bean, final BiConsumer<T, Date> setter, final Function<T, Date> getter) {
+	private static <T> void keepsItsDate(
+			final T bean,
+			final BiConsumer<T, Date> setter,
+			final Function<T, Date> getter) {
 		final Date given = new Date(TIME);
 		setter.accept(bean, given);
 		given.setTime(0L);
@@ -43,7 +46,8 @@ class TestModelDates {
 		keepsItsDate(new ChangeJournalEntry(), ChangeJournalEntry::setSourceUpdatedAt,
 				ChangeJournalEntry::getSourceUpdatedAt);
 		keepsItsDate(new ChangeJournalEntry(), ChangeJournalEntry::setRecordedAt, ChangeJournalEntry::getRecordedAt);
-		keepsItsDate(new ChangeJournalMarker(), ChangeJournalMarker::setLastSavedAt, ChangeJournalMarker::getLastSavedAt);
+		keepsItsDate(new ChangeJournalMarker(), ChangeJournalMarker::setLastSavedAt,
+				ChangeJournalMarker::getLastSavedAt);
 		keepsItsDate(new ChangeJournalMarker(), ChangeJournalMarker::setLastRunAt, ChangeJournalMarker::getLastRunAt);
 	}
 
