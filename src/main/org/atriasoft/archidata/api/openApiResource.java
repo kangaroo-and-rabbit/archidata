@@ -62,9 +62,12 @@ public class openApiResource {
 		}
 	}
 
-	/** The specification, generated at the first call after {@link #configure}. */
+	/** The specification, generated at the first call after {@link #configure}, or {@code null} before it. */
 	private static String specification() throws Exception {
 		synchronized (SPEC_LOCK) {
+			if (analyzeApi == null) {
+				return null;
+			}
 			if (cachedSpec == null) {
 				cachedSpec = OpenApiGenerateApi.generateJson(analyzeApi, apiTitle, apiVersion);
 			}
@@ -88,11 +91,12 @@ public class openApiResource {
 			// Off by default: the specification maps the whole API for an anonymous caller.
 			return Response.status(Response.Status.NOT_FOUND).build();
 		}
-		if (analyzeApi == null) {
+		final String specification = specification();
+		if (specification == null) {
 			LOGGER.error("OpenAPI resource not configured. Call openApiResource.configure() at startup.");
 			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
 					.entity("{\"error\": \"OpenAPI not configured\"}").type(MediaType.APPLICATION_JSON).build();
 		}
-		return Response.ok(specification(), MediaType.APPLICATION_JSON).build();
+		return Response.ok(specification, MediaType.APPLICATION_JSON).build();
 	}
 }
