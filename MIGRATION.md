@@ -10,7 +10,7 @@ les points ci-dessous sont les seuls changements visibles.
 
 - `hasRight(group, key, value)` répondait toujours `false`. Il compare maintenant le rôle aux bits demandés, comme
   `MySecurityContext.hasResourceRight`. `value` : un `PartRight`, son nom, son code ou un `Boolean` (`true` demande
-  `READ_WRITE`). Un code qui appelait cette méthode et ignorait son résultat `false` peut voir son comportement changer.
+  `READ_WRITE`). Demander `NONE`, `false` ou `0` répond toujours `false`. Un code qui appelait cette méthode et ignorait son résultat `false` peut voir son comportement changer.
 - `getRight()` est en lecture seule : `getRight().put(...)` lève `UnsupportedOperationException`. Passer par
   `setRight(...)`.
 - `setRoles` et `setRight` copient la carte reçue : la modifier ensuite n'a plus d'effet sur l'entité.

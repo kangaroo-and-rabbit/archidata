@@ -180,14 +180,8 @@ public class UserByToken {
 	 * @return the {@link PartRight} value, or {@code null} if the group or key does not exist
 	 */
 	public PartRight getRoleForKey(final String group, final String key) {
-		if (!this.roles.containsKey(group)) {
-			return null;
-		}
-		final Map<String, PartRight> roleGroup = this.roles.get(group);
-		if (!roleGroup.containsKey(key)) {
-			return null;
-		}
-		return roleGroup.get(key);
+		final Map<String, PartRight> roleGroup = this.roles == null ? null : this.roles.get(group);
+		return roleGroup == null ? null : roleGroup.get(key);
 	}
 
 	/**
@@ -197,23 +191,18 @@ public class UserByToken {
 	 * @return the {@link PartRight} value, or {@code null} if the group or key does not exist
 	 */
 	public PartRight getRightForKey(final String group, final String key) {
-		if (!this.right.containsKey(group)) {
-			return null;
-		}
-		final Map<String, PartRight> rightGroup = this.right.get(group);
-		if (!rightGroup.containsKey(key)) {
-			return null;
-		}
-		return rightGroup.get(key);
+		final Map<String, PartRight> rightGroup = this.right == null ? null : this.right.get(group);
+		return rightGroup == null ? null : rightGroup.get(key);
 	}
 
 	/**
 	 * Checks whether the role {@code key} of a group gives the access described by {@code value}.
 	 * <p>
 	 * The role is a {@link PartRight} bitmask, so a role grants what its bits include, as
-	 * {@link org.atriasoft.archidata.filter.MySecurityContext#hasResourceRight} and
-	 * {@link org.atriasoft.archidata.filter.MySecurityContext#checkRightInGroup} do: {@code READ_WRITE} satisfies
-	 * {@code READ} and {@code WRITE}; {@code READ} does not satisfy {@code WRITE}. {@code value} can be:
+	 * {@link org.atriasoft.archidata.filter.MySecurityContext#hasResourceRight} does: {@code READ_WRITE} satisfies
+	 * {@code READ} and {@code WRITE}; {@code READ} does not satisfy {@code WRITE}. The role {@code USER} has no special
+	 * meaning here, unlike in {@link org.atriasoft.archidata.filter.MySecurityContext#checkRightInGroup}.
+	 * {@code value} can be:
 	 * <ul>
 	 * <li>a {@link PartRight};</li>
 	 * <li>a {@code String}, the name of a right ({@link PartRight#fromString(String)});</li>
@@ -223,8 +212,9 @@ public class UserByToken {
 	 * suffix in {@link org.atriasoft.archidata.filter.MySecurityContext#isUserInRole(String)}, {@code false} asks for
 	 * {@code NONE}.</li>
 	 * </ul>
-	 * {@code NONE} grants nothing, it does not match every role: it only matches a role whose value is {@code NONE}.
-	 * Anything else ({@code null}, an unknown name or code, another type) grants nothing.
+	 * {@code NONE} is not a right: asking for it answers {@code false}, whatever the role, so that a computed
+	 * {@code false} or {@code 0} never reads as a granted access for a role set to {@code NONE}. Anything else
+	 * ({@code null}, an unknown name or code, another type) grants nothing.
 	 * @param group the group name
 	 * @param key the role key within the group
 	 * @param value the access to check
@@ -233,11 +223,8 @@ public class UserByToken {
 	public boolean hasRight(final String group, final String key, final Object value) {
 		final PartRight held = getRoleForKey(group, key);
 		final PartRight asked = toPartRight(value);
-		if (held == null || asked == null) {
+		if (held == null || asked == null || asked == PartRight.NONE) {
 			return false;
-		}
-		if (asked == PartRight.NONE) {
-			return held == PartRight.NONE;
 		}
 		return (held.getValue() & asked.getValue()) == asked.getValue();
 	}
