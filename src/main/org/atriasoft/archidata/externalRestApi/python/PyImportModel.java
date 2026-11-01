@@ -1,7 +1,9 @@
 package org.atriasoft.archidata.externalRestApi.python;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,18 +115,22 @@ public class PyImportModel {
 
 	/**
 	 * Returns the requested rest_tools names.
-	 * @return the sorted set of names
+	 * @return a read-only view of the sorted set of names
 	 */
 	public Set<String> getRestToolsNames() {
-		return this.restToolsNames;
+		return Collections.unmodifiableSet(this.restToolsNames);
 	}
 
 	/**
 	 * Returns the requested model imports.
-	 * @return element to type names, ordered by file name
+	 * @return a read-only copy: element to type names, ordered by file name
 	 */
 	public Map<PyClassElement, Set<String>> getModelTypes() {
-		return this.modelTypes;
+		final Map<PyClassElement, Set<String>> out = new LinkedHashMap<>();
+		for (final Map.Entry<PyClassElement, Set<String>> entry : this.modelTypes.entrySet()) {
+			out.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
+		}
+		return Collections.unmodifiableMap(out);
 	}
 
 	private static void appendFromImport(final StringBuilder out, final String module, final Set<String> names) {
