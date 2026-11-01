@@ -71,7 +71,7 @@ public class CronScheduler {
 	/** Default minimum spacing between two event-driven executions of the same task. */
 	private static final long DEFAULT_EVENT_GRACE_MILLIS = 15_000L;
 	/** Minimum spacing between two event-driven executions of the same task (debounce window). */
-	private long eventGraceMillis = DEFAULT_EVENT_GRACE_MILLIS;
+	private volatile long eventGraceMillis = DEFAULT_EVENT_GRACE_MILLIS;
 	/** Last time (epoch ms) a task was enqueued because of a wake-up event, keyed by task name. */
 	private final Map<String, Long> lastEventEnqueueMillis = new ConcurrentHashMap<>();
 	/** Names of tasks currently being executed by the consumer thread. */
@@ -80,8 +80,11 @@ public class CronScheduler {
 	private final Set<String> trailingScheduledNames = ConcurrentHashMap.newKeySet();
 	/** Guards the wake-up bookkeeping so concurrent HTTP threads coalesce deterministically. */
 	private final Object wakeupLock = new Object();
-	/** One-shot timer used to fire the trailing (coalesced) wake-up runs. */
-	private ScheduledExecutorService rerunTimer;
+	/**
+	 * One-shot timer used to fire the trailing (coalesced) wake-up runs. Written by {@link #start()} and
+	 * {@link #stop()}, read by the threads calling {@link #triggerWakeup(String)}, which do not hold their lock.
+	 */
+	private volatile ScheduledExecutorService rerunTimer;
 	/** Optional lifecycle listener notified around every task execution. */
 	private CronExecutionListener executionListener;
 
@@ -193,8 +196,9 @@ public class CronScheduler {
 			}
 			// Sleep up to a second, but return immediately if a new immediate task was just added.
 			try {
-				this.producerWake.tryAcquire(1, TimeUnit.SECONDS);
-				this.producerWake.drainPermits();
+				if (this.producerWake.tryAcquire(1, TimeUnit.SECONDS)) {
+					this.producerWake.drainPermits();
+				}
 			} catch (final InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
@@ -213,7 +217,7 @@ public class CronScheduler {
 			// Remove first: a concurrent rescan that loses the race sees nothing and cannot double-enqueue.
 			if (this.scheduledTasks.remove(task.name()) != null) {
 				LOGGER.info("Add scheduled task '{}' to queue", task.name());
-				this.queue.offer(new PendingTask(task, CronTriggerType.SCHEDULED));
+				this.queue.add(new PendingTask(task, CronTriggerType.SCHEDULED));
 			}
 		}
 	}
@@ -228,13 +232,13 @@ public class CronScheduler {
 			if (task.uniqueInQueue()) {
 				if (!this.queue.contains(pending)) {
 					LOGGER.info("Add Unique Task in Queue: {}", task.name());
-					this.queue.offer(pending);
+					this.queue.add(pending);
 				} else {
 					LOGGER.info("Reject Unique Task in Queue: {} (already added)", task.name());
 				}
 			} else {
 				LOGGER.info("Add Task in Queue: {}", task.name());
-				this.queue.offer(pending);
+				this.queue.add(pending);
 			}
 		}
 	}
@@ -518,7 +522,8 @@ public class CronScheduler {
 
 	/** Schedules a single trailing wake-up run for the task. Must be called while holding {@link #wakeupLock}. */
 	private void scheduleTrailing(final String taskName) {
-		if (this.rerunTimer == null || this.rerunTimer.isShutdown()) {
+		final ScheduledExecutorService timer = this.rerunTimer;
+		if (timer == null || timer.isShutdown()) {
 			// Scheduler not started: nothing to fire later. Leading-edge enqueue already covered the rest.
 			return;
 		}
@@ -526,7 +531,7 @@ public class CronScheduler {
 			// A trailing run is already pending for this task: coalesce.
 			return;
 		}
-		this.rerunTimer.schedule(() -> fireTrailing(taskName), this.eventGraceMillis, TimeUnit.MILLISECONDS);
+		timer.schedule(() -> fireTrailing(taskName), this.eventGraceMillis, TimeUnit.MILLISECONDS);
 	}
 
 	/** Fires (or re-arms) a trailing wake-up run once its grace window has elapsed. */
@@ -556,7 +561,7 @@ public class CronScheduler {
 			return;
 		}
 		LOGGER.info("triggerWakeup: enqueue '{}'", task.name());
-		this.queue.offer(pending);
+		this.queue.add(pending);
 	}
 
 }
