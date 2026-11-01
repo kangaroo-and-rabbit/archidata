@@ -20,6 +20,16 @@ class TestConfigBaseVariable {
 		ConfigBaseVariable.clearAllValue();
 	}
 
+	@Test
+	void testBbInterfacesClassesCannotBeChangedThroughTheArray() {
+		final Class<?>[] given = { String.class };
+		ConfigBaseVariable.setBbInterfacesClasses(given);
+		given[0] = Long.class;
+		ConfigBaseVariable.getBbInterfacesClasses()[0] = Long.class;
+		// lock() protects the setter: the array must not be a way around it.
+		Assertions.assertArrayEquals(new Class<?>[] { String.class }, ConfigBaseVariable.getBbInterfacesClasses());
+	}
+
 	// ===== Default values when fields are null =====
 
 	@Test

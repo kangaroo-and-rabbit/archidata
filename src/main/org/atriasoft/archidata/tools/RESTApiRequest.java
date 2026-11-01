@@ -233,12 +233,12 @@ public class RESTApiRequest {
 
 	/**
 	 * Sets the request body as a byte array with the given content type.
-	 * @param body The byte array body.
+	 * @param body The byte array body, copied.
 	 * @param contentType The content type of the body.
 	 * @return This request instance for chaining.
 	 */
 	public RESTApiRequest bodyByte(final byte[] body, final String contentType) {
-		this.serializedBodyByte = body;
+		this.serializedBodyByte = body == null ? null : body.clone();
 		this.serializedBodyString = null;
 		this.contentType = contentType;
 		return this;

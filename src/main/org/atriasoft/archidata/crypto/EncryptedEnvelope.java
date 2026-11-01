@@ -30,7 +30,24 @@ public final class EncryptedEnvelope {
 	 */
 	public record Parsed(
 			EncryptionScheme scheme,
-			byte[] payload) {}
+			byte[] payload) {
+		/**
+		 * Compact constructor copying the payload.
+		 */
+		public Parsed {
+			payload = payload == null ? null : payload.clone();
+		}
+
+		/**
+		 * Returns the scheme-specific encrypted body.
+		 *
+		 * @return a copy of the payload
+		 */
+		@Override
+		public byte[] payload() {
+			return this.payload == null ? null : this.payload.clone();
+		}
+	}
 
 	/**
 	 * Builds the Base64-encoded envelope for an encrypted payload.

@@ -306,9 +306,9 @@ caller that does not move the file removes it with `removeTemporaryFile(id)`.
   checks the content against `SUPPORTED_UPLOAD_MIME_TYPES`
   (`detectAcceptedMimeType(path, accepted)`, HTTP 406 otherwise).
 - Type detection: `getMimeType(byte[])`, `getMimeTypeFromFile(String)`,
-  `bytesToHex`, `multipartCorrection`, and the constants
+  `bytesToHex`, `multipartCorrection`, and the constants: the immutable lists
   `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,
-  `SUPPORTED_VIDEO_MIME_TYPE`, `SUPPORTED_UPLOAD_MIME_TYPES`, `MIME_SVG`,
+  `SUPPORTED_VIDEO_MIME_TYPE`, `SUPPORTED_UPLOAD_MIME_TYPES`, then `MIME_SVG`,
   `CHUNK_SIZE` (1 MiB), `CHUNK_SIZE_IN` (50 MiB, deprecated and unused: the
   copies use a 64 KiB buffer).
 

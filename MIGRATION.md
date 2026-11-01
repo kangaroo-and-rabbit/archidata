@@ -22,6 +22,18 @@ les points ci-dessous sont les seuls changements visibles.
   l'ouverture de la connexion, avant de créer le client partagé. Elle échouait déjà, avec une
   `IllegalArgumentException` du pilote après un simple journal d'erreur.
 
+### Tableaux publics
+
+- `DataTools.SUPPORTED_IMAGE_MIME_TYPE`, `SUPPORTED_AUDIO_MIME_TYPE`, `SUPPORTED_VIDEO_MIME_TYPE` et
+  `SUPPORTED_UPLOAD_MIME_TYPES` deviennent des `List<String>` immuables : ces tableaux publics décidaient de ce qu'un
+  envoi peut contenir, et n'importe quel code pouvait les modifier. Aucune application du groupe ne les utilise.
+  `DataTools.detectAcceptedMimeType` accepte aussi une liste. Sinon, remplacer `Arrays.asList(X).contains(t)` par
+  `X.contains(t)`.
+- `ConfigBaseVariable.getBbInterfacesClasses()` rend une copie, et le setter copie le tableau reçu : le tableau ne
+  contourne plus `lock()`.
+- `EncryptedEnvelope.Parsed.payload()`, `SafeHttpFetcher.Result.body()` et `RESTApiRequest.bodyByte(...)` copient le
+  tableau. `body()` peut valoir 50 Mio : le garder dans une variable plutôt que de l'appeler deux fois.
+
 ### Erreurs REST
 
 - Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper

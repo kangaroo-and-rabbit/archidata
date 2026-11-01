@@ -158,4 +158,13 @@ class TestSafeHttpFetcher {
 	void otherSchemeIsRefused() {
 		Assertions.assertThrows(InputException.class, () -> fetcher().get("file:///etc/passwd", 1024));
 	}
+
+	@Test
+	void theResultKeepsItsBody() {
+		final byte[] given = { 1, 2, 3 };
+		final SafeHttpFetcher.Result result = new SafeHttpFetcher.Result(200, "image/png", given);
+		given[0] = 9;
+		result.body()[1] = 9;
+		Assertions.assertArrayEquals(new byte[] { 1, 2, 3 }, result.body());
+	}
 }
