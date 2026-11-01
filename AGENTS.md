@@ -61,6 +61,9 @@ Tests live in `src/test/test/atriasoft/archidata/` (same package layout).
 - Applications built on archidata (karso, karideo, karusic…) bind `exec-maven-plugin` to
   `package`, which starts the server: always pass `-Dexec.skip=true` there. archidata itself has
   no exec plugin, so the flag is harmless here and keeps one command for every project.
+- `mvn verify` runs SpotBugs (`check`, before the signature): a new finding fails the build and the CI. Fix it; an
+  exclusion goes in `spotbugs-exclude.xml` (class + pattern + field or method) with a reason, never a whole category.
+  `-Dspotbugs.skip=true` skips it locally.
 - Only one `target/` directory is shared: never run two Maven builds of this repository at the
   same time (serialize them, e.g. with `flock`).
 
@@ -155,6 +158,9 @@ Each point was checked against the code; the doc page gives the details.
   `{application: {name: code}}` whose values are `PartRight` codes (int `0..3` or the name
   `NONE`/`READ`/`WRITE`/`READ_WRITE`), never `Boolean`. Roles are checked as
   `applicationName/ROLE`.
+- **`UserByToken`**: `getRoles()` is the live, writable map (`getRoles().put(...)` adds the role of an application key);
+  `getRight()` is read-only; `setRoles` and `setRight` copy the map. `hasRight(group, key, value)` checks a role with
+  the same bitmask as `hasResourceRight`. See `doc/security.md`.
 - **`createdAt` and `updatedAt` carry `@DataNotRead`**: they are not returned by default reads.
   Use the `ReadAllColumn` option to get them. See `doc/data_model.md`.
 - **Mapping annotations are archidata's own** (`org.atriasoft.archidata.annotation`):

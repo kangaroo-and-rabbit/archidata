@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Findings that stay on purpose, with the reason. Everything else fails `mvn verify`.
+	Each entry names a class and a pattern, and a field or a method: no category, no package.
+	The triage of the 215 findings of the first scan is in plans/2026-11-01-spotbugs.md.
+	A new entry needs a reason a reader can check, and "a correction would break an application" names which one.
+-->
+<FindBugsFilter>
+	<!-- org.bson.types.ObjectId has final fields and no setter: it is immutable, SpotBugs just does not know it. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.model.OIDGenericData"/>
+		<Field name="oid"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.model.GenericToken"/>
+		<Field name="parentId"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.model.UserByToken"/>
+		<Or>
+			<Field name="oid"/>
+			<Field name="parentId"/>
+		</Or>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.journal.ChangeJournalEntry"/>
+		<Field name="oid"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.journal.ChangeJournalMarker"/>
+		<Field name="oid"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- karso (KarsoAuthenticationFilter) and karideo (KarideoAuthenticationFilter) add the role of an application key
+	     with getRoles().put(...), as doc/security.md documents. A read-only view would make that authentication throw,
+	     a copy would silently lose the role. setRoles() does copy. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.model.UserByToken"/>
+		<Method name="getRoles"/>
+		<Bug pattern="EI_EXPOSE_REP"/>
+	</Match>
+
+	<!-- Reflection handles and compiled accessors of a descriptor: there is no copy of a Method, of a Field or of a
+	     lambda to give, and the data layer needs the very object to read and write the properties. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.bean.ConstructorDescriptor"/>
+		<Field name="constructor"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.bean.PropertyDescriptor"/>
+		<Or>
+			<Method name="getField"/>
+			<Method name="getGetter"/>
+			<Method name="getSetter"/>
+			<Method name="getRawSetter"/>
+		</Or>
+		<Bug pattern="EI_EXPOSE_REP"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec"/>
+		<Field name="setter"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.externalRestApi.model.ApiModel"/>
+		<Field name="orignMethod"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- Metadata of one entity field, built once at the analysis of the model and shared by every read and write: the
+	     codecs and the add-ons compare and call these objects, a copy per access would be the wrong object. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.dataAccess.model.DbPropertyDescriptor"/>
+		<Or>
+			<Method name="getAddOn"/>
+			<Method name="getCodec"/>
+			<Method name="getProperty"/>
+		</Or>
+		<Bug pattern="EI_EXPOSE_REP"/>
+	</Match>
+
+	<!-- Collaborators and services held on purpose: nothing to copy, the object is the service. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.dataAccess.TransactionContext"/>
+		<Field name="db"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.dataStreamEvent.ChangeStreamWorker"/>
+		<Or>
+			<Field name="collection"/>
+			<Field name="manager"/>
+		</Or>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+	<!-- The deprecated constructor takes the ownership of an open file: write() closes it. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.api.MediaStreamer"/>
+		<Field name="raf"/>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+	</Match>
+	<!-- configure() receives the model the first request reads; AnalyzeApi has no copy and is not changed afterwards. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.api.openApiResource"/>
+		<Method name="configure"/>
+		<Bug pattern="EI_EXPOSE_STATIC_REP2"/>
+	</Match>
+	<!-- A singleton is meant to be returned. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.dataStreamEvent.ChangeNotificationManager"/>
+		<Method name="getInstance"/>
+		<Bug pattern="MS_EXPOSE_REP"/>
+	</Match>
+
+	<!-- Lists of data beans: no invariant to protect, and a copy would silently lose getCovers().add(...), the way every
+	     bean of the applications is used. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.model.User"/>
+		<Field name="covers"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.model.Data"/>
+		<Field name="streams"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- The document of a change stream is raw data with no invariant. org.bson.Document has no deep copy: copying it
+	     through JSON for each event and each listener would change the types of its values. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.dataStreamEvent.ChangeEvent"/>
+		<Field name="fullDocument"/>
+		<Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+	</Match>
+
+	<!-- Public names of the API: karoto, karentory and karideo call openApiResource.configure(), restoreDB is the main
+	     class of a command-line tool. A rename breaks them. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.api.openApiResource"/>
+		<Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.restoreDB"/>
+		<Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+	</Match>
+
+	<!-- Public fields of persisted models and DTO: written and read by reflection (MongoDB codecs, Jackson), which
+	     SpotBugs does not see. Removing one changes the stored or the exchanged format. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.migration.model.Migration1"/>
+		<Or>
+			<Field name="terminated"/>
+			<Field name="stepId"/>
+			<Field name="log"/>
+		</Or>
+		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.migration.model.Migration2"/>
+		<Or>
+			<Field name="terminated"/>
+			<Field name="stepId"/>
+			<Field name="log"/>
+		</Or>
+		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+	</Match>
+	<Match>
+		<Class name="org.atriasoft.archidata.migration.model.MigrationMessage"/>
+		<Or>
+			<Field name="id"/>
+			<Field name="message"/>
+		</Or>
+		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+	</Match>
+	<!-- Deprecated for removal: the field is its whole JSON form until then. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.tools.PublicKey"/>
+		<Field name="key"/>
+		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+	</Match>
+</FindBugsFilter>

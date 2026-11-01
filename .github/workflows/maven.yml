@@ -62,10 +62,9 @@ jobs:
         run: mvn compile
       - name: Build with Maven
         run: mvn -B package -DskipTests --file pom.xml
-      - name: spot-bug
-        run: mvn spotbugs:check
-      - name: Test 
-        run: DB_HOST="127.0.0.1" mvn test
+      # verify runs the tests, then the SpotBugs check bound to this phase in the pom
+      - name: Test
+        run: DB_HOST="127.0.0.1" mvn -B verify -Dgpg.skip=true
       - name: find the element
         run: find . -name "dependency-graph.json"
       - name: Install the library locally for the sample
