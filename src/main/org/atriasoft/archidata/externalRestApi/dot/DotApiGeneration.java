@@ -2,7 +2,6 @@ package org.atriasoft.archidata.externalRestApi.dot;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -224,11 +223,10 @@ public class DotApiGeneration {
 						<tr>
 							<td>
 								<table border="0" cellborder="0" cellspacing="0" >
-				""".formatted(element.name, element.name));
+				""".replace("%s", element.name));
 		//final Set<ClassModel> imports = new HashSet<>();
 		//final Set<ClassModel> zodImports = new HashSet<>();
 		//final Set<ClassModel> isImports = new HashSet<>();
-		final Set<ClassModel> writeImports = new HashSet<>();
 		//final Set<String> toolImports = new HashSet<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
 			//final List<String> consumes = interfaceElement.consumes;

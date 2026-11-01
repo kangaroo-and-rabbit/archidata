@@ -2,6 +2,7 @@ package org.atriasoft.archidata.externalRestApi;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +48,8 @@ public class DrawioGenerateApi {
 	private static final int HEADER_HEIGHT = 30;
 	private static final int FIELD_HEIGHT = 20;
 	private static final int MIN_BOX_WIDTH = 200;
+	/** Ideal gap between block edges: leaves room for orthogonal edge routing. */
+	private static final double IDEAL_GAP = 180.0;
 	private static final int CHAR_WIDTH = 7;
 	private static final int MAX_COLUMN_HEIGHT = 2000;
 	private static final int INITIAL_X = 50;
@@ -229,17 +232,22 @@ public class DrawioGenerateApi {
 		int fieldY = HEADER_HEIGHT + 8;
 		for (final FieldProperty field : model.getFields()) {
 			final String fieldId = idCounter.next();
-			String fieldText = "+ " + field.name() + ": " + resolveTypeName(field.model());
-			// Annotate FK target when no linkClass (standalone @CheckForeignKey)
-			if (field.checkForeignKey() != null && field.linkClass() == null) {
-				fieldText += " \u2192 " + field.checkForeignKey().target().getSimpleName();
-			}
+			final String fieldText = fieldLine(field);
 			cells.append(
 					mxCellChild(fieldId, parentId, escapeXml(fieldText), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
 		}
 
 		return parentId;
+	}
+
+	/** The text of a field in its box, with the target of a standalone {@code @CheckForeignKey} (no linkClass). */
+	private static String fieldLine(final FieldProperty field) {
+		final String line = "+ " + field.name() + ": " + resolveTypeName(field.model());
+		if (field.checkForeignKey() != null && field.linkClass() == null) {
+			return line + " \u2192 " + field.checkForeignKey().target().getSimpleName();
+		}
+		return line;
 	}
 
 	private static String generateEnumNode(
@@ -766,8 +774,6 @@ public class DrawioGenerateApi {
 			}
 		}
 
-		// Ideal gap between block edges — leave room for orthogonal edge routing
-		final double idealGap = 180.0;
 		double temperature = 200.0;
 		final int iterations = 150;
 
@@ -789,11 +795,11 @@ public class DrawioGenerateApi {
 					final double gapY = Math.abs(dy) - (bh[i] + bh[j]) * 0.5;
 					final double gap = Math.max(gapX, gapY);
 					// Only repel if boxes are closer than 2x ideal gap
-					if (gap < idealGap * 2) {
+					if (gap < IDEAL_GAP * 2) {
 						final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
 						// Stronger repulsion when overlapping, fades quickly with distance
 						final double effectiveGap = Math.max(gap, 1.0);
-						final double force = (idealGap * idealGap) / (effectiveGap * effectiveGap) * 2.0;
+						final double force = (IDEAL_GAP * IDEAL_GAP) / (effectiveGap * effectiveGap) * 2.0;
 						dispX[i] += (dx / dist) * force;
 						dispY[i] += (dy / dist) * force;
 						dispX[j] -= (dx / dist) * force;
@@ -815,7 +821,7 @@ public class DrawioGenerateApi {
 				double dy = cy1 - cy2;
 				final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
 				// Ideal center distance = half-widths + ideal gap
-				final double idealDist = (bw[i] + bw[j]) * 0.5 + idealGap;
+				final double idealDist = (bw[i] + bw[j]) * 0.5 + IDEAL_GAP;
 				// Spring force: proportional to (dist - ideal), scaled by weight
 				final double force = (dist - idealDist) / dist * w * 1.5;
 				dispX[i] -= (dx / dist) * force;
@@ -1088,13 +1094,7 @@ public class DrawioGenerateApi {
 		final int height = HEADER_HEIGHT + 8 + Math.max(fieldCount, 1) * FIELD_HEIGHT + 8;
 		int maxTextLen = getSimpleName(model).length();
 		for (final FieldProperty field : model.getFields()) {
-			String line = "+ " + field.name() + ": " + resolveTypeName(field.model());
-			if (field.checkForeignKey() != null && field.linkClass() == null) {
-				line += " \u2192 " + field.checkForeignKey().target().getSimpleName();
-			}
-			if (line.length() > maxTextLen) {
-				maxTextLen = line.length();
-			}
+			maxTextLen = Math.max(maxTextLen, fieldLine(field).length());
 		}
 		final int width = Math.max(MIN_BOX_WIDTH, maxTextLen * CHAR_WIDTH + 20);
 		return new int[] { width, height };
@@ -1353,8 +1353,8 @@ public class DrawioGenerateApi {
 	private static void writeFile(final String path, final String content) throws Exception {
 		final File file = new File(path);
 		final File parentDir = file.getParentFile();
-		if (parentDir != null && !parentDir.exists()) {
-			parentDir.mkdirs();
+		if (parentDir != null) {
+			Files.createDirectories(parentDir.toPath());
 		}
 		try (final FileWriter writer = new FileWriter(file)) {
 			writer.write(content);

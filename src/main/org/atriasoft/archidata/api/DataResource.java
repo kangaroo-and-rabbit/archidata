@@ -769,18 +769,8 @@ public class DataResource {
 		}
 	}
 
-	/** Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
-	 *
-	 * @param range range header
-	 * @return Streaming output
-	 * @throws FileNotFoundException
-	 * @throws Exception IOException if an error occurs in streaming. */
-	private Response buildStream(final String filename, final String range, final String inputMimeType)
-			throws FailException {
-		return buildStream(filename, range, inputMimeType, null);
-	}
-
 	/** Send a file back, whole or in part.
+	 * Adapted from http://stackoverflow.com/questions/12768812/video-streaming-to-ipad-does-not-work-with-tapestry5/12829541#12829541
 	 *
 	 * @param filename The file on disk.
 	 * @param range What the browser asks for, null when it asks for everything.

@@ -56,8 +56,8 @@ public class ClassEnumModel extends ClassModel {
 				this.listOfValues.put(name, value);
 			}
 			return;
-		} catch (final Exception e) {
-			//e.printStackTrace();
+		} catch (final ReflectiveOperationException e) {
+			// No usable getValue(): the name of the constant is its value.
 		}
 
 		for (final Object elem : constants) {

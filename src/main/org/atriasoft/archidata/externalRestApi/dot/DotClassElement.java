@@ -114,7 +114,7 @@ public class DotClassElement {
 							<tr>
 								<td>
 									<table border="0" cellborder="0" cellspacing="0" >
-				""".formatted(this.dotTypeName, this.dotTypeName));
+				""".replace("%s", this.dotTypeName));
 		for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {
 			out.append("\t\t\t\t\t\t<tr><td  align=\"left\"><b> + ");
 			out.append(elem.getKey());
@@ -285,7 +285,7 @@ public class DotClassElement {
 							<tr>
 								<td>
 									<table border="0" cellborder="0" cellspacing="0" >
-				""".formatted(this.dotTypeName, this.dotTypeName));
+				""".replace("%s", this.dotTypeName));
 		String inheritence = null;
 		if (model.getExtendsClass() != null) {
 			final ClassModel parentClass = model.getExtendsClass();

@@ -999,13 +999,9 @@ public class TsClassElement {
 			}
 		}
 		imports.requestZod();
-		final TsClassElement tsModel = tsGroup.find(models.get(0));
 		final StringBuilder out = new StringBuilder();
 		out.append("export const Zod");
 		out.append(modelName);
-		// out.append("export const /* check if it is the good type !!! */ ");
-		// out.append(tsModel.getZodName());
-		// imports.addZod(models.get(0));
 		out.append(" = ");
 		if (models.size() == 1) {
 			out.append(generateLocalModelBase(models.get(0), tsGroup, imports));

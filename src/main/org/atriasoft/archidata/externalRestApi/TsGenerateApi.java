@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -297,14 +298,14 @@ public class TsGenerateApi {
 		if (ioStream == null) {
 			throw new IllegalArgumentException("Resource not found on the classpath: " + name);
 		}
-		final BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream));
 		final StringBuilder data = new StringBuilder();
-		String line;
-		while ((line = buffer.readLine()) != null) {
-			data.append(line);
-			data.append("\n");
+		try (BufferedReader buffer = new BufferedReader(new InputStreamReader(ioStream, StandardCharsets.UTF_8))) {
+			String line;
+			while ((line = buffer.readLine()) != null) {
+				data.append(line);
+				data.append("\n");
+			}
 		}
-		ioStream.close();
 		generation.put(destinationPath, data.toString());
 	}
 }

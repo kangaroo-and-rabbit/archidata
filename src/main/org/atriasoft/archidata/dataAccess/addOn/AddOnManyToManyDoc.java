@@ -225,19 +225,14 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			final Class<?> targetEntity = ctx.getTargetEntity();
 			final String idFieldColumn = ctx.getTargetPkColumn();
 			final List<Object> idList = (List<Object>) dataCollection;
-			if (idList == null || idList.isEmpty()) {
+			if (idList.isEmpty()) {
 				return;
 			}
 			if (batchCollector != null) {
 				batchCollector.registerMultiple(targetEntity, idFieldColumn, idList, prop, data);
 			} else {
 				final LazyGetter lambda = (final List<LazyGetter> actionsAsync) -> {
-					final Object foreignData = ioDb.getsRaw(targetEntity,
-							new Condition(Filters.in(idFieldColumn, idList)));
-					if (foreignData == null) {
-						return;
-					}
-					prop.setValue(data, foreignData);
+					prop.setValue(data, ioDb.getsRaw(targetEntity, new Condition(Filters.in(idFieldColumn, idList))));
 				};
 				lazyCall.add(lambda);
 			}
