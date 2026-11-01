@@ -175,8 +175,8 @@ public class ExampleGenerator {
 			return "en";
 		}
 		// ID fields
-		if (lower.equals("id") || lower.endsWith("id") || lower.endsWith("Id")) {
-			if (type == UUID.class || type == java.util.UUID.class) {
+		if (lower.endsWith("id")) {
+			if (type == UUID.class) {
 				return "e6b33c1c-d24d-11ee-b616-02420a030102";
 			}
 			if (type == ObjectId.class) {
