@@ -6,6 +6,7 @@ import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.Field;
 import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiReadOnly;
+import org.atriasoft.archidata.tools.DateTools;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.types.ObjectId;
 
@@ -92,7 +93,7 @@ public class ChangeJournalMarker {
 	 * @return the last saved date
 	 */
 	public Date getLastSavedAt() {
-		return this.lastSavedAt;
+		return DateTools.copyOf(this.lastSavedAt);
 	}
 
 	/**
@@ -100,7 +101,7 @@ public class ChangeJournalMarker {
 	 * @param lastSavedAt the last saved date
 	 */
 	public void setLastSavedAt(final Date lastSavedAt) {
-		this.lastSavedAt = lastSavedAt;
+		this.lastSavedAt = DateTools.copyOf(lastSavedAt);
 	}
 
 	/**
@@ -108,7 +109,7 @@ public class ChangeJournalMarker {
 	 * @return the last run date
 	 */
 	public Date getLastRunAt() {
-		return this.lastRunAt;
+		return DateTools.copyOf(this.lastRunAt);
 	}
 
 	/**
@@ -116,7 +117,7 @@ public class ChangeJournalMarker {
 	 * @param lastRunAt the last run date
 	 */
 	public void setLastRunAt(final Date lastRunAt) {
-		this.lastRunAt = lastRunAt;
+		this.lastRunAt = DateTools.copyOf(lastRunAt);
 	}
 
 	/**

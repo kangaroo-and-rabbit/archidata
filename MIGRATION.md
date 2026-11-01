@@ -48,6 +48,12 @@ les points ci-dessous sont les seuls changements visibles.
 - `ChangeEvent.getResumeToken()` et `ChangeStreamWorker.getResumeToken()` rendent une copie : un écouteur ne peut plus
   déplacer la position de reprise que les autres utilisent.
 
+### Dates des modèles
+
+- Les `Date` de `GenericTiming`, `Data`, `GenericToken`, `User`, `ChangeJournalEntry`, `ChangeJournalMarker` et
+  `ChangeJournalReport` sont copiées à l'entrée et à la sortie. `getCreatedAt().setTime(...)` n'a plus d'effet : passer
+  par le setter. Aucune application du groupe ne modifie une date en place.
+
 ### Erreurs REST
 
 - Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper

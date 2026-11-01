@@ -37,6 +37,16 @@ public class DateTools {
 	);
 
 	/**
+	 * Copies a {@link Date}, which is mutable, keeping its class (the nanoseconds of a {@code java.sql.Timestamp}).
+	 *
+	 * @param date the date to copy
+	 * @return an independent copy, or {@code null} if {@code date} is {@code null}
+	 */
+	public static Date copyOf(final Date date) {
+		return date == null ? null : (Date) date.clone();
+	}
+
+	/**
 	 * Attempts to parse a date string into an OffsetDateTime using a flexible list of patterns.
 	 * Supports ISO 8601 formats, optional zone, and fallback to LocalDate or LocalTime if needed.
 	 *

@@ -12,6 +12,7 @@ import org.atriasoft.archidata.annotation.checker.GroupPersistant;
 import org.atriasoft.archidata.annotation.checker.GroupUpdate;
 import org.atriasoft.archidata.annotation.checker.GroupWithContext;
 import org.atriasoft.archidata.annotation.checker.UniqueInBaseId;
+import org.atriasoft.archidata.tools.DateTools;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -78,7 +79,7 @@ public class User extends OIDGenericDataSoftDelete {
 	 * @return the last connection date
 	 */
 	public Date getLastConnection() {
-		return this.lastConnection;
+		return DateTools.copyOf(this.lastConnection);
 	}
 
 	/**
@@ -86,7 +87,7 @@ public class User extends OIDGenericDataSoftDelete {
 	 * @param lastConnection the last connection date to set
 	 */
 	public void setLastConnection(final Date lastConnection) {
-		this.lastConnection = lastConnection;
+		this.lastConnection = DateTools.copyOf(lastConnection);
 	}
 
 	/**

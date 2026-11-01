@@ -5,6 +5,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.atriasoft.archidata.tools.DateTools;
+
 /**
  * Outcome of one {@link ChangeJournalEngine} capture run.
  *
@@ -21,11 +23,22 @@ public record ChangeJournalReport(
 		List<String> failedCollections) {
 
 	/**
-	 * Compact constructor making the collections unmodifiable.
+	 * Compact constructor making the collections unmodifiable and copying the date.
 	 */
 	public ChangeJournalReport {
+		runDate = DateTools.copyOf(runDate);
 		capturedByCollection = Collections.unmodifiableMap(capturedByCollection);
 		failedCollections = List.copyOf(failedCollections);
+	}
+
+	/**
+	 * Date at which the run started.
+	 *
+	 * @return a copy of the date
+	 */
+	@Override
+	public Date runDate() {
+		return DateTools.copyOf(this.runDate);
 	}
 
 	/**
