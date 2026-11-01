@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * and registered data classes. Provides a connection URL builder for MongoDB.
  * </p>
  */
-public class DbConfig {
+public class DbConfig implements Cloneable {
 	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
 	/** Port used when none is given (MongoDB default). */
 	private static final int DEFAULT_PORT = 27017;
@@ -34,7 +34,7 @@ public class DbConfig {
 	private final boolean keepConnected;
 	private final List<Class<?>> classes;
 	/** TLS on the connection ({@code DB_TLS}). */
-	private boolean tls;
+	private volatile boolean tls;
 	/** Authentication database ({@code DB_AUTH_SOURCE}), {@code null} for the default. */
 	private String authSource;
 	/** The WARN about the {@code root} account is written once per process. */
@@ -62,7 +62,7 @@ public class DbConfig {
 	 * @param password the database login password
 	 * @param dbName the name of the database
 	 * @param keepConnected whether to keep the connection open for reuse
-	 * @param classes the list of data model classes registered with this configuration
+	 * @param classes the list of data model classes registered with this configuration, copied
 	 * @throws DataAccessException if the configuration is invalid, including a port not between 1 and 65535
 	 */
 	public DbConfig(final String hostname, final Integer port, final String login, final String password,
@@ -84,7 +84,7 @@ public class DbConfig {
 		this.password = password;
 		this.dbName = dbName;
 		this.keepConnected = keepConnected;
-		this.classes = classes;
+		this.classes = classes == null ? null : List.copyOf(classes);
 		this.tls = ConfigBaseVariable.getDBTls();
 		this.authSource = ConfigBaseVariable.getDBAuthSource();
 	}
@@ -236,7 +236,7 @@ public class DbConfig {
 	/**
 	 * Returns the list of data model classes registered with this configuration.
 	 *
-	 * @return the list of classes
+	 * @return the immutable list of classes
 	 */
 	public List<Class<?>> getClasses() {
 		return this.classes;
@@ -333,19 +333,14 @@ public class DbConfig {
 	/**
 	 * Creates a copy of this configuration.
 	 *
-	 * @return a new DbConfig with the same parameters, or {@code null} if cloning fails
+	 * @return a new DbConfig with the same parameters, never {@code null}
 	 */
 	@Override
 	public DbConfig clone() {
 		try {
-			final DbConfig out = new DbConfig(this.hostname, this.port, this.login, this.password, this.dbName,
-					this.keepConnected, this.classes);
-			out.setTls(this.tls);
-			out.setAuthSource(this.authSource);
-			return out;
-		} catch (final DataAccessException e) {
-			LOGGER.error("Failed to clone DbConfig: {}", e.getMessage(), e);
+			return (DbConfig) super.clone();
+		} catch (final CloneNotSupportedException e) {
+			throw new IllegalStateException("DbConfig is Cloneable", e);
 		}
-		return null;
 	}
 }

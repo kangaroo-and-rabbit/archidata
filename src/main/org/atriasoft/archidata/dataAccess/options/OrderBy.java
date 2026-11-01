@@ -34,10 +34,10 @@ public class OrderBy extends QueryOption {
 	/**
 	 * Constructs an OrderBy from a list of sort criteria.
 	 *
-	 * @param childs the list of {@link OrderItem} sort criteria
+	 * @param childs the list of {@link OrderItem} sort criteria, copied
 	 */
 	public OrderBy(final List<OrderItem> childs) {
-		this.childs = childs;
+		this.childs = List.copyOf(childs);
 	}
 
 	/**

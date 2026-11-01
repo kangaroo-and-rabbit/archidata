@@ -3,6 +3,7 @@ package test.atriasoft.archidata.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -181,5 +182,20 @@ public class TestRightRoleMapper {
 		// users: R (from EDITOR) | R (from USER) = R
 		assertEquals(PartRight.READ, result.get("users"));
 		// settings: not present (only ADMIN has it)
+	}
+
+	@Test
+	public void testTheMappingIsCopied() {
+		final List<RightDefinition> definitions = new ArrayList<>(
+				List.of(new RightDefinition("articles", PartRight.READ)));
+		final Map<String, List<RightDefinition>> mapping = new HashMap<>();
+		mapping.put("USER", definitions);
+		final RightRoleMapper mapper = new RightRoleMapper(mapping);
+
+		definitions.add(new RightDefinition("users", PartRight.READ_WRITE));
+		mapping.put("OTHER", List.of(new RightDefinition("settings", PartRight.READ_WRITE)));
+
+		assertEquals(Map.of("articles", PartRight.READ),
+				mapper.generateRights(Map.of("USER", PartRight.READ, "OTHER", PartRight.READ)));
 	}
 }

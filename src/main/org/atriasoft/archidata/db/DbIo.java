@@ -116,9 +116,10 @@ public abstract class DbIo implements Closeable {
 	/**
 	 * Returns the database configuration associated with this connection.
 	 *
-	 * @return the database configuration
+	 * @return a copy of the database configuration: the connection was opened with these values, changing the copy
+	 *         has no effect on it
 	 */
 	public DbConfig getConfig() {
-		return this.config;
+		return this.config.clone();
 	}
 }

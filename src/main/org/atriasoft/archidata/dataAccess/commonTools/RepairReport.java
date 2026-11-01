@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.dataAccess.commonTools;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -65,10 +66,10 @@ public class RepairReport {
 	/**
 	 * Returns the list of detailed messages describing each repair action taken.
 	 *
-	 * @return The list of detail messages
+	 * @return A read-only view of the detail messages: use {@link #addDetail(String)} to add one
 	 */
 	public List<String> getDetails() {
-		return this.details;
+		return Collections.unmodifiableList(this.details);
 	}
 
 	/**

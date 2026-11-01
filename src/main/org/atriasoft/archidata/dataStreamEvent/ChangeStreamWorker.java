@@ -93,7 +93,7 @@ public class ChangeStreamWorker implements Runnable {
 		this.collection = collection;
 		this.manager = manager;
 		this.fullDocumentMode = fullDocumentMode;
-		this.pipeline = pipeline;
+		this.pipeline = pipeline == null ? null : List.copyOf(pipeline);
 	}
 
 	/**
@@ -102,7 +102,7 @@ public class ChangeStreamWorker implements Runnable {
 	 * @param token the BSON resume token, or {@code null} to start from the beginning
 	 */
 	public void setResumeToken(final BsonDocument token) {
-		this.resumeToken = token;
+		this.resumeToken = token == null ? null : token.clone();
 	}
 
 	/** {@inheritDoc} */
@@ -344,10 +344,11 @@ public class ChangeStreamWorker implements Runnable {
 	 * change stream and can be used to resume from this point if the worker is
 	 * restarted.
 	 *
-	 * @return The resume token, or null if no events have been processed yet
+	 * @return A copy of the resume token, or null if no events have been processed yet
 	 */
 	public BsonDocument getResumeToken() {
-		return this.resumeToken;
+		final BsonDocument token = this.resumeToken;
+		return token == null ? null : token.clone();
 	}
 
 	/**

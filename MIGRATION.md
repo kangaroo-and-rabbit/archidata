@@ -34,6 +34,20 @@ les points ci-dessous sont les seuls changements visibles.
 - `EncryptedEnvelope.Parsed.payload()`, `SafeHttpFetcher.Result.body()` et `RESTApiRequest.bodyByte(...)` copient le
   tableau. `body()` peut valoir 50 Mio : le garder dans une variable plutôt que de l'appeler deux fois.
 
+### Listes et objets internes
+
+- `Pagination` copie la liste reçue et `getItems()` rend une liste en lecture seule, comme l'annonce sa documentation.
+- `QueryOptions.getAll()` et `RepairReport.getDetails()` rendent une vue en lecture seule : écrire dedans lève
+  `UnsupportedOperationException`. Passer par `add(...)` et `addDetail(...)`.
+- `OrderBy(List)`, `DbConfig`, `MigrationEngine(List, init)`, `RightRoleMapper(Map)`, `JwtPayload`, `BackupSnapshot` et
+  `ChangeStreamWorker` copient ce qu'ils reçoivent : modifier la liste ensuite n'a plus d'effet. Pour
+  `MigrationEngine`, `add()` n'écrit plus dans la liste de l'appelant. `BackupSnapshot` rend une carte en lecture seule,
+  mais ne copie pas les tableaux d'octets : ils peuvent contenir toute une base.
+- `DbConfig.getClasses()` rend une liste immuable, et `DbConfig.clone()` ne rend plus jamais `null`.
+- `DbIo.getConfig()` rend une copie : la modifier n'a pas d'effet sur la connexion.
+- `ChangeEvent.getResumeToken()` et `ChangeStreamWorker.getResumeToken()` rendent une copie : un écouteur ne peut plus
+  déplacer la position de reprise que les autres utilisent.
+
 ### Erreurs REST
 
 - Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper

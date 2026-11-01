@@ -38,10 +38,10 @@ public class MigrationEngine {
 	}
 
 	/** Migration engine constructor (specific mode).
-	 * @param datas All the migration ordered.
+	 * @param datas All the migration ordered, copied: {@link #add(MigrationInterface)} completes the copy.
 	 * @param init Initialization migration model. */
 	public MigrationEngine(final List<MigrationInterface> datas, final MigrationInterface init) {
-		this.datas = datas;
+		this.datas = new ArrayList<>(datas);
 		this.init = init;
 	}
 
