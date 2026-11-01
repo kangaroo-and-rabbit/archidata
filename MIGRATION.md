@@ -58,6 +58,15 @@ les points ci-dessous sont les seuls changements visibles.
   `ChangeJournalReport` sont copiées à l'entrée et à la sortie. `getCreatedAt().setTime(...)` n'a plus d'effet : passer
   par le setter. Aucune application du groupe ne modifie une date en place.
 
+### Classes `final`
+
+Un constructeur qui lève une exception laisse un objet partiel accessible depuis `finalize()` d'une sous-classe.
+`MediaStreamer`, `DataAccessConnectionContext`, `DBAccessMongo`, `TransactionContext`, `Pagination`, `Limit`, `Skip`,
+`DbConfig`, `IndexEngine`, `ChangeJournalEngine`, `ChangeJournalPurge`, `ApiGroupModel`, `ApiModel`, `ClassListModel`,
+`ClassMapModel` et `ClassPaginationModel` deviennent `final`. Aucune sous-classe n'existe dans archidata, son exemple,
+karso, karvox, karoto, karusic, karentory, karideo, jimbe, kilik, kareatre ni karanage. Une application qui en hérite
+doit passer par la composition. `Limit.limit` et `Skip.skip` deviennent `private` : utiliser `getValue()`.
+
 ### Erreurs REST
 
 - Une `WebApplicationException` portant un code absent de `Response.Status` (499, 599...) faisait échouer le mapper

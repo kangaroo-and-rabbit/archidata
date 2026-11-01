@@ -86,7 +86,7 @@ import jakarta.ws.rs.InternalServerErrorException;
  * Data access class that provides MongoDB database operations with a functional
  * wrapper to minimize direct database code writing.
  */
-public class DBAccessMongo implements Closeable {
+public final class DBAccessMongo implements Closeable {
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 
 	/**

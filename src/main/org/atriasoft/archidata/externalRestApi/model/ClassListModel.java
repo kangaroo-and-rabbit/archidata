@@ -11,7 +11,7 @@ import java.util.Set;
  *
  * <p>Used to model {@code List<T>} fields in API generation.
  */
-public class ClassListModel extends ClassModel {
+public final class ClassListModel extends ClassModel {
 	/** The class model for the list element type. */
 	public ClassModel valueModel;
 	/**

@@ -19,7 +19,7 @@ import jakarta.ws.rs.core.StreamingOutput;
  * is opened in {@link #write(OutputStream)} and closed there: when Jersey never writes the body (HEAD request,
  * client gone, exception in a filter), no file descriptor is left open.</p>
  */
-public class MediaStreamer implements StreamingOutput {
+public final class MediaStreamer implements StreamingOutput {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaStreamer.class);
 	private final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	final byte[] buf = new byte[this.CHUNK_SIZE];

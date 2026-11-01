@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * Standalone MongoDB instances do not support transactions.
  * </p>
  */
-public class TransactionContext implements AutoCloseable {
+public final class TransactionContext implements AutoCloseable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TransactionContext.class);
 
 	private final DBAccessMongo db;

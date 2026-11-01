@@ -21,7 +21,7 @@ import java.util.Objects;
  *
  * @param <T> the type of items in the page
  */
-public class Pagination<T> {
+public final class Pagination<T> {
 
 	private final List<T> items;
 	private final long total;

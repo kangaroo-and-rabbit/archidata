@@ -75,7 +75,7 @@ import com.mongodb.client.model.UpdateOptions;
  * sensitive fields with {@link #excludeFields(String, String...)}, and do not journalize token or session
  * collections at all.
  */
-public class ChangeJournalEngine {
+public final class ChangeJournalEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeJournalEngine.class);
 
 	/** Behaviour of the very first capture of a collection (no marker stored yet). */

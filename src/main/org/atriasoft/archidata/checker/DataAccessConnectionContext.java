@@ -38,9 +38,7 @@ import jakarta.ws.rs.InternalServerErrorException;
  * </p>
  */
 // Note: never sent the DBAccessMongo through an other thread.
-public class DataAccessConnectionContext implements AutoCloseable {
-	private static long createdReal = 0L;
-	private static long created = 0L;
+public final class DataAccessConnectionContext implements AutoCloseable {
 	private static final ThreadLocal<DBAccessMongo> threadLocalConnection = new ThreadLocal<>();
 	private final boolean isOwner;
 
@@ -58,11 +56,9 @@ public class DataAccessConnectionContext implements AutoCloseable {
 			final DBAccessMongo db = DBAccessMongo.createInterface();
 			threadLocalConnection.set(db);
 			this.isOwner = true;
-			createdReal++;
 		} else {
 			this.isOwner = false;
 		}
-		created++;
 	}
 
 	/**
@@ -107,7 +103,6 @@ public class DataAccessConnectionContext implements AutoCloseable {
 			if (db != null) {
 				try {
 					db.close();
-					//System.out.println("connection the DB: real=" + createdReal + " requested=" + created);
 				} finally {
 					threadLocalConnection.remove();
 				}

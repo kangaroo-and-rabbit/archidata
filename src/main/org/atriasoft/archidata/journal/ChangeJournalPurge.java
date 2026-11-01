@@ -37,7 +37,7 @@ import com.mongodb.client.model.Indexes;
  * scheduler.addTask("change-journal-purge", "30 3 * * *", purge.asCronTask(5, Duration.ofDays(90)));
  * </pre>
  */
-public class ChangeJournalPurge {
+public final class ChangeJournalPurge {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeJournalPurge.class);
 
 	/** Number of entries fetched per round-trip when walking the journal. */
