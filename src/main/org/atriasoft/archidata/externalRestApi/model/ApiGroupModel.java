@@ -79,8 +79,7 @@ public final class ApiGroupModel {
 			// Check if the path is available
 			final RestTypeRequest methodType = ApiTool.apiAnnotationGetTypeRequest2(orderedElement.method());
 			if (methodType == null) {
-				LOGGER.trace("    [{}] {} ==> No methode type @PATH, @GET ...", methodType,
-						orderedElement.methodName());
+				LOGGER.trace("    {} ==> No methode type @PATH, @GET ...", orderedElement.methodName());
 				continue;
 			}
 			if (ApiTool.apiIsHidden(orderedElement.method())) {

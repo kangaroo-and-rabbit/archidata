@@ -676,7 +676,7 @@ final class LeafProjection {
 			final int fromIndex,
 			final int fromDepth,
 			final List<String> out) {
-		String path = start;
+		final StringBuilder position = new StringBuilder(start);
 		TypeInfo current = type;
 		TypeInfo storedCurrent = stored;
 		int depth = fromDepth;
@@ -692,10 +692,10 @@ final class LeafProjection {
 			if (kind == Kind.MAP) {
 				final DbPropertyDescriptor storedDesc = storedField(storedPosition, segments[index]);
 				if (storedDesc != null && isHidden(storedDesc)) {
-					add(path + "." + PRESENCE_SEGMENT, out);
+					add(position + "." + PRESENCE_SEGMENT, out);
 					return;
 				}
-				path = path + "." + segments[index];
+				position.append('.').append(segments[index]);
 				current = DeclaredTypeRules.elementOf(current);
 				storedCurrent = storedChild(storedPosition, storedDesc);
 				depth++;
@@ -705,25 +705,26 @@ final class LeafProjection {
 			if (kind != Kind.EMBEDDED) {
 				if (storedCurrent != null && hidesBelow(storedCurrent, new HashSet<>())) {
 					// Not modeled below by the read type, the declared type hides a sub-field: resolved by it.
-					resolve(path, storedCurrent, null, segments, index, depth, out);
+					resolve(position.toString(), storedCurrent, null, segments, index, depth, out);
 					return;
 				}
 				// Not modeled below: pushed as it is.
-				add(path + "." + String.join(".", Arrays.copyOfRange(segments, index, segments.length)), out);
+				add(position + "." + String.join(".", Arrays.copyOfRange(segments, index, segments.length)), out);
 				return;
 			}
 			final DbPropertyDescriptor desc = findReadField(current.rawType(), segments[index]);
 			final DbPropertyDescriptor storedDesc = storedField(storedPosition, segments[index]);
 			if (desc == null || (storedDesc != null && isHidden(storedDesc))) {
-				add(path + "." + PRESENCE_SEGMENT, out);
+				add(position + "." + PRESENCE_SEGMENT, out);
 				return;
 			}
-			path = path + "." + desc.getCodec().getDbFieldName();
+			position.append('.').append(desc.getCodec().getDbFieldName());
 			current = desc.getProperty().getTypeInfo();
 			storedCurrent = storedChild(storedPosition, storedDesc);
 			depth++;
 			index++;
 		}
+		final String path = position.toString();
 		final List<String> developed = new ArrayList<>();
 		try {
 			expand(path, current, storedCurrent, depth, developed);

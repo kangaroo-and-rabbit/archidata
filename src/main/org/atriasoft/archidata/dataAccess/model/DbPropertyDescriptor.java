@@ -22,6 +22,8 @@ import org.atriasoft.archidata.dataAccess.addOn.DataAccessAddOn;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoCodecFactory;
 import org.atriasoft.archidata.dataAccess.model.codec.MongoFieldCodec;
 import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Wraps a generic {@link PropertyDescriptor} with archidata-specific database metadata.
@@ -30,6 +32,7 @@ import org.atriasoft.archidata.dataAccess.options.OptionRenameColumn;
  * The converters (toDb/fromDb) are pre-built lambdas for zero-overhead type conversion.
  */
 public final class DbPropertyDescriptor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(DbPropertyDescriptor.class);
 
 	private final PropertyDescriptor property;
 
@@ -104,7 +107,8 @@ public final class DbPropertyDescriptor {
 					this.canRetrieve = candidate.canRetrieve(this);
 					this.hasDeleteAction = candidate.asDeleteAction(this);
 				} catch (final Exception e) {
-					// Keep defaults
+					LOGGER.warn("Add-on {} failed on {}: the default capabilities are kept: {}",
+							candidate.getClass().getSimpleName(), this.property.getName(), e.getMessage());
 				}
 				return;
 			}

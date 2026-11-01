@@ -72,7 +72,8 @@ public class TsApiGeneration {
 			final TsClassElementGroup tsGroup,
 			final ImportModel imports,
 			final boolean partialObject) {
-		final ParameterClassModel param = tsGroup.find(false, null, model);
+		// Registers this variant of the model in its element: the result is not needed here.
+		tsGroup.find(false, null, model);
 		imports.add(false, null, model);
 		final TsClassElement tsModel = tsGroup.find(model);
 		return tsModel.getTypeName();

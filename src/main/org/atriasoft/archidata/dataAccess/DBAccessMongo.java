@@ -1429,12 +1429,12 @@ public final class DBAccessMongo implements Closeable {
 		final boolean directdata = options.exist(DirectData.class);
 		final boolean forceReadOnlyField = options.exist(ForceReadOnlyField.class);
 		final Condition condition = conditionFusionOrEmpty(options, true);
-		final List<FilterValue> filterKeys = options != null ? options.get(FilterValue.class) : new ArrayList<>();
+		final List<FilterValue> filterKeys = options.get(FilterValue.class);
 		if (filterKeys.size() != 1) {
 			throw new DataAccessException("request a gets without/or with more 1 FilterValue of values");
 		}
 		final FilterValue filterKey = filterKeys.get(0);
-		final List<FilterOmit> filterOmitKeys = options != null ? options.get(FilterOmit.class) : new ArrayList<>();
+		final List<FilterOmit> filterOmitKeys = options.get(FilterOmit.class);
 		FilterOmit filterOmitKey = null;
 		if (filterOmitKeys.size() > 1) {
 			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
@@ -2507,7 +2507,7 @@ public final class DBAccessMongo implements Closeable {
 				}
 			}
 			return results;
-		} catch (final Exception ex) {
+		} catch (final RuntimeException ex) {
 			LOGGER.error("Failed to retrieve BSON documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage());
 		}

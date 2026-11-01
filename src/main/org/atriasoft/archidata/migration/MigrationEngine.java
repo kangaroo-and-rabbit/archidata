@@ -70,10 +70,6 @@ public class MigrationEngine {
 				// Previous version does not have the same timeCode...
 				data = da.gets(Migration.class);
 			}
-			if (data == null) {
-				LOGGER.error("Can not collect the migration table in the DB:{}");
-				return null;
-			}
 			if (data.size() == 0) {
 				LOGGER.error("Fail to Request migration table in the DB: empty size");
 				return null;
@@ -202,14 +198,14 @@ public class MigrationEngine {
 				} else {
 					// we insert a placeholder to simulate the last migration is well done.
 					final String placeholderName = this.datas.get(this.datas.size() - 1).getName();
-					Migration migrationResult = new Migration();
+					final Migration migrationResult = new Migration();
 					migrationResult.name = placeholderName;
 					migrationResult.stepId = 0;
 					migrationResult.terminated = true;
 					migrationResult.count = 0;
 					migrationResult.logs.add(new MigrationMessage(0, "Place-holder for first initialization"));
 					try {
-						migrationResult = da.insert(migrationResult);
+						da.insert(migrationResult);
 					} catch (final Exception e) {
 						LOGGER.error("Failed to insert migration placeholder: {}", e.getMessage(), e);
 					}
