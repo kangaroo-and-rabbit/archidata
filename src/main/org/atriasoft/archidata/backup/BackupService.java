@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * final BackupService backup = new BackupService(Paths.get(ConfigVariable.getBackupFolder()),
  * 		ConfigBaseVariable.getDBName(), Initialization.CLASSES_BASE, List.of());
  * scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
- * scheduler.addTask("backup-delta", "&#42;/15 * * * *", backup::startDeltaAsync);
+ * scheduler.addTask("backup-delta", "0,15,30,45 * * * *", backup::startDeltaAsync);
  * BackupResource.setService(backup);
  * }</pre>
  */
@@ -216,8 +216,8 @@ public final class BackupService {
 	 * A backup in progress makes it skip its turn with no warning: the next one holds everything this one would have. With
 	 * no full archive on the disk there is nothing a delta could be restored on: a full backup starts instead, so that
 	 * a new server, or an emptied folder, has something to restore from the next quarter of an hour on. A delta with the
-	 * same content as the previous one leaves no file and counts as a successful attempt. Neither this nor a failure of a
-	 * delta replaces a failed full in the state: see {@link #getState()}.
+	 * same content as the previous one leaves no file and counts as a successful attempt. A delta that works does not
+	 * replace a failed full in the state: see {@link #getState()}.
 	 *
 	 * @return whether the backup started
 	 * @throws UncheckedIOException if the folder or its free space can not be read: its message names the folder and must
