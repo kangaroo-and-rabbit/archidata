@@ -250,8 +250,7 @@ scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
 - Database only: `setEnableStoreOrRestoreData(false)`, the media files are not
   in these archives.
 - `counters` and the migration collection are always added, because a restored
-  base needs them. Do not list them; if you do, each collection is still written
-  once (a collection registered twice in the engine fails at restore).
+  base needs them. There is no need to list them.
 - It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, the date in UTC.
 - **One backup at a time.** `run()` and `startAsync()` share one lock. `run()`
   works in the calling thread and does nothing when a backup is running, so the
@@ -337,7 +336,7 @@ Reference
 | Member | Role |
 |---|---|
 | `BackupEngine(Path pathToStoreDB, String baseName, EngineBackupType type)` | create an engine |
-| `addClass(Class<?>...)` (throws `DataAccessException`), `addCollection(String...)` | register the collections for `store`, `storeDelta`, `snapshot` |
+| `addClass(Class<?>...)` (throws `DataAccessException`), `addCollection(String...)` | register the collections for `store`, `storeDelta`, `snapshot`; registered twice, a collection is written once |
 | `setEnableStoreOrRestoreData(boolean)` | include the media folder (default `true`) |
 | `setChunkMaxBytes(int)`, `setChunkMaxDocuments(int)` | archive chunk bounds |
 | `setRestoreBatchMaxBytes(int)`, `setRestoreBatchMaxDocuments(int)` | `insertMany` batch bounds at restore |

@@ -84,8 +84,8 @@
 
 - Les applications ne déclarent que leur dossier, leurs classes et leurs collections en plus : six copies d'un
   `BackupJob` divergeraient. Plan : `../plans/2026-11-02-sauvegardes-unifiees.md`.
-- Base seule, `counters` et `KAR_migration` toujours inclus. Une collection n'est écrite qu'une fois : l'engine ne
-  dédoublonne pas, et une archive qui contient deux fois une collection échoue à la restauration.
+- Base seule, `counters` et `KAR_migration` toujours inclus. `BackupEngine` garde ses collections dans un ensemble : une
+  archive qui contient deux fois une collection échoue à la restauration.
 - `store`, jamais `storeAll` : karvox laisse exprès ses jetons de worker hors des archives.
 - Une seule sauvegarde à la fois, par processus : la tâche de nuit et le lancement manuel partagent le même
   `AtomicBoolean`. La tâche de nuit n'attend pas, elle passe son tour : celle qui tourne est aussi récente.

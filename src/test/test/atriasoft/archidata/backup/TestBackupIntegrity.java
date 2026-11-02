@@ -98,6 +98,18 @@ public class TestBackupIntegrity {
 		Assertions.assertEquals(List.of(blocked.getFileName().toString()), namesIn(store));
 	}
 
+	/** The same entry twice in an archive fails at restore, the day the archive is needed. */
+	@Test
+	public void testACollectionRegisteredTwiceIsWrittenOnceAndRestores() throws Exception {
+		final Path store = this.tempRoot.resolve("store");
+		final BackupEngine engine = engine(store);
+		engine.addCollection(COLLECTION);
+		engine.store("2026-10-16");
+		collection().drop();
+		Assertions.assertTrue(engine.restoreFile(store.resolve("integrity_2026-10-16.tar.gz"), COLLECTION));
+		Assertions.assertEquals(2, collection().countDocuments());
+	}
+
 	@Test
 	public void testArchiveIsPrivateAndSummed() throws Exception {
 		final Path store = this.tempRoot.resolve("new-store");

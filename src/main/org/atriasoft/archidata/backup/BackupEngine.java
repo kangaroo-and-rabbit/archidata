@@ -33,11 +33,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -142,7 +144,8 @@ public class BackupEngine {
 	private final Path pathStore;
 	private final String baseName;
 	private final EngineBackupType type;
-	private final List<String> collectionNames = new ArrayList<>();
+	/** A set: the same collection twice in an archive fails at restore. */
+	private final Set<String> collectionNames = new LinkedHashSet<>();
 	private boolean enableStoreOrRestoreData = true;
 	private int chunkMaxBytes = DEFAULT_CHUNK_MAX_BYTES;
 	private int chunkMaxDocuments = DEFAULT_CHUNK_MAX_DOCUMENTS;
@@ -277,6 +280,7 @@ public class BackupEngine {
 
 	/**
 	 * Register model classes for backup. The MongoDB collection name is resolved from class annotations.
+	 * A collection already registered stays registered once.
 	 * @param classes the model classes to register
 	 * @throws DataAccessException if a collection name cannot be resolved from the class annotations
 	 */
@@ -287,7 +291,7 @@ public class BackupEngine {
 	}
 
 	/**
-	 * Register collection names for backup.
+	 * Register collection names for backup. A collection already registered stays registered once.
 	 * @param names the MongoDB collection names to backup
 	 */
 	public void addCollection(final String... names) {
@@ -421,7 +425,7 @@ public class BackupEngine {
 	 * arrays, so it must not be used on large collections. The archive path streams chunk by chunk
 	 * instead (see {@link #backupCollectionToStream}).
 	 */
-	private Map<String, byte[]> serializeCollections(final MongoDatabase db, final List<String> names)
+	private Map<String, byte[]> serializeCollections(final MongoDatabase db, final Collection<String> names)
 			throws IOException {
 		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();
 		final JsonWriterSettings settings = createJsonWriterSettings();
@@ -542,7 +546,7 @@ public class BackupEngine {
 
 	private void backupCollectionListToStream(
 			final MongoDatabase db,
-			final List<String> names,
+			final Collection<String> names,
 			final TarArchiveOutputStream tarOut,
 			final Document filter) throws IOException {
 		final ObjectMapper mapper = ContextGenericTools.createObjectMapper();

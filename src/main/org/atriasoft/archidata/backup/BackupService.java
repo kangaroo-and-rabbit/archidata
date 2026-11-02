@@ -12,13 +12,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.migration.model.Migration;
@@ -88,17 +85,12 @@ public final class BackupService implements Runnable {
 			final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
 		BackupEngine.createPrivateDirectories(folder);
-		// A collection registered twice is written twice, and such an archive fails at restore.
-		final Set<String> names = new LinkedHashSet<>();
-		for (final Class<?> clazz : classes) {
-			names.add(AnnotationTools.getTableName(clazz, null));
-		}
-		names.addAll(collections);
-		names.add(COLLECTION_COUNTERS);
-		names.add(AnnotationTools.getTableName(Migration.class, null));
 		final BackupEngine engine = new BackupEngine(folder, baseName, EngineBackupType.JSON_EXTENDED);
 		engine.setEnableStoreOrRestoreData(false);
-		engine.addCollection(names.toArray(String[]::new));
+		engine.addClass(classes.toArray(Class<?>[]::new));
+		engine.addCollection(collections.toArray(String[]::new));
+		engine.addCollection(COLLECTION_COUNTERS);
+		engine.addClass(Migration.class);
 		return engine;
 	}
 
