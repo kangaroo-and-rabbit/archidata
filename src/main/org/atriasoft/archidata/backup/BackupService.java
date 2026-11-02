@@ -36,11 +36,11 @@ import org.slf4j.LoggerFactory;
  * <pre>{@code
  * final BackupService backup = new BackupService(Paths.get(ConfigVariable.getBackupFolder()),
  * 		ConfigBaseVariable.getDBName(), Initialization.CLASSES_BASE, List.of());
- * scheduler.addTask("backup", "0 0 * * *", backup);
+ * scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
  * BackupResource.setService(backup);
  * }</pre>
  */
-public final class BackupService implements Runnable {
+public final class BackupService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupService.class);
 	/** One of the formats {@link BackupEngine#parseDateTimeFromSequence(String)} reads, the one of the existing archives. */
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
@@ -97,27 +97,16 @@ public final class BackupService implements Runnable {
 	}
 
 	/**
-	 * Run a backup in the calling thread, for the cron task. Does nothing when a backup is already running: that one
-	 * is as recent as this one would be, and the scheduler must not wait for it. Never throws: a failure is logged and
-	 * shows in {@link #getState()}.
-	 */
-	@Override
-	public void run() {
-		if (!this.running.compareAndSet(false, true)) {
-			LOGGER.warn("Backup skipped: another one is running");
-			return;
-		}
-		storeThenRelease();
-	}
-
-	/**
-	 * Start a backup in its own thread and return at once. The lock is taken before returning: a state read right
-	 * after a {@code true} says that a backup is running.
+	 * Start a backup in its own thread and return at once, for the cron task as for a manual start: the scheduler has a
+	 * single consumer thread, which a dump would hold for minutes. The lock is taken before returning: a state read
+	 * right after a {@code true} says that a backup is running. A failure of the backup is logged and shows in
+	 * {@link #getState()}.
 	 *
 	 * @return {@code true} if the backup started, {@code false} if one was already running
 	 */
 	public boolean startAsync() {
 		if (!this.running.compareAndSet(false, true)) {
+			LOGGER.warn("Backup not started: another one is running");
 			return false;
 		}
 		boolean started = false;

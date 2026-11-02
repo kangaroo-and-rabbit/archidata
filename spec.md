@@ -87,8 +87,11 @@
 - Base seule, `counters` et `KAR_migration` toujours inclus. `BackupEngine` garde ses collections dans un ensemble : une
   archive qui contient deux fois une collection échoue à la restauration.
 - `store`, jamais `storeAll` : karvox laisse exprès ses jetons de worker hors des archives.
-- Une seule sauvegarde à la fois, par processus : la tâche de nuit et le lancement manuel partagent le même
-  `AtomicBoolean`. La tâche de nuit n'attend pas, elle passe son tour : celle qui tourne est aussi récente.
+- Une seule sauvegarde à la fois, par processus : la tâche de nuit et le lancement manuel passent tous deux par
+  `startAsync`, qui prend le même `AtomicBoolean`. La tâche de nuit n'attend pas, elle passe son tour : celle qui tourne
+  est aussi récente.
+- Le dump tourne dans son propre thread : le cron n'a qu'un thread consommateur, qu'il tiendrait pendant des minutes.
+  `BackupService` n'est donc plus un `Runnable`, on branche `backup::startAsync` : l'ancien branchement ne compile plus.
 - Le dossier est créé `rwx------`, par l'engine, et non par `Files.createDirectories` comme les `BackupJob`.
 - La date d'une tentative est celle de son archive, à la milliseconde. Cet état reste en mémoire et se perd au
   redémarrage.

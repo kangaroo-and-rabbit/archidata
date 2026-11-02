@@ -39,6 +39,7 @@ import org.atriasoft.archidata.backup.BackupService;
 import org.atriasoft.archidata.backup.BackupServiceBridge;
 import org.atriasoft.archidata.backup.BackupState;
 import org.atriasoft.archidata.backup.RetentionPolicy;
+import org.atriasoft.archidata.cron.CronScheduler;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -205,34 +206,43 @@ public class TestBackupService {
 		final BackupService service = BackupServiceBridge.on(engine);
 		Assertions.assertTrue(service.startAsync());
 		engine.awaitEntered();
-		// Returns at once: the store is still blocked, the scheduler must not wait for it.
-		Assertions.assertTimeoutPreemptively(Duration.ofSeconds(WAIT_SECONDS), service::run);
+		// The nightly task goes through the same door, and returns at once.
+		Assertions.assertFalse(
+				Assertions.assertTimeoutPreemptively(Duration.ofSeconds(WAIT_SECONDS), service::startAsync));
 		Assertions.assertTrue(service.getState().running());
-		Assertions.assertEquals(1, engine.calls.get());
 		engine.release.countDown();
 		awaitIdle(service);
 		Assertions.assertEquals(1, engine.calls.get());
 	}
 
+	/** The cron has a single consumer thread: a dump held there would stop every other task of the application. */
 	@Test
-	public void testManualStartDuringTheNightlyTaskIsRefused() throws Exception {
+	public void testTheNightlyTaskDoesNotHoldTheCronThread() throws Exception {
 		final ControlledEngine engine = new ControlledEngine(this.folder, null);
 		final BackupService service = BackupServiceBridge.on(engine);
-		final Thread nightly = new Thread(service);
-		nightly.start();
-		engine.awaitEntered();
-		Assertions.assertFalse(service.startAsync());
-		engine.release.countDown();
-		nightly.join(TimeUnit.SECONDS.toMillis(WAIT_SECONDS));
-		Assertions.assertFalse(nightly.isAlive());
-		Assertions.assertEquals(1, engine.calls.get());
+		final CronScheduler scheduler = new CronScheduler();
+		scheduler.setDaemonThreads(true);
+		scheduler.disableGracePeriodMinutes();
+		scheduler.start();
+		try {
+			scheduler.addTask(service::startAsync);
+			engine.awaitEntered();
+			final CountDownLatch nextTask = new CountDownLatch(1);
+			scheduler.addTask(nextTask::countDown);
+			Assertions.assertTrue(nextTask.await(5, TimeUnit.SECONDS), "the backup holds the cron thread");
+		} finally {
+			engine.release.countDown();
+			scheduler.stop();
+		}
+		awaitIdle(service);
 	}
 
 	private void assertFailureIsReflected(final Throwable failure) throws Exception {
 		final ControlledEngine engine = new ControlledEngine(this.folder, failure);
 		engine.release.countDown();
 		final BackupService service = BackupServiceBridge.on(engine);
-		service.run();
+		Assertions.assertTrue(service.startAsync());
+		awaitIdle(service);
 		final BackupState state = service.getState();
 		Assertions.assertFalse(state.running());
 		Assertions.assertFalse(state.lastAttempt().success());
@@ -345,7 +355,8 @@ public class TestBackupService {
 				List.of(COLLECTION, "counters"));
 		Assertions.assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(store)));
 		final Instant before = Instant.now().minusMillis(1);
-		service.run();
+		Assertions.assertTrue(service.startAsync());
+		awaitIdle(service);
 
 		final BackupState state = service.getState();
 		final BackupAttempt attempt = state.lastAttempt();
@@ -442,7 +453,8 @@ public class TestBackupService {
 
 		final BackupService service = new BackupService(this.folder, BASE_NAME, List.of(), List.of());
 		for (int iii = 0; iii < 3; iii++) {
-			service.run();
+			Assertions.assertTrue(service.startAsync());
+			awaitIdle(service);
 			Thread.sleep(2);
 		}
 

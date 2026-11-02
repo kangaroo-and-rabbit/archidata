@@ -41,7 +41,7 @@ final BackupEngine engine = new BackupEngine(
 engine.setEnableStoreOrRestoreData(false);           // collections only, no media files
 engine.addClass(User.class, Media.class);            // or addCollection("counters")
 
-// nightly, from a cron task (see cron.md)
+// nightly, off the cron thread: see BackupService below
 final String sequence = ZonedDateTime.now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")) + "_full";
 engine.store(sequence);                              // -> <dir>/<db>_<sequence>.tar.gz
@@ -244,7 +244,7 @@ final BackupService backup = new BackupService(
         ConfigBaseVariable.getDBName(),              // archive prefix AND database name
         Initialization.CLASSES_BASE,                 // model classes
         List.of());                                  // collections no class describes
-scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
+scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
 ```
 
 - Database only: `setEnableStoreOrRestoreData(false)`, the media files are not
@@ -260,11 +260,12 @@ scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
   regular files, only this exact form with a date in the sequence: another base
   in the same folder keeps its files. Do not start a second server on a folder
   where another one is writing: it would delete the file in progress.
-- **One backup at a time.** `run()` and `startAsync()` share one lock. `run()`
-  works in the calling thread and does nothing when a backup is running, so the
-  scheduler never waits for it. `startAsync()` works in a daemon thread, returns
-  `true` if it started and `false` if a backup was already running. The lock is
-  per process: two instances on the same folder do not see each other.
+- **One backup at a time.** `startAsync()` is the only way in, for the cron task
+  as for a manual start. It works in a daemon thread and returns at once: the
+  dump must not hold the single consumer thread of the scheduler, which would
+  delay every other task for minutes (see [cron.md](cron.md)). It returns `true`
+  if it started and `false` if a backup was already running. The lock is per
+  process: two instances on the same folder do not see each other.
 - **Failures** are caught, `Error` included, logged with their stack trace, and
   shown as `success = false`, never with their text.
 - **Nothing is deleted.** The service has no retention, and archives pile up
@@ -392,5 +393,7 @@ Pitfalls
   with the archived ones.
 - Media are included by default. On a server whose media folder is large or
   managed elsewhere, call `setEnableStoreOrRestoreData(false)`.
-- `store()` runs in the calling thread and can take minutes; run it from the
-  cron consumer (see [cron.md](cron.md)), not from a request thread.
+- `store()` runs in the calling thread and can take minutes: neither a request
+  thread nor the cron task should wait for it, the scheduler has a single
+  consumer thread (see [cron.md](cron.md)). `BackupService.startAsync()` gives it
+  a thread of its own.
