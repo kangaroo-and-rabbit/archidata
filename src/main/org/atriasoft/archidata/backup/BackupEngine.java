@@ -1055,25 +1055,44 @@ public class BackupEngine {
 		createPrivateDirectories(this.pathStore);
 		// Create a hidden file for the temporary generation
 		final Path outputFileTmp = this.pathStore.resolve("." + fileName + "_tmp");
+		final Path checksumTmp = this.pathStore.resolve("." + fileName + SUFFIX_SHA256 + "_tmp");
 		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
-		final MessageDigest digest = newSha256();
-		try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp, digest)) {
-			strategy.backup(tarOut);
-			if (this.enableStoreOrRestoreData) {
-				backupDataToStream(tarOut, mediaModifiedSince);
+		boolean stored = false;
+		try {
+			final MessageDigest digest = newSha256();
+			try (TarArchiveOutputStream tarOut = openTarGzOutputStream(outputFileTmp, digest)) {
+				strategy.backup(tarOut);
+				if (this.enableStoreOrRestoreData) {
+					backupDataToStream(tarOut, mediaModifiedSince);
+				}
+			}
+			final Path outputFileFinal = this.pathStore.resolve(fileName);
+			// The sum (sha256sum format) is moved first: a new archive never sits next to an old sum, and an old
+			// archive next to the new sum fails the check (safe side).
+			createPrivateFile(checksumTmp);
+			Files.writeString(checksumTmp, toHex(digest.digest()) + "  " + fileName + "\n", StandardCharsets.US_ASCII);
+			Files.move(checksumTmp, checksumPath(outputFileFinal), StandardCopyOption.REPLACE_EXISTING);
+			Files.move(outputFileTmp, outputFileFinal, StandardCopyOption.REPLACE_EXISTING);
+			stored = true;
+			LOGGER.info("Backup done in file: {}", outputFileFinal);
+			LOGGER.debug("Store in path: {} [ END ]", outputFileFinal);
+		} finally {
+			// Each attempt has its own name: a partial dump in clear would stay, unseen by the list and by clean().
+			if (!stored) {
+				deleteTemporaryFile(outputFileTmp);
+				deleteTemporaryFile(checksumTmp);
 			}
 		}
-		final Path outputFileFinal = this.pathStore.resolve(fileName);
-		// The sum (sha256sum format) is moved first: a new archive never sits next to an old sum, and an old
-		// archive next to the new sum fails the check (safe side).
-		final Path checksumTmp = this.pathStore.resolve("." + fileName + SUFFIX_SHA256 + "_tmp");
-		createPrivateFile(checksumTmp);
-		Files.writeString(checksumTmp, toHex(digest.digest()) + "  " + fileName + "\n", StandardCharsets.US_ASCII);
-		Files.move(checksumTmp, checksumPath(outputFileFinal), StandardCopyOption.REPLACE_EXISTING);
-		Files.move(outputFileTmp, outputFileFinal, StandardCopyOption.REPLACE_EXISTING);
-		LOGGER.info("Backup done in file: {}", outputFileFinal);
-		LOGGER.debug("Store in path: {} [ END ]", outputFileFinal);
 		return now;
+	}
+
+	/** Delete a file of a failed store. Never throws: the failure of the store is the one to report. */
+	private static void deleteTemporaryFile(final Path file) {
+		try {
+			Files.deleteIfExists(file);
+		} catch (final IOException ex) {
+			LOGGER.error("Cannot delete the temporary file of a failed backup: {}", file, ex);
+		}
 	}
 
 	/**

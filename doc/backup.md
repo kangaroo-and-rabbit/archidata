@@ -63,7 +63,8 @@ Archive format
 - File name: `<baseName>_<sequence>.tar.gz`, in the directory given to the
   constructor (created if missing). The archive is first written to a hidden
   file `.<name>_tmp` then moved into place, so a crash never leaves a truncated
-  archive under the final name.
+  archive under the final name. A failed store deletes this file: it is a
+  partial dump in clear, and neither `clean(...)` nor a listing sees it.
 - One tar entry per collection: `<collection>.json`, newline-delimited JSON, one
   document per line. A big collection is split in chunks
   `<collection>__000001.json`, `__000002.json`... when a chunk reaches

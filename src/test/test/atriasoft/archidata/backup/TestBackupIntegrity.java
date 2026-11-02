@@ -7,6 +7,8 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.atriasoft.archidata.backup.BackupEngine;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
@@ -66,6 +68,34 @@ public class TestBackupIntegrity {
 
 	private static String sha256(final Path file) throws Exception {
 		return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(file)));
+	}
+
+	private List<String> namesIn(final Path store) throws IOException {
+		try (Stream<Path> files = Files.list(store)) {
+			return files.map(file -> file.getFileName().toString()).toList();
+		}
+	}
+
+	/** Each attempt has its own name: what a failure leaves behind piles up, in clear, unseen by clean(). */
+	@Test
+	public void testFailedStoreLeavesNoTemporaryFile() throws Exception {
+		final Path store = this.tempRoot.resolve("store");
+		final BackupEngine engine = engine(store);
+		// The driver refuses this name while the archive is being written.
+		engine.addCollection("");
+		Assertions.assertThrows(IllegalArgumentException.class, () -> engine.store("2026-10-16"));
+		Assertions.assertEquals(List.of(), namesIn(store));
+	}
+
+	@Test
+	public void testFailureOnTheChecksumRemovesTheTemporaryArchive() throws Exception {
+		final Path store = this.tempRoot.resolve("store");
+		final Path blocked = store.resolve(".integrity_2026-10-16.tar.gz.sha256_tmp");
+		Files.createDirectories(blocked);
+		Files.writeString(blocked.resolve("file"), "a folder the engine can not replace");
+		final BackupEngine engine = engine(store);
+		Assertions.assertThrows(IOException.class, () -> engine.store("2026-10-16"));
+		Assertions.assertEquals(List.of(blocked.getFileName().toString()), namesIn(store));
 	}
 
 	@Test
