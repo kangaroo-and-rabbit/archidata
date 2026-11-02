@@ -14,6 +14,8 @@ import org.atriasoft.archidata.exception.DataAccessException;
 public final class BackupServiceBridge {
 	/** A disk that never refuses a backup. */
 	public static final long LOTS_OF_SPACE = Long.MAX_VALUE;
+	/** How far before the last full a delta starts looking. */
+	public static final long DELTA_MARGIN_MILLIS = BackupService.DELTA_MARGIN_MILLIS;
 
 	private BackupServiceBridge() {
 		// Utility class

@@ -1,8 +1,8 @@
 package org.atriasoft.archidata.backup;
 
-/** Answer of {@link BackupService#startAsync()}. */
+/** Answer of {@link BackupService#startAsync()} and {@link BackupService#startDeltaAsync()}. */
 public enum BackupStart {
-	/** The backup is running in its own thread. */
+	/** The backup is running in its own thread, or a full will once the delta in progress is written. */
 	STARTED,
 	/** Nothing was started: a backup is already running. */
 	ALREADY_RUNNING,

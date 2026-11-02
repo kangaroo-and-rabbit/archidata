@@ -19,8 +19,8 @@ Use it for scheduled application-level backups (nightly full backup, a delta
 every few minutes) and for seeding a fresh database from an archive. Karideo
 and karusic schedule a nightly `BackupJob` with it; karideo's `RestoreBackup`
 and `Initialization` restore from it. For a nightly full backup, use
-[`BackupService`](#backupservice-the-nightly-job-of-an-application) rather than
-writing such a job again.
+[`BackupService`](#backupservice-the-backups-of-an-application) rather than
+writing such a job again: it also runs the delta every 15 minutes.
 
 It is not a replacement for `mongodump` on a very large deployment: it reads
 the collections through a cursor and writes JSON. It does not capture indexes
@@ -253,8 +253,8 @@ from it are left alone. The whole content is held in memory: do not use it on
 large data.
 
 
-BackupService: the nightly job of an application
-------------------------------------------------
+BackupService: the backups of an application
+--------------------------------------------
 
 `BackupService` (`org.atriasoft.archidata.backup`) is the job every application
 needs, so that it only declares its folder, its classes and its extra
@@ -267,27 +267,35 @@ final BackupService backup = new BackupService(
         Initialization.CLASSES_BASE,                 // model classes
         List.of());                                  // collections no class describes
 scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
+scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
 ```
 
 - Database only: `setEnableStoreOrRestoreData(false)`, the media files are not
-  in these archives.
+  in these archives, full or delta. No image and no media ever goes in a delta.
 - `counters` and the migration collection are always added, because a restored
   base needs them. There is no need to list them.
 - A collection whose name a restore refuses (see [Security](#security)) makes
   the constructor throw `IOException`: the server does not start, rather than
   writing archives that cannot be restored.
-- It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, the date in UTC.
+- It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, and `..._delta.tar.gz`
+  for a delta, the date in UTC.
 - The constructor deletes the `.<baseName>_<sequence>.tar.gz_tmp` and
   `.<baseName>_<sequence>.tar.gz.sha256_tmp` files a killed process left, only
   regular files, only this exact form with a date in the sequence: another base
   in the same folder keeps its files. Do not start a second server on a folder
   where another one is writing: it would delete the file in progress.
-- **One backup at a time.** `startAsync()` is the only way in, for the cron task
-  as for a manual start. It works in a daemon thread and returns at once: the
-  dump must not hold the single consumer thread of the scheduler, which would
-  delay every other task for minutes (see [cron.md](cron.md)). It returns
-  `STARTED`, `ALREADY_RUNNING` or `INSUFFICIENT_SPACE` (`BackupStart`). The lock
-  is per process: two instances on the same folder do not see each other.
+- **One backup at a time, full or delta.** `startAsync()` (full) and
+  `startDeltaAsync()` are the only ways in, for the cron tasks as for a manual
+  start. They work in a daemon thread and return at once: the dump must not hold
+  the single consumer thread of the scheduler, which would delay every other task
+  for minutes (see [cron.md](cron.md)). They return `STARTED`, `ALREADY_RUNNING` or
+  `INSUFFICIENT_SPACE` (`BackupStart`). The lock is per process: two instances on
+  the same folder do not see each other.
+- **A full never gives way to a delta.** The scheduler does not order two tasks of
+  the same minute, and `0 0 * * *` meets `*/15 * * * *` every night. A
+  `startAsync()` during a delta answers `STARTED` and runs as soon as the delta is
+  written, in the same thread, without a gap in which a delta could slip in. A
+  second one answers `ALREADY_RUNNING`.
 - **Free space.** Before each start, the volume must have twice the size of the
   last full archive plus `BackupService.SPACE_MARGIN_BYTES` (1 GiB) free,
   otherwise nothing starts. There is no limit on how often a backup can start,
@@ -303,13 +311,63 @@ scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
 - **No archive is deleted.** The service has no retention, and archives pile up
   until something calls `clean(...)`. It has no restore either.
 
+### The delta every 15 minutes
+
+`startDeltaAsync()` follows the rules above, with what follows.
+
+- **Reference.** `since` is the date of the latest full archive found on the disk,
+  read in the name, not in memory: a restart changes nothing. Minus 5 seconds: the
+  application dates a document before it reaches the database, so a document dated
+  just before the full can land behind the cursor of the dump. Taking it twice is
+  harmless, a delta replaces a document by its `_id`.
+- **Cumulative.** Every delta holds everything since the full, so
+  `restoreLatest()` needs the full and the last delta only, and
+  `getLatestRestoreChain()` returns exactly this pair.
+- **During a backup**, it answers `ALREADY_RUNNING` with an `INFO` line, no `WARN`,
+  and records nothing: the next delta holds everything this one would have held.
+- **Without a full archive** on the disk (a new server, an emptied folder), it
+  starts a full backup instead and answers `STARTED`. A delta could not be restored
+  on anything, and skipping would leave the base with no backup until the night. A
+  `_partial` archive or a delta is no base. As long as the full fails, it is tried
+  again at each turn, which is the point, and shows as a failed attempt.
+- **Nothing new.** `storeDeltaIfChanged` drops an archive with the same content as
+  the delta a restore would apply: an attempt is recorded, successful, with no
+  archive of this date, and the sum read on the disk makes it survive a restart. The
+  first delta after a full is always kept, since `counters` makes it non empty: one
+  file per full instead of 96 a day. Each turn still reads the changes, compresses
+  them and drops them.
+- **A full dated after the current time** (a clock that jumped) fails the delta, as
+  a failed attempt and an `ERROR` in the log: it would hold nothing, and a restore
+  would stop at this full. Remove or rename this archive once the clock is right.
+
+What a delta holds:
+
+| Documents | In a delta |
+|---|---|
+| `updatedAt` or `createdAt` at or after `since`, soft deletion included (it writes `updatedAt`) | yes |
+| with neither field: `counters` and any undated collection | all of them, in every delta |
+| `KAR_migration` | as a dated collection, its model has both fields |
+| removed for good since the full | **no: a restore brings them back**, until the next full |
+| changed without `updatedAt`: `updateBsonDocuments`, `DirectData`, a raw driver write | **no**, unless the writer sets `updatedAt` itself |
+| with `createdAt` but no `updatedAt`, changed in place | **no** |
+| `@UpdateTimestamp` under another field name | **no**: the names `updatedAt` and `createdAt` are fixed |
+
+So a migration that rewrites documents through the driver is not in the deltas that
+follow it, whereas its line of `KAR_migration` is: after one, start a full by hand
+(`POST /backups`). An undated collection is copied whole every 15 minutes: keep such
+collections small, or give them dates. A delta also reads every registered
+collection with no index on these dates: on a very large base, measure it before
+adopting a 15 minute period.
+
+### State
+
 `getState()` returns a `BackupState`, `listArchives()` only its list. Neither
 holds a path, a file name or the text of an exception:
 
 | `BackupState` | |
 |---|---|
 | `running` | a backup is being written |
-| `lastAttempt` | `BackupAttempt(date, success)`, `null` until the first attempt finishes. Kept in memory: lost at a restart |
+| `lastAttempt` | `BackupAttempt(date, success)`, `null` until the first attempt finishes. Kept in memory: lost at a restart. A delta that works does not replace a full that failed: that failure stays until a full works, instead of being out of sight 15 minutes later |
 | `archives` | list of `BackupArchive`, most recent first |
 
 | `BackupArchive` | |
@@ -334,7 +392,7 @@ On a read-only container, the folder must be a volume: the constructor throws
 with a WARN when that fails: the archives are in clear.
 
 The service writes chunks of 4 MiB, about 8 MiB of memory during a backup, so that
-the nightly run fits on a server already busy with imports.
+the nightly run and the deltas fit on a server already busy with imports.
 
 
 BackupResource: list and start from an administration page
@@ -356,7 +414,7 @@ generators need the class.
 | Route | Answer |
 |---|---|
 | `GET /backups` | 200 and the `BackupState`, described above |
-| `POST /backups` | 202 with an empty body and the backup runs in the background, 409 if one is already running, 507 if the volume has too little free space. Read `GET /backups` to follow it |
+| `POST /backups` | always a full backup. 202 with an empty body and the backup runs in the background, right after the delta in progress if there is one; 409 if a full is already running or waiting, 507 if the volume has too little free space. Read `GET /backups` to follow it |
 
 **No route exposes the content of an archive.** There is no download, no restore,
 no deletion, and no parameter that names a file: an archive holds the password
@@ -440,5 +498,5 @@ Pitfalls
   managed elsewhere, call `setEnableStoreOrRestoreData(false)`.
 - `store()` runs in the calling thread and can take minutes: neither a request
   thread nor the cron task should wait for it, the scheduler has a single
-  consumer thread (see [cron.md](cron.md)). `BackupService.startAsync()` gives it
-  a thread of its own.
+  consumer thread (see [cron.md](cron.md)). `BackupService.startAsync()` and
+  `startDeltaAsync()` give it a thread of its own.

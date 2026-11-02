@@ -32,14 +32,16 @@ Minimal example
 final CronScheduler scheduler = new CronScheduler();
 scheduler.setGracePeriodMinutes(1);                       // let the server finish starting
 scheduler.addTask("backup", "0 0 * * *", backup::startAsync);   // every day at 00:00
+scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);   // every 15 minutes
 scheduler.addTask("reclaim", "*/10 * * * *", reclaimJob);       // every 10 minutes
 scheduler.start();
 // at shutdown
 scheduler.stop();
 ```
 
-`BackupService.startAsync` only starts the backup: a dump run by the task itself
-would hold the single consumer thread (see [backup.md](backup.md)). The
+`BackupService.startAsync` and `startDeltaAsync` only start the backup: a dump run
+by the task itself would hold the single consumer thread (see
+[backup.md](backup.md)). Two tasks of the same minute run in no defined order. The
 `WebLauncher` of karideo and karusic have this shape, with a `BackupJob` that
 still runs on that thread.
 

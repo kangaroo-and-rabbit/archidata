@@ -23,7 +23,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 | `annotation.checker` | Validation groups (`GroupCreate`, `GroupUpdate`, `GroupRead`, `GroupPersistant`), `@CheckForeignKey`, collection validators |
 | `annotation.method` / `annotation.security` / `annotation.filter` | `@PaginationContext`, custom HTTP verbs (`@ARCHIVE`, `@RESTORE`, `@CALL`), `@RightAllowed`, `@PermitTokenInURI`, `@DataAccessSingleConnection` |
 | `api` | Ready-made JAX-RS resources: `DataResource` (media upload/streaming), `BackupResource` (list and start backups, ADMIN), `openApiResource`, `FrontGeneric`, `ProxyResource`, `MediaStreamer` |
-| `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `BackupService` (nightly and manual backup of an application, one at a time), `RetentionPolicy`, `BackupSnapshot` |
+| `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `BackupService` (nightly, manual and 15 minute delta backups of an application, one at a time), `RetentionPolicy`, `BackupSnapshot` |
 | `bean` | Bean introspection used by the data layer (internal) |
 | `catcher` | JAX-RS exception mappers (`GenericCatcher.addAll(rc)`), `RestErrorResponse` |
 | `checker` | `ValidationContext`, `DataAccessConnectionContext` (per-request validation and connection context) |
@@ -209,6 +209,7 @@ Each point was checked against the code; the doc page gives the details.
   every task one after the other (a blocking task delays all the others); a run missed while
   the server was down is not caught up; the scheduler is per process (two instances run every
   task twice). See `doc/cron.md`.
+- **Tasks of the same minute** run in no defined order (`CronScheduler` keeps them in a hash map). See `doc/cron.md`.
 - **Date types**: `OffsetDateTime` fields are persisted as a BSON date and read back in UTC
   (the offset is lost). `LocalDateTime` is not supported by the data layer.
 - **`@ApiDoc(hidden = true)`** is honoured by every client generator.

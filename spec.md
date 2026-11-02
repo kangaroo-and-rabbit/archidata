@@ -87,9 +87,28 @@
 - Base seule, `counters` et `KAR_migration` toujours inclus. `BackupEngine` garde ses collections dans un ensemble : une
   archive qui contient deux fois une collection échoue à la restauration.
 - `store`, jamais `storeAll` : karvox laisse exprès ses jetons de worker hors des archives.
-- Une seule sauvegarde à la fois, par processus : la tâche de nuit et le lancement manuel passent tous deux par
-  `startAsync`, qui prend le même `AtomicBoolean`. La tâche de nuit n'attend pas, elle passe son tour : celle qui tourne
-  est aussi récente.
+- Une seule sauvegarde à la fois, par processus, complète ou delta : `startAsync` et `startDeltaAsync` décident sous le
+  même verrou. Une complète pendant une complète passe son tour : celle qui tourne est aussi récente. Un delta pendant
+  une sauvegarde aussi, sans WARN : le suivant contiendra tout. Une complète pendant un delta attend, répond `STARTED` et
+  part sans trou dans le même thread : le cron ne fixe pas l'ordre de deux tâches de la même minute (`ConcurrentHashMap`)
+  et `0 0 * * *` croise `*/15 * * * *` chaque nuit ; sans cela le delta pouvait coûter sa complète à la nuit.
+- Delta : `since` est la date de la dernière complète lue sur le disque, moins 5 s (`DELTA_MARGIN_MILLIS`). Une date est
+  posée par l'application avant l'écriture, un document daté juste avant la complète peut arriver derrière le curseur du
+  dump. Pas de `since` en mémoire : il survit au redémarrage, et les deltas d'une même complète restent cumulatifs, seul
+  le dernier sert à `restoreLatest`.
+- Sans complète sur le disque, `startDeltaAsync` lance une complète plutôt que de passer son tour : serveur neuf ou
+  dossier vidé, sinon rien de restaurable jusqu'à la nuit. Contrepartie acceptée : tant qu'elle échoue, elle est retentée
+  tous les quarts d'heure.
+- Une complète datée après l'heure courante fait échouer le delta (tentative en échec, ERROR) : il serait vide et une
+  restauration s'arrêterait à cette complète. Pas de correction automatique : l'ordre des archives est faux, il faut un
+  humain.
+- Delta sans changement : `storeDeltaIfChanged` compare la somme de l'archive à celle du dernier delta de la chaîne, et
+  jette l'archive si elles sont égales. Une comparaison de contenu, car `counters` et les collections sans date rendent
+  tout delta non vide, et un simple comptage des dates perdrait une modification en place d'un document sans date. Pour
+  cela l'archive est déterministe : `setModTime(0)` sur les entrées, le gzip de commons-compress écrit 0 par défaut. Le
+  premier delta après une complète reste écrit, faute de référence : un fichier par complète au lieu de 96 par jour.
+- `lastAttempt` : un delta réussi ne remplace pas une complète en échec, qui reste visible jusqu'à la prochaine complète
+  réussie. Sans cela, 96 deltas par jour effaçaient l'échec en 15 minutes. Forme JSON inchangée, à dessein.
 - Le dump tourne dans son propre thread : le cron n'a qu'un thread consommateur, qu'il tiendrait pendant des minutes.
   `BackupService` n'est donc plus un `Runnable`, on branche `backup::startAsync` : l'ancien branchement ne compile plus.
 - Le dossier est créé `rwx------`, par l'engine, et non par `Files.createDirectories` comme les `BackupJob`.
@@ -98,7 +117,7 @@
 - Pas de limite de débit : l'utilisateur lance quand il veut. Le garde-fou est l'espace libre : refus sous deux fois la
   dernière archive complète plus `SPACE_MARGIN_BYTES` (1 Gio), contrôlé verrou pris. Un refus, ou un contrôle impossible,
   compte comme une tentative en échec dans les deux cas, manuel ou nuit : la tâche de nuit jette la réponse de
-  `startAsync`, seul l'état en garde la trace.
+  `startAsync`, seul l'état en garde la trace. Un delta passe le même contrôle.
 - `listArchives` échoue si le dossier a disparu, et `startAsync` ne le recrée pas : un volume démonté doit se voir, sans
   écrire l'archive sur ce qui se trouve dessous.
 - Un type `PARTIAL` s'ajoute à complète et delta : ranger une archive `_partial` dans l'un des deux serait faux. Aucune
@@ -107,7 +126,8 @@
 
 ## Route des sauvegardes (`BackupResource`)
 
-- `GET /backups` liste, `POST /backups` lance : 202, 409 si une sauvegarde tourne, 507 si l'espace manque.
+- `GET /backups` liste, `POST /backups` lance toujours une complète : 202, y compris derrière un delta en cours, 409 si
+  une complète tourne ou attend, 507 si l'espace manque.
   `Response.Status` n'a pas de 507 et `WebApplicationExceptionCatcher` masque le message d'un 5xx : la ressource construit
   cette réponse elle-même, avec le corps d'erreur habituel. **Aucune route de téléchargement,
   de restauration ni de suppression, aucun paramètre de chemin ou de nom** : une archive contient les hachages de mots de

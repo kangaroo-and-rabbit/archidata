@@ -13,9 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
@@ -25,19 +25,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Nightly and on-demand backups of the database of an application, sharing one lock.
+ * Nightly, on-demand and delta backups of the database of an application, sharing one lock.
  * <p>
  * The application only declares its folder, its classes and its extra collections. The archives hold the database
  * only (no media file), under the names {@link BackupEngine} expects, and the {@code counters} and migration
  * collections are always part of them: without them a restored base would reuse ids and replay its migrations.
  * <p>
- * Nothing here deletes or restores an archive, and what it returns carries no path, no file name and no exception
- * text. The lock lives in the process: two instances of a server on the same folder do not see each other.
+ * Nothing here restores an archive, and what it returns carries no path, no file name and no exception text. The lock
+ * lives in the process: two instances of a server on the same folder do not see each other.
  *
  * <pre>{@code
  * final BackupService backup = new BackupService(Paths.get(ConfigVariable.getBackupFolder()),
  * 		ConfigBaseVariable.getDBName(), Initialization.CLASSES_BASE, List.of());
  * scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
+ * scheduler.addTask("backup-delta", "&#42;/15 * * * *", backup::startDeltaAsync);
  * BackupResource.setService(backup);
  * }</pre>
  */
@@ -51,6 +52,13 @@ public final class BackupService {
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
 	private static final String SEQUENCE_SUFFIX_FULL = "_full";
+	private static final String SEQUENCE_SUFFIX_DELTA = "_delta";
+	/**
+	 * How far before the last full a delta starts looking. A date is written by the application before the document
+	 * reaches the database: a document dated just before the full can land behind the cursor of the dump. A document
+	 * taken twice costs nothing, a delta replaces it by its {@code _id} with what is the same or newer.
+	 */
+	static final long DELTA_MARGIN_MILLIS = 5000;
 	private static final String THREAD_NAME = "backup-service";
 
 	/** Reads the free space of the volume of the archives. */
@@ -66,9 +74,15 @@ public final class BackupService {
 
 	private final BackupEngine engine;
 	private final UsableSpace usableSpace;
-	/** The lock: whoever sets it runs the backup, and releases it after {@link #lastAttempt} is written. */
-	private final AtomicBoolean running = new AtomicBoolean(false);
-	private volatile BackupAttempt lastAttempt = null;
+	/** Guards the fields below, for the time of a decision, never of a dump. */
+	private final Object lock = new Object();
+	/** What is running: whoever sets it runs the backup, and clears it after {@link #lastAttempt} is written. */
+	private BackupArchiveType runningType = null;
+	/** A full asked during a delta: the thread of the delta runs it next. */
+	private boolean fullWaiting = false;
+	private BackupAttempt lastAttempt = null;
+	/** The last full failed: the deltas of the following hours must not make it look fine. */
+	private boolean lastFullFailed = false;
 
 	/**
 	 * Create the service and its folder, private to the service when it is created here, and delete the temporary files
@@ -134,10 +148,13 @@ public final class BackupService {
 	}
 
 	/**
-	 * Start a backup in its own thread and return at once, for the cron task as for a manual start: the scheduler has a
-	 * single consumer thread, which a dump would hold for minutes. The lock is taken before returning: a state read
+	 * Start a full backup in its own thread and return at once, for the cron task as for a manual start: the scheduler
+	 * has a single consumer thread, which a dump would hold for minutes. The lock is taken before returning: a state read
 	 * right after {@link BackupStart#STARTED} says that a backup is running. A failure of the backup is logged and shows
 	 * in {@link #getState()}.
+	 * <p>
+	 * During a delta the full waits for it and {@link BackupStart#STARTED} is returned: the scheduler does not order two
+	 * tasks of the same minute, and a delta that goes first at midnight must not cost the night its full.
 	 * <p>
 	 * The volume must have twice the size of the last full archive plus {@link #SPACE_MARGIN_BYTES} free. A start
 	 * refused for this reason, or that can not be checked, is logged and recorded as a failed attempt, whoever asked: the
@@ -148,32 +165,82 @@ public final class BackupService {
 	 *             not reach a client
 	 */
 	public BackupStart startAsync() {
-		if (!this.running.compareAndSet(false, true)) {
-			LOGGER.warn("Backup not started: another one is running");
-			return BackupStart.ALREADY_RUNNING;
+		synchronized (this.lock) {
+			if (this.runningType == BackupArchiveType.FULL || this.fullWaiting) {
+				LOGGER.warn("Backup not started: another one is running");
+				return BackupStart.ALREADY_RUNNING;
+			}
+			return checkThenStart(BackupArchiveType.FULL);
 		}
-		boolean started = false;
+	}
+
+	/**
+	 * Start a delta backup, for a cron task: {@code backup::startDeltaAsync}. It follows the rules of {@link #startAsync()}
+	 * (its own thread, the same lock, the same check of the free space, an attempt recorded) and holds what changed since
+	 * the last full archive found on the disk, so that it survives a restart and a restore finds the pair.
+	 * <p>
+	 * A backup in progress makes it skip its turn with no warning: the next one holds everything this one would have. With
+	 * no full archive on the disk there is nothing a delta could be restored on: a full backup starts instead, so that
+	 * a new server, or an emptied folder, has something to restore from the next quarter of an hour on. A delta with the
+	 * same content as the previous one leaves no file and counts as a successful attempt. Neither this nor a failure of a
+	 * delta replaces a failed full in the state: see {@link #getState()}.
+	 *
+	 * @return whether the backup started
+	 * @throws UncheckedIOException if the folder or its free space can not be read: its message names the folder and must
+	 *             not reach a client
+	 */
+	public BackupStart startDeltaAsync() {
+		synchronized (this.lock) {
+			if (this.runningType != null) {
+				LOGGER.info("Delta backup skipped: a backup is running");
+				return BackupStart.ALREADY_RUNNING;
+			}
+			return checkThenStart(BackupArchiveType.DELTA);
+		}
+	}
+
+	/** Call it with {@link #lock} held. */
+	private BackupStart checkThenStart(final BackupArchiveType requested) {
+		BackupArchiveType type = requested;
+		boolean accepted = false;
 		try {
+			if (type == BackupArchiveType.DELTA && this.engine.getLastFullBackupDate() == null) {
+				LOGGER.info("No full backup to base a delta on: a full one starts instead");
+				type = BackupArchiveType.FULL;
+			}
 			if (!hasEnoughSpace()) {
 				return BackupStart.INSUFFICIENT_SPACE;
 			}
-			final Thread worker = new Thread(this::storeThenRelease, THREAD_NAME);
-			worker.setDaemon(true);
-			worker.start();
-			started = true;
+			if (this.runningType != null) {
+				LOGGER.info("Backup waits for the delta in progress");
+				this.fullWaiting = true;
+			} else {
+				final BackupArchiveType first = type;
+				final Thread worker = new Thread(() -> runThenRelease(first), THREAD_NAME);
+				worker.setDaemon(true);
+				worker.start();
+				this.runningType = type;
+			}
+			accepted = true;
 			return BackupStart.STARTED;
 		} catch (final IOException ex) {
 			LOGGER.error("Backup not started: {}", ex.getMessage(), ex);
 			throw new UncheckedIOException(ex);
 		} finally {
-			if (!started) {
-				try {
-					this.lastAttempt = new BackupAttempt(now(), false);
-				} finally {
-					this.running.set(false);
-				}
+			if (!accepted) {
+				recordAttempt(type, now(), false);
 			}
 		}
+	}
+
+	/** Call it with {@link #lock} held. */
+	private void recordAttempt(final BackupArchiveType type, final Instant date, final boolean success) {
+		if (type == BackupArchiveType.FULL) {
+			this.lastFullFailed = !success;
+		} else if (success && this.lastFullFailed) {
+			return;
+		}
+		this.lastAttempt = new BackupAttempt(date, success);
 	}
 
 	private boolean hasEnoughSpace() throws IOException {
@@ -197,24 +264,67 @@ public final class BackupService {
 		return Instant.now().truncatedTo(ChronoUnit.MILLIS);
 	}
 
-	private void storeThenRelease() {
+	private void runThenRelease(final BackupArchiveType first) {
+		boolean released = false;
 		try {
-			final Instant startedAt = now();
-			boolean success = false;
-			try {
-				LOGGER.info("Backup [START]");
-				this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
-				success = true;
-				LOGGER.info("Backup [ END ]");
-			} catch (final Throwable ex) {
-				LOGGER.error("Backup failed: {}", ex.getMessage(), ex);
-			} finally {
-				this.lastAttempt = new BackupAttempt(startedAt, success);
+			BackupArchiveType type = first;
+			while (type != null) {
+				runOne(type);
+				type = nextOrRelease();
 			}
+			released = true;
 		} finally {
 			// Unconditional: whatever fails above, a lock kept here would refuse every backup until a restart.
-			this.running.set(false);
+			if (!released) {
+				synchronized (this.lock) {
+					this.runningType = null;
+					this.fullWaiting = false;
+				}
+			}
 		}
+	}
+
+	/** @return the full that waited for this backup, {@code null} when the lock is released */
+	private BackupArchiveType nextOrRelease() {
+		synchronized (this.lock) {
+			this.runningType = this.fullWaiting ? BackupArchiveType.FULL : null;
+			this.fullWaiting = false;
+			return this.runningType;
+		}
+	}
+
+	private void runOne(final BackupArchiveType type) {
+		final Instant startedAt = now();
+		boolean success = false;
+		try {
+			LOGGER.info("Backup {} [START]", type);
+			if (type == BackupArchiveType.FULL) {
+				this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
+			} else {
+				storeDelta(startedAt);
+			}
+			success = true;
+			LOGGER.info("Backup {} [ END ]", type);
+		} catch (final Throwable ex) {
+			LOGGER.error("Backup {} failed: {}", type, ex.getMessage(), ex);
+		} finally {
+			synchronized (this.lock) {
+				recordAttempt(type, startedAt, success);
+			}
+		}
+	}
+
+	private void storeDelta(final Instant startedAt) throws IOException, DataAccessException {
+		final Date lastFull = this.engine.getLastFullBackupDate();
+		if (lastFull == null) {
+			throw new IOException("The full backup a delta needs is gone");
+		}
+		if (lastFull.toInstant().isAfter(startedAt)) {
+			// Such a delta would hold nothing, and a restore would stop at this full: the clock must be looked at.
+			throw new IOException("The last full backup is dated after the current time: " + lastFull.toInstant());
+		}
+		final Date since = Date.from(lastFull.toInstant().minusMillis(DELTA_MARGIN_MILLIS));
+		this.engine.storeDeltaIfChanged(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_DELTA, since);
 	}
 
 	/**
@@ -267,13 +377,19 @@ public final class BackupService {
 	}
 
 	/**
-	 * Read the state of the backups. The last attempt is kept in memory: it is {@code null} after a restart.
+	 * Read the state of the backups. The last attempt is kept in memory: it is {@code null} after a restart. A delta that
+	 * works does not replace a full that failed: that failure stays until a full works, instead of lasting 15 minutes.
 	 *
 	 * @return whether a backup is running, the last attempt and the archives
 	 * @throws IOException if the folder can not be read, see {@link #listArchives()}
 	 */
 	public BackupState getState() throws IOException {
-		final boolean isRunning = this.running.get();
-		return new BackupState(isRunning, this.lastAttempt, listArchives());
+		final boolean isRunning;
+		final BackupAttempt attempt;
+		synchronized (this.lock) {
+			isRunning = this.runningType != null;
+			attempt = this.lastAttempt;
+		}
+		return new BackupState(isRunning, attempt, listArchives());
 	}
 }

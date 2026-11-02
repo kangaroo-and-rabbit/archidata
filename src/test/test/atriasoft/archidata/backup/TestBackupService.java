@@ -12,6 +12,8 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -26,6 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -47,6 +50,7 @@ import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.Document;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -56,6 +60,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.mongodb.client.MongoDatabase;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import test.atriasoft.archidata.ConfigureDb;
 
@@ -73,6 +82,12 @@ public class TestBackupService {
 		final CountDownLatch entered = new CountDownLatch(1);
 		final CountDownLatch release = new CountDownLatch(1);
 		final AtomicInteger calls = new AtomicInteger();
+		final CountDownLatch deltaEntered = new CountDownLatch(1);
+		final CountDownLatch deltaRelease = new CountDownLatch(1);
+		final AtomicInteger deltaCalls = new AtomicInteger();
+		final AtomicReference<String> deltaSequence = new AtomicReference<>();
+		final AtomicReference<Date> deltaSince = new AtomicReference<>();
+		IOException deltaFailure = null;
 		private final Throwable failure;
 
 		ControlledEngine(final Path folder, final Throwable failure) {
@@ -95,6 +110,25 @@ public class TestBackupService {
 			}
 			if (this.failure instanceof final Error errorFailure) {
 				throw errorFailure;
+			}
+			return new Date();
+		}
+
+		@Override
+		public Date storeDeltaIfChanged(final String sequence, final Date since)
+				throws IOException, DataAccessException {
+			this.deltaSequence.set(sequence);
+			this.deltaSince.set(since);
+			this.deltaCalls.incrementAndGet();
+			this.deltaEntered.countDown();
+			try {
+				Assertions.assertTrue(this.deltaRelease.await(WAIT_SECONDS, TimeUnit.SECONDS));
+			} catch (final InterruptedException ex) {
+				Thread.currentThread().interrupt();
+				throw new IOException(ex);
+			}
+			if (this.deltaFailure != null) {
+				throw this.deltaFailure;
 			}
 			return new Date();
 		}
@@ -569,8 +603,8 @@ public class TestBackupService {
 		final Path sidecar = BackupEngine.checksumPath(old.get(0));
 		Files.writeString(sidecar, "sum");
 		final BackupEngine engine = new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED);
-		// All of them are what a retention would remove.
-		Assertions.assertEquals(old.size(),
+		// All of them are what a retention would remove, the latest full aside.
+		Assertions.assertEquals(old.size() - 1,
 				engine.cleanDryRun(new RetentionPolicy(), LocalDate.of(2026, 11, 2)).size());
 
 		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
@@ -587,5 +621,343 @@ public class TestBackupService {
 		final BackupState state = service.getState();
 		Assertions.assertTrue(state.lastAttempt().success());
 		Assertions.assertEquals(old.size() + 3, state.archives().size());
+	}
+
+	// ===== Delta =====
+
+	private static final String FULL_NAME = BASE_NAME + "_2026-11-01_00:00:00.000_full.tar.gz";
+	private static final Instant FULL_DATE = Instant.parse("2026-11-01T00:00:00Z");
+
+	private static void assertDeltaStarts(final BackupService service) {
+		Assertions.assertEquals(BackupStart.STARTED, service.startDeltaAsync());
+	}
+
+	private static long countOf(final BackupState state, final BackupArchiveType type) {
+		return state.archives().stream().filter(archive -> archive.type() == type).count();
+	}
+
+	@Test
+	public void testADeltaStartsFromTheFullFoundOnTheDisk() throws Exception {
+		archive(BASE_NAME + "_2026-10-31_00:00:00.000_full.tar.gz");
+		archive(FULL_NAME);
+		archive(BASE_NAME + "_2026-11-01_00:15:00.000_delta.tar.gz");
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final Instant before = Instant.now().minusMillis(1);
+
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+		Assertions.assertEquals(0, engine.calls.get());
+		Assertions.assertEquals(Date.from(FULL_DATE.minusMillis(BackupServiceBridge.DELTA_MARGIN_MILLIS)),
+				engine.deltaSince.get());
+		final BackupAttempt attempt = service.getState().lastAttempt();
+		Assertions.assertTrue(attempt.success());
+		Assertions.assertFalse(attempt.date().isBefore(before));
+		// In UTC and of the format the engine parses, as the name of a full.
+		Assertions.assertEquals(attempt.date(),
+				BackupEngine.parseDateTimeFromSequence(engine.deltaSequence.get()).toInstant(ZoneOffset.UTC));
+		Assertions.assertTrue(engine.deltaSequence.get().endsWith("_delta"));
+	}
+
+	/** Nothing is kept in memory: a new service reads the same reference, and the chain stays one. */
+	@Test
+	public void testARestartFindsTheReferenceAgain() throws Exception {
+		final BackupEngine first = new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED);
+		first.setEnableStoreOrRestoreData(false);
+		first.store("2026-11-01_03:00:00.000_full");
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService afterRestart = BackupServiceBridge.on(engine);
+		Assertions.assertNull(afterRestart.getState().lastAttempt());
+		assertDeltaStarts(afterRestart);
+		awaitIdle(afterRestart);
+		Assertions.assertEquals(
+				Date.from(Instant.parse("2026-11-01T03:00:00Z").minusMillis(BackupServiceBridge.DELTA_MARGIN_MILLIS)),
+				engine.deltaSince.get());
+	}
+
+	@Test
+	public void testADeltaDuringAFullIsSkippedWithoutAWarning() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		engine.awaitEntered();
+		final Logger logger = (Logger) LoggerFactory.getLogger(BackupService.class);
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		logger.addAppender(appender);
+		try {
+			Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startDeltaAsync());
+		} finally {
+			logger.detachAppender(appender);
+		}
+		Assertions.assertTrue(appender.list.stream().noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.WARN)),
+				appender.list.toString());
+		Assertions.assertNull(service.getState().lastAttempt(), "a turn skipped is not an attempt");
+		engine.release.countDown();
+		awaitIdle(service);
+		Assertions.assertEquals(0, engine.deltaCalls.get());
+	}
+
+	@Test
+	public void testADeltaDuringADeltaIsSkipped() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startDeltaAsync());
+		engine.deltaRelease.countDown();
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+	}
+
+	/** The scheduler does not order two tasks of the same minute: at midnight the delta can go first. */
+	@Test
+	public void testAFullAskedDuringADeltaRunsRightAfterIt() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		Assertions.assertTrue(engine.deltaEntered.await(WAIT_SECONDS, TimeUnit.SECONDS));
+
+		assertStarts(service);
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startAsync(), "one full waits, not two");
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startDeltaAsync());
+		Assertions.assertEquals(0, engine.calls.get(), "the full waits for the delta");
+
+		engine.deltaRelease.countDown();
+		engine.awaitEntered();
+		Assertions.assertTrue(service.getState().running(), "no gap between the two");
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startDeltaAsync());
+		engine.release.countDown();
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.calls.get());
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+	}
+
+	@Test
+	public void testAFullWaitingBehindADeltaIsStillCheckedForSpace() throws Exception {
+		archive(FULL_NAME);
+		final AtomicLong usable = new AtomicLong(BackupServiceBridge.LOTS_OF_SPACE);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine, usable::get);
+		assertDeltaStarts(service);
+		usable.set(0);
+		Assertions.assertEquals(BackupStart.INSUFFICIENT_SPACE, service.startAsync());
+		engine.deltaRelease.countDown();
+		awaitIdle(service);
+		Assertions.assertEquals(0, engine.calls.get());
+	}
+
+	/** There is nothing a delta could be restored on: without this, the first backup would wait for the night. */
+	@Test
+	public void testWithoutAFullADeltaStartsAFull() throws Exception {
+		// A partial archive and a delta are no base.
+		archive(BASE_NAME + "_2026-11-01_full_partial.tar.gz");
+		archive(BASE_NAME + "_2026-11-01_00:15:00.000_delta.tar.gz");
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.calls.get());
+		Assertions.assertEquals(0, engine.deltaCalls.get());
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testADeltaFollowsTheSpaceCheckOfAFull() throws Exception {
+		archive(FULL_NAME, 100);
+		final long needed = 2 * 100 + BackupService.SPACE_MARGIN_BYTES;
+		final AtomicLong usable = new AtomicLong(needed - 1);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine, usable::get);
+		Assertions.assertEquals(BackupStart.INSUFFICIENT_SPACE, service.startDeltaAsync());
+		Assertions.assertEquals(0, engine.deltaCalls.get());
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+		Assertions.assertFalse(service.getState().running());
+		usable.set(needed);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+	}
+
+	@Test
+	public void testAFailedDeltaIsRecordedAndKeepsNoLock() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		engine.deltaFailure = new IOException("/secret/backup/folder: disk full");
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+		Assertions.assertFalse(service.getState().toString().contains("/secret"));
+		engine.deltaFailure = null;
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
+	/** 96 deltas a day: without this, a full that failed at night is out of the state 15 minutes later. */
+	@Test
+	public void testAWorkingDeltaDoesNotHideAFailedFull() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine failing = new ControlledEngine(this.folder, new IOException("disk full"));
+		failing.release.countDown();
+		failing.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(failing);
+		assertStarts(service);
+		awaitIdle(service);
+		final BackupAttempt failed = service.getState().lastAttempt();
+		Assertions.assertFalse(failed.success());
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(failed, service.getState().lastAttempt());
+		Assertions.assertEquals(1, failing.deltaCalls.get());
+	}
+
+	/** Such a delta would hold nothing, and look fine. */
+	@Test
+	public void testAFullFromTheFutureFailsTheDelta() throws Exception {
+		archive(BASE_NAME + "_2100-01-01_00:00:00.000_full.tar.gz");
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(0, engine.deltaCalls.get());
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testTheDeltaTaskDoesNotHoldTheCronThread() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine);
+		final CronScheduler scheduler = new CronScheduler();
+		scheduler.setDaemonThreads(true);
+		scheduler.disableGracePeriodMinutes();
+		scheduler.start();
+		try {
+			scheduler.addTask(service::startDeltaAsync);
+			Assertions.assertTrue(engine.deltaEntered.await(WAIT_SECONDS, TimeUnit.SECONDS));
+			final CountDownLatch nextTask = new CountDownLatch(1);
+			scheduler.addTask(nextTask::countDown);
+			Assertions.assertTrue(nextTask.await(5, TimeUnit.SECONDS), "the delta holds the cron thread");
+		} finally {
+			engine.deltaRelease.countDown();
+			scheduler.stop();
+		}
+		awaitIdle(service);
+	}
+
+	private static List<Path> archivesIn(final Path store) throws IOException {
+		try (Stream<Path> files = Files.list(store)) {
+			return files.filter(file -> file.getFileName().toString().endsWith(".tar.gz")).sorted().toList();
+		}
+	}
+
+	/**
+	 * The whole way on Mongo, from the service to {@code restoreLatest}: dated, undated and counter documents, no media,
+	 * no file for a delta with nothing new. What the delta can not carry stays in the same test: a document removed comes
+	 * back.
+	 */
+	@Test
+	public void testFullThenDeltaRestoreTheLatestState() throws Exception {
+		final Path media = this.folder.resolve("media");
+		Files.createDirectories(media);
+		ConfigBaseVariable.setDataFolder(media.toString());
+		final MongoDatabase db = ConfigureDb.da.getInterface().getDatabase();
+		final String undated = COLLECTION + "Undated";
+		final List<String> collections = List.of(COLLECTION, undated, "counters", "KAR_migration");
+		for (final String name : collections) {
+			db.getCollection(name).drop();
+		}
+		final Date old = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+		db.getCollection(COLLECTION).insertMany(List.of(//
+				new Document("_id", "same").append("value", 1).append("createdAt", old).append("updatedAt", old), //
+				new Document("_id", "updated").append("value", 1).append("createdAt", old).append("updatedAt", old), //
+				new Document("_id", "softDeleted").append("value", 1).append("deleted", false).append("createdAt", old)
+						.append("updatedAt", old), //
+				new Document("_id", "hardDeleted").append("value", 1).append("createdAt", old).append("updatedAt",
+						old)));
+		db.getCollection(undated).insertOne(new Document("_id", "undated").append("value", 1));
+		db.getCollection("counters").insertOne(new Document("_id", "sequence").append("value", 10L));
+
+		final Path store = this.folder.resolve("store");
+		final BackupService service = BackupServiceBridge.on(store, BASE_NAME, List.of(Migration.class),
+				List.of(COLLECTION, undated));
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+
+		// A file is written after the full: a delta that took the media would hold a data/ entry.
+		Files.writeString(media.resolve("picture.jpg"), "private");
+		final Date now = new Date();
+		db.getCollection(COLLECTION).updateOne(new Document("_id", "updated"),
+				new Document("$set", new Document("value", 2).append("updatedAt", now)));
+		db.getCollection(COLLECTION).updateOne(new Document("_id", "softDeleted"),
+				new Document("$set", new Document("deleted", true).append("updatedAt", now)));
+		db.getCollection(COLLECTION).deleteOne(new Document("_id", "hardDeleted"));
+		db.getCollection(COLLECTION).insertOne(
+				new Document("_id", "created").append("value", 2).append("createdAt", now).append("updatedAt", now));
+		db.getCollection(undated).updateOne(new Document("_id", "undated"),
+				new Document("$set", new Document("value", 2)));
+		db.getCollection("counters").updateOne(new Document("_id", "sequence"),
+				new Document("$set", new Document("value", 11L)));
+
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+		BackupState state = service.getState();
+		Assertions.assertEquals(1, countOf(state, BackupArchiveType.DELTA));
+		final Path delta = archivesIn(store).stream()
+				.filter(file -> file.getFileName().toString().endsWith("_delta.tar.gz")).findFirst().orElseThrow();
+		Assertions.assertEquals(Set.of(COLLECTION + ".json", undated + ".json", "counters.json", "KAR_migration.json"),
+				new HashSet<>(entriesOf(delta)));
+		Assertions.assertTrue(
+				BackupTestTools.countLines(BackupTestTools.extractTarGzToMap(delta).get(COLLECTION + ".json")) == 3,
+				"only what changed");
+
+		// Nothing new: an attempt, and no file.
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		state = service.getState();
+		Assertions.assertTrue(state.lastAttempt().success());
+		Assertions.assertEquals(1, countOf(state, BackupArchiveType.DELTA));
+		Assertions.assertFalse(state.lastAttempt().date().equals(state.archives().get(0).date()));
+
+		// A later change: the chain moves to the last delta, which holds everything since the full.
+		db.getCollection(COLLECTION).updateOne(new Document("_id", "updated"),
+				new Document("$set", new Document("value", 3).append("updatedAt", new Date())));
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(2, countOf(service.getState(), BackupArchiveType.DELTA));
+
+		for (final String name : collections) {
+			db.getCollection(name).drop();
+		}
+		final BackupEngine reader = new BackupEngine(store, BASE_NAME, EngineBackupType.JSON_EXTENDED);
+		reader.setEnableStoreOrRestoreData(false);
+		Assertions.assertEquals(2, reader.getLatestRestoreChain().size());
+		Assertions.assertTrue(reader.restoreLatest());
+
+		Assertions.assertEquals(1, db.getCollection(COLLECTION).find(new Document("_id", "same")).first().get("value"));
+		Assertions.assertEquals(3,
+				db.getCollection(COLLECTION).find(new Document("_id", "updated")).first().get("value"));
+		Assertions.assertEquals(2,
+				db.getCollection(COLLECTION).find(new Document("_id", "created")).first().get("value"));
+		Assertions.assertEquals(true,
+				db.getCollection(COLLECTION).find(new Document("_id", "softDeleted")).first().get("deleted"));
+		Assertions.assertEquals(2, db.getCollection(undated).find(new Document("_id", "undated")).first().get("value"));
+		Assertions.assertEquals(11L,
+				db.getCollection("counters").find(new Document("_id", "sequence")).first().get("value"));
+		// The limit written in the documentation.
+		Assertions.assertNotNull(db.getCollection(COLLECTION).find(new Document("_id", "hardDeleted")).first());
 	}
 }
