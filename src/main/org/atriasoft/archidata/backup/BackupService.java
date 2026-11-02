@@ -79,13 +79,12 @@ public final class BackupService {
 	private final RetentionPolicy retention;
 	/** Guards the fields below, for the time of a decision, never of a dump. */
 	private final Object lock = new Object();
-	/** What is running: whoever sets it runs the backup, and clears it after {@link #lastAttempt} is written. */
+	/** What is running: whoever sets it runs the backup, and clears it after the attempt is written. */
 	private BackupArchiveType runningType = null;
 	/** A full asked during a delta: the thread of the delta runs it next. */
 	private boolean fullWaiting = false;
-	private BackupAttempt lastAttempt = null;
-	/** The last full failed: the deltas of the following hours must not make it look fine. */
-	private boolean lastFullFailed = false;
+	private BackupAttempt lastFullAttempt = null;
+	private BackupAttempt lastDeltaAttempt = null;
 
 	/**
 	 * Create the service with the default retention, {@link RetentionPolicy#RetentionPolicy()}: see
@@ -216,8 +215,8 @@ public final class BackupService {
 	 * A backup in progress makes it skip its turn with no warning: the next one holds everything this one would have. With
 	 * no full archive on the disk there is nothing a delta could be restored on: a full backup starts instead, so that
 	 * a new server, or an emptied folder, has something to restore from the next quarter of an hour on. A delta with the
-	 * same content as the previous one leaves no file and counts as a successful attempt. A delta that works does not
-	 * replace a failed full in the state: see {@link #getState()}.
+	 * same content as the previous one leaves no file and counts as a successful attempt. A failed full stays in the
+	 * state whatever the deltas do: see {@link #getState()}.
 	 *
 	 * @return whether the backup started
 	 * @throws UncheckedIOException if the folder or its free space can not be read: its message names the folder and must
@@ -274,12 +273,28 @@ public final class BackupService {
 
 	/** Call it with {@link #lock} held. */
 	private void recordAttempt(final BackupArchiveType type, final Instant date, final boolean success) {
+		final BackupAttempt attempt = new BackupAttempt(date, success);
 		if (type == BackupArchiveType.FULL) {
-			this.lastFullFailed = !success;
-		} else if (success && this.lastFullFailed) {
-			return;
+			this.lastFullAttempt = attempt;
+		} else {
+			this.lastDeltaAttempt = attempt;
 		}
-		this.lastAttempt = new BackupAttempt(date, success);
+	}
+
+	/**
+	 * Call it with {@link #lock} held.
+	 * @return the failed full if there is one, otherwise the most recent attempt: 96 deltas a day must not make a failed
+	 *         full look fine
+	 */
+	private BackupAttempt attemptToShow() {
+		if (this.lastFullAttempt == null) {
+			return this.lastDeltaAttempt;
+		}
+		if (!this.lastFullAttempt.success() || this.lastDeltaAttempt == null
+				|| this.lastFullAttempt.date().isAfter(this.lastDeltaAttempt.date())) {
+			return this.lastFullAttempt;
+		}
+		return this.lastDeltaAttempt;
 	}
 
 	private boolean hasEnoughSpace() throws IOException {
@@ -440,8 +455,8 @@ public final class BackupService {
 	}
 
 	/**
-	 * Read the state of the backups. The last attempt is kept in memory: it is {@code null} after a restart. A delta that
-	 * works does not replace a full that failed: that failure stays until a full works, instead of lasting 15 minutes.
+	 * Read the state of the backups. The last attempt is kept in memory: it is {@code null} after a restart. It is the last
+	 * full as long as it failed, until a full works, otherwise the most recent attempt, full or delta.
 	 *
 	 * @return whether a backup is running, the last attempt and the archives
 	 * @throws IOException if the folder can not be read, see {@link #listArchives()}
@@ -451,7 +466,7 @@ public final class BackupService {
 		final BackupAttempt attempt;
 		synchronized (this.lock) {
 			isRunning = this.runningType != null;
-			attempt = this.lastAttempt;
+			attempt = attemptToShow();
 		}
 		return new BackupState(isRunning, attempt, listArchives());
 	}

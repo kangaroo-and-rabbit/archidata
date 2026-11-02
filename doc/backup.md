@@ -392,7 +392,7 @@ holds a path, a file name or the text of an exception:
 | `BackupState` | |
 |---|---|
 | `running` | a backup is being written |
-| `lastAttempt` | `BackupAttempt(date, success)`, `null` until the first attempt finishes. Kept in memory: lost at a restart. A delta that works does not replace a full that failed: that failure stays until a full works, instead of being out of sight 15 minutes later |
+| `lastAttempt` | `BackupAttempt(date, success)`, `null` until the first attempt finishes. Kept in memory: lost at a restart. The last full if it failed, until a full works, otherwise the most recent attempt: a full that failed is not out of sight 15 minutes later |
 | `archives` | list of `BackupArchive`, most recent first |
 
 | `BackupArchive` | |

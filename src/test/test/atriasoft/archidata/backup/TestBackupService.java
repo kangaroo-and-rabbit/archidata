@@ -1060,6 +1060,48 @@ public class TestBackupService {
 		Assertions.assertEquals(1, failing.deltaCalls.get());
 	}
 
+	@Test
+	public void testAFailedFullStaysShownOverAFailedDelta() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, new IOException("disk full"));
+		engine.release.countDown();
+		engine.deltaRelease.countDown();
+		engine.deltaFailure = new IOException("disk full");
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		awaitIdle(service);
+		final BackupAttempt failed = service.getState().lastAttempt();
+		Thread.sleep(2);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(failed, service.getState().lastAttempt());
+	}
+
+	/** Without a failed full, the state gives the most recent attempt, whichever it is. */
+	@Test
+	public void testTheMostRecentAttemptIsShownOnceTheFullsWork() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		engine.deltaRelease.countDown();
+		engine.deltaFailure = new IOException("disk full");
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		awaitIdle(service);
+		final BackupAttempt full = service.getState().lastAttempt();
+		Assertions.assertTrue(full.success());
+		Thread.sleep(2);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		final BackupAttempt delta = service.getState().lastAttempt();
+		Assertions.assertFalse(delta.success());
+		Assertions.assertTrue(delta.date().isAfter(full.date()));
+		Thread.sleep(2);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
 	/** Such a delta would hold nothing, and look fine. */
 	@Test
 	public void testAFullFromTheFutureFailsTheDelta() throws Exception {

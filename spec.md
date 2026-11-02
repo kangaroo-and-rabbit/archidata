@@ -108,8 +108,9 @@
   tout delta non vide, et un simple comptage des dates perdrait une modification en place d'un document sans date. Pour
   cela l'archive est déterministe : `setModTime(0)` sur les entrées, le gzip de commons-compress écrit 0 par défaut. Le
   premier delta après une complète reste écrit, faute de référence : un fichier par complète au lieu de 96 par jour.
-- `lastAttempt` : un delta réussi ne remplace pas une complète en échec, qui reste visible jusqu'à la prochaine complète
-  réussie. Sans cela, 96 deltas par jour effaçaient l'échec en 15 minutes. Forme JSON inchangée, à dessein.
+- Le service garde séparément la dernière tentative de complète et la dernière de delta. `lastAttempt` expose la complète
+  en échec s'il y en a une, sinon la plus récente : sans cela, 96 deltas par jour effaçaient l'échec en 15 minutes. Forme
+  JSON inchangée, à dessein.
 - Le dump tourne dans son propre thread : le cron n'a qu'un thread consommateur, qu'il tiendrait pendant des minutes.
   `BackupService` n'est donc plus un `Runnable`, on branche `backup::startAsync` : l'ancien branchement ne compile plus.
 - Le dossier est créé `rwx------`, par l'engine, et non par `Files.createDirectories` comme les `BackupJob`.

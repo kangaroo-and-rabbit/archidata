@@ -9,8 +9,8 @@ import jakarta.validation.constraints.NotNull;
  * State of the backups of an application.
  *
  * @param running {@code true} while a backup is being written
- * @param lastAttempt last finished attempt since the server started, {@code null} when there is none yet; a delta that
- *            works does not replace a full that failed
+ * @param lastAttempt last finished attempt since the server started, {@code null} when there is none yet; the last full
+ *            as long as it is a failure, whatever the deltas did since
  * @param archives the archives, most recent first
  */
 public record BackupState(
