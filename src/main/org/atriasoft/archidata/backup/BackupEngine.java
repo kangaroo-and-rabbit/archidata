@@ -1611,7 +1611,7 @@ public class BackupEngine {
 	}
 
 	/**
-	 * Apply retention policy logic and return the list of files to delete.
+	 * Apply retention policy logic and return the list of files to delete. The latest full backup is never part of it.
 	 * @param files sorted list of backup files (oldest first)
 	 * @param policy the retention policy
 	 * @param referenceDate the reference date for age calculation (typically today)
@@ -1699,11 +1699,18 @@ public class BackupEngine {
 			}
 		}
 
+		// Whatever the dates say (a clock that jumped, a server stopped for years, a partial archive later on the same
+		// day): the policy thins the archives out, it never leaves a base with nothing to restore.
+		toDelete.removeIf(file -> file.equals(latestFull));
 		return toDelete;
 	}
 
 	/**
-	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy.
+	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy, each with its
+	 * {@code .sha256} file. The latest full backup is always kept, whatever its age. The deltas are outside the policy:
+	 * those older than the latest full are deleted whatever their age, the newer ones are kept. Without a full backup, no
+	 * delta is deleted. Only the archives of this engine go: a name that does not start with its base name, or whose
+	 * sequence has no date, is left alone.
 	 * Uses today as the reference date for age calculation.
 	 * @param policy the retention policy to apply
 	 * @return list of deleted file paths
@@ -1714,7 +1721,7 @@ public class BackupEngine {
 	}
 
 	/**
-	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy.
+	 * Apply a retention policy to existing backup files, as {@link #clean(RetentionPolicy)} does.
 	 * @param policy the retention policy to apply
 	 * @param referenceDate the reference date for age calculation (instead of today)
 	 * @return list of deleted file paths

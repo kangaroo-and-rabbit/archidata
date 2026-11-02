@@ -2,6 +2,7 @@ package org.atriasoft.archidata.backup;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * Metadata for a backup file parsed from its filename.
@@ -23,6 +24,15 @@ record BackupFileInfo(
 		final int dateCompare = this.date.compareTo(other.date);
 		if (dateCompare != 0) {
 			return dateCompare;
+		}
+		// Same day: the text alone would put 12-45-00 before 12:30:00, and a name without a time after both.
+		final LocalDateTime time = BackupEngine.parseDateTimeFromSequence(this.sequence);
+		final LocalDateTime otherTime = BackupEngine.parseDateTimeFromSequence(other.sequence);
+		if (time != null && otherTime != null) {
+			final int timeCompare = time.compareTo(otherTime);
+			if (timeCompare != 0) {
+				return timeCompare;
+			}
 		}
 		return this.sequence.compareTo(other.sequence);
 	}

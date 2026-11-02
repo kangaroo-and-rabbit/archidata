@@ -97,6 +97,8 @@ public class TestBackupRetention {
 		createFakeBackup(tempDir, "2024-01-15", false);
 		createFakeBackup(tempDir, "2024-02-20", false);
 		createFakeBackup(tempDir, "2024-03-10", false);
+		// The latest full is never deleted: it has to be another one.
+		createFakeBackup(tempDir, "2025-06-19", false);
 
 		final BackupEngine engine = createEngine(tempDir);
 		final List<Path> toDelete = engine.cleanDryRun(new RetentionPolicy(5, 3, 12), REF_DATE);
@@ -151,6 +153,7 @@ public class TestBackupRetention {
 		// Dry run should not delete files
 		createFakeBackup(tempDir, "2024-01-15", false);
 		createFakeBackup(tempDir, "2024-02-20", false);
+		createFakeBackup(tempDir, "2025-06-19", false);
 
 		final BackupEngine engine = createEngine(tempDir);
 		final List<Path> wouldDelete = engine.cleanDryRun(new RetentionPolicy(5, 3, 12), REF_DATE);
@@ -534,6 +537,110 @@ public class TestBackupRetention {
 		Assertions.assertEquals(0, toDelete.size());
 		// Verify hidden file is untouched
 		Assertions.assertTrue(Files.exists(tempDir.resolve("." + BASE_NAME + "_2025-06-18.tar.gz_tmp")));
+	}
+
+	/** A server stopped for years, or a clock that jumped forward: every archive is past the last zone. */
+	@Test
+	public void testLatestFullSurvivesWhenNoArchiveIsRecent(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2020-01-01_00:00:00.000_full", false);
+		createFakeBackup(tempDir, "2020-01-02_00:00:00.000_full", false);
+		createFakeBackup(tempDir, "2020-01-03_00:00:00.000_full", false);
+		final Path sidecar = BackupEngine
+				.checksumPath(tempDir.resolve("test_backup_2020-01-03_00:00:00.000_full.tar.gz"));
+		Files.writeString(sidecar, "sum");
+
+		final List<Path> deleted = createEngine(tempDir).clean(new RetentionPolicy(), LocalDate.of(2040, 1, 1));
+
+		Assertions.assertEquals(Set.of("test_backup_2020-01-01_00:00:00.000_full.tar.gz",
+				"test_backup_2020-01-02_00:00:00.000_full.tar.gz"), fileNames(deleted));
+		Assertions.assertTrue(Files.exists(tempDir.resolve("test_backup_2020-01-03_00:00:00.000_full.tar.gz")));
+		Assertions.assertTrue(Files.exists(sidecar));
+		// The chain still restores what it can.
+		Assertions.assertEquals(1, createEngine(tempDir).getLatestRestoreChain().size());
+	}
+
+	@Test
+	public void testLatestFullSurvivesTheStrictestPolicy(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2025-06-19_00:00:00.000_full", false);
+		final List<Path> toDelete = createEngine(tempDir).cleanDryRun(new RetentionPolicy(0, 0, 0), REF_DATE);
+		Assertions.assertTrue(toDelete.isEmpty());
+	}
+
+	/** A clock that jumped back: the archives look like the future, which no zone removes. */
+	@Test
+	public void testNothingIsDeletedWhenTheClockIsBehindTheArchives(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2025-06-18_00:00:00.000_full", false);
+		createFakeBackup(tempDir, "2025-06-19_00:00:00.000_full", false);
+		createFakeBackup(tempDir, "2025-06-19_00:15:00.000_delta", false);
+		Assertions.assertTrue(createEngine(tempDir).clean(new RetentionPolicy(), LocalDate.of(2020, 1, 1)).isEmpty());
+	}
+
+	/** A partial archive later on the same day wins the deduplication of the day, not the place of the latest full. */
+	@Test
+	public void testLatestFullSurvivesAPartialArchiveOfTheSameDay(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2025-06-10T08-00-00", false);
+		createFakeBackup(tempDir, "2025-06-10T12-00-00", true);
+
+		final List<Path> toDelete = createEngine(tempDir).cleanDryRun(new RetentionPolicy(5, 3, 12), REF_DATE);
+
+		Assertions.assertTrue(toDelete.isEmpty(), "the only full of the folder is deleted");
+	}
+
+	/** The same in the weekly zone, and only the latest full is protected: an older one is thinned as usual. */
+	@Test
+	public void testAnOlderFullIsStillThinnedOut(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2025-02-10", false);
+		createFakeBackup(tempDir, "2025-02-11", false);
+		createFakeBackup(tempDir, "2025-02-13", true);
+
+		final List<Path> toDelete = createEngine(tempDir).cleanDryRun(new RetentionPolicy(5, 3, 12), REF_DATE);
+
+		Assertions.assertEquals(Set.of("test_backup_2025-02-10.tar.gz"), fileNames(toDelete));
+	}
+
+	@Test
+	public void testCleanRemovesOnlyTheArchivesOfItsBase(@TempDir final Path tempDir) throws IOException {
+		final List<Path> foreign = List.of(//
+				// Another base, and a base whose name starts with this one.
+				Files.createFile(tempDir.resolve("other_2015-01-01_00:00:00.000_full.tar.gz")), //
+				Files.createFile(tempDir.resolve("other_2015-01-01_00:00:00.000_full.tar.gz.sha256")), //
+				Files.createFile(tempDir.resolve("other_2015-01-01_00:15:00.000_delta.tar.gz")), //
+				Files.createFile(tempDir.resolve(BASE_NAME + "_x_2015-01-01_00:00:00.000_full.tar.gz")), //
+				// A name of this base without a date.
+				Files.createFile(tempDir.resolve(BASE_NAME + "_manual.tar.gz")), //
+				// Not an archive.
+				Files.createFile(tempDir.resolve(BASE_NAME + "_2015-01-01.txt")));
+		createFakeBackup(tempDir, "2015-01-01_00:00:00.000_full", false);
+		final Path old = tempDir.resolve(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		Files.writeString(BackupEngine.checksumPath(old), "sum");
+		createFakeBackup(tempDir, "2025-06-19_00:00:00.000_full", false);
+
+		final List<Path> deleted = createEngine(tempDir).clean(new RetentionPolicy(), REF_DATE);
+
+		Assertions.assertEquals(List.of(old), deleted);
+		Assertions.assertFalse(Files.exists(old));
+		Assertions.assertFalse(Files.exists(BackupEngine.checksumPath(old)), "the sum goes with its archive");
+		for (final Path file : foreign) {
+			Assertions.assertTrue(Files.exists(file), file.toString());
+		}
+	}
+
+	/** The archives of a former job sit next to the new ones: a name must not sort by its text. */
+	@Test
+	public void testLatestFullIsFoundAcrossNameFormats(@TempDir final Path tempDir) throws IOException {
+		createFakeBackup(tempDir, "2025-06-10_12:30:00.000_full", false);
+		createFakeBackup(tempDir, "2025-06-10_12-45-00_full", false);
+		createFakeBackup(tempDir, "2025-06-10_12:40:00.000_delta", false);
+		createFakeBackup(tempDir, "2025-06-10_12:50:00.000_delta", false);
+
+		final BackupEngine engine = createEngine(tempDir);
+
+		Assertions.assertEquals(
+				List.of("test_backup_2025-06-10_12-45-00_full.tar.gz",
+						"test_backup_2025-06-10_12:50:00.000_delta.tar.gz"),
+				engine.getLatestRestoreChain().stream().map(path -> path.getFileName().toString()).toList());
+		final List<Path> deleted = engine.clean(new RetentionPolicy(9999, 9999, 9999), REF_DATE);
+		Assertions.assertEquals(Set.of("test_backup_2025-06-10_12:40:00.000_delta.tar.gz"), fileNames(deleted));
 	}
 
 	@Test

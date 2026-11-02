@@ -204,7 +204,19 @@ is a record; its compact constructor rejects negative values and
 | older | none |
 
 Delta archives are outside this table: a delta is kept only if it is newer than
-the latest full backup, because a newer full supersedes it.
+the latest full backup, because a newer full supersedes it, and that whatever its
+age: `keepAllDays` keeps no delta. Without any full backup, no delta is deleted.
+
+**The latest full backup is never deleted**, whatever its age and the policy, even
+if the clock jumped, if no archive is recent or with `RetentionPolicy(0, 0, 0)`.
+Only this one: the older ones follow the table. A clock behind the archives
+deletes nothing, because a date in the future falls in the first zone.
+
+`clean` removes the `.sha256` file with its archive. A `.sha256` left alone is not
+looked at. It only touches names that start with `<baseName>_` and whose sequence
+holds a date: another base in the same folder, and an archive named by hand without
+a date, stay. A deletion that fails throws `IOException` and leaves the rest for
+the next run.
 
 `clean(policy)` and `clean(policy, referenceDate)` delete and return the removed
 paths; `cleanDryRun(policy)` and `cleanDryRun(policy, referenceDate)` return the
