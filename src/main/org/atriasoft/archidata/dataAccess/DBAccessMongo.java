@@ -87,6 +87,8 @@ import jakarta.ws.rs.InternalServerErrorException;
  * wrapper to minimize direct database code writing.
  */
 public final class DBAccessMongo implements Closeable {
+	/** Collection holding the sequences of {@link #getNextSequenceLongValue(String, String)}. */
+	public static final String COLLECTION_COUNTERS = "counters";
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
 
 	/**
@@ -1211,7 +1213,7 @@ public final class DBAccessMongo implements Closeable {
 			fieldName = "sequence_id";
 		}
 		// Collection "counters" to store the sequences if Ids
-		final MongoCollection<Document> countersCollection = this.db.getDatabase().getCollection("counters");
+		final MongoCollection<Document> countersCollection = this.db.getDatabase().getCollection(COLLECTION_COUNTERS);
 
 		// Filter to find the specific counter for the collections
 		final Document filter = new Document("_id", collectionName);

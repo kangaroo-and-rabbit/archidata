@@ -17,6 +17,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.slf4j.Logger;
@@ -41,8 +42,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class BackupService implements Runnable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupService.class);
-	/** Collection of the sequences of the generated ids, see {@code DBAccessMongo.getNextSequenceLongValue}. */
-	private static final String COLLECTION_COUNTERS = "counters";
 	/** One of the formats {@link BackupEngine#parseDateTimeFromSequence(String)} reads, the one of the existing archives. */
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
@@ -89,7 +88,7 @@ public final class BackupService implements Runnable {
 		engine.setEnableStoreOrRestoreData(false);
 		engine.addClass(classes.toArray(Class<?>[]::new));
 		engine.addCollection(collections.toArray(String[]::new));
-		engine.addCollection(COLLECTION_COUNTERS);
+		engine.addCollection(DBAccessMongo.COLLECTION_COUNTERS);
 		engine.addClass(Migration.class);
 		return engine;
 	}
