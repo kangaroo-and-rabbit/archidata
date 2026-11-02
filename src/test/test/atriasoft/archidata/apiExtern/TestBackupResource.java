@@ -39,11 +39,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import test.atriasoft.archidata.ConfigureDb;
+import test.atriasoft.archidata.backup.BackupTestTools;
 
 /** {@code /backups}: an administrator sees and starts the backups, and nothing of the disk leaves the server. */
 public class TestBackupResource {
@@ -54,6 +56,7 @@ public class TestBackupResource {
 	private static final String POST = "POST";
 	/** HTTP/1.1 only: the default client tries an h2c upgrade. */
 	private static final HttpClient CLIENT = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+	private static final ObjectMapper MAPPER = ContextGenericTools.createObjectMapper();
 
 	private static WebLauncherTest webInterface = null;
 
@@ -103,15 +106,7 @@ public class TestBackupResource {
 		BackupResource.setService(null);
 		if (Files.exists(this.folder)) {
 			Files.setPosixFilePermissions(this.folder, PosixFilePermissions.fromString("rwx------"));
-			deleteAll(this.folder);
-		}
-	}
-
-	private static void deleteAll(final Path dir) throws IOException {
-		try (Stream<Path> files = Files.walk(dir)) {
-			for (final Path file : files.sorted((a, b) -> b.compareTo(a)).toList()) {
-				Files.deleteIfExists(file);
-			}
+			BackupTestTools.deleteRecursive(this.folder);
 		}
 	}
 
@@ -129,8 +124,7 @@ public class TestBackupResource {
 	private static JsonNode awaitIdle() throws Exception {
 		final long limit = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
 		while (true) {
-			final JsonNode state = ContextGenericTools.createObjectMapper()
-					.readTree(call(GET, ROUTE, Common.ADMIN_TOKEN).body());
+			final JsonNode state = MAPPER.readTree(call(GET, ROUTE, Common.ADMIN_TOKEN).body());
 			if (!state.get("running").asBoolean()) {
 				return state;
 			}
@@ -196,8 +190,7 @@ public class TestBackupResource {
 			final HttpResponse<String> second = call(POST, ROUTE, Common.ADMIN_TOKEN);
 			Assertions.assertEquals(409, second.statusCode());
 			Assertions.assertFalse(second.body().contains(this.folder.toString()), second.body());
-			final JsonNode running = ContextGenericTools.createObjectMapper()
-					.readTree(call(GET, ROUTE, Common.ADMIN_TOKEN).body());
+			final JsonNode running = MAPPER.readTree(call(GET, ROUTE, Common.ADMIN_TOKEN).body());
 			Assertions.assertTrue(running.get("running").asBoolean());
 		} finally {
 			engine.release.countDown();
@@ -213,7 +206,7 @@ public class TestBackupResource {
 		final HttpResponse<String> answer = call(POST, ROUTE, Common.ADMIN_TOKEN);
 		Assertions.assertEquals(507, answer.statusCode(), answer.body());
 		// The body the generated client recognizes as an error, without any number nor path.
-		final JsonNode error = ContextGenericTools.createObjectMapper().readTree(answer.body());
+		final JsonNode error = MAPPER.readTree(answer.body());
 		Assertions.assertEquals(507, error.get("status").asInt());
 		Assertions.assertEquals("Not enough free space for a backup", error.get("message").asText());
 		Assertions.assertFalse(answer.body().contains(this.folder.toString()), answer.body());
@@ -242,7 +235,7 @@ public class TestBackupResource {
 		Assertions.assertFalse(body.contains("_full"), body);
 		Assertions.assertFalse(body.contains(this.folder.toString()), body);
 		Assertions.assertFalse(body.contains("/"), body);
-		final JsonNode state = ContextGenericTools.createObjectMapper().readTree(body);
+		final JsonNode state = MAPPER.readTree(body);
 		Assertions.assertEquals(Set.of("running", "lastAttempt", "archives"), keysOf(state));
 		Assertions.assertEquals(Set.of("date", "success"), keysOf(state.get("lastAttempt")));
 		Assertions.assertEquals(Set.of("date", "size", "type", "hasChecksum"), keysOf(state.get("archives").get(0)));

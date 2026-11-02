@@ -20,7 +20,7 @@ import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.atriasoft.archidata.backup.BackupEngine;
 
 /** Shared helpers for the backup test classes: tar.gz inspection/creation, NDJSON counting, cleanup. */
-final class BackupTestTools {
+public final class BackupTestTools {
 
 	private BackupTestTools() {
 		// Utility class
@@ -76,7 +76,7 @@ final class BackupTestTools {
 	}
 
 	/** Recursively delete a directory, ignoring individual deletion errors. */
-	static void deleteRecursive(final Path dir) throws IOException {
+	public static void deleteRecursive(final Path dir) throws IOException {
 		if (dir == null || !Files.exists(dir)) {
 			return;
 		}
