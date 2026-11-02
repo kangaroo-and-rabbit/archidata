@@ -407,7 +407,7 @@ public final class BackupService {
 				LOGGER.warn("Backup list: not a regular file, ignored: {}", file.path().getFileName());
 				return null;
 			}
-			final Instant date = BackupEngine.parseDateTimeFromSequence(file.sequence()).toInstant(ZoneOffset.UTC);
+			final Instant date = file.dateTime().toInstant(ZoneOffset.UTC);
 			return new BackupArchive(date, attributes.size(), typeOf(file),
 					Files.exists(BackupEngine.checksumPath(file.path())));
 		} catch (final IOException ex) {

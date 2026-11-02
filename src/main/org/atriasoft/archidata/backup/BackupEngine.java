@@ -1559,12 +1559,12 @@ public class BackupEngine {
 					middle = middle.substring(0, middle.length() - SUFFIX_PARTIAL.length());
 				}
 				final boolean delta = middle.endsWith(SUFFIX_DELTA);
-				final LocalDate date = parseDateFromSequence(middle);
-				if (date == null) {
+				final LocalDateTime dateTime = parseDateTimeFromSequence(middle);
+				if (dateTime == null) {
 					LOGGER.warn("Backup file with unparseable date in sequence, ignored for retention: {}", fileName);
 					continue;
 				}
-				result.add(new BackupFileInfo(filePath, middle, date, partial, delta));
+				result.add(new BackupFileInfo(filePath, middle, dateTime, partial, delta));
 			}
 		} catch (final DirectoryIteratorException ex) {
 			throw ex.getCause();
@@ -1600,11 +1600,7 @@ public class BackupEngine {
 		if (latestFull == null) {
 			return null;
 		}
-		final LocalDateTime dateTime = parseDateTimeFromSequence(latestFull.sequence());
-		if (dateTime == null) {
-			return null;
-		}
-		return Date.from(dateTime.toInstant(ZoneOffset.UTC));
+		return Date.from(latestFull.dateTime().toInstant(ZoneOffset.UTC));
 	}
 
 	/**

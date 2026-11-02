@@ -14,25 +14,22 @@ import java.time.LocalDateTime;
 record BackupFileInfo(
 		Path path,
 		String sequence,
-		LocalDate date,
+		LocalDateTime dateTime,
 		boolean partial,
 		boolean delta)
 		implements Comparable<BackupFileInfo> {
 
+	/** @return the day of the archive, as written in its name */
+	LocalDate date() {
+		return this.dateTime.toLocalDate();
+	}
+
+	/** Compare the times, not the texts: the text puts 12-45-00 before 12:30:00, and a name without a time after both. */
 	@Override
 	public int compareTo(final BackupFileInfo other) {
-		final int dateCompare = this.date.compareTo(other.date);
-		if (dateCompare != 0) {
-			return dateCompare;
-		}
-		// Same day: the text alone would put 12-45-00 before 12:30:00, and a name without a time after both.
-		final LocalDateTime time = BackupEngine.parseDateTimeFromSequence(this.sequence);
-		final LocalDateTime otherTime = BackupEngine.parseDateTimeFromSequence(other.sequence);
-		if (time != null && otherTime != null) {
-			final int timeCompare = time.compareTo(otherTime);
-			if (timeCompare != 0) {
-				return timeCompare;
-			}
+		final int timeCompare = this.dateTime.compareTo(other.dateTime);
+		if (timeCompare != 0) {
+			return timeCompare;
 		}
 		return this.sequence.compareTo(other.sequence);
 	}
