@@ -175,6 +175,16 @@ on their modification time. Restoring is `restoreFile(full)` then
 full with the latest delta newer than it (`getLatestRestoreChain()` shows the
 pair). `getLastFullBackupDate()` returns the date to pass as `since`.
 
+Deltas based on the same full are cumulative: the last one holds everything, the
+others are only earlier points. `storeDeltaIfChanged(sequence, since)` keeps the
+archive only if it differs from the delta a restore would apply, and returns
+`null` otherwise: the same documents give the same bytes, so it compares the
+SHA-256 with the `.sha256` of that delta. The comparison sees the content, not the
+dates: a `counters` document, an undated document changed in place or a document
+removed since the previous delta make a new archive. The first delta after a full
+has nothing to be compared with and is always kept. It works on database-only
+archives: with the media, the archive always differs and is always kept.
+
 Limits of a delta, by design: it never records deletions (a restore does not
 remove documents), and a document without `updatedAt` that is modified in place
 cannot be detected (it is however always included because it has no date).
@@ -391,6 +401,7 @@ Reference
 | `setRestoreMaxEntryBytes(long)`, `setRestoreMaxTotalBytes(long)`, `setRestoreMaxLineChars(int)` | restore bounds (64 GiB, 1 TiB, 64 Mi characters) |
 | `checksumPath(Path)` (static), `SUFFIX_SHA256` | path of the sidecar of an archive |
 | `store(String)`, `storeDelta(String, Date)` | back up the registered collections (full, delta) |
+| `storeDeltaIfChanged(String, Date)` | same as `storeDelta`, returns `null` and keeps nothing when the content is the one of the latest delta |
 | `storeAll(String)`, `storeAllDelta(String, Date)` | same on every collection but `system.*`, no registration needed |
 | `restoreFile(Path, String)`, `restoreDeltaFile(Path)`, `restore(String sequence)`, `restoreLatest()` | restore from archives |
 | `getLastFullBackupDate()`, `getLatestRestoreChain()` | inspect the archive directory |
@@ -399,8 +410,8 @@ Reference
 | `clean(...)`, `cleanDryRun(...)` | retention |
 | constants `DEFAULT_CHUNK_MAX_BYTES`, `DEFAULT_CHUNK_MAX_DOCUMENTS`, `DEFAULT_RESTORE_BATCH_MAX_BYTES`, `DEFAULT_RESTORE_BATCH_MAX_DOCUMENTS` | defaults (32 MiB, 100 000, 32 MiB, 10 000) |
 
-All the `store*` methods return the `Date` at which the backup started: pass it
-as `since` of the next delta. `BackupFileInfo` is package-private.
+All the `store*` methods return the `Date` at which the backup started (`null` for
+`storeDeltaIfChanged` when nothing was kept): pass it as `since` of the next delta. `BackupFileInfo` is package-private.
 
 
 Pitfalls

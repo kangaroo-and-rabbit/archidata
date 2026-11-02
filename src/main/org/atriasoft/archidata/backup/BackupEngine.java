@@ -518,6 +518,8 @@ public class BackupEngine {
 		final String entryName = chunkEntryName(collectionName, chunkIndex);
 		final TarArchiveEntry tarEntry = new TarArchiveEntry(entryName);
 		tarEntry.setSize(chunkBuffer.size());
+		// The same documents give the same bytes, the same sum: storeDeltaIfChanged relies on it.
+		tarEntry.setModTime(0L);
 		tarOut.putArchiveEntry(tarEntry);
 		chunkBuffer.writeTo(tarOut);
 		tarOut.closeArchiveEntry();
@@ -1094,7 +1096,8 @@ public class BackupEngine {
 	private Date executeStoreInternal(
 			final String sequence,
 			final BackupCollectionStrategy strategy,
-			final Date mediaModifiedSince) throws IOException, DataAccessException {
+			final Date mediaModifiedSince,
+			final boolean onlyIfChanged) throws IOException, DataAccessException {
 		final Date now = Date.from(Instant.now());
 		final String fileName = archiveFileName(sequence);
 		// Ensure the store directory exists (owner only when the engine creates it)
@@ -1112,11 +1115,16 @@ public class BackupEngine {
 					backupDataToStream(tarOut, mediaModifiedSince);
 				}
 			}
+			final String sum = toHex(digest.digest());
+			if (onlyIfChanged && sum.equals(readLatestDeltaSum())) {
+				LOGGER.info("Backup delta identical to the previous one, not kept: {}", fileName);
+				return null;
+			}
 			final Path outputFileFinal = this.pathStore.resolve(fileName);
 			// The sum (sha256sum format) is moved first: a new archive never sits next to an old sum, and an old
 			// archive next to the new sum fails the check (safe side).
 			createPrivateFile(checksumTmp);
-			Files.writeString(checksumTmp, toHex(digest.digest()) + "  " + fileName + "\n", StandardCharsets.US_ASCII);
+			Files.writeString(checksumTmp, sum + "  " + fileName + "\n", StandardCharsets.US_ASCII);
 			Files.move(checksumTmp, checksumPath(outputFileFinal), StandardCopyOption.REPLACE_EXISTING);
 			Files.move(outputFileTmp, outputFileFinal, StandardCopyOption.REPLACE_EXISTING);
 			stored = true;
@@ -1130,6 +1138,19 @@ public class BackupEngine {
 			}
 		}
 		return now;
+	}
+
+	/** @return the sum of the delta a restore would apply, {@code null} when there is none or it has no sum */
+	private String readLatestDeltaSum() throws IOException {
+		final List<Path> chain = getLatestRestoreChain();
+		if (chain.size() < 2) {
+			return null;
+		}
+		final Path sidecar = checksumPath(chain.get(chain.size() - 1));
+		if (!Files.exists(sidecar)) {
+			return null;
+		}
+		return Files.readString(sidecar, StandardCharsets.US_ASCII).trim().split("\\s+", 2)[0];
 	}
 
 	/**
@@ -1198,7 +1219,7 @@ public class BackupEngine {
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public Date store(final String sequence) throws IOException, DataAccessException {
-		return executeStoreInternal(sequence, tarOut -> backupCollectionsToStream(tarOut, null), null);
+		return executeStoreInternal(sequence, tarOut -> backupCollectionsToStream(tarOut, null), null, false);
 	}
 
 	/**
@@ -1220,7 +1241,30 @@ public class BackupEngine {
 	public Date storeDelta(final String sequence, final Date since) throws IOException, DataAccessException {
 		final Document filter = buildDeltaFilter(since);
 		return executeStoreInternal(ensureDeltaSequence(sequence), tarOut -> backupCollectionsToStream(tarOut, filter),
-				since);
+				since, false);
+	}
+
+	/**
+	 * Same as {@link #storeDelta(String, Date)}, but keep the archive only if it differs from the delta a restore would
+	 * apply today (see {@link #getLatestRestoreChain()}). The deltas of a same full are cumulative: when the content is
+	 * the same as the previous one, a new file would restore nothing more.
+	 * <p>
+	 * The comparison is the one of the whole content, so that it also sees what no date tells: the {@code counters},
+	 * the documents without {@code updatedAt}, and a document deleted since the previous delta. It needs the archive,
+	 * which is written and then dropped, so its cost is the one of a delta. It reads the {@code .sha256} of the previous
+	 * delta, and survives a restart. The first delta after a full has nothing to be compared with and is always kept.
+	 * Only meaningful with {@code setEnableStoreOrRestoreData(false)}: the folders of the media have the current date in
+	 * the archive, which then always differs, and is kept.
+	 * @param sequence the sequence identifier appended to the backup filename (required)
+	 * @param since only documents modified at or after this date are included
+	 * @return the date at which the backup started, {@code null} when nothing was kept
+	 * @throws IOException if the archive cannot be written
+	 * @throws DataAccessException if the database connection fails
+	 */
+	public Date storeDeltaIfChanged(final String sequence, final Date since) throws IOException, DataAccessException {
+		final Document filter = buildDeltaFilter(since);
+		return executeStoreInternal(ensureDeltaSequence(sequence), tarOut -> backupCollectionsToStream(tarOut, filter),
+				since, true);
 	}
 
 	/**
@@ -1245,7 +1289,7 @@ public class BackupEngine {
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public Date storeAll(final String sequence) throws IOException, DataAccessException {
-		return executeStoreInternal(sequence, tarOut -> backupAllCollectionsToStream(tarOut, null), null);
+		return executeStoreInternal(sequence, tarOut -> backupAllCollectionsToStream(tarOut, null), null, false);
 	}
 
 	/**
@@ -1262,7 +1306,7 @@ public class BackupEngine {
 	public Date storeAllDelta(final String sequence, final Date since) throws IOException, DataAccessException {
 		final Document filter = buildDeltaFilter(since);
 		return executeStoreInternal(ensureDeltaSequence(sequence),
-				tarOut -> backupAllCollectionsToStream(tarOut, filter), since);
+				tarOut -> backupAllCollectionsToStream(tarOut, filter), since, false);
 	}
 
 	/**

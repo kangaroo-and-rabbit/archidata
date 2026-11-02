@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.stream.Stream;
 
 import org.atriasoft.archidata.backup.BackupEngine;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
@@ -17,7 +18,9 @@ import org.atriasoft.archidata.backup.RetentionPolicy;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
+import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
+import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -147,6 +150,68 @@ public class TestBackupDelta {
 		final DataStoreWithUpdate afterDelta = restored.stream().filter(elem -> elem.getOid().equals(toModify.getOid()))
 				.findFirst().orElseThrow();
 		Assertions.assertEquals(333L, afterDelta.dataLong);
+	}
+
+	private BackupEngine createStoringEngine(final String baseName) throws DataAccessException {
+		final BackupEngine engine = createEngine(baseName);
+		engine.addClass(DataStoreWithUpdate.class, DataStoreWithoutUpdate.class);
+		return engine;
+	}
+
+	private long countArchives() throws IOException {
+		try (Stream<Path> files = Files.list(this.tempBackupDir)) {
+			return files.filter(file -> file.getFileName().toString().endsWith(".tar.gz")).count();
+		}
+	}
+
+	@Test
+	public void testADeltaIdenticalToThePreviousOneIsNotKept() throws Exception {
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		insertWithoutUpdate("undated");
+		final BackupEngine engine = createStoringEngine("deltaidentical");
+		final Date fullDate = engine.store("2026-01-01_00:00:00.000_full");
+
+		// Nothing to compare the first one with.
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:15:00.000", fullDate));
+		Assertions.assertEquals(2, countArchives());
+
+		Assertions.assertNull(engine.storeDeltaIfChanged("2026-01-01_00:30:00.000", fullDate));
+		Assertions.assertEquals(2, countArchives());
+		// A new engine, as after a restart, reads the same sum on the disk.
+		Assertions.assertNull(
+				createStoringEngine("deltaidentical").storeDeltaIfChanged("2026-01-01_00:45:00.000", fullDate));
+		Assertions.assertEquals(2, countArchives());
+		try (Stream<Path> files = Files.list(this.tempBackupDir)) {
+			Assertions.assertEquals(List.of(),
+					files.filter(file -> file.getFileName().toString().endsWith("_tmp")).toList(),
+					"a dropped delta is a dump in clear");
+		}
+
+		// A dated change, then what no date tells: an undated document modified in place, then a document removed.
+		final DataStoreWithUpdate dated = insertWithUpdate(1);
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_01:00:00.000", fullDate));
+		ConfigureDb.da.getInterface().getDatabase().getCollection("DataStoreWithoutUpdate").updateMany(new Document(),
+				new Document("$set", new Document("dataString", "changed in place")));
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_01:15:00.000", fullDate));
+		DataAccess.deleteHardById(DataStoreWithUpdate.class, dated.getOid());
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_01:30:00.000", fullDate));
+		Assertions.assertEquals(5, countArchives());
+		final List<Path> chain = engine.getLatestRestoreChain();
+		Assertions.assertEquals("deltaidentical_2026-01-01_01:30:00.000_delta.tar.gz",
+				chain.get(1).getFileName().toString());
+	}
+
+	@Test
+	public void testADeltaIsComparedOnlyWithADeltaOfTheLatestFull() throws Exception {
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		final BackupEngine engine = createStoringEngine("deltanewfull");
+		engine.store("2026-01-01_00:00:00.000_full");
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:15:00.000", new Date(0)));
+		engine.store("2026-01-01_00:30:00.000_full");
+		// The same content, but the previous delta is not part of the chain any more.
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:45:00.000", new Date(0)));
 	}
 
 	@Test
