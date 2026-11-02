@@ -238,6 +238,11 @@ public final class BackupService {
 		BackupArchiveType type = requested;
 		boolean accepted = false;
 		try {
+			// First: an empty list says nothing of a folder that is gone, and a full would be the wrong answer to it.
+			final Path folder = this.engine.getPathStore();
+			if (!Files.isDirectory(folder)) {
+				throw new NoSuchFileException(folder.toString());
+			}
 			if (type == BackupArchiveType.DELTA && this.engine.getLastFullBackupDate() == null) {
 				LOGGER.info("No full backup to base a delta on: a full one starts instead");
 				type = BackupArchiveType.FULL;

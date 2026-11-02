@@ -349,7 +349,12 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   starts a full backup instead and answers `STARTED`. A delta could not be restored
   on anything, and skipping would leave the base with no backup until the night. A
   `_partial` archive or a delta is no base. As long as the full fails, it is tried
-  again at each turn, which is the point, and shows as a failed attempt.
+  again at each turn, which is the point, and shows as a failed attempt. A folder
+  that no longer exists is another case: nothing starts, the folder is not created
+  again, and the failure is recorded as the one of a delta. **An empty mount point
+  can not be told from a new folder**: a volume no longer mounted over a folder that
+  still exists gets a full backup on what lies under it. No marker file sorts this
+  out; a monitoring of the volume has to.
 - **Nothing new.** `storeDeltaIfChanged` drops an archive with the same content as
   the delta a restore would apply: an attempt is recorded, successful, with no
   archive of this date, and the comparison with the file makes it survive a restart. The

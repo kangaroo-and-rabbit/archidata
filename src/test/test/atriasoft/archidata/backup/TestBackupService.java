@@ -985,6 +985,28 @@ public class TestBackupService {
 		Assertions.assertTrue(service.getState().lastAttempt().success());
 	}
 
+	/** A volume no longer mounted is no reason for a full: the failure is the one of a delta, and the folder stays gone. */
+	@Test
+	public void testAFolderThatDisappearedFailsTheDeltaWithoutAFull() throws Exception {
+		final Path gone = this.folder.resolve("gone");
+		Files.createDirectory(gone);
+		final ControlledEngine engine = new ControlledEngine(gone, null);
+		engine.release.countDown();
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		Files.delete(gone);
+		Assertions.assertThrows(UncheckedIOException.class, service::startDeltaAsync);
+		Assertions.assertEquals(0, engine.calls.get());
+		Assertions.assertFalse(Files.exists(gone));
+
+		Files.createDirectory(gone);
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+		Files.writeString(gone.resolve(FULL_NAME), "archive");
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success(), "this was not the failure of a full");
+	}
+
 	@Test
 	public void testADeltaFollowsTheSpaceCheckOfAFull() throws Exception {
 		archive(FULL_NAME, 100);
