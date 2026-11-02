@@ -136,17 +136,21 @@ public final class BackupService implements Runnable {
 	}
 
 	private void storeThenRelease() {
-		final Instant startedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS);
-		boolean success = false;
 		try {
-			LOGGER.info("Backup [START]");
-			this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
-			success = true;
-			LOGGER.info("Backup [ END ]");
-		} catch (final Throwable ex) {
-			LOGGER.error("Backup failed: {}", ex.getMessage(), ex);
+			final Instant startedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+			boolean success = false;
+			try {
+				LOGGER.info("Backup [START]");
+				this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
+				success = true;
+				LOGGER.info("Backup [ END ]");
+			} catch (final Throwable ex) {
+				LOGGER.error("Backup failed: {}", ex.getMessage(), ex);
+			} finally {
+				this.lastAttempt = new BackupAttempt(startedAt, success);
+			}
 		} finally {
-			this.lastAttempt = new BackupAttempt(startedAt, success);
+			// Unconditional: whatever fails above, a lock kept here would refuse every backup until a restart.
 			this.running.set(false);
 		}
 	}
