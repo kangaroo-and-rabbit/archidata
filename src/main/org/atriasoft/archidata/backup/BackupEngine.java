@@ -707,6 +707,16 @@ public class BackupEngine {
 		}
 	}
 
+	/**
+	 * Check that a restore would accept every registered collection, while it is still time to fix the configuration.
+	 * @throws IOException if a name is refused
+	 */
+	void checkRegisteredCollectionNames() throws IOException {
+		for (final String name : this.collectionNames) {
+			checkRestoredCollectionName(name);
+		}
+	}
+
 	private void restoreStreamToCollections(
 			final DBAccessMongo dbMongo,
 			final TarArchiveInputStream tarIn,

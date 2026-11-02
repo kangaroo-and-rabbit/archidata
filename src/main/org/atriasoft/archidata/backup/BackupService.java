@@ -62,7 +62,7 @@ public final class BackupService implements Runnable {
 	 * @param collections collections to back up that no class describes; {@code counters} and the migration
 	 *            collection are always added
 	 * @throws DataAccessException if the collection name of a class can not be resolved
-	 * @throws IOException if the folder can not be created
+	 * @throws IOException if the folder can not be created, or if a collection has a name a restore refuses
 	 */
 	public BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
@@ -83,13 +83,14 @@ public final class BackupService implements Runnable {
 			final String baseName,
 			final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
-		BackupEngine.createPrivateDirectories(folder);
 		final BackupEngine engine = new BackupEngine(folder, baseName, EngineBackupType.JSON_EXTENDED);
 		engine.setEnableStoreOrRestoreData(false);
 		engine.addClass(classes.toArray(Class<?>[]::new));
 		engine.addCollection(collections.toArray(String[]::new));
 		engine.addCollection(DBAccessMongo.COLLECTION_COUNTERS);
 		engine.addClass(Migration.class);
+		engine.checkRegisteredCollectionNames();
+		BackupEngine.createPrivateDirectories(folder);
 		return engine;
 	}
 

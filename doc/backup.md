@@ -251,6 +251,9 @@ scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
   in these archives.
 - `counters` and the migration collection are always added, because a restored
   base needs them. There is no need to list them.
+- A collection whose name a restore refuses (see [Security](#security)) makes
+  the constructor throw `IOException`: the server does not start, rather than
+  writing archives that cannot be restored.
 - It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, the date in UTC.
 - **One backup at a time.** `run()` and `startAsync()` share one lock. `run()`
   works in the calling thread and does nothing when a backup is running, so the

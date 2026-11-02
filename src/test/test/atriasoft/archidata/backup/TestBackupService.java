@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.backup.BackupArchive;
 import org.atriasoft.archidata.backup.BackupArchiveType;
 import org.atriasoft.archidata.backup.BackupAttempt;
@@ -346,6 +347,23 @@ public class TestBackupService {
 				new HashSet<>(entries));
 		final Map<String, String> content = BackupTestTools.extractTarGzToMap(onDisk.get(0));
 		Assertions.assertEquals(1, BackupTestTools.countLines(content.get(COLLECTION + ".json")));
+	}
+
+	/** A class whose collection a restore refuses. */
+	@Collection("system.js")
+	private static final class ClassOfAForbiddenCollection {}
+
+	/** Refused at the start of the server, not the day the archive is needed. */
+	@Test
+	public void testACollectionARestoreRefusesFailsTheConstruction() throws Exception {
+		final Path store = this.folder.resolve("store");
+		for (final String name : List.of("system.js", "", ".hidden", "a/b", "a$b", "a".repeat(121))) {
+			Assertions.assertThrows(IOException.class,
+					() -> new BackupService(store, BASE_NAME, List.of(), List.of(name)), name);
+		}
+		Assertions.assertThrows(IOException.class,
+				() -> new BackupService(store, BASE_NAME, List.of(ClassOfAForbiddenCollection.class), List.of()));
+		Assertions.assertFalse(Files.exists(store), "nothing is created for a refused configuration");
 	}
 
 	@Test
