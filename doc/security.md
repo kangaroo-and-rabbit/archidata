@@ -281,9 +281,9 @@ The `@RolesAllowed` annotation supports an extended format for fine-grained perm
 |--------|---------|
 | `"USER"` | Any authenticated user with at least one group |
 | `"admin"` | User has the "admin" role in any group |
-| `"myapp/users"` | User has any permission on "users" role in "myapp" group |
-| `"myapp/users:r"` | User has READ permission on "users" in "myapp" |
-| `"myapp/users:w"` | User has WRITE permission on "users" in "myapp" |
+| `"myapp/users"` | User has READ_WRITE permission on "users" role in "myapp" group: a bare role is not satisfied by READ or WRITE alone |
+| `"myapp/users:r"` | User has READ or READ_WRITE permission on "users" in "myapp" |
+| `"myapp/users:w"` | User has WRITE or READ_WRITE permission on "users" in "myapp" |
 | `"myapp/users:rw"` | User has READ_WRITE permission on "users" in "myapp" |
 
 Example:

@@ -12,8 +12,10 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +30,10 @@ import org.atriasoft.archidata.catcher.ExceptionCatcher;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
+import org.atriasoft.archidata.filter.PartRight;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.ContextGenericTools;
+import org.atriasoft.archidata.tools.JWTWrapper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -137,6 +141,47 @@ public class TestBackupResource {
 		final Set<String> out = new HashSet<>();
 		node.fieldNames().forEachRemaining(out::add);
 		return out;
+	}
+
+	/** A token as karso signs it: the codes as integers under the application, USER included, the ages as rights. */
+	private static String tokenWithAdminRole(final PartRight admin) {
+		final Map<String, Integer> applicationRoles = new HashMap<>();
+		applicationRoles.put("ADMIN", admin.getValue());
+		applicationRoles.put("USER", PartRight.READ_WRITE.getValue());
+		final Map<String, Object> roles = new HashMap<>();
+		roles.put(TestAuthenticationFilter.APPLICATION_NAME, applicationRoles);
+		final Map<String, Object> rights = new HashMap<>();
+		rights.put(TestAuthenticationFilter.APPLICATION_NAME, Map.of("AGE_18", PartRight.READ_WRITE.getValue()));
+		return JWTWrapper.generateJWToken(Common.ADMIN_ID, "karso_login", "Karso",
+				TestAuthenticationFilter.APPLICATION_NAME, roles, rights, 60);
+	}
+
+	private static void assertAccess(final PartRight admin, final int get, final int post) throws Exception {
+		final String token = tokenWithAdminRole(admin);
+		Assertions.assertEquals(get, call(GET, ROUTE, token).statusCode(), "GET with ADMIN " + admin);
+		Assertions.assertEquals(post, call(POST, ROUTE, token).statusCode(), "POST with ADMIN " + admin);
+		awaitIdle();
+	}
+
+	@Test
+	public void testAdminInReadOnlySeesButDoesNotStart() throws Exception {
+		assertAccess(PartRight.READ, 200, 403);
+		Assertions.assertEquals(0, MAPPER.readTree(call(GET, ROUTE, Common.ADMIN_TOKEN).body()).get("archives").size());
+	}
+
+	@Test
+	public void testAdminInReadWriteSeesAndStarts() throws Exception {
+		assertAccess(PartRight.READ_WRITE, 200, 202);
+	}
+
+	@Test
+	public void testAdminInWriteOnlyStartsButDoesNotSee() throws Exception {
+		assertAccess(PartRight.WRITE, 403, 202);
+	}
+
+	@Test
+	public void testAdminWithoutRightGetsNothing() throws Exception {
+		assertAccess(PartRight.NONE, 403, 403);
 	}
 
 	@Test
@@ -306,7 +351,7 @@ public class TestBackupResource {
 
 	@Test
 	public void testRoutesAreTwoAdminRoutesWithoutParameter() {
-		final List<String> routes = new ArrayList<>();
+		final Map<String, String> routes = new HashMap<>();
 		for (final Method method : BackupResource.class.getDeclaredMethods()) {
 			final boolean isRoute = method.isAnnotationPresent(GET.class) || method.isAnnotationPresent(POST.class);
 			if (!isRoute) {
@@ -315,14 +360,14 @@ public class TestBackupResource {
 						method.toString());
 				continue;
 			}
-			routes.add(method.getName());
-			Assertions.assertArrayEquals(new String[] { "ADMIN" }, method.getAnnotation(RolesAllowed.class).value(),
-					method.toString());
+			final String[] roles = method.getAnnotation(RolesAllowed.class).value();
+			Assertions.assertEquals(1, roles.length, method.toString());
+			routes.put(method.isAnnotationPresent(GET.class) ? GET : POST, roles[0]);
 			Assertions.assertEquals(0, method.getParameterCount(), method.toString());
 			Assertions.assertFalse(method.isAnnotationPresent(jakarta.ws.rs.Path.class), method.toString());
 			Assertions.assertFalse(method.isAnnotationPresent(PermitTokenInURI.class), method.toString());
 		}
-		Assertions.assertEquals(2, routes.size(), routes.toString());
+		Assertions.assertEquals(Map.of(GET, "ADMIN:r", POST, "ADMIN:w"), routes);
 	}
 
 	@Test

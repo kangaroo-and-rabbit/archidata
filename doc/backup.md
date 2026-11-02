@@ -338,11 +338,12 @@ hashes and the whole catalog in clear, and neither its content, its name nor its
 path leave the server. Keep it that way: a new route here is a security decision,
 not a convenience.
 
-- Both routes are `@RolesAllowed("ADMIN")`, checked by the `AuthenticationFilter`
-  of the application: without such a filter the annotation is ignored (see
-  [security.md](security.md)). No token answers 401, a token without the role
-  403, whether the service is configured or not. A token in the URI is refused
-  (no `@PermitTokenInURI`).
+- `GET` needs `@RolesAllowed("ADMIN:r")` (`READ` or `READ_WRITE`), `POST` needs
+  `@RolesAllowed("ADMIN:w")` (`WRITE` or `READ_WRITE`), checked by the
+  `AuthenticationFilter` of the application: without such a filter the annotation
+  is ignored (see [security.md](security.md)). No token answers 401, a token
+  without the role 403, whether the service is configured or not. A token in the
+  URI is refused (no `@PermitTokenInURI`).
 - A service that was never given answers 503 `Backups are not configured`.
 - 409 means wait, 507 means free some space: both carry the usual JSON error
   body, without any number or path.

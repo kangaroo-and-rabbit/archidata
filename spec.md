@@ -112,8 +112,9 @@
   cette réponse elle-même, avec le corps d'erreur habituel. **Aucune route de téléchargement,
   de restauration ni de suppression, aucun paramètre de chemin ou de nom** : une archive contient les hachages de mots de
   passe. `TestBackupResource` vérifie par réflexion que la ressource ne compte que ces deux routes, sans paramètre.
-- Rôle `ADMIN` sur chaque route, pas de `@PermitTokenInURI`. Le contrôle passe avant le service : sans jeton 401, sans
-  rôle 403, même si aucun service n'est configuré. Sans service : 503.
+- `GET` demande `ADMIN:r`, `POST` demande `ADMIN:w`, pas de `@PermitTokenInURI`. Attention : `ADMIN` sans suffixe exige
+  `READ_WRITE`, il refuse aussi bien `READ` que `WRITE` seuls (`MySecurityContext.checkRightInGroup`). Le contrôle passe
+  avant le service : sans jeton 401, sans rôle 403, même si aucun service n'est configuré. Sans service : 503.
 - Le service est donné par `BackupResource.setService` : Jersey construit la ressource, les applications l'enregistrent
   par classe et `AnalyzeApi` a besoin de cette classe. C'est le même usage que les réglages statiques de `DataTools`.
 - Les modèles (`Instant`, records, enum) passent dans `TsGenerateApi` ; `@ApiAsyncType(Void.class)` donne

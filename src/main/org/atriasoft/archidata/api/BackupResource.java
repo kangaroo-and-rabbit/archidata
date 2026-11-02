@@ -36,6 +36,10 @@ import jakarta.ws.rs.core.Response;
 @Path("/backups")
 @Produces(MediaType.APPLICATION_JSON)
 public class BackupResource {
+	/** Grants a right that can read: {@code READ} or {@code READ_WRITE}. */
+	private static final String ROLE_READ = "ADMIN:r";
+	/** Grants a right that can write: {@code WRITE} or {@code READ_WRITE}. The bare role would ask for {@code READ_WRITE}. */
+	private static final String ROLE_WRITE = "ADMIN:w";
 	private static final int STATUS_INSUFFICIENT_STORAGE = 507;
 	/** Jersey builds the resource by itself, and the applications register it by class to generate their API. */
 	private static volatile BackupService service = null;
@@ -66,7 +70,7 @@ public class BackupResource {
 	 * @throws IOException if the folder can not be read; the generic catcher answers 500 without its message
 	 */
 	@GET
-	@RolesAllowed("ADMIN")
+	@RolesAllowed(ROLE_READ)
 	@Operation(description = "Get the state of the backups and the list of the archives")
 	public BackupState getState() throws FailException, IOException {
 		return requireService().getState();
@@ -78,7 +82,7 @@ public class BackupResource {
 	 * @throws FailException 409 when a backup is already running, 503 when the application configured no backup service
 	 */
 	@POST
-	@RolesAllowed("ADMIN")
+	@RolesAllowed(ROLE_WRITE)
 	@ApiAsyncType(Void.class)
 	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
 	public Response start() throws FailException {
