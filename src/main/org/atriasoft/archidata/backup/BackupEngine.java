@@ -111,6 +111,12 @@ public class BackupEngine {
 	private static final String SUFFIX_TAR_GZ = ".tar.gz";
 	private static final String SUFFIX_PARTIAL = "_partial";
 	private static final String SUFFIX_DELTA = "_delta";
+	/** Part of the name of a delta that holds the date of its full: {@code base<yyyyMMddHHmmssSSS>}. */
+	private static final String DELTA_BASE_PREFIX = "base";
+	private static final Pattern DELTA_BASE = Pattern.compile("_" + DELTA_BASE_PREFIX + "([0-9]{17})(?:_|$)");
+	private static final Pattern DELTA_BASE_PART = Pattern.compile(DELTA_BASE_PREFIX + "[0-9]{17}");
+	private static final DateTimeFormatter DELTA_BASE_DATE = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS",
+			Locale.ROOT);
 	private static final String SUFFIX_JSON = ".json";
 	/** Suffix of a file being written, with a leading dot on its name: {@code .<archive>_tmp}. */
 	private static final String SUFFIX_TMP = "_tmp";
@@ -1490,15 +1496,16 @@ public class BackupEngine {
 	}
 
 	/**
-	 * Strip every trailing letter suffix like {@code "_full"}, {@code "_partial"} or {@code "_delta"}, so that a
-	 * sequence such as {@code "2026-10-15_full_delta"} keeps a parsable date.
+	 * Strip every trailing letter suffix like {@code "_full"}, {@code "_partial"} or {@code "_delta"}, and the date of
+	 * the full of a delta, so that a sequence such as {@code "2026-10-15_full_delta"} keeps a parsable date.
 	 */
 	private static String stripSequenceSuffix(final String sequence) {
 		String cleaned = sequence;
 		int lastUnderscore = cleaned.lastIndexOf('_');
 		while (lastUnderscore > 0) {
 			final String suffix = cleaned.substring(lastUnderscore + 1);
-			if (suffix.isEmpty() || !suffix.chars().allMatch(Character::isLetter)) {
+			if (suffix.isEmpty()
+					|| !suffix.chars().allMatch(Character::isLetter) && !DELTA_BASE_PART.matcher(suffix).matches()) {
 				break;
 			}
 			cleaned = cleaned.substring(0, lastUnderscore);
@@ -1564,7 +1571,9 @@ public class BackupEngine {
 					LOGGER.warn("Backup file with unparseable date in sequence, ignored for retention: {}", fileName);
 					continue;
 				}
-				result.add(new BackupFileInfo(filePath, middle, dateTime, partial, delta));
+				final Matcher base = DELTA_BASE.matcher(middle);
+				result.add(new BackupFileInfo(filePath, middle, dateTime, partial, delta,
+						delta && base.find() ? base.group(1) : null));
 			}
 		} catch (final DirectoryIteratorException ex) {
 			throw ex.getCause();
@@ -1603,9 +1612,29 @@ public class BackupEngine {
 		return Date.from(latestFull.dateTime().toInstant(ZoneOffset.UTC));
 	}
 
+	/** @return how the name of a delta holds the date of a full */
+	static String baseStamp(final LocalDateTime fullDate) {
+		return DELTA_BASE_DATE.format(fullDate);
+	}
+
+	/**
+	 * Build the sequence of a delta, with the date of the full it starts from in its name: a date alone can not tell a
+	 * delta from one written before a full under a clock that was ahead.
+	 * @param date the date of the delta, in a format of {@link #parseDateTimeFromSequence(String)}
+	 * @param full the date of the full, as {@link #getLastFullBackupDate()} gives it
+	 * @return the sequence, ending with {@code "_delta"}
+	 */
+	public static String deltaSequence(final String date, final Date full) {
+		return date + "_" + DELTA_BASE_PREFIX + baseStamp(LocalDateTime.ofInstant(full.toInstant(), ZoneOffset.UTC))
+				+ SUFFIX_DELTA;
+	}
+
 	/**
 	 * Resolve the ordered list of archives needed to restore the latest known state: the most
-	 * recent full backup, followed by the most recent delta based on it (if any).
+	 * recent full backup, followed by the most recent delta based on it (if any). A delta is left
+	 * out, with a warning, when it is older than the full, when its name says it starts from
+	 * another full, or when it is dated after the current time: a clock that jumped forward makes
+	 * an old delta look newer than the full, and applying it would write old documents over it.
 	 * @return the archive paths to restore in order, or an empty list when no full backup exists
 	 * @throws IOException if listing the backup files fails
 	 */
@@ -1615,10 +1644,18 @@ public class BackupEngine {
 		if (latestFull == null) {
 			return List.of();
 		}
+		final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 		BackupFileInfo latestDelta = null;
 		for (final BackupFileInfo file : files) {
-			if (file.delta() && file.compareTo(latestFull) > 0
-					&& (latestDelta == null || file.compareTo(latestDelta) > 0)) {
+			if (!file.delta() || file.compareTo(latestFull) < 0) {
+				continue;
+			}
+			if (!file.isDeltaOf(latestFull) || file.dateTime().isAfter(now)) {
+				LOGGER.warn("Delta left out of the restore: {} does not belong to {}", file.path().getFileName(),
+						latestFull.path().getFileName());
+				continue;
+			}
+			if (latestDelta == null || file.compareTo(latestDelta) > 0) {
 				latestDelta = file;
 			}
 		}
@@ -1690,7 +1727,7 @@ public class BackupEngine {
 
 		for (final BackupFileInfo file : files) {
 			if (file.delta()) {
-				if (latestFull != null && file.compareTo(latestFull) < 0) {
+				if (latestFull != null && !file.isDeltaOf(latestFull)) {
 					toDelete.add(file);
 				}
 				continue;
@@ -1748,8 +1785,8 @@ public class BackupEngine {
 	/**
 	 * Apply a retention policy to existing backup files, deleting those that fall outside the policy, each with its
 	 * {@code .sha256} file. The latest full backup is always kept, whatever its age. The deltas are outside the policy:
-	 * those older than the latest full are deleted whatever their age, the newer ones are kept. Without a full backup, no
-	 * delta is deleted. Only the archives of this engine go: a name that does not start with its base name, or whose
+	 * those older than the latest full or whose name gives another full are deleted whatever their age, the others are
+	 * kept. Without a full backup, no delta is deleted. Only the archives of this engine go: a name that does not start with its base name, or whose
 	 * sequence has no date, is left alone.
 	 * Uses today as the reference date for age calculation.
 	 * @param policy the retention policy to apply
@@ -1793,6 +1830,32 @@ public class BackupEngine {
 		return executeClean(policy, true, referenceDate);
 	}
 
+	private static void deleteArchive(final BackupFileInfo file) throws IOException {
+		LOGGER.info("Retention delete: {}", file.path().getFileName());
+		Files.deleteIfExists(file.path());
+		Files.deleteIfExists(checksumPath(file.path()));
+	}
+
+	/**
+	 * Delete the deltas dated after a full that was just written, each with its {@code .sha256} file. Under a clock that
+	 * was ahead they were written before this full, and a restore must not apply them on it. Call it only with such a
+	 * date: at any other moment a delta later than a full is a good one.
+	 * @param fullDate the date of the full
+	 * @return the deleted paths
+	 * @throws IOException if listing or deleting files fails
+	 */
+	public List<Path> deleteDeltasAfter(final Date fullDate) throws IOException {
+		final LocalDateTime limit = LocalDateTime.ofInstant(fullDate.toInstant(), ZoneOffset.UTC);
+		final List<Path> deleted = new ArrayList<>();
+		for (final BackupFileInfo file : listBackupFiles()) {
+			if (file.delta() && file.dateTime().isAfter(limit)) {
+				deleteArchive(file);
+				deleted.add(file.path());
+			}
+		}
+		return deleted;
+	}
+
 	private List<Path> executeClean(final RetentionPolicy policy, final boolean dryRun, final LocalDate referenceDate)
 			throws IOException {
 		final List<BackupFileInfo> allFiles = listBackupFiles();
@@ -1803,9 +1866,7 @@ public class BackupEngine {
 			if (dryRun) {
 				LOGGER.info("Retention [DRY-RUN] would delete: {}", file.path().getFileName());
 			} else {
-				LOGGER.info("Retention delete: {}", file.path().getFileName());
-				Files.deleteIfExists(file.path());
-				Files.deleteIfExists(checksumPath(file.path()));
+				deleteArchive(file);
 			}
 			deletedPaths.add(file.path());
 		}

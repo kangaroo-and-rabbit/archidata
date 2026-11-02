@@ -3,9 +3,12 @@ package test.atriasoft.archidata.backup;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -320,6 +323,58 @@ public class TestBackupDelta {
 		Assertions.assertEquals(2, chain.size());
 		Assertions.assertEquals(fileNames.get(2), chain.get(0).getFileName().toString());
 		Assertions.assertEquals(fileNames.get(4), chain.get(1).getFileName().toString());
+	}
+
+	private static final DateTimeFormatter NAME = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")
+			.withZone(ZoneOffset.UTC);
+
+	private List<String> chainOf(final String base) throws IOException {
+		return createEngine(base).getLatestRestoreChain().stream().map(path -> path.getFileName().toString()).toList();
+	}
+
+	private String file(final String name) throws IOException {
+		Files.createFile(this.tempBackupDir.resolve(name));
+		return name;
+	}
+
+	/** After a clock that jumped forward: this delta comes before the full, whatever its name says. */
+	@Test
+	public void testADeltaDatedInTheFutureIsRefusedByTheChain() throws Exception {
+		final Instant now = Instant.now();
+		final String full = file("future_" + NAME.format(now.minus(1, ChronoUnit.HOURS)) + "_full.tar.gz");
+		final String valid = file("future_" + NAME.format(now.minus(30, ChronoUnit.MINUTES)) + "_delta.tar.gz");
+		file("future_" + NAME.format(now.plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		Assertions.assertEquals(List.of(full, valid), chainOf("future"));
+	}
+
+	@Test
+	public void testADeltaOfAnotherFullIsRefusedByTheChain() throws Exception {
+		file("other_2026-01-01_00:00:00.000_full.tar.gz");
+		final String full = file("other_2026-01-02_00:00:00.000_full.tar.gz");
+		// Later than the full by its name, but its base is the previous full.
+		file("other_2026-01-02_06:00:00.000_base20260101000000000_delta.tar.gz");
+		Assertions.assertEquals(List.of(full), chainOf("other"));
+	}
+
+	@Test
+	public void testTheChainFallsBackOnTheLatestDeltaOfTheFull() throws Exception {
+		final String full = file("fallback_2026-01-02_00:00:00.000_full.tar.gz");
+		final String own = file("fallback_2026-01-02_05:00:00.000_base20260102000000000_delta.tar.gz");
+		file("fallback_2026-01-02_06:00:00.000_base20260101000000000_delta.tar.gz");
+		// A delta of a former version names no full: its date is all there is.
+		Assertions.assertEquals(List.of(full, own), chainOf("fallback"));
+		final String former = file("fallback_2026-01-02_07:00:00.000_delta.tar.gz");
+		Assertions.assertEquals(List.of(full, former), chainOf("fallback"));
+	}
+
+	@Test
+	public void testRetentionRemovesADeltaOfAnotherFull() throws Exception {
+		final String other = file("cleanother_2026-01-02_06:00:00.000_base20260101000000000_delta.tar.gz");
+		file("cleanother_2026-01-02_00:00:00.000_full.tar.gz");
+		final String own = file("cleanother_2026-01-02_07:00:00.000_base20260102000000000_delta.tar.gz");
+		final List<Path> deleted = createEngine("cleanother").clean(new RetentionPolicy(), LocalDate.of(2026, 1, 3));
+		Assertions.assertEquals(List.of(this.tempBackupDir.resolve(other)), deleted);
+		Assertions.assertTrue(Files.exists(this.tempBackupDir.resolve(own)));
 	}
 
 	@Test

@@ -150,6 +150,7 @@ Every trailing alphabetic suffix is stripped before parsing (`_full`, `_delta`,
 | Suffix | Meaning |
 |---|---|
 | `_delta` | incremental archive. Appended automatically by `storeDelta` / `storeAllDelta` when missing |
+| `_base<yyyyMMddHHmmssSSS>_delta` | same, naming the date of its full (`BackupEngine.deltaSequence`, used by `BackupService`) |
 | `_partial` | a subset of the collections: never chosen as the base of a restore. The engine never adds it, the caller writes it into the sequence |
 | anything else | ignored (`_full` is only a convention) |
 
@@ -172,8 +173,15 @@ A delta contains the documents whose `updatedAt` or `createdAt` is at or after
 `since`, plus every document that has neither field. Media files are filtered
 on their modification time. Restoring is `restoreFile(full)` then
 `restoreDeltaFile(delta)`, or simply `restoreLatest()`, which pairs the latest
-full with the latest delta newer than it (`getLatestRestoreChain()` shows the
+full with the latest delta that belongs to it (`getLatestRestoreChain()` shows the
 pair). `getLastFullBackupDate()` returns the date to pass as `since`.
+
+A delta belongs to a full when it is later than it, is not dated after the current
+time, and, if its name gives a `_base`, gives this full. The others are left out
+with a `WARN`, and the chain falls back on the latest delta that belongs: under a
+clock that jumped forward, an old delta looks newer than the full, and applying it
+would write old documents over it. A delta without `_base` is judged on its date
+alone.
 
 Deltas based on the same full are cumulative: the last one holds everything, the
 others are only earlier points. `storeDeltaIfChanged(sequence, since)` keeps the
@@ -213,9 +221,9 @@ is a record; its compact constructor rejects negative values and
 | up to `keepWeeklyMonths` months | the latest one of each week (week fields of the default `Locale`) |
 | older | none |
 
-Delta archives are outside this table: a delta is kept only if it is newer than
-the latest full backup, because a newer full supersedes it, and that whatever its
-age: `keepAllDays` keeps no delta. Without any full backup, no delta is deleted.
+Delta archives are outside this table: a delta is kept only if it belongs to the
+latest full backup, because a newer full supersedes it, and that whatever its age:
+`keepAllDays` keeps no delta. Without any full backup, no delta is deleted.
 
 **The latest full backup is never deleted**, whatever its age and the policy, even
 if the clock jumped, if no archive is recent or with `RetentionPolicy(0, 0, 0)`.
@@ -308,7 +316,8 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   under it.
 - **Failures** are caught, `Error` included, logged with their stack trace, and
   shown as `success = false`, never with their text.
-- **Retention after each full.** Once a full backup is written, the service calls
+- **Retention after each full.** Once a full backup is written, the service deletes
+  the deltas dated after it, written under a clock that was ahead, and calls
   `engine.clean(policy)`, see [Retention](#retention). Never after a failed or
   refused backup, which must not cost an archive, and never after a delta. The
   policy is `new RetentionPolicy()` (all for 7 days, one a day for 3 months, one a
@@ -466,6 +475,8 @@ Reference
 | `setRequireChecksum(boolean)` | refuse an archive without `.sha256` sidecar (default `false`: warning) |
 | `setRestoreMaxEntryBytes(long)`, `setRestoreMaxTotalBytes(long)`, `setRestoreMaxLineChars(int)` | restore bounds (64 GiB, 1 TiB, 64 Mi characters) |
 | `checksumPath(Path)` (static), `SUFFIX_SHA256` | path of the sidecar of an archive |
+| `deltaSequence(String, Date)` (static) | sequence of a delta that names its full |
+| `deleteDeltasAfter(Date)` | delete the deltas dated after a full just written |
 | `store(String)`, `storeDelta(String, Date)` | back up the registered collections (full, delta) |
 | `storeDeltaIfChanged(String, Date)` | same as `storeDelta`, returns `null` and keeps nothing when the content is the one of the latest delta |
 | `storeAll(String)`, `storeAllDelta(String, Date)` | same on every collection but `system.*`, no registration needed |

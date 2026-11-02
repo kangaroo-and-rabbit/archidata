@@ -668,18 +668,45 @@ public class TestBackupService {
 		Assertions.assertEquals(0, countOf(service.getState(), BackupArchiveType.DELTA));
 	}
 
+	/** After a clock that jumped forward: this delta comes before the new full, whatever its name says. */
 	@Test
-	public void testADeltaNewerThanTheLastFullIsKept() throws Exception {
-		final Instant fullDate = Instant.now().plus(1, ChronoUnit.SECONDS);
-		archive(BASE_NAME + "_" + SEQUENCE.format(fullDate.minus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
-		// Later than the full this test writes.
-		final Path newer = archive(
-				BASE_NAME + "_" + SEQUENCE.format(fullDate.plus(1, ChronoUnit.HOURS)) + "_delta.tar.gz");
+	public void testAFullRemovesADeltaDatedAfterIt() throws Exception {
+		final Path future = archive(
+				BASE_NAME + "_" + SEQUENCE.format(Instant.now().plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		final Path sidecar = BackupEngine.checksumPath(future);
+		Files.writeString(sidecar, "sum");
 		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
 		assertStarts(service);
 		awaitIdle(service);
-		Assertions.assertTrue(Files.exists(newer));
-		Assertions.assertEquals(1, countOf(service.getState(), BackupArchiveType.DELTA));
+		Assertions.assertFalse(Files.exists(future));
+		Assertions.assertFalse(Files.exists(sidecar));
+		Assertions.assertEquals(0, countOf(service.getState(), BackupArchiveType.DELTA));
+	}
+
+	@Test
+	public void testAFailedFullLeavesADeltaDatedAfterIt() throws Exception {
+		archive(FULL_NAME);
+		final Path future = archive(
+				BASE_NAME + "_" + SEQUENCE.format(Instant.now().plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		final ControlledEngine engine = new ControlledEngine(this.folder, new IOException("disk full"));
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(Files.exists(future));
+	}
+
+	/** The name of a delta says which full it starts from: the chain can tell it from a delta of another full. */
+	@Test
+	public void testADeltaNamesItsFull() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(engine.deltaSequence.get().endsWith("_base20261101000000000_delta"),
+				engine.deltaSequence.get());
 	}
 
 	@Test

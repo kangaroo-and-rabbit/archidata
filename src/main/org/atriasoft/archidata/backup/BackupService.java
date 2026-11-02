@@ -54,7 +54,6 @@ public final class BackupService {
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
 	private static final String SEQUENCE_SUFFIX_FULL = "_full";
-	private static final String SEQUENCE_SUFFIX_DELTA = "_delta";
 	/**
 	 * How far before the last full a delta starts looking. A date is written by the application before the document
 	 * reaches the database: a document dated just before the full can land behind the cursor of the dump. A document
@@ -335,6 +334,7 @@ public final class BackupService {
 			if (type == BackupArchiveType.FULL) {
 				this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
 				success = true;
+				retireLaterDeltas(startedAt);
 				applyRetention();
 			} else {
 				storeDelta(startedAt);
@@ -347,6 +347,16 @@ public final class BackupService {
 			synchronized (this.lock) {
 				recordAttempt(type, startedAt, success);
 			}
+		}
+	}
+
+	/** A delta dated after the full that just ended comes from a clock that was ahead: it was written before this full. */
+	private void retireLaterDeltas(final Instant fullDate) {
+		try {
+			this.engine.deleteDeltasAfter(Date.from(fullDate));
+		} catch (final Throwable ex) {
+			// getLatestRestoreChain leaves them out as long as their date or their name tells them apart.
+			LOGGER.error("Backup: can not delete the deltas dated after the full: {}", ex.getMessage(), ex);
 		}
 	}
 
@@ -371,7 +381,7 @@ public final class BackupService {
 			throw new IOException("The last full backup is dated after the current time: " + lastFull.toInstant());
 		}
 		final Date since = Date.from(lastFull.toInstant().minusMillis(DELTA_MARGIN_MILLIS));
-		this.engine.storeDeltaIfChanged(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_DELTA, since);
+		this.engine.storeDeltaIfChanged(BackupEngine.deltaSequence(SEQUENCE_DATE.format(startedAt), lastFull), since);
 	}
 
 	/**
