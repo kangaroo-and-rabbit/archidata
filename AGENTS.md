@@ -22,7 +22,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 | `annotation.apiGenerator` | `@ApiDoc`, `@ApiReadOnly`, `@ApiGenerationMode`, `@ApiOptionalIsNullable`… (client generation) |
 | `annotation.checker` | Validation groups (`GroupCreate`, `GroupUpdate`, `GroupRead`, `GroupPersistant`), `@CheckForeignKey`, collection validators |
 | `annotation.method` / `annotation.security` / `annotation.filter` | `@PaginationContext`, custom HTTP verbs (`@ARCHIVE`, `@RESTORE`, `@CALL`), `@RightAllowed`, `@PermitTokenInURI`, `@DataAccessSingleConnection` |
-| `api` | Ready-made JAX-RS resources: `DataResource` (media upload/streaming), `openApiResource`, `FrontGeneric`, `ProxyResource`, `MediaStreamer` |
+| `api` | Ready-made JAX-RS resources: `DataResource` (media upload/streaming), `BackupResource` (list and start backups, ADMIN), `openApiResource`, `FrontGeneric`, `ProxyResource`, `MediaStreamer` |
 | `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `BackupService` (nightly and manual backup of an application, one at a time), `RetentionPolicy`, `BackupSnapshot` |
 | `bean` | Bean introspection used by the data layer (internal) |
 | `catcher` | JAX-RS exception mappers (`GenericCatcher.addAll(rc)`), `RestErrorResponse` |
@@ -309,6 +309,8 @@ Each point was checked against the code; the doc page gives the details.
   the log under that `oid`. Throw a `FailException` for a message meant for the client.
 - **Backups**: archives are created `rw-------` with a `<archive>.sha256` file checked at restore;
   they stay in clear (all fields, `@DataNotRead` included): protect the storage folder.
+  `BackupResource` lists and starts backups (`ADMIN`) and has no route to download, restore or delete an archive:
+  keep it so. See `doc/backup.md`.
 - **Database connection**: `DB_TLS` (true to use TLS) and `DB_AUTH_SOURCE` (authentication
   database) exist; a WARN is written once when the DB user is `root`.
 - **Reads project embedded objects down to their leaf fields** (by the declared type): a

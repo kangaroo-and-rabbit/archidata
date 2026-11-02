@@ -9,6 +9,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.ImageWriter;
 
 import org.atriasoft.archidata.UpdateJwtPublicKey;
+import org.atriasoft.archidata.api.BackupResource;
 import org.atriasoft.archidata.api.DataResource;
 import org.atriasoft.archidata.api.ProxyResource;
 import org.atriasoft.archidata.catcher.GenericCatcher;
@@ -131,6 +132,7 @@ public class WebLauncher {
 		rc.register(TestResource.class);
 		rc.register(TimeResource.class);
 		rc.register(DataResource.class);
+		rc.register(BackupResource.class);
 		rc.register(ProxyResource.class);
 		rc.register(DataAccessTestResource.class);
 		rc.register(DocumentResource.class);
