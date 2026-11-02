@@ -54,7 +54,8 @@ public final class BackupService implements Runnable {
 	private volatile BackupAttempt lastAttempt = null;
 
 	/**
-	 * Create the service and its folder, private to the service when it is created here.
+	 * Create the service and its folder, private to the service when it is created here, and delete the temporary files
+	 * a backup of this base left when the process was killed.
 	 *
 	 * @param folder folder of the archives
 	 * @param baseName prefix of the archives: pass the name of the database ({@code ConfigBaseVariable.getDBName()})
@@ -62,7 +63,7 @@ public final class BackupService implements Runnable {
 	 * @param collections collections to back up that no class describes; {@code counters} and the migration
 	 *            collection are always added
 	 * @throws DataAccessException if the collection name of a class can not be resolved
-	 * @throws IOException if the folder can not be created, or if a collection has a name a restore refuses
+	 * @throws IOException if the folder can not be created or read, or if a collection has a name a restore refuses
 	 */
 	public BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
@@ -91,6 +92,7 @@ public final class BackupService implements Runnable {
 		engine.addClass(Migration.class);
 		engine.checkRegisteredCollectionNames();
 		BackupEngine.createPrivateDirectories(folder);
+		engine.deleteAbandonedTemporaryFiles();
 		return engine;
 	}
 

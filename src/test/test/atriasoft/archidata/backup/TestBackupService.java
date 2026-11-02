@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
@@ -347,6 +348,41 @@ public class TestBackupService {
 				new HashSet<>(entries));
 		final Map<String, String> content = BackupTestTools.extractTarGzToMap(onDisk.get(0));
 		Assertions.assertEquals(1, BackupTestTools.countLines(content.get(COLLECTION + ".json")));
+	}
+
+	@Test
+	public void testAConstructionDeletesWhatAnInterruptedBackupOfThisBaseLeft() throws Exception {
+		final List<Path> leftovers = List.of(//
+				archive("." + BASE_NAME + "_2026-11-02_10:00:00.000_full.tar.gz_tmp"), //
+				archive("." + BASE_NAME + "_2026-11-02_10:00:00.000_full.tar.gz.sha256_tmp"), //
+				archive("." + BASE_NAME + "_2026-11-02_delta.tar.gz_tmp"));
+		final List<Path> kept = new ArrayList<>(List.of(//
+				// Finished archives.
+				archive(BASE_NAME + "_2026-11-02_full.tar.gz"), //
+				archive(BASE_NAME + "_2026-11-02_full.tar.gz.sha256"), //
+				// Another base, one of them starting with the same text.
+				archive(".other_2026-11-02_full.tar.gz_tmp"), //
+				archive("." + BASE_NAME + "_x_2026-11-02_full.tar.gz_tmp"), //
+				// Not the exact form of the name.
+				archive(BASE_NAME + "_2026-11-02_full.tar.gz_tmp"), //
+				archive("." + BASE_NAME + "_2026-11-02_full.tar.gz"), //
+				archive("." + BASE_NAME + "_2026-11-02_full.tar.gz_tmp2"), //
+				archive("." + BASE_NAME + "_2026-11-02_tmp"), //
+				archive("." + BASE_NAME + "_notes.tar.gz_tmp")));
+		// Only a regular file goes: neither a folder nor what a link points to.
+		kept.add(Files.createDirectory(this.folder.resolve("." + BASE_NAME + "_2026-11-03.tar.gz_tmp")));
+		final Path target = archive("target");
+		kept.add(target);
+		kept.add(Files.createSymbolicLink(this.folder.resolve("." + BASE_NAME + "_2026-11-04.tar.gz_tmp"), target));
+
+		new BackupService(this.folder, BASE_NAME, List.of(), List.of());
+
+		for (final Path file : leftovers) {
+			Assertions.assertFalse(Files.exists(file), file.toString());
+		}
+		for (final Path file : kept) {
+			Assertions.assertTrue(Files.exists(file, LinkOption.NOFOLLOW_LINKS), file.toString());
+		}
 	}
 
 	/** A class whose collection a restore refuses. */

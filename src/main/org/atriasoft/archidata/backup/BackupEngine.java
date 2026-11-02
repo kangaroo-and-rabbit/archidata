@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -110,6 +111,8 @@ public class BackupEngine {
 	private static final String SUFFIX_PARTIAL = "_partial";
 	private static final String SUFFIX_DELTA = "_delta";
 	private static final String SUFFIX_JSON = ".json";
+	/** Suffix of a file being written, with a leading dot on its name: {@code .<archive>_tmp}. */
+	private static final String SUFFIX_TMP = "_tmp";
 	/** Suffix of the SHA-256 sidecar file written next to every archive. */
 	public static final String SUFFIX_SHA256 = ".sha256";
 	/**
@@ -1068,8 +1071,8 @@ public class BackupEngine {
 		// Ensure the store directory exists (owner only when the engine creates it)
 		createPrivateDirectories(this.pathStore);
 		// Create a hidden file for the temporary generation
-		final Path outputFileTmp = this.pathStore.resolve("." + fileName + "_tmp");
-		final Path checksumTmp = this.pathStore.resolve("." + fileName + SUFFIX_SHA256 + "_tmp");
+		final Path outputFileTmp = this.pathStore.resolve("." + fileName + SUFFIX_TMP);
+		final Path checksumTmp = this.pathStore.resolve("." + fileName + SUFFIX_SHA256 + SUFFIX_TMP);
 		LOGGER.debug("Store in path: {} [BEGIN]", outputFileTmp);
 		boolean stored = false;
 		try {
@@ -1098,6 +1101,33 @@ public class BackupEngine {
 			}
 		}
 		return now;
+	}
+
+	/**
+	 * Delete what a store killed with the process left in the store directory: a partial dump in clear, which each
+	 * attempt writes under its own name. Only the regular files named exactly as this engine names them go, with a
+	 * sequence holding a date: another base sharing the directory, even with a name starting the same way, keeps its
+	 * files. Call it before any store of this process: it would delete the file of a store in progress.
+	 * @throws IOException if the store directory can not be read
+	 */
+	void deleteAbandonedTemporaryFiles() throws IOException {
+		final Pattern pattern = Pattern
+				.compile(Pattern.quote("." + this.baseName + "_") + "(.+)" + Pattern.quote(SUFFIX_TAR_GZ) + "(?:"
+						+ Pattern.quote(SUFFIX_SHA256) + ")?" + Pattern.quote(SUFFIX_TMP));
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(this.pathStore)) {
+			for (final Path file : stream) {
+				final Path name = file.getFileName();
+				if (name == null) {
+					continue;
+				}
+				final Matcher matcher = pattern.matcher(name.toString());
+				if (matcher.matches() && parseDateFromSequence(matcher.group(1)) != null
+						&& Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+					LOGGER.warn("Delete the temporary file of an interrupted backup: {}", name);
+					deleteTemporaryFile(file);
+				}
+			}
+		}
 	}
 
 	/** Delete a file of a failed store. Never throws: the failure of the store is the one to report. */

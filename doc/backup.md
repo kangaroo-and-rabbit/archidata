@@ -255,6 +255,11 @@ scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
   the constructor throw `IOException`: the server does not start, rather than
   writing archives that cannot be restored.
 - It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, the date in UTC.
+- The constructor deletes the `.<baseName>_<sequence>.tar.gz_tmp` and
+  `.<baseName>_<sequence>.tar.gz.sha256_tmp` files a killed process left, only
+  regular files, only this exact form with a date in the sequence: another base
+  in the same folder keeps its files. Do not start a second server on a folder
+  where another one is writing: it would delete the file in progress.
 - **One backup at a time.** `run()` and `startAsync()` share one lock. `run()`
   works in the calling thread and does nothing when a backup is running, so the
   scheduler never waits for it. `startAsync()` works in a daemon thread, returns
