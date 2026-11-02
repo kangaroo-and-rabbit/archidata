@@ -189,8 +189,9 @@ public final class BackupService {
 	 * During a delta the full waits for it and {@link BackupStart#STARTED} is returned: the scheduler does not order two
 	 * tasks of the same minute, and a delta that goes first at midnight must not cost the night its full.
 	 * <p>
-	 * The volume must have twice the size of the last full archive plus {@link #SPACE_MARGIN_BYTES} free. A start
-	 * refused for this reason, or that can not be checked, is logged and recorded as a failed attempt, whoever asked: the
+	 * The volume must have twice the size of the last full archive plus {@link #SPACE_MARGIN_BYTES} free. When it does
+	 * not, the retention runs and the space is checked once more. A start refused for this reason, or that can not be
+	 * checked, is logged and recorded as a failed attempt, whoever asked: the
 	 * cron task has no other way to tell.
 	 *
 	 * @return whether the backup started
@@ -246,7 +247,7 @@ public final class BackupService {
 				LOGGER.info("No full backup to base a delta on: a full one starts instead");
 				type = BackupArchiveType.FULL;
 			}
-			if (!hasEnoughSpace()) {
+			if (!hasEnoughSpaceOnceCleaned()) {
 				return BackupStart.INSUFFICIENT_SPACE;
 			}
 			if (this.runningType != null) {
@@ -297,7 +298,20 @@ public final class BackupService {
 		return this.lastDeltaAttempt;
 	}
 
-	private boolean hasEnoughSpace() throws IOException {
+	/**
+	 * Only a full applies the retention after it, and a volume too full refuses that full: nothing would ever free space
+	 * again. So a refusal applies it, then checks once more.
+	 */
+	private boolean hasEnoughSpaceOnceCleaned() throws IOException {
+		if (hasEnoughSpace(false)) {
+			return true;
+		}
+		LOGGER.warn("Too little free space for a backup: the retention runs before a new check");
+		applyRetention();
+		return hasEnoughSpace(true);
+	}
+
+	private boolean hasEnoughSpace(final boolean logRefusal) throws IOException {
 		long lastFullSize = 0;
 		for (final BackupArchive archive : listArchives()) {
 			if (archive.type() == BackupArchiveType.FULL) {
@@ -307,11 +321,13 @@ public final class BackupService {
 		}
 		final long needed = 2 * lastFullSize + SPACE_MARGIN_BYTES;
 		final long usable = this.usableSpace.read();
-		if (usable < needed) {
-			LOGGER.error("Backup refused: {} bytes free on the volume, {} needed", usable, needed);
-			return false;
+		if (usable >= needed) {
+			return true;
 		}
-		return true;
+		if (logRefusal) {
+			LOGGER.error("Backup refused: {} bytes free on the volume, {} needed", usable, needed);
+		}
+		return false;
 	}
 
 	private static Instant now() {
@@ -381,13 +397,13 @@ public final class BackupService {
 		}
 	}
 
-	/** After a full only: its archive is on the disk, and the lock keeps a delta from writing during the listing. */
+	/** After a full that succeeded, or at a refusal for lack of space: never at the end of a failed backup. */
 	private void applyRetention() {
 		try {
 			final int deleted = this.engine.clean(this.retention).size();
 			LOGGER.info("Backup retention: {} archive(s) deleted", deleted);
 		} catch (final Throwable ex) {
-			// The backup that just succeeded stays a success; what was not deleted goes with the next one.
+			// A backup that just succeeded stays a success; what was not deleted goes with the next one.
 			LOGGER.error("Backup retention failed: {}", ex.getMessage(), ex);
 		}
 	}

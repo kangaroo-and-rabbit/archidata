@@ -751,11 +751,52 @@ public class TestBackupService {
 		Assertions.assertTrue(Files.exists(last));
 	}
 
+	/** Without this, a full volume stays full: only a full frees space, and it is refused for lack of space. */
 	@Test
-	public void testARefusedFullDeletesNothing() throws Exception {
+	public void testARefusalAppliesTheRetentionThenChecksAgain() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine,
+				() -> Files.exists(old) ? 0 : BackupServiceBridge.LOTS_OF_SPACE);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertFalse(Files.exists(old));
+		Assertions.assertEquals(1, engine.calls.get());
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testADeltaRefusedAppliesTheRetentionToo() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine,
+				() -> Files.exists(old) ? 0 : BackupServiceBridge.LOTS_OF_SPACE);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+	}
+
+	/** Nothing left to free: refused, and the archive a restore needs is still there. */
+	@Test
+	public void testARefusalKeepsTheLastFull() throws Exception {
+		final Path older = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		final Path last = archive(BASE_NAME + "_2015-01-02_00:00:00.000_full.tar.gz");
 		final ControlledEngine engine = new ControlledEngine(this.folder, null);
 		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0));
-		Assertions.assertEquals(0, engine.cleanCalls.get());
+		Assertions.assertEquals(1, engine.cleanCalls.get(), "one retention, not one per check");
+		Assertions.assertFalse(Files.exists(older));
+		Assertions.assertTrue(Files.exists(last));
+	}
+
+	@Test
+	public void testAFailedRetentionStillRefusesTheBackup() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.cleanFailure = new IOException("permission denied");
+		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0));
 	}
 
 	@Test

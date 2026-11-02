@@ -307,11 +307,13 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   written, in the same thread, without a gap in which a delta could slip in. A
   second one answers `ALREADY_RUNNING`.
 - **Free space.** Before each start, the volume must have twice the size of the
-  last full archive plus `BackupService.SPACE_MARGIN_BYTES` (1 GiB) free,
-  otherwise nothing starts. There is no limit on how often a backup can start,
-  only this check. A refused start is logged and recorded as a failed attempt,
-  whoever asked: the cron task drops the answer of `startAsync()`, so the state
-  is all that is left of it.
+  last full archive plus `BackupService.SPACE_MARGIN_BYTES` (1 GiB) free. When it
+  has not, the retention runs on the archives already there and the space is checked
+  once more, otherwise a volume too full would stay so: only a full frees space, and
+  it would be refused. The second refusal starts nothing. There is no limit on how
+  often a backup can start, only this check. A refused start is logged and recorded
+  as a failed attempt, whoever asked: the cron task drops the answer of
+  `startAsync()`, so the state is all that is left of it.
 - A folder or a free space that cannot be read throws `UncheckedIOException`,
   also recorded as a failed attempt. A missing folder is not created again here:
   it may be a volume no longer mounted, and the archive would land on what lies
@@ -320,8 +322,9 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   shown as `success = false`, never with their text.
 - **Retention after each full.** Once a full backup is written, the service deletes
   the deltas dated after it, written under a clock that was ahead, and calls
-  `engine.clean(policy)`, see [Retention](#retention). Never after a failed or
-  refused backup, which must not cost an archive, and never after a delta. The
+  `engine.clean(policy)`, see [Retention](#retention). Never after a failed backup,
+  which must not cost an archive, and never after a delta. The only other moment is a
+  start refused for lack of space, see above. The
   policy is `new RetentionPolicy()` (all for 7 days, one a day for 3 months, one a
   week for 24 months), or the last argument of the constructor. So each full removes
   the deltas of the previous one, whatever the age: a point older than the last full

@@ -125,7 +125,9 @@
 - Un type `PARTIAL` s'ajoute à complète et delta : ranger une archive `_partial` dans l'un des deux serait faux. Aucune
   application n'en écrit aujourd'hui.
 - Rétention (décidée le 2026-11-02) : après chaque complète réussie, `engine.clean(policy)`, `new RetentionPolicy()` par
-  défaut, dernier paramètre du constructeur sinon. Jamais après un échec, un refus ou un delta. Un échec de `clean` se
+  défaut, dernier paramètre du constructeur sinon. Jamais après un échec ou un delta. Un refus pour manque d'espace lance
+  aussi `clean` puis recontrôle une fois : la rétention ne tournant qu'après une complète, un disque plein se serait
+  bloqué pour toujours. Un échec de `clean` se
   journalise et laisse la sauvegarde en succès. Pas de route : aucun client ne choisit ce qui part.
 - `clean` ne supprime jamais la dernière complète, quels que soient la politique et l'horloge, même si un `_partial` plus
   récent gagne la déduplication de sa journée. Il retire tout delta antérieur à la dernière complète, quel que soit son âge, et garde les
