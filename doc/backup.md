@@ -341,9 +341,10 @@ not a convenience.
 - `GET` needs `@RolesAllowed("ADMIN:r")` (`READ` or `READ_WRITE`), `POST` needs
   `@RolesAllowed("ADMIN:w")` (`WRITE` or `READ_WRITE`), checked by the
   `AuthenticationFilter` of the application: without such a filter the annotation
-  is ignored (see [security.md](security.md)). No token answers 401, a token
-  without the role 403, whether the service is configured or not. A token in the
-  URI is refused (no `@PermitTokenInURI`).
+  is ignored (see [security.md](security.md)), so each route also checks its role
+  itself, and an application that forgets the filter gets 403 on both. No token
+  answers 401, a token without the role 403, whether the service is configured or
+  not. A token in the URI is refused (no `@PermitTokenInURI`).
 - A service that was never given answers 503 `Backups are not configured`.
 - 409 means wait, 507 means free some space: both carry the usual JSON error
   body, without any number or path.

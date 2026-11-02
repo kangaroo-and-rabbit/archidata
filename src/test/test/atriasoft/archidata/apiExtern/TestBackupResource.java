@@ -19,14 +19,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
 import org.atriasoft.archidata.api.BackupResource;
 import org.atriasoft.archidata.backup.BackupEngine;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
+import org.atriasoft.archidata.backup.BackupService;
 import org.atriasoft.archidata.backup.BackupServiceBridge;
 import org.atriasoft.archidata.catcher.ExceptionCatcher;
+import org.atriasoft.archidata.catcher.GenericCatcher;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
@@ -34,6 +37,10 @@ import org.atriasoft.archidata.filter.PartRight;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.atriasoft.archidata.tools.ContextGenericTools;
 import org.atriasoft.archidata.tools.JWTWrapper;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.jackson.JacksonFeature;
+import org.glassfish.jersey.server.ResourceConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -48,6 +55,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 import test.atriasoft.archidata.ConfigureDb;
 import test.atriasoft.archidata.backup.BackupTestTools;
 
@@ -116,9 +125,13 @@ public class TestBackupResource {
 
 	private static HttpResponse<String> call(final String method, final String path, final String token)
 			throws Exception {
-		final HttpRequest.Builder builder = HttpRequest
-				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + path))
-				.method(method, HttpRequest.BodyPublishers.noBody());
+		return call(method, URI.create(ConfigBaseVariable.getLocalAddress() + path), token);
+	}
+
+	private static HttpResponse<String> call(final String method, final URI address, final String token)
+			throws Exception {
+		final HttpRequest.Builder builder = HttpRequest.newBuilder(address).method(method,
+				HttpRequest.BodyPublishers.noBody());
 		if (token != null) {
 			builder.header("Authorization", "Bearer " + token);
 		}
@@ -182,6 +195,39 @@ public class TestBackupResource {
 	@Test
 	public void testAdminWithoutRightGetsNothing() throws Exception {
 		assertAccess(PartRight.NONE, 403, 403);
+	}
+
+	/** {@code @RolesAllowed} alone checks nothing: an application that forgets the filter must fail closed. */
+	@Test
+	public void testWithoutAuthenticationFilterEveryRouteIsRefused() throws Exception {
+		final AtomicInteger stores = new AtomicInteger();
+		final BackupService service = BackupServiceBridge
+				.on(new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED) {
+					@Override
+					public Date store(final String sequence) {
+						stores.incrementAndGet();
+						return new Date();
+					}
+				});
+		BackupResource.setService(service);
+		final ResourceConfig rc = new ResourceConfig();
+		GenericCatcher.addAll(rc);
+		rc.register(BackupResource.class);
+		ContextGenericTools.addJsr310(rc);
+		rc.register(JacksonFeature.class);
+		final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(URI.create("http://127.0.0.1:0/"), rc);
+		try {
+			final int port = server.getListeners().iterator().next().getPort();
+			final URI address = URI.create("http://127.0.0.1:" + port + "/" + ROUTE);
+			for (final String method : List.of(GET, POST)) {
+				Assertions.assertEquals(403, call(method, address, null).statusCode(), method);
+				Assertions.assertEquals(403, call(method, address, Common.ADMIN_TOKEN).statusCode(), method);
+			}
+		} finally {
+			server.shutdownNow();
+		}
+		Assertions.assertEquals(0, stores.get());
+		Assertions.assertNull(service.getState().lastAttempt());
 	}
 
 	@Test
@@ -363,7 +409,10 @@ public class TestBackupResource {
 			final String[] roles = method.getAnnotation(RolesAllowed.class).value();
 			Assertions.assertEquals(1, roles.length, method.toString());
 			routes.put(method.isAnnotationPresent(GET.class) ? GET : POST, roles[0]);
-			Assertions.assertEquals(0, method.getParameterCount(), method.toString());
+			// The security context, injected by the server: nothing a client gives.
+			Assertions.assertEquals(1, method.getParameterCount(), method.toString());
+			Assertions.assertEquals(SecurityContext.class, method.getParameterTypes()[0], method.toString());
+			Assertions.assertTrue(method.getParameters()[0].isAnnotationPresent(Context.class), method.toString());
 			Assertions.assertFalse(method.isAnnotationPresent(jakarta.ws.rs.Path.class), method.toString());
 			Assertions.assertFalse(method.isAnnotationPresent(PermitTokenInURI.class), method.toString());
 		}

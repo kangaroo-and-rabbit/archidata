@@ -51,7 +51,18 @@ public class MySecurityContext implements SecurityContext {
 	 * @param sheme the URI scheme of the request (e.g., "https")
 	 */
 	public MySecurityContext(final UserByToken userByToken, final String sheme) {
-		this.contextPrincipale = new GenericContext(userByToken);
+		this(userByToken, sheme, null);
+	}
+
+	/**
+	 * Constructs a security context that knows the application the request was authenticated for.
+	 *
+	 * @param userByToken the authenticated user's token data
+	 * @param sheme the URI scheme of the request (e.g., "https")
+	 * @param applicationName the application name of the {@link AuthenticationFilter}, {@code null} if there is none
+	 */
+	public MySecurityContext(final UserByToken userByToken, final String sheme, final String applicationName) {
+		this.contextPrincipale = new GenericContext(userByToken, applicationName);
 		this.sheme = sheme;
 	}
 

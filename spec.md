@@ -115,6 +115,10 @@
 - `GET` demande `ADMIN:r`, `POST` demande `ADMIN:w`, pas de `@PermitTokenInURI`. Attention : `ADMIN` sans suffixe exige
   `READ_WRITE`, il refuse aussi bien `READ` que `WRITE` seuls (`MySecurityContext.checkRightInGroup`). Le contrôle passe
   avant le service : sans jeton 401, sans rôle 403, même si aucun service n'est configuré. Sans service : 503.
+- Défense en profondeur : chaque route revérifie son rôle, `@RolesAllowed` ne faisant rien sans filtre. Le contrôle se fait
+  sur `<application>/ADMIN:x`, comme le filtre : sans groupe, `isUserInRole` cherche dans `?system?` et refuserait tous les
+  vrais administrateurs. Le nom vient de `GenericContext.getApplicationName()`, renseigné par `AuthenticationFilter`, et
+  pas de `MySecurityContext` : le `SecurityContext` reçu par `@Context` est un proxy, un `instanceof` y échoue.
 - Le service est donné par `BackupResource.setService` : Jersey construit la ressource, les applications l'enregistrent
   par classe et `AnalyzeApi` a besoin de cette classe. C'est le même usage que les réglages statiques de `DataTools`.
 - Les modèles (`Instant`, records, enum) passent dans `TsGenerateApi` ; `@ApiAsyncType(Void.class)` donne

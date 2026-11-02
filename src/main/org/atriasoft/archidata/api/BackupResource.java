@@ -8,6 +8,7 @@ import org.atriasoft.archidata.backup.BackupStart;
 import org.atriasoft.archidata.backup.BackupState;
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.FailException;
+import org.atriasoft.archidata.filter.GenericContext;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.security.RolesAllowed;
@@ -15,8 +16,10 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 /**
  * JAX-RS resource to see the backups of the application and to start one.
@@ -30,7 +33,7 @@ import jakarta.ws.rs.core.Response;
  * <p>
  * Register it like any resource, and give it the service at startup with {@link #setService(BackupService)}. The
  * {@code @RolesAllowed} of the routes are only enforced by an {@code AuthenticationFilter} registered on the
- * application.
+ * application: each route also checks its role, so that an application without this filter is refused.
  * </p>
  */
 @Path("/backups")
@@ -55,6 +58,19 @@ public class BackupResource {
 		service = value;
 	}
 
+	/**
+	 * Check the role here too: {@code @RolesAllowed} does nothing without an {@code AuthenticationFilter}, and an
+	 * application that forgets it must be refused, not open.
+	 */
+	private static void requireRole(final SecurityContext sc, final String role) throws FailException {
+		// As AuthenticationFilter does: a role without its application is looked for in the ?system? group.
+		final String checked = sc.getUserPrincipal() instanceof final GenericContext context
+				&& context.getApplicationName() != null ? context.getApplicationName() + "/" + role : role;
+		if (!sc.isUserInRole(checked)) {
+			throw new FailException(Response.Status.FORBIDDEN, "Not enough RIGHT !!!");
+		}
+	}
+
 	private static BackupService requireService() throws FailException {
 		final BackupService current = service;
 		if (current == null) {
@@ -65,27 +81,32 @@ public class BackupResource {
 
 	/**
 	 * Tell whether a backup is running, how the last attempt ended, and which archives exist.
+	 * @param sc the security context of the request
 	 * @return the state of the backups
-	 * @throws FailException 503 when the application configured no backup service
+	 * @throws FailException 403 without the role, 503 when the application configured no backup service
 	 * @throws IOException if the folder can not be read; the generic catcher answers 500 without its message
 	 */
 	@GET
 	@RolesAllowed(ROLE_READ)
 	@Operation(description = "Get the state of the backups and the list of the archives")
-	public BackupState getState() throws FailException, IOException {
+	public BackupState getState(@Context final SecurityContext sc) throws FailException, IOException {
+		requireRole(sc, ROLE_READ);
 		return requireService().getState();
 	}
 
 	/**
-	 * Start a backup and answer without waiting for it: read {@link #getState()} to follow it.
+	 * Start a backup and answer without waiting for it: read {@link #getState(SecurityContext)} to follow it.
+	 * @param sc the security context of the request
 	 * @return 202 when the backup started, 507 when the volume has too little free space
-	 * @throws FailException 409 when a backup is already running, 503 when the application configured no backup service
+	 * @throws FailException 403 without the role, 409 when a backup is already running, 503 when the application
+	 *             configured no backup service
 	 */
 	@POST
 	@RolesAllowed(ROLE_WRITE)
 	@ApiAsyncType(Void.class)
 	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
-	public Response start() throws FailException {
+	public Response start(@Context final SecurityContext sc) throws FailException {
+		requireRole(sc, ROLE_WRITE);
 		final BackupStart result = requireService().startAsync();
 		if (result == BackupStart.ALREADY_RUNNING) {
 			throw new FailException(Response.Status.CONFLICT, "A backup is already running");

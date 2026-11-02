@@ -278,7 +278,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		}
 		// create the security context model:
 		final String scheme = requestContext.getUriInfo().getRequestUri().getScheme();
-		final MySecurityContext userContext = new MySecurityContext(userByToken, scheme);
+		final MySecurityContext userContext = new MySecurityContext(userByToken, scheme, this.applicationName);
 		// check roles if @RolesAllowed is present:
 		boolean roleOk = true;
 		if (hasRolesAllowed) {
