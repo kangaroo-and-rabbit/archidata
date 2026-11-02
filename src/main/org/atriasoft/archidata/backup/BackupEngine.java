@@ -1122,7 +1122,7 @@ public class BackupEngine {
 				}
 			}
 			final String sum = toHex(digest.digest());
-			if (onlyIfChanged && sum.equals(readLatestDeltaSum())) {
+			if (onlyIfChanged && isLatestDelta(sum)) {
 				LOGGER.info("Backup delta identical to the previous one, not kept: {}", fileName);
 				return null;
 			}
@@ -1146,17 +1146,18 @@ public class BackupEngine {
 		return now;
 	}
 
-	/** @return the sum of the delta a restore would apply, {@code null} when there is none or it has no sum */
-	private String readLatestDeltaSum() throws IOException {
-		final List<Path> chain = getLatestRestoreChain();
-		if (chain.size() < 2) {
-			return null;
+	/**
+	 * Compare a sum with the file of the delta a restore would apply, recomputed: a damaged archive does not stop the next
+	 * one, and its {@code .sha256} is not read. Any doubt keeps the new delta.
+	 */
+	private boolean isLatestDelta(final String sum) {
+		try {
+			final List<Path> chain = getLatestRestoreChain();
+			return chain.size() > 1 && sum.equals(sha256Of(chain.get(chain.size() - 1)));
+		} catch (final IOException ex) {
+			LOGGER.warn("Cannot read the previous delta, the new one is kept: {}", ex.getMessage());
+			return false;
 		}
-		final Path sidecar = checksumPath(chain.get(chain.size() - 1));
-		if (!Files.exists(sidecar)) {
-			return null;
-		}
-		return Files.readString(sidecar, StandardCharsets.US_ASCII).trim().split("\\s+", 2)[0];
 	}
 
 	/**
@@ -1245,9 +1246,14 @@ public class BackupEngine {
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public Date storeDelta(final String sequence, final Date since) throws IOException, DataAccessException {
+		return storeDelta(sequence, since, false);
+	}
+
+	private Date storeDelta(final String sequence, final Date since, final boolean onlyIfChanged)
+			throws IOException, DataAccessException {
 		final Document filter = buildDeltaFilter(since);
 		return executeStoreInternal(ensureDeltaSequence(sequence), tarOut -> backupCollectionsToStream(tarOut, filter),
-				since, false);
+				since, onlyIfChanged);
 	}
 
 	/**
@@ -1257,8 +1263,8 @@ public class BackupEngine {
 	 * <p>
 	 * The comparison is the one of the whole content, so that it also sees what no date tells: the {@code counters},
 	 * the documents without {@code updatedAt}, and a document deleted since the previous delta. It needs the archive,
-	 * which is written and then dropped, so its cost is the one of a delta. It reads the {@code .sha256} of the previous
-	 * delta, and survives a restart. The first delta after a full has nothing to be compared with and is always kept.
+	 * which is written and then dropped, so its cost is the one of a delta. It rereads the file of the previous delta, and
+	 * survives a restart. The first delta after a full has nothing to be compared with and is always kept.
 	 * Only meaningful with {@code setEnableStoreOrRestoreData(false)}: the folders of the media have the current date in
 	 * the archive, which then always differs, and is kept.
 	 * @param sequence the sequence identifier appended to the backup filename (required)
@@ -1268,9 +1274,7 @@ public class BackupEngine {
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public Date storeDeltaIfChanged(final String sequence, final Date since) throws IOException, DataAccessException {
-		final Document filter = buildDeltaFilter(since);
-		return executeStoreInternal(ensureDeltaSequence(sequence), tarOut -> backupCollectionsToStream(tarOut, filter),
-				since, true);
+		return storeDelta(sequence, since, true);
 	}
 
 	/**

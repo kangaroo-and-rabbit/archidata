@@ -187,7 +187,9 @@ Deltas based on the same full are cumulative: the last one holds everything, the
 others are only earlier points. `storeDeltaIfChanged(sequence, since)` keeps the
 archive only if it differs from the delta a restore would apply, and returns
 `null` otherwise: the same documents give the same bytes, so it compares the
-SHA-256 with the `.sha256` of that delta. The comparison sees the content, not the
+SHA-256 with the one of the file of that delta, recomputed. A damaged delta does not
+stop the next one, the `.sha256` plays no part, and a delta that can not be read
+keeps the new archive. The comparison sees the content, not the
 dates: a `counters` document, an undated document changed in place or a document
 removed since the previous delta make a new archive. The first delta after a full
 has nothing to be compared with and is always kept. It works on database-only
@@ -348,7 +350,7 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   again at each turn, which is the point, and shows as a failed attempt.
 - **Nothing new.** `storeDeltaIfChanged` drops an archive with the same content as
   the delta a restore would apply: an attempt is recorded, successful, with no
-  archive of this date, and the sum read on the disk makes it survive a restart. The
+  archive of this date, and the comparison with the file makes it survive a restart. The
   first delta after a full is always kept, since `counters` makes it non empty: one
   file per full instead of 96 a day. Each turn still reads the changes, compresses
   them and drops them.

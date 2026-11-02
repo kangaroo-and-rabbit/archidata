@@ -102,8 +102,9 @@
 - Une complète datée après l'heure courante fait échouer le delta (tentative en échec, ERROR) : il serait vide et une
   restauration s'arrêterait à cette complète. Pas de correction automatique : l'ordre des archives est faux, il faut un
   humain.
-- Delta sans changement : `storeDeltaIfChanged` compare la somme de l'archive à celle du dernier delta de la chaîne, et
-  jette l'archive si elles sont égales. Une comparaison de contenu, car `counters` et les collections sans date rendent
+- Delta sans changement : `storeDeltaIfChanged` compare la somme de l'archive à celle recalculée du fichier du dernier delta de
+  la chaîne, et jette l'archive si elles sont égales, jamais d'après le `.sha256` : une archive abîmée n'empêche pas de
+  réécrire. Une erreur de lecture du précédent garde le nouveau delta. Une comparaison de contenu, car `counters` et les collections sans date rendent
   tout delta non vide, et un simple comptage des dates perdrait une modification en place d'un document sans date. Pour
   cela l'archive est déterministe : `setModTime(0)` sur les entrées, le gzip de commons-compress écrit 0 par défaut. Le
   premier delta après une complète reste écrit, faute de référence : un fichier par complète au lieu de 96 par jour.

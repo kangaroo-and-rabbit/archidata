@@ -205,6 +205,54 @@ public class TestBackupDelta {
 				chain.get(1).getFileName().toString());
 	}
 
+	private Path deltaThenItsFile(final BackupEngine engine, final Date fullDate) throws Exception {
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:15:00.000", fullDate));
+		return engine.getLatestRestoreChain().get(1);
+	}
+
+	/** Its sum still says it is the same: only the bytes tell. */
+	@Test
+	public void testADamagedPreviousDeltaDoesNotStopANewOne() throws Exception {
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		final BackupEngine engine = createStoringEngine("deltadamaged");
+		final Date fullDate = engine.store("2026-01-01_00:00:00.000_full");
+		final Path previous = deltaThenItsFile(engine, fullDate);
+		Files.write(previous, new byte[] { 1, 2, 3 });
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:30:00.000", fullDate));
+		Assertions.assertEquals("deltadamaged_2026-01-01_00:30:00.000_delta.tar.gz",
+				engine.getLatestRestoreChain().get(1).getFileName().toString());
+	}
+
+	/** The sum file does not matter any more: the delta is compared with what it sums up. */
+	@Test
+	public void testAnUnreadableSumDoesNotFailTheDelta() throws Exception {
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		final BackupEngine engine = createStoringEngine("deltanosum");
+		final Date fullDate = engine.store("2026-01-01_00:00:00.000_full");
+		final Path previous = deltaThenItsFile(engine, fullDate);
+		final Path sidecar = BackupEngine.checksumPath(previous);
+		Files.delete(sidecar);
+		Files.createDirectory(sidecar);
+		Assertions.assertNull(engine.storeDeltaIfChanged("2026-01-01_00:30:00.000", fullDate));
+		Files.delete(sidecar);
+		Files.writeString(sidecar, "garbage");
+		Assertions.assertNull(engine.storeDeltaIfChanged("2026-01-01_00:45:00.000", fullDate));
+	}
+
+	@Test
+	public void testAPreviousDeltaThatCanNotBeReadKeepsTheNewOne() throws Exception {
+		DataAccess.drop(DataStoreWithUpdate.class);
+		DataAccess.drop(DataStoreWithoutUpdate.class);
+		final BackupEngine engine = createStoringEngine("deltaunreadable");
+		final Date fullDate = engine.store("2026-01-01_00:00:00.000_full");
+		final Path previous = deltaThenItsFile(engine, fullDate);
+		Files.delete(previous);
+		Files.createDirectory(previous);
+		Assertions.assertNotNull(engine.storeDeltaIfChanged("2026-01-01_00:30:00.000", fullDate));
+	}
+
 	@Test
 	public void testADeltaIsComparedOnlyWithADeltaOfTheLatestFull() throws Exception {
 		DataAccess.drop(DataStoreWithUpdate.class);
