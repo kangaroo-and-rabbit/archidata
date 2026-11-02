@@ -1,5 +1,48 @@
 # Migration Guide
 
+## Prochaine version (après v0.54.0) - Sauvegardes : rétention et delta (CHANGEMENT DE COMPORTEMENT)
+
+### La rétention s'applique par défaut
+
+`new BackupService(folder, baseName, classes, collections)` applique maintenant `new RetentionPolicy()` : tout garder
+7 jours, une par jour 3 mois, une par semaine 24 mois. **De vieilles archives sont supprimées dès la première complète
+réussie**, celles d'un ancien `BackupJob` comprises si elles portent le nom de la base et une date. Elle s'applique aussi
+quand un départ est refusé pour manque d'espace. La dernière complète n'est jamais supprimée, et les archives d'une autre
+base ou sans date dans le nom restent.
+
+- Pour garder plus longtemps : `new BackupService(folder, baseName, classes, collections, new RetentionPolicy(30, 12, 60))`.
+- Pour désactiver : `new BackupService(folder, baseName, classes, collections, null)`. Plus rien dans le service ne
+  supprime d'archive, et elles s'accumulent : le contrôle d'espace finira par refuser les sauvegardes.
+
+Avant de monter de version, copier ailleurs ce qui doit survivre.
+
+### Nouvelle tâche à brancher
+
+```java
+scheduler.addTask("backup", "0 0 * * *", backup::startAsync);               // existante
+scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync); // nouvelle
+```
+
+Sans la seconde ligne, rien ne change côté delta. Avec elle :
+
+- Sans complète sur le disque, le premier delta lance une complète.
+- `POST /backups` reste une complète, mais répond 202 pendant un delta et part juste après. 409 ne veut plus dire
+  « une sauvegarde tourne » mais « une complète tourne ou attend ».
+- Le delta passe le contrôle d'espace d'une complète, et ne contient jamais de média.
+- Les limites sont dans `doc/backup.md` : une suppression définitive revient à la restauration, et une écriture sans
+  `updatedAt` n'est pas vue, migrations par le pilote comprises (lancer une complète à la main après l'une d'elles).
+
+### Autres changements visibles
+
+- `BackupEngine.clean` ne supprime plus la dernière complète, même trop vieille pour la politique, et retire un delta
+  dont le nom donne une autre complète.
+- `getLatestRestoreChain` et `restoreLatest` écartent, avec un WARN, un delta daté après l'heure courante ou dont le nom
+  donne une autre complète.
+- `GET /backups` : même forme JSON, mais `lastAttempt` reste sur une complète en échec jusqu'à la suivante réussie, et une
+  tentative réussie peut ne pas avoir d'archive à sa date (delta sans changement).
+- Les archives de deltas du service se nomment `<base>_<date>_base<yyyyMMddHHmmssSSS>_delta.tar.gz`. Une version plus
+  ancienne d'archidata ne sait pas lire la date de ce nom.
+
 ## Prochaine version (après v0.52.2) - Correctifs SpotBugs (CHANGEMENT DE COMPORTEMENT)
 
 SpotBugs ne vérifiait rien : un filtre d'inclusion vide n'autorisait aucun constat. Il est maintenant bloquant, et ses

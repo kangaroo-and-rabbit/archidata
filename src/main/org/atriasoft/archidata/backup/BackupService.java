@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
@@ -32,7 +31,8 @@ import org.slf4j.LoggerFactory;
  * only (no media file), under the names {@link BackupEngine} expects, and the {@code counters} and migration
  * collections are always part of them: without them a restored base would reuse ids and replay its migrations.
  * <p>
- * Each full backup that succeeds applies a {@link RetentionPolicy}: nothing else deletes an archive, and no route does.
+ * Each full backup that succeeds applies a {@link RetentionPolicy}, as does a start refused for lack of space: nothing
+ * else deletes an archive, and no route does.
  * Nothing here restores an archive, and what it returns carries no path, no file name and no exception text. The lock
  * lives in the process: two instances of a server on the same folder do not see each other.
  *
@@ -76,6 +76,7 @@ public final class BackupService {
 
 	private final BackupEngine engine;
 	private final UsableSpace usableSpace;
+	/** {@code null}: nothing here deletes an archive. */
 	private final RetentionPolicy retention;
 	/** Guards the fields below, for the time of a decision, never of a dump. */
 	private final Object lock = new Object();
@@ -112,7 +113,8 @@ public final class BackupService {
 	 * @param classes model classes to back up
 	 * @param collections collections to back up that no class describes; {@code counters} and the migration
 	 *            collection are always added
-	 * @param retention what to keep, applied after each full backup that succeeds
+	 * @param retention what to keep, applied after each full backup that succeeds and when a start lacks space;
+	 *            {@code null} for an application that handles its archives by itself: nothing here deletes one
 	 * @throws DataAccessException if the collection name of a class can not be resolved
 	 * @throws IOException if the folder can not be created or read, or if a collection has a name a restore refuses
 	 */
@@ -153,12 +155,12 @@ public final class BackupService {
 	 *
 	 * @param engine the engine, used for {@link BackupEngine#store(String)} and to list the archives
 	 * @param usableSpace reader of the free space
-	 * @param retention what to keep, applied after each full backup that succeeds
+	 * @param retention what to keep, applied after each full backup that succeeds; {@code null} to delete nothing
 	 */
 	BackupService(final BackupEngine engine, final UsableSpace usableSpace, final RetentionPolicy retention) {
 		this.engine = engine;
 		this.usableSpace = usableSpace;
-		this.retention = Objects.requireNonNull(retention, "retention");
+		this.retention = retention;
 	}
 
 	private static BackupEngine createEngine(
@@ -303,8 +305,11 @@ public final class BackupService {
 	 * again. So a refusal applies it, then checks once more.
 	 */
 	private boolean hasEnoughSpaceOnceCleaned() throws IOException {
-		if (hasEnoughSpace(false)) {
+		if (hasEnoughSpace(this.retention == null)) {
 			return true;
+		}
+		if (this.retention == null) {
+			return false;
 		}
 		LOGGER.warn("Too little free space for a backup: the retention runs before a new check");
 		applyRetention();
@@ -389,6 +394,9 @@ public final class BackupService {
 
 	/** A delta dated after the full that just ended comes from a clock that was ahead: it was written before this full. */
 	private void retireLaterDeltas(final Instant fullDate) {
+		if (this.retention == null) {
+			return;
+		}
 		try {
 			this.engine.deleteDeltasAfter(Date.from(fullDate));
 		} catch (final Throwable ex) {
@@ -399,6 +407,9 @@ public final class BackupService {
 
 	/** After a full that succeeded, or at a refusal for lack of space: never at the end of a failed backup. */
 	private void applyRetention() {
+		if (this.retention == null) {
+			return;
+		}
 		try {
 			final int deleted = this.engine.clean(this.retention).size();
 			LOGGER.info("Backup retention: {} archive(s) deleted", deleted);

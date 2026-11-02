@@ -129,6 +129,8 @@
   aussi `clean` puis recontrôle une fois : la rétention ne tournant qu'après une complète, un disque plein se serait
   bloqué pour toujours. Un échec de `clean` se
   journalise et laisse la sauvegarde en succès. Pas de route : aucun client ne choisit ce qui part.
+- `null` comme politique coupe la rétention : plus rien dans le service ne supprime d'archive, ni après une complète, ni à
+  un refus, ni les deltas datés après une complète. La chaîne de restauration les écarte quand même.
 - `clean` ne supprime jamais la dernière complète, quels que soient la politique et l'horloge, même si un `_partial` plus
   récent gagne la déduplication de sa journée. Il retire tout delta antérieur à la dernière complète, quel que soit son âge, et garde les
   suivants ; sans complète il n'en retire aucun. Le `.sha256` part avec son archive. `keepAllDays` ne vaut donc pas pour

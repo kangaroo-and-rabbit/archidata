@@ -51,6 +51,20 @@ public final class BackupServiceBridge {
 	}
 
 	/**
+	 * Build a service on a test engine, a free space and a retention.
+	 * @param engine the engine
+	 * @param usableSpace the free space, read at each start
+	 * @param retention what to keep, {@code null} to delete nothing
+	 * @return the service
+	 */
+	public static BackupService on(
+			final BackupEngine engine,
+			final LongSupplier usableSpace,
+			final RetentionPolicy retention) {
+		return new BackupService(engine, usableSpace::getAsLong, retention);
+	}
+
+	/**
 	 * Build a service as an application does, with plenty of free space.
 	 * @param folder folder of the archives
 	 * @param baseName prefix of the archives

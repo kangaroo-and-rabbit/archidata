@@ -718,8 +718,35 @@ public class TestBackupService {
 		assertStarts(service);
 		awaitIdle(service);
 		Assertions.assertEquals(policy, engine.cleanPolicy.get());
-		Assertions.assertThrows(NullPointerException.class,
-				() -> BackupServiceBridge.on(engine, (RetentionPolicy) null));
+	}
+
+	/** An application that handles its archives by itself: nothing of this service deletes one. */
+	@Test
+	public void testTheRetentionCanBeTurnedOff() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		final Path oldDelta = archive(BASE_NAME + "_2015-01-02_00:00:00.000_delta.tar.gz");
+		final Path future = archive(
+				BASE_NAME + "_" + SEQUENCE.format(Instant.now().plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		final BackupService service = new BackupService(this.folder, BASE_NAME, List.of(), List.of(), null);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+		for (final Path file : List.of(old, oldDelta, future)) {
+			Assertions.assertTrue(Files.exists(file), file.toString());
+		}
+		// The restore still leaves out what does not belong to the latest full.
+		final BackupEngine reader = new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED);
+		Assertions.assertEquals(1, reader.getLatestRestoreChain().size());
+	}
+
+	@Test
+	public void testARefusalWithTheRetentionTurnedOffDeletesNothing() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0, null));
+		Assertions.assertEquals(0, engine.cleanCalls.get());
+		Assertions.assertTrue(Files.exists(old));
 	}
 
 	@Test

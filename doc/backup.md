@@ -326,7 +326,9 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   which must not cost an archive, and never after a delta. The only other moment is a
   start refused for lack of space, see above. The
   policy is `new RetentionPolicy()` (all for 7 days, one a day for 3 months, one a
-  week for 24 months), or the last argument of the constructor. So each full removes
+  week for 24 months), or the last argument of the constructor; `null` there turns
+  it off, for an application that handles its archives by itself, and nothing in the
+  service deletes an archive any more. So each full removes
   the deltas of the previous one, whatever the age: a point older than the last full
   can only be restored as a full, at the granularity of the policy. A failure of
   `clean` is logged as an `ERROR`, the backup stays a success, and the next full
