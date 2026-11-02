@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.api;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.atriasoft.archidata.backup.BackupService;
@@ -9,6 +10,8 @@ import org.atriasoft.archidata.backup.BackupState;
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.filter.GenericContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.annotation.security.RolesAllowed;
@@ -35,10 +38,15 @@ import jakarta.ws.rs.core.SecurityContext;
  * {@code @RolesAllowed} of the routes are only enforced by an {@code AuthenticationFilter} registered on the
  * application: each route also checks its role, so that an application without this filter is refused.
  * </p>
+ *
+ * <p>
+ * Each manual start is logged with the identifier of the user and its result, a line the nightly task never writes.
+ * </p>
  */
 @Path("/backups")
 @Produces(MediaType.APPLICATION_JSON)
 public class BackupResource {
+	private static final Logger LOGGER = LoggerFactory.getLogger(BackupResource.class);
 	/** Grants a right that can read: {@code READ} or {@code READ_WRITE}. */
 	private static final String ROLE_READ = "ADMIN:r";
 	/** Grants a right that can write: {@code WRITE} or {@code READ_WRITE}. The bare role would ask for {@code READ_WRITE}. */
@@ -107,14 +115,24 @@ public class BackupResource {
 	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
 	public Response start(@Context final SecurityContext sc) throws FailException {
 		requireRole(sc, ROLE_WRITE);
-		final BackupStart result = requireService().startAsync();
+		final BackupService backup = requireService();
+		final Object user = sc.getUserPrincipal() instanceof final GenericContext context ? context.getUserID() : null;
+		final BackupStart result;
+		try {
+			result = backup.startAsync();
+		} catch (final UncheckedIOException ex) {
+			LOGGER.warn("Manual backup by user {}: FAILED", user);
+			throw ex;
+		}
+		if (result == BackupStart.STARTED) {
+			LOGGER.info("Manual backup by user {}: {}", user, result);
+			return Response.accepted().build();
+		}
+		LOGGER.warn("Manual backup by user {}: {}", user, result);
 		if (result == BackupStart.ALREADY_RUNNING) {
 			throw new FailException(Response.Status.CONFLICT, "A backup is already running");
 		}
-		if (result == BackupStart.INSUFFICIENT_SPACE) {
-			return insufficientStorage();
-		}
-		return Response.accepted().build();
+		return insufficientStorage();
 	}
 
 	/** {@link Response.Status} has no 507 and {@code FailException} needs one; a catcher would hide a 5xx message. */

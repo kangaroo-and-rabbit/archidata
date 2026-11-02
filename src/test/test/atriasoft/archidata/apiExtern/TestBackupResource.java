@@ -32,6 +32,7 @@ import org.atriasoft.archidata.catcher.ExceptionCatcher;
 import org.atriasoft.archidata.catcher.GenericCatcher;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.externalRestApi.AnalyzeApi;
+import org.atriasoft.archidata.externalRestApi.OpenApiGenerateApi;
 import org.atriasoft.archidata.externalRestApi.TsGenerateApi;
 import org.atriasoft.archidata.filter.PartRight;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -48,7 +49,13 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -228,6 +235,75 @@ public class TestBackupResource {
 		}
 		Assertions.assertEquals(0, stores.get());
 		Assertions.assertNull(service.getState().lastAttempt());
+	}
+
+	/** Run an action and return what the resource logged, at INFO and above. */
+	private static List<ILoggingEvent> logsOf(final Executable action) throws Throwable {
+		final Logger logger = (Logger) LoggerFactory.getLogger(BackupResource.class);
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		logger.addAppender(appender);
+		try {
+			action.execute();
+		} finally {
+			logger.detachAppender(appender);
+		}
+		return appender.list;
+	}
+
+	private static void assertTraced(final List<ILoggingEvent> logs, final Level level, final String result) {
+		Assertions.assertEquals(1, logs.size(), logs.toString());
+		final String line = logs.get(0).getFormattedMessage();
+		Assertions.assertEquals(level, logs.get(0).getLevel(), line);
+		Assertions.assertTrue(line.contains(Common.ADMIN_ID.toHexString()), line);
+		Assertions.assertTrue(line.contains(result), line);
+		Assertions.assertFalse(line.contains(Common.ADMIN_TOKEN), line);
+		Assertions.assertFalse(line.contains("Bearer"), line);
+	}
+
+	@Test
+	public void testAStartThatRunsIsTracedWithItsAuthor() throws Throwable {
+		assertTraced(logsOf(() -> Assertions.assertEquals(202, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode())),
+				Level.INFO, "STARTED");
+		awaitIdle();
+	}
+
+	@Test
+	public void testAStartRefusedBecauseOneRunsIsTraced() throws Throwable {
+		final BlockedEngine engine = new BlockedEngine(this.folder);
+		BackupResource.setService(BackupServiceBridge.on(engine));
+		try {
+			Assertions.assertEquals(202, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode());
+			assertTraced(logsOf(() -> Assertions.assertEquals(409, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode())),
+					Level.WARN, "ALREADY_RUNNING");
+		} finally {
+			engine.release.countDown();
+		}
+		awaitIdle();
+	}
+
+	@Test
+	public void testAStartRefusedForLackOfSpaceIsTraced() throws Throwable {
+		BackupResource.setService(BackupServiceBridge
+				.on(new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED), () -> 0));
+		assertTraced(logsOf(() -> Assertions.assertEquals(507, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode())),
+				Level.WARN, "INSUFFICIENT_SPACE");
+	}
+
+	@Test
+	public void testAStartThatCanNotBeCheckedIsTraced() throws Throwable {
+		Files.delete(this.folder);
+		assertTraced(logsOf(() -> Assertions.assertEquals(500, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode())),
+				Level.WARN, "FAILED");
+	}
+
+	/** The nightly task does not pass through the resource: a line here always names a person. */
+	@Test
+	public void testTheNightlyTaskIsNotTracedAsAManualStart() throws Throwable {
+		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
+		BackupResource.setService(service);
+		Assertions.assertEquals(List.of(), logsOf(service::startAsync));
+		awaitIdle();
 	}
 
 	@Test
@@ -420,6 +496,22 @@ public class TestBackupResource {
 	}
 
 	@Test
+	public void testTheOpenApiHasNoParameter() throws Exception {
+		final AnalyzeApi api = new AnalyzeApi();
+		api.addAllApi(List.of(BackupResource.class));
+		final String generated = OpenApiGenerateApi.generateJson(api, "backups", "1");
+		Assertions.assertFalse(generated.contains("SecurityContext"), generated);
+		final JsonNode paths = MAPPER.readTree(generated).get("paths");
+		Assertions.assertEquals(1, paths.size(), generated);
+		final JsonNode route = paths.elements().next();
+		Assertions.assertEquals(Set.of("get", "post"), keysOf(route), generated);
+		for (final JsonNode operation : route) {
+			Assertions.assertFalse(operation.has("requestBody"), generated);
+			Assertions.assertTrue(!operation.has("parameters") || operation.get("parameters").isEmpty(), generated);
+		}
+	}
+
+	@Test
 	public void testTheApiIsGeneratedInTypeScript() throws Exception {
 		final Path out = this.folder.resolve("generated");
 		final AnalyzeApi api = new AnalyzeApi();
@@ -442,6 +534,13 @@ public class TestBackupResource {
 		// Nothing a client could pass: neither a path parameter nor an argument besides the configuration.
 		Assertions.assertEquals(2, generated.split("endPoint: \"/backups/\"", -1).length - 1, generated);
 		Assertions.assertFalse(generated.contains("params:"), generated);
+		// The security context the server injects is not an argument of the client.
+		for (final String function : List.of("getState", "start")) {
+			Assertions.assertTrue(
+					generated.replaceAll("\\s+", " ")
+							.contains("export function " + function + "({ restConfig, }: { restConfig: RESTConfig, })"),
+					generated);
+		}
 		Assertions.assertFalse(generated.contains("queries:"), generated);
 	}
 }

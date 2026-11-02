@@ -348,6 +348,10 @@ not a convenience.
 - A service that was never given answers 503 `Backups are not configured`.
 - 409 means wait, 507 means free some space: both carry the usual JSON error
   body, without any number or path.
+- Each manual start logs `Manual backup by user <id>: <result>`, `STARTED` at
+  `INFO`; `ALREADY_RUNNING`, `INSUFFICIENT_SPACE` and `FAILED` at `WARN`. The
+  identifier comes from the `SecurityContext`, never a token. The nightly task
+  does not pass here: such a line always names a person.
 - A folder that cannot be read, or that disappeared, answers the generic 500 of
   `ExceptionCatcher`, on both routes, which keeps the message in the log. A failed
   backup shows only as `lastAttempt.success = false`.
