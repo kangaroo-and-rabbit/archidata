@@ -395,6 +395,24 @@ public class TestBackupDelta {
 		Assertions.assertEquals(List.of(full, valid), chainOf("future"));
 	}
 
+	/** After a clock that jumped forward: this full must not take the restores over. */
+	@Test
+	public void testAFullDatedInTheFutureIsRefusedByTheChain() throws Exception {
+		final Instant now = Instant.now();
+		final String full = file("futurefull_" + NAME.format(now.minus(1, ChronoUnit.HOURS)) + "_full.tar.gz");
+		final String delta = file("futurefull_" + NAME.format(now.minus(30, ChronoUnit.MINUTES)) + "_delta.tar.gz");
+		file("futurefull_" + NAME.format(now.plus(3, ChronoUnit.DAYS)) + "_full.tar.gz");
+		Assertions.assertEquals(List.of(full, delta), chainOf("futurefull"));
+	}
+
+	@Test
+	public void testWithoutAValidFullNothingIsRestored() throws Exception {
+		file("nofullvalid_" + NAME.format(Instant.now().plus(3, ChronoUnit.DAYS)) + "_full.tar.gz");
+		final BackupEngine engine = createEngine("nofullvalid");
+		Assertions.assertTrue(engine.getLatestRestoreChain().isEmpty());
+		Assertions.assertFalse(engine.restoreLatest());
+	}
+
 	@Test
 	public void testADeltaOfAnotherFullIsRefusedByTheChain() throws Exception {
 		file("other_2026-01-01_00:00:00.000_full.tar.gz");

@@ -1635,26 +1635,34 @@ public class BackupEngine {
 
 	/**
 	 * Resolve the ordered list of archives needed to restore the latest known state: the most
-	 * recent full backup, followed by the most recent delta based on it (if any). A delta is left
-	 * out, with a warning, when it is older than the full, when its name says it starts from
-	 * another full, or when it is dated after the current time: a clock that jumped forward makes
-	 * an old delta look newer than the full, and applying it would write old documents over it.
-	 * @return the archive paths to restore in order, or an empty list when no full backup exists
+	 * recent full backup, followed by the most recent delta based on it (if any). An archive dated
+	 * after the current time is left out with a warning, full or delta: a clock that jumped forward
+	 * makes it look newer than what was written since, and it would write old documents over them.
+	 * So is a delta older than the full, or whose name says it starts from another full.
+	 * @return the archive paths to restore in order, or an empty list when no valid full backup exists
 	 * @throws IOException if listing the backup files fails
 	 */
 	public List<Path> getLatestRestoreChain() throws IOException {
-		final List<BackupFileInfo> files = listBackupFiles();
+		final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+		final List<BackupFileInfo> files = new ArrayList<>();
+		for (final BackupFileInfo file : listBackupFiles()) {
+			if (file.dateTime().isAfter(now)) {
+				LOGGER.warn("Archive left out of the restore, dated after the current time: {}",
+						file.path().getFileName());
+				continue;
+			}
+			files.add(file);
+		}
 		final BackupFileInfo latestFull = findLatestFull(files);
 		if (latestFull == null) {
 			return List.of();
 		}
-		final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 		BackupFileInfo latestDelta = null;
 		for (final BackupFileInfo file : files) {
 			if (!file.delta() || file.compareTo(latestFull) < 0) {
 				continue;
 			}
-			if (!file.isDeltaOf(latestFull) || file.dateTime().isAfter(now)) {
+			if (!file.isDeltaOf(latestFull)) {
 				LOGGER.warn("Delta left out of the restore: {} does not belong to {}", file.path().getFileName(),
 						latestFull.path().getFileName());
 				continue;
@@ -1672,14 +1680,14 @@ public class BackupEngine {
 	/**
 	 * Restore the latest known state: restore the most recent full backup (the target database
 	 * must be empty) then apply the most recent delta based on it, if any.
-	 * @return {@code true} if a full backup was found and restored
+	 * @return {@code true} if a full backup was found and restored, {@code false} when no valid one exists
 	 * @throws IOException if an archive cannot be read
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public boolean restoreLatest() throws IOException, DataAccessException {
 		final List<Path> chain = getLatestRestoreChain();
 		if (chain.isEmpty()) {
-			LOGGER.error("No full backup found in: {}", this.pathStore);
+			LOGGER.error("Nothing restored: no valid full backup in: {}", this.pathStore);
 			return false;
 		}
 		if (!restoreFile(chain.get(0), null)) {

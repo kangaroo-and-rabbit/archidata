@@ -176,9 +176,12 @@ on their modification time. Restoring is `restoreFile(full)` then
 full with the latest delta that belongs to it (`getLatestRestoreChain()` shows the
 pair). `getLastFullBackupDate()` returns the date to pass as `since`.
 
-A delta belongs to a full when it is later than it, is not dated after the current
-time, and, if its name gives a `_base`, gives this full. The others are left out
-with a `WARN`, and the chain falls back on the latest delta that belongs: under a
+An archive dated after the current time, full or delta, is left out of the chain
+with a `WARN`: the chain takes the latest full that remains and its deltas, and with
+no valid full it is empty and `restoreLatest()` restores nothing and returns `false`.
+A delta belongs to a full when it is later than it and, if its name gives a `_base`,
+gives this full. The others are left out with a `WARN`, and the chain falls back on
+the latest delta that belongs: under a
 clock that jumped forward, an old delta looks newer than the full, and applying it
 would write old documents over it. A delta without `_base` is judged on its date
 alone.
