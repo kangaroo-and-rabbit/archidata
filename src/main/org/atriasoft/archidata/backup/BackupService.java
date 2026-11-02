@@ -55,11 +55,12 @@ public final class BackupService {
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
 	private static final String SEQUENCE_SUFFIX_FULL = "_full";
 	/**
-	 * How far before the last full a delta starts looking. A date is written by the application before the document
-	 * reaches the database: a document dated just before the full can land behind the cursor of the dump. A document
-	 * taken twice costs nothing, a delta replaces it by its {@code _id} with what is the same or newer.
+	 * How far before the last full a delta starts looking. {@code updatedAt} is set when a document is written, not when
+	 * its transaction commits, and a Mongo transaction lives up to 60 s by default: a document dated before the full can
+	 * become visible behind the cursor of the dump. Two minutes cover this with some room. A document taken twice costs
+	 * nothing, a delta replaces it by its {@code _id} with what is the same or newer.
 	 */
-	static final long DELTA_MARGIN_MILLIS = 5000;
+	static final long DELTA_MARGIN_MILLIS = 120_000;
 	private static final String THREAD_NAME = "backup-service";
 
 	/** Reads the free space of the volume of the archives. */

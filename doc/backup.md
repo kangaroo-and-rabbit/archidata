@@ -334,10 +334,12 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
 `startDeltaAsync()` follows the rules above, with what follows.
 
 - **Reference.** `since` is the date of the latest full archive found on the disk,
-  read in the name, not in memory: a restart changes nothing. Minus 5 seconds: the
-  application dates a document before it reaches the database, so a document dated
-  just before the full can land behind the cursor of the dump. Taking it twice is
-  harmless, a delta replaces a document by its `_id`.
+  read in the name, not in memory: a restart changes nothing. Minus 2 minutes:
+  `updatedAt` is set at the write, not at the commit, and a Mongo transaction lives up
+  to 60 seconds by default, so a document dated just before the full can become
+  visible behind the cursor of the dump. Taking it twice is harmless, a delta replaces
+  a document by its `_id`. The first delta after a full therefore also holds what was
+  written in the 2 minutes before it.
 - **Cumulative.** Every delta holds everything since the full, so
   `restoreLatest()` needs the full and the last delta only, and
   `getLatestRestoreChain()` returns exactly this pair.

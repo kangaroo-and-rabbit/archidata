@@ -92,9 +92,9 @@
   une sauvegarde aussi, sans WARN : le suivant contiendra tout. Une complète pendant un delta attend, répond `STARTED` et
   part sans trou dans le même thread : le cron ne fixe pas l'ordre de deux tâches de la même minute (`ConcurrentHashMap`)
   et `0 0 * * *` croise `*/15 * * * *` chaque nuit ; sans cela le delta pouvait coûter sa complète à la nuit.
-- Delta : `since` est la date de la dernière complète lue sur le disque, moins 5 s (`DELTA_MARGIN_MILLIS`). Une date est
-  posée par l'application avant l'écriture, un document daté juste avant la complète peut arriver derrière le curseur du
-  dump. Pas de `since` en mémoire : il survit au redémarrage, et les deltas d'une même complète restent cumulatifs, seul
+- Delta : `since` est la date de la dernière complète lue sur le disque, moins 120 s (`DELTA_MARGIN_MILLIS`). `updatedAt`
+  est posé à l'écriture, pas au commit, et une transaction Mongo vit jusqu'à 60 s par défaut : un document daté juste
+  avant la complète peut devenir visible derrière le curseur du dump. Pas de `since` en mémoire : il survit au redémarrage, et les deltas d'une même complète restent cumulatifs, seul
   le dernier sert à `restoreLatest`.
 - Sans complète sur le disque, `startDeltaAsync` lance une complète plutôt que de passer son tour : serveur neuf ou
   dossier vidé, sinon rien de restaurable jusqu'à la nuit. Contrepartie acceptée : tant qu'elle échoue, elle est retentée

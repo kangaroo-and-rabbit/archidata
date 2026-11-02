@@ -866,6 +866,18 @@ public class TestBackupService {
 		Assertions.assertTrue(engine.deltaSequence.get().endsWith("_delta"));
 	}
 
+	/** The lifetime of a Mongo transaction, 60 s by default, has to fit in it. */
+	@Test
+	public void testADeltaLooksBeyondATransactionOpenDuringTheFull() throws Exception {
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(Date.from(Instant.parse("2026-10-31T23:58:00Z")), engine.deltaSince.get());
+	}
+
 	/** Nothing is kept in memory: a new service reads the same reference, and the chain stays one. */
 	@Test
 	public void testARestartFindsTheReferenceAgain() throws Exception {
