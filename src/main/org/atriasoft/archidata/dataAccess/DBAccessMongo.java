@@ -2265,7 +2265,13 @@ public final class DBAccessMongo implements Closeable {
 		final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
 		QueryStatistics.record(collectionName, Operation.RESTORE, condition.getFilter(), null,
 				statisticSoftDeleteField(options, deletedFieldName));
-		final Document actions = new Document("$set", new Document(deletedFieldName, false));
+		// A change like a soft delete: what follows the update date, a delta backup first, has to see it.
+		final Document fields = new Document(deletedFieldName, false);
+		final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
+		if (updateTsDesc != null) {
+			fields.append(updateTsDesc.getDbFieldName(), Date.from(Instant.now()));
+		}
+		final Document actions = new Document("$set", fields);
 		statistic.countUpdateMany++;
 		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 				: collection.updateMany(filters, actions);

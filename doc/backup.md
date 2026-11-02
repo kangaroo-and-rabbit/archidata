@@ -382,7 +382,7 @@ What a delta holds:
 
 | Documents | In a delta |
 |---|---|
-| `updatedAt` or `createdAt` at or after `since`, soft deletion included (it writes `updatedAt`) | yes |
+| `updatedAt` or `createdAt` at or after `since`, soft deletion and its undoing included (both write `updatedAt`) | yes |
 | with neither field: `counters` and any undated collection | all of them, in every delta |
 | `KAR_migration` | as a dated collection, its model has both fields |
 | removed for good since the full | **no: a restore brings them back**, until the next full |

@@ -34,6 +34,8 @@ Sans la seconde ligne, rien ne change côté delta. Avec elle :
 
 ### Autres changements visibles
 
+- `restore` et `restoreById` (annulation d'une suppression douce) posent `updatedAt`, comme `deleteSoft` : sans cela, un
+  delta ne voyait pas la ligne, qui redevenait supprimée à la restauration de l'archive.
 - `BackupEngine.clean` ne supprime plus la dernière complète, même trop vieille pour la politique, et retire un delta
   dont le nom donne une autre complète.
 - `getLatestRestoreChain` et `restoreLatest` écartent, avec un WARN, un delta daté après l'heure courante ou dont le nom

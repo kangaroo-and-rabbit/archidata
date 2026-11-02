@@ -47,10 +47,12 @@ import org.atriasoft.archidata.backup.BackupStart;
 import org.atriasoft.archidata.backup.BackupState;
 import org.atriasoft.archidata.backup.RetentionPolicy;
 import org.atriasoft.archidata.cron.CronScheduler;
+import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.exception.DataAccessException;
 import org.atriasoft.archidata.migration.model.Migration;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -68,6 +70,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 
 import test.atriasoft.archidata.ConfigureDb;
+import test.atriasoft.archidata.backup.model.DataStoreSoftDelete;
 
 /** {@link BackupService}: one backup at a time, a state and a list that carry nothing of the disk. */
 public class TestBackupService {
@@ -1210,6 +1213,48 @@ public class TestBackupService {
 		}
 	}
 
+	/** A restore refuses a base that holds anything, whatever another test left. */
+	private static void dropAllCollections(final MongoDatabase db) {
+		for (final String name : db.listCollectionNames().into(new ArrayList<>())) {
+			db.getCollection(name).drop();
+		}
+	}
+
+	/** Without {@code updatedAt} on the restore, the line comes back deleted from the archive. */
+	@Test
+	public void testALineRestoredAfterTheFullIsInTheDelta() throws Exception {
+		final MongoDatabase db = ConfigureDb.da.getInterface().getDatabase();
+		final String name = "DataStoreSoftDelete";
+		final List<String> collections = List.of(name, "counters", "KAR_migration");
+		for (final String collection : collections) {
+			db.getCollection(collection).drop();
+		}
+		final DataStoreSoftDelete line = new DataStoreSoftDelete();
+		line.name = "restored";
+		final ObjectId id = ConfigureDb.da.insert(line).getOid();
+		ConfigureDb.da.deleteSoftById(DataStoreSoftDelete.class, id);
+		// Far before the full: the margin of a delta must not be what carries it.
+		final Date old = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+		db.getCollection(name).updateOne(new Document("_id", id),
+				new Document("$set", new Document("updatedAt", old).append("createdAt", old)));
+
+		final Path store = this.folder.resolve("store");
+		final BackupService service = BackupServiceBridge.on(store, BASE_NAME, List.of(DataStoreSoftDelete.class),
+				List.of());
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, ConfigureDb.da.restoreById(DataStoreSoftDelete.class, id, new AccessDeletedItems()));
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+
+		dropAllCollections(db);
+		final BackupEngine reader = new BackupEngine(store, BASE_NAME, EngineBackupType.JSON_EXTENDED);
+		reader.setEnableStoreOrRestoreData(false);
+		Assertions.assertTrue(reader.restoreLatest());
+		Assertions.assertEquals(false, db.getCollection(name).find(new Document("_id", id)).first().get("deleted"));
+	}
+
 	/**
 	 * The whole way on Mongo, from the service to {@code restoreLatest}: dated, undated and counter documents, no media,
 	 * no file for a delta with nothing new. What the delta can not carry stays in the same test: a document removed comes
@@ -1287,9 +1332,7 @@ public class TestBackupService {
 		awaitIdle(service);
 		Assertions.assertEquals(2, countOf(service.getState(), BackupArchiveType.DELTA));
 
-		for (final String name : collections) {
-			db.getCollection(name).drop();
-		}
+		dropAllCollections(db);
 		final BackupEngine reader = new BackupEngine(store, BASE_NAME, EngineBackupType.JSON_EXTENDED);
 		reader.setEnableStoreOrRestoreData(false);
 		Assertions.assertEquals(2, reader.getLatestRestoreChain().size());
