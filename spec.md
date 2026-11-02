@@ -122,7 +122,14 @@
   écrire l'archive sur ce qui se trouve dessous.
 - Un type `PARTIAL` s'ajoute à complète et delta : ranger une archive `_partial` dans l'un des deux serait faux. Aucune
   application n'en écrit aujourd'hui.
-- La rétention reste désactivée : rien ne supprime d'archive tant que l'utilisateur n'a pas décidé.
+- Rétention (décidée le 2026-11-02) : après chaque complète réussie, `engine.clean(policy)`, `new RetentionPolicy()` par
+  défaut, dernier paramètre du constructeur sinon. Jamais après un échec, un refus ou un delta. Un échec de `clean` se
+  journalise et laisse la sauvegarde en succès. Pas de route : aucun client ne choisit ce qui part.
+- `clean` ne supprime jamais la dernière complète, quels que soient la politique et l'horloge, même si un `_partial` plus
+  récent gagne la déduplication de sa journée. Il retire tout delta antérieur à la dernière complète, quel que soit son âge, et garde les
+  suivants ; sans complète il n'en retire aucun. Le `.sha256` part avec son archive. `keepAllDays` ne vaut donc pas pour
+  les deltas : on ne remonte au quart d'heure près qu'après la dernière complète.
+- Les archives se trient par date et heure, pas par le texte du nom : après une migration, les formats cohabitent.
 
 ## Route des sauvegardes (`BackupResource`)
 

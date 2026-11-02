@@ -46,7 +46,7 @@ final String sequence = ZonedDateTime.now(ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")) + "_full";
 engine.store(sequence);                              // -> <dir>/<db>_<sequence>.tar.gz
 
-// weekly pruning
+// pruning, which BackupService does after each full
 engine.clean(new RetentionPolicy());                 // 7 days all, 3 months daily, 24 months weekly
 ```
 
@@ -308,8 +308,15 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   under it.
 - **Failures** are caught, `Error` included, logged with their stack trace, and
   shown as `success = false`, never with their text.
-- **No archive is deleted.** The service has no retention, and archives pile up
-  until something calls `clean(...)`. It has no restore either.
+- **Retention after each full.** Once a full backup is written, the service calls
+  `engine.clean(policy)`, see [Retention](#retention). Never after a failed or
+  refused backup, which must not cost an archive, and never after a delta. The
+  policy is `new RetentionPolicy()` (all for 7 days, one a day for 3 months, one a
+  week for 24 months), or the last argument of the constructor. So each full removes
+  the deltas of the previous one, whatever the age: a point older than the last full
+  can only be restored as a full, at the granularity of the policy. A failure of
+  `clean` is logged as an `ERROR`, the backup stays a success, and the next full
+  tries again. The service has no restore.
 
 ### The delta every 15 minutes
 
@@ -420,7 +427,8 @@ generators need the class.
 no deletion, and no parameter that names a file: an archive holds the password
 hashes and the whole catalog in clear, and neither its content, its name nor its
 path leave the server. Keep it that way: a new route here is a security decision,
-not a convenience.
+not a convenience. The retention of `BackupService` deletes archives, but it is no
+route: nothing a client sends chooses what goes.
 
 - `GET` needs `@RolesAllowed("ADMIN:r")` (`READ` or `READ_WRITE`), `POST` needs
   `@RolesAllowed("ADMIN:rw")` (`READ_WRITE` only), checked by the

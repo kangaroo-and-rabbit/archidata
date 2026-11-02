@@ -41,6 +41,16 @@ public final class BackupServiceBridge {
 	}
 
 	/**
+	 * Build a service on a test engine and a retention, with plenty of free space.
+	 * @param engine the engine
+	 * @param retention what to keep
+	 * @return the service
+	 */
+	public static BackupService on(final BackupEngine engine, final RetentionPolicy retention) {
+		return new BackupService(engine, () -> LOTS_OF_SPACE, retention);
+	}
+
+	/**
 	 * Build a service as an application does, with plenty of free space.
 	 * @param folder folder of the archives
 	 * @param baseName prefix of the archives

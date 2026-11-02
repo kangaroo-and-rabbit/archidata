@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
  * only (no media file), under the names {@link BackupEngine} expects, and the {@code counters} and migration
  * collections are always part of them: without them a restored base would reuse ids and replay its migrations.
  * <p>
+ * Each full backup that succeeds applies a {@link RetentionPolicy}: nothing else deletes an archive, and no route does.
  * Nothing here restores an archive, and what it returns carries no path, no file name and no exception text. The lock
  * lives in the process: two instances of a server on the same folder do not see each other.
  *
@@ -74,6 +76,7 @@ public final class BackupService {
 
 	private final BackupEngine engine;
 	private final UsableSpace usableSpace;
+	private final RetentionPolicy retention;
 	/** Guards the fields below, for the time of a decision, never of a dump. */
 	private final Object lock = new Object();
 	/** What is running: whoever sets it runs the backup, and clears it after {@link #lastAttempt} is written. */
@@ -85,8 +88,8 @@ public final class BackupService {
 	private boolean lastFullFailed = false;
 
 	/**
-	 * Create the service and its folder, private to the service when it is created here, and delete the temporary files
-	 * a backup of this base left when the process was killed.
+	 * Create the service with the default retention, {@link RetentionPolicy#RetentionPolicy()}: see
+	 * {@link #BackupService(Path, String, List, List, RetentionPolicy)}.
 	 *
 	 * @param folder folder of the archives
 	 * @param baseName prefix of the archives: pass the name of the database ({@code ConfigBaseVariable.getDBName()})
@@ -98,7 +101,26 @@ public final class BackupService {
 	 */
 	public BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
-		this(folder, baseName, classes, collections, () -> Files.getFileStore(folder).getUsableSpace());
+		this(folder, baseName, classes, collections, new RetentionPolicy());
+	}
+
+	/**
+	 * Create the service and its folder, private to the service when it is created here, and delete the temporary files
+	 * a backup of this base left when the process was killed.
+	 *
+	 * @param folder folder of the archives
+	 * @param baseName prefix of the archives: pass the name of the database ({@code ConfigBaseVariable.getDBName()})
+	 * @param classes model classes to back up
+	 * @param collections collections to back up that no class describes; {@code counters} and the migration
+	 *            collection are always added
+	 * @param retention what to keep, applied after each full backup that succeeds
+	 * @throws DataAccessException if the collection name of a class can not be resolved
+	 * @throws IOException if the folder can not be created or read, or if a collection has a name a restore refuses
+	 */
+	public BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
+			final List<String> collections, final RetentionPolicy retention) throws DataAccessException, IOException {
+		this(createEngine(folder, baseName, classes, collections), () -> Files.getFileStore(folder).getUsableSpace(),
+				retention);
 	}
 
 	/**
@@ -114,7 +136,7 @@ public final class BackupService {
 	 */
 	BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
 			final List<String> collections, final UsableSpace usableSpace) throws DataAccessException, IOException {
-		this(createEngine(folder, baseName, classes, collections), usableSpace);
+		this(createEngine(folder, baseName, classes, collections), usableSpace, new RetentionPolicy());
 	}
 
 	/**
@@ -124,8 +146,20 @@ public final class BackupService {
 	 * @param usableSpace reader of the free space
 	 */
 	BackupService(final BackupEngine engine, final UsableSpace usableSpace) {
+		this(engine, usableSpace, new RetentionPolicy());
+	}
+
+	/**
+	 * Create the service on an engine that is already configured.
+	 *
+	 * @param engine the engine, used for {@link BackupEngine#store(String)} and to list the archives
+	 * @param usableSpace reader of the free space
+	 * @param retention what to keep, applied after each full backup that succeeds
+	 */
+	BackupService(final BackupEngine engine, final UsableSpace usableSpace, final RetentionPolicy retention) {
 		this.engine = engine;
 		this.usableSpace = usableSpace;
+		this.retention = Objects.requireNonNull(retention, "retention");
 	}
 
 	private static BackupEngine createEngine(
@@ -151,7 +185,7 @@ public final class BackupService {
 	 * Start a full backup in its own thread and return at once, for the cron task as for a manual start: the scheduler
 	 * has a single consumer thread, which a dump would hold for minutes. The lock is taken before returning: a state read
 	 * right after {@link BackupStart#STARTED} says that a backup is running. A failure of the backup is logged and shows
-	 * in {@link #getState()}.
+	 * in {@link #getState()}. A full that succeeds applies the retention, whose failure is only logged.
 	 * <p>
 	 * During a delta the full waits for it and {@link BackupStart#STARTED} is returned: the scheduler does not order two
 	 * tasks of the same minute, and a delta that goes first at midnight must not cost the night its full.
@@ -300,10 +334,12 @@ public final class BackupService {
 			LOGGER.info("Backup {} [START]", type);
 			if (type == BackupArchiveType.FULL) {
 				this.engine.store(SEQUENCE_DATE.format(startedAt) + SEQUENCE_SUFFIX_FULL);
+				success = true;
+				applyRetention();
 			} else {
 				storeDelta(startedAt);
+				success = true;
 			}
-			success = true;
 			LOGGER.info("Backup {} [ END ]", type);
 		} catch (final Throwable ex) {
 			LOGGER.error("Backup {} failed: {}", type, ex.getMessage(), ex);
@@ -311,6 +347,17 @@ public final class BackupService {
 			synchronized (this.lock) {
 				recordAttempt(type, startedAt, success);
 			}
+		}
+	}
+
+	/** After a full only: its archive is on the disk, and the lock keeps a delta from writing during the listing. */
+	private void applyRetention() {
+		try {
+			final int deleted = this.engine.clean(this.retention).size();
+			LOGGER.info("Backup retention: {} archive(s) deleted", deleted);
+		} catch (final Throwable ex) {
+			// The backup that just succeeded stays a success; what was not deleted goes with the next one.
+			LOGGER.error("Backup retention failed: {}", ex.getMessage(), ex);
 		}
 	}
 

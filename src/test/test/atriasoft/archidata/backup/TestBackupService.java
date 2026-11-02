@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
@@ -74,6 +75,9 @@ public class TestBackupService {
 	private static final String COLLECTION = "backupServiceData";
 	private static final long WAIT_SECONDS = 20;
 
+	private static final DateTimeFormatter SEQUENCE = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS")
+			.withZone(ZoneOffset.UTC);
+
 	private Path folder;
 	private String previousDataFolder;
 
@@ -88,6 +92,9 @@ public class TestBackupService {
 		final AtomicReference<String> deltaSequence = new AtomicReference<>();
 		final AtomicReference<Date> deltaSince = new AtomicReference<>();
 		IOException deltaFailure = null;
+		final AtomicInteger cleanCalls = new AtomicInteger();
+		final AtomicReference<RetentionPolicy> cleanPolicy = new AtomicReference<>();
+		IOException cleanFailure = null;
 		private final Throwable failure;
 
 		ControlledEngine(final Path folder, final Throwable failure) {
@@ -131,6 +138,16 @@ public class TestBackupService {
 				throw this.deltaFailure;
 			}
 			return new Date();
+		}
+
+		@Override
+		public List<Path> clean(final RetentionPolicy policy) throws IOException {
+			this.cleanCalls.incrementAndGet();
+			this.cleanPolicy.set(policy);
+			if (this.cleanFailure != null) {
+				throw this.cleanFailure;
+			}
+			return super.clean(policy);
 		}
 
 		void awaitEntered() throws InterruptedException {
@@ -594,33 +611,193 @@ public class TestBackupService {
 		Assertions.assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(store)));
 	}
 
+	// ===== Retention =====
+
 	@Test
-	public void testBackupDeletesNoArchive() throws Exception {
+	public void testAFullAppliesTheRetention() throws Exception {
 		final List<Path> old = new ArrayList<>();
 		old.add(archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz"));
-		old.add(archive(BASE_NAME + "_2015-06-01_00:00:00.000_full.tar.gz"));
 		old.add(archive(BASE_NAME + "_2015-03-01_00:00:00.000_delta.tar.gz"));
-		final Path sidecar = BackupEngine.checksumPath(old.get(0));
-		Files.writeString(sidecar, "sum");
-		final BackupEngine engine = new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED);
-		// All of them are what a retention would remove, the latest full aside.
-		Assertions.assertEquals(old.size() - 1,
-				engine.cleanDryRun(new RetentionPolicy(), LocalDate.of(2026, 11, 2)).size());
+		old.add(archive(BASE_NAME + "_2015-06-01_00:00:00.000_full.tar.gz"));
+		old.add(BackupEngine.checksumPath(old.get(0)));
+		old.add(BackupEngine.checksumPath(old.get(1)));
+		Files.writeString(old.get(3), "sum");
+		Files.writeString(old.get(4), "sum");
+		final List<Path> foreign = List.of(//
+				archive("other_2015-01-01_00:00:00.000_full.tar.gz"), //
+				archive("other_2015-01-01_00:00:00.000_full.tar.gz.sha256"), //
+				archive("other_2015-01-01_00:15:00.000_delta.tar.gz"), //
+				archive(BASE_NAME + "_x_2015-01-01_00:00:00.000_full.tar.gz"), //
+				archive(BASE_NAME + "_manual.tar.gz"), //
+				archive("readme.txt"));
 
 		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
-		for (int iii = 0; iii < 3; iii++) {
-			assertStarts(service);
-			awaitIdle(service);
-			Thread.sleep(2);
-		}
+		assertStarts(service);
+		awaitIdle(service);
 
 		for (final Path file : old) {
+			Assertions.assertFalse(Files.exists(file), file.toString());
+		}
+		for (final Path file : foreign) {
 			Assertions.assertTrue(Files.exists(file), file.toString());
 		}
-		Assertions.assertTrue(Files.exists(sidecar));
 		final BackupState state = service.getState();
 		Assertions.assertTrue(state.lastAttempt().success());
-		Assertions.assertEquals(old.size() + 3, state.archives().size());
+		Assertions.assertEquals(List.of(state.lastAttempt().date()),
+				state.archives().stream().map(BackupArchive::date).toList());
+	}
+
+	@Test
+	public void testTheDeltasOfTheLastFullGoWithTheNextOne() throws Exception {
+		final Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+		final Path older = archive(BASE_NAME + "_" + SEQUENCE.format(yesterday) + "_full.tar.gz");
+		final Path delta = archive(BASE_NAME + "_" + SEQUENCE.format(yesterday.plusSeconds(900)) + "_delta.tar.gz");
+		final Path sidecar = BackupEngine.checksumPath(delta);
+		Files.writeString(sidecar, "sum");
+		final Instant recent = Instant.now().minus(1, ChronoUnit.HOURS);
+		final Path recentDelta = archive(BASE_NAME + "_" + SEQUENCE.format(recent) + "_delta.tar.gz");
+
+		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
+		assertStarts(service);
+		awaitIdle(service);
+
+		Assertions.assertFalse(Files.exists(delta), "a delta before the last full can not be restored any more");
+		Assertions.assertFalse(Files.exists(sidecar));
+		Assertions.assertFalse(Files.exists(recentDelta), "keepAllDays keeps no delta");
+		Assertions.assertTrue(Files.exists(older), "a full follows the zones of the policy");
+		Assertions.assertEquals(0, countOf(service.getState(), BackupArchiveType.DELTA));
+	}
+
+	@Test
+	public void testADeltaNewerThanTheLastFullIsKept() throws Exception {
+		final Instant fullDate = Instant.now().plus(1, ChronoUnit.SECONDS);
+		archive(BASE_NAME + "_" + SEQUENCE.format(fullDate.minus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		// Later than the full this test writes.
+		final Path newer = archive(
+				BASE_NAME + "_" + SEQUENCE.format(fullDate.plus(1, ChronoUnit.HOURS)) + "_delta.tar.gz");
+		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(Files.exists(newer));
+		Assertions.assertEquals(1, countOf(service.getState(), BackupArchiveType.DELTA));
+	}
+
+	@Test
+	public void testTheRetentionOfTheServiceCanBeChosen() throws Exception {
+		final RetentionPolicy policy = new RetentionPolicy(1, 1, 1);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine, policy);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(policy, engine.cleanPolicy.get());
+		Assertions.assertThrows(NullPointerException.class,
+				() -> BackupServiceBridge.on(engine, (RetentionPolicy) null));
+	}
+
+	@Test
+	public void testTheDefaultRetentionIsTheOneOfThePolicy() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(new RetentionPolicy(), engine.cleanPolicy.get());
+		Assertions.assertNotNull(
+				new BackupService(this.folder, BASE_NAME, List.of(), List.of(), new RetentionPolicy(1, 1, 1)));
+	}
+
+	@Test
+	public void testAFailedFullDeletesNothing() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		final Path last = archive(BASE_NAME + "_2026-11-01_00:00:00.000_full.tar.gz");
+		for (final Throwable failure : List.of(new IOException("disk full"), new OutOfMemoryError("heap"))) {
+			final ControlledEngine engine = new ControlledEngine(this.folder, failure);
+			engine.release.countDown();
+			final BackupService service = BackupServiceBridge.on(engine);
+			assertStarts(service);
+			awaitIdle(service);
+			Assertions.assertFalse(service.getState().lastAttempt().success());
+			Assertions.assertEquals(0, engine.cleanCalls.get());
+		}
+		Assertions.assertTrue(Files.exists(old));
+		Assertions.assertTrue(Files.exists(last));
+	}
+
+	@Test
+	public void testARefusedFullDeletesNothing() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0));
+		Assertions.assertEquals(0, engine.cleanCalls.get());
+	}
+
+	@Test
+	public void testADeltaDeletesNothing() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_delta.tar.gz");
+		archive(FULL_NAME);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.deltaRelease.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.deltaCalls.get());
+		Assertions.assertEquals(0, engine.cleanCalls.get());
+		Assertions.assertTrue(Files.exists(old));
+	}
+
+	/** A full started by a delta, or that waited behind one, is a full. */
+	@Test
+	public void testAFullReachedThroughADeltaAppliesTheRetention() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertDeltaStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.cleanCalls.get());
+
+		archive(FULL_NAME);
+		final ControlledEngine waited = new ControlledEngine(this.folder, null);
+		waited.release.countDown();
+		final BackupService other = BackupServiceBridge.on(waited);
+		assertDeltaStarts(other);
+		assertStarts(other);
+		waited.deltaRelease.countDown();
+		awaitIdle(other);
+		Assertions.assertEquals(1, waited.calls.get());
+		Assertions.assertEquals(1, waited.cleanCalls.get());
+	}
+
+	@Test
+	public void testAFailedRetentionLeavesTheBackupASuccess() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		engine.cleanFailure = new IOException("/secret/backup/folder: permission denied");
+		final BackupService service = BackupServiceBridge.on(engine);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.cleanCalls.get());
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+		// No lock kept, and the next full tries again.
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(2, engine.cleanCalls.get());
+	}
+
+	/** {@code store} writes nothing here: the archive that stays is the one on the disk, far past the last zone. */
+	@Test
+	public void testTheLastFullIsNeverDeleted() throws Exception {
+		final Path older = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		final Path last = archive(BASE_NAME + "_2015-01-02_00:00:00.000_full.tar.gz");
+		final Path sidecar = BackupEngine.checksumPath(last);
+		Files.writeString(sidecar, "sum");
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine, new RetentionPolicy(0, 0, 0));
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertFalse(Files.exists(older));
+		Assertions.assertTrue(Files.exists(last));
+		Assertions.assertTrue(Files.exists(sidecar));
 	}
 
 	// ===== Delta =====

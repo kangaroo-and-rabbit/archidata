@@ -311,7 +311,8 @@ Each point was checked against the code; the doc page gives the details.
 - **Backups**: archives are created `rw-------` with a `<archive>.sha256` file checked at restore;
   they stay in clear (all fields, `@DataNotRead` included): protect the storage folder.
   `BackupResource` lists and starts backups (`ADMIN`) and has no route to download, restore or delete an archive:
-  keep it so. See `doc/backup.md`.
+  keep it so. `BackupService` applies a `RetentionPolicy` after each full backup that succeeds, which is no route: no
+  client chooses what goes, and `clean` never deletes the latest full. See `doc/backup.md`.
 - **Database connection**: `DB_TLS` (true to use TLS) and `DB_AUTH_SOURCE` (authentication
   database) exist; a WARN is written once when the DB user is `root`.
 - **Reads project embedded objects down to their leaf fields** (by the declared type): a
