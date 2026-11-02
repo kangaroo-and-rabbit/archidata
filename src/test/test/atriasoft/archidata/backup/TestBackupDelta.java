@@ -391,7 +391,7 @@ public class TestBackupDelta {
 		final Instant now = Instant.now();
 		final String full = file("future_" + NAME.format(now.minus(1, ChronoUnit.HOURS)) + "_full.tar.gz");
 		final String valid = file("future_" + NAME.format(now.minus(30, ChronoUnit.MINUTES)) + "_delta.tar.gz");
-		file("future_" + NAME.format(now.plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+		file("future_" + NAME.format(now.plus(2, ChronoUnit.DAYS)) + "_delta.tar.gz");
 		Assertions.assertEquals(List.of(full, valid), chainOf("future"));
 	}
 
@@ -403,6 +403,15 @@ public class TestBackupDelta {
 		final String delta = file("futurefull_" + NAME.format(now.minus(30, ChronoUnit.MINUTES)) + "_delta.tar.gz");
 		file("futurefull_" + NAME.format(now.plus(3, ChronoUnit.DAYS)) + "_full.tar.gz");
 		Assertions.assertEquals(List.of(full, delta), chainOf("futurefull"));
+	}
+
+	/** Sequences named in local time, ahead of UTC: a date slightly ahead is no clock that jumped. */
+	@Test
+	public void testADateLessThanADayAheadIsKept() throws Exception {
+		final Instant ahead = Instant.now().plus(12, ChronoUnit.HOURS);
+		final String full = file("localtime_" + NAME.format(ahead) + "_full.tar.gz");
+		final String delta = file("localtime_" + NAME.format(ahead.plus(1, ChronoUnit.MINUTES)) + "_delta.tar.gz");
+		Assertions.assertEquals(List.of(full, delta), chainOf("localtime"));
 	}
 
 	@Test

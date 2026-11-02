@@ -729,7 +729,7 @@ public class TestBackupService {
 		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
 		final Path oldDelta = archive(BASE_NAME + "_2015-01-02_00:00:00.000_delta.tar.gz");
 		final Path future = archive(
-				BASE_NAME + "_" + SEQUENCE.format(Instant.now().plus(1, ChronoUnit.DAYS)) + "_delta.tar.gz");
+				BASE_NAME + "_" + SEQUENCE.format(Instant.now().plus(2, ChronoUnit.DAYS)) + "_delta.tar.gz");
 		final BackupService service = new BackupService(this.folder, BASE_NAME, List.of(), List.of(), null);
 		assertStarts(service);
 		awaitIdle(service);

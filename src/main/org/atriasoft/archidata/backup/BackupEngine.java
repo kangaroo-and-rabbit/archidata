@@ -26,6 +26,7 @@ import java.security.DigestInputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -115,6 +116,12 @@ public class BackupEngine {
 	private static final String DELTA_BASE_PREFIX = "base";
 	private static final Pattern DELTA_BASE = Pattern.compile("_" + DELTA_BASE_PREFIX + "([0-9]{17})(?:_|$)");
 	private static final Pattern DELTA_BASE_PART = Pattern.compile(DELTA_BASE_PREFIX + "[0-9]{17}");
+	/**
+	 * How far after the current UTC time an archive stays valid for a restore. An application can name its sequences in
+	 * local time, up to a day ahead of UTC: its latest archives are no clock that jumped. The {@code _base} of a delta
+	 * remains what protects the deltas of {@link BackupService} inside this day.
+	 */
+	private static final Duration RESTORE_FUTURE_TOLERANCE = Duration.ofDays(1);
 	private static final DateTimeFormatter DELTA_BASE_DATE = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS",
 			Locale.ROOT);
 	private static final String SUFFIX_JSON = ".json";
@@ -1636,17 +1643,17 @@ public class BackupEngine {
 	/**
 	 * Resolve the ordered list of archives needed to restore the latest known state: the most
 	 * recent full backup, followed by the most recent delta based on it (if any). An archive dated
-	 * after the current time is left out with a warning, full or delta: a clock that jumped forward
+	 * more than a day after the current UTC time is left out with a warning, full or delta: a clock that jumped forward
 	 * makes it look newer than what was written since, and it would write old documents over them.
 	 * So is a delta older than the full, or whose name says it starts from another full.
 	 * @return the archive paths to restore in order, or an empty list when no valid full backup exists
 	 * @throws IOException if listing the backup files fails
 	 */
 	public List<Path> getLatestRestoreChain() throws IOException {
-		final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+		final LocalDateTime limit = LocalDateTime.now(ZoneOffset.UTC).plus(RESTORE_FUTURE_TOLERANCE);
 		final List<BackupFileInfo> files = new ArrayList<>();
 		for (final BackupFileInfo file : listBackupFiles()) {
-			if (file.dateTime().isAfter(now)) {
+			if (file.dateTime().isAfter(limit)) {
 				LOGGER.warn("Archive left out of the restore, dated after the current time: {}",
 						file.path().getFileName());
 				continue;

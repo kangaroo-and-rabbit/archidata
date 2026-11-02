@@ -38,7 +38,7 @@ Sans la seconde ligne, rien ne change côté delta. Avec elle :
   delta ne voyait pas la ligne, qui redevenait supprimée à la restauration de l'archive.
 - `BackupEngine.clean` ne supprime plus la dernière complète, même trop vieille pour la politique, et retire un delta
   dont le nom donne une autre complète.
-- `getLatestRestoreChain` et `restoreLatest` écartent, avec un WARN, une archive datée après l'heure courante et un delta
+- `getLatestRestoreChain` et `restoreLatest` écartent, avec un WARN, une archive datée plus d'un jour après l'heure UTC et un delta
   dont le nom donne une autre complète. Sans complète valide, rien n'est restauré.
 - `GET /backups` : même forme JSON, mais `lastAttempt` reste sur une complète en échec jusqu'à la suivante réussie, et une
   tentative réussie peut ne pas avoir d'archive à sa date (delta sans changement).

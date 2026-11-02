@@ -137,7 +137,8 @@
   les deltas : on ne remonte au quart d'heure près qu'après la dernière complète.
 - Le nom d'un delta de `BackupService` porte la date de sa complète (`_base<yyyyMMddHHmmssSSS>_delta`) : après un saut
   d'horloge, une date seule ne distingue pas un delta écrit avant une complète, et `restoreLatest` réécrirait de vieux
-  documents par-dessus. La chaîne refuse une archive datée après l'heure courante, complète comme delta, puis un delta
+  documents par-dessus. La chaîne refuse une archive datée plus d'un jour après l'heure UTC, complète comme delta (une
+  application peut nommer ses séquences en heure locale ; dans ce jour, `_base` protège les deltas du service), puis un delta
   plus ancien que la complète ou fondé sur une autre, avec un WARN, et se rabat sur la dernière complète et le dernier delta
   valides. Sans complète valide, elle est vide et rien n'est restauré. Une complète réussie retire les deltas datés
   après elle. Un delta d'une version antérieure ne porte pas ce nom : seule sa date le juge.
