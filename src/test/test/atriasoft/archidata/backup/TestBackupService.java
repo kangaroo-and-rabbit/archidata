@@ -746,10 +746,13 @@ public class TestBackupService {
 	public void testARefusalWithTheRetentionTurnedOffDeletesNothing() throws Exception {
 		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
 		archive(FULL_NAME);
+		final Path delta = archive(BASE_NAME + "_2026-11-01_00:15:00.000_delta.tar.gz");
+		archive(BASE_NAME + "_2026-11-01_00:30:00.000_delta.tar.gz");
 		final ControlledEngine engine = new ControlledEngine(this.folder, null);
 		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0, null));
 		Assertions.assertEquals(0, engine.cleanCalls.get());
 		Assertions.assertTrue(Files.exists(old));
+		Assertions.assertTrue(Files.exists(delta));
 	}
 
 	@Test
@@ -820,6 +823,64 @@ public class TestBackupService {
 		Assertions.assertEquals(1, engine.cleanCalls.get(), "one retention, not one per check");
 		Assertions.assertFalse(Files.exists(older));
 		Assertions.assertTrue(Files.exists(last));
+	}
+
+	private List<Path> threeDeltas() throws IOException {
+		final List<Path> deltas = new ArrayList<>();
+		for (final String time : List.of("00:15", "00:30", "00:45")) {
+			final Path delta = archive(BASE_NAME + "_2026-11-01_" + time + ":00.000_delta.tar.gz");
+			Files.writeString(BackupEngine.checksumPath(delta), "sum");
+			deltas.add(delta);
+		}
+		return deltas;
+	}
+
+	/** Without this, the deltas of the current full fill the volume and the backups stop for good. */
+	@Test
+	public void testARefusalThinsTheDeltasOfTheCurrentFull() throws Exception {
+		final Path full = archive(FULL_NAME);
+		final List<Path> deltas = threeDeltas();
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine,
+				() -> Files.exists(deltas.get(0)) ? 0 : BackupServiceBridge.LOTS_OF_SPACE);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.calls.get());
+		Assertions.assertFalse(Files.exists(deltas.get(0)));
+		Assertions.assertFalse(Files.exists(BackupEngine.checksumPath(deltas.get(0))));
+		Assertions.assertFalse(Files.exists(deltas.get(1)));
+		Assertions.assertTrue(Files.exists(full));
+		Assertions.assertTrue(Files.exists(deltas.get(2)));
+		Assertions.assertTrue(Files.exists(BackupEngine.checksumPath(deltas.get(2))));
+	}
+
+	/** They are the way back to a precise time: they go only if the retention did not free enough. */
+	@Test
+	public void testTheDeltasStayWhenTheRetentionFreedEnough() throws Exception {
+		final Path old = archive(BASE_NAME + "_2015-01-01_00:00:00.000_full.tar.gz");
+		archive(FULL_NAME);
+		final List<Path> deltas = threeDeltas();
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine,
+				() -> Files.exists(old) ? 0 : BackupServiceBridge.LOTS_OF_SPACE);
+		assertStarts(service);
+		awaitIdle(service);
+		for (final Path delta : deltas) {
+			Assertions.assertTrue(Files.exists(delta), delta.toString());
+		}
+	}
+
+	@Test
+	public void testARefusalWithNothingFreedKeepsTheFullAndTheLastDelta() throws Exception {
+		final Path full = archive(FULL_NAME);
+		final List<Path> deltas = threeDeltas();
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		assertRefused(engine, BackupServiceBridge.on(engine, () -> 0));
+		Assertions.assertTrue(Files.exists(full));
+		Assertions.assertTrue(Files.exists(deltas.get(2)));
+		Assertions.assertFalse(Files.exists(deltas.get(1)));
 	}
 
 	@Test

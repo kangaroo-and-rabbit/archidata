@@ -313,8 +313,13 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
 - **Free space.** Before each start, the volume must have twice the size of the
   last full archive plus `BackupService.SPACE_MARGIN_BYTES` (1 GiB) free. When it
   has not, the retention runs on the archives already there and the space is checked
-  once more, otherwise a volume too full would stay so: only a full frees space, and
-  it would be refused. The second refusal starts nothing. There is no limit on how
+  again, otherwise a volume too full would stay so: only a full frees space, and it
+  would be refused. The retention keeps every delta of the last full, which can be
+  what fills the volume: as a last resort, `deleteDeltasExceptLatest()` leaves only the
+  latest one, the one `restoreLatest()` uses, and the space is checked a last time.
+  The way back to a time of the day is lost, the backups go on. The last full and the
+  last valid delta never go. The last refusal starts nothing. With the retention
+  turned off, nothing is deleted. There is no limit on how
   often a backup can start, only this check. A refused start is logged and recorded
   as a failed attempt, whoever asked: the cron task drops the answer of
   `startAsync()`, so the state is all that is left of it.
@@ -359,7 +364,7 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
   about `96 × X / 2 = 48 × X`: 1 MiB of compressed changes a day needs about 48 MiB
   until the next full, 100 MiB about 5 GiB. Add the undated collections, copied in
   every delta. The check of the free space does not count them: it looks at the
-  last full only.
+  last full only. A start refused for lack of space is the one exception, see above.
 - **During a backup**, it answers `ALREADY_RUNNING` with an `INFO` line, no `WARN`,
   and records nothing: the next delta holds everything this one would have held.
 - **Without a full archive** on the disk (a new server, an emptied folder), it
@@ -503,6 +508,7 @@ Reference
 | `checksumPath(Path)` (static), `SUFFIX_SHA256` | path of the sidecar of an archive |
 | `deltaSequence(String, Date)` (static) | sequence of a delta that names its full |
 | `deleteDeltasAfter(Date)` | delete the deltas dated after a full just written |
+| `deleteDeltasExceptLatest()` | delete the deltas of the full of the restore chain, except its delta |
 | `store(String)`, `storeDelta(String, Date)` | back up the registered collections (full, delta) |
 | `storeDeltaIfChanged(String, Date)` | same as `storeDelta`, returns `null` and keeps nothing when the content is the one of the latest delta |
 | `storeAll(String)`, `storeAllDelta(String, Date)` | same on every collection but `system.*`, no registration needed |

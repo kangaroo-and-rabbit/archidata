@@ -127,7 +127,9 @@
 - Rétention (décidée le 2026-11-02) : après chaque complète réussie, `engine.clean(policy)`, `new RetentionPolicy()` par
   défaut, dernier paramètre du constructeur sinon. Jamais après un échec ou un delta. Un refus pour manque d'espace lance
   aussi `clean` puis recontrôle une fois : la rétention ne tournant qu'après une complète, un disque plein se serait
-  bloqué pour toujours. Un échec de `clean` se
+  bloqué pour toujours. Si cela ne suffit pas, `deleteDeltasExceptLatest` ne laisse que le dernier delta de la
+  complète courante, puis dernier contrôle : `clean` les garde tous, et ils peuvent être ce qui remplit le disque. On perd
+  le retour à une heure précise plutôt que les sauvegardes. Dernière complète et dernier delta valide ne partent jamais. Un échec de `clean` se
   journalise et laisse la sauvegarde en succès. Pas de route : aucun client ne choisit ce qui part.
 - `null` comme politique coupe la rétention : plus rien dans le service ne supprime d'archive, ni après une complète, ni à
   un refus, ni les deltas datés après une complète. La chaîne de restauration les écarte quand même.

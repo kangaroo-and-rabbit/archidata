@@ -192,7 +192,8 @@ public final class BackupService {
 	 * tasks of the same minute, and a delta that goes first at midnight must not cost the night its full.
 	 * <p>
 	 * The volume must have twice the size of the last full archive plus {@link #SPACE_MARGIN_BYTES} free. When it does
-	 * not, the retention runs and the space is checked once more. A start refused for this reason, or that can not be
+	 * not, the retention runs and the space is checked again; then, as a last resort, only the latest delta of the last
+	 * full stays, and the space is checked a last time. A start refused for this reason, or that can not be
 	 * checked, is logged and recorded as a failed attempt, whoever asked: the
 	 * cron task has no other way to tell.
 	 *
@@ -302,7 +303,8 @@ public final class BackupService {
 
 	/**
 	 * Only a full applies the retention after it, and a volume too full refuses that full: nothing would ever free space
-	 * again. So a refusal applies it, then checks once more.
+	 * again. So a refusal applies it, then checks once more. It keeps every delta of the last full, which can be what
+	 * fills the volume: the last resort is to leave only the latest of them, the one a restore uses.
 	 */
 	private boolean hasEnoughSpaceOnceCleaned() throws IOException {
 		if (hasEnoughSpace(this.retention == null)) {
@@ -313,6 +315,10 @@ public final class BackupService {
 		}
 		LOGGER.warn("Too little free space for a backup: the retention runs before a new check");
 		applyRetention();
+		if (hasEnoughSpace(false)) {
+			return true;
+		}
+		keepOnlyTheLatestDelta();
 		return hasEnoughSpace(true);
 	}
 
@@ -416,6 +422,16 @@ public final class BackupService {
 		} catch (final Throwable ex) {
 			// A backup that just succeeded stays a success; what was not deleted goes with the next one.
 			LOGGER.error("Backup retention failed: {}", ex.getMessage(), ex);
+		}
+	}
+
+	/** At a refusal for lack of space only: the way back to a time of the day goes before the backups stop for good. */
+	private void keepOnlyTheLatestDelta() {
+		try {
+			final int deleted = this.engine.deleteDeltasExceptLatest().size();
+			LOGGER.warn("Too little free space for a backup: {} older delta(s) of the last full deleted", deleted);
+		} catch (final Throwable ex) {
+			LOGGER.error("Backup: can not delete the older deltas: {}", ex.getMessage(), ex);
 		}
 	}
 

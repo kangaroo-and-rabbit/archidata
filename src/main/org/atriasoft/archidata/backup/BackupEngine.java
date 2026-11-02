@@ -1875,6 +1875,32 @@ public class BackupEngine {
 		return deleted;
 	}
 
+	/**
+	 * Delete the deltas of the full a restore would use, each with its {@code .sha256} file, except the latest: they are
+	 * cumulative, and {@link #restoreLatest()} uses that one alone. What goes is the way back to a time of the day: for a
+	 * volume that is full, when {@link #clean(RetentionPolicy)} did not free enough. The full and the delta of
+	 * {@link #getLatestRestoreChain()} stay; without such a pair nothing is deleted.
+	 * @return the deleted paths
+	 * @throws IOException if listing or deleting files fails
+	 */
+	public List<Path> deleteDeltasExceptLatest() throws IOException {
+		final List<Path> chain = getLatestRestoreChain();
+		final List<Path> deleted = new ArrayList<>();
+		if (chain.size() < 2) {
+			return deleted;
+		}
+		final List<BackupFileInfo> files = listBackupFiles();
+		final BackupFileInfo full = files.stream().filter(file -> file.path().equals(chain.get(0))).findFirst()
+				.orElseThrow(() -> new IOException("The full backup disappeared: " + chain.get(0)));
+		for (final BackupFileInfo file : files) {
+			if (file.isDeltaOf(full) && !file.path().equals(chain.get(1))) {
+				deleteArchive(file);
+				deleted.add(file.path());
+			}
+		}
+		return deleted;
+	}
+
 	private List<Path> executeClean(final RetentionPolicy policy, final boolean dryRun, final LocalDate referenceDate)
 			throws IOException {
 		final List<BackupFileInfo> allFiles = listBackupFiles();

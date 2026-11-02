@@ -415,6 +415,41 @@ public class TestBackupDelta {
 	}
 
 	@Test
+	public void testDeleteDeltasExceptLatestKeepsWhatARestoreUses() throws Exception {
+		final String older = file("thin_2026-01-01_00:00:00.000_full.tar.gz");
+		final String oldDelta = file("thin_2026-01-01_06:00:00.000_base20260101000000000_delta.tar.gz");
+		final String full = file("thin_2026-01-02_00:00:00.000_full.tar.gz");
+		final String first = file("thin_2026-01-02_05:00:00.000_base20260102000000000_delta.tar.gz");
+		final String second = file("thin_2026-01-02_05:15:00.000_delta.tar.gz");
+		final String last = file("thin_2026-01-02_05:30:00.000_base20260102000000000_delta.tar.gz");
+		final Path sidecar = BackupEngine.checksumPath(this.tempBackupDir.resolve(first));
+		Files.writeString(sidecar, "sum");
+		final BackupEngine engine = createEngine("thin");
+
+		final List<Path> deleted = engine.deleteDeltasExceptLatest();
+
+		Assertions.assertEquals(List.of(this.tempBackupDir.resolve(first), this.tempBackupDir.resolve(second)),
+				deleted);
+		Assertions.assertFalse(Files.exists(sidecar));
+		Assertions.assertEquals(List.of(full, last), chainOf("thin"));
+		// Another full and its delta are the business of the retention.
+		Assertions.assertTrue(Files.exists(this.tempBackupDir.resolve(older)));
+		Assertions.assertTrue(Files.exists(this.tempBackupDir.resolve(oldDelta)));
+		Assertions.assertTrue(engine.deleteDeltasExceptLatest().isEmpty());
+	}
+
+	@Test
+	public void testDeleteDeltasExceptLatestWithoutADeltaOrAFull() throws Exception {
+		file("thinnone_2026-01-02_05:00:00.000_delta.tar.gz");
+		final String only = "thinnone_2026-01-02_05:15:00.000_delta.tar.gz";
+		file(only);
+		Assertions.assertTrue(createEngine("thinnone").deleteDeltasExceptLatest().isEmpty());
+		file("thinnone_2026-01-02_00:00:00.000_full.tar.gz");
+		Assertions.assertEquals(1, createEngine("thinnone").deleteDeltasExceptLatest().size());
+		Assertions.assertTrue(Files.exists(this.tempBackupDir.resolve(only)));
+	}
+
+	@Test
 	public void testWithoutAValidFullNothingIsRestored() throws Exception {
 		file("nofullvalid_" + NAME.format(Instant.now().plus(3, ChronoUnit.DAYS)) + "_full.tar.gz");
 		final BackupEngine engine = createEngine("nofullvalid");
