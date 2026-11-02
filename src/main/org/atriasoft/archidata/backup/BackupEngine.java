@@ -340,6 +340,23 @@ public class BackupEngine {
 		}
 	}
 
+	/**
+	 * Leave a directory made by hand to its owner alone: what it holds is in clear. Only for a directory of archives:
+	 * a restore can run from the working directory of the application.
+	 */
+	static void restrictDirectory(final Path dir) {
+		if (!isPosix(dir)) {
+			return;
+		}
+		try {
+			if (!OWNER_DIRECTORY.equals(Files.getPosixFilePermissions(dir))) {
+				Files.setPosixFilePermissions(dir, OWNER_DIRECTORY);
+			}
+		} catch (final IOException ex) {
+			LOGGER.warn("Cannot restrict the permissions of the backup folder: {}", dir);
+		}
+	}
+
 	private static MessageDigest newSha256() throws IOException {
 		try {
 			return MessageDigest.getInstance("SHA-256");

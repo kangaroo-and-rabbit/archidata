@@ -308,7 +308,11 @@ throws `IOException`, not an empty list, which would hide a volume no longer
 mounted. Its message names the folder: it must not reach a client.
 
 On a read-only container, the folder must be a volume: the constructor throws
-`IOException` when it cannot create it.
+`IOException` when it cannot create it. An existing folder is set to `rwx------`,
+with a WARN when that fails: the archives are in clear.
+
+The service writes chunks of 4 MiB, about 8 MiB of memory during a backup, so that
+the nightly run fits on a server already busy with imports.
 
 
 BackupResource: list and start from an administration page

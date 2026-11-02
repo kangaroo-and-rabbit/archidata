@@ -45,6 +45,8 @@ public final class BackupService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupService.class);
 	/** Free space required on top of twice the size of the last full archive: 1 GiB. */
 	public static final long SPACE_MARGIN_BYTES = 1024L * 1024 * 1024;
+	/** The memory of a backup is about twice this: a server taking imports has little left at midnight. */
+	private static final int CHUNK_MAX_BYTES = 4 * 1024 * 1024;
 	/** One of the formats {@link BackupEngine#parseDateTimeFromSequence(String)} reads, the one of the existing archives. */
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
@@ -119,12 +121,14 @@ public final class BackupService {
 			final List<String> collections) throws DataAccessException, IOException {
 		final BackupEngine engine = new BackupEngine(folder, baseName, EngineBackupType.JSON_EXTENDED);
 		engine.setEnableStoreOrRestoreData(false);
+		engine.setChunkMaxBytes(CHUNK_MAX_BYTES);
 		engine.addClass(classes.toArray(Class<?>[]::new));
 		engine.addCollection(collections.toArray(String[]::new));
 		engine.addCollection(DBAccessMongo.COLLECTION_COUNTERS);
 		engine.addClass(Migration.class);
 		engine.checkRegisteredCollectionNames();
 		BackupEngine.createPrivateDirectories(folder);
+		BackupEngine.restrictDirectory(folder);
 		engine.deleteAbandonedTemporaryFiles();
 		return engine;
 	}

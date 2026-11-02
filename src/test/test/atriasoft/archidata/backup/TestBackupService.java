@@ -551,6 +551,15 @@ public class TestBackupService {
 		Assertions.assertFalse(Files.exists(store), "nothing is created for a refused configuration");
 	}
 
+	/** Its archives are in clear: a folder made by hand keeps no right for the others. */
+	@Test
+	public void testAnExistingFolderIsMadePrivate() throws Exception {
+		final Path store = Files.createDirectory(this.folder.resolve("store"),
+				PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxr-xr-x")));
+		Assertions.assertNotNull(new BackupService(store, BASE_NAME, List.of(), List.of()));
+		Assertions.assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(store)));
+	}
+
 	@Test
 	public void testBackupDeletesNoArchive() throws Exception {
 		final List<Path> old = new ArrayList<>();
