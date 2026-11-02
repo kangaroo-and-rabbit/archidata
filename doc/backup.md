@@ -8,7 +8,8 @@ archives with a retention policy. It can also make an in-memory snapshot of the
 collections, which is meant for tests.
 
 This page covers the archive layout and naming, full and delta backups,
-restore, retention, the snapshot API and the traps around file names.
+restore, retention, the snapshot API, the traps around file names, and
+`BackupService`, the shared job that applications plug in.
 
 
 When to use it
@@ -17,7 +18,9 @@ When to use it
 Use it for scheduled application-level backups (nightly full backup, a delta
 every few minutes) and for seeding a fresh database from an archive. Karideo
 and karusic schedule a nightly `BackupJob` with it; karideo's `RestoreBackup`
-and `Initialization` restore from it.
+and `Initialization` restore from it. For a nightly full backup, use
+[`BackupService`](#backupservice-the-nightly-job-of-an-application) rather than
+writing such a job again.
 
 It is not a replacement for `mongodump` on a very large deployment: it reads
 the collections through a cursor and writes JSON. It does not capture indexes
@@ -225,6 +228,65 @@ the archive entries; the arrays are not copied, do not write to them) with
 **drops** every collection present in the snapshot first; collections absent
 from it are left alone. The whole content is held in memory: do not use it on
 large data.
+
+
+BackupService: the nightly job of an application
+------------------------------------------------
+
+`BackupService` (`org.atriasoft.archidata.backup`) is the job every application
+needs, so that it only declares its folder, its classes and its extra
+collections:
+
+```java
+final BackupService backup = new BackupService(
+        Path.of(ConfigVariable.getBackupFolder()),   // created if missing, rwx------
+        ConfigBaseVariable.getDBName(),              // archive prefix AND database name
+        Initialization.CLASSES_BASE,                 // model classes
+        List.of());                                  // collections no class describes
+scheduler.addTask("backup", "0 0 * * *", backup);    // it is a Runnable
+```
+
+- Database only: `setEnableStoreOrRestoreData(false)`, the media files are not
+  in these archives.
+- `counters` and the migration collection are always added, because a restored
+  base needs them. Do not list them; if you do, each collection is still written
+  once (a collection registered twice in the engine fails at restore).
+- It writes `<baseName>_yyyy-MM-dd_HH:mm:ss.SSS_full.tar.gz`, the date in UTC.
+- **One backup at a time.** `run()` and `startAsync()` share one lock. `run()`
+  works in the calling thread and does nothing when a backup is running, so the
+  scheduler never waits for it. `startAsync()` works in a daemon thread, returns
+  `true` if it started and `false` if a backup was already running. The lock is
+  per process: two instances on the same folder do not see each other.
+- **Failures** are caught, `Error` included, logged with their stack trace, and
+  shown as `success = false`, never with their text.
+- **Nothing is deleted.** The service has no retention, and archives pile up
+  until something calls `clean(...)`. It has no restore either.
+
+`getState()` returns a `BackupState`, `listArchives()` only its list. Neither
+holds a path, a file name or the text of an exception:
+
+| `BackupState` | |
+|---|---|
+| `running` | a backup is being written |
+| `lastAttempt` | `BackupAttempt(date, success)`, `null` until the first attempt finishes. Kept in memory: lost at a restart |
+| `archives` | list of `BackupArchive`, most recent first |
+
+| `BackupArchive` | |
+|---|---|
+| `date` | `Instant`, read from the sequence as UTC |
+| `size` | in bytes |
+| `type` | `FULL`, `DELTA` or `PARTIAL` (`BackupArchiveType`), read from the suffix of the sequence |
+| `hasChecksum` | the `.sha256` file is there |
+
+A file `.<name>_tmp` is an archive being written and is not listed. A name that
+cannot be parsed, a directory or a symbolic link is left out with a warning in
+the log. A date with no time zone is read as UTC: the archives of the former
+`BackupJob` were written in the default time zone of the JVM, which the
+applications set to UTC. An I/O failure on the folder throws `IOException`, and
+its message names the folder: it must not reach a client.
+
+On a read-only container, the folder must be a volume: the constructor throws
+`IOException` when it cannot create it.
 
 
 Reference

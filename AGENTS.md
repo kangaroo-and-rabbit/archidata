@@ -23,7 +23,7 @@ All packages live under `org.atriasoft.archidata` in `src/main/`.
 | `annotation.checker` | Validation groups (`GroupCreate`, `GroupUpdate`, `GroupRead`, `GroupPersistant`), `@CheckForeignKey`, collection validators |
 | `annotation.method` / `annotation.security` / `annotation.filter` | `@PaginationContext`, custom HTTP verbs (`@ARCHIVE`, `@RESTORE`, `@CALL`), `@RightAllowed`, `@PermitTokenInURI`, `@DataAccessSingleConnection` |
 | `api` | Ready-made JAX-RS resources: `DataResource` (media upload/streaming), `openApiResource`, `FrontGeneric`, `ProxyResource`, `MediaStreamer` |
-| `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `RetentionPolicy`, `BackupSnapshot` |
+| `backup` | `BackupEngine` (tar.gz full/delta archives, restore), `BackupService` (nightly and manual backup of an application, one at a time), `RetentionPolicy`, `BackupSnapshot` |
 | `bean` | Bean introspection used by the data layer (internal) |
 | `catcher` | JAX-RS exception mappers (`GenericCatcher.addAll(rc)`), `RestErrorResponse` |
 | `checker` | `ValidationContext`, `DataAccessConnectionContext` (per-request validation and connection context) |

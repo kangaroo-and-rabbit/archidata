@@ -79,3 +79,19 @@
 - `UserByToken.hasRight` suit le masque de bits de `PartRight`, comme `hasResourceRight`.
   `true` demande `READ_WRITE` ; demander `NONE` (`false`, `0`) répond toujours `false`, toute valeur qui ne décrit pas
   un droit aussi.
+
+## Sauvegardes (`BackupService`)
+
+- Les applications ne déclarent que leur dossier, leurs classes et leurs collections en plus : six copies d'un
+  `BackupJob` divergeraient. Plan : `../plans/2026-11-02-sauvegardes-unifiees.md`.
+- Base seule, `counters` et `KAR_migration` toujours inclus. Une collection n'est écrite qu'une fois : l'engine ne
+  dédoublonne pas, et une archive qui contient deux fois une collection échoue à la restauration.
+- `store`, jamais `storeAll` : karvox laisse exprès ses jetons de worker hors des archives.
+- Une seule sauvegarde à la fois, par processus : la tâche de nuit et le lancement manuel partagent le même
+  `AtomicBoolean`. La tâche de nuit n'attend pas, elle passe son tour : celle qui tourne est aussi récente.
+- Le dossier est créé `rwx------`, par l'engine, et non par `Files.createDirectories` comme les `BackupJob`.
+- La date d'une tentative est celle de son archive, à la milliseconde. Cet état reste en mémoire et se perd au
+  redémarrage.
+- Un type `PARTIAL` s'ajoute à complète et delta : ranger une archive `_partial` dans l'un des deux serait faux. Aucune
+  application n'en écrit aujourd'hui.
+- La rétention reste désactivée : rien ne supprime d'archive tant que l'utilisateur n'a pas décidé.

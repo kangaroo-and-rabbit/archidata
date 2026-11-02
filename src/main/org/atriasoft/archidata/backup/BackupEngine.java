@@ -316,7 +316,7 @@ public class BackupEngine {
 	}
 
 	/** Create the store directory when missing, accessible by its owner only. */
-	private static void createPrivateDirectories(final Path dir) throws IOException {
+	static void createPrivateDirectories(final Path dir) throws IOException {
 		if (Files.isDirectory(dir)) {
 			return;
 		}
