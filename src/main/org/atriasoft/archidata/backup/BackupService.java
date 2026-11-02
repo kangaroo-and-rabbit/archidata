@@ -3,6 +3,7 @@ package org.atriasoft.archidata.backup;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
@@ -155,10 +156,14 @@ public final class BackupService implements Runnable {
 	 * engine does not understand are left out.
 	 *
 	 * @return the archives
-	 * @throws IOException if the folder can not be read: the message of this exception names the folder and must not
-	 *             reach a client
+	 * @throws IOException if the folder can not be read or does not exist any more, which an empty list would hide (a
+	 *             volume no longer mounted): the message of this exception names the folder and must not reach a client
 	 */
 	public List<BackupArchive> listArchives() throws IOException {
+		final Path folder = this.engine.getPathStore();
+		if (!Files.isDirectory(folder)) {
+			throw new NoSuchFileException(folder.toString());
+		}
 		final List<BackupArchive> out = new ArrayList<>();
 		for (final BackupFileInfo file : this.engine.listBackupFiles()) {
 			final BackupArchive archive = toArchive(file);

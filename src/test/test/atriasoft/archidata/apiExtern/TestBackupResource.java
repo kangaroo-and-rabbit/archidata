@@ -102,8 +102,10 @@ public class TestBackupResource {
 	@AfterEach
 	public void removeService() throws IOException {
 		BackupResource.setService(null);
-		Files.setPosixFilePermissions(this.folder, PosixFilePermissions.fromString("rwx------"));
-		deleteAll(this.folder);
+		if (Files.exists(this.folder)) {
+			Files.setPosixFilePermissions(this.folder, PosixFilePermissions.fromString("rwx------"));
+			deleteAll(this.folder);
+		}
 	}
 
 	private static void deleteAll(final Path dir) throws IOException {
@@ -225,19 +227,32 @@ public class TestBackupResource {
 
 	@Test
 	public void testAFailedBackupSaysNothingOfItsCause() throws Exception {
-		// The folder becomes a file: the engine fails on a real I/O error, whose message holds the path.
-		final Path broken = this.folder.resolve("store");
-		final BackupService service = new BackupService(broken, BASE_NAME, List.of(), List.of());
-		Files.delete(broken);
-		Files.writeString(broken, "not a folder");
-		BackupResource.setService(service);
+		final String cause = this.folder + "/secret: disk full";
+		BackupResource.setService(
+				BackupServiceBridge.on(new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED) {
+					@Override
+					public Date store(final String sequence) throws IOException {
+						throw new IOException(cause);
+					}
+				}));
 		Assertions.assertEquals(202, call(POST, ROUTE, Common.ADMIN_TOKEN).statusCode());
 		final JsonNode state = awaitIdle();
 		Assertions.assertFalse(state.get("lastAttempt").get("success").asBoolean());
 		Assertions.assertEquals(Set.of("date", "success"), keysOf(state.get("lastAttempt")));
 		final String body = call(GET, ROUTE, Common.ADMIN_TOKEN).body();
 		Assertions.assertFalse(body.contains(this.folder.toString()), body);
+		Assertions.assertFalse(body.contains("disk full"), body);
 		Assertions.assertFalse(body.contains("Exception"), body);
+	}
+
+	/** A volume that is no longer mounted must not look like a server without any backup. */
+	@Test
+	public void testAFolderThatDisappearedAnswersAGenericError() throws Exception {
+		Files.delete(this.folder);
+		final HttpResponse<String> answer = call(GET, ROUTE, Common.ADMIN_TOKEN);
+		Assertions.assertEquals(500, answer.statusCode());
+		Assertions.assertTrue(answer.body().contains(ExceptionCatcher.GENERIC_MESSAGE), answer.body());
+		Assertions.assertFalse(answer.body().contains(this.folder.toString()), answer.body());
 	}
 
 	@Test

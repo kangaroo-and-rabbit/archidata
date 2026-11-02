@@ -290,8 +290,9 @@ A file `.<name>_tmp` is an archive being written and is not listed. A name that
 cannot be parsed, a directory or a symbolic link is left out with a warning in
 the log. A date with no time zone is read as UTC: the archives of the former
 `BackupJob` were written in the default time zone of the JVM, which the
-applications set to UTC. An I/O failure on the folder throws `IOException`, and
-its message names the folder: it must not reach a client.
+applications set to UTC. A folder that cannot be read or does not exist any more
+throws `IOException`, not an empty list, which would hide a volume no longer
+mounted. Its message names the folder: it must not reach a client.
 
 On a read-only container, the folder must be a volume: the constructor throws
 `IOException` when it cannot create it.
@@ -330,9 +331,9 @@ not a convenience.
   403, whether the service is configured or not. A token in the URI is refused
   (no `@PermitTokenInURI`).
 - A service that was never given answers 503 `Backups are not configured`.
-- A folder that cannot be read answers the generic 500 of `ExceptionCatcher`,
-  which keeps the message in the log. A failed backup shows only as
-  `lastAttempt.success = false`.
+- A folder that cannot be read, or that disappeared, answers the generic 500 of
+  `ExceptionCatcher`, which keeps the message in the log. A failed backup shows
+  only as `lastAttempt.success = false`.
 - The failure of the last attempt is known only until the server restarts.
 
 

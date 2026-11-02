@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
@@ -298,10 +299,11 @@ public class TestBackupService {
 	}
 
 	@Test
-	public void testAMissingFolderIsAnEmptyList() throws Exception {
+	public void testAFolderThatDisappearedIsAnErrorNotAnEmptyList() throws Exception {
 		final BackupService service = BackupServiceBridge
 				.on(new BackupEngine(this.folder.resolve("absent"), BASE_NAME, EngineBackupType.JSON_EXTENDED));
-		Assertions.assertEquals(List.of(), service.getState().archives());
+		Assertions.assertThrows(NoSuchFileException.class, service::listArchives);
+		Assertions.assertThrows(NoSuchFileException.class, service::getState);
 	}
 
 	@Test

@@ -172,6 +172,11 @@ public class BackupEngine {
 		this.type = type;
 	}
 
+	/** @return the directory of the archives */
+	Path getPathStore() {
+		return this.pathStore;
+	}
+
 	/**
 	 * Enable or disable backup/restore of media files (the data folder).
 	 * When disabled, only MongoDB collections are included in the archive.
