@@ -348,6 +348,14 @@ scheduler.addTask("backup-delta", "*/15 * * * *", backup::startDeltaAsync);
 - **Cumulative.** Every delta holds everything since the full, so
   `restoreLatest()` needs the full and the last delta only, and
   `getLatestRestoreChain()` returns exactly this pair.
+- **All the deltas stay until the next full**, on purpose: they are the way back to
+  a precise time of the day, by restoring the full and then one chosen delta with
+  `restoreDeltaFile`. They add up. With a regular activity, the sizes grow from
+  almost nothing to `X`, the size of the last delta of the day, so 96 deltas take
+  about `96 × X / 2 = 48 × X`: 1 MiB of compressed changes a day needs about 48 MiB
+  until the next full, 100 MiB about 5 GiB. Add the undated collections, copied in
+  every delta. The check of the free space does not count them: it looks at the
+  last full only.
 - **During a backup**, it answers `ALREADY_RUNNING` with an `INFO` line, no `WARN`,
   and records nothing: the next delta holds everything this one would have held.
 - **Without a full archive** on the disk (a new server, an emptied folder), it
