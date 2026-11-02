@@ -2,6 +2,7 @@ package test.atriasoft.archidata.backup;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -24,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -37,6 +39,7 @@ import org.atriasoft.archidata.backup.BackupEngine;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
 import org.atriasoft.archidata.backup.BackupService;
 import org.atriasoft.archidata.backup.BackupServiceBridge;
+import org.atriasoft.archidata.backup.BackupStart;
 import org.atriasoft.archidata.backup.BackupState;
 import org.atriasoft.archidata.backup.RetentionPolicy;
 import org.atriasoft.archidata.cron.CronScheduler;
@@ -47,6 +50,7 @@ import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -130,6 +134,10 @@ public class TestBackupService {
 		}
 	}
 
+	private static void assertStarts(final BackupService service) {
+		Assertions.assertEquals(BackupStart.STARTED, service.startAsync());
+	}
+
 	private Path archive(final String name) throws IOException {
 		return Files.writeString(this.folder.resolve(name), "archive");
 	}
@@ -159,7 +167,7 @@ public class TestBackupService {
 		final CyclicBarrier barrier = new CyclicBarrier(callers);
 		final ExecutorService pool = Executors.newFixedThreadPool(callers);
 		try {
-			final List<Future<Boolean>> results = new ArrayList<>();
+			final List<Future<BackupStart>> results = new ArrayList<>();
 			for (int iii = 0; iii < callers; iii++) {
 				results.add(pool.submit(() -> {
 					barrier.await(WAIT_SECONDS, TimeUnit.SECONDS);
@@ -167,8 +175,8 @@ public class TestBackupService {
 				}));
 			}
 			int started = 0;
-			for (final Future<Boolean> result : results) {
-				if (result.get(WAIT_SECONDS, TimeUnit.SECONDS)) {
+			for (final Future<BackupStart> result : results) {
+				if (result.get(WAIT_SECONDS, TimeUnit.SECONDS) == BackupStart.STARTED) {
 					started++;
 				}
 			}
@@ -183,7 +191,7 @@ public class TestBackupService {
 		Assertions.assertEquals(1, engine.calls.get());
 		Assertions.assertTrue(service.getState().lastAttempt().success());
 		// The lock is free again.
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		awaitIdle(service);
 		Assertions.assertEquals(2, engine.calls.get());
 	}
@@ -192,7 +200,7 @@ public class TestBackupService {
 	public void testAStateReadAfterAStartSaysRunning() throws Exception {
 		final ControlledEngine engine = new ControlledEngine(this.folder, null);
 		final BackupService service = BackupServiceBridge.on(engine);
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		final BackupState during = service.getState();
 		engine.release.countDown();
 		Assertions.assertTrue(during.running());
@@ -204,10 +212,10 @@ public class TestBackupService {
 	public void testNightlyTaskDuringAManualStartIsSkipped() throws Exception {
 		final ControlledEngine engine = new ControlledEngine(this.folder, null);
 		final BackupService service = BackupServiceBridge.on(engine);
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		engine.awaitEntered();
 		// The nightly task goes through the same door, and returns at once.
-		Assertions.assertFalse(
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING,
 				Assertions.assertTimeoutPreemptively(Duration.ofSeconds(WAIT_SECONDS), service::startAsync));
 		Assertions.assertTrue(service.getState().running());
 		engine.release.countDown();
@@ -241,7 +249,7 @@ public class TestBackupService {
 		final ControlledEngine engine = new ControlledEngine(this.folder, failure);
 		engine.release.countDown();
 		final BackupService service = BackupServiceBridge.on(engine);
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		awaitIdle(service);
 		final BackupState state = service.getState();
 		Assertions.assertFalse(state.running());
@@ -251,7 +259,7 @@ public class TestBackupService {
 		Assertions.assertFalse(shown.contains("/secret"), shown);
 		Assertions.assertFalse(shown.contains(this.folder.toString()), shown);
 		// A failure does not keep the lock.
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		awaitIdle(service);
 		Assertions.assertEquals(2, engine.calls.get());
 	}
@@ -351,11 +359,11 @@ public class TestBackupService {
 		db.getCollection(COLLECTION).insertOne(new Document("name", "one"));
 
 		final Path store = this.folder.resolve("deep").resolve("store");
-		final BackupService service = new BackupService(store, BASE_NAME, List.of(Migration.class),
+		final BackupService service = BackupServiceBridge.on(store, BASE_NAME, List.of(Migration.class),
 				List.of(COLLECTION, "counters"));
 		Assertions.assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(store)));
 		final Instant before = Instant.now().minusMillis(1);
-		Assertions.assertTrue(service.startAsync());
+		assertStarts(service);
 		awaitIdle(service);
 
 		final BackupState state = service.getState();
@@ -421,6 +429,111 @@ public class TestBackupService {
 		}
 	}
 
+	private void archive(final String name, final int size) throws IOException {
+		Files.write(this.folder.resolve(name), new byte[size]);
+	}
+
+	private void assertRefused(final ControlledEngine engine, final BackupService service) throws Exception {
+		Assertions.assertEquals(BackupStart.INSUFFICIENT_SPACE, service.startAsync());
+		Assertions.assertEquals(0, engine.calls.get(), "nothing is written");
+		final BackupState state = service.getState();
+		Assertions.assertFalse(state.running(), "a refusal does not keep the lock");
+		Assertions.assertFalse(state.lastAttempt().success());
+	}
+
+	@Test
+	public void testStartNeedsTwiceTheLastFullArchivePlusTheMargin() throws Exception {
+		// The size that counts is the one of the most recent full archive, whatever is around it.
+		archive(BASE_NAME + "_2026-10-01_full.tar.gz", 5000);
+		archive(BASE_NAME + "_2026-10-02_full.tar.gz", 100);
+		archive(BASE_NAME + "_2026-10-03_delta.tar.gz", 7000);
+		archive(BASE_NAME + "_2026-10-04_full_partial.tar.gz", 9000);
+		final long needed = 2 * 100 + BackupService.SPACE_MARGIN_BYTES;
+		final AtomicLong usable = new AtomicLong(needed - 1);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine, usable::get);
+		assertRefused(engine, service);
+		usable.set(needed);
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertEquals(1, engine.calls.get());
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testAFirstBackupNeedsTheMargin() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		engine.release.countDown();
+		assertRefused(engine, BackupServiceBridge.on(engine, () -> BackupService.SPACE_MARGIN_BYTES - 1));
+	}
+
+	/** The cron task drops the answer of startAsync: the state is all that is left. */
+	@Test
+	public void testANightlyTaskRefusedIsAFailedAttempt() throws Exception {
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine, () -> 0);
+		final CronScheduler scheduler = new CronScheduler();
+		scheduler.setDaemonThreads(true);
+		scheduler.disableGracePeriodMinutes();
+		scheduler.start();
+		try {
+			scheduler.addTask(service::startAsync);
+			final long limit = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+			while (service.getState().lastAttempt() == null) {
+				Assertions.assertTrue(System.nanoTime() < limit, "the task did not run");
+				Thread.sleep(5);
+			}
+		} finally {
+			scheduler.stop();
+		}
+		Assertions.assertEquals(0, engine.calls.get());
+		Assertions.assertFalse(service.getState().running());
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testARunningBackupIsNotASpaceProblem() throws Exception {
+		final AtomicLong usable = new AtomicLong(BackupServiceBridge.LOTS_OF_SPACE);
+		final ControlledEngine engine = new ControlledEngine(this.folder, null);
+		final BackupService service = BackupServiceBridge.on(engine, usable::get);
+		assertStarts(service);
+		engine.awaitEntered();
+		usable.set(0);
+		Assertions.assertEquals(BackupStart.ALREADY_RUNNING, service.startAsync());
+		engine.release.countDown();
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success(),
+				"the running backup is not recorded as refused");
+	}
+
+	/** A volume no longer mounted: the engine would create the folder again on what lies under it. */
+	@Test
+	public void testAStartThatCanNotBeCheckedIsAFailedAttempt() throws Exception {
+		final Path gone = this.folder.resolve("gone");
+		Files.createDirectory(gone);
+		final ControlledEngine engine = new ControlledEngine(gone, null);
+		engine.release.countDown();
+		final BackupService service = BackupServiceBridge.on(engine);
+		Files.delete(gone);
+		Assertions.assertThrows(UncheckedIOException.class, service::startAsync);
+		Assertions.assertEquals(0, engine.calls.get());
+		Assertions.assertFalse(Files.exists(gone));
+		Files.createDirectory(gone);
+		Assertions.assertFalse(service.getState().running(), "the lock is released");
+		Assertions.assertFalse(service.getState().lastAttempt().success());
+	}
+
+	@Test
+	public void testThePublicConstructorReadsTheRealDisk() throws Exception {
+		final long free = Files.getFileStore(this.folder).getUsableSpace();
+		Assumptions.assumeTrue(free > 2 * BackupService.SPACE_MARGIN_BYTES, "not enough space to run a backup here");
+		final BackupService service = new BackupService(this.folder, BASE_NAME, List.of(), List.of());
+		assertStarts(service);
+		awaitIdle(service);
+		Assertions.assertTrue(service.getState().lastAttempt().success());
+	}
+
 	/** A class whose collection a restore refuses. */
 	@Collection("system.js")
 	private static final class ClassOfAForbiddenCollection {}
@@ -451,9 +564,9 @@ public class TestBackupService {
 		Assertions.assertEquals(old.size(),
 				engine.cleanDryRun(new RetentionPolicy(), LocalDate.of(2026, 11, 2)).size());
 
-		final BackupService service = new BackupService(this.folder, BASE_NAME, List.of(), List.of());
+		final BackupService service = BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of());
 		for (int iii = 0; iii < 3; iii++) {
-			Assertions.assertTrue(service.startAsync());
+			assertStarts(service);
 			awaitIdle(service);
 			Thread.sleep(2);
 		}

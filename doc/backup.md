@@ -263,12 +263,22 @@ scheduler.addTask("backup", "0 0 * * *", backup::startAsync);
 - **One backup at a time.** `startAsync()` is the only way in, for the cron task
   as for a manual start. It works in a daemon thread and returns at once: the
   dump must not hold the single consumer thread of the scheduler, which would
-  delay every other task for minutes (see [cron.md](cron.md)). It returns `true`
-  if it started and `false` if a backup was already running. The lock is per
-  process: two instances on the same folder do not see each other.
+  delay every other task for minutes (see [cron.md](cron.md)). It returns
+  `STARTED`, `ALREADY_RUNNING` or `INSUFFICIENT_SPACE` (`BackupStart`). The lock
+  is per process: two instances on the same folder do not see each other.
+- **Free space.** Before each start, the volume must have twice the size of the
+  last full archive plus `BackupService.SPACE_MARGIN_BYTES` (1 GiB) free,
+  otherwise nothing starts. There is no limit on how often a backup can start,
+  only this check. A refused start is logged and recorded as a failed attempt,
+  whoever asked: the cron task drops the answer of `startAsync()`, so the state
+  is all that is left of it.
+- A folder or a free space that cannot be read throws `UncheckedIOException`,
+  also recorded as a failed attempt. A missing folder is not created again here:
+  it may be a volume no longer mounted, and the archive would land on what lies
+  under it.
 - **Failures** are caught, `Error` included, logged with their stack trace, and
   shown as `success = false`, never with their text.
-- **Nothing is deleted.** The service has no retention, and archives pile up
+- **No archive is deleted.** The service has no retention, and archives pile up
   until something calls `clean(...)`. It has no restore either.
 
 `getState()` returns a `BackupState`, `listArchives()` only its list. Neither
@@ -320,7 +330,7 @@ generators need the class.
 | Route | Answer |
 |---|---|
 | `GET /backups` | 200 and the `BackupState`, described above |
-| `POST /backups` | 202 with an empty body and the backup runs in the background, 409 if one is already running. Read `GET /backups` to follow it |
+| `POST /backups` | 202 with an empty body and the backup runs in the background, 409 if one is already running, 507 if the volume has too little free space. Read `GET /backups` to follow it |
 
 **No route exposes the content of an archive.** There is no download, no restore,
 no deletion, and no parameter that names a file: an archive holds the password
@@ -334,9 +344,11 @@ not a convenience.
   403, whether the service is configured or not. A token in the URI is refused
   (no `@PermitTokenInURI`).
 - A service that was never given answers 503 `Backups are not configured`.
+- 409 means wait, 507 means free some space: both carry the usual JSON error
+  body, without any number or path.
 - A folder that cannot be read, or that disappeared, answers the generic 500 of
-  `ExceptionCatcher`, which keeps the message in the log. A failed backup shows
-  only as `lastAttempt.success = false`.
+  `ExceptionCatcher`, on both routes, which keeps the message in the log. A failed
+  backup shows only as `lastAttempt.success = false`.
 - The failure of the last attempt is known only until the server restarts.
 
 

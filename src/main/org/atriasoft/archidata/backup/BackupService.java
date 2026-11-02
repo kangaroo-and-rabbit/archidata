@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.backup;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -42,13 +43,27 @@ import org.slf4j.LoggerFactory;
  */
 public final class BackupService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupService.class);
+	/** Free space required on top of twice the size of the last full archive: 1 GiB. */
+	public static final long SPACE_MARGIN_BYTES = 1024L * 1024 * 1024;
 	/** One of the formats {@link BackupEngine#parseDateTimeFromSequence(String)} reads, the one of the existing archives. */
 	private static final DateTimeFormatter SEQUENCE_DATE = DateTimeFormatter
 			.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS", Locale.ROOT).withZone(ZoneOffset.UTC);
 	private static final String SEQUENCE_SUFFIX_FULL = "_full";
 	private static final String THREAD_NAME = "backup-service";
 
+	/** Reads the free space of the volume of the archives. */
+	@FunctionalInterface
+	interface UsableSpace {
+		/**
+		 * Read the space a backup can use.
+		 * @return the usable space in bytes
+		 * @throws IOException if the volume can not be read
+		 */
+		long read() throws IOException;
+	}
+
 	private final BackupEngine engine;
+	private final UsableSpace usableSpace;
 	/** The lock: whoever sets it runs the backup, and releases it after {@link #lastAttempt} is written. */
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private volatile BackupAttempt lastAttempt = null;
@@ -67,16 +82,34 @@ public final class BackupService {
 	 */
 	public BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
 			final List<String> collections) throws DataAccessException, IOException {
-		this(createEngine(folder, baseName, classes, collections));
+		this(folder, baseName, classes, collections, () -> Files.getFileStore(folder).getUsableSpace());
+	}
+
+	/**
+	 * Same as the public constructor, on a free space that does not come from the disk.
+	 *
+	 * @param folder folder of the archives
+	 * @param baseName prefix of the archives
+	 * @param classes model classes to back up
+	 * @param collections collections to back up that no class describes
+	 * @param usableSpace reader of the free space
+	 * @throws DataAccessException if the collection name of a class can not be resolved
+	 * @throws IOException if the folder can not be created or read, or if a collection has a name a restore refuses
+	 */
+	BackupService(final Path folder, final String baseName, final List<Class<?>> classes,
+			final List<String> collections, final UsableSpace usableSpace) throws DataAccessException, IOException {
+		this(createEngine(folder, baseName, classes, collections), usableSpace);
 	}
 
 	/**
 	 * Create the service on an engine that is already configured.
 	 *
 	 * @param engine the engine, used for {@link BackupEngine#store(String)} and to list the archives
+	 * @param usableSpace reader of the free space
 	 */
-	BackupService(final BackupEngine engine) {
+	BackupService(final BackupEngine engine, final UsableSpace usableSpace) {
 		this.engine = engine;
+		this.usableSpace = usableSpace;
 	}
 
 	private static BackupEngine createEngine(
@@ -99,33 +132,70 @@ public final class BackupService {
 	/**
 	 * Start a backup in its own thread and return at once, for the cron task as for a manual start: the scheduler has a
 	 * single consumer thread, which a dump would hold for minutes. The lock is taken before returning: a state read
-	 * right after a {@code true} says that a backup is running. A failure of the backup is logged and shows in
-	 * {@link #getState()}.
+	 * right after {@link BackupStart#STARTED} says that a backup is running. A failure of the backup is logged and shows
+	 * in {@link #getState()}.
+	 * <p>
+	 * The volume must have twice the size of the last full archive plus {@link #SPACE_MARGIN_BYTES} free. A start
+	 * refused for this reason, or that can not be checked, is logged and recorded as a failed attempt, whoever asked: the
+	 * cron task has no other way to tell.
 	 *
-	 * @return {@code true} if the backup started, {@code false} if one was already running
+	 * @return whether the backup started
+	 * @throws UncheckedIOException if the folder or its free space can not be read: its message names the folder and must
+	 *             not reach a client
 	 */
-	public boolean startAsync() {
+	public BackupStart startAsync() {
 		if (!this.running.compareAndSet(false, true)) {
 			LOGGER.warn("Backup not started: another one is running");
-			return false;
+			return BackupStart.ALREADY_RUNNING;
 		}
 		boolean started = false;
 		try {
+			if (!hasEnoughSpace()) {
+				return BackupStart.INSUFFICIENT_SPACE;
+			}
 			final Thread worker = new Thread(this::storeThenRelease, THREAD_NAME);
 			worker.setDaemon(true);
 			worker.start();
 			started = true;
+			return BackupStart.STARTED;
+		} catch (final IOException ex) {
+			LOGGER.error("Backup not started: {}", ex.getMessage(), ex);
+			throw new UncheckedIOException(ex);
 		} finally {
 			if (!started) {
-				this.running.set(false);
+				try {
+					this.lastAttempt = new BackupAttempt(now(), false);
+				} finally {
+					this.running.set(false);
+				}
 			}
+		}
+	}
+
+	private boolean hasEnoughSpace() throws IOException {
+		long lastFullSize = 0;
+		for (final BackupArchive archive : listArchives()) {
+			if (archive.type() == BackupArchiveType.FULL) {
+				lastFullSize = archive.size();
+				break;
+			}
+		}
+		final long needed = 2 * lastFullSize + SPACE_MARGIN_BYTES;
+		final long usable = this.usableSpace.read();
+		if (usable < needed) {
+			LOGGER.error("Backup refused: {} bytes free on the volume, {} needed", usable, needed);
+			return false;
 		}
 		return true;
 	}
 
+	private static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.MILLIS);
+	}
+
 	private void storeThenRelease() {
 		try {
-			final Instant startedAt = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+			final Instant startedAt = now();
 			boolean success = false;
 			try {
 				LOGGER.info("Backup [START]");

@@ -95,13 +95,21 @@
 - Le dossier est créé `rwx------`, par l'engine, et non par `Files.createDirectories` comme les `BackupJob`.
 - La date d'une tentative est celle de son archive, à la milliseconde. Cet état reste en mémoire et se perd au
   redémarrage.
+- Pas de limite de débit : l'utilisateur lance quand il veut. Le garde-fou est l'espace libre : refus sous deux fois la
+  dernière archive complète plus `SPACE_MARGIN_BYTES` (1 Gio), contrôlé verrou pris. Un refus, ou un contrôle impossible,
+  compte comme une tentative en échec dans les deux cas, manuel ou nuit : la tâche de nuit jette la réponse de
+  `startAsync`, seul l'état en garde la trace.
+- `listArchives` échoue si le dossier a disparu, et `startAsync` ne le recrée pas : un volume démonté doit se voir, sans
+  écrire l'archive sur ce qui se trouve dessous.
 - Un type `PARTIAL` s'ajoute à complète et delta : ranger une archive `_partial` dans l'un des deux serait faux. Aucune
   application n'en écrit aujourd'hui.
 - La rétention reste désactivée : rien ne supprime d'archive tant que l'utilisateur n'a pas décidé.
 
 ## Route des sauvegardes (`BackupResource`)
 
-- `GET /backups` liste, `POST /backups` lance : 202, ou 409 si une sauvegarde tourne. **Aucune route de téléchargement,
+- `GET /backups` liste, `POST /backups` lance : 202, 409 si une sauvegarde tourne, 507 si l'espace manque.
+  `Response.Status` n'a pas de 507 et `WebApplicationExceptionCatcher` masque le message d'un 5xx : la ressource construit
+  cette réponse elle-même, avec le corps d'erreur habituel. **Aucune route de téléchargement,
   de restauration ni de suppression, aucun paramètre de chemin ou de nom** : une archive contient les hachages de mots de
   passe. `TestBackupResource` vérifie par réflexion que la ressource ne compte que ces deux routes, sans paramètre.
 - Rôle `ADMIN` sur chaque route, pas de `@PermitTokenInURI`. Le contrôle passe avant le service : sans jeton 401, sans

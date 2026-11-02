@@ -23,7 +23,6 @@ import org.atriasoft.archidata.annotation.security.PermitTokenInURI;
 import org.atriasoft.archidata.api.BackupResource;
 import org.atriasoft.archidata.backup.BackupEngine;
 import org.atriasoft.archidata.backup.BackupEngine.EngineBackupType;
-import org.atriasoft.archidata.backup.BackupService;
 import org.atriasoft.archidata.backup.BackupServiceBridge;
 import org.atriasoft.archidata.catcher.ExceptionCatcher;
 import org.atriasoft.archidata.exception.DataAccessException;
@@ -96,7 +95,7 @@ public class TestBackupResource {
 	@BeforeEach
 	public void configureService() throws Exception {
 		this.folder = Files.createTempDirectory("test_backup_resource_");
-		BackupResource.setService(new BackupService(this.folder, BASE_NAME, List.of(), List.of()));
+		BackupResource.setService(BackupServiceBridge.on(this.folder, BASE_NAME, List.of(), List.of()));
 	}
 
 	@AfterEach
@@ -204,6 +203,32 @@ public class TestBackupResource {
 			engine.release.countDown();
 		}
 		Assertions.assertTrue(awaitIdle().get("lastAttempt").get("success").asBoolean());
+	}
+
+	/** Distinct from the 409: waiting does not help, the administrator has to free some space. */
+	@Test
+	public void testAStartWithoutEnoughSpaceAnswers507() throws Exception {
+		BackupResource.setService(BackupServiceBridge
+				.on(new BackupEngine(this.folder, BASE_NAME, EngineBackupType.JSON_EXTENDED), () -> 0));
+		final HttpResponse<String> answer = call(POST, ROUTE, Common.ADMIN_TOKEN);
+		Assertions.assertEquals(507, answer.statusCode(), answer.body());
+		// The body the generated client recognizes as an error, without any number nor path.
+		final JsonNode error = ContextGenericTools.createObjectMapper().readTree(answer.body());
+		Assertions.assertEquals(507, error.get("status").asInt());
+		Assertions.assertEquals("Not enough free space for a backup", error.get("message").asText());
+		Assertions.assertFalse(answer.body().contains(this.folder.toString()), answer.body());
+		Assertions.assertFalse(awaitIdle().get("lastAttempt").get("success").asBoolean());
+		Assertions.assertEquals(401, call(POST, ROUTE, null).statusCode());
+		Assertions.assertEquals(403, call(POST, ROUTE, Common.USER_TOKEN).statusCode());
+	}
+
+	@Test
+	public void testAStartOnAFolderThatDisappearedAnswersAGenericError() throws Exception {
+		Files.delete(this.folder);
+		final HttpResponse<String> answer = call(POST, ROUTE, Common.ADMIN_TOKEN);
+		Assertions.assertEquals(500, answer.statusCode());
+		Assertions.assertTrue(answer.body().contains(ExceptionCatcher.GENERIC_MESSAGE), answer.body());
+		Assertions.assertFalse(answer.body().contains(this.folder.toString()), answer.body());
 	}
 
 	@Test

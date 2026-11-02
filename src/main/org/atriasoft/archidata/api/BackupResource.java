@@ -4,7 +4,9 @@ import java.io.IOException;
 
 import org.atriasoft.archidata.annotation.apiGenerator.ApiAsyncType;
 import org.atriasoft.archidata.backup.BackupService;
+import org.atriasoft.archidata.backup.BackupStart;
 import org.atriasoft.archidata.backup.BackupState;
+import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.exception.FailException;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,6 +36,7 @@ import jakarta.ws.rs.core.Response;
 @Path("/backups")
 @Produces(MediaType.APPLICATION_JSON)
 public class BackupResource {
+	private static final int STATUS_INSUFFICIENT_STORAGE = 507;
 	/** Jersey builds the resource by itself, and the applications register it by class to generate their API. */
 	private static volatile BackupService service = null;
 
@@ -71,17 +74,30 @@ public class BackupResource {
 
 	/**
 	 * Start a backup and answer without waiting for it: read {@link #getState()} to follow it.
-	 * @return 202 when the backup started
+	 * @return 202 when the backup started, 507 when the volume has too little free space
 	 * @throws FailException 409 when a backup is already running, 503 when the application configured no backup service
 	 */
 	@POST
 	@RolesAllowed("ADMIN")
 	@ApiAsyncType(Void.class)
-	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running")
+	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
 	public Response start() throws FailException {
-		if (!requireService().startAsync()) {
+		final BackupStart result = requireService().startAsync();
+		if (result == BackupStart.ALREADY_RUNNING) {
 			throw new FailException(Response.Status.CONFLICT, "A backup is already running");
 		}
+		if (result == BackupStart.INSUFFICIENT_SPACE) {
+			return insufficientStorage();
+		}
 		return Response.accepted().build();
+	}
+
+	/** {@link Response.Status} has no 507 and {@code FailException} needs one; a catcher would hide a 5xx message. */
+	private static Response insufficientStorage() {
+		final Response.StatusType status = Response.status(STATUS_INSUFFICIENT_STORAGE, "Insufficient Storage").build()
+				.getStatusInfo();
+		final RestErrorResponse error = new RestErrorResponse(status, "Request Fail",
+				"Not enough free space for a backup");
+		return Response.status(status).entity(error).type(MediaType.APPLICATION_JSON).build();
 	}
 }
