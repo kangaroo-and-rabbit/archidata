@@ -501,6 +501,9 @@ public class TestBackupResource {
 		api.addAllApi(List.of(BackupResource.class));
 		final String generated = OpenApiGenerateApi.generateJson(api, "backups", "1");
 		Assertions.assertFalse(generated.contains("SecurityContext"), generated);
+		// A start during a delta answers 202 and runs right after it: the client has to read that.
+		Assertions.assertTrue(generated.contains("right after the delta in progress"), generated);
+		Assertions.assertFalse(generated.contains("one is already running"), generated);
 		final JsonNode paths = MAPPER.readTree(generated).get("paths");
 		Assertions.assertEquals(1, paths.size(), generated);
 		final JsonNode route = paths.elements().next();
@@ -527,6 +530,7 @@ public class TestBackupResource {
 			}
 		}
 		final String generated = String.join("\n", sources);
+		Assertions.assertFalse(generated.contains("one is already running"), generated);
 		for (final String expected : List.of("Promise<BackupState>", "Promise<void>", "ZodBackupAttempt",
 				"ZodBackupArchive", "ZodBackupArchiveType")) {
 			Assertions.assertTrue(generated.contains(expected), expected + " in:\n" + generated);

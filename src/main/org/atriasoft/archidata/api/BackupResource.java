@@ -103,16 +103,17 @@ public class BackupResource {
 	}
 
 	/**
-	 * Start a backup and answer without waiting for it: read {@link #getState(SecurityContext)} to follow it.
+	 * Start a full backup and answer without waiting for it: read {@link #getState(SecurityContext)} to follow it.
 	 * @param sc the security context of the request
-	 * @return 202 when the backup started, 507 when the volume has too little free space
-	 * @throws FailException 403 without the role, 409 when a backup is already running, 503 when the application
-	 *             configured no backup service
+	 * @return 202 when the backup started, or starts right after the delta in progress, 507 when the volume has too
+	 *         little free space
+	 * @throws FailException 403 without the role, 409 when a full backup is already running or waiting, 503 when the
+	 *             application configured no backup service
 	 */
 	@POST
 	@RolesAllowed(ROLE_START)
 	@ApiAsyncType(Void.class)
-	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
+	@Operation(description = "Start a full backup: 202 when it started or starts right after the delta in progress, 409 when a full backup is already running or waiting, 507 when the disk has too little free space")
 	public Response start(@Context final SecurityContext sc) throws FailException {
 		requireRole(sc, ROLE_START);
 		final BackupService backup = requireService();
