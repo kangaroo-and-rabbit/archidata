@@ -49,8 +49,8 @@ public class BackupResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupResource.class);
 	/** Grants a right that can read: {@code READ} or {@code READ_WRITE}. */
 	private static final String ROLE_READ = "ADMIN:r";
-	/** Grants a right that can write: {@code WRITE} or {@code READ_WRITE}. The bare role would ask for {@code READ_WRITE}. */
-	private static final String ROLE_WRITE = "ADMIN:w";
+	/** Grants {@code READ_WRITE} alone: whoever starts a backup also sees what it gives. */
+	private static final String ROLE_START = "ADMIN:rw";
 	private static final int STATUS_INSUFFICIENT_STORAGE = 507;
 	/** Jersey builds the resource by itself, and the applications register it by class to generate their API. */
 	private static volatile BackupService service = null;
@@ -110,11 +110,11 @@ public class BackupResource {
 	 *             configured no backup service
 	 */
 	@POST
-	@RolesAllowed(ROLE_WRITE)
+	@RolesAllowed(ROLE_START)
 	@ApiAsyncType(Void.class)
 	@Operation(description = "Start a backup: 202 when it started, 409 when one is already running, 507 when the disk has too little free space")
 	public Response start(@Context final SecurityContext sc) throws FailException {
-		requireRole(sc, ROLE_WRITE);
+		requireRole(sc, ROLE_START);
 		final BackupService backup = requireService();
 		final Object user = sc.getUserPrincipal() instanceof final GenericContext context ? context.getUserID() : null;
 		final BackupStart result;

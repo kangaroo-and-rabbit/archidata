@@ -195,8 +195,8 @@ public class TestBackupResource {
 	}
 
 	@Test
-	public void testAdminInWriteOnlyStartsButDoesNotSee() throws Exception {
-		assertAccess(PartRight.WRITE, 403, 202);
+	public void testAdminInWriteOnlyGetsNothing() throws Exception {
+		assertAccess(PartRight.WRITE, 403, 403);
 	}
 
 	@Test
@@ -492,7 +492,7 @@ public class TestBackupResource {
 			Assertions.assertFalse(method.isAnnotationPresent(jakarta.ws.rs.Path.class), method.toString());
 			Assertions.assertFalse(method.isAnnotationPresent(PermitTokenInURI.class), method.toString());
 		}
-		Assertions.assertEquals(Map.of(GET, "ADMIN:r", POST, "ADMIN:w"), routes);
+		Assertions.assertEquals(Map.of(GET, "ADMIN:r", POST, "ADMIN:rw"), routes);
 	}
 
 	@Test

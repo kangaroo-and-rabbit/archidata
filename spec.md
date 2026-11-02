@@ -112,7 +112,7 @@
   cette réponse elle-même, avec le corps d'erreur habituel. **Aucune route de téléchargement,
   de restauration ni de suppression, aucun paramètre de chemin ou de nom** : une archive contient les hachages de mots de
   passe. `TestBackupResource` vérifie par réflexion que la ressource ne compte que ces deux routes, sans paramètre.
-- `GET` demande `ADMIN:r`, `POST` demande `ADMIN:w`, pas de `@PermitTokenInURI`. Attention : `ADMIN` sans suffixe exige
+- `GET` demande `ADMIN:r`, `POST` demande `ADMIN:rw`, pas de `@PermitTokenInURI`. Attention : `ADMIN` sans suffixe exige
   `READ_WRITE`, il refuse aussi bien `READ` que `WRITE` seuls (`MySecurityContext.checkRightInGroup`). Le contrôle passe
   avant le service : sans jeton 401, sans rôle 403, même si aucun service n'est configuré. Sans service : 503.
 - Défense en profondeur : chaque route revérifie son rôle, `@RolesAllowed` ne faisant rien sans filtre. Le contrôle se fait
