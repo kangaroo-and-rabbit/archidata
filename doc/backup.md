@@ -288,7 +288,9 @@ holds a path, a file name or the text of an exception:
 
 A file `.<name>_tmp` is an archive being written and is not listed. A name that
 cannot be parsed, a directory or a symbolic link is left out with a warning in
-the log. A date with no time zone is read as UTC: the archives of the former
+the log. The date is not validated: the parser is lenient, and an impossible day
+it accepts (`2026-02-30`) is listed as the day it resolves to. A date with no
+time zone is read as UTC: the archives of the former
 `BackupJob` were written in the default time zone of the JVM, which the
 applications set to UTC. A folder that cannot be read or does not exist any more
 throws `IOException`, not an empty list, which would hide a volume no longer

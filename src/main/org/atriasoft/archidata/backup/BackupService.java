@@ -7,7 +7,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -179,12 +178,8 @@ public final class BackupService implements Runnable {
 		return out;
 	}
 
-	/** @return what a client may know of this file, {@code null} when it is not an archive or just disappeared */
+	/** @return what a client may know of this file, {@code null} when it is not a regular file or just disappeared */
 	private static BackupArchive toArchive(final BackupFileInfo file) {
-		final LocalDateTime date = BackupEngine.parseDateTimeFromSequence(file.sequence());
-		if (date == null) {
-			return null;
-		}
 		try {
 			final BasicFileAttributes attributes = Files.readAttributes(file.path(), BasicFileAttributes.class,
 					LinkOption.NOFOLLOW_LINKS);
@@ -192,7 +187,8 @@ public final class BackupService implements Runnable {
 				LOGGER.warn("Backup list: not a regular file, ignored: {}", file.path().getFileName());
 				return null;
 			}
-			return new BackupArchive(date.toInstant(ZoneOffset.UTC), attributes.size(), typeOf(file),
+			final Instant date = BackupEngine.parseDateTimeFromSequence(file.sequence()).toInstant(ZoneOffset.UTC);
+			return new BackupArchive(date, attributes.size(), typeOf(file),
 					Files.exists(BackupEngine.checksumPath(file.path())));
 		} catch (final IOException ex) {
 			LOGGER.warn("Backup list: unreadable file, ignored: {}", file.path().getFileName(), ex);

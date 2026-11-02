@@ -266,15 +266,38 @@ public class TestBackupService {
 		Assertions.assertEquals(Instant.parse("2026-11-01T10:00:00Z"), archives.get(0).date());
 	}
 
+	/**
+	 * What this proves: a name {@code BackupEngine.listBackupFiles} can not parse does not break the list. The date is
+	 * not validated: the parser is lenient, and an impossible day that it accepts is listed at the day it resolves to.
+	 */
 	@Test
-	public void testNamesThatMakeNoSenseAreIgnored() throws Exception {
+	public void testNamesTheEngineCanNotParseAreLeftOut() throws Exception {
 		archive(BASE_NAME + "_garbage.tar.gz");
 		archive(BASE_NAME + "_2026-13-45_full.tar.gz");
 		archive(BASE_NAME + "_.tar.gz");
+		archive(BASE_NAME + "_2026-11-02.tar.gz");
+		archive(BASE_NAME + "_2026-02-30.tar.gz");
+		final List<BackupArchive> archives = readOnlyService().listArchives();
+		Assertions.assertEquals(List.of(Instant.parse("2026-11-02T00:00:00Z"), Instant.parse("2026-02-28T00:00:00Z")),
+				archives.stream().map(BackupArchive::date).toList());
+	}
+
+	@Test
+	public void testFilesOfAnotherBaseAreLeftOut() throws Exception {
 		archive("other_base_2026-11-01_full.tar.gz");
+		archive(BASE_NAME + "_x_2026-11-01_full.tar.gz");
 		archive("readme.txt");
+		archive(BASE_NAME + "_2026-11-02.tar.gz");
+		final List<BackupArchive> archives = readOnlyService().listArchives();
+		Assertions.assertEquals(1, archives.size());
+		Assertions.assertEquals(Instant.parse("2026-11-02T00:00:00Z"), archives.get(0).date());
+	}
+
+	/** These names are valid: the engine keeps them, and only the service leaves them out. */
+	@Test
+	public void testOnlyRegularFilesAreListed() throws Exception {
 		Files.createDirectory(this.folder.resolve(BASE_NAME + "_2026-11-03.tar.gz"));
-		Files.createSymbolicLink(this.folder.resolve(BASE_NAME + "_2026-11-04.tar.gz"), Path.of("/etc/hostname"));
+		Files.createSymbolicLink(this.folder.resolve(BASE_NAME + "_2026-11-04.tar.gz"), archive("target"));
 		archive(BASE_NAME + "_2026-11-02.tar.gz");
 		final List<BackupArchive> archives = readOnlyService().listArchives();
 		Assertions.assertEquals(1, archives.size());
