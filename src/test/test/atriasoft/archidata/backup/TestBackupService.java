@@ -542,7 +542,7 @@ public class TestBackupService {
 	@Test
 	public void testACollectionARestoreRefusesFailsTheConstruction() throws Exception {
 		final Path store = this.folder.resolve("store");
-		for (final String name : List.of("system.js", "", ".hidden", "a/b", "a$b", "a".repeat(121))) {
+		for (final String name : List.of("system.js", "", ".hidden", "a/b", "a$b", "a".repeat(121), "events__2")) {
 			Assertions.assertThrows(IOException.class,
 					() -> new BackupService(store, BASE_NAME, List.of(), List.of(name)), name);
 		}

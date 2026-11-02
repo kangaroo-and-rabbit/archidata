@@ -13,6 +13,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryIteratorException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -722,6 +723,12 @@ public class BackupEngine {
 	void checkRegisteredCollectionNames() throws IOException {
 		for (final String name : this.collectionNames) {
 			checkRestoredCollectionName(name);
+			// Its entries would be read back as the chunks of another collection.
+			final String restoredAs = baseCollectionName(name);
+			if (!name.equals(restoredAs)) {
+				throw new IOException(
+						"Collection name refused: '" + name + "' would be restored into '" + restoredAs + "'");
+			}
 		}
 	}
 
@@ -1132,6 +1139,8 @@ public class BackupEngine {
 					deleteTemporaryFile(file);
 				}
 			}
+		} catch (final DirectoryIteratorException ex) {
+			throw ex.getCause();
 		}
 	}
 
@@ -1496,6 +1505,8 @@ public class BackupEngine {
 				}
 				result.add(new BackupFileInfo(filePath, middle, date, partial, delta));
 			}
+		} catch (final DirectoryIteratorException ex) {
+			throw ex.getCause();
 		}
 		Collections.sort(result);
 		return result;
