@@ -286,7 +286,9 @@ Each point was checked against the code; the doc page gives the details.
   (`http://` only for `localhost` or a literal loopback IP, or for any host with
   `SSO_ALLOW_INSECURE=true`, e.g. `http://karso_back_service:80/karso/api/` on an internal Docker
   network; a single WARN at startup). Without it, such an address makes `new UpdateJwtPublicKey()`
-  throw at startup (message naming the variable). The key refresh is rate-limited.
+  throw at startup (message naming the variable). The key refresh is rate-limited. Extra claims of
+  `generateJWToken(..., extraClaims)` may not use a reserved name (`JWTWrapper.RESERVED_CLAIMS`, any case). A token
+  with `kind=device` becomes a `UserByToken.TYPE_DEVICE` without any role (never `USER`); any other `kind` is 401.
 - **Limits**: `Limit` goes from 1 to 10 000 (`Limit.setMaxValue`, at most `Integer.MAX_VALUE`),
   `Skip` from 0 to `Integer.MAX_VALUE`. The expansion of relations stops at depth 5
   (`RelationExpansion.setMaxDepth`) and on cycles.

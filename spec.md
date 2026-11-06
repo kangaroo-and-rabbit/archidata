@@ -17,6 +17,20 @@
 - Le script `deliver` est dupliqué à l'identique dans les autres dépôts kangaroo_and_rabbit
   (jimbe, karentory, karideo, karoto, karso, karusic).
 
+## Claims en plus et jetons d'appareil (`JWTWrapper`, `AuthenticationFilter`)
+
+- `generateJWToken(..., extraClaims)` : les noms de `JWTWrapper.RESERVED_CLAIMS` (`sub`, `aud`, `iss`, `iat`, `exp`,
+  `nbf`, `login`, `application`, `roles`, `right`) sont refusés quelle que soit la casse, ainsi qu'un nom vide, `null`
+  ou entouré d'espaces et une valeur `null` (`IllegalArgumentException`, rien n'est signé). `kind` n'est écrit que
+  sous ce nom exact, avec la valeur `device`, et jamais avec `roles` ou `rights` : un lecteur qui ignore `kind`
+  (archidata plus ancien) les accorderait.
+- Claim `kind` : absent = personne (`TYPE_USER`, inchangé) ; `device` = `TYPE_DEVICE`, sans aucun rôle ni droit,
+  même si le jeton en porte ; toute autre valeur = 401 (refus par défaut d'un genre inconnu).
+- `MySecurityContext` ne donne jamais `USER` à un `TYPE_DEVICE`, même avec des rôles ajoutés par une sous-classe :
+  une application qui accepte un appareil le fait par une annotation et un rôle dédiés (lot 3 de karoto).
+- Sert les deux sortes d'application ; seuls les services de données privées (karoto) émettent ou acceptent un jeton
+  d'appareil.
+
 ## Générateur de client TypeScript/Zod (`externalRestApi`)
 
 - Éléments de conteneur : un élément de `List<X>` et une valeur de `Map<K, V>` sont

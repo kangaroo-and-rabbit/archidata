@@ -140,6 +140,42 @@ final String token = JWTWrapper.generateJWToken(
 );
 ```
 
+### Extra claims and device tokens
+
+An overload takes a last map of claims of the caller's own (`kind`, `scope`, `dev`, `jti`...):
+
+```java
+final String token = JWTWrapper.generateJWToken(ownerId, login, "Karso", "karoto",
+		null, null, 15, // no roles, no rights
+		Map.of(JWTWrapper.CLAIM_KIND, JWTWrapper.KIND_DEVICE, "scope", "karoto:upload", "dev", deviceId,
+				"jti", UUID.randomUUID().toString()));
+```
+
+- **Reserved names**: `sub`, `aud`, `iss`, `iat`, `exp`, `nbf`, `login`, `application`, `roles` and `right`
+  (`JWTWrapper.RESERVED_CLAIMS`) are refused in the map whatever their case, as are a `null` or blank name, a name
+  that starts or ends with a space and a `null` value: `IllegalArgumentException`, nothing is signed. An extra claim
+  can therefore never replace the subject, the audience, the dates, the roles or the rights. `kind` is accepted only
+  spelt so and with the value `device`, and never together with `roles` or `rights` (a reader that does not know
+  `kind` would grant them). The seven-argument method is unchanged.
+- **`kind`** tells what the bearer is. Without it, the token is a person's (`UserByToken.TYPE_USER`), as before. With
+  `kind=device` (`JWTWrapper.KIND_DEVICE`), `AuthenticationFilter` gives a `UserByToken` of type
+  `UserByToken.TYPE_DEVICE`: `oid` = `sub` (the owner of the device), `name` = `login`, and **no role nor right**,
+  even if the token carried some. Any other `kind` (unknown text, other case, number) is answered with 401.
+- **Default refusal**: a device token is refused (403) by every `@RolesAllowed` and `@RightAllowed` route of the
+  default filter, archidata's own `DataResource` routes (`@RolesAllowed("USER")`) included: a device sends its files
+  through routes of the application made for it. `MySecurityContext` never grants `USER` to a `TYPE_DEVICE` principal: neither the bare `USER` role
+  (granted to any other authenticated caller) nor `application/USER` (granted to any other caller with a roles entry
+  for the application), even when a subclass adds roles to it. On a `@PermitAll` route the filter reads no token at
+  all: the request goes on as an anonymous one, without security context, exactly as with no token. To accept a
+  device on a route, an application overrides `validateJwtToken`, checks its own route annotation and the `scope`
+  claim, and adds a dedicated role (such as `DEVICE`) to the principal; resources that look for a person must check
+  `getType() == TYPE_USER`.
+- A token without `roles` nor `right` (both `null`) has no role either for a person: `application/USER` fails, so
+  only `@PermitAll` routes answer.
+
+This serves both kinds of applications (shared catalogues and private data services), but only the private data
+services (karoto) issue or accept device tokens for now.
+
 
 Securing Endpoints
 ------------------
@@ -186,7 +222,8 @@ public Response deleteArticle(@PathParam("id") final ObjectId id) { ... }
 
 ### @PermitAll
 
-Allow any authenticated user (token must be valid, but no specific role is required):
+Allow anyone: the filter does not read the token at all (no check, no security context), so an anonymous
+request, an invalid token and a device token are all let through the same way:
 
 ```java
 @GET

@@ -86,6 +86,13 @@ import jakarta.ws.rs.ext.Provider;
  * when present (AND logic). In a resource method the context is available through
  * {@code @Context SecurityContext}.
  * </p>
+ * <p>
+ * The {@code kind} claim ({@link JWTWrapper#CLAIM_KIND}) tells what the bearer is. Without it the principal is a
+ * person ({@link UserByToken#TYPE_USER}). With {@code kind=device} it is a trusted device
+ * ({@link UserByToken#TYPE_DEVICE}) with no role nor right, whatever the token carries: it fails every
+ * {@link RolesAllowed} and {@link RightAllowed} check of this class, {@code USER} included, and only a subclass that
+ * accepts a device on purpose (dedicated annotation) lets it through. Any other {@code kind} is answered with 401.
+ * </p>
  *
  * <h2>Extending</h2>
  * <p>
@@ -407,7 +414,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	 * </p>
 	 *
 	 * @param authorization the JWT token string (without the "Bearer " prefix)
-	 * @return the user extracted from the JWT claims, or {@code null} if invalid
+	 * @return the user extracted from the JWT claims ({@link UserByToken#TYPE_DEVICE} without any role for
+	 *         {@code kind=device}), or {@code null} if invalid or of an unknown {@code kind}
 	 * @throws Exception if token validation or parsing fails
 	 */
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
@@ -426,6 +434,21 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		final UserByToken user = new UserByToken();
 		user.setOid(oid);
 		user.setName((String) ret.getClaim("login"));
+		// containsKey: a kind kept as null by the parser is an unknown kind, not a missing one.
+		if (ret.getClaims().containsKey(JWTWrapper.CLAIM_KIND)) {
+			final Object kind = ret.getClaim(JWTWrapper.CLAIM_KIND);
+			if (!JWTWrapper.KIND_DEVICE.equals(kind)) {
+				// A kind this version does not know: refused rather than read as a person.
+				LOGGER.warn("JWT refused: unknown kind '{}'", LogSanitizer.clean(String.valueOf(kind)));
+				return null;
+			}
+			// A device token gives no role at all, even if the token carried some.
+			user.setType(UserByToken.TYPE_DEVICE);
+			if (ret.getClaim("roles") != null || ret.getClaim("right") != null) {
+				LOGGER.warn("JWT of a device carries roles or rights: ignored");
+			}
+			return user;
+		}
 		user.setType(UserByToken.TYPE_USER);
 		final Object rowRoles = ret.getClaim("roles");
 		if (rowRoles != null) {

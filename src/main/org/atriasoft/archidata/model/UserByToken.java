@@ -23,6 +23,12 @@ public class UserByToken {
 	public static final int TYPE_USER = -1;
 	/** Type constant indicating an application. */
 	public static final int TYPE_APPLICATION = -2;
+	/**
+	 * Type constant indicating a device a person trusts (JWT claim {@code kind=device}): {@link #getOid()} is the
+	 * person, the token carries no role and gets none. It reaches only the routes that accept a device on purpose;
+	 * the role {@code USER} is never granted to it (see {@link org.atriasoft.archidata.filter.MySecurityContext}).
+	 */
+	public static final int TYPE_DEVICE = -3;
 	// application internal management type: an application generic Id
 	private Integer type = null;
 

@@ -32,7 +32,8 @@ import jakarta.ws.rs.core.SecurityContext;
  * authenticated caller, but {@link AuthenticationFilter} checks roles as {@code "applicationName/role"}:
  * through it, {@code USER} is granted only if the token has a roles entry for that application
  * (see {@link #checkRightInGroup(String, String, boolean, boolean)}). Any other role needs the matching
- * right ({@code READ}, {@code WRITE} or {@code READ_WRITE}) in the group.</li>
+ * right ({@code READ}, {@code WRITE} or {@code READ_WRITE}) in the group. A trusted device
+ * ({@link UserByToken#TYPE_DEVICE}) is never granted {@code USER}, by neither path, whatever its roles.</li>
  * <li>{@link #hasResourceRight(String, String, PartRight)} checks a fine-grained right with a bitmask
  * comparison (see {@link org.atriasoft.archidata.annotation.security.RightAllowed}).</li>
  * </ul>
@@ -128,6 +129,12 @@ public class MySecurityContext implements SecurityContext {
 		return null;
 	}
 
+	/** Whether the caller is a trusted device ({@link UserByToken#TYPE_DEVICE}), which never is a {@code USER}. */
+	private boolean isDevice() {
+		final UserByToken user = this.contextPrincipale.userByToken;
+		return user != null && Integer.valueOf(UserByToken.TYPE_DEVICE).equals(user.getType());
+	}
+
 	/**
 	 * Checks whether the user has the required read/write permissions for a role within a group.
 	 *
@@ -143,6 +150,10 @@ public class MySecurityContext implements SecurityContext {
 			final boolean needRead,
 			final boolean needWrite) {
 		if ("USER".equals(role)) {
+			if (isDevice()) {
+				// A device acts for a person, it never is one: USER is not given by its roles either.
+				return false;
+			}
 			if (groupExist(group)) {
 				return true;
 			}
@@ -214,9 +225,9 @@ public class MySecurityContext implements SecurityContext {
 			final String[] elements = roleEdit.split("/");
 			return checkRightInGroup(elements[0], elements[1], needRead, needWrite);
 		}
-		// Special case, if the token is valid, it is an USER ...
+		// Special case, if the token is valid, it is an USER ... unless it is the token of a device.
 		if ("USER".equals(roleEdit)) {
-			return true;
+			return !isDevice();
 		}
 		return checkRightInGroup("?system?", roleEdit, needRead, needWrite);
 	}

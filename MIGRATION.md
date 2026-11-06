@@ -1,5 +1,18 @@
 # Migration Guide
 
+## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
+
+- `JWTWrapper.generateJWToken(..., timeoutInMinutes, extraClaims)` ajoute des claims au jeton ; les noms réservés
+  (`JWTWrapper.RESERVED_CLAIMS` : `sub`, `aud`, `iss`, `iat`, `exp`, `nbf`, `login`, `application`, `roles`, `right`,
+  quelle que soit la casse), un nom vide ou entouré d'espaces, une valeur `null`, un `kind` autre que `device` (ou
+  écrit `Kind`) et un `kind` accompagné de `roles` ou `rights` lèvent `IllegalArgumentException`. L'appel à sept
+  arguments ne change pas.
+- `AuthenticationFilter` lit le claim `kind` : absent, rien ne change ; `device` donne un `UserByToken` de type
+  `UserByToken.TYPE_DEVICE` sans aucun rôle ni droit ; **toute autre valeur répond 401** (un SSO qui écrirait déjà un
+  claim `kind` verrait ses jetons refusés).
+- `MySecurityContext` n'accorde jamais `USER` à un principal `TYPE_DEVICE` (ni `USER` seul, ni `application/USER`,
+  même si une sous-classe lui ajoute des rôles). Rien ne change pour les autres types.
+
 ## Prochaine version (après v0.54.0) - Sauvegardes : rétention et delta (CHANGEMENT DE COMPORTEMENT)
 
 ### La rétention s'applique par défaut

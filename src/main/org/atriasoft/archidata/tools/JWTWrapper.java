@@ -12,8 +12,11 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -72,6 +75,20 @@ public class JWTWrapper {
 	private static final Pattern IPV4_LITERAL = Pattern.compile("(0|[1-9][0-9]{0,2})(\\.(0|[1-9][0-9]{0,2})){3}");
 	/** The characters of a literal IPv6 address (with an optional embedded IPv4 part), no zone. */
 	private static final Pattern IPV6_LITERAL = Pattern.compile("[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*");
+	/**
+	 * Claim that tells what the bearer of a token is. Absent: a person (the tokens of a session).
+	 * {@value #KIND_DEVICE}: a device the person trusts ({@code UserByToken.TYPE_DEVICE}). Any other value is refused
+	 * by {@code AuthenticationFilter}.
+	 */
+	public static final String CLAIM_KIND = "kind";
+	/** Value of {@link #CLAIM_KIND} for the token of a trusted device. */
+	public static final String KIND_DEVICE = "device";
+	/**
+	 * Names written by {@link #generateJWToken(Object, String, String, String, Map, Map, int, Map)} itself or read by
+	 * the token checks: an extra claim may not use them, whatever its case.
+	 */
+	public static final Set<String> RESERVED_CLAIMS = Set.of("sub", "aud", "iss", "iat", "exp", "nbf", "login",
+			"application", "roles", "right");
 	/** Accept an {@code http://} SSO address that is not a loopback one. */
 	private static volatile boolean allowInsecureSsoAddress = false;
 	/** Whether the WARN about an accepted plain http SSO address was already written. */
@@ -431,6 +448,53 @@ public class JWTWrapper {
 			final Map<String, Object> roles,
 			final Map<String, Object> rights,
 			final int timeoutInMinutes) {
+		return generateJWToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, null);
+	}
+
+	/** Create a token with the provided elements and claims of the caller's own.
+	 * <p>
+	 * Same token as {@link #generateJWToken(Object, String, String, String, Map, Map, int)}, plus the claims of
+	 * {@code extraClaims} (for example {@value #CLAIM_KIND}, {@code scope}, {@code dev}, {@code jti}). A name of
+	 * {@link #RESERVED_CLAIMS} is refused whatever its case, so that an extra claim can never replace the subject,
+	 * the audience, the dates, the roles or the rights written by this method. A token without {@code roles} nor
+	 * {@code right} (both {@code null}) gives no role at all once read by {@code AuthenticationFilter}.
+	 * </p>
+	 * @param userID UniqueId of the USER (global unique ID).
+	 * @param userLogin Login of the user (never change).
+	 * @param issuer The one who provides the token.
+	 * @param application The target application name.
+	 * @param roles Optional map of roles to include (high-level: ADMIN, USER), {@code null} for none.
+	 * @param rights Optional map of fine-grained rights to include (articles, users), {@code null} for none.
+	 * @param timeoutInMinutes Expiration delay in minutes.
+	 * @param extraClaims Claims added to the token, {@code null} or empty for none. Values are written as JSON
+	 *                    (strings, numbers, booleans, lists and maps of them).
+	 * @return The encoded JWT token, or {@code null} on failure (no private key, user id of an unsupported type,
+	 *         signature error).
+	 * @throws IllegalArgumentException If a name of {@code extraClaims} is {@code null}, blank, surrounded by spaces or
+	 *                                  reserved, a value is {@code null}, {@value #CLAIM_KIND} is spelt otherwise or
+	 *                                  is not {@value #KIND_DEVICE}, or a {@value #CLAIM_KIND} comes with roles or
+	 *                                  rights. Nothing is signed then. */
+	public static String generateJWToken(
+			final Object userID,
+			final String userLogin,
+			final String issuer,
+			final String application,
+			final Map<String, Object> roles,
+			final Map<String, Object> rights,
+			final int timeoutInMinutes,
+			final Map<String, Object> extraClaims) {
+		// Copied first, so that the claims checked are the claims written.
+		final Map<String, Object> extra = new LinkedHashMap<>();
+		if (extraClaims != null) {
+			extra.putAll(extraClaims);
+		}
+		for (final Map.Entry<String, Object> entry : extra.entrySet()) {
+			checkExtraClaim(entry.getKey(), entry.getValue());
+		}
+		if (extra.containsKey(CLAIM_KIND) && (roles != null || rights != null)) {
+			// A reader that does not know the kind would grant them: a device token never carries any.
+			throw new IllegalArgumentException("A JWT of kind '" + KIND_DEVICE + "' carries no roles nor rights");
+		}
 		if (rsaJWK == null) {
 			LOGGER.warn("JWT private key is not present !!!");
 			return null;
@@ -469,6 +533,9 @@ public class JWTWrapper {
 			if (rights != null) {
 				builder.claim("right", rights);
 			}
+			for (final Map.Entry<String, Object> entry : extra.entrySet()) {
+				builder.claim(entry.getKey(), entry.getValue());
+			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
 			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
@@ -482,6 +549,35 @@ public class JWTWrapper {
 			LOGGER.error("Failed to generate JWT token: {}", ex.getMessage(), ex);
 		}
 		return null;
+	}
+
+	/**
+	 * Refuses an extra claim that would replace a claim written by the token generation, or that would not be written.
+	 * @param name The name of the claim.
+	 * @param value The value of the claim.
+	 * @throws IllegalArgumentException If the name is {@code null}, blank or reserved, or the value is {@code null}.
+	 */
+	private static void checkExtraClaim(final String name, final Object value) {
+		if (name == null || name.isBlank()) {
+			throw new IllegalArgumentException("An extra JWT claim needs a name");
+		}
+		if (!name.equals(name.strip())) {
+			// " kind" would be another claim than "kind", silently ignored by the reader.
+			throw new IllegalArgumentException("The JWT claim '" + name + "' starts or ends with a space");
+		}
+		final String lowerName = name.toLowerCase(Locale.ROOT);
+		if (RESERVED_CLAIMS.contains(lowerName)) {
+			throw new IllegalArgumentException("The JWT claim '" + name + "' is reserved: it cannot be an extra claim");
+		}
+		if (value == null) {
+			// A null value would silently drop the claim.
+			throw new IllegalArgumentException("The extra JWT claim '" + name + "' has no value");
+		}
+		if (CLAIM_KIND.equals(lowerName) && (!CLAIM_KIND.equals(name) || !KIND_DEVICE.equals(value))) {
+			// "Kind" would be ignored by the reader, any other value refused by it: both fail here, at issue time.
+			throw new IllegalArgumentException(
+					"The JWT claim '" + CLAIM_KIND + "' only takes the value '" + KIND_DEVICE + "'");
+		}
 	}
 
 	/**
