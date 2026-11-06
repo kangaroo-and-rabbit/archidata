@@ -6,6 +6,8 @@ import org.atriasoft.archidata.interceptor.ValidGroupInterceptor;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
 
+import com.fasterxml.jackson.core.ErrorReportConfiguration;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -25,7 +27,12 @@ public class ContextGenericTools {
 	 * @return A configured ObjectMapper instance.
 	 */
 	public static ObjectMapper createObjectMapper() {
-		final ObjectMapper objectMapper = new ObjectMapper();
+		// Jackson errors must not quote the faulty token of the body (a password hash, a device code...).
+		final JsonFactory factory = JsonFactory.builder()
+				.errorReportConfiguration(
+						ErrorReportConfiguration.builder().maxErrorTokenLength(0).maxRawContentLength(0).build())
+				.build();
+		final ObjectMapper objectMapper = new ObjectMapper(factory);
 		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		// configure the local serialization modules
 		objectMapper.registerModule(JacksonModules.getAllModules());

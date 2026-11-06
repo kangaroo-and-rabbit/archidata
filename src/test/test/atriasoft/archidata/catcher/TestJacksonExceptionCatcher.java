@@ -15,7 +15,12 @@ import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.catcher.WebApplicationExceptionCatcher;
 import org.atriasoft.archidata.exception.RequestBodyException;
 import org.junit.jupiter.api.Assertions;
+import org.atriasoft.archidata.tools.ContextGenericTools;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,10 +46,14 @@ class TestJacksonExceptionCatcher {
 
 	/** Minimal interceptor context whose {@code proceed()} reads the JSON with Jackson, as the provider does. */
 	private static ReaderInterceptorContext readingJson(final String json) {
+		return readingJson(MAPPER, json);
+	}
+
+	private static ReaderInterceptorContext readingJson(final ObjectMapper mapper, final String json) {
 		return new ReaderInterceptorContext() {
 			@Override
 			public Object proceed() throws IOException {
-				return MAPPER.readValue(json, Bean.class);
+				return mapper.readValue(json, Bean.class);
 			}
 
 			@Override
@@ -180,6 +189,40 @@ class TestJacksonExceptionCatcher {
 				() -> new RequestBodyReaderInterceptor().aroundReadFrom(readingJson("{not json")));
 		Assertions.assertTrue(
 				messageOf(new RequestBodyExceptionCatcher().toResponse(ex)).startsWith("Malformed JSON at line 1"));
+	}
+
+	@Test
+	void unquotedValueIsNeitherAnsweredNorLogged() {
+		final String secret = "abcdef0123456789";
+		final ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory
+				.getLogger(RequestBodyExceptionCatcher.class);
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		logger.addAppender(appender);
+		try {
+			// the default mapper quotes the token, the archidata one must not
+			for (final ObjectMapper mapper : List.of(MAPPER, ContextGenericTools.createObjectMapper())) {
+				appender.list.clear();
+				final String body = "{\"password\": " + secret + "}";
+				final RequestBodyException ex = Assertions.assertThrows(RequestBodyException.class,
+						() -> new RequestBodyReaderInterceptor().aroundReadFrom(readingJson(mapper, body)));
+				Assertions.assertFalse(String.valueOf(ex.getMessage()).contains(secret));
+				final Response response = new RequestBodyExceptionCatcher().toResponse(ex);
+				Assertions.assertEquals(400, response.getStatus());
+				Assertions.assertFalse(messageOf(response).contains(secret));
+				Assertions.assertFalse(appender.list.isEmpty());
+				for (final ILoggingEvent event : appender.list) {
+					Assertions.assertFalse(event.getFormattedMessage().contains(secret));
+					Assertions.assertNull(event.getThrowableProxy());
+				}
+			}
+			// defence in depth: the mapper of the server does not even put the token in the Jackson message
+			final JacksonException raw = Assertions.assertThrows(JacksonException.class, () -> ContextGenericTools
+					.createObjectMapper().readValue("{\"value\": " + secret + "}", Bean.class));
+			Assertions.assertFalse(raw.getMessage().contains(secret));
+		} finally {
+			logger.detachAppender(appender);
+		}
 	}
 
 	@Test

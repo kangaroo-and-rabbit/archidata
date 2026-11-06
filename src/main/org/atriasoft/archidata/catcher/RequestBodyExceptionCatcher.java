@@ -17,7 +17,8 @@ import jakarta.ws.rs.ext.ExceptionMapper;
  * caller cannot be parsed or does not match the expected type.
  * <p>
  * The message names the faulty field or the position in the text ({@link #describe(Throwable)}), never the raw
- * Jackson message (Java class names, list of the properties of the entity), which is logged.
+ * Jackson message (Java class names, list of the properties of the entity, possibly a quoted value of the
+ * body). Neither that message nor the stack trace is logged: only the same description is.
  * </p>
  */
 public class RequestBodyExceptionCatcher implements ExceptionMapper<RequestBodyException> {
@@ -81,7 +82,9 @@ public class RequestBodyExceptionCatcher implements ExceptionMapper<RequestBodyE
 	public Response toResponse(final RequestBodyException exception) {
 		final RestErrorResponse ret = new RestErrorResponse(Response.Status.BAD_REQUEST, "Catch JSON Exception",
 				describe(exception.getCause()));
-		LOGGER.error("Error OID={}: {}", ret.oid, exception.getMessage(), exception);
+		// Neither the message nor the stack trace: Jackson may quote the faulty value ("Unrecognized token 'abc'"),
+		// which can be a password hash or a device code.
+		LOGGER.error("Error OID={}: {}", ret.oid, ret.message);
 		return Response.status(ret.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
 }

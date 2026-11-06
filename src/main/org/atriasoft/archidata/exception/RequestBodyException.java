@@ -2,6 +2,8 @@ package org.atriasoft.archidata.exception;
 
 import java.io.IOException;
 
+import org.atriasoft.archidata.catcher.RequestBodyExceptionCatcher;
+
 /**
  * Exception that marks an error of the request body: the JSON sent by the caller cannot be parsed or does
  * not match the expected type. It is raised by
@@ -17,6 +19,7 @@ public class RequestBodyException extends IOException {
 	 * @param cause the parsing or mapping error of the request body
 	 */
 	public RequestBodyException(final Throwable cause) {
-		super(cause.getMessage(), cause);
+		// The Jackson message may quote a value of the body (password hash...): keep it out of this message.
+		super(RequestBodyExceptionCatcher.describe(cause), cause);
 	}
 }
