@@ -70,10 +70,8 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
-import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.result.DeleteResult;
@@ -293,6 +291,7 @@ public final class DBAccessMongo implements Closeable {
 
 	private final DbIoMongo db;
 	private final MongoSessionCalls sessionCalls;
+	private final MongoAdminCommands adminCommands;
 
 	/**
 	 * Constructs a new DBAccessMongo instance with the specified MongoDB I/O interface.
@@ -309,6 +308,7 @@ public final class DBAccessMongo implements Closeable {
 		this.db = db;
 		db.open();
 		this.sessionCalls = new MongoSessionCalls(db);
+		this.adminCommands = new MongoAdminCommands(db);
 	}
 
 	/**
@@ -959,7 +959,7 @@ public final class DBAccessMongo implements Closeable {
 	 */
 	public List<String> listCollections(final String name, final QueryOption... option)
 			throws InternalServerErrorException {
-		return this.db.getDatabase().listCollectionNames().into(new ArrayList<>());
+		return this.adminCommands.listCollections();
 	}
 
 	/**
@@ -976,9 +976,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @param destination New collection name
 	 */
 	public void renameCollection(final String source, final String destination) {
-		final MongoCollection<Document> previousCollection = this.db.getDatabase().getCollection(source);
-		previousCollection
-				.renameCollection(new com.mongodb.MongoNamespace(this.db.getDatabase().getName(), destination));
+		this.adminCommands.renameCollection(source, destination);
 	}
 
 	/**
@@ -1000,9 +998,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @return true if deletion succeeds
 	 */
 	public boolean deleteDatabase(final String name) {
-		final MongoDatabase database = this.db.getClient().getDatabase(name);
-		database.drop();
-		return true;
+		return this.adminCommands.deleteDatabase(name);
 	}
 
 	/**
@@ -1027,8 +1023,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @param fieldName      Name of the field to index
 	 */
 	public void ascendingIndex(final String collectionName, final String fieldName) {
-		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-		collection.createIndex(Indexes.ascending(fieldName));
+		this.adminCommands.ascendingIndex(collectionName, fieldName);
 	}
 
 	/**
@@ -1042,11 +1037,7 @@ public final class DBAccessMongo implements Closeable {
 	 *                   validation on.
 	 */
 	public void disableSchema(final String collection) {
-		final Document command = new Document("collMod", collection)//
-				.append("validator", new Document())//
-				.append("validationLevel", "off");
-		statistic.countRunCommand++;
-		this.db.getDatabase().runCommand(command);
+		this.adminCommands.disableSchema(collection);
 	}
 
 	/**
@@ -1061,11 +1052,7 @@ public final class DBAccessMongo implements Closeable {
 	 *                   (must follow MongoDB's schema validation format).
 	 */
 	public void enableSchema(final String collection, final Document schema) {
-		final Document command = new Document("collMod", collection)//
-				.append("validator", schema)//
-				.append("validationLevel", "strict");
-		statistic.countRunCommand++;
-		this.db.getDatabase().runCommand(command);
+		this.adminCommands.enableSchema(collection, schema);
 	}
 
 	/**
