@@ -39,6 +39,9 @@
   perdues. Elles sont rejouées tant que cette position est encore dans l'oplog : après un long arrêt, toutes sont
   distribuées à la reprise, une à une sur le thread du nouveau worker, une rafale qui retient les listeners de cette
   collection (les nouvelles écritures comprises) jusqu'à ce qu'elle soit écoulée.
+- Un filtre client (`ListenerRegistrationBuilder.filter(...)`) qui lève une exception est journalisé comme un listener
+  qui lève : seul son listener est sauté pour cet événement. Avant, l'exception sortait de la distribution, le flux de
+  la collection reprenait 5 s plus tard après l'événement, et les listeners suivants ne le recevaient jamais.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

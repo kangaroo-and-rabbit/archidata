@@ -1031,7 +1031,8 @@ public class ChangeNotificationManager {
 	 * dispatches it (see {@link ChangeStreamWorker#getResumeToken()} for the worker that has no position yet).
 	 *
 	 * <p>
-	 * Once every listener returned, and before the read lock is released, the token of the event becomes the
+	 * An exception thrown by a client filter or by a listener is logged and skips that listener only. Once every
+	 * listener returned, and before the read lock is released, the token of the event becomes the
 	 * worker's dispatched position ({@link ChangeStreamWorker#getResumeToken()}): a stop, which takes the write lock,
 	 * sees the event either not dispatched at all or dispatched in full.
 	 * </p>
@@ -1050,14 +1051,16 @@ public class ChangeNotificationManager {
 			LOGGER.debug("ChangeNotificationManager received event: collection={}, operation={}, oid={}",
 					collectionName, event.getOperationType(), event.getOid());
 
-			// 1. Notify global listeners
+			// 1. Notify global listeners. The client filter runs inside the try: a filter that throws must not
+			// leave notifyChange(), the worker would then re-open its stream after this event, never dispatched to
+			// the listeners after this one
 			for (final ListenerRegistration reg : this.globalListeners) {
-				if (reg.acceptEvent(event)) {
-					try {
+				try {
+					if (reg.acceptEvent(event)) {
 						reg.getListener().onNotification(event);
-					} catch (final Exception e) {
-						LOGGER.error("Error in global listener", e);
 					}
+				} catch (final Exception e) {
+					LOGGER.error("Error in the client filter or the global listener", e);
 				}
 			}
 
@@ -1065,12 +1068,12 @@ public class ChangeNotificationManager {
 			final Set<ListenerRegistration> listeners = this.collectionListeners.get(collectionName);
 			if (listeners != null) {
 				for (final ListenerRegistration reg : listeners) {
-					if (reg.acceptEvent(event)) {
-						try {
+					try {
+						if (reg.acceptEvent(event)) {
 							reg.getListener().onNotification(event);
-						} catch (final Exception e) {
-							LOGGER.error("Error in collection listener for {}", collectionName, e);
 						}
+					} catch (final Exception e) {
+						LOGGER.error("Error in the client filter or the collection listener for {}", collectionName, e);
 					}
 				}
 			}

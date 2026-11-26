@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoChangeStreamCursor;
@@ -53,6 +54,11 @@ import test.atriasoft.archidata.ConfigureDb;
  * there with a reentrant {@code unwatchCollection()}. The same database reports when the change stream of a collection
  * is idle (a {@code tryNext()} that returns no change), and asks the server to wait {@link #AWAIT_MS} ms instead of
  * 1 s before such an answer, which only makes the tests faster.
+ * </p>
+ *
+ * <p>
+ * A client filter that throws is caught like a listener that throws: it used to leave the dispatch, and the event
+ * never reached the listeners after it.
  * </p>
  */
 public class TestChangeStreamNoEventLost {
@@ -296,6 +302,31 @@ public class TestChangeStreamNoEventLost {
 		} finally {
 			manager.unwatchCollection(watched);
 			manager.unwatchCollection(hooked);
+		}
+	}
+
+	@Test
+	public void aClientFilterThatThrowsDoesNotTakeTheEventFromTheOtherListeners() throws Exception {
+		final String watched = COLLECTION_PREFIX + "filter";
+		final Received received = new Received();
+		final ObjectId poisoned = new ObjectId();
+		final BsonObjectId poisonedKey = new BsonObjectId(poisoned);
+		// The global listeners are called before the listeners of the collection
+		manager.createListenerBuilder(event -> {}).filter(event -> {
+			if (poisonedKey.equals(event.getOid())) {
+				throw new IllegalStateException("client filter failure raised by the test");
+			}
+			return true;
+		}).register();
+		manager.registerListener(received, watched);
+		try {
+			insert(watched, poisoned);
+			final ObjectId next = insert(watched);
+			received.await(next);
+			Assertions.assertEquals(List.of(poisoned, next), received.ids(),
+					"the listener of the collection receives the event the filter of another listener failed on");
+		} finally {
+			manager.unwatchCollection(watched);
 		}
 	}
 }

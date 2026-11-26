@@ -93,7 +93,8 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
 - **Events are dispatched on the worker thread**, one event at a time per collection, in stream
   order. For each event the manager calls the global listeners first, then the listeners of the
   collection. A client-side filter that returns `false` skips the listener; an exception thrown by a
-  listener is caught and logged, and does not affect other listeners.
+  client-side filter or by a listener is caught and logged, skips that listener for that event, and
+  does not affect other listeners.
 - **Resume tokens.** The worker keeps the token of the last event it read: if its stream errors it
   re-opens with `resumeAfter(token)`. When `unwatchCollection(...)` stops a worker, the manager saves
   another position: the token of the last event **dispatched** to the listeners (it moves once they
@@ -330,7 +331,8 @@ used by the other integration tests (`ConfigureDb.configure()`):
 - `TestChangeStreamNoEventLost`: an event read by a worker that `unwatchCollection()` stops before it
   dispatches it reaches the listeners once, through the next worker, also when it is the first event of
   that worker (the interleaving is forced through a database whose `getCollection()` runs code with the
-  manager's write lock held).
+  manager's write lock held); a client filter that throws does not take the event from the other
+  listeners.
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 
