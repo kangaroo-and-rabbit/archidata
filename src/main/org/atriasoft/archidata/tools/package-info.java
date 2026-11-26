@@ -19,7 +19,7 @@
  *
  * <p>Example:</p>
  * {@snippet lang = java :
- * ConfigBaseVariable.setBdDatabase("my_app");
+ * ConfigBaseVariable.setDbName("my_app");
  * ConfigBaseVariable.setDbPassword("secret");
  * JWTWrapper.initLocalToken("my-application-uuid");
  *

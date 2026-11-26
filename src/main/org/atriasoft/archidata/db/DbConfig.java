@@ -48,9 +48,9 @@ public final class DbConfig implements Cloneable {
 	 *         {@link ConfigBaseVariable#getDBPort()} is the cause)
 	 */
 	public DbConfig() throws DataAccessException {
-		this(ConfigBaseVariable.getDBHost(), configuredPort(), ConfigBaseVariable.getDBLogin(),
+		this(ConfigBaseVariable.getDBHost(), configuredPort(), ConfigBaseVariable.getDBUser(),
 				ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
-				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getBbInterfacesClasses()));
+				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getDbInterfacesClasses()));
 	}
 
 	/**
@@ -106,7 +106,7 @@ public final class DbConfig implements Cloneable {
 	 *             {@code Integer} (up to 65535). A literal {@code null} port is ambiguous between the two
 	 *             constructors: write {@code (Integer) null}.
 	 */
-	@Deprecated
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public DbConfig(final String hostname, final Short port, final String login, final String password,
 			final String dbName, final boolean keepConnected, final List<Class<?>> classes) throws DataAccessException {
 		this(hostname, port == null ? null : Integer.valueOf(port), login, password, dbName, keepConnected, classes);
@@ -238,7 +238,10 @@ public final class DbConfig implements Cloneable {
 	 * Returns the list of data model classes registered with this configuration.
 	 *
 	 * @return the immutable list of classes
+	 * @deprecated not used by archidata: the list registers no model, it only takes part in {@link #equals(Object)}
+	 *             and {@link #hashCode()}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public List<Class<?>> getClasses() {
 		return this.classes == null ? null : List.copyOf(this.classes);
 	}

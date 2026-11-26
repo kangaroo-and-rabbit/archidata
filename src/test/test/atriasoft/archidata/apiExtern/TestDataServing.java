@@ -44,7 +44,7 @@ public class TestDataServing {
 		ConfigBaseVariable.setDataFolder(workDir.resolve("media").toString());
 		webInterface = new WebLauncherTest();
 		webInterface.process();
-		api = new RESTApi(ConfigBaseVariable.getLocalAddress());
+		api = new RESTApi(ConfigBaseVariable.getApiAddress());
 		api.setToken(Common.USER_TOKEN);
 	}
 
@@ -70,7 +70,7 @@ public class TestDataServing {
 	}
 
 	static HttpResponse<byte[]> get(final String path) throws Exception {
-		final HttpRequest request = HttpRequest.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + path))
+		final HttpRequest request = HttpRequest.newBuilder(URI.create(ConfigBaseVariable.getApiAddress() + path))
 				.header("Authorization", "Bearer " + Common.USER_TOKEN).GET().build();
 		return CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
 	}
@@ -95,7 +95,7 @@ public class TestDataServing {
 		}
 		// A range request takes the other branch of the stream builder.
 		final HttpRequest ranged = HttpRequest
-				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/" + oid))
+				.newBuilder(URI.create(ConfigBaseVariable.getApiAddress() + "data/" + oid))
 				.header("Authorization", "Bearer " + Common.USER_TOKEN).header("Range", "bytes=0-9").GET().build();
 		final HttpResponse<byte[]> partial = CLIENT.send(ranged, HttpResponse.BodyHandlers.ofByteArray());
 		Assertions.assertEquals(206, partial.statusCode());
@@ -214,7 +214,7 @@ public class TestDataServing {
 	@Test
 	public void unauthorizedAnswerDoesNotExplainWhy() throws Exception {
 		final HttpRequest request = HttpRequest
-				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/upload"))
+				.newBuilder(URI.create(ConfigBaseVariable.getApiAddress() + "data/upload"))
 				.header("Authorization", "Bearer not.a.token").POST(HttpRequest.BodyPublishers.noBody()).build();
 		final HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 		Assertions.assertEquals(401, response.statusCode());
@@ -260,7 +260,7 @@ public class TestDataServing {
 				.of(org.atriasoft.archidata.api.DataResource.getFileData(new org.bson.types.ObjectId(oid)));
 		for (int iii = 0; iii < 20; iii++) {
 			final HttpRequest head = HttpRequest
-					.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/" + oid))
+					.newBuilder(URI.create(ConfigBaseVariable.getApiAddress() + "data/" + oid))
 					.header("Authorization", "Bearer " + Common.USER_TOKEN).header("Range", "bytes=0-9")
 					.method("HEAD", HttpRequest.BodyPublishers.noBody()).build();
 			Assertions.assertEquals(206, CLIENT.send(head, HttpResponse.BodyHandlers.discarding()).statusCode());
@@ -269,7 +269,7 @@ public class TestDataServing {
 		Assertions.assertTrue(open <= 0, "descriptors left open on the media: " + open);
 		// a GET range still streams the bytes
 		final HttpRequest ranged = HttpRequest
-				.newBuilder(URI.create(ConfigBaseVariable.getLocalAddress() + "data/" + oid))
+				.newBuilder(URI.create(ConfigBaseVariable.getApiAddress() + "data/" + oid))
 				.header("Authorization", "Bearer " + Common.USER_TOKEN).header("Range", "bytes=1-3").GET().build();
 		final HttpResponse<byte[]> partial = CLIENT.send(ranged, HttpResponse.BodyHandlers.ofByteArray());
 		Assertions.assertEquals(206, partial.statusCode());

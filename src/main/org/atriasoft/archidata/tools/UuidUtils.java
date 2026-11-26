@@ -31,7 +31,9 @@ public class UuidUtils {
 	 * significant 64 bits map to {@link UUID#getLeastSignificantBits()}.</p>
 	 * @param bigInteger The BigInteger to convert.
 	 * @return The corresponding UUID.
+	 * @deprecated not used by archidata: build the {@link UUID} with {@code new UUID(msb, lsb)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static UUID asUuid(final BigInteger bigInteger) {
 		final long mostSignificantBits = bigInteger.shiftRight(64).longValue();
 		final long leastSignificantBits = bigInteger.longValue();
@@ -43,7 +45,10 @@ public class UuidUtils {
 	 * @param bytes The byte array (must be exactly 16 bytes).
 	 * @return The corresponding UUID.
 	 * @throws DataAccessException If the byte array is not 16 bytes long.
+	 * @deprecated not used by archidata: read the two longs of a {@link java.nio.ByteBuffer} and use
+	 *             {@code new UUID(msb, lsb)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static UUID asUuid(final byte[] bytes) throws DataAccessException {
 		if (bytes.length != 16) {
 			throw new DataAccessException("Try to convert wrong size of UUID: " + bytes.length + " expected 16.");
@@ -58,7 +63,10 @@ public class UuidUtils {
 	 * Converts a {@link UUID} to a 16-byte array.
 	 * @param uuid The UUID to convert.
 	 * @return A 16-byte array representing the UUID.
+	 * @deprecated not used by archidata: write the two longs of the {@link UUID} in a
+	 *             {@link java.nio.ByteBuffer}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static byte[] asBytes(final UUID uuid) {
 		final ByteBuffer bb = ByteBuffer.allocate(16);
 		bb.putLong(uuid.getMostSignificantBits());

@@ -21,13 +21,13 @@ class TestConfigBaseVariable {
 	}
 
 	@Test
-	void testBbInterfacesClassesCannotBeChangedThroughTheArray() {
+	void testDbInterfacesClassesCannotBeChangedThroughTheArray() {
 		final Class<?>[] given = { String.class };
-		ConfigBaseVariable.setBbInterfacesClasses(given);
+		ConfigBaseVariable.setDbInterfacesClasses(given);
 		given[0] = Long.class;
-		ConfigBaseVariable.getBbInterfacesClasses()[0] = Long.class;
+		ConfigBaseVariable.getDbInterfacesClasses()[0] = Long.class;
 		// lock() protects the setter: the array must not be a way around it.
-		Assertions.assertArrayEquals(new Class<?>[] { String.class }, ConfigBaseVariable.getBbInterfacesClasses());
+		Assertions.assertArrayEquals(new Class<?>[] { String.class }, ConfigBaseVariable.getDbInterfacesClasses());
 	}
 
 	// ===== Default values when fields are null =====
@@ -47,13 +47,13 @@ class TestConfigBaseVariable {
 	@Test
 	void testGetMediaDataFolderDefault() {
 		ConfigBaseVariable.setDataFolder(null);
-		Assertions.assertEquals("./data/media", ConfigBaseVariable.getMediaDataFolder());
+		Assertions.assertEquals("./data/media", ConfigBaseVariable.getDataFolder());
 	}
 
 	@Test
 	void testGetMediaDataFolderCustom() {
 		ConfigBaseVariable.setDataFolder("/custom/media");
-		Assertions.assertEquals("/custom/media", ConfigBaseVariable.getMediaDataFolder());
+		Assertions.assertEquals("/custom/media", ConfigBaseVariable.getDataFolder());
 	}
 
 	@Test
@@ -99,7 +99,7 @@ class TestConfigBaseVariable {
 	@Test
 	void testGetDBLoginDefault() {
 		ConfigBaseVariable.setDbUser(null);
-		Assertions.assertEquals("root", ConfigBaseVariable.getDBLogin());
+		Assertions.assertEquals("root", ConfigBaseVariable.getDBUser());
 	}
 
 	@Test
@@ -110,13 +110,13 @@ class TestConfigBaseVariable {
 
 	@Test
 	void testGetDBNameReturnsField() {
-		ConfigBaseVariable.setBdDatabase("mydb");
+		ConfigBaseVariable.setDbName("mydb");
 		Assertions.assertEquals("mydb", ConfigBaseVariable.getDBName());
 	}
 
 	@Test
 	void testGetDBNameNull() {
-		ConfigBaseVariable.setBdDatabase(null);
+		ConfigBaseVariable.setDbName(null);
 		Assertions.assertNull(ConfigBaseVariable.getDBName());
 	}
 
@@ -157,13 +157,13 @@ class TestConfigBaseVariable {
 	@Test
 	void testgetLocalAddressDefault() {
 		ConfigBaseVariable.setApiAddress(null);
-		Assertions.assertEquals("http://localhost:80/api/", ConfigBaseVariable.getLocalAddress());
+		Assertions.assertEquals("http://localhost:80/api/", ConfigBaseVariable.getApiAddress());
 	}
 
 	@Test
 	void testgetLocalAddressCustom() {
 		ConfigBaseVariable.setApiAddress("http://api.example.com/v1/");
-		Assertions.assertEquals("http://api.example.com/v1/", ConfigBaseVariable.getLocalAddress());
+		Assertions.assertEquals("http://api.example.com/v1/", ConfigBaseVariable.getApiAddress());
 	}
 
 	@Test
@@ -257,5 +257,27 @@ class TestConfigBaseVariable {
 		ConfigBaseVariable.setApiDocEnabled("TRUE");
 		Assertions.assertTrue(ConfigBaseVariable.getApiDocEnabled());
 		ConfigBaseVariable.setApiDocEnabled(null);
+	}
+
+	@Test
+	@SuppressWarnings("removal")
+	void testDeprecatedNamesDelegateToTheNewOnes() {
+		ConfigBaseVariable.setBdDatabase("old_name");
+		Assertions.assertEquals("old_name", ConfigBaseVariable.getDBName());
+		ConfigBaseVariable.setDbUser("someone");
+		Assertions.assertEquals("someone", ConfigBaseVariable.getDBLogin());
+		Assertions.assertEquals(ConfigBaseVariable.getDBUser(), ConfigBaseVariable.getDBLogin());
+		ConfigBaseVariable.setDataFolder("/custom/old");
+		Assertions.assertEquals("/custom/old", ConfigBaseVariable.getMediaDataFolder());
+		ConfigBaseVariable.setApiAddress("http://example.test/api/");
+		Assertions.assertEquals("http://example.test/api/", ConfigBaseVariable.getLocalAddress());
+		ConfigBaseVariable.setSsoToken("secret");
+		Assertions.assertEquals("secret", ConfigBaseVariable.ssoToken());
+		Assertions.assertEquals(ConfigBaseVariable.getSSOToken(), ConfigBaseVariable.ssoToken());
+		ConfigBaseVariable.setDataDecryptEnable("true");
+		Assertions.assertTrue(ConfigBaseVariable.getDataDecryptEnabled());
+		ConfigBaseVariable.setBbInterfacesClasses(new Class<?>[] { String.class });
+		Assertions.assertArrayEquals(new Class<?>[] { String.class }, ConfigBaseVariable.getDbInterfacesClasses());
+		Assertions.assertArrayEquals(new Class<?>[] { String.class }, ConfigBaseVariable.getBbInterfacesClasses());
 	}
 }

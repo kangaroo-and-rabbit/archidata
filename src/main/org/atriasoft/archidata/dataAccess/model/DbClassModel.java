@@ -297,7 +297,10 @@ public final class DbClassModel {
 	 * Returns fields that require asynchronous processing on update.
 	 *
 	 * @return an unmodifiable list of async update field descriptors
+	 * @deprecated not used by archidata: {@code DBAccessMongo} walks {@link #getAddonFields()} and tests
+	 *             {@code isAsyncUpdate()} itself.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public List<DbPropertyDescriptor> getAsyncUpdateFields() {
 		return this.asyncUpdateFields;
 	}
@@ -487,7 +490,7 @@ public final class DbClassModel {
 		}
 		// AddOnManyToManyDoc accepts any annotated field: check its key type here.
 		final boolean manyToManyOk = dbProp.getAddOn() instanceof final AddOnManyToManyDoc manyToMany
-				&& manyToMany.canRetreiveAnWrite(dbProp);
+				&& manyToMany.canRetrieveAndWrite(dbProp);
 		if (dbProp.getAction() == DbFieldAction.ADDON && (!prop.hasAnnotation(ManyToManyDoc.class) || manyToManyOk)) {
 			return;
 		}

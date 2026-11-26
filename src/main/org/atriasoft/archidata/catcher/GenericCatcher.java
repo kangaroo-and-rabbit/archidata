@@ -14,7 +14,7 @@ public class GenericCatcher {
 	 * Registers all standard exception catchers on the given resource configuration to standardize error responses.
 	 * <p>
 	 * It also registers {@link RequestBodyReaderInterceptor}, which marks the JSON errors of the request body:
-	 * it is registered here and not in {@code ContextGenericTools.addJsr310} because it only decides which of
+	 * it is registered here and not in {@code ContextGenericTools.registerArchidataJson} because it only decides which of
 	 * these mappers answers (400 for the request body, 500 for any other Jackson error), whatever the JSON
 	 * provider in use.
 	 * @param rc the Jersey resource configuration to register catchers on

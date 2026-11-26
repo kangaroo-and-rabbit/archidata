@@ -6,8 +6,8 @@ import java.util.Objects;
 /**
  * A one-time scheduled task that executes at a specific date and time.
  *
- * <p>Equality is based solely on the task {@link #name}, allowing the scheduler
- * to prevent duplicate entries in the queue.
+ * <p>Equality is based solely on the task {@link #name}: the scheduler keeps the tasks in a map keyed by
+ * name, so a second task with the same name replaces the first one. The queue itself is not deduplicated.
  *
  * @param name the unique name identifying this task
  * @param executeAt the date and time at which the task should execute

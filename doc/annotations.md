@@ -64,7 +64,7 @@ Known pitfalls
   `IndexEngine.synchronize()` ([Indexes](indexes.md)).
 - `createdAt` and `updatedAt` (from `GenericTiming`) carry `@DataNotRead`: they are not returned by
   default. Add the `ReadAllColumn` query option to read them.
-- `@ValidGroup` only works when `ContextGenericTools.addJsr310(rc)` has been called (it registers
+- `@ValidGroup` only works when `ContextGenericTools.registerArchidataJson(rc)` has been called (it registers
   `ValidGroupInterceptor`). It validates the given groups only, **not** `Default`: also put `@Valid`
   to check the unannotated constraints.
 - A resource method with none of `@RolesAllowed`, `@RightAllowed`, `@PermitAll` makes
@@ -393,7 +393,7 @@ Targets: class, method, field. No element appears twice.
 ### @ValidGroup
 
 Targets: parameter, type use. `value`: the validation groups to apply to the request body. Works
-through `ValidGroupInterceptor`, registered by `ContextGenericTools.addJsr310(rc)`. It validates
+through `ValidGroupInterceptor`, registered by `ContextGenericTools.registerArchidataJson(rc)`. It validates
 **only** these groups: add `@Valid` for the `Default` group. The TypeScript generator appends the
 group name (without `Group`) to the generated type: `@Valid @ValidGroup(GroupCreate.class) User`
 becomes `UserCreate`.
@@ -457,7 +457,7 @@ public class User { }
 Targets: field, method. Excluded from the create and update variants; `update` / `updateById` also
 skip it unless `ForceReadOnlyField` is used. Applied to ids and timestamps.
 
-**Request bodies**: the JSON provider registered by `ContextGenericTools.addJsr310(rc)` drops every
+**Request bodies**: the JSON provider registered by `ContextGenericTools.registerArchidataJson(rc)` drops every
 `@ApiReadOnly` property (field, getter or setter) of a request body, as
 `@JsonProperty(access = READ_ONLY)` would: the value sent by the client is ignored silently (no 400,
 since a front often sends back the whole object it read, id and timestamps included) and the property
@@ -494,9 +494,9 @@ endpoints).
 ### @ApiAsyncType
 
 Targets: parameter, method. `value` (required `Class<?>[]`): types accepted by the generated
-function; `tsComplement` (default empty): extra TypeScript type text. With several classes on a method
-(`@ApiAsyncType({A.class, B.class})`), the TypeScript client types the answer `A | B` and checks it with a
-`zod.union` of the classes, so an answer of any of them is accepted.
+function; `tsComplement` (default empty) is deprecated for removal: no generator reads it. With several classes
+on a method (`@ApiAsyncType({A.class, B.class})`), the TypeScript client types the answer `A | B` and checks it with
+a `zod.union` of the classes, so an answer of any of them is accepted.
 
 ### @ApiTypeScriptProgress
 

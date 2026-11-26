@@ -155,6 +155,20 @@ public interface DataAccessAddOn {
 	 * @param desc The property descriptor for the add-on field
 	 * @return true if a delete action is required for this field
 	 */
+	default boolean hasDeleteAction(final DbPropertyDescriptor desc) {
+		return asDeleteAction(desc);
+	}
+
+	/**
+	 * Check if the add-on field has delete actions (e.g., cascade delete or link cleanup).
+	 *
+	 * @param desc The property descriptor for the add-on field
+	 * @return true if a delete action is required for this field
+	 * @deprecated misleading name ({@code as} for {@code has}): override
+	 *             {@link #hasDeleteAction(DbPropertyDescriptor)}, which calls this one by default so that an
+	 *             add-on written against the old name keeps working.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	default boolean asDeleteAction(final DbPropertyDescriptor desc) {
 		return false;
 	}

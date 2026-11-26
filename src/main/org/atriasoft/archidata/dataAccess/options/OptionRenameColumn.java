@@ -8,7 +8,11 @@ package org.atriasoft.archidata.dataAccess.options;
 public class OptionRenameColumn extends QueryOption {
 	/** The original column name. */
 	public final String columnName;
-	/** The new column name to use. */
+	/**
+	 * The new column name to use.
+	 * @deprecated upper-case field name: read it through {@link #getNewName()}; the field becomes private.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public final String ColumnNewName;
 
 	/**
@@ -20,6 +24,15 @@ public class OptionRenameColumn extends QueryOption {
 	public OptionRenameColumn(final String name, final String newName) {
 		this.columnName = name;
 		this.ColumnNewName = newName;
+	}
+
+	/**
+	 * Returns the new column name to use.
+	 *
+	 * @return the new column name
+	 */
+	public String getNewName() {
+		return this.ColumnNewName;
 	}
 
 }

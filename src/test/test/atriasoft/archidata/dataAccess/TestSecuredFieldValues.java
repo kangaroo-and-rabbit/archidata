@@ -45,7 +45,7 @@ public class TestSecuredFieldValues {
 		final KeyPair rsa = EncryptionKeyGenerator.generateRsa(2048);
 		EncryptionKeyStore.register("rsa-pub", new RsaCipherProvider(rsa.getPublic(), null));
 		EncryptionKeyStore.register("rsa-priv", new RsaCipherProvider(null, rsa.getPrivate()));
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 	}
 
 	@AfterAll

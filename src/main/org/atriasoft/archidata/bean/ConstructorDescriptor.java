@@ -104,7 +104,9 @@ public record ConstructorDescriptor(
 	 *
 	 * @param name the parameter name to search for
 	 * @return the zero-based index, or -1 if not found
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public int indexOfParameter(final String name) {
 		for (int i = 0; i < this.parameterNames.length; i++) {
 			if (this.parameterNames[i].equals(name)) {

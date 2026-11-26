@@ -310,7 +310,10 @@ public class MigrationEngine {
 	 * @param migrationName the target migration name to revert to (exclusive)
 	 * @throws MigrationException if retrieving the current version fails
 	 * @throws UnsupportedOperationException if at least one migration would have to be reverted
+	 * @deprecated reverting is not supported and never was: write a new forward migration.
 	 */
+	@SuppressWarnings("removal")
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public void revertTo(final DBAccessMongo da, final String migrationName) throws MigrationException {
 		final Migration currentVersion = getCurrentVersion(da);
 		final List<MigrationInterface> toApply = new ArrayList<>();
@@ -348,7 +351,9 @@ public class MigrationEngine {
 	 * @param id the current revert index
 	 * @param count the total number of migrations to revert
 	 * @throws UnsupportedOperationException always
+	 * @deprecated reverting is not supported and never was: write a new forward migration.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public void revertSingle(final DBAccessMongo da, final MigrationInterface elem, final int id, final int count) {
 		LOGGER.error("Revert migration: {} is not supported (no reverse operation in MigrationInterface)",
 				elem.getName());

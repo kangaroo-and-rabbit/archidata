@@ -36,7 +36,11 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterValue extends QueryOption {
-	/** The list of field names to include. */
+	/**
+	 * The list of field names to include.
+	 * @deprecated public list, read it through {@link #getValues()}; the field becomes private.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public final List<String> filterValue;
 	/** Whether this list is the default one of a full update, see {@link #isFullUpdate()}. */
 	private final boolean fullUpdate;

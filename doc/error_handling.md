@@ -32,7 +32,7 @@ Registration
 ```java
 final ResourceConfig rc = new ResourceConfig();
 GenericCatcher.addAll(rc);          // all the catchers below, in one call
-ContextGenericTools.addJsr310(rc);  // JSON provider + ValidGroupInterceptor
+ContextGenericTools.registerArchidataJson(rc);  // JSON provider + ValidGroupInterceptor
 rc.register(JacksonFeature.class);
 rc.register(ValidationFeature.class);
 ```

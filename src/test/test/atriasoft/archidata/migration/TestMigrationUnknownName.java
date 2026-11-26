@@ -19,6 +19,7 @@ import test.atriasoft.archidata.StepwiseExtension;
 
 @ExtendWith(StepwiseExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@SuppressWarnings("removal")
 public class TestMigrationUnknownName {
 
 	@BeforeAll

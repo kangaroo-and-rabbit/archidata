@@ -17,7 +17,7 @@ public class ConfigureDb {
 	public static DBAccessMongo da = null;
 
 	public static void configure() throws IOException, InternalServerErrorException, DataAccessException {
-		ConfigBaseVariable.setBdDatabase("test_db");
+		ConfigBaseVariable.setDbName("test_db");
 		ConfigBaseVariable.setDbPassword("base_db_password");
 		removeDB();
 		da = DBAccessMongo.createInterface();

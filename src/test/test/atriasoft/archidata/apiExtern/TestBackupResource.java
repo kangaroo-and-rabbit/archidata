@@ -132,7 +132,7 @@ public class TestBackupResource {
 
 	private static HttpResponse<String> call(final String method, final String path, final String token)
 			throws Exception {
-		return call(method, URI.create(ConfigBaseVariable.getLocalAddress() + path), token);
+		return call(method, URI.create(ConfigBaseVariable.getApiAddress() + path), token);
 	}
 
 	private static HttpResponse<String> call(final String method, final URI address, final String token)
@@ -220,7 +220,7 @@ public class TestBackupResource {
 		final ResourceConfig rc = new ResourceConfig();
 		GenericCatcher.addAll(rc);
 		rc.register(BackupResource.class);
-		ContextGenericTools.addJsr310(rc);
+		ContextGenericTools.registerArchidataJson(rc);
 		rc.register(JacksonFeature.class);
 		final HttpServer server = GrizzlyHttpServerFactory.createHttpServer(URI.create("http://127.0.0.1:0/"), rc);
 		try {

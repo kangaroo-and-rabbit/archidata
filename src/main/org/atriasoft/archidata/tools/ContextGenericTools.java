@@ -36,20 +36,22 @@ public class ContextGenericTools {
 		objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		// configure the local serialization modules
 		objectMapper.registerModule(JacksonModules.getAllModules());
-		// Add java time module at the end to prevent use it in first but in backup
+		// The java time module goes last: the archidata date modules registered above must win over it
 		objectMapper.registerModule(new JavaTimeModule()); // Module for Java 8+ Date and Time API
 		return objectMapper;
 	}
 
 	/**
-	 * Add support of Jackson jsr310 for data and time serialization and un-serialization.
+	 * Registers the JSON setup of an archidata server on the Jersey configuration: the Jackson provider (ISO
+	 * dates, archidata modules, Java 8+ date/time) and the {@link ValidGroupInterceptor} that enforces
+	 * {@code @ValidGroup}. Without it the validation groups are silently ignored and the date format changes.
 	 *
 	 * <p>The registered mapper also ignores the {@code @ApiReadOnly} properties of request bodies
 	 * ({@link ApiReadOnlyDeserializerModifier}): a client cannot set them. {@link #createObjectMapper()} does
 	 * not, so it still reads them back from server responses.</p>
-	 * @param rc Resource exception model.
+	 * @param rc The Jersey resource configuration of the server.
 	 */
-	public static void addJsr310(final ResourceConfig rc) {
+	public static void registerArchidataJson(final ResourceConfig rc) {
 		final ObjectMapper objectMapper = createObjectMapper();
 		objectMapper.registerModule(ApiReadOnlyDeserializerModifier.module());
 		// configure jackson provider for JSON mapper
@@ -58,5 +60,17 @@ public class ContextGenericTools {
 		// Record it on the Resource configuration
 		rc.register(provider);
 		rc.register(ValidGroupInterceptor.class);
+	}
+
+	/**
+	 * Registers the JSON setup of an archidata server on the Jersey configuration.
+	 * @param rc The Jersey resource configuration of the server.
+	 * @deprecated misleading name: it registers much more than the JSR-310 date module (the Jackson provider, the
+	 *             {@code @ApiReadOnly} filter and the {@code @ValidGroup} interceptor). Use
+	 *             {@link #registerArchidataJson(ResourceConfig)}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static void addJsr310(final ResourceConfig rc) {
+		registerArchidataJson(rc);
 	}
 }

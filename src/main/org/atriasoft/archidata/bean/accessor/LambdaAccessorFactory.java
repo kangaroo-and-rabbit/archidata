@@ -22,8 +22,9 @@ import org.slf4j.LoggerFactory;
  * <p>Lambda-based accessors have near-native call performance (no reflection overhead per call),
  * while MethodHandle fallback is still ~3x faster than {@code Method.invoke()}.
  *
- * <p>Also provides typed accessors ({@link TypedPropertyGetter}, {@link TypedPropertySetter})
- * that preserve generic type information and avoid boxing for reference types.
+ * <p>Also provides typed accessors ({@link TypedPropertyGetter}, {@link TypedPropertySetter}), deprecated:
+ * they cast the result of the same {@code Object} accessor, so they neither avoid boxing nor keep more
+ * type information than the generic signature.
  */
 public final class LambdaAccessorFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LambdaAccessorFactory.class);
@@ -180,17 +181,21 @@ public final class LambdaAccessorFactory {
 
 	/**
 	 * Create a TypedPropertyGetter from a getter Method (getXxx() or isXxx()).
-	 * Uses LambdaMetafactory with concrete types to avoid boxing for reference types.
+	 * Uses LambdaMetafactory (the call goes through an {@code Object} function: nothing is saved over the
+	 * untyped accessor but a cast).
 	 * Falls back to MethodHandle if LambdaMetafactory fails.
 	 *
 	 * @param <T> the bean type
 	 * @param <V> the property value type
 	 * @param getter the getter method
-	 * @param beanType the bean class
-	 * @param valueType the property value class
+	 * @param beanType the bean class (not read, it only fixes the generic signature)
+	 * @param valueType the property value class (not read, it only fixes the generic signature)
 	 * @return a typed property getter
+	 * @deprecated not used by archidata (only tests call it): use the untyped accessors of this class, the typed ones
+	 *             add a cast only.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <T, V> TypedPropertyGetter<T, V> createTypedGetter(
 			final Method getter,
 			final Class<T> beanType,
@@ -218,17 +223,21 @@ public final class LambdaAccessorFactory {
 
 	/**
 	 * Create a TypedPropertySetter from a setter Method (setXxx(value)).
-	 * Uses LambdaMetafactory with concrete types to avoid boxing for reference types.
+	 * Uses LambdaMetafactory (the call goes through an {@code Object} function: nothing is saved over the
+	 * untyped accessor but a cast).
 	 * Falls back to MethodHandle if LambdaMetafactory fails.
 	 *
 	 * @param <T> the bean type
 	 * @param <V> the property value type
 	 * @param setter the setter method
-	 * @param beanType the bean class
-	 * @param valueType the property value class
+	 * @param beanType the bean class (not read, it only fixes the generic signature)
+	 * @param valueType the property value class (not read, it only fixes the generic signature)
 	 * @return a typed property setter
+	 * @deprecated not used by archidata (only tests call it): use the untyped accessors of this class, the typed ones
+	 *             add a cast only.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <T, V> TypedPropertySetter<T, V> createTypedSetter(
 			final Method setter,
 			final Class<T> beanType,
@@ -265,11 +274,14 @@ public final class LambdaAccessorFactory {
 	 * @param <T> the bean type
 	 * @param <V> the property value type
 	 * @param field the field to create a typed getter for
-	 * @param beanType the bean class
-	 * @param valueType the property value class
+	 * @param beanType the bean class (not read, it only fixes the generic signature)
+	 * @param valueType the property value class (not read, it only fixes the generic signature)
 	 * @return a typed property getter for the field
+	 * @deprecated not used by archidata (only tests call it): use the untyped accessors of this class, the typed ones
+	 *             add a cast only.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <T, V> TypedPropertyGetter<T, V> createTypedFieldGetter(
 			final Field field,
 			final Class<T> beanType,
@@ -294,10 +306,14 @@ public final class LambdaAccessorFactory {
 	 * @param <T> the bean type
 	 * @param <V> the property value type
 	 * @param field the field to create a typed setter for
-	 * @param beanType the bean class
-	 * @param valueType the property value class
+	 * @param beanType the bean class (not read, it only fixes the generic signature)
+	 * @param valueType the property value class (not read, it only fixes the generic signature)
 	 * @return a typed property setter for the field, or null if the field is final
+	 * @deprecated not used by archidata (only tests call it): use the untyped accessors of this class, the typed ones
+	 *             add a cast only.
 	 */
+	@SuppressWarnings("removal")
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <T, V> TypedPropertySetter<T, V> createTypedFieldSetter(
 			final Field field,
 			final Class<T> beanType,
@@ -320,7 +336,7 @@ public final class LambdaAccessorFactory {
 
 	// ========== Typed MethodHandle fallback ==========
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
 	private static <T, V> TypedPropertyGetter<T, V> createMethodHandleTypedGetter(final Method getter) {
 		try {
 			final MethodHandles.Lookup lookup = MethodHandles.lookup();
@@ -333,7 +349,7 @@ public final class LambdaAccessorFactory {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
 	private static <T, V> TypedPropertySetter<T, V> createMethodHandleTypedSetter(final Method setter) {
 		try {
 			final MethodHandles.Lookup lookup = MethodHandles.lookup();

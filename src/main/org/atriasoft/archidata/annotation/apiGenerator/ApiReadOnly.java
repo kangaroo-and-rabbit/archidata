@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * operations of the generated client code.
  *
  * <p>It also has effects on the server: a property sent by a client in a request body is ignored
- * (dropped by the JSON provider that {@code ContextGenericTools.addJsr310} registers; records and
+ * (dropped by the JSON provider that {@code ContextGenericTools.registerArchidataJson} registers; records and
  * {@code @JsonCreator} constructors are not filtered). Server code can still write it with an insert,
  * whereas an update skips it unless the {@code ForceReadOnlyField} option is passed.
  */

@@ -24,8 +24,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * </p>
  *
  * <p>
- * Applications do not create these records themselves. The previous formats are kept as
- * {@link Migration1} and {@link Migration2} so older databases can still be read and upgraded.
+ * Applications do not create these records themselves. The previous formats
+ * ({@link Migration1} and {@link Migration2}) are deprecated: the engine does not read them.
  * </p>
  */
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...

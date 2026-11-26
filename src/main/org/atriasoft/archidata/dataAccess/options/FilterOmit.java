@@ -31,7 +31,11 @@ import org.atriasoft.archidata.dataAccess.SerializableFunction;
  * @see org.atriasoft.archidata.dataAccess.Fields
  */
 public class FilterOmit extends QueryOption {
-	/** The list of field names to exclude. */
+	/**
+	 * The list of field names to exclude.
+	 * @deprecated public mutable list, read it through {@link #getValues()}; the field becomes private.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public final List<String> filterValue;
 
 	/**

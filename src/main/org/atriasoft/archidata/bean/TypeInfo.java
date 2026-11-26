@@ -110,7 +110,9 @@ public record TypeInfo(
 	 * Check if the raw type is assignable to {@link Optional}.
 	 *
 	 * @return {@code true} if the raw type is an Optional
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public boolean isOptional() {
 		return Optional.class.isAssignableFrom(this.rawType);
 	}

@@ -121,15 +121,16 @@ public class DataResource {
 	 * Returns the file path for data stored under the old UUID-based layout.
 	 * @param uuid The UUID identifying the data.
 	 * @return The absolute path to the data file.
+	 * @deprecated not used by archidata: the UUID layout is gone, no resource reads it.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String getFileDataOld(final UUID uuid) {
 		final String stringUUID = uuid.toString();
 		final String part1 = stringUUID.substring(0, 2);
 		final String part2 = stringUUID.substring(2, 4);
 		final String part3 = stringUUID.substring(4);
 		final String finalPath = part1 + File.separator + part2;
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + "_uuid" + File.separator + finalPath
-				+ File.separator;
+		String filePath = ConfigBaseVariable.getDataFolder() + "_uuid" + File.separator + finalPath + File.separator;
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
@@ -159,7 +160,7 @@ public class DataResource {
 			LOGGER.error("Fail to generate the hash of the objectId ==> ise direct value ... {}", ex.getMessage());
 		}
 		final String finalPath = dir1 + File.separator + dir2 + File.separator + dir3;
-		String filePath = ConfigBaseVariable.getMediaDataFolder() + File.separator + finalPath + File.separator;
+		String filePath = ConfigBaseVariable.getDataFolder() + File.separator + finalPath + File.separator;
 		try {
 			createFolder(filePath);
 		} catch (final IOException e) {
@@ -173,7 +174,9 @@ public class DataResource {
 	 * Returns the file path for the JSON metadata associated with the given ObjectId.
 	 * @param oid The ObjectId identifying the data.
 	 * @return The absolute path to the metadata JSON file.
+	 * @deprecated not used by archidata: no metadata file is written next to the data any more.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String getFileMetaData(final ObjectId oid) {
 		return getFileData(oid) + ".json";
 	}
@@ -182,7 +185,10 @@ public class DataResource {
 	 * Retrieves a {@link Data} record matching the given SHA-512 hash.
 	 * @param sha512 The SHA-512 hash to search for.
 	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 * @deprecated not used by archidata: use
+	 *             {@link DataTools#getWithSha512(org.atriasoft.archidata.dataAccess.DBAccessMongo, String)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public Data getWithSha512(final String sha512) {
 		LOGGER.info("find sha512 = {}", sha512);
 		try {
@@ -197,7 +203,9 @@ public class DataResource {
 	 * Retrieves a {@link Data} record by its numeric identifier.
 	 * @param id The numeric identifier to search for.
 	 * @return The matching {@link Data} record, or {@code null} if not found.
+	 * @deprecated not used by archidata. Use {@link #getSmall(ObjectId)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public Data getWithId(final long id) {
 		LOGGER.info("find id = {}", id);
 		try {
@@ -233,7 +241,10 @@ public class DataResource {
 	 * @param sha512 The SHA-512 hash of the file content.
 	 * @return The newly created {@link Data} record, or {@code null} on insertion failure.
 	 * @throws IOException If the MIME type cannot be determined or the file cannot be moved.
+	 * @deprecated not used by archidata: use
+	 *             {@link DataTools#createNewData(org.atriasoft.archidata.dataAccess.DBAccessMongo, long, String, String)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public Data createNewData(final long tmpUID, final String originalFileName, final String sha512)
 			throws IOException {
 		// determine mime type:
@@ -269,7 +280,9 @@ public class DataResource {
 	 * @param uuid The UUID of the data in the old layout.
 	 * @param oid The ObjectId of the data in the new layout.
 	 * @throws IOException If the file move fails.
+	 * @deprecated not used by archidata.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static void modeFileOldModelToNewModel(final UUID uuid, final ObjectId oid) throws IOException {
 		String mediaCurentPath = getFileDataOld(uuid);
 		String mediaDestPath = getFileData(oid);
@@ -338,7 +351,9 @@ public class DataResource {
 	 * Converts a byte array to its lowercase hexadecimal string representation.
 	 * @param bytes The byte array to convert.
 	 * @return The hexadecimal string.
+	 * @deprecated not used by archidata: use {@link DataTools#bytesToHex(byte[])}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String bytesToHex(final byte[] bytes) {
 		final StringBuilder sb = new StringBuilder();
 		for (final byte b : bytes) {
@@ -421,7 +436,7 @@ public class DataResource {
 			@HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		LOGGER.debug("== DATA retrieveDataId ? oid={} user={}", oid, (gc == null ? "null" : gc.userByToken));
+		LOGGER.debug("== DATA retrieveDataId ? oid={} user={}", oid, (gc == null ? "null" : gc.getUserByToken()));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
@@ -482,7 +497,7 @@ public class DataResource {
 			@HeaderParam("Range") final String range,
 			@PathParam("oid") final ObjectId oid) throws FailException {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		LOGGER.debug("== DATA retrieveDataThumbnailId ? {}", (gc == null ? "null" : gc.userByToken));
+		LOGGER.debug("== DATA retrieveDataThumbnailId ? {}", (gc == null ? "null" : gc.getUserByToken()));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
@@ -632,7 +647,7 @@ public class DataResource {
 			@PathParam("oid") final ObjectId oid,
 			@PathParam("name") final String name) throws Exception {
 		final GenericContext gc = (GenericContext) sc.getUserPrincipal();
-		LOGGER.debug("== DATA retrieveDataFull ? id={} user={}", oid, (gc == null ? "null" : gc.userByToken));
+		LOGGER.debug("== DATA retrieveDataFull ? id={} user={}", oid, (gc == null ? "null" : gc.getUserByToken()));
 		final Data value = getSmall(oid);
 		if (value == null) {
 			return Response.status(404).entity("media NOT FOUND: " + oid).type("text/plain").build();
@@ -859,7 +874,10 @@ public class DataResource {
 	 * Restores a soft-deleted {@link Data} record by its numeric identifier.
 	 * @param id The numeric identifier of the record to restore.
 	 * @throws Exception If the restore operation fails.
+	 * @deprecated not used by archidata. Use
+	 *             {@link DataTools#undelete(org.atriasoft.archidata.dataAccess.DBAccessMongo, ObjectId)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public void undelete(final Long id) throws Exception {
 		DataAccess.restoreById(Data.class, id);
 	}

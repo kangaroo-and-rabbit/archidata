@@ -59,8 +59,8 @@ public class DataTools {
 	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	/** Input buffer size of 50 MB, not used by the upload.
 	 * @deprecated Unused: a 50 MiB buffer per upload would let a few concurrent uploads fill the heap; the
-	 *             copy uses a 64 KiB buffer. */
-	@Deprecated
+	 *             copy uses a private 64 KiB buffer, nothing replaces this constant. */
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
 	/** Buffer used to copy an uploaded stream to its temporary file. */
 	private static final int COPY_BUFFER_SIZE = 64 * 1024;
@@ -121,9 +121,17 @@ public class DataTools {
 	/** Supported image MIME types for upload validation. */
 	public static final List<String> SUPPORTED_IMAGE_MIME_TYPE = List.of("image/jpeg", "image/png", "image/webp",
 			MIME_SVG);
-	/** Supported audio MIME types for upload validation. */
+	/**
+	 * Supported audio MIME types for upload validation.
+	 * @deprecated not used by archidata: no upload checks it.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static final List<String> SUPPORTED_AUDIO_MIME_TYPE = List.of("audio/x-matroska");
-	/** Supported video MIME types for upload validation. */
+	/**
+	 * Supported video MIME types for upload validation.
+	 * @deprecated not used by archidata: no upload checks it.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static final List<String> SUPPORTED_VIDEO_MIME_TYPE = List.of("video/x-matroska", "video/webm");
 
 	/**
@@ -233,7 +241,10 @@ public class DataTools {
 	 * @param ioDb The database access instance.
 	 * @param id The numeric identifier to search for.
 	 * @return The matching {@link Data} record, or {@code null} if not found or deleted.
+	 * @deprecated not used by archidata. Read the record with {@code ioDb.get(Data.class, ...)} by its
+	 *             {@code ObjectId}, or with {@link #getWithSha512(DBAccessMongo, String)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Data getWithId(final DBAccessMongo ioDb, final long id) {
 		try {
 			return ioDb.get(Data.class, new Condition(Filters.and(Filters.eq("deleted", false), Filters.eq("id", id))));
@@ -459,7 +470,11 @@ public class DataTools {
 	 * @param uploadedInputStream The input stream to save.
 	 * @param serverLocation The destination file path.
 	 * @return The SHA-512 hex string of the saved data, or an empty string on error.
+	 * @deprecated not used by archidata: the copy is not bounded and an I/O error answers {@code ""}. Use
+	 *             {@link #saveFile(InputStream, String, long)}, which refuses a stream larger than a limit with a
+	 *             {@code FailException}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String saveFile(final InputStream uploadedInputStream, final String serverLocation) {
 		String out = "";
 		try {

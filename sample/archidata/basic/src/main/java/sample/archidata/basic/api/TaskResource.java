@@ -75,7 +75,7 @@ public class TaskResource {
 	@Operation(description = "Create a task")
 	// @Valid: Default-group constraints of the model (@NotNull, @Size), checked by Jersey.
 	// @ValidGroup(GroupCreate.class): the create-only constraints, e.g. "id must be absent",
-	// checked by the ValidGroupInterceptor registered by ContextGenericTools.addJsr310().
+	// checked by the ValidGroupInterceptor registered by ContextGenericTools.registerArchidataJson().
 	public Task post(@Valid @ValidGroup(GroupCreate.class) final Task task) throws Exception {
 		final Task inserted = DataAccess.insert(task);
 		LOGGER.info("Created {}", inserted);

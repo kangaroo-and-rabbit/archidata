@@ -153,7 +153,7 @@ public class DataAccess {
 	 * Generates a query condition for matching by ID.
 	 *
 	 * <p>
-	 * This is a utility method used internally for building ID-based queries.
+	 * A pure computation that opens and closes a database connection to do it.
 	 * </p>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
@@ -163,7 +163,11 @@ public class DataAccess {
 	 * @return Bson filter for the ID
 	 * @throws DataAccessException if operation fails
 	 * @throws IOException         if I/O error occurs
+	 * @deprecated not used by archidata: the facade opens a connection for a computation that needs none. The
+	 *             instance method {@code DBAccessMongo.getTableIdCondition} does the same on a connection you
+	 *             already hold.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <ID_TYPE> Bson getTableIdCondition(
 			final Class<?> clazz,
 			final ID_TYPE idKey,
@@ -351,7 +355,7 @@ public class DataAccess {
 	 * Merges multiple conditions from options into a single condition.
 	 *
 	 * <p>
-	 * This is a utility method used internally for condition handling.
+	 * A pure computation that opens and closes a database connection to do it.
 	 * </p>
 	 *
 	 * @param options       Query options containing conditions
@@ -359,7 +363,11 @@ public class DataAccess {
 	 * @return Merged condition
 	 * @throws DataAccessException if no conditions and throwIfEmpty is true
 	 * @throws IOException         if I/O error occurs
+	 * @deprecated not used by archidata: the facade opens a connection for a computation that needs none. The
+	 *             instance method {@code DBAccessMongo.conditionFusionOrEmpty} does the same on a connection you
+	 *             already hold.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Condition conditionFusionOrEmpty(final QueryOptions options, final boolean throwIfEmpty)
 			throws DataAccessException, IOException {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {

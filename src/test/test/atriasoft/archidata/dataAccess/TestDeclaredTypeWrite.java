@@ -455,7 +455,7 @@ public class TestDeclaredTypeWrite {
 
 	@Order(8)
 	@Test
-	@SuppressWarnings("deprecation")
+	@SuppressWarnings("removal")
 	public void testIsWrittenByRuntimeClassIsKeptDeprecated() throws Exception {
 		// Nothing is written by the class of its value any more, whatever the declared type.
 		Assertions.assertFalse(MongoCodecFactory.isWrittenByRuntimeClass(TypeInfo.ofRaw(Base.class)));

@@ -27,7 +27,7 @@ public class WebLauncherLocal extends WebLauncher {
 		// Must match the MongoDB started for the tutorial (doc/TUTORIAL_01_first_install.md).
 		ConfigBaseVariable.setApiAddress("http://127.0.0.1:9000/sample/api/");
 		ConfigBaseVariable.setDbPassword("base_db_password");
-		ConfigBaseVariable.setBdDatabase("sample_basic");
+		ConfigBaseVariable.setDbName("sample_basic");
 		// The front of the tutorial runs on the dev server of Vite/Angular: only it may call the API from a
 		// browser (credentials allowed). Other origins get no CORS header.
 		ConfigBaseVariable.setCorsAllowedOrigins("http://localhost:4200,http://127.0.0.1:4200");
@@ -38,7 +38,7 @@ public class WebLauncherLocal extends WebLauncher {
 	 * @return {@code true} for localhost / 127.x / ::1.
 	 */
 	public static boolean listensOnLoopback() {
-		final String host = java.net.URI.create(ConfigBaseVariable.getLocalAddress()).getHost();
+		final String host = java.net.URI.create(ConfigBaseVariable.getApiAddress()).getHost();
 		return host != null && ("localhost".equals(host) || host.startsWith("127.") || "[::1]".equals(host));
 	}
 

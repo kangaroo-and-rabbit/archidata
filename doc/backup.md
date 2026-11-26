@@ -72,7 +72,7 @@ Archive format
   100 000). The memory used by a backup is bounded by the chunk size, not by the
   collection size.
 - Media files, when enabled, are stored under `data/` and restored into
-  `ConfigBaseVariable.getMediaDataFolder()` (see [tools.md](tools.md)).
+  `ConfigBaseVariable.getDataFolder()` (see [tools.md](tools.md)).
 - A SHA-256 sum is written next to the archive, `<archive>.sha256` (`sha256sum`
   format), and checked before any restore (`restoreFile`, `restoreDeltaFile`,
   `restore`, `restoreLatest`): a mismatch throws `IOException` and nothing is

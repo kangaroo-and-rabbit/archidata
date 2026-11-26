@@ -11,7 +11,7 @@ and `migration/Initialization.java`.
 > **Note:** Reverse migration is not supported. `MigrationInterface` has no reverse operation:
 > `MigrationEngine.revertSingle()` always throws `UnsupportedOperationException`, and so does
 > `revertTo()` as soon as one migration would have to be reverted. Write a new forward migration
-> instead.
+> instead. Both methods are deprecated for removal.
 
 
 How it works
@@ -70,7 +70,7 @@ public void migrateDB() throws Exception {
 
 ```java
 // From ConfigBaseVariable, i.e. the DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_DATABASE
-// environment variables or the matching setters (setDbHost, setDbPassword, setBdDatabase...)
+// environment variables or the matching setters (setDbHost, setDbPassword, setDbName...)
 final DbConfig config = new DbConfig();
 
 // Explicit values: hostname, port, login, password, database name, keep connected, classes

@@ -19,13 +19,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *
  * <p>
  * Second format: it adds the {@code version} field to {@link Migration1}. It is superseded by
- * {@link Migration}, which replaces the text log by structured {@link MigrationMessage} entries,
- * and is kept to read and upgrade older databases.
+ * {@link Migration}, which replaces the text log by structured {@link MigrationMessage} entries.
  * </p>
+ *
+ * @deprecated not used by archidata: the migration engine reads and writes {@link Migration} only.
  */
 // TODO: Add a migration Hash to be sure that the current migration init is correct and has not change...
 @Collection("KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Deprecated(since = "0.55.0", forRemoval = true)
 public class Migration2 extends GenericDataSoftDelete {
 	/** Creates an empty {@link Migration2} instance. */
 	public Migration2() {}

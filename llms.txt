@@ -2,7 +2,7 @@
 
 > archidata (Maven `org.atria-soft:archidata`, MPL 2.0) is a Java 25 framework for REST servers built on Jakarta JAX-RS (Jersey + Grizzly) and MongoDB: annotated entities with automatic CRUD, filters and pagination, relations, JWT roles and rights, Bean Validation groups, migrations, index synchronization, backups, change streams, cron, and generation of OpenAPI, TypeScript and Python clients. Every jar embeds the full documentation of its own version at `META-INF/archidata/llms-full.txt`: read it from the jar in `~/.m2/repository/org/atria-soft/archidata/<version>/` that matches the project's pom.
 
-Read the pitfalls first: launcher registration (`GenericCatcher.addAll`, `ContextGenericTools.addJsr310`), `@Valid` + `@ValidGroup`, 403 on endpoints without a security annotation, JWT format, `@DataNotRead` timestamps, indexes, partial updates with `FilterValue`.
+Read the pitfalls first: launcher registration (`GenericCatcher.addAll`, `ContextGenericTools.registerArchidataJson`), `@Valid` + `@ValidGroup`, 403 on endpoints without a security annotation, JWT format, `@DataNotRead` timestamps, indexes, partial updates with `FilterValue`.
 
 ## Start here
 

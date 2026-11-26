@@ -78,7 +78,10 @@ public class AnnotationTools {
 	 * @param clazz the class to inspect
 	 * @param annotationClass the annotation type to look for
 	 * @return {@code true} if the annotation is present on the class or its interfaces
+	 * @deprecated not used by archidata: use {@code clazz.isAnnotationPresent(annotationClass)}, and walk the interfaces
+	 *             yourself when needed.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static boolean hasAnnotation(final Class<?> clazz, final Class<? extends Annotation> annotationClass) {
 		if (clazz.isAnnotationPresent(annotationClass)) {
 			return true;
@@ -301,7 +304,9 @@ public class AnnotationTools {
 	 * @param param the parameter to inspect
 	 * @param clazz the annotation type to look for
 	 * @return an array of matching annotations, or {@code null} if none found
+	 * @deprecated not used by archidata: use {@code getDeclaredAnnotationsByType} of the element.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <TYPE extends Annotation> TYPE[] gets(final Parameter param, final Class<TYPE> clazz) {
 		final TYPE[] annotations = param.getDeclaredAnnotationsByType(clazz);
 
@@ -335,7 +340,9 @@ public class AnnotationTools {
 	 * @param element the field to inspect
 	 * @param clazz the annotation type to look for
 	 * @return an array of matching annotations, or {@code null} if none found
+	 * @deprecated not used by archidata: use {@code getDeclaredAnnotationsByType} of the element.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <TYPE extends Annotation> TYPE[] gets(final Field element, final Class<TYPE> clazz) {
 		final TYPE[] annotations = element.getDeclaredAnnotationsByType(clazz);
 
@@ -369,7 +376,9 @@ public class AnnotationTools {
 	 * @param classObject the class to inspect
 	 * @param clazz the annotation type to look for
 	 * @return an array of matching annotations, or {@code null} if none found
+	 * @deprecated not used by archidata: use {@code getDeclaredAnnotationsByType} of the element.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static <TYPE extends Annotation> TYPE[] gets(final Class<?> classObject, final Class<TYPE> clazz) {
 		final TYPE[] annotations = classObject.getDeclaredAnnotationsByType(clazz);
 
@@ -445,7 +454,9 @@ public class AnnotationTools {
 	 *
 	 * @param element the field to inspect
 	 * @return the annotation instance, or {@code null} if not present
+	 * @deprecated not used by archidata: use {@link #get(Field, Class)} with the annotation class.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static CollectionItemNotNull getCollectionItemNotNull(final Field element) {
 		return get(element, CollectionItemNotNull.class);
 	}
@@ -455,7 +466,9 @@ public class AnnotationTools {
 	 *
 	 * @param element the field to inspect
 	 * @return the annotation instance, or {@code null} if not present
+	 * @deprecated not used by archidata: use {@link #get(Field, Class)} with the annotation class.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static CollectionItemUnique getCollectionItemUnique(final Field element) {
 		return get(element, CollectionItemUnique.class);
 	}
@@ -465,7 +478,9 @@ public class AnnotationTools {
 	 *
 	 * @param element the field to inspect
 	 * @return the annotation instance, or {@code null} if not present
+	 * @deprecated not used by archidata: use {@link #get(Field, Class)} with the annotation class.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static CollectionNotEmpty getCollectionNotEmpty(final Field element) {
 		return get(element, CollectionNotEmpty.class);
 	}
@@ -643,7 +658,9 @@ public class AnnotationTools {
 	 * @param field the field to inspect
 	 * @param annotationType the annotation type to search for
 	 * @return {@code true} if the annotation or meta-annotation is present
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static boolean isAnnotationGroup(final Field field, final Class<?> annotationType) {
 		try {
 			final Annotation[] anns = field.getAnnotations();
@@ -734,7 +751,7 @@ public class AnnotationTools {
 			final List<OptionRenameColumn> renamesColumn = options.get(OptionRenameColumn.class);
 			for (final OptionRenameColumn rename : renamesColumn) {
 				if (rename.columnName.equals(inStructName)) {
-					inTableName = rename.ColumnNewName;
+					inTableName = rename.getNewName();
 					LOGGER.trace("Detect overwrite of column name '{}' => '{}'", inStructName, inTableName);
 					break;
 				}
@@ -762,7 +779,10 @@ public class AnnotationTools {
 	 *
 	 * @param element the field to inspect
 	 * @return {@code true} if the field has the {@code @NotNull} constraint
+	 * @deprecated not used by archidata (and misnamed, it is not a getter): use {@code
+	 *             element.isAnnotationPresent(NotNull.class)}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static boolean getConstraintsNotNull(final Field element) {
 		final Annotation[] annotation = element.getDeclaredAnnotationsByType(NotNull.class);
 		if (annotation.length == 0) {
@@ -813,7 +833,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the class to inspect
 	 * @return the primary key field, or {@code null}
+	 * @deprecated not used by archidata: the primary key of an entity is read from its {@code DbClassModel}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Field getPrimaryKeyField(final Class<?> clazz) {
 		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.isPrimaryKey(field)) {
@@ -927,7 +949,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the entity class to inspect
 	 * @return the deleted field column name, or {@code null}
+	 * @deprecated not used by archidata: use {@code DbClassModel#getDeletedFieldName()}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String getDeletedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : getAllInstanceFields(clazz)) {
@@ -947,7 +971,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the entity class to inspect
 	 * @return the update timestamp field name pair, or {@code null}
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static FieldName getUpdatedFieldName(final Class<?> clazz) {
 		try {
 			for (final Field elem : getAllInstanceFields(clazz)) {
@@ -966,7 +992,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the class to inspect
 	 * @return the ID field, or {@code null}
+	 * @deprecated not used by archidata: same lookup as {@link #getPrimaryKeyField(Class)}, and also deprecated.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Field getIdField(final Class<?> clazz) {
 		try {
 			for (final Field field : getAllInstanceFields(clazz)) {
@@ -986,7 +1014,9 @@ public class AnnotationTools {
 	 * @param clazz the class to inspect
 	 * @param name the field name to look for
 	 * @return {@code true} if a field with that name exists
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static boolean hasFieldsName(final Class<?> clazz, final String name) {
 		for (final Field field : getAllInstanceFields(clazz)) {
 			if (field.getName().equals(name)) {
@@ -1001,7 +1031,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the class to inspect
 	 * @return a list of editable field names
+	 * @deprecated not used by archidata: use {@link #getFieldsNamesFilter(Class, boolean)} with {@code false}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static List<String> getEditableFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, false);
 	}
@@ -1011,7 +1043,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the class to inspect
 	 * @return a list of all field names
+	 * @deprecated not used by archidata: use {@link #getFieldsNamesFilter(Class, boolean)} with {@code true}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static List<String> getAllFieldsNames(final Class<?> clazz) {
 		return getFieldsNamesFilter(clazz, true);
 	}
@@ -1056,7 +1090,9 @@ public class AnnotationTools {
 	 *
 	 * @param clazz the class to inspect
 	 * @return the ID field, or {@code null}
+	 * @deprecated not used by archidata: same lookup as {@link #getPrimaryKeyField(Class)}, and also deprecated.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Field getFieldOfId(final Class<?> clazz) {
 		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.isIdField(field)) {
@@ -1072,7 +1108,9 @@ public class AnnotationTools {
 	 * @param clazz the class to inspect
 	 * @param name the DB column name to search for
 	 * @return the matching field, or {@code null}
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static Field getFieldNamed(final Class<?> clazz, final String name) {
 		for (final Field field : getAllInstanceFields(clazz)) {
 			if (AnnotationTools.getFieldNameRaw(field).equals(name)) {

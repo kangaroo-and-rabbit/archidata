@@ -158,7 +158,7 @@ public class FullDocumentModesTest {
 			}
 		}, "TestChangeStreamEntity").register();
 
-		final var effectiveMode = manager.computeEffectiveMode("TestChangeStreamEntity");
+		final var effectiveMode = manager.getDefaultFullDocumentMode();
 		Assertions.assertEquals(FullDocument.DEFAULT, effectiveMode,
 				"Effective mode should be DEFAULT when multiple listeners with DEFAULT mode are registered");
 

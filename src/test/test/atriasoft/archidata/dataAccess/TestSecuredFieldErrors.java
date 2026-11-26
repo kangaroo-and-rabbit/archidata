@@ -34,7 +34,7 @@ public class TestSecuredFieldErrors {
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 	}
 
 	@AfterAll

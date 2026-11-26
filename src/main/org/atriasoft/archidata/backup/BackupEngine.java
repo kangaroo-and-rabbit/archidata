@@ -881,7 +881,7 @@ public class BackupEngine {
 
 	private void backupDataToStream(final TarArchiveOutputStream tarOut, final Date modifiedSince)
 			throws IOException, DataAccessException {
-		final String mediaFolder = ConfigBaseVariable.getMediaDataFolder();
+		final String mediaFolder = ConfigBaseVariable.getDataFolder();
 		// Create a File to the specific data of medias:
 		final File mediaDirFile = new File(mediaFolder);
 
@@ -958,7 +958,7 @@ public class BackupEngine {
 
 	private void restoreStreamToData(final TarArchiveInputStream tarIn, final boolean moveOldData)
 			throws IOException, DataAccessException {
-		final String mediaFolder = ConfigBaseVariable.getMediaDataFolder();
+		final String mediaFolder = ConfigBaseVariable.getDataFolder();
 		final File mediaDirFile = new File(mediaFolder);
 
 		// First step: move previous data if requested

@@ -84,7 +84,7 @@ public class JWTWrapper {
 	/** Value of {@link #CLAIM_KIND} for the token of a trusted device. */
 	public static final String KIND_DEVICE = "device";
 	/**
-	 * Names written by {@link #generateJWToken(Object, String, String, String, Map, Map, int, Map)} itself or read by
+	 * Names written by {@link #generateJWToken(ObjectId, String, String, String, Map, Map, int, Map)} itself or read by
 	 * the token checks: an extra claim may not use them, whatever its case.
 	 */
 	public static final Set<String> RESERVED_CLAIMS = Set.of("sub", "aud", "iss", "iat", "exp", "nbf", "login",
@@ -321,7 +321,7 @@ public class JWTWrapper {
 			con.setRequestProperty("Cache-Control", "no-cache");
 			con.setRequestProperty("Content-Type", "application/json");
 			con.setRequestProperty("Accept", "application/json");
-			final String ssoToken = ConfigBaseVariable.ssoToken();
+			final String ssoToken = ConfigBaseVariable.getSSOToken();
 			if (ssoToken != null) {
 				con.setRequestProperty(AuthenticationFilter.APIKEY, ssoToken);
 			}
@@ -436,6 +436,32 @@ public class JWTWrapper {
 	 * @param timeoutInMinutes Expiration delay in minutes.
 	 * @return The encoded JWT token, or {@code null} on failure. */
 	public static String generateJWToken(
+			final ObjectId userID,
+			final String userLogin,
+			final String issuer,
+			final String application,
+			final Map<String, Object> roles,
+			final Map<String, Object> rights,
+			final int timeoutInMinutes) {
+		return signToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, null);
+	}
+
+	/** Create a token with the provided elements.
+	 * @param userID UniqueId of the USER: an {@code ObjectId}, or a {@code Long} (never accepted by
+	 *               {@code AuthenticationFilter}, which reads the subject as an {@code ObjectId} hex string).
+	 * @param userLogin Login of the user (never change).
+	 * @param issuer The one who provides the token.
+	 * @param application The target application name.
+	 * @param roles Optional map of roles to include (high-level: ADMIN, USER).
+	 * @param rights Optional map of fine-grained rights to include (articles, users).
+	 * @param timeoutInMinutes Expiration delay in minutes.
+	 * @return The encoded JWT token, or {@code null} on failure, silently when {@code userID} is neither an
+	 *         {@code ObjectId} nor a {@code Long}.
+	 * @deprecated the user id is typed {@code Object}, and a {@code Long} or any other type gives a token the
+	 *             filter refuses or {@code null}: use
+	 *             {@link #generateJWToken(ObjectId, String, String, String, Map, Map, int)}. */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String generateJWToken(
 			final Object userID,
 			final String userLogin,
 			final String issuer,
@@ -443,12 +469,12 @@ public class JWTWrapper {
 			final Map<String, Object> roles,
 			final Map<String, Object> rights,
 			final int timeoutInMinutes) {
-		return generateJWToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, null);
+		return signToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, null);
 	}
 
 	/** Create a token with the provided elements and claims of the caller's own.
 	 * <p>
-	 * Same token as {@link #generateJWToken(Object, String, String, String, Map, Map, int)}, plus the claims of
+	 * Same token as {@link #generateJWToken(ObjectId, String, String, String, Map, Map, int)}, plus the claims of
 	 * {@code extraClaims} (for example {@value #CLAIM_KIND}, {@code scope}, {@code dev}, {@code jti}). A name of
 	 * {@link #RESERVED_CLAIMS} is refused whatever its case, so that an extra claim can never replace the subject,
 	 * the audience, the dates, the roles or the rights written by this method. A token without {@code roles} nor
@@ -470,6 +496,49 @@ public class JWTWrapper {
 	 *                                  is not {@value #KIND_DEVICE}, or a {@value #CLAIM_KIND} comes with roles or
 	 *                                  rights. Nothing is signed then. */
 	public static String generateJWToken(
+			final ObjectId userID,
+			final String userLogin,
+			final String issuer,
+			final String application,
+			final Map<String, Object> roles,
+			final Map<String, Object> rights,
+			final int timeoutInMinutes,
+			final Map<String, Object> extraClaims) {
+		return signToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, extraClaims);
+	}
+
+	/** Create a token with the provided elements and claims of the caller's own.
+	 * @param userID UniqueId of the USER: an {@code ObjectId}, or a {@code Long} (never accepted by
+	 *               {@code AuthenticationFilter}).
+	 * @param userLogin Login of the user (never change).
+	 * @param issuer The one who provides the token.
+	 * @param application The target application name.
+	 * @param roles Optional map of roles to include, {@code null} for none.
+	 * @param rights Optional map of fine-grained rights to include, {@code null} for none.
+	 * @param timeoutInMinutes Expiration delay in minutes.
+	 * @param extraClaims Claims added to the token, {@code null} or empty for none.
+	 * @return The encoded JWT token, or {@code null} on failure, silently when {@code userID} is neither an
+	 *         {@code ObjectId} nor a {@code Long}.
+	 * @throws IllegalArgumentException see
+	 *         {@link #generateJWToken(ObjectId, String, String, String, Map, Map, int, Map)}.
+	 * @deprecated the user id is typed {@code Object}, and a {@code Long} or any other type gives a token the
+	 *             filter refuses or {@code null}: use
+	 *             {@link #generateJWToken(ObjectId, String, String, String, Map, Map, int, Map)}. */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String generateJWToken(
+			final Object userID,
+			final String userLogin,
+			final String issuer,
+			final String application,
+			final Map<String, Object> roles,
+			final Map<String, Object> rights,
+			final int timeoutInMinutes,
+			final Map<String, Object> extraClaims) {
+		return signToken(userID, userLogin, issuer, application, roles, rights, timeoutInMinutes, extraClaims);
+	}
+
+	/** Signs the token: the common body of the {@code generateJWToken} overloads. */
+	private static String signToken(
 			final Object userID,
 			final String userLogin,
 			final String issuer,

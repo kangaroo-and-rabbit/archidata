@@ -168,17 +168,17 @@ public class TestLeafProjection {
 		ConfigureDb.configure();
 		final byte[] aesKey = Base64.getDecoder().decode(EncryptionKeyGenerator.generateAesKeyBase64());
 		EncryptionKeyStore.register(EncryptionKeyStore.DEFAULT_KEY_NAME, new AesGcmCipherProvider(aesKey));
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 	}
 
 	@AfterEach
 	public void resetDecrypt() {
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 	}
 
 	@AfterAll
 	public static void clear() throws IOException {
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 		EncryptionKeyStore.reset();
 		ConfigureDb.clear();
 	}
@@ -228,7 +228,7 @@ public class TestLeafProjection {
 				paths.toString());
 		Assertions.assertFalse(paths.contains("history"), paths.toString());
 
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 		final List<String> decrypted = projection();
 		Assertions.assertTrue(decrypted.contains("credentials.apiKey"), decrypted.toString());
 		Assertions.assertFalse(decrypted.contains("credentials.password"), decrypted.toString());
@@ -363,7 +363,7 @@ public class TestLeafProjection {
 		Assertions.assertNull(read.plains.get(1));
 		Assertions.assertNull(read.node);
 
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 		final Account all = ConfigureDb.da.getById(Account.class, inserted._id, new ReadAllColumn());
 		Assertions.assertEquals("root-password", all.credentials.password);
 		Assertions.assertEquals("root-apikey", all.credentials.apiKey);
@@ -421,7 +421,7 @@ public class TestLeafProjection {
 
 		// Decryption enabled: transferred, then decoded by the reader of the class of the option, which decrypts only
 		// when that class marks the sub-field @DataEncrypt too.
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 		Assertions.assertTrue(projection(asPlain).contains("history.apiKey"));
 		final String stored = ((PlainApiKey) firstOfHistory(id, asPlain)).apiKey;
 		Assertions.assertNotEquals("h0-apikey", stored);

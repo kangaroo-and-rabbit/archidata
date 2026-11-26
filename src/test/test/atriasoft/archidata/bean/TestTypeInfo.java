@@ -154,6 +154,7 @@ class TestTypeInfo {
 		Assertions.assertEquals(List.class, ti.elementType());
 	}
 
+	@SuppressWarnings("removal")
 	@Test
 	void testFromFieldOptional() throws Exception {
 		final Field field = TypeModel.class.getField("optionalString");
