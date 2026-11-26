@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 import org.atriasoft.archidata.tools.DateTools;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,10 +16,17 @@ import org.slf4j.LoggerFactory;
 public class TestTimeParsing {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TestTime.class);
 
+	private static TimeZone previousDefaultZone;
+
 	@BeforeAll
 	public static void setUp() {
-		// Set default timezone to UTC
-		//TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+		// The tests below switch the JVM default zone to Tokyo: keep the previous one to give it back.
+		previousDefaultZone = TimeZone.getDefault();
+	}
+
+	@AfterAll
+	public static void tearDown() {
+		TimeZone.setDefault(previousDefaultZone);
 	}
 
 	//	@Test
