@@ -955,14 +955,15 @@ public class TsClassElement {
 	 * @param models the list of class models to generate from
 	 * @param tsGroup the group registry for resolving type references
 	 * @param imports the import model to track dependencies
-	 * @return the generated local model code, or null if the model is a simple object/enum
+	 * @return the generated local model code, or null if the model is a single simple object/enum
 	 */
 	public static String generateLocalModel(
 			final String modelName,
 			final List<ClassModel> models,
 			final TsClassElementGroup tsGroup,
 			final ImportModel imports) {
-		if (models.size() >= 1) {
+		// Several models (an answer that is one of several classes) always need the local union checker.
+		if (models.size() == 1) {
 			if (models.get(0) instanceof ClassObjectModel) {
 				return null;
 			}
@@ -987,7 +988,7 @@ public class TsClassElement {
 			out.append(generateLocalModelBase(models.get(0), tsGroup, imports));
 			out.append(";");
 		} else {
-			out.append("z.union([\n");
+			out.append("zod.union([\n");
 			for (final ClassModel model : models) {
 				out.append("\t");
 				out.append(generateLocalModelBase(model, tsGroup, imports));

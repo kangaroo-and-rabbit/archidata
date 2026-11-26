@@ -494,7 +494,9 @@ endpoints).
 ### @ApiAsyncType
 
 Targets: parameter, method. `value` (required `Class<?>[]`): types accepted by the generated
-function; `tsComplement` (default empty): extra TypeScript type text.
+function; `tsComplement` (default empty): extra TypeScript type text. With several classes on a method
+(`@ApiAsyncType({A.class, B.class})`), the TypeScript client types the answer `A | B` and checks it with a
+`zod.union` of the classes, so an answer of any of them is accepted.
 
 ### @ApiTypeScriptProgress
 

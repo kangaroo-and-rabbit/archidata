@@ -37,6 +37,9 @@
   `HTTPMimeType` (comme le client Python) : `image/png`, `image/jpeg`, `text/csv`, `application/octet-stream`,
   `text/plain`, `*/*` en plus de JSON et multipart. Un type inconnu est ignoré (erreur dans le log) ; si aucun n'est
   connu, le client n'a ni `produce` ni `accept` (avant : `produce: ,`, du TypeScript invalide).
+- TypeScript, `@ApiAsyncType({A.class, B.class})` sur une méthode : la réponse est vérifiée contre l'union (un
+  `ZodXxxTypeReturn = zod.union([ZodA, ZodB])` local à l'API, d'où `Promise<XxxTypeReturn>`), et non plus contre `A` seul : une
+  réponse `B` n'est plus rejetée.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
