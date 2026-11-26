@@ -62,6 +62,8 @@
   l'entrée `inputError` est alors `Invalid value for a query parameter`.
 - `ConstraintViolationExceptionCatcher` : pour une seule violation portant sur un paramètre de méthode (chemin `find.q`),
   le nom de l'erreur est `Error on input='q'`. Avant, `Error on input='null'`. Le cas d'un chemin de bean ne change pas.
+- `UserByToken.getGroups()` et `groupExist(group)` ne lèvent plus de `NullPointerException` après `setRoles(null)` :
+  `getGroups()` rend un ensemble vide et `groupExist` rend `false`. `getRoles()` rend toujours `null` dans ce cas.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

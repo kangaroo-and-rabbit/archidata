@@ -164,19 +164,19 @@ public class UserByToken {
 
 	/**
 	 * Gets the set of all group names that this entity has roles in.
-	 * @return the set of group names
+	 * @return the set of group names, empty when the roles map is {@code null}
 	 */
 	public Set<String> getGroups() {
-		return this.roles.keySet();
+		return this.roles == null ? Collections.emptySet() : this.roles.keySet();
 	}
 
 	/**
 	 * Checks whether a given group exists in the roles map.
 	 * @param group the group name to check
-	 * @return {@code true} if the group exists, {@code false} otherwise
+	 * @return {@code true} if the group exists, {@code false} otherwise (also when the roles map is {@code null})
 	 */
 	public boolean groupExist(final String group) {
-		return this.roles.containsKey(group);
+		return this.roles != null && this.roles.containsKey(group);
 	}
 
 	/**
