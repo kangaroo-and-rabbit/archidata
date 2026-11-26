@@ -101,7 +101,7 @@ public class OpenApiGenerateApi {
 		final Map<String, Object> paths = new LinkedHashMap<>();
 		for (final ApiGroupModel group : api.getAllApi()) {
 			for (final ApiModel endpoint : group.interfaces) {
-				final String path = normalizePath(endpoint.restEndPoint);
+				final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
 				@SuppressWarnings("unchecked")
 				Map<String, Object> pathItem = (Map<String, Object>) paths.get(path);
 				if (pathItem == null) {
@@ -378,7 +378,7 @@ public class OpenApiGenerateApi {
 				schemas.put(name, buildObjectSchema(objModel));
 			} else if (model instanceof ClassEnumModel) {
 				final ClassEnumModel enumModel = (ClassEnumModel) model;
-				schemas.put(getSimpleName(enumModel), buildEnumSchema(enumModel));
+				schemas.put(ApiNaming.simpleName(enumModel), buildEnumSchema(enumModel));
 			}
 		}
 		return schemas;
@@ -677,7 +677,7 @@ public class OpenApiGenerateApi {
 		}
 		if (model instanceof ClassEnumModel) {
 			final Map<String, Object> ref = new LinkedHashMap<>();
-			ref.put("$ref", "#/components/schemas/" + getSimpleName(model));
+			ref.put("$ref", "#/components/schemas/" + ApiNaming.simpleName(model));
 			return ref;
 		}
 		if (model instanceof final ClassPaginationModel paginationModel) {
@@ -786,19 +786,7 @@ public class OpenApiGenerateApi {
 		if (model == null || model.getOriginClasses() == null) {
 			return null;
 		}
-		return getSimpleName(model);
-	}
-
-	private static String getSimpleName(final ClassModel model) {
-		final Class<?> clazz = model.getOriginClasses();
-		if (clazz == null) {
-			return null;
-		}
-		final String name = clazz.getSimpleName();
-		if (name.isEmpty()) {
-			return clazz.getName();
-		}
-		return name;
+		return ApiNaming.simpleName(model);
 	}
 
 	private static boolean isBasicType(final Class<?> type) {
@@ -809,17 +797,6 @@ public class OpenApiGenerateApi {
 				|| type == char.class || type == Date.class || type == LocalDate.class || type == LocalTime.class
 				|| type == Instant.class || type == UUID.class || type == ObjectId.class || type == byte[].class
 				|| type == Object.class;
-	}
-
-	/**
-	 * Normalizes a REST path by collapsing double slashes and removing trailing slashes.
-	 */
-	private static String normalizePath(final String path) {
-		String normalized = path.replaceAll("//+", "/");
-		if (normalized.length() > 1 && normalized.endsWith("/")) {
-			normalized = normalized.substring(0, normalized.length() - 1);
-		}
-		return normalized;
 	}
 
 	private static boolean hasSecuredEndpoints(final AnalyzeApi api) {

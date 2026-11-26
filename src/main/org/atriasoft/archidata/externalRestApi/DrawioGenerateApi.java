@@ -296,7 +296,7 @@ public class DrawioGenerateApi {
 		for (final ApiModel endpoint : group.interfaces) {
 			final String fieldId = idCounter.next();
 			final String method = toHttpMethodName(endpoint.restTypeRequest);
-			final String path = normalizePath(endpoint.restEndPoint);
+			final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
 			final String returnType = resolveReturnType(endpoint);
 			final String line = method + " " + path + " \u2192 " + returnType;
 			cells.append(mxCellChild(fieldId, parentId, escapeXml(line), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
@@ -1099,7 +1099,7 @@ public class DrawioGenerateApi {
 		int maxTextLen = ("\u00ABREST\u00BB " + group.name).length();
 		for (final ApiModel endpoint : group.interfaces) {
 			final String method = toHttpMethodName(endpoint.restTypeRequest);
-			final String path = normalizePath(endpoint.restEndPoint);
+			final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
 			final String returnType = resolveReturnType(endpoint);
 			final String line = method + " " + path + " \u2192 " + returnType;
 			if (line.length() > maxTextLen) {
@@ -1210,12 +1210,8 @@ public class DrawioGenerateApi {
 	// ========== HELPERS ==========
 
 	private static String getSimpleName(final ClassModel model) {
-		final Class<?> clazz = model.getOriginClasses();
-		if (clazz == null) {
-			return "Unknown";
-		}
-		final String name = clazz.getSimpleName();
-		return name.isEmpty() ? clazz.getName() : name;
+		final String name = ApiNaming.simpleName(model);
+		return name == null ? "Unknown" : name;
 	}
 
 	private static String resolveTypeName(final ClassModel model) {
@@ -1297,14 +1293,6 @@ public class DrawioGenerateApi {
 
 	private static String toHttpMethodName(final RestTypeRequest restType) {
 		return restType.name();
-	}
-
-	private static String normalizePath(final String path) {
-		String normalized = path.replaceAll("//+", "/");
-		if (normalized.length() > 1 && normalized.endsWith("/")) {
-			normalized = normalized.substring(0, normalized.length() - 1);
-		}
-		return normalized;
 	}
 
 	private static String escapeXml(final String text) {
