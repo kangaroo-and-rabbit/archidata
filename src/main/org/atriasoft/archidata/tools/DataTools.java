@@ -628,8 +628,11 @@ public class DataTools {
 	public static final long DEFAULT_MAX_REMOTE_DATA_SIZE = 50L * 1024 * 1024;
 	/** Largest body downloaded by {@link #uploadDataFromUri(String)}, {@link #uploadCoverFromUri} and the proxy. */
 	private static volatile long maxRemoteDataSize = DEFAULT_MAX_REMOTE_DATA_SIZE;
-	/** Client used to download the remote data: pinned validated address, no automatic redirection, timeouts. */
-	private static final SafeHttpFetcher REMOTE_FETCHER = new SafeHttpFetcher();
+	/**
+	 * Client used to download the remote data: pinned validated address, no automatic redirection, timeouts.
+	 * Not final only so that a test can replace it by reflection; no code of the library assigns it.
+	 */
+	private static volatile SafeHttpFetcher remoteFetcher = new SafeHttpFetcher();
 
 	/**
 	 * Returns the largest body accepted from a remote URL ({@link #uploadDataFromUri(String)},
@@ -663,7 +666,7 @@ public class DataTools {
 	private static byte[] downloadRemoteData(final String url) throws InputException, FailException {
 		final SafeHttpFetcher.Result response;
 		try {
-			response = REMOTE_FETCHER.get(url, maxRemoteDataSize);
+			response = remoteFetcher.get(url, maxRemoteDataSize);
 		} catch (final IOException ex) {
 			throw new FailException(Response.Status.BAD_GATEWAY, "Can not download the media", ex);
 		}

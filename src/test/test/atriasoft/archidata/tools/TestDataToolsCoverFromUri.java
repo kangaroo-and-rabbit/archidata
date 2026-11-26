@@ -4,18 +4,17 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
+import org.atriasoft.archidata.exception.InputException;
 import org.atriasoft.archidata.model.Data;
 import org.atriasoft.archidata.model.User;
 import org.atriasoft.archidata.tools.ConfigBaseVariable;
@@ -33,31 +32,25 @@ import test.atriasoft.archidata.ConfigureDb;
 
 /**
  * {@link DataTools#uploadCoverFromUri} against a local picture server. The fetcher of {@code DataTools} refuses the
- * loopback address: its policy is relaxed for the test server only, every other forbidden range stays refused.
+ * loopback address: by default the call is refused, and one test replaces the fetcher by one that lets the test server
+ * through (every other forbidden range stays refused), then puts the original back.
  */
 class TestDataToolsCoverFromUri {
 	private static HttpServer server;
 	private static String baseUrl;
 	private static Path workDir;
-	private static Predicate<InetAddress> savedPolicy;
 
 	/**
-	 * Replaces the address policy of the fetcher of {@code DataTools}. Reflection is needed here: the guard of
-	 * {@code DataTools} refuses the loopback address and the test server is local, and the fetcher is a private static
-	 * final field of {@code DataTools} with no setter. This writes a private final field of {@code SafeHttpFetcher}, which
-	 * JDK 26 and later warn about (JEP 500, "final field mutation"); a later JDK may refuse it.
+	 * Replaces the fetcher of {@code DataTools}. Reflection is needed here: the guard of {@code DataTools} refuses the
+	 * loopback address and the test server is local, and the fetcher is a private static field of {@code DataTools} with
+	 * no setter. The field is not final, so no final field is mutated.
 	 */
-	@SuppressWarnings("unchecked")
-	private static void setFetcherPolicy(final Predicate<InetAddress> policy) throws Exception {
-		final Field fetcherField = DataTools.class.getDeclaredField("REMOTE_FETCHER");
+	private static SafeHttpFetcher swapFetcher(final SafeHttpFetcher fetcher) throws Exception {
+		final Field fetcherField = DataTools.class.getDeclaredField("remoteFetcher");
 		fetcherField.setAccessible(true);
-		final Object fetcher = fetcherField.get(null);
-		final Field policyField = SafeHttpFetcher.class.getDeclaredField("forbidden");
-		policyField.setAccessible(true);
-		if (savedPolicy == null) {
-			savedPolicy = (Predicate<InetAddress>) policyField.get(fetcher);
-		}
-		policyField.set(fetcher, policy);
+		final SafeHttpFetcher previous = (SafeHttpFetcher) fetcherField.get(null);
+		fetcherField.set(null, fetcher);
+		return previous;
 	}
 
 	private static byte[] png() throws IOException {
@@ -86,7 +79,6 @@ class TestDataToolsCoverFromUri {
 		});
 		server.start();
 		baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
-		setFetcherPolicy(address -> !address.isLoopbackAddress() && SsrfGuard.isForbidden(address));
 	}
 
 	@AfterAll
@@ -95,15 +87,9 @@ class TestDataToolsCoverFromUri {
 			server.stop(0);
 		} finally {
 			try {
-				if (savedPolicy != null) {
-					setFetcherPolicy(savedPolicy);
-				}
+				deleteTree(workDir);
 			} finally {
-				try {
-					deleteTree(workDir);
-				} finally {
-					ConfigureDb.clear();
-				}
+				ConfigureDb.clear();
 			}
 		}
 	}
@@ -120,15 +106,35 @@ class TestDataToolsCoverFromUri {
 	}
 
 	@Test
-	void theDownloadedPictureBecomesACoverOfTheEntity() throws Exception {
+	void theLoopbackAddressIsRefusedByDefault() throws Exception {
 		final User user = new User();
-		user.setLogin("cover-owner");
+		user.setLogin("cover-owner-refused");
 		final User stored = ConfigureDb.da.insert(user);
-		DataTools.uploadCoverFromUri(ConfigureDb.da, User.class, stored.getOid(), baseUrl + "/cover.png");
+		Assertions.assertThrows(InputException.class, () -> DataTools.uploadCoverFromUri(ConfigureDb.da, User.class,
+				stored.getOid(), baseUrl + "/cover.png"));
 		final User read = DataAccess.getById(User.class, stored.getOid(), new ReadAllColumn());
-		Assertions.assertNotNull(read.getCovers(), "the picture is stored but not linked to the entity");
-		Assertions.assertEquals(1, read.getCovers().size());
-		final Data data = DataAccess.getById(Data.class, read.getCovers().get(0));
-		Assertions.assertEquals("image/png", data.getMimeType());
+		Assertions.assertTrue(read.getCovers() == null || read.getCovers().isEmpty());
+	}
+
+	@Test
+	void theDownloadedPictureBecomesACoverOfTheEntity() throws Exception {
+		final SafeHttpFetcher testFetcher = new SafeHttpFetcher(
+				address -> !address.isLoopbackAddress() && SsrfGuard.isForbidden(address),
+				SafeHttpFetcher.DEFAULT_CONNECT_TIMEOUT_MS, SafeHttpFetcher.DEFAULT_READ_TIMEOUT_MS,
+				SafeHttpFetcher.DEFAULT_TOTAL_TIMEOUT_MS, SafeHttpFetcher.DEFAULT_MAX_REDIRECTS);
+		final SafeHttpFetcher original = swapFetcher(testFetcher);
+		try {
+			final User user = new User();
+			user.setLogin("cover-owner");
+			final User stored = ConfigureDb.da.insert(user);
+			DataTools.uploadCoverFromUri(ConfigureDb.da, User.class, stored.getOid(), baseUrl + "/cover.png");
+			final User read = DataAccess.getById(User.class, stored.getOid(), new ReadAllColumn());
+			Assertions.assertNotNull(read.getCovers(), "the picture is stored but not linked to the entity");
+			Assertions.assertEquals(1, read.getCovers().size());
+			final Data data = DataAccess.getById(Data.class, read.getCovers().get(0));
+			Assertions.assertEquals("image/png", data.getMimeType());
+		} finally {
+			swapFetcher(original);
+		}
 	}
 }
