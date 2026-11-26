@@ -103,6 +103,8 @@ public final class DBAccessMongo implements Closeable {
 	/** Collection holding the sequences of {@link #getNextSequenceLongValue(String, String)}. */
 	public static final String COLLECTION_COUNTERS = "counters";
 	static final Logger LOGGER = LoggerFactory.getLogger(DBAccessMongo.class);
+	/** Maximum number of rounds of {@link #runLazyActions(List)} before it drops the actions still queued. */
+	private static final int MAX_LAZY_ROUNDS = 500;
 
 	/**
 	 * Tracks MongoDB operation statistics for monitoring and debugging purposes.
@@ -154,6 +156,27 @@ public final class DBAccessMongo implements Closeable {
 
 	/** Global statistics for all MongoDB operations performed through this class. */
 	public static final MongoDbStatistic statistic = new MongoDbStatistic();
+
+	/**
+	 * Runs the lazy actions collected by a read, an insert, an update or a delete, then the actions those
+	 * actions queue in turn, round after round.
+	 *
+	 * <p>The loop stops after {@link #MAX_LAZY_ROUNDS} rounds: the actions still queued then are dropped
+	 * without any log.
+	 *
+	 * @param actions the actions of the first round (not modified)
+	 * @throws Exception when an action fails
+	 */
+	private static void runLazyActions(final List<LazyGetter> actions) throws Exception {
+		List<LazyGetter> actionsAsync = actions;
+		for (int round = 0; round < MAX_LAZY_ROUNDS && actionsAsync.size() != 0; round++) {
+			final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
+			for (final LazyGetter action : actionsAsync) {
+				action.doRequest(actionsAsyncNew);
+			}
+			actionsAsync = actionsAsyncNew;
+		}
+	}
 
 	/**
 	 * Returns the soft-delete field a query implicitly filters on, for {@link QueryStatistics}.
@@ -1345,14 +1368,7 @@ public final class DBAccessMongo implements Closeable {
 			final Object fieldValue = desc.getProperty().getValue(data);
 			desc.getAddOn().asyncInsert(this, clazz, uniqueId, desc, fieldValue, asyncActions, options);
 		}
-		List<LazyGetter> actionsAsync = asyncActions;
-		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-			final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
-			for (final LazyGetter action : actionsAsync) {
-				action.doRequest(actionsAsyncNew);
-			}
-			actionsAsync = actionsAsyncNew;
-		}
+		runLazyActions(asyncActions);
 		return uniqueId;
 	}
 
@@ -1538,14 +1554,7 @@ public final class DBAccessMongo implements Closeable {
 						+ "(concurrent write?): its relation fields were written without synchronizing the remote "
 						+ "documents", collectionName);
 			}
-			List<LazyGetter> actionsAsync = asyncActions;
-			for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-				final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
-				for (final LazyGetter action : actionsAsync) {
-					action.doRequest(actionsAsyncNew);
-				}
-				actionsAsync = actionsAsyncNew;
-			}
+			runLazyActions(asyncActions);
 			return ret.getModifiedCount();
 		} catch (final Exception ex) {
 			LOGGER.error("Error in update: {}", ex.getMessage(), ex);
@@ -1783,14 +1792,7 @@ public final class DBAccessMongo implements Closeable {
 				if (!lazyCall.isEmpty()) {
 					final List<String> chain = RelationExpansion.enter(clazz, expandedKeys);
 					try {
-						List<LazyGetter> actionsAsync = lazyCall;
-						for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-							final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
-							for (final LazyGetter action : actionsAsync) {
-								action.doRequest(actionsAsyncNew);
-							}
-							actionsAsync = actionsAsyncNew;
-						}
+						runLazyActions(lazyCall);
 					} finally {
 						RelationExpansion.leave(chain);
 					}
@@ -1974,14 +1976,7 @@ public final class DBAccessMongo implements Closeable {
 		for (final DbPropertyDescriptor desc : deleteActionFields) {
 			desc.getAddOn().onDelete(this, clazz, desc, previousData, lazyCall);
 		}
-		List<LazyGetter> actionsAsync = lazyCall;
-		for (int kkk = 0; kkk < 500 && actionsAsync.size() != 0; kkk++) {
-			final List<LazyGetter> actionsAsyncNew = new ArrayList<>();
-			for (final LazyGetter action : actionsAsync) {
-				action.doRequest(actionsAsyncNew);
-			}
-			actionsAsync = actionsAsyncNew;
-		}
+		runLazyActions(lazyCall);
 	}
 
 	/**
