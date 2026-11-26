@@ -109,6 +109,7 @@ public class TsGenerateApi {
 		// -----------------------------------------------------------
 		// -- Generates all MODEL files & model requested by API:
 		// -----------------------------------------------------------
+		tsGroup.propagateVariantsToParents();
 		for (final TsClassElement element : localModel) {
 			element.generateFile(tsGroup, generation);
 		}

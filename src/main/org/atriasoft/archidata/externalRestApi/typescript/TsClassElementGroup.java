@@ -1,10 +1,13 @@
 package org.atriasoft.archidata.externalRestApi.typescript;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.annotation.checker.ValidGroup;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
+import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
 import org.atriasoft.archidata.externalRestApi.model.ParameterClassModel;
+import org.atriasoft.archidata.externalRestApi.typescript.TsClassElement.DefinedPosition;
 
 import jakarta.validation.Valid;
 
@@ -48,6 +51,41 @@ public class TsClassElementGroup {
 	 */
 	public boolean isZodEnum() {
 		return this.zodEnum;
+	}
+
+	/**
+	 * Registers on every parent the variants its children use: a child variant ({@code ChildCreate}) extends the same
+	 * variant of its parent ({@code ParentCreate}), which the file of the parent must therefore export, whatever the
+	 * order the files are generated. Call it once the API files have registered the variants they need and before the
+	 * model files are generated.
+	 */
+	public void propagateVariantsToParents() {
+		boolean changed = true;
+		while (changed) {
+			changed = false;
+			for (final TsClassElement element : this.tsElements) {
+				if (element.nativeType != DefinedPosition.NORMAL
+						|| !(element.models.get(0) instanceof final ClassObjectModel model)
+						|| model.getExtendsClass() == null) {
+					continue;
+				}
+				final TsClassElement parent = find(model.getExtendsClass());
+				if (parent == null || parent.nativeType != DefinedPosition.NORMAL) {
+					continue;
+				}
+				// A child without any registered variant generates its default one
+				final List<ParameterClassModel> variants = element.requestedModels.isEmpty()
+						? List.of(new ParameterClassModel(model))
+						: new ArrayList<>(element.requestedModels);
+				for (final ParameterClassModel variant : variants) {
+					final int before = parent.requestedModels.size();
+					parent.getParameterClassModel(variant.valid(), variant.groups(), model.getExtendsClass());
+					if (parent.requestedModels.size() != before) {
+						changed = true;
+					}
+				}
+			}
+		}
 	}
 
 	/**

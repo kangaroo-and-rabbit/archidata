@@ -40,6 +40,9 @@
 - TypeScript, `@ApiAsyncType({A.class, B.class})` sur une méthode : la réponse est vérifiée contre l'union (un
   `ZodXxxTypeReturn = zod.union([ZodA, ZodB])` local à l'API, d'où `Promise<XxxTypeReturn>`), et non plus contre `A` seul : une
   réponse `B` n'est plus rejetée.
+- TypeScript, variantes d'un parent : le fichier d'un modèle parent exporte maintenant `ZodParentCreate` (etc.) dès
+  qu'un enfant en a besoin, quel que soit l'ordre des fichiers (avant, le fichier du parent pouvait manquer l'export
+  que le fichier de l'enfant importe). Comme en Python.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
