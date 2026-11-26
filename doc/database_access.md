@@ -517,7 +517,7 @@ final List<String> names = Fields.list(User::getName, User::getAge);  // -> ["na
 
 ### Type-Safe Filters with Filters
 
-`Filters` is a drop-in replacement for `com.mongodb.client.model.Filters` that adds method reference support:
+`Filters` mirrors the common helpers of `com.mongodb.client.model.Filters` (not the geospatial and bitwise ones, nor `text` with options) and adds method reference support. Its `eq` writes an explicit `$eq`, and a field name starting with `$` is refused:
 
 ```java
 // String-based (same as MongoDB Filters)

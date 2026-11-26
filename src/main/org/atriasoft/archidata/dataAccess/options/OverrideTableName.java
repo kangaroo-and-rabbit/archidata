@@ -1,7 +1,7 @@
 package org.atriasoft.archidata.dataAccess.options;
 
-/** Option that permit to access to a table structure with an other name that is define in the structure. Note: Internal use for link tables (see:
- * org.atriasoft.archidata.dataAccess.addOn.model.LinkTable). */
+/** Reads and writes the collection named by this option instead of the one of the entity class (its
+ * {@code @Collection} name, or its simple class name by default). */
 public class OverrideTableName extends QueryOption {
 	private final String name;
 

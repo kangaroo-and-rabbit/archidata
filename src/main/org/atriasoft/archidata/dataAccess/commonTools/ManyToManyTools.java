@@ -15,8 +15,9 @@ import org.atriasoft.archidata.exception.DataAccessException;
 /**
  * Utility for managing ManyToMany bidirectional links.
  *
- * <p>All link operations now use atomic MongoDB operations ({@code $addToSet}, {@code $pull})
- * via {@link MongoLinkManager} instead of read-modify-write.
+ * <p>{@code addLink} and {@code removeLink} use atomic MongoDB operations ({@code $addToSet}, {@code $pull})
+ * via {@link MongoLinkManager}, with no read-modify-write. {@code updateRemoteLinks} is not atomic: it reads
+ * every document, then updates each one.
  */
 public class ManyToManyTools {
 	private ManyToManyTools() {

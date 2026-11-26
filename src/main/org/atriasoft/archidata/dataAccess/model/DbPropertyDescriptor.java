@@ -29,7 +29,8 @@ import org.slf4j.LoggerFactory;
  * Wraps a generic {@link PropertyDescriptor} with archidata-specific database metadata.
  *
  * <p>All annotation lookups are done once at construction time and cached.
- * The converters (toDb/fromDb) are pre-built lambdas for zero-overhead type conversion.
+ * The conversion between the Java value and the MongoDB value is done by a pre-compiled
+ * {@link MongoFieldCodec}.
  */
 public final class DbPropertyDescriptor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DbPropertyDescriptor.class);

@@ -13,8 +13,8 @@ import org.atriasoft.archidata.exception.DataAccessException;
  * <p>This is a convenience wrapper around {@link MongoLinkManager} that resolves
  * field names from Java property names using {@link DbClassModel}.
  *
- * <p>Delegates to atomic MongoDB operations ({@code $addToSet}, {@code $pull})
- * instead of the previous read-modify-write pattern.
+ * <p>Delegates to atomic MongoDB operations ({@code $addToSet}, {@code $pull}), with no
+ * read-modify-write.
  */
 public class ListInDbTools {
 	private ListInDbTools() {

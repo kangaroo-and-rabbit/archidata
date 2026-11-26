@@ -308,10 +308,9 @@ public final class QuerySignature {
 	 * Builds the compound index this query would ideally use, following the ESR order.
 	 *
 	 * <p>
-	 * The soft-delete field is deliberately left out: it is filtered with
-	 * {@code $or(eq(deleted,false), exists(deleted,false))}, which a plain compound index serves
-	 * poorly. The right answer for it is a <i>partial</i> index
-	 * ({@code partialFilterExpression: {deleted: false}}), which is a decision to take per
+	 * The soft-delete field is deliberately left out: the query filters it with a plain equality
+	 * {@code eq(deleted, false)}, which makes a <i>partial</i> index
+	 * ({@code partialFilterExpression: {deleted: false}}) usable. That index is a decision to take per
 	 * collection, not something to infer from a counter.
 	 * </p>
 	 *
@@ -322,7 +321,8 @@ public final class QuerySignature {
 	 * by it.
 	 * </p>
 	 *
-	 * @return the suggested index, for example {@code {"companyId": 1, "active": 1, "createdAt": -1, "age": 1}},
+	 * @return the suggested index, for example {@code {"active": 1, "companyId": 1, "createdAt": -1, "age": 1}}
+	 *         (the equality fields come first, sorted alphabetically),
 	 *         or {@code null} when the query filters and sorts on nothing (a full collection scan
 	 *         that no index can help)
 	 */

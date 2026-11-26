@@ -33,8 +33,10 @@ public record PaginationContext(
 	public static final long MAX_LIMIT = 500L;
 
 	/**
-	 * Compact constructor enforcing the same range constraints as
-	 * {@link Skip} and {@link Limit}.
+	 * Compact constructor enforcing the lower bounds of {@link Skip} ({@code offset >= 0}) and
+	 * {@link Limit} ({@code limit > 0}). The upper bounds are not checked here: {@link #toSkip()} and
+	 * {@link #toLimit()} throw an {@link IllegalArgumentException} when a value exceeds the maximum of
+	 * {@link Skip} or {@link Limit}.
 	 */
 	public PaginationContext {
 		if (offset < 0L) {

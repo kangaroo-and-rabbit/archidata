@@ -29,24 +29,23 @@ import jakarta.ws.rs.InternalServerErrorException;
  * </p>
  *
  * <p>
- * Example usage with ObjectId:
+ * The examples of this class use {@code Task}, the entity of {@code sample/archidata/basic}: a {@code Long}
+ * id, {@code title}, {@code description} and {@code done} fields, and a soft-delete flag.
  * </p>
  * <pre>
- * // Insert a new user
- * User user = new User();
- * user.name = "John Doe";
- * User inserted = DataAccess.insert(user);
- * ObjectId userId = inserted.id;
+ * // Insert a new task
+ * Task inserted = DataAccess.insert(new Task("Buy milk", "2 liters"));
+ * Long taskId = inserted.getId();
  *
  * // Retrieve by ID
- * User found = DataAccess.getById(User.class, userId);
+ * Task found = DataAccess.getById(Task.class, taskId);
  *
  * // Update
- * found.name = "Jane Doe";
- * DataAccess.updateById(found, userId);
+ * found.setTitle("Buy oat milk");
+ * DataAccess.updateById(found, taskId);
  *
- * // Delete
- * DataAccess.deleteById(User.class, userId);
+ * // Delete (a soft delete: Task has a deleted flag)
+ * DataAccess.deleteById(Task.class, taskId);
  * </pre>
  */
 public class DataAccess {
@@ -59,20 +58,14 @@ public class DataAccess {
 	// ========================================================================
 
 	/**
-	 * Lists all collection names in the database.
+	 * Lists the names of the collections of the database the connection is bound to.
 	 *
 	 * <p>
-	 * Example usage:
+	 * {@code name} and {@code options} are ignored: the database is the one of the connection, not the one named.
 	 * </p>
-	 * <pre>
-	 * List&lt;String&gt; collections = DataAccess.listCollections("mydb");
-	 * for (String name : collections) {
-	 *     System.out.println("Collection: " + name);
-	 * }
-	 * </pre>
 	 *
-	 * @param name    Database name
-	 * @param options Optional query options
+	 * @param name    Ignored
+	 * @param options Ignored
 	 * @return List of collection names
 	 * @throws InternalServerErrorException if operation fails
 	 * @throws IOException                  if I/O error occurs
@@ -98,12 +91,11 @@ public class DataAccess {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * List&lt;User&gt; users = Arrays.asList(user1, user2, user3);
-	 * List&lt;User&gt; inserted = DataAccess.insertMultiple(users);
-	 * ObjectId firstId = inserted.get(0).id;
+	 * List&lt;Task&gt; inserted = DataAccess.insertMultiple(List.of(task1, task2, task3));
+	 * Long firstId = inserted.get(0).getId();
 	 * </pre>
 	 *
 	 * @param <T>     The type of entities
@@ -123,20 +115,21 @@ public class DataAccess {
 	 * Inserts a single entity into the database.
 	 *
 	 * <p>
-	 * The entity is inserted and returned with its auto-generated ID and timestamps.
+	 * The entity is inserted, then read back by its generated primary key. The read-back follows the usual
+	 * read rules: a {@code @DataNotRead} field such as {@code createdAt} is {@code null} in the result unless
+	 * {@link org.atriasoft.archidata.dataAccess.options.ReadAllColumn} is passed.
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * User user = new User();
-	 * user.name = "John Doe";
-	 * user.email = "john@example.com";
+	 * Task inserted = DataAccess.insert(new Task("Buy milk", "2 liters"));
+	 * Long taskId = inserted.getId(); // generated
 	 *
-	 * User inserted = DataAccess.insert(user);
-	 * ObjectId userId = inserted.id; // Auto-generated
-	 * Timestamp created = inserted.createdAt; // Auto-populated
+	 * // createdAt is read back only with ReadAllColumn
+	 * Task withTimestamps = DataAccess.insert(new Task("Buy bread", ""), new ReadAllColumn());
+	 * Date created = withTimestamps.getCreatedAt();
 	 * </pre>
 	 *
 	 * @param <T>     The type of entity
@@ -185,23 +178,23 @@ public class DataAccess {
 	 * Updates an entity identified by its ID.
 	 *
 	 * <p>
-	 * <strong>Field filtering:</strong> By default, ALL fields are updated.
-	 * Use {@code FilterValue} to update only specific fields.
+	 * <strong>Field filtering:</strong> without a {@code FilterValue}, every editable field is written, a
+	 * {@code null} one included (it is unset); the {@code @DataNotRead} and {@code @DataEncrypt} fields are not
+	 * part of that default. Use {@code FilterValue} to write only the named fields.
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * User updateData = new User();
-	 * updateData.email = "newemail@example.com";
+	 * Task update = new Task();
+	 * update.setTitle("Buy oat milk");
 	 *
-	 * // Update all editable fields (never the @DataNotRead / @DataEncrypt ones)
-	 * DataAccess.updateById(updateData, userId);
+	 * // Write every editable field of update (the ones left null are unset)
+	 * DataAccess.updateById(update, taskId);
 	 *
-	 * // Update only specific fields
-	 * DataAccess.updateById(updateData, userId, new FilterValue(List.of("email")));
+	 * // Write only the title
+	 * DataAccess.updateById(update, taskId, new FilterValue("title"));
 	 * </pre>
 	 *
 	 * <p>A {@link Condition} in the options is ANDed with the id; the relation side effects follow it (none when
@@ -212,7 +205,9 @@ public class DataAccess {
 	 * @param data      Entity data to update
 	 * @param id        Unique identifier (e.g., ObjectId)
 	 * @param option    Optional query options (e.g., FilterValue)
-	 * @return Number of entities updated (typically 0 or 1)
+	 * @return Number of documents modified (0 or 1): the date of an {@code @UpdateTimestamp} field is always
+	 *         written (unless {@code DirectData}), so a matched document counts 1; without such a field, a
+	 *         matched document whose values do not change counts 0
 	 * @throws Exception if update fails
 	 */
 	public static <T, ID_TYPE> long updateById(final T data, final ID_TYPE id, final QueryOption... option)
@@ -234,19 +229,18 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * User updateData = new User();
-	 * updateData.status = "inactive";
+	 * Task update = new Task();
+	 * update.setDone(true);
 	 *
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * long count = DataAccess.update(updateData,
-	 *     new Condition(Filters.eq("authorId", authorId)),
-	 *     new FilterValue(List.of("status")));
+	 * long count = DataAccess.update(update,
+	 *     new Condition(Filters.eq("title", "Buy milk")),
+	 *     new FilterValue("done"));
 	 * </pre>
 	 *
 	 * @param <T>     The type of entity
 	 * @param data    Entity data with update values
 	 * @param options Query options (FilterValue and Condition required)
-	 * @return Number of entities updated
+	 * @return Number of documents modified
 	 * @throws Exception if update fails
 	 */
 	public static <T> long update(final T data, final QueryOption... options) throws Exception {
@@ -262,7 +256,7 @@ public class DataAccess {
 	 * @param <T>     The type of entity
 	 * @param data    Entity data with update values
 	 * @param options Query options object
-	 * @return Number of entities updated
+	 * @return Number of documents modified
 	 * @throws Exception if update fails
 	 * @see #update(Object, QueryOption...)
 	 */
@@ -305,14 +299,9 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * // Find user by email
-	 * User user = DataAccess.get(User.class,
-	 *     new Condition(Filters.eq("email", "john@example.com")));
-	 *
-	 * // Find document by author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * Document doc = DataAccess.get(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
+	 * // Find a task by title
+	 * Task task = DataAccess.get(Task.class,
+	 *     new Condition(Filters.eq("title", "Buy milk")));
 	 * </pre>
 	 *
 	 * @param <T>     The type of entity
@@ -335,14 +324,13 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * // Get all active users
-	 * List&lt;User&gt; users = DataAccess.gets(User.class,
-	 *     new Condition(Filters.eq("status", "active")));
+	 * // Get all the open tasks
+	 * List&lt;Task&gt; tasks = DataAccess.gets(Task.class,
+	 *     new Condition(Filters.eq("done", false)));
 	 *
-	 * // Get documents by author with limit
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * List&lt;Document&gt; docs = DataAccess.gets(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)),
+	 * // Get the 10 newest tasks
+	 * List&lt;Task&gt; newest = DataAccess.gets(Task.class,
+	 *     OrderBy.desc(Task::getCreatedAt),
 	 *     new Limit(10));
 	 * </pre>
 	 *
@@ -410,10 +398,7 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * if (DataAccess.existsById(User.class, userId)) {
-	 *     System.out.println("User exists");
-	 * }
+	 * boolean exists = DataAccess.existsById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
@@ -438,14 +423,9 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * // Count active users
-	 * long count = DataAccess.count(User.class,
-	 *     new Condition(Filters.eq("status", "active")));
-	 *
-	 * // Count documents by author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * long docCount = DataAccess.count(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
+	 * // Count the open tasks
+	 * long open = DataAccess.count(Task.class,
+	 *     new Condition(Filters.eq("done", false)));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -483,14 +463,10 @@ public class DataAccess {
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * User user = DataAccess.getById(User.class, userId);
-	 * if (user != null) {
-	 *     System.out.println("Found: " + user.name);
-	 * }
+	 * Task task = DataAccess.getById(Task.class, taskId); // null when absent
 	 *
-	 * // Get with all columns (including non-readable)
-	 * User fullUser = DataAccess.getById(User.class, userId, new ReadAllColumn());
+	 * // Get with all columns (including the @DataNotRead ones such as createdAt)
+	 * Task full = DataAccess.getById(Task.class, taskId, new ReadAllColumn());
 	 * </pre>
 	 *
 	 * @param <T>       The type of entity
@@ -522,7 +498,7 @@ public class DataAccess {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * List&lt;User&gt; allUsers = DataAccess.getAll(User.class);
+	 * List&lt;Task&gt; allTasks = DataAccess.getAll(Task.class);
 	 * </pre>
 	 *
 	 * @param <T>   The type of entity
@@ -545,19 +521,15 @@ public class DataAccess {
 	 * Deletes an entity by its ID (automatic soft/hard routing).
 	 *
 	 * <p>
-	 * <strong>Automatic routing:</strong> If entity is {@code @SoftDeleted}, performs soft delete.
-	 * Otherwise performs hard delete.
+	 * <strong>Automatic routing:</strong> if the entity has a field annotated {@code @DataDeleted}, performs a
+	 * soft delete. Otherwise performs a hard delete.
 	 * </p>
 	 *
 	 * <p>
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * long deleted = DataAccess.deleteById(User.class, userId);
-	 * if (deleted &gt; 0) {
-	 *     System.out.println("User deleted");
-	 * }
+	 * long deleted = DataAccess.deleteById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
@@ -579,22 +551,17 @@ public class DataAccess {
 	 * Deletes entities matching conditions (automatic soft/hard routing).
 	 *
 	 * <p>
-	 * <strong>Automatic routing:</strong> If entity is {@code @SoftDeleted}, performs soft delete.
-	 * Otherwise performs hard delete.
+	 * <strong>Automatic routing:</strong> if the entity has a field annotated {@code @DataDeleted}, performs a
+	 * soft delete. Otherwise performs a hard delete.
 	 * </p>
 	 *
 	 * <p>
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * // Delete all inactive users
-	 * long count = DataAccess.delete(User.class,
-	 *     new Condition(Filters.eq("status", "inactive")));
-	 *
-	 * // Delete documents by author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * DataAccess.delete(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
+	 * // Delete all the finished tasks
+	 * long count = DataAccess.delete(Task.class,
+	 *     new Condition(Filters.eq("done", true)));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -610,14 +577,13 @@ public class DataAccess {
 	}
 
 	/**
-	 * Physically deletes an entity by its ID (ignores {@code @SoftDeleted}).
+	 * Physically deletes an entity by its ID (a {@code @DataDeleted} field does not turn it into a soft delete).
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * DataAccess.deleteHardById(User.class, userId);
+	 * DataAccess.deleteHardById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
@@ -636,7 +602,8 @@ public class DataAccess {
 	}
 
 	/**
-	 * Physically deletes entities matching conditions (ignores {@code @SoftDeleted}).
+	 * Physically deletes entities matching conditions (a {@code @DataDeleted} field does not turn it into a soft
+	 * delete).
 	 *
 	 * @param clazz   Entity class
 	 * @param options Query options (Condition required)
@@ -655,15 +622,14 @@ public class DataAccess {
 	 * Soft deletes an entity by its ID (marks as deleted).
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
 	 * Example usage with ObjectId:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * DataAccess.deleteSoftById(User.class, userId);
+	 * DataAccess.deleteSoftById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
@@ -685,7 +651,7 @@ public class DataAccess {
 	 * Soft deletes entities matching conditions (marks as deleted).
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * @param clazz   Entity class
@@ -706,32 +672,32 @@ public class DataAccess {
 	// ========================================================================
 
 	/**
-	 * Restores (un-deletes) a soft-deleted entity by its ID.
+	 * Clears the soft delete flag of the entity of this identifier, when the call matches it: without option it
+	 * does not match a soft-deleted entity, see below.
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * This overload takes no option, so it cannot carry {@code AccessDeletedItems}: its filter keeps the
+	 * entities whose deleted field is false. A soft-deleted entity is not matched and stays deleted. An entity
+	 * that is not deleted is matched: its flag is written to false again and its {@code @UpdateTimestamp} date
+	 * is refreshed. To restore a soft-deleted entity, use {@link #restoreById(Class, Object, QueryOption...)}
+	 * with {@code new AccessDeletedItems()}:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 *
 	 * // Soft delete
-	 * DataAccess.deleteSoftById(User.class, userId);
+	 * DataAccess.deleteSoftById(Task.class, taskId);
 	 *
-	 * // Later, restore
-	 * long restored = DataAccess.restoreById(User.class, userId);
-	 * if (restored &gt; 0) {
-	 *     System.out.println("User restored");
-	 * }
+	 * // Later, restore: the option is needed to match the soft-deleted task
+	 * long restored = DataAccess.restoreById(Task.class, taskId, new AccessDeletedItems());
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     Entity class
 	 * @param id        Unique identifier (e.g., ObjectId)
-	 * @return Number of entities restored (typically 0 or 1)
+	 * @return the number of documents modified: 0 for a soft-deleted entity, see above
 	 * @throws DataAccessException if entity has no deleted field or restore fails
 	 * @throws IOException         if I/O error occurs
 	 */
@@ -744,7 +710,8 @@ public class DataAccess {
 	}
 
 	/**
-	 * Restores (un-deletes) a soft-deleted entity by its ID with options.
+	 * Restores (un-deletes) a soft-deleted entity by its ID with options. A soft-deleted entity matches only when
+	 * the options contain {@code AccessDeletedItems}; without it the call restores nothing and returns 0.
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     Entity class
@@ -767,16 +734,23 @@ public class DataAccess {
 	 * Restores (un-deletes) soft-deleted entities matching conditions.
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> Entity must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity must have a field annotated {@code @DataDeleted}.
+	 * </p>
+	 *
+	 * <p>
+	 * A document whose deleted field is {@code true} matches only when the call carries
+	 * {@code AccessDeletedItems}. Without it, no soft-deleted document matches: the call restores nothing and
+	 * returns 0.
 	 * </p>
 	 *
 	 * <p>
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Restore all users deleted in last 24 hours
-	 * DataAccess.restore(User.class,
-	 *     new Condition(Filters.gt("deletedAt", yesterday)));
+	 * // Restore the soft-deleted tasks of a given title
+	 * DataAccess.restore(Task.class,
+	 *     new Condition(Filters.eq("title", "Buy milk")),
+	 *     new AccessDeletedItems());
 	 * </pre>
 	 *
 	 * @param clazz   Entity class
@@ -809,8 +783,8 @@ public class DataAccess {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Drop entire users collection
-	 * DataAccess.drop(User.class);
+	 * // Drop the entire tasks collection
+	 * DataAccess.drop(Task.class);
 	 * </pre>
 	 *
 	 * @param clazz   Entity class whose collection will be dropped
@@ -836,8 +810,8 @@ public class DataAccess {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Remove all user documents but keep collection
-	 * DataAccess.cleanAll(User.class);
+	 * // Remove all the task documents but keep the collection
+	 * DataAccess.cleanAll(Task.class);
 	 * </pre>
 	 *
 	 * @param clazz   Entity class whose documents will be deleted
@@ -874,7 +848,6 @@ public class DataAccess {
 	 *     .append("age", 30);
 	 *
 	 * ObjectId insertedId = DataAccess.insertBsonDocument("users", doc);
-	 * System.out.println("Inserted document with ID: " + insertedId);
 	 * </pre>
 	 *
 	 * @param collectionName Name of the collection to insert into
@@ -913,7 +886,6 @@ public class DataAccess {
 	 * if (userDoc != null) {
 	 *     String name = userDoc.getString("name");
 	 *     Integer age = userDoc.getInteger("age");
-	 *     System.out.println("User: " + name + ", age: " + age);
 	 * }
 	 * </pre>
 	 *
@@ -945,15 +917,11 @@ public class DataAccess {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Get all users older than 25, ordered by name, limited to 10
+	 * // Get the 10 first users older than 25, ordered by name
 	 * List&lt;Document&gt; users = DataAccess.getBsonDocuments("users",
 	 *     new Condition(Filters.gt("age", 25)),
-	 *     new OrderBy("name", true),
+	 *     new OrderBy(new OrderItem("name", OrderItem.Order.ASC)),
 	 *     new Limit(10));
-	 *
-	 * for (Document user : users) {
-	 *     System.out.println(user.toJson());
-	 * }
 	 * </pre>
 	 *
 	 * @param collectionName Name of the collection to query
@@ -991,8 +959,6 @@ public class DataAccess {
 	 *
 	 * long count = DataAccess.updateBsonDocuments("users", updateOps,
 	 *     new Condition(Filters.gt("age", 25)));
-	 *
-	 * System.out.println("Updated " + count + " documents");
 	 * </pre>
 	 *
 	 * <p>
@@ -1059,10 +1025,9 @@ public class DataAccess {
 	 * </p>
 	 * <pre>
 	 * DataAccess.inTransaction(db -&gt; {
-	 *     User user = db.insert(new User("John"));
-	 *     Account account = new Account();
-	 *     account.userId = user.getOid();
-	 *     db.insert(account);
+	 *     Task parent = db.insert(new Task("Parent", ""));
+	 *     Task child = new Task("Child of " + parent.getId(), "");
+	 *     db.insert(child);
 	 * });
 	 * // Both inserts are committed atomically, or both are rolled back on error.
 	 * </pre>

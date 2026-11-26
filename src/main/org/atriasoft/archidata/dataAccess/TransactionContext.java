@@ -92,7 +92,8 @@ public final class TransactionContext implements AutoCloseable {
 	 * </p>
 	 *
 	 * @return a new TransactionContext wrapping the current thread's connection
-	 * @throws DataAccessException if no connection context is available or transaction cannot be started
+	 * @throws IllegalStateException if the current thread has no {@link DataAccessConnectionContext}
+	 * @throws DataAccessException if a transaction is already active on that connection or cannot be started
 	 */
 	public static TransactionContext getTransactionContext() throws DataAccessException {
 		final DBAccessMongo db = DataAccessConnectionContext.getConnection();

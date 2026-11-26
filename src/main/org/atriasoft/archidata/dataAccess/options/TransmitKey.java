@@ -1,6 +1,8 @@
 package org.atriasoft.archidata.dataAccess.options;
 
-/** Internal option that permit to transmit the Key when updating the ManyToMany values (first step). */
+/** Internal option set by {@code updateById}: it carries the primary key of the updated document, so that
+ * {@code update} can read its stored state before applying the relation add-ons (ManyToOne, OneToMany,
+ * ManyToMany fields). */
 public class TransmitKey extends QueryOption {
 	private final Object key;
 

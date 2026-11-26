@@ -83,8 +83,21 @@ import com.mongodb.client.result.UpdateResult;
 import jakarta.ws.rs.InternalServerErrorException;
 
 /**
- * Data access class that provides MongoDB database operations with a functional
- * wrapper to minimize direct database code writing.
+ * Entity-level access to MongoDB: insert, read, update, delete (soft or hard), count, raw BSON access and
+ * transactions, driven by the model of the entity classes ({@link DbClassModel}).
+ *
+ * <p>
+ * An instance owns one connection ({@link DbIoMongo}) opened by its constructor and released by
+ * {@link #close()}, which aborts a transaction still active. It is not meant to be shared between threads:
+ * {@link org.atriasoft.archidata.checker.DataAccessConnectionContext} keeps one per thread and the static
+ * facade {@link DataAccess} goes through it. A transaction ({@link #startTransaction()}, or
+ * {@link TransactionContext}) covers every operation made on the same instance until it is committed or aborted.
+ * </p>
+ *
+ * <p>
+ * The examples of this class use {@code Task}, the entity of {@code sample/archidata/basic}: a {@code Long} id,
+ * {@code title}, {@code description} and {@code done} fields, and a soft-delete flag.
+ * </p>
  */
 public final class DBAccessMongo implements Closeable {
 	/** Collection holding the sequences of {@link #getNextSequenceLongValue(String, String)}. */
@@ -466,12 +479,11 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * List&lt;User&gt; users = List.of(user1, user2, user3);
-	 * List&lt;User&gt; insertedUsers = db.insertMultiple(users);
-	 * ObjectId firstUserId = insertedUsers.get(0).id;
+	 * List&lt;Task&gt; inserted = db.insertMultiple(List.of(task1, task2, task3));
+	 * Long firstId = inserted.get(0).getId();
 	 * </pre>
 	 *
 	 * @param <T>     The type of the entities
@@ -493,28 +505,28 @@ public final class DBAccessMongo implements Closeable {
 	 * Inserts a single entity into the database.
 	 *
 	 * <p>
-	 * The entity is inserted and then retrieved with its generated ID and any
-	 * auto-generated fields (timestamps, etc.). The primary key is automatically
-	 * generated based on the field type (ObjectId, UUID, or Long).
+	 * The entity is inserted and then read back by its generated primary key, which is generated
+	 * according to the type of the key field (ObjectId, UUID, or Long). The read-back follows the usual read
+	 * rules: a {@code @DataNotRead} field such as {@code createdAt} is {@code null} in the result unless a
+	 * {@link ReadAllColumn} option is passed.
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * User user = new User();
-	 * user.name = "John Doe";
-	 * user.email = "john@example.com";
+	 * Task inserted = db.insert(new Task("Buy milk", "2 liters"));
+	 * Long taskId = inserted.getId(); // generated
 	 *
-	 * User insertedUser = db.insert(user);
-	 * ObjectId userId = insertedUser.id; // Auto-generated ObjectId
-	 * Timestamp created = insertedUser.createdAt; // Auto-generated timestamp
+	 * // createdAt is read back only with ReadAllColumn
+	 * Task withTimestamps = db.insert(new Task("Buy bread", ""), new ReadAllColumn());
+	 * Date created = withTimestamps.getCreatedAt();
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
 	 * @param data   Entity to insert
 	 * @param option Optional query options (e.g., table selection, field filtering)
-	 * @return The inserted entity with generated ID and auto-populated fields
+	 * @return The inserted entity read back, with its generated ID
 	 * @throws Exception if insertion operation fails
 	 */
 	@SuppressWarnings("unchecked")
@@ -561,21 +573,17 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * User updateData = new User();
-	 * updateData.email = "newemail@example.com";
+	 * Task update = new Task();
+	 * update.setTitle("Buy oat milk");
 	 *
-	 * // Update all fields
-	 * db.updateById(updateData, userId);
+	 * // Write every editable field of update (the ones left null are unset)
+	 * db.updateById(update, taskId);
 	 *
-	 * // Update only editable fields
-	 * db.updateById(updateData, userId, FilterValue.getEditableFieldsNames(User.class));
-	 *
-	 * // Update specific fields only
-	 * db.updateById(updateData, userId, new FilterValue(List.of("email", "lastModified")));
+	 * // Write only the title and the done flag
+	 * db.updateById(update, taskId, new FilterValue("title", "done"));
 	 * </pre>
 	 *
 	 * @param <T>       The type of the entity
@@ -583,7 +591,9 @@ public final class DBAccessMongo implements Closeable {
 	 * @param data      The entity data to update
 	 * @param id        The unique identifier of the entity (e.g., ObjectId)
 	 * @param option    Optional query options (e.g., FilterValue, table selection)
-	 * @return Number of entities updated (typically 0 or 1)
+	 * @return Number of documents modified (0 or 1): the date of an {@code @UpdateTimestamp} field is always
+	 *         written (unless {@code DirectData}), so a matched document counts 1; without such a field, a
+	 *         matched document whose values do not change counts 0
 	 * @throws Exception if update operation fails
 	 */
 	public <T, ID_TYPE> long updateById(final T data, final ID_TYPE id, final QueryOption... option) throws Exception {
@@ -611,29 +621,24 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * User updateData = new User();
-	 * updateData.status = "inactive";
-	 * updateData.lastModified = Timestamp.from(Instant.now());
+	 * Task update = new Task();
+	 * update.setDone(true);
 	 *
-	 * // Update all users with status "active"
-	 * long count = db.update(updateData,
-	 *     new Condition(Filters.eq("status", "active")),
-	 *     new FilterValue(List.of("status", "lastModified")));
-	 *
-	 * // Update users created by specific author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * db.update(updateData,
-	 *     new Condition(Filters.eq("authorId", authorId)),
-	 *     new FilterValue(List.of("status")));
+	 * // Mark done every task with this title
+	 * long count = db.update(update,
+	 *     new Condition(Filters.eq("title", "Buy milk")),
+	 *     new FilterValue("done"));
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
 	 * @param data   The entity data containing the update values
 	 * @param option Query options including FilterValue (required) and Condition
-	 * @return Number of entities updated
+	 * @return Number of documents modified: the date of an {@code @UpdateTimestamp} field is always written
+	 *         (unless {@code DirectData}), so a matched document counts 1; without such a field, a matched
+	 *         document whose values do not change counts 0
 	 * @throws Exception if update operation fails or FilterValue is missing
 	 */
 	public <T> long update(final T data, final QueryOption... option) throws Exception {
@@ -690,17 +695,12 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Find user by email
-	 * User user = db.get(User.class,
-	 *     new Condition(Filters.eq("email", "john@example.com")));
-	 *
-	 * // Find document created by specific author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * Document doc = db.get(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
+	 * // Find a task by title
+	 * Task task = db.get(Task.class,
+	 *     new Condition(Filters.eq("title", "Buy milk")));
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
@@ -731,19 +731,17 @@ public final class DBAccessMongo implements Closeable {
 	 * Retrieves all entities of the specified type matching the conditions.
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Get all active users
-	 * List&lt;User&gt; users = db.gets(User.class,
-	 *     new Condition(Filters.eq("status", "active")));
+	 * // Get all the open tasks
+	 * List&lt;Task&gt; tasks = db.gets(Task.class,
+	 *     new Condition(Filters.eq("done", false)));
 	 *
-	 * // Get documents by author with limit
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * List&lt;Document&gt; docs = db.gets(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)),
+	 * // Get the 10 newest tasks
+	 * List&lt;Task&gt; newest = db.gets(Task.class,
 	 *     new Limit(10),
-	 *     new OrderBy("createdAt", false));
+	 *     OrderBy.desc(Task::getCreatedAt));
 	 * </pre>
 	 *
 	 * @param <T>    The type of the entity
@@ -790,18 +788,13 @@ public final class DBAccessMongo implements Closeable {
 	 * Retrieves an entity by its unique identifier.
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Get user by ObjectId
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * User user = db.getById(User.class, userId);
-	 * if (user != null) {
-	 *     System.out.println("Found: " + user.name);
-	 * }
+	 * Task task = db.getById(Task.class, taskId); // null when absent
 	 *
-	 * // Get user with all columns (including non-readable ones)
-	 * User userWithAllData = db.getById(User.class, userId, QueryOptions.READ_ALL_COLUMN);
+	 * // Get with all columns (including the @DataNotRead ones such as createdAt)
+	 * Task full = db.getById(Task.class, taskId, new ReadAllColumn());
 	 * </pre>
 	 *
 	 * @param <T>       The type of the entity
@@ -823,8 +816,8 @@ public final class DBAccessMongo implements Closeable {
 	 * Retrieves all entities of the specified type (no conditions).
 	 *
 	 * <p>
-	 * <strong>Warning:</strong> This method retrieves ALL entities from the table.
-	 * Use with caution on large datasets. Consider adding pagination via QueryOptions.
+	 * <strong>Warning:</strong> This method retrieves ALL entities from the table and takes no option. To
+	 * bound the result, use {@link #gets(Class, QueryOption...)} with {@link Limit} and {@link Skip}.
 	 * </p>
 	 *
 	 * @param <T>   The type of the entity
@@ -845,15 +838,10 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
-	 * if (db.existsById(User.class, userId)) {
-	 *     System.out.println("User exists");
-	 * } else {
-	 *     System.out.println("User not found");
-	 * }
+	 * boolean exists = db.existsById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
@@ -874,17 +862,12 @@ public final class DBAccessMongo implements Closeable {
 	 * Counts the number of entities matching the specified conditions.
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Count all active users
-	 * long activeCount = db.count(User.class,
-	 *     new Condition(Filters.eq("status", "active")));
-	 *
-	 * // Count documents by author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * long docCount = db.count(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
+	 * // Count the open tasks
+	 * long open = db.count(Task.class,
+	 *     new Condition(Filters.eq("done", false)));
 	 * </pre>
 	 *
 	 * @param clazz  The class of the entity
@@ -901,8 +884,8 @@ public final class DBAccessMongo implements Closeable {
 	 * Deletes an entity by its unique identifier.
 	 *
 	 * <p>
-	 * <strong>Automatic routing behavior:</strong> If the entity class is annotated with
-	 * {@code @SoftDeleted}, this method performs a soft delete (marking as deleted).
+	 * <strong>Automatic routing behavior:</strong> If the entity class has a field
+	 * annotated {@code @DataDeleted}, this method performs a soft delete (marking as deleted).
 	 * Otherwise, it performs a hard delete (physical removal).
 	 * </p>
 	 *
@@ -912,19 +895,14 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * // Automatic routing (soft delete if the class has a @DataDeleted field, hard delete otherwise)
+	 * long deleted = db.deleteById(Task.class, taskId);
 	 *
-	 * // Automatic routing (soft delete if @SoftDeleted, hard delete otherwise)
-	 * long deleted = db.deleteById(User.class, userId);
-	 * if (deleted &gt; 0) {
-	 *     System.out.println("User deleted");
-	 * }
-	 *
-	 * // Explicit hard delete (ignores @SoftDeleted)
-	 * db.deleteHardById(User.class, userId);
+	 * // Explicit hard delete (physical removal, whatever the @DataDeleted field)
+	 * db.deleteHardById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
@@ -948,8 +926,8 @@ public final class DBAccessMongo implements Closeable {
 	 * Deletes entities matching the specified conditions.
 	 *
 	 * <p>
-	 * <strong>Automatic routing behavior:</strong> If the entity class is annotated with
-	 * {@code @SoftDeleted}, this method performs a soft delete (marking as deleted).
+	 * <strong>Automatic routing behavior:</strong> If the entity class has a field
+	 * annotated {@code @DataDeleted}, this method performs a soft delete (marking as deleted).
 	 * Otherwise, it performs a hard delete (physical removal).
 	 * </p>
 	 *
@@ -959,18 +937,12 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Delete all inactive users
-	 * long deleted = db.delete(User.class,
-	 *     new Condition(Filters.eq("status", "inactive")));
-	 *
-	 * // Delete documents by author
-	 * ObjectId authorId = new ObjectId("507f1f77bcf86cd799439011");
-	 * long count = db.delete(Document.class,
-	 *     new Condition(Filters.eq("authorId", authorId)));
-	 * System.out.println("Deleted " + count + " documents");
+	 * // Delete all the finished tasks
+	 * long deleted = db.delete(Task.class,
+	 *     new Condition(Filters.eq("done", true)));
 	 * </pre>
 	 *
 	 * @param clazz  The class of the entity
@@ -988,20 +960,14 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Lists all collection names in the current database.
+	 * Lists the names of the collections of the database this connection is bound to.
 	 *
 	 * <p>
-	 * Example usage:
+	 * {@code name} and {@code option} are ignored: the database is the one of the connection, whatever name is passed.
 	 * </p>
-	 * <pre>
-	 * List&lt;String&gt; collections = db.listCollections("mydb");
-	 * for (String collName : collections) {
-	 *     System.out.println("Collection: " + collName);
-	 * }
-	 * </pre>
 	 *
-	 * @param name   Database name (not currently used in MongoDB implementation)
-	 * @param option Optional query options
+	 * @param name   Ignored
+	 * @param option Ignored
 	 * @return List of collection names
 	 * @throws InternalServerErrorException if listing fails
 	 */
@@ -1415,7 +1381,9 @@ public final class DBAccessMongo implements Closeable {
 	 * @param <T>     The type of the entity
 	 * @param data    The entity data containing the update values
 	 * @param options Query options including FilterValue (required) and Condition
-	 * @return Number of entities updated
+	 * @return Number of documents modified: the date of an {@code @UpdateTimestamp} field is always written
+	 *         (unless {@code DirectData}), so a matched document counts 1; without such a field, a matched
+	 *         document whose values do not change counts 0
 	 * @throws Exception if update operation fails or FilterValue is missing
 	 */
 	public <T> long update(final T data, final QueryOptions options) throws Exception {
@@ -1441,7 +1409,7 @@ public final class DBAccessMongo implements Closeable {
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
 		// The relation add-ons diff the stored document against the new values: load it with the filter of
-		// the update itself, so that a document the update does not reach never feeds a side effect (CS-04).
+		// the update itself, so that a document the update does not reach never feeds a side effect.
 		Object previousData = null;
 		if (model.needsPreviousDataForUpdate()) {
 			final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
@@ -1558,7 +1526,7 @@ public final class DBAccessMongo implements Closeable {
 					: collection.updateMany(filters, actions);
 			if (ret.getMatchedCount() == 0) {
 				// The update reached no document (caller's condition, soft delete): its relation side effects
-				// must not run either, they would escape the caller's scope (CS-04).
+				// must not run either, they would escape the caller's scope.
 				if (!asyncActions.isEmpty()) {
 					LOGGER.debug("update of {} matched no document: {} relation side effect(s) dropped", collectionName,
 							asyncActions.size());
@@ -1754,7 +1722,6 @@ public final class DBAccessMongo implements Closeable {
 			FindIterable<Document> retFind = null;
 			statistic.countFind++;
 			if (filters != null) {
-				// LOGGER.debug("getsWhere Find filter: {}", filters.toBsonDocument().toJson());
 				retFind = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
 			} else {
 				retFind = this.session != null ? collection.find(this.session) : collection.find();
@@ -1960,8 +1927,15 @@ public final class DBAccessMongo implements Closeable {
 	 *
 	 * <p>
 	 * <strong>Warning:</strong> This permanently removes the entity from the database,
-	 * regardless of whether the class is annotated with {@code @SoftDeleted}.
+	 * even when the class has a {@code @DataDeleted} field.
 	 * The data cannot be recovered after this operation.
+	 * </p>
+	 *
+	 * <p>
+	 * Three facts about the deleted field: a soft-deleted entity is not matched unless the call carries
+	 * {@link ForceHardDelete} or {@link AccessDeletedItems}; a class with a {@code @DataAsyncHardDeleted} field
+	 * does not lose the document, the call only sets its flags (and its deleted field) unless
+	 * {@link ForceHardDelete} is passed; and {@link ForceHardDelete} adds {@link AccessDeletedItems} itself.
 	 * </p>
 	 *
 	 * @param <ID_TYPE> The type of the ID
@@ -2015,8 +1989,15 @@ public final class DBAccessMongo implements Closeable {
 	 *
 	 * <p>
 	 * <strong>Warning:</strong> This permanently removes matching entities from the database,
-	 * regardless of whether the class is annotated with {@code @SoftDeleted}.
+	 * even when the class has a {@code @DataDeleted} field.
 	 * The data cannot be recovered after this operation.
+	 * </p>
+	 *
+	 * <p>
+	 * Three facts about the deleted field: a soft-deleted entity is not matched unless the call carries
+	 * {@link ForceHardDelete} or {@link AccessDeletedItems}; a class with a {@code @DataAsyncHardDeleted} field
+	 * does not lose the document, the call only sets its flags (and its deleted field) unless
+	 * {@link ForceHardDelete} is passed; and {@link ForceHardDelete} adds {@link AccessDeletedItems} itself.
 	 * </p>
 	 *
 	 * <p>
@@ -2082,8 +2063,7 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}
-	 * and have a corresponding deleted flag field.
+	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * @param <ID_TYPE> The type of the ID
@@ -2109,8 +2089,7 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}
-	 * and have a corresponding deleted flag field.
+	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
@@ -2148,21 +2127,25 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Restores (un-deletes) a soft-deleted entity by its unique identifier.
+	 * Clears the soft delete flag of the entity of this identifier, when the call matches it: without option it
+	 * does not match a soft-deleted entity, see below.
 	 *
 	 * <p>
-	 * This method clears the soft delete flag, making the entity visible in normal queries again.
-	 * Only works for entities that were previously soft deleted.
+	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * This overload takes no option, so it cannot carry {@link AccessDeletedItems}: its filter keeps the
+	 * entities whose deleted field is false. A soft-deleted entity is not matched and stays deleted. An entity
+	 * that is not deleted is matched: its flag is written to false again and its {@code @UpdateTimestamp} date
+	 * is refreshed. To restore a soft-deleted entity, use {@link #restoreById(Class, Object, QueryOption...)}
+	 * with {@code new AccessDeletedItems()}.
 	 * </p>
 	 *
 	 * @param <ID_TYPE> The type of the ID
 	 * @param clazz     The class of the entity
 	 * @param id        The unique identifier of the entity to restore
-	 * @return Number of entities restored (typically 0 or 1)
+	 * @return the number of documents modified: 0 for a soft-deleted entity, see above
 	 * @throws DataAccessException if the class has no deleted field or restore fails
 	 */
 	public <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
@@ -2178,26 +2161,27 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * The soft-delete filter applies to a restore like to any other write: a document whose deleted field is
+	 * {@code true} matches only when the call carries {@link AccessDeletedItems}. Without it, no soft-deleted
+	 * document matches, so the call restores nothing and returns 0.
+	 * </p>
+	 *
+	 * <p>
+	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
+	 * // Soft delete a task
+	 * db.deleteSoftById(Task.class, taskId);
 	 *
-	 * // Soft delete a user
-	 * db.deleteSoftById(User.class, userId);
+	 * // Later, restore it: the option is needed to match the soft-deleted task
+	 * long restored = db.restoreById(Task.class, taskId, new AccessDeletedItems());
 	 *
-	 * // Later, restore the user
-	 * long restored = db.restoreById(User.class, userId);
-	 * if (restored &gt; 0) {
-	 *     System.out.println("User restored successfully");
-	 * }
-	 *
-	 * // User is now visible in normal queries again
-	 * User user = db.getById(User.class, userId);
+	 * // The task is visible in normal queries again
+	 * Task task = db.getById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of the ID (e.g., ObjectId, UUID, Long)
@@ -2223,12 +2207,18 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * <strong>Requirement:</strong> The entity class must be annotated with {@code @SoftDeleted}.
+	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * You MUST provide conditions via {@link Condition} option.
 	 * </p>
 	 *
+	 * <p>
+	 * The soft-delete filter applies here like to any other write: a document whose deleted field is
+	 * {@code true} matches only when the call carries {@link AccessDeletedItems}. Without it, no soft-deleted
+	 * document matches, so the call restores nothing and returns 0.
+	 * </p>
+	 *
 	 * @param clazz  The class of the entity
-	 * @param option Query options including conditions (required)
+	 * @param option Query options including conditions (required) and {@link AccessDeletedItems}
 	 * @return Number of entities restored
 	 * @throws DataAccessException if the class has no deleted field, no conditions provided, or restore fails
 	 */
@@ -2275,8 +2265,8 @@ public final class DBAccessMongo implements Closeable {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Drop the entire users collection
-	 * db.drop(User.class);
+	 * // Drop the entire tasks collection
+	 * db.drop(Task.class);
 	 * </pre>
 	 *
 	 * @param clazz  The entity class whose collection will be dropped
@@ -2303,8 +2293,8 @@ public final class DBAccessMongo implements Closeable {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Remove all user documents but keep the collection
-	 * db.cleanAll(User.class);
+	 * // Remove all the task documents but keep the collection
+	 * db.cleanAll(Task.class);
 	 * </pre>
 	 *
 	 * @param clazz  The entity class whose documents will be deleted
@@ -2337,7 +2327,7 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
 	 * Document doc = new Document()
@@ -2389,7 +2379,7 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * Example usage with ObjectId:
+	 * Example usage:
 	 * </p>
 	 * <pre>
 	 * ObjectId userId = new ObjectId("507f1f77bcf86cd799439011");
@@ -2449,15 +2439,11 @@ public final class DBAccessMongo implements Closeable {
 	 * Example usage:
 	 * </p>
 	 * <pre>
-	 * // Get all users older than 25
+	 * // Get the 10 first users older than 25, ordered by name
 	 * List&lt;Document&gt; users = db.getBsonDocuments("users",
 	 *     new Condition(Filters.gt("age", 25)),
-	 *     new OrderBy("name", true),
+	 *     new OrderBy(new OrderItem("name", OrderItem.Order.ASC)),
 	 *     new Limit(10));
-	 *
-	 * for (Document user : users) {
-	 *     System.out.println(user.toJson());
-	 * }
 	 * </pre>
 	 *
 	 * @param collectionName Name of the collection to query
@@ -2526,8 +2512,6 @@ public final class DBAccessMongo implements Closeable {
 	 *
 	 * long count = db.updateBsonDocuments("users", updateOps,
 	 *     new Condition(Filters.gt("age", 25)));
-	 *
-	 * System.out.println("Updated " + count + " documents");
 	 * </pre>
 	 *
 	 * <p>

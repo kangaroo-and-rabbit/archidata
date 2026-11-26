@@ -47,8 +47,6 @@ public final class MongoFieldCodec {
 	/**
 	 * WRITER: Read the field from the Java object and write it to docSet/docUnSet.
 	 *
-	 * <p>Replaces {@code setValueToDb()} entirely for this field.
-	 *
 	 * @param parentFieldName optional prefix for sub-object paths (e.g. "address"), may be null
 	 * @param instance the Java bean instance
 	 * @param docSet the $set document to append to

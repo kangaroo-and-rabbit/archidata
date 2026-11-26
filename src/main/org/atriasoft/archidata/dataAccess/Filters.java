@@ -12,14 +12,13 @@ import org.bson.conversions.Bson;
  * Type-safe wrapper around MongoDB {@link com.mongodb.client.model.Filters} that adds
  * method reference support for resolving entity property names to database field names.
  *
- * <p>All string-based methods have the <strong>same signature</strong> as
- * {@code com.mongodb.client.model.Filters}, so migration is just an import change:
- * <pre>
- * // Before:
- * import com.mongodb.client.model.Filters;
- * // After:
- * import org.atriasoft.archidata.dataAccess.Filters;
- * </pre>
+ * <p>The string-based methods mirror the most common ones of {@code com.mongodb.client.model.Filters}
+ * (comparison, {@code in}/{@code nin}, logical operators, {@code exists}, {@code type}, {@code mod},
+ * {@code regex}, {@code text(String)}, {@code where}, {@code expr}, {@code all}, {@code elemMatch},
+ * {@code size}, {@code jsonSchema}, {@code empty}). This is a subset, not a drop-in replacement: the geospatial
+ * ({@code geoWithin}, {@code near}...) and bitwise ({@code bitsAllSet}...) filters and
+ * {@code text(String, TextSearchOptions)} do not exist, and the behaviour differs as described below
+ * ({@code eq} writes an explicit {@code $eq}, a field name starting with {@code $} is refused).
  *
  * <h2>Method reference usage (type-safe, resolves DB field names):</h2>
  * <pre>{@code
@@ -32,7 +31,8 @@ import org.bson.conversions.Bson;
  *
  * <p>Method reference overloads use {@link org.atriasoft.archidata.dataAccess.model.DbClassModel}
  * to resolve the property name to the correct database field name, respecting
- * {@code @Field("...")} annotations. Results are cached for performance.
+ * {@code @Field("...")} annotations. Results are cached for performance. They exist for a part of the helpers
+ * only, not the same ones for the getter and the setter forms (see the signatures below).
  *
  * <h2>Values and field names coming from a client</h2>
  * <ul>

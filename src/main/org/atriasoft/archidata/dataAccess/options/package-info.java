@@ -12,11 +12,14 @@
  * <ul>
  * <li>Selection: {@code Condition} (a MongoDB filter), {@code Limit}, {@code Skip}, {@code OrderBy}
  * (built from {@code OrderItem}s or {@code OrderBy.asc}/{@code OrderBy.desc}).</li>
- * <li>Columns: {@code FilterValue} (only these fields are written on update), {@code FilterOmit},
- * {@code ReadAllColumn}, {@code ForceReadOnlyField}.</li>
+ * <li>Columns: {@code FilterValue} (the fields written by an update, and the only fields read by a read),
+ * {@code FilterOmit}, {@code ReadAllColumn}, {@code ForceReadOnlyField}.</li>
  * <li>Deletion: {@code AccessDeletedItems} (see soft-deleted rows), {@code ForceHardDelete}.</li>
  * <li>Keys and naming: {@code DirectPrimaryKey} (use the primary key given in the object),
+ * {@code DirectData} (write the object as it is: primary key, timestamps and deleted flag untouched),
  * {@code OverrideTableName}, {@code OptionRenameColumn}, {@code OptionSpecifyType}.</li>
+ * <li>Safety: {@code AllowMassOperation} (a write without condition may target the whole collection).</li>
+ * <li>Internal: {@code TransmitKey} (the primary key {@code updateById} hands to {@code update}).</li>
  * </ul>
  *
  * <p>Example, updating a single field of the rows that match a condition:</p>

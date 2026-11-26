@@ -29,9 +29,9 @@ import org.slf4j.LoggerFactory;
  * <p>Protection follows the <strong>declared</strong> type, as the codec does: an embedded value is written and
  * read with the fields of its declared type only ({@link DeclaredTypeRules}), so a field added by a subclass is
  * never stored, and a model holding a type that can hold any class ({@code Object}, an interface, an abstract
- * class) or a raw list, set or map is refused when it is analysed. Such positions cannot be met any more; the
- * cursor still answers {@link Status#UNSAFE} for them (defence in depth, fail closed). A key stored before
- * (by an older version, which wrote the fields of the subclass) is unknown to the model: {@link Status#UNKNOWN}.
+ * class) or a raw list, set or map is refused when it is analysed, so such positions are not met in practice;
+ * the cursor still answers {@link Status#UNSAFE} for them (defence in depth, fail closed). A key stored by an
+ * older version (which wrote the fields of the subclass) is unknown to the model: {@link Status#UNKNOWN}.
  *
  * <p>The cursor is immutable. Once it is not {@link Status#OK}, or is free-form, a further step returns
  * the same cursor.
@@ -193,7 +193,7 @@ public final class FieldPathCursor {
 		if (current.isCollection()) {
 			final TypeInfo element = elementOf(current);
 			if (element == null) {
-				// Raw list or set: each element is written by its own class, nothing can be told.
+				// Raw list or set: the element type is unknown, nothing can be told.
 				return new FieldPathCursor(current, null, Status.UNSAFE, false, this.depth + 1);
 			}
 			if (pathMode && isIndex(segment)) {
@@ -208,7 +208,7 @@ public final class FieldPathCursor {
 		if (current.isMap()) {
 			final TypeInfo value = elementOf(current);
 			if (value == null) {
-				// Raw map: each value is written by its own class, nothing can be told.
+				// Raw map: the value type is unknown, nothing can be told.
 				return new FieldPathCursor(current, null, Status.UNSAFE, false, this.depth + 1);
 			}
 			return new FieldPathCursor(value, null, Status.OK, false, this.depth + 1);

@@ -41,9 +41,8 @@ import org.slf4j.LoggerFactory;
  * <p>All type resolution happens here, once, at construction time.
  * The resulting codecs are simple lambda calls with zero type checking at runtime.
  *
- * <p>The type checking {@code if/else} chain from {@code setValueToDb}, {@code convertInDocument},
- * {@code setValueFromDoc}, and {@code createObjectFromDocument} is executed exactly once per field
- * to select the right lambda, then never again.
+ * <p>The type checking {@code if/else} chain is executed exactly once per field to select the right
+ * lambda, then never again.
  */
 public final class MongoCodecFactory {
 
@@ -597,7 +596,6 @@ public final class MongoCodecFactory {
 
 	/**
 	 * Read a MongoDB Document into a Java POJO/record (recursive reader).
-	 * Replaces the old sub-object path in {@code createObjectFromDocument()}.
 	 *
 	 * <p>For Records, collects all field values from the Document first, then uses
 	 * the canonical constructor via {@link ClassModel#newInstance(Map)}.

@@ -255,7 +255,7 @@ final class LeafProjection {
 	 * (a list does not consume a segment) and the keys of the maps. Below a value, a free-form type or a class
 	 * archidata does not model, the rest of the path is pushed as it is. A segment naming a sub-field the read
 	 * does not return, or no sub-field at all, is replaced by the sentinel path of its embedded object, which
-	 * stays present and empty, as the Java read rebuilt it before.
+	 * stays present and empty.
 	 *
 	 * @param site the entity field, for the WARN of a part included whole
 	 * @param path the path of the field in the document

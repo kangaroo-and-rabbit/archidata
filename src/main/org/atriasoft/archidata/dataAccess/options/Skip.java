@@ -5,7 +5,7 @@ package org.atriasoft.archidata.dataAccess.options;
  * Combined with {@link Limit}, this is the building block of offset-based pagination.
  */
 public final class Skip extends QueryOption {
-	/** Largest accepted value: the driver takes an {@code int}, a larger value used to be truncated. */
+	/** Largest accepted value: the driver takes an {@code int}. */
 	public static final long MAX_VALUE = Integer.MAX_VALUE;
 
 	/** The number of results to skip. */

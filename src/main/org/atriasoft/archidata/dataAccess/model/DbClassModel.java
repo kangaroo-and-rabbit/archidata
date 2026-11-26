@@ -33,7 +33,8 @@ import org.slf4j.LoggerFactory;
  * <p>All metadata is pre-computed once and cached globally per class. This eliminates
  * the need for repeated reflection and annotation lookups during CRUD operations.
  *
- * <p>Usage: {@code DbClassModel model = DbClassModel.of(MyEntity.class, addOns);}
+ * <p>Usage: {@code DbClassModel model = DbClassModel.of(MyEntity.class);} (the add-ons come from
+ * {@link #setAddOns(List)}).
  */
 public final class DbClassModel {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DbClassModel.class);
