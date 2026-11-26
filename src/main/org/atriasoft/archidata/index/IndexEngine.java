@@ -366,9 +366,10 @@ public final class IndexEngine {
 			final Map<String, List<String>> dropped,
 			final Map<String, String> failures) throws DataAccessException {
 		final MongoCollection<Document> collection = db.getCollection(collectionName);
-		// Replacements first: they free a name a creation may need. Then the creations, so a
-		// crash in the middle leaves the collection over-indexed (slow) rather than under-indexed
-		// (queries without an index). The obsolete drops come last, for the same reason.
+		// REPLACE and CREATE in declaration order, in one pass. The obsolete drops come last, so a
+		// crash before them leaves obsolete indexes (slow writes) rather than missing ones. A REPLACE drops
+		// the index, then creates it, and a creation that fails is logged while the run goes on: that index
+		// stays missing.
 		for (final IndexAction action : actions) {
 			try {
 				switch (action.kind()) {

@@ -31,9 +31,10 @@ import org.slf4j.LoggerFactory;
  * only (no media file), under the names {@link BackupEngine} expects, and the {@code counters} and migration
  * collections are always part of them: without them a restored base would reuse ids and replay its migrations.
  * <p>
- * Each full backup that succeeds applies a {@link RetentionPolicy}, as does a start refused for lack of space. Two
- * other clean-ups delete archives: the deltas dated after a full that just ended (written by a clock that was ahead),
- * and, at a start refused for lack of space, the older deltas of the last full. No route deletes an archive.
+ * Each full backup that succeeds applies a {@link RetentionPolicy}, as does a start refused for lack of space. With a
+ * retention policy (not {@code null}), two other clean-ups delete archives: the deltas dated after a full that just
+ * ended (written by a clock that was ahead), and, at a start refused for lack of space where the retention did not
+ * free enough, the older deltas of the last full. No route deletes an archive.
  * Nothing here restores an archive, and what it returns carries no path, no file name and no exception text. The lock
  * lives in the process: two instances of a server on the same folder do not see each other.
  *

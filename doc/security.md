@@ -345,28 +345,35 @@ Accessing User Info in Endpoints
 @Path("/me")
 @RolesAllowed("USER")
 public Response getCurrentUser(@Context final SecurityContext sc) {
-	final MySecurityContext ctx = (MySecurityContext) sc;
+	// archidata's own resources read the user through the principal, a GenericContext,
+	// and not through a cast of the injected SecurityContext to MySecurityContext.
+	final GenericContext ctx = (GenericContext) sc.getUserPrincipal();
 
 	// Get user's ObjectId
-	final ObjectId userId = ctx.getUserID();
+	final ObjectId userId = ctx.userByToken.getOid();
 
 	// Check group membership (roles)
-	final boolean isAdmin = ctx.groupExist("admin");
+	final boolean isAdmin = ctx.userByToken.groupExist("admin");
 
 	// Check specific role permissions
-	final PartRight roleRight = ctx.getRightOfRoleInGroup("myapp", "ADMIN");
+	final PartRight roleRight = ctx.userByToken.getRoleForKey("myapp", "ADMIN");
 
-	// Check fine-grained resource right (programmatic)
-	final boolean canEditArticles = ctx.hasResourceRight("myapp", "articles", PartRight.WRITE);
+	// Check a role the way AuthenticationFilter does (application name, then role)
+	final boolean canWrite = sc.isUserInRole("myapp/ADMIN:w");
 
-	// Get raw resource right value
-	final PartRight articlesRight = ctx.getResourceRight("myapp", "articles");
+	// Get raw resource right value (the `right` claim)
+	final PartRight articlesRight = ctx.userByToken.getRightForKey("myapp", "articles");
 
 	return Response.ok(da.getById(User.class, userId)).build();
 }
 ```
 
 ### Available methods on MySecurityContext
+
+These are the methods of the class that `AuthenticationFilter` attaches to the request. archidata's own resources
+(`DataResource`, `BackupResource`) do not cast the `SecurityContext` they receive through `@Context` to it: they go
+through `getUserPrincipal()` (a `GenericContext`, with `userByToken`, `getUserID()` and `getApplicationName()`) and
+`isUserInRole(...)`, as above. The javadoc of `GenericContext` says the injected `SecurityContext` is a proxy.
 
 #### Role checking (operates on `roles` claim)
 
@@ -493,8 +500,8 @@ public class ArticleResource {
 	@POST
 	@RolesAllowed("myapp/articles:w")
 	public Article create(final Article data, @Context final SecurityContext sc) throws Exception {
-		final MySecurityContext ctx = (MySecurityContext) sc;
-		data.authorId = ctx.getUserID();
+		final GenericContext ctx = (GenericContext) sc.getUserPrincipal();
+		data.authorId = ctx.userByToken.getOid();
 		final DBAccessMongo da = DBAccessMongo.createInterface();
 		return da.insert(data);
 	}
@@ -831,12 +838,13 @@ userByToken.getRoles().put("myapp", Map.of("APPLICATION", PartRight.READ_WRITE))
 
 ### 6. MySecurityContext
 
-New methods available for programmatic resource-right checking:
+`MySecurityContext` has methods for programmatic resource-right checking (`hasResourceRight`, `getResourceRight`).
+archidata's own resources do not cast the injected `SecurityContext` to it, which the javadoc of `GenericContext`
+describes as a proxy. They read the user through the principal instead:
 
 ```java
-final MySecurityContext ctx = (MySecurityContext) securityContext;
-final boolean canRead = ctx.hasResourceRight("myapp", "articles", PartRight.READ);
-final PartRight level = ctx.getResourceRight("myapp", "articles");
+final GenericContext ctx = (GenericContext) securityContext.getUserPrincipal();
+final PartRight level = ctx.userByToken.getRightForKey("myapp", "articles");
 ```
 
 ### 7. Test tokens

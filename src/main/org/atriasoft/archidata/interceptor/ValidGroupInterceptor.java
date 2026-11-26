@@ -76,7 +76,7 @@ public class ValidGroupInterceptor implements ReaderInterceptor {
 	 * @return the {@link ValidGroup} annotation if present, or {@code null} if not
 	 */
 	private ValidGroup extractValidationGroups(final ReaderInterceptorContext context) {
-		// Analyse de la méthode ciblée
+		// The annotations of the parameter being read
 		for (final Annotation annotation : context.getAnnotations()) {
 			if (annotation instanceof final ValidGroup validGroup) {
 				return validGroup;

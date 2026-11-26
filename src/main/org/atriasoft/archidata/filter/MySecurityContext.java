@@ -20,10 +20,11 @@ import jakarta.ws.rs.core.SecurityContext;
  *
  * <p>
  * Instances are created by {@link AuthenticationFilter} once the token is validated and attached to the
- * request; the principal is a {@link GenericContext}. A resource method gets it with
- * {@code @Context SecurityContext} and can cast it to {@code MySecurityContext} to reach the
- * archidata-specific helpers ({@link #getUserID()}, {@link #getGroups()},
- * {@link #hasResourceRight(String, String, PartRight)}...).
+ * request; the principal is a {@link GenericContext}. The resources of archidata ({@code DataResource},
+ * {@code BackupResource}) read the user through {@code sc.getUserPrincipal()}, cast to {@link GenericContext}
+ * ({@code userByToken}, {@code getUserID()}, {@code getApplicationName()}), and check a role with
+ * {@link SecurityContext#isUserInRole(String)}; none of them casts the injected {@code SecurityContext} to this
+ * class, which {@link GenericContext#getApplicationName()} describes as a proxy.
  * </p>
  *
  * <ul>
@@ -121,7 +122,6 @@ public class MySecurityContext implements SecurityContext {
 	 *
 	 * @return the user ID, or {@code null} if no user is available
 	 */
-	// Not sure the Long type is definitive.
 	public Object getUserID() {
 		if (this.contextPrincipale.userByToken != null) {
 			return this.contextPrincipale.userByToken.getOid();

@@ -1,7 +1,7 @@
 /**
  * JAX-RS interceptors for request processing.
  *
- * <p>Provides interceptors such as validation group selection
- * based on the HTTP method being processed.</p>
+ * <p>Provides {@link org.atriasoft.archidata.interceptor.ValidGroupInterceptor}, which validates a request
+ * body with the groups of the {@code @ValidGroup} annotation of the resource method parameter.</p>
  */
 package org.atriasoft.archidata.interceptor;

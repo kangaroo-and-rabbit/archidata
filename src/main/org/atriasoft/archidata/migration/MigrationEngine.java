@@ -67,7 +67,6 @@ public class MigrationEngine {
 			try {
 				data = da.gets(Migration.class, new ReadAllColumn());
 			} catch (final Exception e) {
-				// Previous version does not have the same timeCode...
 				data = da.gets(Migration.class);
 			}
 			if (data.size() == 0) {
