@@ -259,7 +259,7 @@ public class ChangeStreamWorker implements Runnable {
 			final Instant timestamp = clusterTime != null ? Instant.ofEpochSecond(clusterTime.getTime())
 					: Instant.now();
 
-			return new ChangeEvent(operationType, this.collectionName, this.collectionName, // entityName = collectionName for now
+			return new ChangeEvent(operationType, this.collectionName, this.collectionName, // the entity name is the collection name
 					oid, changeDoc.getFullDocument(), changeDoc.getUpdateDescription(), timestamp,
 					changeDoc.getResumeToken());
 		} catch (final Exception e) {

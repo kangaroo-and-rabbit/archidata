@@ -178,7 +178,8 @@ public class BackupEngine {
 	/**
 	 * Create a new backup engine.
 	 * @param pathToStoreDB directory where archive files are stored
-	 * @param baseName prefix used for archive filenames and for identifying the target database
+	 * @param baseName prefix used for archive filenames (it does not select a database: the engine works on the
+	 *            database of the connection)
 	 * @param type JSON serialization mode for collection documents
 	 */
 	public BackupEngine(final Path pathToStoreDB, final String baseName, final EngineBackupType type) {
@@ -1269,8 +1270,9 @@ public class BackupEngine {
 	 * apply today (see {@link #getLatestRestoreChain()}). The deltas of a same full are cumulative: when the content is
 	 * the same as the previous one, a new file would restore nothing more.
 	 * <p>
-	 * The comparison is the one of the whole content, so that it also sees what no date tells: the {@code counters},
-	 * the documents without {@code updatedAt}, and a document deleted since the previous delta. It needs the archive,
+	 * The comparison is the one of the whole content, so that it also sees what no date tells: a collection without
+	 * {@code updatedAt} (such as the {@code counters} the {@code BackupService} adds), the documents without
+	 * {@code updatedAt}, and a document deleted since the previous delta. It needs the archive,
 	 * which is written and then dropped, so its cost is the one of a delta. It rereads the file of the previous delta, and
 	 * survives a restart. The first delta after a full has nothing to be compared with and is always kept.
 	 * Only meaningful with {@code setEnableStoreOrRestoreData(false)}: the folders of the media have the current date in

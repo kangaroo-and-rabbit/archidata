@@ -13,8 +13,8 @@ import com.mongodb.client.model.changestream.OperationType;
 import com.mongodb.client.model.changestream.UpdateDescription;
 
 /**
- * Represents a MongoDB change event with all relevant metadata. This class
- * wraps MongoDB's ChangeStreamDocument and provides convenient helper methods
+ * Represents a MongoDB change event with the relevant metadata. It copies the main fields of
+ * MongoDB's ChangeStreamDocument (it does not wrap it) and provides convenient helper methods
  * for accessing change stream data.
  *
  * <p>
@@ -52,8 +52,9 @@ public class ChangeEvent {
 	 *
 	 * @param operationType The type of operation (INSERT, UPDATE, DELETE, etc.)
 	 * @param collectionName The name of the collection where the change occurred
-	 * @param entityName The entity name (typically same as collection name)
-	 * @param oid The ObjectId of the affected document
+	 * @param entityName The entity name (always the collection name for the events built by the manager)
+	 * @param oid The {@code _id} of the affected document: the {@code BsonValue} of the document key (a
+	 *            {@code BsonObjectId} for an ObjectId key), or null
 	 * @param fullDocument The full document after the change (may be null
 	 *            depending on FullDocument mode)
 	 * @param updateDescription Description of updated/removed fields (for UPDATE
@@ -98,16 +99,17 @@ public class ChangeEvent {
 	/**
 	 * Gets the entity name associated with this change.
 	 *
-	 * @return The entity name (typically same as collection name)
+	 * @return The entity name, equal to {@link #getCollectionName()} for the events built by the manager
 	 */
 	public String getEntityName() {
 		return this.entityName;
 	}
 
 	/**
-	 * Gets the ObjectId (_id field) of the affected document.
+	 * Gets the {@code _id} of the affected document, as the {@code BsonValue} of the document key (a
+	 * {@code BsonObjectId} for an ObjectId key, not an {@code ObjectId}).
 	 *
-	 * @return The ObjectId, or null if not available
+	 * @return The {@code _id} value, or null if not available
 	 */
 	public Object getOid() {
 		return this.oid;
@@ -205,11 +207,14 @@ public class ChangeEvent {
 	}
 
 	/**
-	 * Get the ObjectId cast to a specific type
+	 * Gets the {@code _id} (see {@link #getOid()}) with an unchecked cast to {@code T}. The cast is made at
+	 * the caller: {@code clazz} is not checked, it only drives the type inference, so a wrong class
+	 * ({@code ObjectId.class} for a {@code BsonObjectId}) fails with a {@code ClassCastException} where the result
+	 * is used.
 	 *
 	 * @param <T> The type to cast to
-	 * @param clazz The class to cast to
-	 * @return The ObjectId cast to the specified type
+	 * @param clazz The class to cast to (only used to infer {@code T})
+	 * @return The {@code _id} value cast to {@code T}, or null if not available
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> T getOidAs(final Class<T> clazz) {

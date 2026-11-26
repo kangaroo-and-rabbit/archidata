@@ -176,7 +176,10 @@ public class CollectionWatchBuilder {
 	 * <p>
 	 * After calling this method, a ChangeStreamWorker will be created (if the
 	 * manager is running) and will start monitoring the collection for changes
-	 * that match the configured pipeline.
+	 * that match the configured pipeline. If the collection already has a worker (for instance a listener
+	 * registered on it before made the manager watch it), that worker keeps running with the pipeline it was
+	 * created with: the new pipeline is only stored, for the next worker of the collection. Likewise, a builder
+	 * with no filter does not clear a pipeline stored earlier.
 	 * </p>
 	 *
 	 * <p>

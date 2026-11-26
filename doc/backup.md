@@ -537,9 +537,10 @@ Pitfalls
   collection (or `counters` and the migration collection, as karideo's job
   does explicitly) silently leaves it out of the archive. `storeAll` avoids
   the problem.
-- `baseName` is both the archive prefix and the database name used for the
-  "already exists" check of `restoreFile`. Pass the real database name
-  (`ConfigBaseVariable.getDBName()`).
+- `baseName` is the archive prefix only: it does not select a database. The
+  "already exists" check of `restoreFile` lists the collections of the database
+  of the connection, whatever `baseName` is. Pass the real database name
+  (`ConfigBaseVariable.getDBName()`) as prefix, by convention.
 - Restoring on a non-empty database does nothing and returns `false`; callers
   that ignore the return value believe the restore happened.
 - `restoreDeltaFile` performs no consistency check: applying a delta on a

@@ -39,7 +39,7 @@ public class ListenerRegistrationBuilder {
 	private final ChangeNotificationManager manager;
 	private final ChangeNotificationListener listener;
 	private final Set<String> collectionNames; // null = global listener
-	private FullDocument mode = null; // null = use manager default
+	private FullDocument mode = null; // handed to the manager, which ignores it: the global mode applies
 	private Predicate<ChangeEvent> clientFilter = null;
 
 	/**

@@ -116,7 +116,7 @@ public class ChangeNotificationManager {
 
 	// Workers (one per collection)
 	private final Map<String, ChangeStreamWorker> workers = new ConcurrentHashMap<>();
-	// Store resume tokens to avoid re-reading events when restarting workers
+	// Resume token of the collections whose worker was stopped: a new worker of the collection resumes from it
 	private final Map<String, org.bson.BsonDocument> resumeTokens = new ConcurrentHashMap<>();
 
 	// Server-side filtering pipelines by collection
@@ -166,13 +166,12 @@ public class ChangeNotificationManager {
 	 * pool. After starting, workers will be created for all registered listeners.
 	 *
 	 * <p>
-	 * This method must be called before the manager can process change events. If
-	 * the manager is already running, this method logs a warning and returns
-	 * without action.
+	 * This method must be called before the manager can process change events. It uses the
+	 * {@code FullDocument.DEFAULT} mode, see {@link #start(MongoDatabase, FullDocument)}.
 	 * </p>
 	 *
 	 * @param database The MongoDB database instance to watch for changes
-	 * @throws IllegalStateException if database is null
+	 * @throws IllegalArgumentException if database is null
 	 */
 	public void start(final MongoDatabase database) {
 		start(database, FullDocument.DEFAULT);
@@ -184,8 +183,10 @@ public class ChangeNotificationManager {
 	 * The specified mode will be used globally for all collections.
 	 *
 	 * <p>
-	 * When listeners are already registered, it returns once the change streams of their collections
-	 * are open (at most 10 s).
+	 * When the manager is already running with the same mode, nothing happens (logged at DEBUG). When it runs
+	 * with another mode, {@link #stop()} is called first and the manager is restarted with the new mode: every
+	 * listener, resume token and owned client is dropped. When listeners are already registered, it returns
+	 * once the change streams of their collections are open (at most 10 s).
 	 * </p>
 	 *
 	 * @param database The MongoDB database instance to watch for changes
@@ -275,7 +276,9 @@ public class ChangeNotificationManager {
 
 	/**
 	 * Starts the Change Notification Manager with specified DbConfig and mode.
-	 * Creates a MongoClient from the provided configuration.
+	 * Creates a MongoClient from the provided configuration, owned by the manager until {@link #stop()}. If the
+	 * manager is already running with the same mode, that new client is closed and the manager keeps its own;
+	 * with another mode, the manager is stopped and restarted as in {@link #start(MongoDatabase, FullDocument)}.
 	 *
 	 * @param dbConfig The database configuration to use
 	 * @param mode The FullDocument mode to use for all collections
@@ -941,22 +944,13 @@ public class ChangeNotificationManager {
 	}
 
 	/**
-	 * Clears all listeners and stops all workers. This is primarily intended for
-	 * testing purposes to reset the manager to a clean state.
+	 * Removes every listener, the global ones and the collection-specific ones, and nothing else. It is the way
+	 * to reset the listeners between two tests.
 	 *
 	 * <p>
-	 * This method:
-	 * </p>
-	 * <ul>
-	 * <li>Removes all global listeners</li>
-	 * <li>Removes all collection-specific listeners</li>
-	 * <li>Stops all worker threads</li>
-	 * <li>Clears the worker map</li>
-	 * </ul>
-	 *
-	 * <p>
-	 * After calling this method, you can register new listeners and they will work
-	 * as if the manager was freshly started.
+	 * The workers keep running, and so do the watched collections, their server-side pipelines and their resume
+	 * tokens: a listener registered afterwards receives the events of the collections already watched, and no
+	 * event is read again. To stop the workers too, use {@link #stop()}, which also forgets the listeners.
 	 * </p>
 	 */
 	public void clearAllListeners() {
