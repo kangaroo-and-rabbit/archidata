@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.InsertOneModel;
@@ -197,7 +198,7 @@ public class BackupEngine {
 	 * Useful when media data is too large or managed separately.
 	 * @param value {@code true} to include media files (default), {@code false} to skip them
 	 */
-	public void setEnableStoreOrRestoreData(boolean value) {
+	public void setEnableStoreOrRestoreData(final boolean value) {
 		this.enableStoreOrRestoreData = value;
 	}
 
@@ -800,7 +801,7 @@ public class BackupEngine {
 				// First chunk of this collection: check that the target is empty.
 				// A delta restore upserts on top of existing data, so no check in that mode.
 				if (!upsertMode) {
-					try (var cursor = collection.find().limit(1).iterator()) {
+					try (MongoCursor<Document> cursor = collection.find().limit(1).iterator()) {
 						if (cursor.hasNext()) {
 							throw new IOException(
 									"Collection: '" + colName + "' is not empty ==> can not insert object inside");

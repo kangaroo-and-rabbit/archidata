@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public final class DbConfig implements Cloneable {
-	static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DbConfig.class);
 	/** Port used when none is given (MongoDB default). */
 	private static final int DEFAULT_PORT = 27017;
 	/** Highest valid TCP port. */

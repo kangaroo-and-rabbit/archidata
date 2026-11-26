@@ -52,7 +52,7 @@ public class JWTWrapper {
 		// Utility class
 	}
 
-	static final Logger LOGGER = LoggerFactory.getLogger(JWTWrapper.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(JWTWrapper.class);
 
 	/** Written by the key refresh thread, read by every request thread. */
 	private static volatile RSAKey rsaJWK = null;

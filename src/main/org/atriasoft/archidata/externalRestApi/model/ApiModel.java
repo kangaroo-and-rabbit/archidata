@@ -30,7 +30,7 @@ import jakarta.ws.rs.core.Context;
  */
 public final class ApiModel {
 	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ApiModel.class);
 
 	/** The class that declares this API endpoint. */
 	Class<?> originClass;
@@ -193,9 +193,9 @@ public final class ApiModel {
 			LOGGER.trace("             - {}", elem);
 		}
 
-		Parameter[] parameters = method.getParameters();
+		final Parameter[] parameters = method.getParameters();
 		for (int iii = 0; iii < parameters.length; iii++) {
-			Parameter parameter = parameters[iii];
+			final Parameter parameter = parameters[iii];
 			// Security context are internal parameter (not available from API)
 			if (ApiTool.apiAnnotationIsContext(method, iii)) {
 				continue;

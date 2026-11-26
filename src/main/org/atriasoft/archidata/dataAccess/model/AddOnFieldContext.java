@@ -1,5 +1,7 @@
 package org.atriasoft.archidata.dataAccess.model;
 
+import java.util.Collection;
+
 import org.atriasoft.archidata.annotation.ManyToManyDoc;
 import org.atriasoft.archidata.annotation.ManyToOneDoc;
 import org.atriasoft.archidata.annotation.OneToManyDoc;
@@ -239,7 +241,7 @@ public final class AddOnFieldContext {
 		}
 		// Determine if field stores entity objects vs raw IDs
 		final PropertyDescriptor prop = desc.getProperty();
-		if (java.util.Collection.class.isAssignableFrom(prop.getType())) {
+		if (Collection.class.isAssignableFrom(prop.getType())) {
 			b.entityReference = (prop.getElementType() == b.targetEntity);
 		} else {
 			b.entityReference = (prop.getType() == b.targetEntity);

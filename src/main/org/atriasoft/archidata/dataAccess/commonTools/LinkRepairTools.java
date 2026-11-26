@@ -78,7 +78,6 @@ public class LinkRepairTools {
 
 	// ========== ManyToMany repair ==========
 
-	@SuppressWarnings("unchecked")
 	private static <T> RepairReport repairManyToMany(
 			final Class<T> clazz,
 			final DbClassModel model,
@@ -197,7 +196,6 @@ public class LinkRepairTools {
 
 	// ========== OneToMany repair ==========
 
-	@SuppressWarnings("unchecked")
 	private static <T> RepairReport repairOneToMany(
 			final Class<T> clazz,
 			final DbClassModel model,
@@ -306,7 +304,6 @@ public class LinkRepairTools {
 
 	// ========== ManyToOne repair ==========
 
-	@SuppressWarnings("unchecked")
 	private static <T> RepairReport repairManyToOne(
 			final Class<T> clazz,
 			final DbClassModel model,

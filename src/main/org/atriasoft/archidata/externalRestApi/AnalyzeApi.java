@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  */
 public class AnalyzeApi {
 	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeApi.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(AnalyzeApi.class);
 	/** List of analyzed API groups. */
 	protected final List<ApiGroupModel> apiModels = new ArrayList<>();
 	/** Container for all discovered class models. */

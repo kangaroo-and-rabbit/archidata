@@ -788,8 +788,8 @@ public class DrawioGenerateApi {
 					final double cy1 = by[i] + bh[i] * 0.5;
 					final double cx2 = bx[j] + bw[j] * 0.5;
 					final double cy2 = by[j] + bh[j] * 0.5;
-					double dx = cx1 - cx2;
-					double dy = cy1 - cy2;
+					final double dx = cx1 - cx2;
+					final double dy = cy1 - cy2;
 					// Gap = distance between edges (negative = overlap)
 					final double gapX = Math.abs(dx) - (bw[i] + bw[j]) * 0.5;
 					final double gapY = Math.abs(dy) - (bh[i] + bh[j]) * 0.5;
@@ -817,8 +817,8 @@ public class DrawioGenerateApi {
 				final double cy1 = by[i] + bh[i] * 0.5;
 				final double cx2 = bx[j] + bw[j] * 0.5;
 				final double cy2 = by[j] + bh[j] * 0.5;
-				double dx = cx1 - cx2;
-				double dy = cy1 - cy2;
+				final double dx = cx1 - cx2;
+				final double dy = cy1 - cy2;
 				final double dist = Math.max(Math.sqrt(dx * dx + dy * dy), 1.0);
 				// Ideal center distance = half-widths + ideal gap
 				final double idealDist = (bw[i] + bw[j]) * 0.5 + IDEAL_GAP;

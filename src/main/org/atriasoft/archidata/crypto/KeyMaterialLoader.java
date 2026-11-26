@@ -1,5 +1,6 @@
 package org.atriasoft.archidata.crypto;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -38,7 +39,7 @@ public final class KeyMaterialLoader {
 	 * @throws Exception if the content cannot be interpreted as a supported key.
 	 */
 	public static CipherProvider fromBytes(final byte[] content) throws Exception {
-		final String text = new String(content, java.nio.charset.StandardCharsets.UTF_8);
+		final String text = new String(content, StandardCharsets.UTF_8);
 		if (text.contains("-----BEGIN ")) {
 			return fromPem(text);
 		}

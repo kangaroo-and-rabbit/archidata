@@ -108,7 +108,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * </p>
 	 */
 	@Override
-	synchronized public void closeImplement() throws IOException {
+	public synchronized void closeImplement() throws IOException {
 		this.mongoClient = null;
 		this.dataBase = null;
 	}
@@ -120,7 +120,7 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * @throws IOException if the connection cannot be established, or if the configuration has no database name
 	 */
 	@Override
-	synchronized public void openImplement() throws IOException {
+	public synchronized void openImplement() throws IOException {
 		final String dbName = this.config.getDbName();
 		if (dbName == null) {
 			// MongoDB has no default database: refuse before a shared client is created for this URL.

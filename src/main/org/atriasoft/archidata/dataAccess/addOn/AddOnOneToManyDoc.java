@@ -23,8 +23,6 @@ import org.atriasoft.archidata.exception.FailException;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Add-on for handling {@link OneToManyDoc} annotated fields in MongoDB.
@@ -34,8 +32,6 @@ import org.slf4j.LoggerFactory;
  * cascade set-null behaviors.
  */
 public class AddOnOneToManyDoc implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnOneToManyDoc.class);
-
 	/** Creates a new AddOnOneToManyDoc instance. */
 	public AddOnOneToManyDoc() {}
 
@@ -84,7 +80,6 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		return true;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void asyncUpdate(
 			final DBAccessMongo ioDb,
@@ -264,7 +259,6 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		return decorators.cascadeDelete() != CascadeMode.IGNORE;
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void onDelete(
 			final DBAccessMongo ioDb,

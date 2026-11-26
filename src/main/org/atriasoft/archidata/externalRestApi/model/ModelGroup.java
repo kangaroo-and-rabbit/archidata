@@ -3,9 +3,6 @@ package org.atriasoft.archidata.externalRestApi.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.ws.rs.core.Response;
 
 /**
@@ -15,8 +12,6 @@ import jakarta.ws.rs.core.Response;
  * deduplicating models for classes that have already been registered.
  */
 public class ModelGroup {
-	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(ModelGroup.class);
 	/** The list of registered class models. */
 	public List<ClassModel> models = new ArrayList<>();
 
@@ -38,25 +33,23 @@ public class ModelGroup {
 	 * @param clazz the class to add (Response is mapped to Object, Number returns {@code null})
 	 * @return the class model for the given class, or {@code null} for Number
 	 */
-	public ClassModel add(Class<?> clazz) {
-		if (clazz == Response.class) {
-			clazz = Object.class;
-		}
-		if (clazz == Number.class) {
+	public ClassModel add(final Class<?> clazz) {
+		final Class<?> modelClass = clazz == Response.class ? Object.class : clazz;
+		if (modelClass == Number.class) {
 			return null;
 		}
 		for (final ClassModel value : this.models) {
-			if (value.isCompatible(clazz)) {
+			if (value.isCompatible(modelClass)) {
 				return value;
 			}
 		}
-		if (clazz.isEnum()) {
-			final ClassModel elem = new ClassEnumModel(clazz);
+		if (modelClass.isEnum()) {
+			final ClassModel elem = new ClassEnumModel(modelClass);
 			this.models.add(elem);
 			return elem;
 		}
 		// create new model:
-		final ClassModel elem = new ClassObjectModel(clazz);
+		final ClassModel elem = new ClassObjectModel(modelClass);
 		this.models.add(elem);
 		return elem;
 	}

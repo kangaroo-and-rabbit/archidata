@@ -7,7 +7,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
@@ -69,8 +71,7 @@ public final class DbClassModel {
 	private volatile boolean declaredTypesChecked;
 
 	/** Track classes currently building their addon contexts to break circular references. */
-	private static final ThreadLocal<java.util.Set<Class<?>>> BUILDING_CONTEXTS = ThreadLocal
-			.withInitial(java.util.HashSet::new);
+	private static final ThreadLocal<Set<Class<?>>> BUILDING_CONTEXTS = ThreadLocal.withInitial(HashSet::new);
 
 	/**
 	 * Single global lock for the addon-context build phase. The lock MUST be global
@@ -454,7 +455,7 @@ public final class DbClassModel {
 			return;
 		}
 		final Class<?> clazz = this.classModel.getClassType();
-		final java.util.Set<Class<?>> building = BUILDING_CONTEXTS.get();
+		final Set<Class<?>> building = BUILDING_CONTEXTS.get();
 		if (!building.add(clazz)) {
 			return;
 		}

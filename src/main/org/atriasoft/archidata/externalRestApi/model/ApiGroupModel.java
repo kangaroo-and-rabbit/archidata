@@ -22,7 +22,7 @@ record OrderedElement(
  */
 public final class ApiGroupModel {
 	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(ApiGroupModel.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ApiGroupModel.class);
 
 	/** The base REST endpoint path for this group. */
 	public String restEndPoint;

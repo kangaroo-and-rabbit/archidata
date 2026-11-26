@@ -41,7 +41,7 @@ import jakarta.ws.rs.core.Context;
  */
 public class ApiTool {
 	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(ApiTool.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ApiTool.class);
 
 	/** Private constructor to prevent instantiation of this utility class. */
 	private ApiTool() {
@@ -301,7 +301,7 @@ public class ApiTool {
 	 * @return the path parameter name, or {@code null} if not annotated
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static String apiAnnotationGetPathParam(final Method method, int parameterId) throws Exception {
+	public static String apiAnnotationGetPathParam(final Method method, final int parameterId) throws Exception {
 		final List<PathParam> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId,
 				PathParam.class);
 		if (annotation.size() == 0) {
@@ -317,7 +317,7 @@ public class ApiTool {
 	 * @return the query parameter name, or {@code null} if not annotated
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static String apiAnnotationGetQueryParam(final Method method, int parameterId) throws Exception {
+	public static String apiAnnotationGetQueryParam(final Method method, final int parameterId) throws Exception {
 		final List<QueryParam> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId,
 				QueryParam.class);
 		if (annotation.size() == 0) {
@@ -333,7 +333,8 @@ public class ApiTool {
 	 * @return {@code true} if the annotation is present
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static boolean apiAnnotationGetApiInputOptional(final Method method, int parameterId) throws Exception {
+	public static boolean apiAnnotationGetApiInputOptional(final Method method, final int parameterId)
+			throws Exception {
 		final List<ApiInputOptional> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId,
 				ApiInputOptional.class);
 		return annotation.size() != 0;
@@ -346,7 +347,7 @@ public class ApiTool {
 	 * @return the form data parameter name, or {@code null} if not annotated
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static String apiAnnotationGetFormDataParam(final Method method, int parameterId) throws Exception {
+	public static String apiAnnotationGetFormDataParam(final Method method, final int parameterId) throws Exception {
 		final List<FormDataParam> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId,
 				FormDataParam.class);
 		if (annotation.size() == 0) {
@@ -362,7 +363,7 @@ public class ApiTool {
 	 * @return the array of async type classes, or {@code null} if not annotated
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static Class<?>[] apiAnnotationGetAsyncType(final Method method, int parameterId) throws Exception {
+	public static Class<?>[] apiAnnotationGetAsyncType(final Method method, final int parameterId) throws Exception {
 		final List<ApiAsyncType> annotation = AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId,
 				ApiAsyncType.class);
 		if (annotation.size() == 0) {
@@ -452,7 +453,7 @@ public class ApiTool {
 	 * @return {@code true} if the parameter has the {@code @Context} annotation
 	 * @throws Exception if annotation retrieval fails
 	 */
-	public static boolean apiAnnotationIsContext(Method method, int parameterId) throws Exception {
+	public static boolean apiAnnotationIsContext(final Method method, final int parameterId) throws Exception {
 		return AnnotationTools.getAnnotationsIncludingInterfaces(method, parameterId, Context.class).size() != 0;
 	}
 

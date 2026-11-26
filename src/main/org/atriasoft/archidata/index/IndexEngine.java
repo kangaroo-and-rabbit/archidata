@@ -6,12 +6,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.checker.DataAccessConnectionContext;
@@ -25,6 +27,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.ReturnDocument;
 
 /**
@@ -319,11 +322,11 @@ public final class IndexEngine {
 		if (currentKeys.size() != wantedKeys.size()) {
 			return false;
 		}
-		final var wantedIterator = wantedKeys.entrySet().iterator();
-		final var currentIterator = currentKeys.entrySet().iterator();
+		final Iterator<Map.Entry<String, Object>> wantedIterator = wantedKeys.entrySet().iterator();
+		final Iterator<Map.Entry<String, Object>> currentIterator = currentKeys.entrySet().iterator();
 		while (wantedIterator.hasNext()) {
-			final var wantedEntry = wantedIterator.next();
-			final var currentEntry = currentIterator.next();
+			final Map.Entry<String, Object> wantedEntry = wantedIterator.next();
+			final Map.Entry<String, Object> currentEntry = currentIterator.next();
 			if (!wantedEntry.getKey().equals(currentEntry.getKey())) {
 				return false;
 			}
@@ -425,7 +428,7 @@ public final class IndexEngine {
 			options.sparse(true);
 		}
 		if (spec.getExpireAfterSeconds() >= 0) {
-			options.expireAfter(spec.getExpireAfterSeconds(), java.util.concurrent.TimeUnit.SECONDS);
+			options.expireAfter(spec.getExpireAfterSeconds(), TimeUnit.SECONDS);
 		}
 		if (!spec.getPartialFilter().isEmpty()) {
 			options.partialFilterExpression(Document.parse(spec.getPartialFilter()));
@@ -503,7 +506,7 @@ public final class IndexEngine {
 				.append("indexes", names)//
 				.append("syncedAt", new Date())//
 				.append("owner", this.instanceId), //
-				new com.mongodb.client.model.ReplaceOptions().upsert(true));
+				new ReplaceOptions().upsert(true));
 	}
 
 	// ========== Lock ==========

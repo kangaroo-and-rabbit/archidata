@@ -1,8 +1,5 @@
 package org.atriasoft.archidata.tools;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * High-level REST API client that acts as a factory for {@link RESTApiRequest} instances.
  *
@@ -24,7 +21,6 @@ import org.slf4j.LoggerFactory;
  * }</pre>
  */
 public class RESTApi {
-	static final Logger LOGGER = LoggerFactory.getLogger(RESTApi.class);
 	final String baseUrl;
 	private String tokenKey = null;
 	private String token = null;

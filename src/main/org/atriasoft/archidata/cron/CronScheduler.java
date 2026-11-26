@@ -363,13 +363,14 @@ public class CronScheduler {
 	 * @param uniqueInQueue if {@code true}, only one pending instance in queue
 	 * @throws IllegalArgumentException if the cron expression is invalid
 	 */
-	public void addTask(String name, final String cronExpression, final Runnable action, final boolean uniqueInQueue)
-			throws IllegalArgumentException {
-		if (name == null || name.isEmpty()) {
-			name = new ObjectId().toString();
-		}
-		LOGGER.debug("Add task name '{}' cron='{}'", name, cronExpression);
-		this.cronTasks.put(name, new CronTask(name, cronExpression, action, uniqueInQueue));
+	public void addTask(
+			final String name,
+			final String cronExpression,
+			final Runnable action,
+			final boolean uniqueInQueue) throws IllegalArgumentException {
+		final String taskName = name == null || name.isEmpty() ? new ObjectId().toString() : name;
+		LOGGER.debug("Add task name '{}' cron='{}'", taskName, cronExpression);
+		this.cronTasks.put(taskName, new CronTask(taskName, cronExpression, action, uniqueInQueue));
 	}
 
 	/**
@@ -391,15 +392,13 @@ public class CronScheduler {
 	 * @param action the action to execute
 	 * @throws IllegalArgumentException if executeAt is in the past
 	 */
-	public void addTask(String name, final LocalDateTime executeAt, final Runnable action) {
+	public void addTask(final String name, final LocalDateTime executeAt, final Runnable action) {
 		if (executeAt == null || executeAt.isBefore(LocalDateTime.now().minusMinutes(1))) {
 			throw new IllegalArgumentException("Execution time must be in the future (1 minute delta)");
 		}
-		if (name == null || name.isEmpty()) {
-			name = new ObjectId().toString();
-		}
-		this.scheduledTasks.put(name, new ScheduledTask(name, executeAt, action));
-		LOGGER.info("Add scheduled task '{}' at {}", name, executeAt);
+		final String taskName = name == null || name.isEmpty() ? new ObjectId().toString() : name;
+		this.scheduledTasks.put(taskName, new ScheduledTask(taskName, executeAt, action));
+		LOGGER.info("Add scheduled task '{}' at {}", taskName, executeAt);
 		signalProducer();
 	}
 

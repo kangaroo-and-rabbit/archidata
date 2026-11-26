@@ -137,7 +137,7 @@ public final class DBAccessMongo implements Closeable {
 					String.format("%10d", this.countDrop), //
 					String.format("%10d", this.countRunCommand)); //
 		}
-	};
+	}
 
 	/** Global statistics for all MongoDB operations performed through this class. */
 	public static final MongoDbStatistic statistic = new MongoDbStatistic();
@@ -218,7 +218,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @throws IOException                  if I/O error occurs
 	 * @throws DataAccessException          if database access configuration is invalid
 	 */
-	public static final DBAccessMongo createInterface()
+	public static DBAccessMongo createInterface()
 			throws InternalServerErrorException, IOException, DataAccessException {
 		return DBAccessMongo.createInterface(DbIoFactory.create());
 	}
@@ -231,7 +231,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @throws InternalServerErrorException if database connection fails
 	 * @throws IOException                  if I/O error occurs
 	 */
-	public static final DBAccessMongo createInterface(final DbConfig config)
+	public static DBAccessMongo createInterface(final DbConfig config)
 			throws InternalServerErrorException, IOException {
 		return DBAccessMongo.createInterface(DbIoFactory.create(config));
 	}
@@ -243,7 +243,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @return A new DBAccessMongo instance
 	 * @throws InternalServerErrorException if database connection fails
 	 */
-	public static final DBAccessMongo createInterface(final DbIo io) throws InternalServerErrorException {
+	public static DBAccessMongo createInterface(final DbIo io) throws InternalServerErrorException {
 		if (io instanceof final DbIoMongo ioMorphia) {
 			try {
 				return new DBAccessMongo(ioMorphia);
@@ -1153,49 +1153,47 @@ public final class DBAccessMongo implements Closeable {
 	 * @return The converted value matching the field's type
 	 * @throws Exception if the conversion fails or the type is unsupported
 	 */
-	protected Object convertDefaultField(String data, final Field field) throws Exception {
-		if (data.startsWith("'") && data.endsWith("'")) {
-			data = data.substring(1, data.length() - 1);
-		}
+	protected Object convertDefaultField(final String data, final Field field) throws Exception {
+		final String value = data.startsWith("'") && data.endsWith("'") ? data.substring(1, data.length() - 1) : data;
 		final Class<?> type = field.getType();
 		if (type == Long.class || type == long.class) {
-			return Long.parseLong(data);
+			return Long.parseLong(value);
 		}
 		if (type == Integer.class || type == int.class) {
-			return Integer.parseInt(data);
+			return Integer.parseInt(value);
 		}
 		if (type == Float.class || type == float.class) {
-			return Float.parseFloat(data);
+			return Float.parseFloat(value);
 		}
 		if (type == Double.class || type == double.class) {
-			return Double.parseDouble(data);
+			return Double.parseDouble(value);
 		}
 		if (type == Boolean.class || type == boolean.class) {
-			return Boolean.parseBoolean(data);
+			return Boolean.parseBoolean(value);
 		}
 		if (type == Date.class) {
-			return new Date(Long.parseLong(data));
+			return new Date(Long.parseLong(value));
 		}
 		if (type == Instant.class) {
-			return Instant.parse(data);
+			return Instant.parse(value);
 		}
 		if (type == OffsetDateTime.class) {
-			return OffsetDateTime.parse(data);
+			return OffsetDateTime.parse(value);
 		}
 		if (type == LocalDate.class) {
-			return LocalDate.parse(data);
+			return LocalDate.parse(value);
 		}
 		if (type == LocalTime.class) {
-			return LocalTime.parse(data);
+			return LocalTime.parse(value);
 		}
 		if (type == String.class) {
-			return data;
+			return value;
 		}
 		if (type.isEnum()) {
-			return retreiveValueEnum(type, data);
+			return retreiveValueEnum(type, value);
 		}
 		throw new DataAccessException(
-				"Request default of unknow native type " + type.getCanonicalName() + " => " + data);
+				"Request default of unknow native type " + type.getCanonicalName() + " => " + value);
 	}
 
 	/**
@@ -1208,10 +1206,8 @@ public final class DBAccessMongo implements Closeable {
 	 * @return The next sequence value
 	 * @throws IllegalStateException if the database returns no counter
 	 */
-	public long getNextSequenceLongValue(final String collectionName, String fieldName) {
-		if (fieldName == null || fieldName.isEmpty()) {
-			fieldName = "sequence_id";
-		}
+	public long getNextSequenceLongValue(final String collectionName, final String fieldName) {
+		final String counterField = fieldName == null || fieldName.isEmpty() ? "sequence_id" : fieldName;
 		// Collection "counters" to store the sequences if Ids
 		final MongoCollection<Document> countersCollection = this.db.getDatabase().getCollection(COLLECTION_COUNTERS);
 
@@ -1219,7 +1215,7 @@ public final class DBAccessMongo implements Closeable {
 		final Document filter = new Document("_id", collectionName);
 
 		// Update the field <fieldName> of 1
-		final Document update = new Document("$inc", new Document(fieldName, 1L));
+		final Document update = new Document("$inc", new Document(counterField, 1L));
 
 		// get the value after updated it
 		final FindOneAndUpdateOptions options = new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
@@ -1232,9 +1228,9 @@ public final class DBAccessMongo implements Closeable {
 				: countersCollection.findOneAndUpdate(filter, update, options);
 
 		// Return the new sequence value...
-		final Long value = updatedCounter == null ? null : updatedCounter.getLong(fieldName);
+		final Long value = updatedCounter == null ? null : updatedCounter.getLong(counterField);
 		if (value == null) {
-			throw new IllegalStateException("No value for the sequence " + collectionName + "." + fieldName);
+			throw new IllegalStateException("No value for the sequence " + collectionName + "." + counterField);
 		}
 		return value;
 	}
@@ -1251,7 +1247,6 @@ public final class DBAccessMongo implements Closeable {
 	 * @return The generated primary key
 	 * @throws Exception if insertion fails
 	 */
-	@SuppressWarnings("unchecked")
 	public <T> Object insertPrimaryKey(final T data, final QueryOption... option) throws Exception {
 		final Class<?> clazz = data.getClass();
 		final QueryOptions options = new QueryOptions(option);
@@ -1423,20 +1418,18 @@ public final class DBAccessMongo implements Closeable {
 	 * @return Number of entities updated
 	 * @throws Exception if update operation fails or FilterValue is missing
 	 */
-	public <T> long update(final T data, QueryOptions options) throws Exception {
+	public <T> long update(final T data, final QueryOptions options) throws Exception {
 		final Class<?> clazz = data.getClass();
-		if (options == null) {
-			options = new QueryOptions();
-		}
-		final boolean directdata = options.exist(DirectData.class);
-		final boolean forceReadOnlyField = options.exist(ForceReadOnlyField.class);
-		final Condition condition = conditionFusionOrEmpty(options, true);
-		final List<FilterValue> filterKeys = options.get(FilterValue.class);
+		final QueryOptions queryOptions = options == null ? new QueryOptions() : options;
+		final boolean directdata = queryOptions.exist(DirectData.class);
+		final boolean forceReadOnlyField = queryOptions.exist(ForceReadOnlyField.class);
+		final Condition condition = conditionFusionOrEmpty(queryOptions, true);
+		final List<FilterValue> filterKeys = queryOptions.get(FilterValue.class);
 		if (filterKeys.size() != 1) {
 			throw new DataAccessException("request a gets without/or with more 1 FilterValue of values");
 		}
 		final FilterValue filterKey = filterKeys.get(0);
-		final List<FilterOmit> filterOmitKeys = options.get(FilterOmit.class);
+		final List<FilterOmit> filterOmitKeys = queryOptions.get(FilterOmit.class);
 		FilterOmit filterOmitKey = null;
 		if (filterOmitKeys.size() > 1) {
 			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
@@ -1451,9 +1444,9 @@ public final class DBAccessMongo implements Closeable {
 		// the update itself, so that a document the update does not reach never feeds a side effect (CS-04).
 		Object previousData = null;
 		if (model.needsPreviousDataForUpdate()) {
-			final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
+			final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
 			if (transmitKey.size() == 1) {
-				previousData = readPreviousDataForUpdate(clazz, transmitKey.get(0).getKey(), condition, options);
+				previousData = readPreviousDataForUpdate(clazz, transmitKey.get(0).getKey(), condition, queryOptions);
 			}
 		}
 		// A relation field to synchronize whose stored document the update does not reach.
@@ -1461,24 +1454,24 @@ public final class DBAccessMongo implements Closeable {
 
 		// real add in the BDD:
 		try {
-			final String collectionName = model.getTableName(options);
+			final String collectionName = model.getTableName(queryOptions);
 			final String deletedFieldName = model.getDeletedFieldName();
-			final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
+			final Bson filters = matchAllIfNull(condition.getFilter(collectionName, queryOptions, deletedFieldName));
 			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null,
-					statisticSoftDeleteField(options, deletedFieldName));
+					statisticSoftDeleteField(queryOptions, deletedFieldName));
 			final Document docSet = new Document();
 			final Document docUnSet = new Document();
 
 			// --- Handle update timestamp (unconditionally, not subject to filter) ---
 			final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
 			if (updateTsDesc != null && !directdata) {
-				final FieldName fieldName = updateTsDesc.getFieldName(options);
+				final FieldName fieldName = updateTsDesc.getFieldName(queryOptions);
 				docSet.append(fieldName.inTable(), Date.from(Instant.now()));
 			}
 
 			// --- Handle addon fields ---
 			for (final DbPropertyDescriptor desc : model.getAddonFields()) {
-				final FieldName fieldName = desc.getFieldName(options);
+				final FieldName fieldName = desc.getFieldName(queryOptions);
 				// Apply filter/omit logic
 				if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
 					continue;
@@ -1490,7 +1483,7 @@ public final class DBAccessMongo implements Closeable {
 					continue;
 				}
 				if (desc.isAsyncUpdate()) {
-					final List<TransmitKey> transmitKey = options.get(TransmitKey.class);
+					final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
 					if (transmitKey.size() != 1) {
 						throw new DataAccessException(
 								"Fail to transmit Key to update the async update... (must have only 1)");
@@ -1499,18 +1492,18 @@ public final class DBAccessMongo implements Closeable {
 						relationSideEffectSkipped = true;
 					} else {
 						desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
-								desc.getProperty().getValue(data), asyncActions, options);
+								desc.getProperty().getValue(data), asyncActions, queryOptions);
 					}
 				}
 				if (!desc.canInsert()) {
 					continue;
 				}
-				desc.getAddOn().insertData(this, desc, data, options, docSet, docUnSet);
+				desc.getAddOn().insertData(this, desc, data, queryOptions, docSet, docUnSet);
 			}
 
 			// --- Handle regular fields (via pre-compiled codecs) ---
 			for (final DbPropertyDescriptor desc : model.getRegularFields()) {
-				final FieldName fieldName = desc.getFieldName(options);
+				final FieldName fieldName = desc.getFieldName(queryOptions);
 				// Apply filter/omit logic
 				if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
 					continue;

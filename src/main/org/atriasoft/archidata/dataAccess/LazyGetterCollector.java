@@ -98,7 +98,6 @@ public final class LazyGetterCollector {
 	 * @param ioDb The database accessor used to execute the batched queries.
 	 * @return List of batched lazy getters, one per (targetEntity, idFieldColumn) pair
 	 */
-	@SuppressWarnings("unchecked")
 	public List<LazyGetter> buildLazyGetters(final DBAccessMongo ioDb) {
 		final List<LazyGetter> result = new ArrayList<>();
 

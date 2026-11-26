@@ -51,7 +51,7 @@ import jakarta.validation.constraints.Size;
  */
 public class ClassObjectModel extends ClassModel {
 	/** Logger instance. */
-	static final Logger LOGGER = LoggerFactory.getLogger(ClassObjectModel.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClassObjectModel.class);
 
 	/**
 	 * Constructs a new object model for the given class.

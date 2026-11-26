@@ -21,8 +21,6 @@ import org.atriasoft.archidata.dataAccess.mongo.MongoLinkManager;
 import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Add-on for handling {@link ManyToOneDoc} annotated fields in MongoDB.
@@ -32,8 +30,6 @@ import org.slf4j.LoggerFactory;
  * parent reference atomically synchronize the parent's child list.
  */
 public class AddOnManyToOneDoc implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToOneDoc.class);
-
 	/** Creates a new AddOnManyToOneDoc instance. */
 	public AddOnManyToOneDoc() {}
 

@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.atriasoft.archidata.exception.DataAccessException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Factory for creating and managing {@link DbIo} database connection instances.
@@ -17,7 +15,6 @@ import org.slf4j.LoggerFactory;
  * </p>
  */
 public class DbIoFactory {
-	static final Logger LOGGER = LoggerFactory.getLogger(DbIoFactory.class);
 	private static List<DbIo> dbIoStored = new ArrayList<>();
 
 	private DbIoFactory() throws IOException {}

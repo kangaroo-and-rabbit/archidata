@@ -8,6 +8,8 @@ import org.bson.BsonReader;
 import org.bson.BsonType;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.EncoderContext;
 
 /**
  * BSON codec for {@link OffsetDateTime} values.
@@ -27,11 +29,8 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 	 * @param encoderContext the encoder context.
 	 */
 	@Override
-	public void encode(
-			final BsonWriter writer,
-			final OffsetDateTime value,
-			final org.bson.codecs.EncoderContext encoderContext) {
-		Instant instant = value.toInstant(); // convert to UTC
+	public void encode(final BsonWriter writer, final OffsetDateTime value, final EncoderContext encoderContext) {
+		final Instant instant = value.toInstant(); // convert to UTC
 		writer.writeDateTime(instant.toEpochMilli());
 	}
 
@@ -43,10 +42,10 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 	 * @throws IllegalArgumentException if the current BSON type is not DATE_TIME.
 	 */
 	@Override
-	public OffsetDateTime decode(final BsonReader reader, final org.bson.codecs.DecoderContext decoderContext) {
+	public OffsetDateTime decode(final BsonReader reader, final DecoderContext decoderContext) {
 		final BsonType bsonType = reader.getCurrentBsonType();
 		if (bsonType == BsonType.DATE_TIME) {
-			long millis = reader.readDateTime();
+			final long millis = reader.readDateTime();
 			return OffsetDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
 		} else {
 			throw new IllegalArgumentException("Expected a DATE_TIME but found " + bsonType);

@@ -6,8 +6,6 @@ import java.util.List;
 
 import org.atriasoft.archidata.dataAccess.options.QueryOption;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Container for query options that control how database operations are executed.
@@ -19,8 +17,6 @@ import org.slf4j.LoggerFactory;
  * {@link org.atriasoft.archidata.dataAccess.options.OrderBy}.
  */
 public class QueryOptions {
-	static final Logger LOGGER = LoggerFactory.getLogger(QueryOptions.class);
-
 	private final List<QueryOption> options = new ArrayList<>();
 
 	/** Creates an empty QueryOptions container. */

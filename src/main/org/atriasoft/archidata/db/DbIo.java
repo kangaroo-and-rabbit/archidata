@@ -46,7 +46,7 @@ public abstract class DbIo implements Closeable {
 	 * @throws IOException if closing the connection fails
 	 */
 	@Override
-	public synchronized final void close() throws IOException {
+	public final synchronized void close() throws IOException {
 		if (this.count <= 0) {
 			return;
 		}
@@ -61,7 +61,7 @@ public abstract class DbIo implements Closeable {
 	 *
 	 * @throws IOException if closing the connection fails
 	 */
-	public synchronized final void closeForce() throws IOException {
+	public final synchronized void closeForce() throws IOException {
 		if (this.count == 0) {
 			return;
 		}
@@ -81,7 +81,7 @@ public abstract class DbIo implements Closeable {
 	 *
 	 * @throws IOException if opening the connection fails
 	 */
-	public synchronized final void open() throws IOException {
+	public final synchronized void open() throws IOException {
 		if (this.count == 0) {
 			openImplement();
 		}

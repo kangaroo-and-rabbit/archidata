@@ -21,8 +21,6 @@ import org.atriasoft.archidata.dataAccess.options.Condition;
 import org.atriasoft.archidata.exception.SystemException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Add-on for handling {@link ManyToManyDoc} annotated fields in MongoDB.
@@ -31,8 +29,6 @@ import org.slf4j.LoggerFactory;
  * in both the local and remote documents, using atomic {@code $addToSet} and {@code $pull} operations.
  */
 public class AddOnManyToManyDoc implements DataAccessAddOn {
-	static final Logger LOGGER = LoggerFactory.getLogger(AddOnManyToManyDoc.class);
-
 	/** Creates a new AddOnManyToManyDoc instance. */
 	public AddOnManyToManyDoc() {}
 

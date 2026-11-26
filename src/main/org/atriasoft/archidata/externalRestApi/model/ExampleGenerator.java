@@ -8,8 +8,6 @@ import java.util.Locale;
 import java.util.UUID;
 
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -32,8 +30,6 @@ import jakarta.validation.constraints.Size;
  * </ol>
  */
 public class ExampleGenerator {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ExampleGenerator.class);
-
 	private ExampleGenerator() {
 		// Utility class
 	}

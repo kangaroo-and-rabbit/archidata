@@ -52,7 +52,7 @@ import jakarta.ws.rs.core.HttpHeaders;
  * }</pre>
  */
 public class RESTApiRequest {
-	static final Logger LOGGER = LoggerFactory.getLogger(RESTApiRequest.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RESTApiRequest.class);
 	private final String url;
 	private final String token;
 	private final String tokenKey;
