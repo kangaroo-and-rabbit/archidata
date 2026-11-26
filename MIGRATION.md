@@ -9,6 +9,8 @@
   vivant n'est plus touché et ne compte plus dans le retour. Passer `AccessDeletedItems` reste accepté et ne change rien.
 - Un code qui contournait l'ancien défaut (`restoreById(..., new AccessDeletedItems())`) n'a rien à changer. Un code
   qui comptait sur `restoreById` d'un document vivant pour obtenir 1 obtient maintenant 0.
+- Conséquence visible : `DataTools.undelete` et `DataResource.undelete` passent par `restoreById` et ne faisaient donc
+  rien. Le renvoi d'un fichier dont le `Data` de même sha512 est supprimé le restaure maintenant vraiment.
 - `LinkRepairTools.repairLinks` sur une relation `@ManyToManyDoc` retire maintenant la référence inverse périmée (la
   source n'a plus la cible dans sa liste, la cible a encore la source dans la sienne). Avant, elle retirait la clé de la
   cible de sa propre liste (sans effet) mais comptait le lien comme corrigé : `getInconsistentLinksFixed()` ne change pas
