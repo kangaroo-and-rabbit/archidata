@@ -200,7 +200,7 @@ public final class DBAccessMongo implements Closeable {
 	 * @param options the query options holding the {@link OrderBy} entries
 	 * @return the sort document ({@code field -> 1|-1}, in order), or {@code null}
 	 */
-	private static Document generateSortOrNull(final QueryOptions options) {
+	static Document generateSortOrNull(final QueryOptions options) {
 		final List<OrderBy> orders = options.get(OrderBy.class);
 		if (orders.isEmpty()) {
 			return null;
@@ -292,6 +292,7 @@ public final class DBAccessMongo implements Closeable {
 	private final DbIoMongo db;
 	private final MongoSessionCalls sessionCalls;
 	private final MongoAdminCommands adminCommands;
+	private final MongoRawAccess rawAccess;
 
 	/**
 	 * Constructs a new DBAccessMongo instance with the specified MongoDB I/O interface.
@@ -309,6 +310,7 @@ public final class DBAccessMongo implements Closeable {
 		db.open();
 		this.sessionCalls = new MongoSessionCalls(db);
 		this.adminCommands = new MongoAdminCommands(db);
+		this.rawAccess = new MongoRawAccess(this, db, this.sessionCalls);
 	}
 
 	/**
@@ -2748,26 +2750,7 @@ public final class DBAccessMongo implements Closeable {
 	 */
 	public ObjectId insertBsonDocument(final String collectionName, final Document document)
 			throws DataAccessException {
-		try {
-			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-			statistic.countInsertOne++;
-			final InsertOneResult result = this.sessionCalls.insertOneIn(collection, document);
-			final Object insertedId = result.getInsertedId();
-			if (insertedId != null && insertedId instanceof org.bson.BsonObjectId) {
-				return ((org.bson.BsonObjectId) insertedId).getValue();
-			}
-			// If no ID was returned, check if the document has one
-			final Object docId = document.get("_id");
-			if (docId instanceof ObjectId) {
-				return (ObjectId) docId;
-			}
-			throw new DataAccessException("Failed to retrieve inserted document ID");
-		} catch (final DataAccessException ex) {
-			throw ex;
-		} catch (final Exception ex) {
-			LOGGER.error("Failed to insert BSON document: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to insert BSON document: " + ex.getMessage(), ex);
-		}
+		return this.rawAccess.insertBsonDocument(collectionName, document);
 	}
 
 	/**
@@ -2802,29 +2785,7 @@ public final class DBAccessMongo implements Closeable {
 	 */
 	public Document getBsonDocument(final String collectionName, final QueryOption... options)
 			throws DataAccessException {
-		try {
-			final QueryOptions queryOptions = new QueryOptions(options);
-			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
-			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
-			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), null, null);
-			statistic.countFind++;
-			final FindIterable<Document> cursor;
-			if (filters != null) {
-				cursor = this.sessionCalls.findIn(collection, filters);
-			} else {
-				cursor = this.sessionCalls.findAllIn(collection);
-			}
-			try (MongoCursor<Document> iterator = cursor.iterator()) {
-				if (iterator.hasNext()) {
-					return iterator.next();
-				}
-			}
-			return null;
-		} catch (final Exception ex) {
-			LOGGER.error("Failed to retrieve BSON document: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to retrieve BSON document: " + ex.getMessage(), ex);
-		}
+		return this.rawAccess.getBsonDocument(collectionName, options);
 	}
 
 	/**
@@ -2854,43 +2815,7 @@ public final class DBAccessMongo implements Closeable {
 	 */
 	public List<Document> getBsonDocuments(final String collectionName, final QueryOption... options)
 			throws DataAccessException {
-		try {
-			final QueryOptions queryOptions = new QueryOptions(options);
-			final Condition condition = conditionFusionOrEmpty(queryOptions, false);
-			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
-			final Document sorts = generateSortOrNull(queryOptions);
-			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), sorts, null);
-			statistic.countFind++;
-			FindIterable<Document> cursor;
-			if (filters != null) {
-				cursor = this.sessionCalls.findIn(collection, filters);
-			} else {
-				cursor = this.sessionCalls.findAllIn(collection);
-			}
-
-			// Apply ordering
-			if (sorts != null) {
-				cursor = cursor.sort(sorts);
-			}
-
-			// Apply limit
-			final List<Limit> limits = queryOptions.get(Limit.class);
-			if (!limits.isEmpty()) {
-				cursor = cursor.limit(Math.toIntExact(limits.get(0).getValue()));
-			}
-
-			final List<Document> results = new ArrayList<>();
-			try (MongoCursor<Document> iterator = cursor.iterator()) {
-				while (iterator.hasNext()) {
-					results.add(iterator.next());
-				}
-			}
-			return results;
-		} catch (final RuntimeException ex) {
-			LOGGER.error("Failed to retrieve BSON documents: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage(), ex);
-		}
+		return this.rawAccess.getBsonDocuments(collectionName, options);
 	}
 
 	/**
@@ -2932,25 +2857,7 @@ public final class DBAccessMongo implements Closeable {
 			final String collectionName,
 			final Document updateDocument,
 			final QueryOption... options) throws DataAccessException {
-		try {
-			final QueryOptions queryOptions = new QueryOptions(options);
-			// A missing or empty condition is refused, unless AllowMassOperation.
-			final Condition condition = conditionFusionOrEmpty(queryOptions, true);
-			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-			final Bson filters = condition.getFilter(collectionName, queryOptions, null);
-			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null, null);
-			statistic.countUpdateMany++;
-			if (filters != null) {
-				final UpdateResult result = this.sessionCalls.updateManyIn(collection, filters, updateDocument);
-				return result.getModifiedCount();
-			}
-			// No filter: AllowMassOperation was given, update all documents
-			final UpdateResult result = this.sessionCalls.updateManyIn(collection, new Document(), updateDocument);
-			return result.getModifiedCount();
-		} catch (final Exception ex) {
-			LOGGER.error("Failed to update BSON documents: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to update BSON documents: " + ex.getMessage(), ex);
-		}
+		return this.rawAccess.updateBsonDocuments(collectionName, updateDocument, options);
 	}
 
 }
