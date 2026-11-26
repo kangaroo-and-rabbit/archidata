@@ -84,7 +84,7 @@ public class TestAPI {
 		Assertions.assertNotNull(archivedData.archive);
 	}
 
-	@Order(2)
+	@Order(3)
 	@Test
 	public void restoreValue() throws Exception {
 		final SimpleArchiveTable archivedData = api.request(TestAPI.ENDPOINT_NAME, Long.toString(TestAPI.idTest))

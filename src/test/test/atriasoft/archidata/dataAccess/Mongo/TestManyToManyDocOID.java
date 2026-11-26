@@ -189,7 +189,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(this.insertedData.getOid(), retrieveRemote.remoteToParent.get(0));
 		}
 
-		@Order(3)
+		@Order(4)
 		@Test
 		public void testExpand() throws Exception {
 			final TypeManyToManyDocOIDRootExpand retrieveExpand = ConfigureDb.da
@@ -208,7 +208,7 @@ public class TestManyToManyDocOID {
 			Assertions.assertEquals(retrieveExpand.remote.get(1).data, this.insertedRemote2.data);
 		}
 
-		@Order(4)
+		@Order(5)
 		@Test
 		public void removeLinksRemotes() throws Exception {
 			// Remove an element
