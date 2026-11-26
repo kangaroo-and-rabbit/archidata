@@ -60,6 +60,8 @@
 - `QueryParamExceptionCatcher` répond 400 (au lieu de 500 par une `NullPointerException`) quand Jersey ne donne pas de cause à
   l'échec de lecture d'un paramètre de requête (un `char` ou `Character` reçu avec plusieurs caractères) ; le message de
   l'entrée `inputError` est alors `Invalid value for a query parameter`.
+- `ConstraintViolationExceptionCatcher` : pour une seule violation portant sur un paramètre de méthode (chemin `find.q`),
+  le nom de l'erreur est `Error on input='q'`. Avant, `Error on input='null'`. Le cas d'un chemin de bean ne change pas.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

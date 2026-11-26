@@ -51,7 +51,9 @@ public class ConstraintViolationExceptionCatcher implements ExceptionMapper<Cons
 		if (inputError.size() == 0) {
 			errorType = "Constraint Violation";
 		} else if (inputError.size() == 1) {
-			errorType = "Error on input='" + inputError.get(0).path + "'";
+			// a violation on a method parameter has no property path: it names the parameter
+			final RestInputError only = inputError.get(0);
+			errorType = "Error on input='" + (only.path != null ? only.path : only.argument) + "'";
 		}
 		return new RestErrorResponse(Response.Status.BAD_REQUEST, Instant.now().toString(), errorType,
 				exception.getMessage(), inputError);

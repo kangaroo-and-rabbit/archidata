@@ -69,6 +69,13 @@ public class TestExceptionMappersOverHttp {
 		public String beta;
 	}
 
+	/** A method with a constraint directly on a parameter: its violations have a two-segment path. */
+	public static class Finder {
+		public String find(@NotNull final String q) {
+			return q;
+		}
+	}
+
 	/** Throws what the path says. */
 	@Path("/throw")
 	@PermitAll
@@ -177,6 +184,14 @@ public class TestExceptionMappersOverHttp {
 		@Path("constraint-two")
 		public String constraintTwo() {
 			throw new ConstraintViolationException("two wrong", validator().validate(new Invalid()));
+		}
+
+		@GET
+		@Path("constraint-param")
+		public String constraintParam() throws NoSuchMethodException {
+			final java.lang.reflect.Method method = Finder.class.getMethod("find", String.class);
+			throw new ConstraintViolationException("param wrong",
+					validator().forExecutables().validateParameters(new Finder(), method, new Object[] { null }));
 		}
 
 		@GET
@@ -422,6 +437,17 @@ public class TestExceptionMappersOverHttp {
 		Assertions.assertEquals(1, violations.size());
 		final JsonNode body = check(get("constraint-one"), 400, "Bad Request", "Error on input='alpha'", "one wrong");
 		Assertions.assertEquals(List.of("argument=- path=alpha message=must not be null"), inputErrors(body));
+	}
+
+	@Test
+	public void testConstraintViolationOnAMethodParameterNamesTheParameter() throws Exception {
+		final HttpResponse<String> response = get("constraint-param");
+		final JsonNode body = MAPPER.readTree(response.body());
+		Assertions.assertEquals(400, response.statusCode(), response.body());
+		// the parameter is named q with the -parameters option, arg0 without it
+		final String name = body.get("inputError").get(0).get("argument").asText();
+		Assertions.assertTrue(name.equals("q") || name.equals("arg0"), name);
+		Assertions.assertEquals("Error on input='" + name + "'", body.get("name").asText());
 	}
 
 	@Test
