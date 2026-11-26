@@ -1339,110 +1339,8 @@ public final class DBAccessMongo implements Closeable {
 			final Document docSet = new Document();
 			final Document docUnSet = new Document();
 
-			// Iterate all fields in declaration order to preserve Document field ordering
-			for (final DbPropertyDescriptor desc : model.getAllFields()) {
-				final DbFieldAction action = desc.getAction();
-				final FieldName fieldName = desc.getFieldName(options);
-				final PropertyDescriptor prop = desc.getProperty();
-				final Field field = prop.getField();
-
-				switch (action) {
-					case PRIMARY_KEY: {
-						if (!directdata && !directPrimaryKey) {
-							if (prop.getValue(data) != null) {
-								throw new DataAccessException(
-										"Unexpected comportment, try to add an object with a primary key. use option 'DirectPrimaryKey.class' to do that");
-							}
-							final Class<?> pkType = prop.getType();
-							if (pkType == ObjectId.class) {
-								uniqueId = new ObjectId();
-								docSet.append(fieldName.inTable(), uniqueId);
-							} else if (pkType == UUID.class) {
-								uniqueId = UuidUtils.nextUUID();
-								docSet.append(fieldName.inTable(), uniqueId);
-							} else if (pkType == Long.class || pkType == long.class) {
-								final long id = getNextSequenceLongValue(collectionName, fieldName.inTable());
-								uniqueId = id;
-								docSet.append(fieldName.inTable(), id);
-							} else {
-								throw new DataAccessException("TODO: Manage the ID primary key for type: "
-										+ clazz.getCanonicalName() + " => " + pkType);
-							}
-						} else {
-							final Object primaryKeyValue = prop.getValue(data);
-							if (primaryKeyValue == null) {
-								throw new DataAccessException(
-										"Fail to Insert data in DB.. when use 'DirectData.class' or 'DirectPrimaryKey.class' you need to provide a primary key...");
-							}
-							if (DeclaredTypeRules.isUntypedPrimaryKey(desc)) {
-								DeclaredTypeRules.checkPrimaryKeyValue(primaryKeyValue,
-										"Field " + MongoCodecFactory.qualifiedName(desc));
-							}
-							uniqueId = primaryKeyValue;
-							docSet.append(fieldName.inTable(), primaryKeyValue);
-						}
-						break;
-					}
-					case CREATION_TIMESTAMP:
-					case UPDATE_TIMESTAMP: {
-						if (!directdata) {
-							docSet.append(fieldName.inTable(), Date.from(Instant.now()));
-						}
-						break;
-					}
-					case DELETED: {
-						if (!directdata) {
-							// Always written, even without a declared default value: the read
-							// filter is an equality on 'false' (see Condition#getFilter), so a
-							// document inserted without the field would be invisible to every
-							// query -- including the read back of this very insert.
-							final String defVal = desc.getInitValue();
-							final Object defaultValue = defVal != null ? convertDefaultField(defVal, field)
-									: Boolean.FALSE;
-							docSet.append(fieldName.inTable(), defaultValue);
-						}
-						break;
-					}
-					case ADDON: {
-						if (!desc.canInsert()) {
-							break;
-						}
-						desc.getAddOn().insertData(this, desc, data, options, docSet, docUnSet);
-						break;
-					}
-					case NOT_READ:
-					case NORMAL:
-					default: {
-						final MongoFieldCodec codec = desc.getCodec();
-						if (codec == null) {
-							break;
-						}
-						Object currentInsertValue = prop.getValue(data);
-
-						if (currentInsertValue == null && field != null) {
-							final String defVal = desc.getInitValue();
-							if (defVal == null) {
-								break;
-							}
-							currentInsertValue = convertDefaultField(defVal, field);
-						}
-
-						final Class<?> type = prop.getType();
-						if (!type.isPrimitive()) {
-							if (prop.getValue(data) == null) {
-								if (currentInsertValue != null) {
-									// The @InitValue goes through the codec like any value: same BSON form, and
-									// encrypted on a @DataEncrypt field.
-									docSet.append(fieldName.inTable(), codec.convertToMongo(currentInsertValue));
-								}
-								break;
-							}
-						}
-						codec.writeToDoc(null, fieldName.inTable(), data, docSet, null);
-						break;
-					}
-				}
-			}
+			uniqueId = fillInsertDocument(model, data, options, collectionName, directdata, directPrimaryKey, docSet,
+					docUnSet);
 
 			statistic.countInsertOne++;
 			final InsertOneResult result = insertOneIn(collection, docSet);
@@ -1457,6 +1355,226 @@ public final class DBAccessMongo implements Closeable {
 		}
 		runLazyActions(asyncActions);
 		return uniqueId;
+	}
+
+	/**
+	 * Fills the document to insert with the value of every field of the entity, in declaration order (to
+	 * preserve the field ordering of the {@link Document}).
+	 *
+	 * @param <T>              the type of the entity
+	 * @param model            the model of the entity
+	 * @param data             the entity to insert
+	 * @param options          the options of the insert
+	 * @param collectionName   the collection written
+	 * @param directdata       {@code true} when the insert carries {@link DirectData}
+	 * @param directPrimaryKey {@code true} when the insert carries {@link DirectPrimaryKey}
+	 * @param docSet           the document to insert, completed
+	 * @param docUnSet         the {@code $unset} document handed to the add-ons, completed
+	 * @return the primary key of the new document ({@code null} when the model has none)
+	 * @throws Exception if a field cannot be written or a primary key is missing or unexpected
+	 */
+	private <T> Object fillInsertDocument(
+			final DbClassModel model,
+			final T data,
+			final QueryOptions options,
+			final String collectionName,
+			final boolean directdata,
+			final boolean directPrimaryKey,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		final Class<?> clazz = data.getClass();
+		Object uniqueId = null;
+		// Iterate all fields in declaration order to preserve Document field ordering
+		for (final DbPropertyDescriptor desc : model.getAllFields()) {
+			final DbFieldAction action = desc.getAction();
+			final FieldName fieldName = desc.getFieldName(options);
+			final PropertyDescriptor prop = desc.getProperty();
+			final Field field = prop.getField();
+
+			switch (action) {
+				case PRIMARY_KEY: {
+					if (!directdata && !directPrimaryKey) {
+						uniqueId = generatePrimaryKey(clazz, data, prop, collectionName, fieldName, docSet);
+					} else {
+						uniqueId = appendProvidedPrimaryKey(data, desc, fieldName, docSet);
+					}
+					break;
+				}
+				case CREATION_TIMESTAMP:
+				case UPDATE_TIMESTAMP: {
+					if (!directdata) {
+						docSet.append(fieldName.inTable(), Date.from(Instant.now()));
+					}
+					break;
+				}
+				case DELETED: {
+					if (!directdata) {
+						appendDeletedFlagForInsert(desc, field, fieldName, docSet);
+					}
+					break;
+				}
+				case ADDON: {
+					if (!desc.canInsert()) {
+						break;
+					}
+					desc.getAddOn().insertData(this, desc, data, options, docSet, docUnSet);
+					break;
+				}
+				case NOT_READ:
+				case NORMAL:
+				default: {
+					appendNormalFieldForInsert(desc, field, fieldName, data, docSet);
+					break;
+				}
+			}
+		}
+		return uniqueId;
+	}
+
+	/**
+	 * Generates the primary key of an entity inserted without one, and writes it in the document to insert.
+	 *
+	 * <p>An {@link ObjectId} and a {@link UUID} are generated here, a {@code Long} comes from the sequence
+	 * of the collection ({@link #getNextSequenceLongValue}).
+	 *
+	 * @param <T>            the type of the entity
+	 * @param clazz          the entity class
+	 * @param data           the entity to insert
+	 * @param prop           the property of the primary key
+	 * @param collectionName the collection written
+	 * @param fieldName      the names of the primary key field
+	 * @param docSet         the document to insert, completed
+	 * @return the generated primary key
+	 * @throws Exception if the entity already holds a primary key or its type cannot be generated
+	 */
+	private <T> Object generatePrimaryKey(
+			final Class<?> clazz,
+			final T data,
+			final PropertyDescriptor prop,
+			final String collectionName,
+			final FieldName fieldName,
+			final Document docSet) throws Exception {
+		Object uniqueId;
+		if (prop.getValue(data) != null) {
+			throw new DataAccessException(
+					"Unexpected comportment, try to add an object with a primary key. use option 'DirectPrimaryKey.class' to do that");
+		}
+		final Class<?> pkType = prop.getType();
+		if (pkType == ObjectId.class) {
+			uniqueId = new ObjectId();
+			docSet.append(fieldName.inTable(), uniqueId);
+		} else if (pkType == UUID.class) {
+			uniqueId = UuidUtils.nextUUID();
+			docSet.append(fieldName.inTable(), uniqueId);
+		} else if (pkType == Long.class || pkType == long.class) {
+			final long id = getNextSequenceLongValue(collectionName, fieldName.inTable());
+			uniqueId = id;
+			docSet.append(fieldName.inTable(), id);
+		} else {
+			throw new DataAccessException(
+					"TODO: Manage the ID primary key for type: " + clazz.getCanonicalName() + " => " + pkType);
+		}
+		return uniqueId;
+	}
+
+	/**
+	 * Writes in the document to insert the primary key the caller provided ({@link DirectData} or
+	 * {@link DirectPrimaryKey}).
+	 *
+	 * @param <T>       the type of the entity
+	 * @param data      the entity to insert
+	 * @param desc      the primary key field
+	 * @param fieldName the names of the primary key field
+	 * @param docSet    the document to insert, completed
+	 * @return the primary key of the entity
+	 * @throws Exception if the entity holds no primary key, or an untyped one of an unsupported type
+	 */
+	private static <T> Object appendProvidedPrimaryKey(
+			final T data,
+			final DbPropertyDescriptor desc,
+			final FieldName fieldName,
+			final Document docSet) throws Exception {
+		final Object primaryKeyValue = desc.getProperty().getValue(data);
+		if (primaryKeyValue == null) {
+			throw new DataAccessException(
+					"Fail to Insert data in DB.. when use 'DirectData.class' or 'DirectPrimaryKey.class' you need to provide a primary key...");
+		}
+		if (DeclaredTypeRules.isUntypedPrimaryKey(desc)) {
+			DeclaredTypeRules.checkPrimaryKeyValue(primaryKeyValue, "Field " + MongoCodecFactory.qualifiedName(desc));
+		}
+		docSet.append(fieldName.inTable(), primaryKeyValue);
+		return primaryKeyValue;
+	}
+
+	/**
+	 * Writes the soft-delete flag of an entity inserted without {@link DirectData}: the declared initial value,
+	 * or {@code false}.
+	 *
+	 * @param desc      the deleted field
+	 * @param field     the Java field
+	 * @param fieldName the names of the deleted field
+	 * @param docSet    the document to insert, completed
+	 * @throws Exception if the initial value cannot be converted
+	 */
+	private void appendDeletedFlagForInsert(
+			final DbPropertyDescriptor desc,
+			final Field field,
+			final FieldName fieldName,
+			final Document docSet) throws Exception {
+		// Always written, even without a declared default value: the read
+		// filter is an equality on 'false' (see Condition#getFilter), so a
+		// document inserted without the field would be invisible to every
+		// query -- including the read back of this very insert.
+		final String defVal = desc.getInitValue();
+		final Object defaultValue = defVal != null ? convertDefaultField(defVal, field) : Boolean.FALSE;
+		docSet.append(fieldName.inTable(), defaultValue);
+	}
+
+	/**
+	 * Writes a regular field of an entity to insert, through its codec; a {@code null} value takes the
+	 * declared initial value, or the field is left out.
+	 *
+	 * @param <T>       the type of the entity
+	 * @param desc      the field
+	 * @param field     the Java field
+	 * @param fieldName the names of the field
+	 * @param data      the entity to insert
+	 * @param docSet    the document to insert, completed
+	 * @throws Exception if the initial value cannot be converted or the codec fails
+	 */
+	private <T> void appendNormalFieldForInsert(
+			final DbPropertyDescriptor desc,
+			final Field field,
+			final FieldName fieldName,
+			final T data,
+			final Document docSet) throws Exception {
+		final PropertyDescriptor prop = desc.getProperty();
+		final MongoFieldCodec codec = desc.getCodec();
+		if (codec == null) {
+			return;
+		}
+		Object currentInsertValue = prop.getValue(data);
+
+		if (currentInsertValue == null && field != null) {
+			final String defVal = desc.getInitValue();
+			if (defVal == null) {
+				return;
+			}
+			currentInsertValue = convertDefaultField(defVal, field);
+		}
+
+		final Class<?> type = prop.getType();
+		if (!type.isPrimitive()) {
+			if (prop.getValue(data) == null) {
+				if (currentInsertValue != null) {
+					// The @InitValue goes through the codec like any value: same BSON form, and
+					// encrypted on a @DataEncrypt field.
+					docSet.append(fieldName.inTable(), codec.convertToMongo(currentInsertValue));
+				}
+				return;
+			}
+		}
+		codec.writeToDoc(null, fieldName.inTable(), data, docSet, null);
 	}
 
 	/**
