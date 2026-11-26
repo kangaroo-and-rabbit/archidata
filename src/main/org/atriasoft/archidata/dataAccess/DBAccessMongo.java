@@ -2131,91 +2131,227 @@ public final class DBAccessMongo implements Closeable {
 		try {
 			// Generate the filtering of the data:
 			final Bson filters = condition.getFilter(collectionName, options, deletedFieldName);
-			if (filters != null) {
-				if (LOGGER.isTraceEnabled()) {
-					LOGGER.trace("filter = {}", TraceMasker.toMaskedJson(filters, clazz, options, true));
-				}
-			} else {
-				LOGGER.trace("filter = None");
-			}
+			traceFilter(filters, clazz, options);
 			final Document sorts = generateSortOrNull(options);
 			QueryStatistics.record(collectionName, Operation.FIND, condition.getFilter(), sorts,
 					statisticSoftDeleteField(options, deletedFieldName));
-			FindIterable<Document> retFind = null;
 			statistic.countFind++;
-			if (filters != null) {
-				retFind = findIn(collection, filters);
-			} else {
-				retFind = findAllIn(collection);
-			}
+			FindIterable<Document> retFind = findWithFilterOrAll(collection, filters);
 			if (sorts != null) {
 				retFind = retFind.sort(sorts);
 			}
-
-			final List<Skip> skips = options.get(Skip.class);
-			if (skips.size() == 1) {
-				retFind = retFind.skip(Math.toIntExact(skips.get(0).getValue()));
-			} else if (skips.size() > 1) {
-				throw new DataAccessException("Request with multiple 'skip'...");
-			}
-
-			final List<Limit> limits = options.get(Limit.class);
-			if (limits.size() == 1) {
-				retFind = retFind.limit(Math.toIntExact(limits.get(0).getValue()));
-			} else if (limits.size() > 1) {
-				throw new DataAccessException("Request with multiple 'limit'...");
-			}
-			// Select values to read
-			final List<String> listFields = generateSelectField(clazz, options);
-			listFields.add("_id");
-			retFind = retFind.projection(Projections.include(listFields.toArray(new String[0])));
+			retFind = applySkipOption(retFind, options);
+			retFind = applyLimitOption(retFind, options);
+			retFind = applyProjectionForRead(retFind, clazz, options);
 
 			LOGGER.trace("GetsWhere ...");
-			final LazyGetterCollector batchCollector = new LazyGetterCollector();
-			final DbPropertyDescriptor pkDesc = model.getPrimaryKey();
-			final String pkColumn = pkDesc != null ? pkDesc.getFieldName(options).inTable() : null;
-			final List<Object> expandedKeys = new ArrayList<>();
-			final MongoCursor<Document> cursor = retFind.iterator();
-			try (cursor) {
-				while (cursor.hasNext()) {
-					final Document doc = cursor.next();
-					// Guarded: the JSON rendering is costly and must not run when TRACE is off.
-					if (LOGGER.isTraceEnabled()) {
-						LOGGER.trace(" - receive data from DB: {}",
-								TraceMasker.toMaskedJson(doc, clazz, options, false));
-					}
-					final Object primaryKey = pkColumn != null ? doc.get(pkColumn) : null;
-					final Object data;
-					if (RelationExpansion.canExpand(clazz, primaryKey)) {
-						data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
-						if (primaryKey != null) {
-							expandedKeys.add(primaryKey);
-						}
-					} else {
-						// Depth limit reached, or entity already expanded on this chain (cycle): its relation
-						// fields are left unloaded.
-						data = createObjectFromDocument(doc, clazz, options, new ArrayList<>(), null);
-					}
-					outs.add(data);
-				}
-				// Add batched lazy getters (entity-reference fields grouped by target entity)
-				if (!batchCollector.isEmpty()) {
-					lazyCall.addAll(batchCollector.buildLazyGetters(this));
-				}
-				if (!lazyCall.isEmpty()) {
-					final List<String> chain = RelationExpansion.enter(clazz, expandedKeys);
-					try {
-						runLazyActions(lazyCall);
-					} finally {
-						RelationExpansion.leave(chain);
-					}
-				}
-			}
+			readFoundDocuments(retFind, clazz, model, options, lazyCall, outs);
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to retrieve data: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
 		}
 		return outs;
+	}
+
+	/**
+	 * Writes the filter of a read in the TRACE log, masked, or {@code None} when there is none.
+	 *
+	 * @param filters the filter of the read, may be {@code null}
+	 * @param clazz   the entity class
+	 * @param options the options of the read
+	 */
+	private static void traceFilter(final Bson filters, final Class<?> clazz, final QueryOptions options) {
+		if (filters != null) {
+			if (LOGGER.isTraceEnabled()) {
+				LOGGER.trace("filter = {}", TraceMasker.toMaskedJson(filters, clazz, options, true));
+			}
+		} else {
+			LOGGER.trace("filter = None");
+		}
+	}
+
+	/**
+	 * Starts a find on a collection: filtered, or on every document when the filter is {@code null}.
+	 *
+	 * @param collection the collection to read
+	 * @param filters    the filter, may be {@code null}
+	 * @return the find, not yet executed
+	 */
+	private FindIterable<Document> findWithFilterOrAll(final MongoCollection<Document> collection, final Bson filters) {
+		final FindIterable<Document> retFind;
+		if (filters != null) {
+			retFind = findIn(collection, filters);
+		} else {
+			retFind = findAllIn(collection);
+		}
+		return retFind;
+	}
+
+	/**
+	 * Applies the {@link Skip} option of a read to a find.
+	 *
+	 * @param retFind the find
+	 * @param options the options of the read
+	 * @return the find, skipping the requested number of documents
+	 * @throws DataAccessException if the options hold more than one {@link Skip}
+	 */
+	private static FindIterable<Document> applySkipOption(
+			final FindIterable<Document> retFind,
+			final QueryOptions options) throws DataAccessException {
+		FindIterable<Document> out = retFind;
+		final List<Skip> skips = options.get(Skip.class);
+		if (skips.size() == 1) {
+			out = out.skip(Math.toIntExact(skips.get(0).getValue()));
+		} else if (skips.size() > 1) {
+			throw new DataAccessException("Request with multiple 'skip'...");
+		}
+		return out;
+	}
+
+	/**
+	 * Applies the {@link Limit} option of a read to a find.
+	 *
+	 * @param retFind the find
+	 * @param options the options of the read
+	 * @return the find, limited to the requested number of documents
+	 * @throws DataAccessException if the options hold more than one {@link Limit}
+	 */
+	private static FindIterable<Document> applyLimitOption(
+			final FindIterable<Document> retFind,
+			final QueryOptions options) throws DataAccessException {
+		FindIterable<Document> out = retFind;
+		final List<Limit> limits = options.get(Limit.class);
+		if (limits.size() == 1) {
+			out = out.limit(Math.toIntExact(limits.get(0).getValue()));
+		} else if (limits.size() > 1) {
+			throw new DataAccessException("Request with multiple 'limit'...");
+		}
+		return out;
+	}
+
+	/**
+	 * Restricts a find to the fields to read of the entity, and to {@code _id}.
+	 *
+	 * @param retFind the find
+	 * @param clazz   the entity class
+	 * @param options the options of the read
+	 * @return the find, projected
+	 * @throws Exception if the fields to read cannot be determined
+	 */
+	private FindIterable<Document> applyProjectionForRead(
+			final FindIterable<Document> retFind,
+			final Class<?> clazz,
+			final QueryOptions options) throws Exception {
+		// Select values to read
+		final List<String> listFields = generateSelectField(clazz, options);
+		listFields.add("_id");
+		return retFind.projection(Projections.include(listFields.toArray(new String[0])));
+	}
+
+	/**
+	 * Runs a find, converts each document to an entity and runs the deferred loads of their relations.
+	 *
+	 * <p>The entities are added to {@code outs}; the cursor is closed on return. An entity whose relations
+	 * cannot be expanded (depth limit, cycle) is converted with its relation fields left unloaded.
+	 *
+	 * @param retFind  the find, not yet executed
+	 * @param clazz    the entity class
+	 * @param model    the model of the entity
+	 * @param options  the options of the read
+	 * @param lazyCall the deferred loads, completed then run
+	 * @param outs     the entities read, completed
+	 * @throws Exception if the read or a conversion fails
+	 */
+	private void readFoundDocuments(
+			final FindIterable<Document> retFind,
+			final Class<?> clazz,
+			final DbClassModel model,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall,
+			final List<Object> outs) throws Exception {
+		final LazyGetterCollector batchCollector = new LazyGetterCollector();
+		final DbPropertyDescriptor pkDesc = model.getPrimaryKey();
+		final String pkColumn = pkDesc != null ? pkDesc.getFieldName(options).inTable() : null;
+		final List<Object> expandedKeys = new ArrayList<>();
+		final MongoCursor<Document> cursor = retFind.iterator();
+		try (cursor) {
+			while (cursor.hasNext()) {
+				final Document doc = cursor.next();
+				outs.add(createObjectFromFoundDocument(doc, pkColumn, clazz, options, lazyCall, batchCollector,
+						expandedKeys));
+			}
+			runBatchedLazyActions(clazz, lazyCall, batchCollector, expandedKeys);
+		}
+	}
+
+	/**
+	 * Converts one document of a find to an entity.
+	 *
+	 * @param doc            the document
+	 * @param pkColumn       the name of the primary key in the document, {@code null} when the entity has none
+	 * @param clazz          the entity class
+	 * @param options        the options of the read
+	 * @param lazyCall       the deferred loads, completed when the relations are expanded
+	 * @param batchCollector the collector of the batched entity-reference loads, completed when the relations
+	 *                       are expanded
+	 * @param expandedKeys   the primary keys of the entities whose relations are expanded, completed
+	 * @return the entity
+	 * @throws Exception if the conversion fails
+	 */
+	private Object createObjectFromFoundDocument(
+			final Document doc,
+			final String pkColumn,
+			final Class<?> clazz,
+			final QueryOptions options,
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector,
+			final List<Object> expandedKeys) throws Exception {
+		// Guarded: the JSON rendering is costly and must not run when TRACE is off.
+		if (LOGGER.isTraceEnabled()) {
+			LOGGER.trace(" - receive data from DB: {}", TraceMasker.toMaskedJson(doc, clazz, options, false));
+		}
+		final Object primaryKey = pkColumn != null ? doc.get(pkColumn) : null;
+		final Object data;
+		if (RelationExpansion.canExpand(clazz, primaryKey)) {
+			data = createObjectFromDocument(doc, clazz, options, lazyCall, batchCollector);
+			if (primaryKey != null) {
+				expandedKeys.add(primaryKey);
+			}
+		} else {
+			// Depth limit reached, or entity already expanded on this chain (cycle): its relation
+			// fields are left unloaded.
+			data = createObjectFromDocument(doc, clazz, options, new ArrayList<>(), null);
+		}
+		return data;
+	}
+
+	/**
+	 * Runs the deferred loads of a read: the batched entity-reference loads (grouped by target entity) are
+	 * added to the others, and all run inside the expansion chain of the entities read.
+	 *
+	 * @param clazz          the entity class
+	 * @param lazyCall       the deferred loads, completed then run
+	 * @param batchCollector the collector of the batched entity-reference loads
+	 * @param expandedKeys   the primary keys of the entities whose relations were expanded
+	 * @throws Exception if a deferred load fails
+	 */
+	private void runBatchedLazyActions(
+			final Class<?> clazz,
+			final List<LazyGetter> lazyCall,
+			final LazyGetterCollector batchCollector,
+			final List<Object> expandedKeys) throws Exception {
+		// Add batched lazy getters (entity-reference fields grouped by target entity)
+		if (!batchCollector.isEmpty()) {
+			lazyCall.addAll(batchCollector.buildLazyGetters(this));
+		}
+		if (!lazyCall.isEmpty()) {
+			final List<String> chain = RelationExpansion.enter(clazz, expandedKeys);
+			try {
+				runLazyActions(lazyCall);
+			} finally {
+				RelationExpansion.leave(chain);
+			}
+		}
 	}
 
 	/**
