@@ -55,6 +55,30 @@
   position sauvée au nouveau worker sans en garder de copie.
 - `getWorkerStatuses()` rend de nouveau `RUNNING` pour un worker dont le flux s'est rouvert après une erreur. Avant, le
   statut restait `RECONNECTING` (ou `ERROR`) après la première reconnexion réussie, alors que le flux était lu.
+- `DataTools.uploadCoverFromUri` ajoute maintenant le `Data` au champ `covers` de l'entité, comme `uploadCover`. Avant, elle
+  levait une `DataAccessException` (« fieldName is null ») après avoir stocké le `Data` et le fichier, sans rien lier.
+- `QueryParamExceptionCatcher` répond 400 (au lieu de 500 par une `NullPointerException`) quand Jersey ne donne pas de cause à
+  l'échec de lecture d'un paramètre de requête (un `char` ou `Character` reçu avec plusieurs caractères) ; le message de
+  l'entrée `inputError` est alors `Invalid value for a query parameter`.
+- `ConstraintViolationExceptionCatcher` : pour une seule violation portant sur un paramètre de méthode (chemin `find.q`),
+  le nom de l'erreur est `Error on input='q'`. Avant, `Error on input='null'`. Le cas d'un chemin de bean ne change pas.
+- `UserByToken.getGroups()` et `groupExist(group)` ne lèvent plus de `NullPointerException` après `setRoles(null)` :
+  `getGroups()` rend un ensemble vide et `groupExist` rend `false`. `getRoles()` rend toujours `null` dans ce cas.
+- `DbIoFactory.create(config)` n'ajoute plus une référence à une connexion gardée (`DB_KEEP_CONNECTED=true`) à chaque
+  réutilisation. Avant, après N `DBAccessMongo.createInterface()` puis `close()`, le compteur restait à N+1 : `DbIoFactory.close()`
+  ne fermait jamais la connexion et `closeAllForceMode()` écrivait un « Force close: with N connection » trompeur.
+- `EncryptionKeyStore.reset()` lève une `IllegalStateException` une fois la configuration verrouillée (`ConfigBaseVariable.lock()`).
+  Avant, `reset()` puis `register(...)` remplaçaient une clé enregistrée à l'exécution, ce que `register` seul refuse. Un
+  test qui appelle `reset()` configuration verrouillée doit déverrouiller avant (`allowReconfiguration(true)`, `unlock()`).
+- Lire un objet embarqué (record ou classe à constructeur) dont un paramètre est de type primitif (`int`...) absent du
+  document (jamais écrit, ou `@DataNotRead` sans `ReadAllColumn`) donne la valeur par défaut du primitif (`0`, `false`...).
+  Avant, la lecture échouait (`Failed to instantiate`).
+- Un champ `Character` ou `char` se relit : il est stocké en chaîne d'un caractère (comme avant) et la lecture
+  l'accepte, ainsi qu'un code entier. Avant, toute lecture d'une entité portant un `Character` levait une
+  `ClassCastException` (`String` en `Integer`), et un `char` primitif était pris pour un objet embarqué (échec de lecture).
+- `MigrationException` a un constructeur `(String message, Throwable cause)`, et `MigrationEngine` y passe l'exception
+  d'origine (connexion, `getNumberOfStep`, lecture, insertion et mise à jour de l'historique, étape qui échoue) : `getCause()` n'est
+  plus `null`. Les messages ne changent pas.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

@@ -232,7 +232,8 @@ public final class MongoCodecFactory {
 		if (raw == Date.class) {
 			return IDENTITY_W;
 		}
-		if (raw == Character.class) {
+		if (raw == Character.class || raw == char.class) {
+			// the driver stores a character as a one-character string
 			return IDENTITY_W;
 		}
 
@@ -398,8 +399,8 @@ public final class MongoCodecFactory {
 		if (raw == Double.class || raw == double.class) {
 			return MongoCodecFactory::readDouble;
 		}
-		if (raw == Character.class) {
-			return v -> (char) ((Integer) v).intValue();
+		if (raw == Character.class || raw == char.class) {
+			return MongoCodecFactory::readCharacter;
 		}
 
 		// --- Temporal ---
@@ -523,6 +524,18 @@ public final class MongoCodecFactory {
 			return l.shortValue();
 		}
 		return ((Number) v).shortValue();
+	}
+
+	/** A character is stored as a one-character string; a code stored as an integer is accepted too. */
+	private static Object readCharacter(final Object v) {
+		if (v instanceof final String text) {
+			if (text.length() != 1) {
+				throw new IllegalArgumentException(
+						"A character is stored as a one-character string, got " + text.length() + " characters");
+			}
+			return text.charAt(0);
+		}
+		return (char) ((Number) v).intValue();
 	}
 
 	private static Object readFloat(final Object v) {

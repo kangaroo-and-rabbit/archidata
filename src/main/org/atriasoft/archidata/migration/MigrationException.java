@@ -15,4 +15,13 @@ public class MigrationException extends Exception {
 	public MigrationException(final String message) {
 		super(message);
 	}
+
+	/**
+	 * Constructs a new MigrationException with the specified detail message and cause.
+	 * @param message the detail message describing the migration error
+	 * @param cause the exception that made the migration fail
+	 */
+	public MigrationException(final String message, final Throwable cause) {
+		super(message, cause);
+	}
 }

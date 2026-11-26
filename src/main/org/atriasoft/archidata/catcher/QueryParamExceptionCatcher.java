@@ -37,7 +37,12 @@ public class QueryParamExceptionCatcher implements ExceptionMapper<QueryParamExc
 
 	private RestErrorResponse build(final QueryParamException exception) {
 		final List<RestInputError> inputError = new ArrayList<>();
-		inputError.add(new RestInputError("query", exception.getParameterName(), exception.getCause().getMessage()));
+		// Jersey wraps e.getCause(), which is null for a failure raised without cause (a char of several characters).
+		// The text of the exception itself is not usable: it is the one of its 404 status ("HTTP 404 Not Found").
+		final Throwable cause = exception.getCause();
+		final String message = cause != null && cause.getMessage() != null ? cause.getMessage()
+				: "Invalid value for a query parameter";
+		inputError.add(new RestInputError("query", exception.getParameterName(), message));
 		final String errorType = "Error on query input='" + exception.getParameterName() + "'";
 		return new RestErrorResponse(Response.Status.BAD_REQUEST, Instant.now().toString(), errorType,
 				"Input parsing fail", inputError);

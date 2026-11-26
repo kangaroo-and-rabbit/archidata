@@ -59,7 +59,7 @@ Exception to HTTP mapping
 | `UnAuthorizedException` (extends `FailException`) | `FailExceptionCatcher` | 401 | `Request Fail` |
 | `InputException` | `InputExceptionCatcher` | `exception.status` (default 400; the body `status` and `statusMessage` follow it) | `Constraint Violation` |
 | `SystemException` | `SystemExceptionCatcher` | `exception.status` (default 500) | `System error` |
-| `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation, `Multiple error on input` for several, `Constraint Violation` for none |
+| `jakarta.validation.ConstraintViolationException` | `ConstraintViolationExceptionCatcher` | 400 | `Error on input='<path>'` for one violation (the parameter name when the violation is on a method parameter, which has no property path), `Multiple error on input` for several, `Constraint Violation` for none |
 | `org.glassfish.jersey.server.ParamException.QueryParamException` | `QueryParamExceptionCatcher` | 400 | `Error on query input='<param>'` |
 | any other `jakarta.ws.rs.WebApplicationException` (`NotFoundException`, `ForbiddenException`, other `ParamException`...) | `WebApplicationExceptionCatcher` | the status carried by the exception, a code `Response.Status` does not list (499, 599...) included; the headers of its response are kept (`Retry-After` of a 429, `WWW-Authenticate` of a 401, `Allow` of a 405...) | `Catch system exception` |
 | `RequestBodyException`: a request body that cannot be parsed (`StreamReadException`) or does not match the expected type (`MismatchedInputException`, `ValueInstantiationException`), wrapped by `RequestBodyReaderInterceptor` around the reading of the entity | `RequestBodyExceptionCatcher` | 400 | `Catch JSON Exception` |
@@ -142,7 +142,8 @@ How `argument` and `path` are filled depends on the source:
   prefix, so `argument` is absent and `path` holds the property path.
 - `InputException(variable, message)`: a single entry, `path = variable`.
 - `QueryParamException`: a single entry with `argument = "query"` and
-  `path = <parameter name>`.
+  `path = <parameter name>`; its message is the one of the cause, or
+  `Invalid value for a query parameter` when Jersey gives no cause (a `char` parameter given several characters).
 
 `inputError` is sorted by `argument.path`, so the order is stable.
 

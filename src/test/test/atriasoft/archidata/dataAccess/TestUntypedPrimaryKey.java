@@ -7,6 +7,7 @@ import java.util.List;
 import org.atriasoft.archidata.annotation.Collection;
 import org.atriasoft.archidata.annotation.DataNotRead;
 import org.atriasoft.archidata.annotation.Id;
+import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.Filters;
 import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.model.DbClassModel;
@@ -19,6 +20,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import test.atriasoft.archidata.ConfigureDb;
 
@@ -88,6 +93,28 @@ public class TestUntypedPrimaryKey {
 				ConfigureDb.da.generateSelectField(Keyed.class, new QueryOptions()));
 		Assertions.assertEquals(List.of("_id", "name", "credentials.user"), ConfigureDb.da
 				.generateSelectField(Keyed.class, new QueryOptions(new OptionSpecifyType("_id", ObjectId.class))));
+	}
+
+	@Test
+	public void testTheTraceOfTheTypeOverrideNamesBothTypes() throws Exception {
+		final ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory
+				.getLogger(DBAccessMongo.class);
+		final ch.qos.logback.classic.Level levelBefore = logger.getLevel();
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		logger.addAppender(appender);
+		logger.setLevel(ch.qos.logback.classic.Level.TRACE);
+		try {
+			ConfigureDb.da.getTableIdCondition(Keyed.class, new ObjectId(),
+					new QueryOptions(new OptionSpecifyType("_id", ObjectId.class)));
+		} finally {
+			logger.detachAppender(appender);
+			logger.setLevel(levelBefore);
+		}
+		final List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage)
+				.filter(message -> message.contains("overwrite of typing")).toList();
+		Assertions.assertEquals(
+				List.of("Detect overwrite of typing ... 'java.lang.Object' => 'org.bson.types.ObjectId'"), messages);
 	}
 
 	@Test

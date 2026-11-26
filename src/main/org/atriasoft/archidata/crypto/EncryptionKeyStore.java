@@ -84,9 +84,19 @@ public final class EncryptionKeyStore {
 	/**
 	 * Clears all registered keys and resets the lazy-initialisation flag.
 	 * Mainly used by tests between runs.
+	 *
+	 * <p>Refused once the configuration is locked ({@link ConfigBaseVariable#lock()}): clearing the keys and
+	 * registering them again would replace a key that {@link #register(String, CipherProvider)} refuses to replace.
+	 * Unlock the configuration first ({@link ConfigBaseVariable#allowReconfiguration(boolean)}, then
+	 * {@link ConfigBaseVariable#unlock()}).</p>
+	 *
+	 * @throws IllegalStateException if the configuration is locked.
 	 */
 	public static void reset() {
 		synchronized (EncryptionKeyStore.class) {
+			if (ConfigBaseVariable.isLocked()) {
+				throw new IllegalStateException("Configuration is locked: the encryption keys cannot be reset");
+			}
 			PROVIDERS.clear();
 			initialized = false;
 		}

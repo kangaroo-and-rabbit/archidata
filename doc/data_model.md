@@ -198,7 +198,8 @@ A persisted field (a public field, or a property with a getter) is stored accord
 
 | Declared type | Stored as |
 | --- | --- |
-| primitives and boxed types, `String`, `Character` | BSON value |
+| primitives and boxed types, `String` | BSON value |
+| `Character`, `char` | BSON string of one character (an integer code stored by another writer is read too) |
 | `ObjectId`, `UUID` | BSON value |
 | `Date`, `Instant`, `OffsetDateTime` | BSON date (UTC, the offset is lost) |
 | `LocalDate` (`yyyy-MM-dd` string), `LocalTime` (nanoseconds of the day) | BSON value |

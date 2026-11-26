@@ -435,6 +435,16 @@ class TestClassModel {
 		Assertions.assertEquals(List.of("a"), rec.tags());
 	}
 
+	// A primitive component absent from the values (not stored, or @DataNotRead) takes its default value
+	@Test
+	void testRecordNewInstanceWithAMissingPrimitiveComponent() throws IntrospectionException {
+		final ClassModel model = ClassModel.of(SimpleRecord.class);
+		final SimpleRecord rec = (SimpleRecord) model.newInstance(Map.of("name", "Alice"));
+		Assertions.assertEquals("Alice", rec.name());
+		Assertions.assertEquals(0, rec.age());
+		Assertions.assertNull(rec.tags());
+	}
+
 	// Test nested list type
 	@Test
 	void testNestedListType() throws IntrospectionException {

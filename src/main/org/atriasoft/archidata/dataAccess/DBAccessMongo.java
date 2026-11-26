@@ -446,9 +446,9 @@ public final class DBAccessMongo implements Closeable {
 			final List<OptionSpecifyType> specificTypes = options.get(OptionSpecifyType.class);
 			for (final OptionSpecifyType specify : specificTypes) {
 				if (specify.name.equals(fieldName.inStruct())) {
-					typeClass = specify.clazz;
 					LOGGER.trace("Detect overwrite of typing ... '{}' => '{}'", typeClass.getCanonicalName(),
 							specify.clazz.getCanonicalName());
+					typeClass = specify.clazz;
 					break;
 				}
 			}

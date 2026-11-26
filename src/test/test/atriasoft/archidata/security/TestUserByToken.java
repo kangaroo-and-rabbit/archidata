@@ -166,6 +166,13 @@ public class TestUserByToken {
 	}
 
 	@Test
+	void groupsOfAnEntityWithoutRolesAreEmpty() {
+		this.user.setRoles(null);
+		Assertions.assertTrue(this.user.getGroups().isEmpty());
+		Assertions.assertFalse(this.user.groupExist(APP));
+	}
+
+	@Test
 	void aNullMapStaysNull() {
 		this.user.setRoles(null);
 		this.user.setRight(null);

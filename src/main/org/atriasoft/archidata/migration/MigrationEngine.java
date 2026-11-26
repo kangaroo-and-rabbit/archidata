@@ -82,8 +82,8 @@ public class MigrationEngine {
 			return data.get(data.size() - 1);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail to Request migration table in the DB: {}", ex.getMessage(), ex);
+			throw new MigrationException("Can not retreive Migration model", ex);
 		}
-		throw new MigrationException("Can not retreive Migration model");
 	}
 
 	/** Process the automatic migration of the system The function wait the Administrator intervention to correct the bug.
@@ -215,10 +215,10 @@ public class MigrationEngine {
 			LOGGER.info("Execute migration ... [ END ]");
 		} catch (final InternalServerErrorException e) {
 			LOGGER.error("Internal server error during migration: {}", e.getMessage(), e);
-			throw new MigrationException("Internal server error during migration: " + e.getMessage());
+			throw new MigrationException("Internal server error during migration: " + e.getMessage(), e);
 		} catch (final IOException e) {
 			LOGGER.error("IO error during migration: {}", e.getMessage(), e);
-			throw new MigrationException("IO error during migration: " + e.getMessage());
+			throw new MigrationException("IO error during migration: " + e.getMessage(), e);
 		}
 	}
 
@@ -246,14 +246,14 @@ public class MigrationEngine {
 		} catch (final Exception e) {
 			LOGGER.error("Failed to get number of migration steps: {}", e.getMessage(), e);
 			throw new MigrationException(
-					"Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage());
+					"Fail to get number of migration step (maybe generation fail): " + e.getLocalizedMessage(), e);
 		}
 		try {
 			migrationResult = da.insert(migrationResult);
 		} catch (final Exception e) {
 			LOGGER.error("Failed to insert migration log: {}", e.getMessage(), e);
 			throw new MigrationException(
-					"Fail to insert migration Log in the migration table: " + e.getLocalizedMessage());
+					"Fail to insert migration Log in the migration table: " + e.getLocalizedMessage(), e);
 		}
 		boolean ret = true;
 		try {
@@ -269,7 +269,7 @@ public class MigrationEngine {
 						updateException);
 			}
 			throw new MigrationException("Migration fail: '" + migrationResult.name + "' defect @"
-					+ migrationResult.stepId + "/" + migrationResult.count);
+					+ migrationResult.stepId + "/" + migrationResult.count, e);
 		}
 		if (ret) {
 			migrationResult.terminated = true;
@@ -278,7 +278,7 @@ public class MigrationEngine {
 			} catch (final Exception e) {
 				LOGGER.error("Failed to update migration log (terminated): {}", e.getMessage(), e);
 				throw new MigrationException(
-						"Fail to update migration Log in the migration table: " + e.getLocalizedMessage());
+						"Fail to update migration Log in the migration table: " + e.getLocalizedMessage(), e);
 			}
 		} else {
 			try {
@@ -288,7 +288,8 @@ public class MigrationEngine {
 				LOGGER.error("Failed to update migration log (failure): {}", e.getMessage(), e);
 				throw new MigrationException("Fail to update migration Log in the migration table: "
 						+ e.getLocalizedMessage() + " WITH: An error occured in the migration (OUTSIDE detection): '"
-						+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);
+						+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count,
+						e);
 			}
 			throw new MigrationException("An error occured in the migration (OUTSIDE detection): '"
 					+ migrationResult.name + "' defect @" + migrationResult.stepId + "/" + migrationResult.count);

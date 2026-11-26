@@ -304,7 +304,8 @@ caller that does not move the file removes it with `removeTemporaryFile(id)`.
   `SafeHttpFetcher` (see below); the body is bounded by
   `setMaxRemoteDataSize(long)` / `getMaxRemoteDataSize()` (default
   `DEFAULT_MAX_REMOTE_DATA_SIZE`, 50 MiB; a larger answer gives HTTP 413), which
-  also bounds `ProxyResource`.
+  also bounds `ProxyResource`. `uploadCover` and `uploadCoverFromUri` add the
+  stored `Data` to the `covers` field of the entity.
 - `uploadCover` detects the type from the content (Tika), accepts only
   `SUPPORTED_IMAGE_MIME_TYPE` and stores the detected type; `uploadData`
   checks the content against `SUPPORTED_UPLOAD_MIME_TYPES`

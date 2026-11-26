@@ -728,7 +728,7 @@ public class DataTools {
 			} else {
 				LOGGER.error("Data already exist ... all good");
 			}
-			ListInDbTools.addLink(clazz, id, null, data.getOid());
+			ListInDbTools.addLink(clazz, id, "covers", data.getOid());
 		} finally {
 			removeTemporaryFile(tmpUID);
 		}

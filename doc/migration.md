@@ -61,7 +61,7 @@ public void migrateDB() throws Exception {
 | `setInit(migration)` | Initialization step, used only on an empty database. |
 | `add(migration)` | Append a migration (order matters). Two migrations with the same name, or a migration with the name of the initialization, are rejected. |
 | `migrateWaitAdmin(DbConfig)` | Run the pending migrations. On failure, log the error and **block forever** (the server does not start on a half-migrated database; an administrator must fix it and restart). |
-| `migrateErrorThrow(DbConfig)` | Same, but throw a `MigrationException` on failure (tests, tools). |
+| `migrateErrorThrow(DbConfig)` | Same, but throw a `MigrationException` on failure (tests, tools); `getCause()` is the exception that made the migration fail (connection, step, update of the history). |
 | `getCurrentVersion(DBAccessMongo)` | Last record of `KAR_migration`, or `null` when there is none. |
 
 ### Database configuration

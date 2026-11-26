@@ -33,7 +33,8 @@ public class DbIoFactory {
 
 	/**
 	 * Creates a new {@link DbIo} instance for the given configuration, reusing an existing
-	 * compatible connection if available.
+	 * compatible connection if available. A kept connection ({@code keepConnected}) carries one reference of the
+	 * factory, released by {@link #close()}; the caller opens and closes its own, the reuse adds none.
 	 *
 	 * @param config the database configuration
 	 * @return a new or reused database connection
@@ -42,7 +43,7 @@ public class DbIoFactory {
 	public static DbIo create(final DbConfig config) throws IOException {
 		for (final DbIo dbIo : dbIoStored) {
 			if (dbIo.compatible(config)) {
-				dbIo.open();
+				// the factory already holds its own reference on a kept connection: the caller takes and releases its own
 				return dbIo;
 			}
 		}
