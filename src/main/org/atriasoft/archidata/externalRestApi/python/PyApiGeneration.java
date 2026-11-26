@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.atriasoft.archidata.annotation.checker.GroupRead;
+import org.atriasoft.archidata.externalRestApi.HttpMimeTypes;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
@@ -157,31 +158,8 @@ public class PyApiGeneration {
 	}
 
 	private static String mimeConstant(final String mediaType) {
-		if (MediaType.APPLICATION_JSON.equals(mediaType)) {
-			return "HTTPMimeType.JSON";
-		}
-		if (MediaType.MULTIPART_FORM_DATA.equals(mediaType)) {
-			return "HTTPMimeType.MULTIPART";
-		}
-		if (MediaType.TEXT_PLAIN.equals(mediaType)) {
-			return "HTTPMimeType.TEXT_PLAIN";
-		}
-		if (MediaType.APPLICATION_OCTET_STREAM.equals(mediaType)) {
-			return "HTTPMimeType.OCTET_STREAM";
-		}
-		if ("text/csv".equals(mediaType)) {
-			return "HTTPMimeType.CSV";
-		}
-		if ("image/jpeg".equals(mediaType)) {
-			return "HTTPMimeType.IMAGE_JPEG";
-		}
-		if ("image/png".equals(mediaType)) {
-			return "HTTPMimeType.IMAGE_PNG";
-		}
-		if (MediaType.WILDCARD.equals(mediaType)) {
-			return "HTTPMimeType.ALL";
-		}
-		return null;
+		final String member = HttpMimeTypes.memberName(mediaType);
+		return member == null ? null : "HTTPMimeType." + member;
 	}
 
 	/**

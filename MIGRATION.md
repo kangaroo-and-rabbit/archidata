@@ -33,6 +33,10 @@
 
 - TypeScript, `ARCHIDATA_GENERATE_ZOD_ENUM` : l'enum est maintenant déclaré `export const ZodFoo = zod.enum([...])`
   (avant : `export const null = ...`, du TypeScript invalide), avec `export type Foo = zod.infer<typeof ZodFoo>`.
+- TypeScript, `@Produces` à plusieurs valeurs : le paramètre `produce` accepte les huit types de média que connaît
+  `HTTPMimeType` (comme le client Python) : `image/png`, `image/jpeg`, `text/csv`, `application/octet-stream`,
+  `text/plain`, `*/*` en plus de JSON et multipart. Un type inconnu est ignoré (erreur dans le log) ; si aucun n'est
+  connu, le client n'a ni `produce` ni `accept` (avant : `produce: ,`, du TypeScript invalide).
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

@@ -10,8 +10,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.atriasoft.archidata.annotation.checker.GroupRead;
+import org.atriasoft.archidata.externalRestApi.HttpMimeTypes;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
 import org.atriasoft.archidata.externalRestApi.model.ApiModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassEnumModel;
@@ -266,6 +268,28 @@ public class TsApiGeneration {
 	}
 
 	/**
+	 * Lists the {@code HTTPMimeType} members an endpoint with several {@code @Produces} values can answer with.
+	 * @param produces the produced media types of the endpoint (may be null)
+	 * @return the members known by the generated client, without duplicate; empty when the endpoint does not produce
+	 *         several media types or when none of them is known (the client then has no {@code produce} parameter)
+	 */
+	private static List<String> producedMembers(final List<String> produces) {
+		final List<String> members = new ArrayList<>();
+		if (produces == null || produces.size() < 2) {
+			return members;
+		}
+		for (final String produce : produces) {
+			final String member = HttpMimeTypes.memberName(produce);
+			if (member == null) {
+				LOGGER.error("Unmanaged produced media type: {}", produce);
+			} else if (!members.contains(member)) {
+				members.add(member);
+			}
+		}
+		return members;
+	}
+
+	/**
 	 * Generates a TypeScript API client file for a resource group.
 	 * @param element the API group model containing endpoint definitions
 	 * @param tsGroup the group registry for resolving type references
@@ -288,6 +312,7 @@ public class TsApiGeneration {
 		for (final ApiModel interfaceElement : element.interfaces) {
 			final List<String> consumes = interfaceElement.consumes;
 			final List<String> produces = interfaceElement.produces;
+			final List<String> producedMembers = producedMembers(produces);
 			final boolean needGenerateProgress = interfaceElement.needGenerateProgress;
 			final String returnModelNameIfComplex = capitalizeFirstLetter(interfaceElement.name) + "TypeReturn";
 			final String returnComplexModel = TsClassElement.generateLocalModel(returnModelNameIfComplex,
@@ -314,7 +339,7 @@ public class TsApiGeneration {
 			if (!interfaceElement.parameters.isEmpty()) {
 				data.append("\n\t\t\tparams,");
 			}
-			if (produces != null && produces.size() > 1) {
+			if (!producedMembers.isEmpty()) {
 				data.append("\n\t\t\tproduce,");
 			}
 			if (interfaceElement.unnamedElement.size() == 1 || interfaceElement.multiPartParameters.size() != 0) {
@@ -393,32 +418,12 @@ public class TsApiGeneration {
 				}
 				data.append("\n\t\t},");
 			}
-			if (produces != null && produces.size() > 1) {
+			if (!producedMembers.isEmpty()) {
 				data.append("\n\t\tproduce: ");
-				String isFist = null;
-				for (final String elem : produces) {
-					String lastElement = null;
-
-					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						lastElement = "(typeof HTTPMimeType)['JSON']";
-						toolImports.add("HTTPMimeType");
-					}
-					if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
-						lastElement = "(typeof HTTPMimeType)['MULTIPART']";
-						toolImports.add("HTTPMimeType");
-					}
-					if (lastElement != null) {
-						if (isFist == null) {
-							isFist = lastElement;
-						} else {
-							data.append(" | ");
-						}
-						data.append(lastElement);
-					} else {
-						LOGGER.error("Unmanaged model type: {}", elem);
-					}
-				}
+				data.append(producedMembers.stream().map(member -> "(typeof HTTPMimeType)['" + member + "']")
+						.collect(Collectors.joining(" | ")));
 				data.append(",");
+				toolImports.add("HTTPMimeType");
 			}
 			if (needGenerateProgress) {
 				data.append("\n\t\tcallbacks?: RESTCallbacks,");
@@ -490,7 +495,9 @@ public class TsApiGeneration {
 			}
 			if (produces != null) {
 				if (produces.size() > 1) {
-					data.append("\n\t\t\t\taccept: produce,");
+					if (!producedMembers.isEmpty()) {
+						data.append("\n\t\t\t\taccept: produce,");
+					}
 				} else {
 					final String returnType = generateClassModelsTypescript(new ParameterClassModelList(true,
 							new Class<?>[] { GroupRead.class }, interfaceElement.returnTypes, false), tsGroup, imports,
