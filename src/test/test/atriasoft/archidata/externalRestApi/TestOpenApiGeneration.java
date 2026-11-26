@@ -348,7 +348,7 @@ public class TestOpenApiGeneration {
 		@SuppressWarnings("unchecked")
 		final Map<String, Object> idProp = (Map<String, Object>) properties.get("id");
 		Assertions.assertEquals("Item identifier", idProp.get("description"));
-		Assertions.assertEquals("42", idProp.get("example"));
+		Assertions.assertEquals(42L, idProp.get("example"));
 	}
 
 	@Test

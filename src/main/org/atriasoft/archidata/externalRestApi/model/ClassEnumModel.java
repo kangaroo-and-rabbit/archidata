@@ -7,14 +7,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.atriasoft.archidata.annotation.AnnotationTools;
 import org.atriasoft.archidata.annotation.apiGenerator.ApiGenerationMode;
 import org.atriasoft.archidata.tools.AnnotationCreator;
+
+import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
  * Represents an enum type model extracted from a Java enum class for API generation.
  *
  * <p>Stores the enum constant names and their associated values (either from
- * a {@code getValue()} method or the constant name itself).
+ * the value of the method carrying {@code @JsonValue}, or the constant name itself).
  */
 public class ClassEnumModel extends ClassModel {
 	/**
@@ -47,22 +50,40 @@ public class ClassEnumModel extends ClassModel {
 		final Class<?> clazz = this.originClasses;
 		final Object[] constants = clazz.getEnumConstants();
 
-		// Try to get a get Value element to serialize:
-		try {
-			final Method getValueMethod = clazz.getMethod("getValue");
-			for (final Object constant : constants) {
-				final String name = constant.toString();
-				final Object value = getValueMethod.invoke(constant);
-				this.listOfValues.put(name, value);
+		// Jackson writes the name of a constant, unless a no-argument method carries @JsonValue: only then the
+		// value of this method is what the clients send and receive.
+		final Method valueMethod = findJsonValueMethod(clazz);
+		if (valueMethod != null) {
+			try {
+				for (final Object constant : constants) {
+					this.listOfValues.put(constant.toString(), valueMethod.invoke(constant));
+				}
+				return;
+			} catch (final ReflectiveOperationException e) {
+				// not callable: the name of the constant is its value.
+				this.listOfValues.clear();
 			}
-			return;
-		} catch (final ReflectiveOperationException e) {
-			// No usable getValue(): the name of the constant is its value.
 		}
 
 		for (final Object elem : constants) {
 			this.listOfValues.put(elem.toString(), elem.toString());
 		}
+	}
+
+	/** The public no-argument method of an enum that carries {@code @JsonValue}, or {@code null}. */
+	private static Method findJsonValueMethod(final Class<?> clazz) {
+		for (final Method method : clazz.getMethods()) {
+			if (method.getParameterCount() != 0 || method.getReturnType() == void.class) {
+				continue;
+			}
+			for (final JsonValue annotation : AnnotationTools.getAnnotationsIncludingInterfaces(method,
+					JsonValue.class)) {
+				if (annotation.value()) {
+					return method;
+				}
+			}
+		}
+		return null;
 	}
 
 	/**

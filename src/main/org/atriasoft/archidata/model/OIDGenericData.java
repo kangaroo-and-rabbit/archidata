@@ -29,7 +29,7 @@ public class OIDGenericData extends GenericTiming {
 	// Read by the driver's PojoCodecProvider.automatic(true) (DbIoMongo): maps the property to _id.
 	@BsonId
 	@Field("_id")
-	@Schema(description = "Unique ObjectID of the object", example = "65161616841351")
+	@Schema(description = "Unique ObjectID of the object", example = "507f1f77bcf86cd799439011")
 	@ApiReadOnly
 	@NotNull(groups = { GroupRead.class, GroupPersistant.class })
 	@Null(groups = { GroupCreate.class, GroupUpdate.class })

@@ -107,24 +107,28 @@ When a field has no explicit `example` in `@ApiDoc`, archidata generates one aut
 
 ### Field-name heuristics
 
-The generator recognizes common field name patterns:
+The generator recognizes common field name patterns. The ones that give a text (email, URL, token, MIME type, hash,
+language) only apply to a `String` field. `uri`, `url`, `link`, `href` and `mail` must be a word of the name or the end
+of one (`securityUri`, `callbackurl` and `permalink` match, `security` does not), and `sha` a whole word (`sha256`
+matches, `shape` does not). An example is written with the JSON type of its
+property: `0` and `false` are a number and a boolean, not strings.
 
 | Pattern                                      | Type           | Example                                            |
 |----------------------------------------------|----------------|----------------------------------------------------|
-| `*email*`, `*mail*`                          | String         | `user@example.com`                                 |
-| `*url*`, `*uri*`, `*link*`                   | String         | `https://example.com/resource`                     |
+| `*email*`, `*mail` (end of a word)           | String         | `user@example.com`                                 |
+| `*url`, `*uri`, `*link`, `*href` (end of a word) | String     | `https://example.com/resource`                     |
 | `*token*`, `*password*`, `*secret*`          | String         | `abc123xyz789`                                     |
 | `*name*`, `*login*`, `*username*`            | String         | `example-name`                                     |
 | `*title*`, `*label*`, `*subject*`            | String         | `Example Title`                                    |
 | `*description*`, `*comment*`, `*message*`    | String         | `Example description text`                         |
 | `*path*`, `*file*`, `*filename*`             | String         | `/data/example-file.dat`                           |
-| `*sha*`, `*hash*`, `*md5*`                   | String         | `e3b0c44298fc1c14...` (SHA-256 of empty)           |
+| `sha` (whole word), `*hash*`, `*md5*`        | String         | `e3b0c44298fc1c14...` (SHA-256 of empty)           |
 | `codec`                                      | String         | `h264`                                             |
 | `language`, `lang`, `locale`                 | String         | `en`                                               |
 | `mime`, `type`, `contentType`                | String         | `application/json`                                 |
 | `id`, `*Id`                                  | Long           | `123456`                                           |
 | `id`, `*Id`                                  | UUID           | `e6b33c1c-d24d-11ee-b616-02420a030102`             |
-| `id`, `*Id`                                  | ObjectId       | `65161616841351`                                   |
+| `id`, `*Id`                                  | ObjectId       | `507f1f77bcf86cd799439011`                         |
 | `*At`, `created*`, `updated*`, `*Time`       | Date/Instant   | `2000-01-23T01:23:45.678Z`                         |
 | `*At`, `*Date`                               | LocalDate      | `2000-01-23`                                       |
 | `*deleted*`, `*blocked*`, `*archived*`       | Boolean        | `false`                                            |
@@ -146,11 +150,11 @@ The generator recognizes common field name patterns:
 | `Long`, `Integer` | `0`                                        |
 | `Double`, `Float` | `0.0`                                      |
 | `UUID`            | `e6b33c1c-d24d-11ee-b616-02420a030102`     |
-| `ObjectId`        | `65161616841351`                           |
+| `ObjectId`        | `507f1f77bcf86cd799439011`                 |
 | `Date`, `Instant` | `2000-01-23T01:23:45.678Z`                 |
 | `LocalDate`       | `2000-01-23`                               |
 | `LocalTime`       | `01:23:45`                                 |
-| `Enum`            | First enum value                           |
+| `Enum`            | First enum value, as serialized (the value of the method carrying `@JsonValue` when the enum has one) |
 | `List`, `Map`     | *(no auto-generation)*                     |
 
 
@@ -169,7 +173,7 @@ The generator produces a standard OpenAPI 3.0.3 document with:
   - Field properties with type, description, example, and constraints
   - `allOf` for class inheritance
   - `$ref` for cross-references between models
-  - Enum values listed as string arrays
+  - Enum values listed as an array of strings, or of integers when the enum has an integer `@JsonValue` method (the schema type follows; without `@JsonValue` Jackson sends the name)
 
 
 Programmatic Usage

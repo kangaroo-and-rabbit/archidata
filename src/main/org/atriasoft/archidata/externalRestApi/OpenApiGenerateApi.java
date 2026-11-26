@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -412,7 +413,7 @@ public class OpenApiGenerateApi {
 
 			// Build aggregated example
 			if (field.example() != null) {
-				example.put(field.name(), field.example());
+				example.put(field.name(), typedExample(field.example(), field.model()));
 			}
 		}
 
@@ -466,7 +467,7 @@ public class OpenApiGenerateApi {
 			prop.put("description", field.comment());
 		}
 		if (field.example() != null) {
-			prop.put("example", field.example());
+			prop.put("example", typedExample(field.example(), field.model()));
 		}
 		if (field.nullable() != null && field.nullable()) {
 			prop.put("nullable", true);
@@ -516,10 +517,50 @@ public class OpenApiGenerateApi {
 
 	private static Map<String, Object> buildEnumSchema(final ClassEnumModel model) {
 		final Map<String, Object> schema = new LinkedHashMap<>();
-		schema.put("type", "string");
+		schema.put("type", hasIntegerValues(model) ? "integer" : "string");
 		final List<Object> enumValues = new ArrayList<>(model.getListOfValues().values());
 		schema.put("enum", enumValues);
 		return schema;
+	}
+
+	/** An enum whose {@code getValue()} is a number is serialized as that number. */
+	private static boolean hasIntegerValues(final ClassEnumModel model) {
+		final Collection<Object> values = model.getListOfValues().values();
+		if (values.isEmpty()) {
+			return false;
+		}
+		for (final Object value : values) {
+			if (!(value instanceof Integer || value instanceof Long || value instanceof Short)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Gives an example the JSON type of its schema: the example of a field is a text, but a number or a boolean
+	 * property must not carry a string. An example that does not parse (written by hand) stays a text.
+	 */
+	private static Object typedExample(final String example, final ClassModel model) {
+		try {
+			if (model instanceof final ClassEnumModel enumModel) {
+				return hasIntegerValues(enumModel) ? (Object) Long.valueOf(example) : example;
+			}
+			final Class<?> type = model.getOriginClasses();
+			if (type == Boolean.class || type == boolean.class) {
+				if ("true".equalsIgnoreCase(example) || "false".equalsIgnoreCase(example)) {
+					return Boolean.valueOf(example);
+				}
+			} else if (type == Integer.class || type == int.class || type == Short.class || type == short.class
+					|| type == Long.class || type == long.class) {
+				return Long.valueOf(example);
+			} else if (type == Float.class || type == float.class || type == Double.class || type == double.class) {
+				return Double.valueOf(example);
+			}
+		} catch (final NumberFormatException e) {
+			// not a number: keep the text written by the developer
+		}
+		return example;
 	}
 
 	// ========== SCHEMA REFERENCES ==========
@@ -754,6 +795,10 @@ public class OpenApiGenerateApi {
 			schema.put("format", "time");
 			schema.put("description", "ISO 8601 time (e.g. 10:30:00)");
 			schema.put("example", "10:30:00");
+		} else if (type == Character.class || type == char.class) {
+			schema.put("type", "string");
+			schema.put("minLength", 1);
+			schema.put("maxLength", 1);
 		} else if (type == byte[].class) {
 			schema.put("type", "string");
 			schema.put("format", "byte");

@@ -47,7 +47,7 @@ public class ChangeJournalEntry {
 	@Schema(description = "Name of the source collection (table) the document comes from", example = "user")
 	private String collectionName = null;
 
-	@Schema(description = "String representation of the source document primary key", example = "65161616841351")
+	@Schema(description = "String representation of the source document primary key", example = "507f1f77bcf86cd799439011")
 	private String sourceId = null;
 
 	@Schema(description = "Source document serialized in BSON extended JSON")

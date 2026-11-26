@@ -3,7 +3,9 @@ package org.atriasoft.archidata.externalRestApi.model;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -30,6 +32,12 @@ import jakarta.validation.constraints.Size;
  * </ol>
  */
 public class ExampleGenerator {
+	/** A valid ObjectId (24 hexadecimal characters), as the pattern of the ObjectId schema requires. */
+	private static final String OBJECT_ID_EXAMPLE = "507f1f77bcf86cd799439011";
+
+	/** Boundaries between the words of a field name: camelCase, letters and digits, separators. */
+	private static final String WORD_BOUNDARY = "(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|(?<=[A-Za-z])(?=[0-9])|(?<=[0-9])(?=[A-Za-z])|[^A-Za-z0-9]+";
+
 	private ExampleGenerator() {
 		// Utility class
 	}
@@ -145,30 +153,36 @@ public class ExampleGenerator {
 	private static String generateFromFieldName(final String fieldName, final Class<?> type) {
 		final String lower = fieldName.toLowerCase(Locale.ROOT);
 
-		// Email patterns
-		if (lower.contains("email") || lower.contains("mail")) {
-			return "user@example.com";
-		}
-		// URL patterns
-		if (lower.contains("url") || lower.contains("uri") || lower.contains("link") || lower.contains("href")) {
-			return "https://example.com/resource";
-		}
-		// Token / password patterns
-		if (lower.contains("token") || lower.contains("password") || lower.contains("secret")) {
-			return "abc123xyz789";
-		}
-		// MIME type patterns
-		if (lower.contains("mime") || lower.equals("type") || lower.equals("contenttype")
-				|| lower.equals("mediatype")) {
-			return "application/json";
-		}
-		// Hash patterns
-		if (lower.contains("sha") || lower.contains("hash") || lower.contains("md5")) {
-			return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-		}
-		// Language patterns
-		if (lower.equals("language") || lower.equals("lang") || lower.equals("locale")) {
-			return "en";
+		// The patterns below give a text: they only apply to a String field
+		if (isStringType(type)) {
+			final List<String> words = splitWords(fieldName);
+			// Email patterns
+			if (lower.contains("email") || endsWithWord(words, "mail")) {
+				return "user@example.com";
+			}
+			// URL patterns (a word or the end of a word: "callbackurl" and "permalink" are links, "security" is not an
+			// "uri")
+			if (endsWithWord(words, "url") || endsWithWord(words, "uri") || endsWithWord(words, "link")
+					|| endsWithWord(words, "href")) {
+				return "https://example.com/resource";
+			}
+			// Token / password patterns
+			if (lower.contains("token") || lower.contains("password") || lower.contains("secret")) {
+				return "abc123xyz789";
+			}
+			// MIME type patterns
+			if (lower.contains("mime") || lower.equals("type") || lower.equals("contenttype")
+					|| lower.equals("mediatype")) {
+				return "application/json";
+			}
+			// Hash patterns (whole word for "sha": "shape" is not a hash)
+			if (words.contains("sha") || lower.contains("hash") || lower.contains("md5")) {
+				return "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+			}
+			// Language patterns
+			if (lower.equals("language") || lower.equals("lang") || lower.equals("locale")) {
+				return "en";
+			}
 		}
 		// ID fields
 		if (lower.endsWith("id")) {
@@ -176,7 +190,7 @@ public class ExampleGenerator {
 				return "e6b33c1c-d24d-11ee-b616-02420a030102";
 			}
 			if (type == ObjectId.class) {
-				return "65161616841351";
+				return OBJECT_ID_EXAMPLE;
 			}
 			if (isIntegerType(type)) {
 				return "123456";
@@ -323,7 +337,7 @@ public class ExampleGenerator {
 		}
 		// ObjectId
 		if (type == ObjectId.class) {
-			return "65161616841351";
+			return OBJECT_ID_EXAMPLE;
 		}
 		// Date/time
 		if (type == Date.class || type == Instant.class) {
@@ -335,15 +349,38 @@ public class ExampleGenerator {
 		if (type == LocalTime.class) {
 			return "01:23:45";
 		}
-		// Enum: first value
-		if (model instanceof ClassEnumModel) {
-			final ClassEnumModel enumModel = (ClassEnumModel) model;
+		// Enum: first value, as it is serialized (the one of the schema's list, not the name of the constant)
+		if (model instanceof final ClassEnumModel enumModel) {
 			if (!enumModel.getListOfValues().isEmpty()) {
-				return enumModel.getListOfValues().keySet().iterator().next();
+				return String.valueOf(enumModel.getListOfValues().values().iterator().next());
 			}
 		}
 		// Collections, Maps, complex objects: no auto-generation
 		return null;
+	}
+
+	/**
+	 * Splits a field name in lower case words: {@code securityUri} gives {@code security, uri},
+	 * {@code sha256} gives {@code sha, 256}.
+	 */
+	private static List<String> splitWords(final String fieldName) {
+		final List<String> words = new ArrayList<>();
+		for (final String word : fieldName.split(WORD_BOUNDARY)) {
+			if (!word.isEmpty()) {
+				words.add(word.toLowerCase(Locale.ROOT));
+			}
+		}
+		return words;
+	}
+
+	/** True when a word of the list is {@code suffix} or ends with it ({@code callbackurl} ends with {@code url}). */
+	private static boolean endsWithWord(final List<String> words, final String suffix) {
+		for (final String word : words) {
+			if (word.endsWith(suffix)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static boolean isStringType(final Class<?> type) {

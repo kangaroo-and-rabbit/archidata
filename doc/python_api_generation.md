@@ -68,7 +68,7 @@ Mapping rules
 | `List<T>` / `List<@NotNull T>`              | `list[T \| None]` / `list[T]`                       |
 | `Map<K, V>`                                 | `dict[K, V \| None]`                                |
 | `Pagination<T>`                             | `Pagination[T]` (from `rest_tools`)                 |
-| enum                                        | `StrEnum` (`IntEnum` when `getValue()` is an int)   |
+| enum                                        | `StrEnum` (`IntEnum` when the `@JsonValue` method is an int)   |
 | `ObjectId`, `Document`                      | a PEP 695 alias: `type ObjectId = Annotated[str, ...]` |
 | class                                       | `BaseModel` subclass, inheritance preserved         |
 

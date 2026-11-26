@@ -50,6 +50,19 @@
 - DOT : un champ `List<UneEnum>` est dessiné `List<UneEnum>` avec son arête vers l'enum (avant : `List<>`, sans arête),
   et le libellé d'un endpoint qui reçoit un corps donne son type (`create(data: Settings)`, `upload(data: {file: File,
   title: string})`) à la place de `data: `.
+- OpenAPI, exemples : l'exemple d'un `ObjectId` est `507f1f77bcf86cd799439011` (avant : `65161616841351`, qui ne
+  respectait pas le pattern 24 hexadécimaux de sa propriété ; `OIDGenericData.oid` et `ChangeJournalEntry.sourceId` aussi). Les exemples d'un entier, d'un
+  flottant et d'un booléen sont des nombres et des booléens JSON (avant : `"0"`, `"false"`). Les noms de champ `url`,
+  `email`, `token`, `type`, `hash`, `language`... ne donnent plus leur exemple textuel qu'à un `String`, et `uri`, `url`,
+  `link`, `href`, `mail` doivent être un mot du nom ou la fin d'un mot (`callbackurl`, `permalink` comptent, `security` non),
+  `sha` un mot entier (`sha256` compte, `shape` non).
+- Générateurs de clients (OpenAPI, TypeScript, Python, DOT), enums : la valeur d'un enum est celle de la méthode qui
+  porte `@JsonValue`, et le nom de la constante sinon, comme Jackson l'envoie. Avant, toute méthode `getValue()` était
+  prise pour la valeur, même sans `@JsonValue` : un enum `A(1)` sans `@JsonValue` était généré avec la valeur `1` alors que
+  le serveur envoie `"A"`. Si votre client attendait ces valeurs, ajoutez `@JsonValue` à `getValue()` (le serveur envoie
+  alors la valeur) ; sinon régénérez le client. OpenAPI : un enum dont la valeur est un entier est `type: integer`
+  (avant : `string`) et son exemple est une de ses valeurs ; `char` et `Character` sont `type: string` de longueur 1
+  (avant : `object`).
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
