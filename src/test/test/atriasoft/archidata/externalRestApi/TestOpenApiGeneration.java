@@ -237,7 +237,7 @@ public class TestOpenApiGeneration {
 		Assertions.assertTrue(tags.contains("ITEMS"), "Tag should be from @ApiDoc(group='ITEMS')");
 
 		// Check operationId
-		Assertions.assertEquals("getAll", getOp.get("operationId"));
+		Assertions.assertEquals("ItemResource_getAll", getOp.get("operationId"));
 	}
 
 	@Test

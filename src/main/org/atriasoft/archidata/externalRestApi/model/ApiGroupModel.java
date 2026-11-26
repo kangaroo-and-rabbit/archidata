@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 // Temporary class that permit to order the list of API.
 record OrderedElement(
 		String methodName,
+		String overloadKey,
 		Method method) {}
 
 /**
@@ -70,9 +71,12 @@ public final class ApiGroupModel {
 		final List<OrderedElement> orderedElements = new ArrayList<>();
 		for (final Method method : clazz.getDeclaredMethods()) {
 			final String methodName = method.getName();
-			orderedElements.add(new OrderedElement(methodName, method));
+			orderedElements.add(new OrderedElement(methodName, overloadKey(method), method));
 		}
-		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName);
+		// The overloads of a name are ordered by HTTP verb, path and parameter types: the JVM does not guarantee the
+		// order of getDeclaredMethods().
+		final Comparator<OrderedElement> comparator = Comparator.comparing(OrderedElement::methodName)
+				.thenComparing(OrderedElement::overloadKey);
 		Collections.sort(orderedElements, comparator);
 
 		for (final OrderedElement orderedElement : orderedElements) {
@@ -90,5 +94,17 @@ public final class ApiGroupModel {
 					previousModel);
 			this.interfaces.add(model);
 		}
+	}
+
+	/** A key that orders the overloads of a method name: HTTP verb, then path, then parameter type names. */
+	private static String overloadKey(final Method method) throws Exception {
+		final RestTypeRequest type = ApiTool.apiAnnotationGetTypeRequest2(method);
+		final String path = ApiTool.apiAnnotationGetPath(method);
+		final StringBuilder key = new StringBuilder();
+		key.append(type == null ? "" : type.name()).append('|').append(path == null ? "" : path);
+		for (final Class<?> parameterType : method.getParameterTypes()) {
+			key.append('|').append(parameterType.getName());
+		}
+		return key.toString();
 	}
 }

@@ -7,9 +7,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
@@ -98,8 +101,31 @@ public class OpenApiGenerateApi {
 
 	// ========== PATHS ==========
 
+	/**
+	 * Gives every endpoint an {@code operationId} that is unique in the specification: always
+	 * {@code <resource>_<method>}, so that it never changes because another resource gains a method of the same name.
+	 * The overloads of a method name of one resource get a counter ({@code _2}, {@code _3}...) in the order of
+	 * {@link ApiGroupModel}, which sorts them by HTTP verb, path and parameter types (stable between two JVMs).
+	 */
+	private static Map<ApiModel, String> buildOperationIds(final AnalyzeApi api) {
+		final Map<ApiModel, String> operationIds = new IdentityHashMap<>();
+		final Set<String> used = new HashSet<>();
+		for (final ApiGroupModel group : api.getAllApi()) {
+			for (final ApiModel endpoint : group.interfaces) {
+				final String base = group.name + "_" + endpoint.name;
+				String operationId = base;
+				for (int counter = 2; !used.add(operationId); counter++) {
+					operationId = base + "_" + counter;
+				}
+				operationIds.put(endpoint, operationId);
+			}
+		}
+		return operationIds;
+	}
+
 	private static Map<String, Object> buildPaths(final AnalyzeApi api) {
 		final Map<String, Object> paths = new LinkedHashMap<>();
+		final Map<ApiModel, String> operationIds = buildOperationIds(api);
 		for (final ApiGroupModel group : api.getAllApi()) {
 			for (final ApiModel endpoint : group.interfaces) {
 				final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
@@ -110,13 +136,16 @@ public class OpenApiGenerateApi {
 					paths.put(path, pathItem);
 				}
 				final String httpMethod = toHttpMethod(endpoint.restTypeRequest);
-				pathItem.put(httpMethod, buildOperation(endpoint, group.name));
+				pathItem.put(httpMethod, buildOperation(endpoint, group.name, operationIds.get(endpoint)));
 			}
 		}
 		return paths;
 	}
 
-	private static Map<String, Object> buildOperation(final ApiModel endpoint, final String groupName) {
+	private static Map<String, Object> buildOperation(
+			final ApiModel endpoint,
+			final String groupName,
+			final String operationId) {
 		final Map<String, Object> operation = new LinkedHashMap<>();
 
 		// Tags — use @ApiDoc(group=...) if available, otherwise class name
@@ -129,7 +158,7 @@ public class OpenApiGenerateApi {
 		operation.put("tags", tags);
 
 		// Operation ID
-		operation.put("operationId", endpoint.name);
+		operation.put("operationId", operationId);
 
 		// Summary / description
 		if (endpoint.description != null && !endpoint.description.isEmpty()) {

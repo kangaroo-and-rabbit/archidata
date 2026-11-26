@@ -134,7 +134,7 @@ public class TestOpenApiGenerationWire {
 		Assertions.assertEquals("""
 				{
 				  "tags" : [ "SHELF" ],
-				  "operationId" : "get",
+				  "operationId" : "ShelfResource_get",
 				  "summary" : "Read a shelf",
 				  "description" : "Read a shelf",
 				  "parameters" : [ {
@@ -187,7 +187,7 @@ public class TestOpenApiGenerationWire {
 		Assertions.assertEquals("""
 				{
 				  "tags" : [ "ShelfResource" ],
-				  "operationId" : "attach",
+				  "operationId" : "ShelfResource_attach",
 				  "description" : "**Access:** Requires role(s): USER",
 				  "parameters" : [ {
 				    "name" : "oid",
@@ -252,7 +252,7 @@ public class TestOpenApiGenerationWire {
 		final String expected = """
 				{
 				  "tags" : [ "ShelfResource" ],
-				  "operationId" : "page",
+				  "operationId" : "ShelfResource_page",
 				  "parameters" : [ {
 				    "name" : "X-Pagination-Offset",
 				    "in" : "header",
@@ -312,7 +312,7 @@ public class TestOpenApiGenerationWire {
 		Assertions.assertEquals("""
 				{
 				  "tags" : [ "ShelfResource" ],
-				  "operationId" : "export",
+				  "operationId" : "ShelfResource_export",
 				  "responses" : {
 				    "200" : {
 				      "description" : "Successful operation",
@@ -330,7 +330,7 @@ public class TestOpenApiGenerationWire {
 		Assertions.assertEquals("""
 				{
 				  "tags" : [ "ShelfResource" ],
-				  "operationId" : "remove",
+				  "operationId" : "ShelfResource_remove",
 				  "parameters" : [ {
 				    "name" : "oid",
 				    "in" : "path",

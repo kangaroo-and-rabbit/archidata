@@ -63,6 +63,11 @@
   alors la valeur) ; sinon régénérez le client. OpenAPI : un enum dont la valeur est un entier est `type: integer`
   (avant : `string`) et son exemple est une de ses valeurs ; `char` et `Character` sont `type: string` de longueur 1
   (avant : `object`).
+- OpenAPI, `operationId` : toujours `<Ressource>_<méthode>` (`CatResource_get`), unique dans la spécification. Avant,
+  c'était le nom de la méthode seul, que plusieurs ressources partagent (`get`, `list`...). Chaque identifiant est donc
+  renommé une fois ; il ne change plus ensuite quand une autre ressource gagne une méthode du même nom. Les surcharges
+  d'un nom dans une ressource prennent `_2`, `_3`... dans l'ordre verbe HTTP, chemin, types des paramètres (et non plus
+  dans l'ordre, non garanti, de la JVM). Un client généré à partir de la spécification voit ses fonctions renommées.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

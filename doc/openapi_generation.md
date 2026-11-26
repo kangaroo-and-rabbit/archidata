@@ -166,6 +166,8 @@ The generator produces a standard OpenAPI 3.0.3 document with:
 - **`info`**: title and version from `configure()` parameters
 - **`paths`**: one entry per REST endpoint, grouped by path
   - HTTP methods mapped from JAX-RS annotations (`@GET`, `@POST`, `@PUT`, `@DELETE`)
+  - `operationId`: always `<Resource>_<method>`, unique in the specification (`_2`, `_3`... for the overloads of one
+    resource, ordered by HTTP verb, path and parameter types)
   - Parameters from `@PathParam`, `@QueryParam`, `@HeaderParam`
   - Request body for unnamed parameters (POST/PUT body)
   - Multipart support for file uploads
