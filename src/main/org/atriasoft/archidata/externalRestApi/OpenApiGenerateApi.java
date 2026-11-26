@@ -23,8 +23,6 @@ import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldPrope
 import org.atriasoft.archidata.externalRestApi.model.ParameterClassModelList;
 import org.atriasoft.archidata.externalRestApi.model.RestTypeRequest;
 import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -36,8 +34,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * {@code Map<String, Object>} tree that is serialized to JSON via Jackson.
  */
 public class OpenApiGenerateApi {
-	private static final Logger LOGGER = LoggerFactory.getLogger(OpenApiGenerateApi.class);
-
 	private OpenApiGenerateApi() {
 		// Utility class
 	}
@@ -113,10 +109,6 @@ public class OpenApiGenerateApi {
 					paths.put(path, pathItem);
 				}
 				final String httpMethod = toHttpMethod(endpoint.restTypeRequest);
-				if (httpMethod == null) {
-					LOGGER.warn("Skipping unsupported REST method: {} for {}", endpoint.restTypeRequest, path);
-					continue;
-				}
 				pathItem.put(httpMethod, buildOperation(endpoint, group.name));
 			}
 		}
@@ -358,24 +350,19 @@ public class OpenApiGenerateApi {
 	private static List<Map<String, Object>> buildPaginationRequestParameters() {
 		final List<Map<String, Object>> parameters = new ArrayList<>();
 		parameters.add(buildPaginationHeaderParameter("X-Pagination-Offset",
-				"Index of the first item of the page (default 0). Also accepted as a query parameter of the same name, which is how the Link header carries it.",
-				"int64"));
+				"Index of the first item of the page (default 0). Also accepted as a query parameter of the same name, which is how the Link header carries it."));
 		parameters.add(buildPaginationHeaderParameter("X-Pagination-Limit",
-				"Maximum number of items in the page (server default when absent). Also accepted as a query parameter of the same name.",
-				"int64"));
+				"Maximum number of items in the page (server default when absent). Also accepted as a query parameter of the same name."));
 		return parameters;
 	}
 
-	private static Map<String, Object> buildPaginationHeaderParameter(
-			final String name,
-			final String description,
-			final String format) {
+	private static Map<String, Object> buildPaginationHeaderParameter(final String name, final String description) {
 		final Map<String, Object> parameter = new LinkedHashMap<>();
 		parameter.put("name", name);
 		parameter.put("in", "header");
 		parameter.put("required", false);
 		parameter.put("description", description);
-		parameter.put("schema", Map.of("type", "integer", "format", format));
+		parameter.put("schema", Map.of("type", "integer", "format", "int64"));
 		return parameter;
 	}
 
@@ -558,7 +545,7 @@ public class OpenApiGenerateApi {
 			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
 				return buildPrimitiveSchema(objModel.getOriginClasses());
 			}
-			return buildGroupAwareObjectSchema(objModel, body.valid(), body.groups());
+			return buildGroupAwareObjectSchema(objModel, body.groups());
 		}
 		return buildSchemaRef(model);
 	}
@@ -570,7 +557,6 @@ public class OpenApiGenerateApi {
 	 */
 	private static Map<String, Object> buildGroupAwareObjectSchema(
 			final ClassObjectModel model,
-			final boolean valid,
 			final Class<?>[] groups) {
 		final Map<String, Object> schema = new LinkedHashMap<>();
 		schema.put("type", "object");
@@ -583,7 +569,7 @@ public class OpenApiGenerateApi {
 		final List<String> required = new ArrayList<>();
 
 		// Collect fields from this model and all parents
-		collectGroupAwareFields(model, valid, groups, properties, required);
+		collectGroupAwareFields(model, groups, properties, required);
 
 		if (!properties.isEmpty()) {
 			schema.put("properties", properties);
@@ -600,23 +586,22 @@ public class OpenApiGenerateApi {
 	 */
 	private static void collectGroupAwareFields(
 			final ClassObjectModel model,
-			final boolean valid,
 			final Class<?>[] groups,
 			final Map<String, Object> properties,
 			final List<String> required) {
 		// First collect parent fields
 		if (model.getExtendsClass() != null && model.getExtendsClass() instanceof ClassObjectModel) {
-			collectGroupAwareFields((ClassObjectModel) model.getExtendsClass(), valid, groups, properties, required);
+			collectGroupAwareFields((ClassObjectModel) model.getExtendsClass(), groups, properties, required);
 		}
 
 		for (final FieldProperty field : model.getFields()) {
-			if (!isFieldCompatibleWithGroup(field, valid, groups)) {
+			if (!isFieldCompatibleWithGroup(field, groups)) {
 				continue;
 			}
 			final Map<String, Object> prop = buildFieldSchema(field);
 			properties.put(field.name(), prop);
 
-			if (isFieldRequiredForGroup(field, valid, groups)) {
+			if (isFieldRequiredForGroup(field, groups)) {
 				required.add(field.name());
 			}
 		}
@@ -626,16 +611,12 @@ public class OpenApiGenerateApi {
 	 * Check if a field should be included for a specific validation group.
 	 * A field with @Null(groups={targetGroup}) is excluded.
 	 */
-	private static boolean isFieldCompatibleWithGroup(
-			final FieldProperty field,
-			final boolean valid,
-			final Class<?>[] groups) {
+	private static boolean isFieldCompatibleWithGroup(final FieldProperty field, final Class<?>[] groups) {
 		if (field.annotationNotNull() != null) {
 			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
 				return true;
 			}
-			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0)
-					&& valid) {
+			if (field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) {
 				return true;
 			}
 		}
@@ -643,20 +624,17 @@ public class OpenApiGenerateApi {
 			if (hasMatchingGroup(field.annotationNull().groups(), groups)) {
 				return false;
 			}
-			if ((field.annotationNull().groups() == null || field.annotationNull().groups().length == 0) && valid) {
+			if (field.annotationNull().groups() == null || field.annotationNull().groups().length == 0) {
 				return false;
 			}
 		}
-		return valid;
+		return true;
 	}
 
 	/**
 	 * Check if a field is required for a specific validation group.
 	 */
-	private static boolean isFieldRequiredForGroup(
-			final FieldProperty field,
-			final boolean valid,
-			final Class<?>[] groups) {
+	private static boolean isFieldRequiredForGroup(final FieldProperty field, final Class<?>[] groups) {
 		if (field.apiNotNull() != null && field.apiNotNull().value()) {
 			return true;
 		}
@@ -664,8 +642,7 @@ public class OpenApiGenerateApi {
 			if (hasMatchingGroup(field.annotationNotNull().groups(), groups)) {
 				return true;
 			}
-			if ((field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0)
-					&& valid) {
+			if (field.annotationNotNull().groups() == null || field.annotationNotNull().groups().length == 0) {
 				return true;
 			}
 		}
@@ -842,26 +819,16 @@ public class OpenApiGenerateApi {
 	// ========== HELPERS ==========
 
 	private static String toHttpMethod(final RestTypeRequest restType) {
-		switch (restType) {
-			case GET:
-				return "get";
-			case POST:
-				return "post";
-			case PUT:
-				return "put";
-			case PATCH:
-				return "patch";
-			case DELETE:
-				return "delete";
-			case ARCHIVE:
-				return "delete"; // ARCHIVE maps to DELETE in OpenAPI
-			case RESTORE:
-				return "patch"; // RESTORE maps to PATCH in OpenAPI
-			case CALL:
-				return "post"; // CALL maps to POST in OpenAPI
-			default:
-				return null;
-		}
+		return switch (restType) {
+			case GET -> "get";
+			case POST -> "post";
+			case PUT -> "put";
+			case PATCH -> "patch";
+			case DELETE -> "delete";
+			case ARCHIVE -> "delete"; // ARCHIVE maps to DELETE in OpenAPI
+			case RESTORE -> "patch"; // RESTORE maps to PATCH in OpenAPI
+			case CALL -> "post"; // CALL maps to POST in OpenAPI
+		};
 	}
 
 	private static String getSchemaName(final ClassModel model) {

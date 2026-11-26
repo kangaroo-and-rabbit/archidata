@@ -303,9 +303,8 @@ public class DataTools {
 			final String originalFileName,
 			final String sha512) throws IOException {
 		// determine mime type:
-		String mimeType = "";
 		final String extension = originalFileName.substring(originalFileName.lastIndexOf('.') + 1);
-		mimeType = switch (extension.toLowerCase()) {
+		final String mimeType = switch (extension.toLowerCase()) {
 			case "jpg", "jpeg" -> "image/jpeg";
 			case "png" -> "image/png";
 			case "webp" -> "image/webp";

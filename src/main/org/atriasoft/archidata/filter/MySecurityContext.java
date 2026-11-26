@@ -192,28 +192,13 @@ public class MySecurityContext implements SecurityContext {
 		// Check if the API overwrite the right needed for this API.
 		if (roleEdit.contains(":")) {
 			if (roleEdit.endsWith(":w")) {
-				try {
-					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
-				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
-					return false;
-				}
+				roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
 				needWrite = true;
 			} else if (roleEdit.endsWith(":r")) {
-				try {
-					roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
-				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
-					return false;
-				}
+				roleEdit = roleEdit.substring(0, roleEdit.length() - 2);
 				needRead = true;
 			} else if (roleEdit.endsWith(":rw")) {
-				try {
-					roleEdit = roleEdit.substring(0, roleEdit.length() - 3);
-				} catch (final IndexOutOfBoundsException ex) {
-					LOGGER.error("Fail to extract role of '{}': {}", role, ex.getMessage(), ex);
-					return false;
-				}
+				roleEdit = roleEdit.substring(0, roleEdit.length() - 3);
 				needRead = true;
 				needWrite = true;
 			} else {

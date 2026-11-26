@@ -51,7 +51,6 @@ public class DrawioGenerateApi {
 	/** Ideal gap between block edges: leaves room for orthogonal edge routing. */
 	private static final double IDEAL_GAP = 180.0;
 	private static final int CHAR_WIDTH = 7;
-	private static final int MAX_COLUMN_HEIGHT = 2000;
 	private static final int INITIAL_X = 50;
 	private static final int INITIAL_Y = 50;
 
@@ -190,8 +189,7 @@ public class DrawioGenerateApi {
 		}
 
 		// 8. Generate edges (with position-aware port routing)
-		generateEdges(cells, idCounter, sortedModels, restGroups, modelNodeIds, restNodeIds, api, positions,
-				dimensions);
+		generateEdges(cells, idCounter, sortedModels, restGroups, modelNodeIds, restNodeIds, positions, dimensions);
 
 		// 9. Compute total diagram size
 		int maxX = 0;
@@ -317,7 +315,6 @@ public class DrawioGenerateApi {
 			final List<ApiGroupModel> restGroups,
 			final Map<ClassModel, String> modelNodeIds,
 			final Map<ApiGroupModel, String> restNodeIds,
-			final AnalyzeApi api,
 			final Map<Object, int[]> positions,
 			final Map<Object, int[]> dimensions) {
 
@@ -661,7 +658,7 @@ public class DrawioGenerateApi {
 		// Layout each inheritance tree as a block
 		for (final InheritanceTree tree : forest) {
 			final Map<Object, int[]> treePos = new LinkedHashMap<>();
-			final int[] treeDim = layoutTree(tree, dimensions, treePos, 0, 0);
+			final int[] treeDim = layoutTree(tree, dimensions, treePos);
 			for (final Map.Entry<Object, int[]> entry : treePos.entrySet()) {
 				blockPositions.put(entry.getKey(), entry.getValue());
 				elementToBlock.put(entry.getKey(), tree.root);
@@ -953,15 +950,13 @@ public class DrawioGenerateApi {
 	private static int[] layoutTree(
 			final InheritanceTree tree,
 			final Map<Object, int[]> dimensions,
-			final Map<Object, int[]> treePos,
-			final int offsetX,
-			final int offsetY) {
+			final Map<Object, int[]> treePos) {
 		final int[] rootDim = dimensions.get(tree.root);
 		final int rootW = rootDim[0];
 		final int rootH = rootDim[1];
 
 		if (tree.children.isEmpty()) {
-			treePos.put(tree.root, new int[] { offsetX, offsetY });
+			treePos.put(tree.root, new int[] { 0, 0 });
 			return new int[] { rootW, rootH };
 		}
 
@@ -974,7 +969,7 @@ public class DrawioGenerateApi {
 
 		for (int i = 0; i < tree.children.size(); i++) {
 			final Map<Object, int[]> childPos = new LinkedHashMap<>();
-			final int[] childDim = layoutTree(tree.children.get(i), dimensions, childPos, 0, 0);
+			final int[] childDim = layoutTree(tree.children.get(i), dimensions, childPos);
 			childDims.add(childDim);
 			childPositions.add(childPos);
 			totalChildrenWidth += childDim[0];
@@ -987,12 +982,12 @@ public class DrawioGenerateApi {
 		final int totalHeight = rootH + verticalGap + maxHeight(childDims);
 
 		// Center root
-		final int rootX = offsetX + (totalWidth - rootW) / 2;
-		treePos.put(tree.root, new int[] { rootX, offsetY });
+		final int rootX = (totalWidth - rootW) / 2;
+		treePos.put(tree.root, new int[] { rootX, 0 });
 
 		// Place children below, centered under the total width
-		int childX = offsetX + (totalWidth - totalChildrenWidth) / 2;
-		final int childY = offsetY + rootH + verticalGap;
+		int childX = (totalWidth - totalChildrenWidth) / 2;
+		final int childY = rootH + verticalGap;
 		for (int i = 0; i < tree.children.size(); i++) {
 			final Map<Object, int[]> childPos = childPositions.get(i);
 			final int[] childDim = childDims.get(i);
@@ -1070,21 +1065,6 @@ public class DrawioGenerateApi {
 				break;
 			}
 		}
-	}
-
-	// ---------- Helpers ----------
-
-	private static String getElementName(final Object elem) {
-		if (elem instanceof ClassObjectModel) {
-			return getSimpleName((ClassModel) elem);
-		}
-		if (elem instanceof ClassEnumModel) {
-			return getSimpleName((ClassModel) elem);
-		}
-		if (elem instanceof ApiGroupModel) {
-			return ((ApiGroupModel) elem).name;
-		}
-		return elem.toString();
 	}
 
 	// ========== DIMENSIONS ==========
@@ -1315,26 +1295,7 @@ public class DrawioGenerateApi {
 	}
 
 	private static String toHttpMethodName(final RestTypeRequest restType) {
-		switch (restType) {
-			case GET:
-				return "GET";
-			case POST:
-				return "POST";
-			case PUT:
-				return "PUT";
-			case PATCH:
-				return "PATCH";
-			case DELETE:
-				return "DELETE";
-			case ARCHIVE:
-				return "ARCHIVE";
-			case RESTORE:
-				return "RESTORE";
-			case CALL:
-				return "CALL";
-			default:
-				return restType.name();
-		}
+		return restType.name();
 	}
 
 	private static String normalizePath(final String path) {

@@ -505,7 +505,7 @@ public class JWTWrapper {
 			final Date expiration = Date.from(nowInstant.plus(Duration.ofMinutes(timeoutInMinutes)));
 
 			LOGGER.trace("expiration= {}", expiration);
-			String serializeUserId = "";
+			final String serializeUserId;
 			if (userID instanceof final Long userIdLong) {
 				serializeUserId = Long.toString(userIdLong);
 			} else if (userID instanceof final ObjectId userIdObjectId) {

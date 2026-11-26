@@ -88,9 +88,6 @@ public final class ApiModel {
 					this.returnTypes.add(previousModel.add(clazz));
 				}
 			}
-			if (this.returnTypes.size() == 0) {
-				this.produces.clear();
-			}
 			return;
 		}
 
@@ -126,9 +123,6 @@ public final class ApiModel {
 		LOGGER.trace("List of returns elements:");
 		for (final ClassModel elem : this.returnTypes) {
 			LOGGER.trace("    - {}", elem);
-		}
-		if (this.returnTypes.size() == 0) {
-			this.produces.clear();
 		}
 	}
 
@@ -208,11 +202,7 @@ public final class ApiModel {
 					final ClassModel modelGenerated = ClassModel.getModel(elem, previousModel);
 					parameterModel.add(modelGenerated);
 				}
-			} else if (parameterType == List.class) {
-				final Type parameterrizedType = parameter.getParameterizedType();
-				final ClassModel modelGenerated = ClassModel.getModel(parameterrizedType, previousModel);
-				parameterModel.add(modelGenerated);
-			} else if (parameterType == Map.class) {
+			} else if (parameterType == List.class || parameterType == Map.class) {
 				final Type parameterrizedType = parameter.getParameterizedType();
 				final ClassModel modelGenerated = ClassModel.getModel(parameterrizedType, previousModel);
 				parameterModel.add(modelGenerated);

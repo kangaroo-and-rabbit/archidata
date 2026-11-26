@@ -95,9 +95,8 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 		if (previousDataValue instanceof final Collection<?> tmpCollection) {
 			previousDataCollection = tmpCollection;
 		}
-		final Object insertedDataValue = insertedData;
 		Collection<?> insertedDataCollection = new ArrayList<>();
-		if (insertedDataValue instanceof final Collection<?> tmpCollection) {
+		if (insertedData instanceof final Collection<?> tmpCollection) {
 			insertedDataCollection = tmpCollection;
 		}
 		final AddOnFieldContext ctx = desc.getAddonContext();
@@ -161,11 +160,10 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
-		final Object insertedData = data;
-		if (insertedData == null) {
+		if (data == null) {
 			return;
 		}
-		if (insertedData instanceof final Collection<?> insertedDataCollection) {
+		if (data instanceof final Collection<?> insertedDataCollection) {
 			final AddOnFieldContext ctx = desc.getAddonContext();
 			if (ctx.isAddLinkWhenCreate()) {
 				final Class<?> targetEntity = ctx.getTargetEntity();
@@ -231,9 +229,6 @@ public class AddOnOneToManyDoc implements DataAccessAddOn {
 			}
 			if (ctx.isEntityReference()) {
 				final List<Object> idList = (List<Object>) dataCollection;
-				if (idList.isEmpty()) {
-					return;
-				}
 				final Class<?> targetEntity = ctx.getTargetEntity();
 				final String idFieldColumn = ctx.getTargetPkColumn();
 				if (batchCollector != null) {

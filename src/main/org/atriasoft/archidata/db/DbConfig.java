@@ -309,18 +309,16 @@ public final class DbConfig implements Cloneable {
 		if (other == null || getClass() != other.getClass()) {
 			return false;
 		}
-		if (other instanceof final DbConfig dbConfig) {
-			return Objects.equals(this.port, dbConfig.port) //
-					&& this.keepConnected == dbConfig.keepConnected //
-					&& Objects.equals(this.hostname, dbConfig.hostname) //
-					&& Objects.equals(this.login, dbConfig.login) //
-					&& Objects.equals(this.password, dbConfig.password) //
-					&& Objects.equals(this.dbName, dbConfig.dbName) //
-					&& this.tls == dbConfig.tls //
-					&& Objects.equals(this.authSource, dbConfig.authSource) //
-					&& Objects.equals(this.classes, dbConfig.classes);
-		}
-		return false;
+		final DbConfig dbConfig = (DbConfig) other;
+		return Objects.equals(this.port, dbConfig.port) //
+				&& this.keepConnected == dbConfig.keepConnected //
+				&& Objects.equals(this.hostname, dbConfig.hostname) //
+				&& Objects.equals(this.login, dbConfig.login) //
+				&& Objects.equals(this.password, dbConfig.password) //
+				&& Objects.equals(this.dbName, dbConfig.dbName) //
+				&& this.tls == dbConfig.tls //
+				&& Objects.equals(this.authSource, dbConfig.authSource) //
+				&& Objects.equals(this.classes, dbConfig.classes);
 	}
 
 	/** {@inheritDoc} */

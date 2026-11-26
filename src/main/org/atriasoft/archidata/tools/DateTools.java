@@ -102,7 +102,6 @@ public class DateTools {
 	 */
 	public static Date parseDate(final String dateString) throws IOException {
 		final OffsetDateTime dateTime = parseOffsetDateTime(dateString, true);
-		dateTime.atZoneSameInstant(ZoneId.systemDefault());
 		return Date.from(dateTime.toInstant());
 	}
 

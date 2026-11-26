@@ -1342,7 +1342,7 @@ public final class DBAccessMongo implements Closeable {
 						}
 						Object currentInsertValue = prop.getValue(data);
 
-						if (currentInsertValue == null && field != null && !field.getClass().isPrimitive()) {
+						if (currentInsertValue == null && field != null) {
 							final String defVal = desc.getInitValue();
 							if (defVal == null) {
 								break;
@@ -2059,9 +2059,6 @@ public final class DBAccessMongo implements Closeable {
 				setFields.append(updateTsDesc.getDbFieldName(), Date.from(Instant.now()));
 			}
 			final Document actions = new Document("$set", setFields);
-			if (filters == null) {
-				throw new DataAccessException("Too dangerous to delete element with no filter values !!!");
-			}
 			statistic.countUpdateMany++;
 			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
 					: collection.updateMany(filters, actions);
@@ -2070,14 +2067,9 @@ public final class DBAccessMongo implements Closeable {
 
 		actionOnDelete(clazz, option);
 
-		DeleteResult retFind;
-		if (filters != null) {
-			statistic.countDeleteMany++;
-			retFind = this.session != null ? collection.deleteMany(this.session, filters)
-					: collection.deleteMany(filters);
-		} else {
-			throw new DataAccessException("Too dangerous to delete element with no filter values !!!");
-		}
+		statistic.countDeleteMany++;
+		final DeleteResult retFind = this.session != null ? collection.deleteMany(this.session, filters)
+				: collection.deleteMany(filters);
 		return retFind.getDeletedCount();
 	}
 

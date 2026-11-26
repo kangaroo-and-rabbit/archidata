@@ -54,8 +54,7 @@ public class ManyToManyTools {
 
 		// Add to remote array (bidirectional)
 		final ManyToManyDoc manyDoc = fieldDesc.getProperty().getAnnotation(ManyToManyDoc.class);
-		if (manyDoc != null && manyDoc.targetEntity() != null && manyDoc.remoteField() != null
-				&& !manyDoc.remoteField().isEmpty()) {
+		if (manyDoc != null && !manyDoc.remoteField().isEmpty()) {
 			final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
 			final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
 			if (remoteDesc == null) {
@@ -99,8 +98,7 @@ public class ManyToManyTools {
 
 		// Remove from remote array (bidirectional)
 		final ManyToManyDoc manyDoc = fieldDesc.getProperty().getAnnotation(ManyToManyDoc.class);
-		if (manyDoc != null && manyDoc.targetEntity() != null && manyDoc.remoteField() != null
-				&& !manyDoc.remoteField().isEmpty()) {
+		if (manyDoc != null && !manyDoc.remoteField().isEmpty()) {
 			final DbClassModel targetModel = DbClassModel.of(manyDoc.targetEntity());
 			final DbPropertyDescriptor remoteDesc = targetModel.findByPropertyName(manyDoc.remoteField());
 			if (remoteDesc == null) {

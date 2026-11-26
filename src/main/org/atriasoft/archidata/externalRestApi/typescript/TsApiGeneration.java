@@ -295,11 +295,9 @@ public class TsApiGeneration {
 			if (returnComplexModel != null) {
 				data.append("\n\n");
 				data.append(returnComplexModel.replaceAll("(?m)^", "\t"));
+				// TODO maybe need to update this with the type of zod requested (like update, create ...)
 				for (final ClassModel elem : interfaceElement.returnTypes) {
-					// TODO maybe need to update this with the type of zod requested (like update, create ...)
-					for (final ClassModel elem2 : interfaceElement.returnTypes) {
-						imports.addCheck(elem2);
-					}
+					imports.addCheck(elem);
 				}
 			}
 			if (interfaceElement.description != null) {
@@ -432,8 +430,6 @@ public class TsApiGeneration {
 				data.append("\n\t\tpage?: PaginationRequest,");
 				toolImports.add("PaginationRequest");
 			}
-			final boolean isPaginated = interfaceElement.returnTypes.stream()
-					.anyMatch(ClassPaginationModel.class::isInstance);
 			data.append("\n\t}): Promise<");
 			if (returnComplexModel != null) {
 				data.append(returnModelNameIfComplex);
@@ -449,7 +445,7 @@ public class TsApiGeneration {
 				if ("void".equals(returnType)) {
 					data.append("\n\t\treturn RESTRequestVoid({");
 					toolImports.add("RESTRequestVoid");
-				} else if (isPaginated) {
+				} else if (isPaginatedReturn) {
 					for (final ClassModel elem : interfaceElement.returnTypes) {
 						imports.addCheck(elem);
 					}
@@ -530,19 +526,16 @@ public class TsApiGeneration {
 				data.append("\n\t\t\theaders,");
 			}
 			data.append("\n\t\t}");
-			if ("void".equals(returnModelNameIfComplex)) {
-				// nothing to do...
-			} else if (returnComplexModel != null) {
+			if (returnComplexModel != null) {
 				data.append(", is");
 				data.append(returnModelNameIfComplex);
-			} else if (isPaginated) {
+			} else if (isPaginatedReturn) {
 				// The body is the plain item list: the checker is the item's own, applied
 				// to each element by the helper.
 				final ClassPaginationModel paginationModel = (ClassPaginationModel) interfaceElement.returnTypes
 						.stream().filter(ClassPaginationModel.class::isInstance).findFirst().get();
 				final TsClassElement itemType = tsGroup.find(paginationModel.valueModel);
-				if (itemType != null && itemType.nativeType != DefinedPosition.NATIVE
-						&& itemType.getCheckType() != null) {
+				if (itemType != null && itemType.nativeType != DefinedPosition.NATIVE) {
 					data.append(", ");
 					data.append(itemType.getCheckType());
 					imports.add(true, new Class<?>[] { GroupRead.class }, paginationModel.valueModel);
@@ -561,14 +554,12 @@ public class TsApiGeneration {
 				}
 			} else {
 				final TsClassElement retType = tsGroup.find(interfaceElement.returnTypes.get(0));
-				if (retType.getCheckType() != null) {
-					if ("isvoid".equals(retType.getCheckType())) {
-						// nothing to do...
-					} else if (retType.nativeType != DefinedPosition.NATIVE) {
-						data.append(", ");
-						data.append(retType.getCheckType());
-						imports.add(true, new Class<?>[] { GroupRead.class }, interfaceElement.returnTypes.get(0));
-					}
+				if ("isvoid".equals(retType.getCheckType())) {
+					// nothing to do...
+				} else if (retType.nativeType != DefinedPosition.NATIVE) {
+					data.append(", ");
+					data.append(retType.getCheckType());
+					imports.add(true, new Class<?>[] { GroupRead.class }, interfaceElement.returnTypes.get(0));
 				}
 			}
 			data.append(");");

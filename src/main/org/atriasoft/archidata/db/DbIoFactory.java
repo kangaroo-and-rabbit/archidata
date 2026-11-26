@@ -17,7 +17,7 @@ import org.atriasoft.archidata.exception.DataAccessException;
 public class DbIoFactory {
 	private static List<DbIo> dbIoStored = new ArrayList<>();
 
-	private DbIoFactory() throws IOException {}
+	private DbIoFactory() {}
 
 	/**
 	 * Creates a new {@link DbIo} instance using the default global configuration.
@@ -41,9 +41,6 @@ public class DbIoFactory {
 	 */
 	public static DbIo create(final DbConfig config) throws IOException {
 		for (final DbIo dbIo : dbIoStored) {
-			if (dbIo == null) {
-				continue;
-			}
 			if (dbIo.compatible(config)) {
 				dbIo.open();
 				return dbIo;

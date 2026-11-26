@@ -93,8 +93,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			return;
 		}
 		final Object previousDataValue = prop.getValue(previousData);
-		final Object insertedDataValue = insertedData;
-		if (Objects.equals(previousDataValue, insertedDataValue)) {
+		if (Objects.equals(previousDataValue, insertedData)) {
 			return;
 		}
 		final Class<?> targetEntity = ctx.getTargetEntity();
@@ -105,9 +104,9 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 						primaryKeyValue);
 			});
 		}
-		if (insertedDataValue != null) {
+		if (insertedData != null) {
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, targetEntity, insertedDataValue, remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, targetEntity, insertedData, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 	}
@@ -126,8 +125,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Object data,
 			final List<LazyGetter> actions,
 			final QueryOptions options) throws Exception {
-		final Object insertedData = data;
-		if (insertedData == null) {
+		if (data == null) {
 			return;
 		}
 		final AddOnFieldContext ctx = desc.getAddonContext();
@@ -135,7 +133,7 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 			final Class<?> targetEntity = ctx.getTargetEntity();
 			final String remoteFieldColumn = ctx.getRemoteFieldColumn();
 			actions.add((final List<LazyGetter> actionsAsync) -> {
-				MongoLinkManager.addToList(ioDb, targetEntity, insertedData, remoteFieldColumn, primaryKeyValue);
+				MongoLinkManager.addToList(ioDb, targetEntity, data, remoteFieldColumn, primaryKeyValue);
 			});
 		}
 	}
