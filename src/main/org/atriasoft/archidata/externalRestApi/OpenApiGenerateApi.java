@@ -224,31 +224,26 @@ public class OpenApiGenerateApi {
 		final Map<String, Object> requestBody = new LinkedHashMap<>();
 		requestBody.put("required", true);
 
+		final List<String> mediaTypes = endpoint.consumes == null || endpoint.consumes.isEmpty()
+				? List.of("application/json")
+				: endpoint.consumes;
 		final Map<String, Object> content = new LinkedHashMap<>();
-		if (endpoint.consumes != null) {
-			for (final String mediaType : endpoint.consumes) {
-				final Map<String, Object> mediaContent = new LinkedHashMap<>();
-				if (!endpoint.unnamedElement.isEmpty()) {
-					final ParameterClassModelList body = endpoint.unnamedElement.get(0);
-					if (!body.models().isEmpty()) {
-						mediaContent.put("schema", buildSchemaRefWithGroups(body));
-					}
-				}
-				content.put(mediaType, mediaContent);
-			}
-		}
-		if (content.isEmpty()) {
-			final Map<String, Object> mediaContent = new LinkedHashMap<>();
-			if (!endpoint.unnamedElement.isEmpty()) {
-				final ParameterClassModelList body = endpoint.unnamedElement.get(0);
-				if (!body.models().isEmpty()) {
-					mediaContent.put("schema", buildSchemaRefWithGroups(body));
-				}
-			}
-			content.put("application/json", mediaContent);
+		for (final String mediaType : mediaTypes) {
+			content.put(mediaType, buildBodyMediaContent(endpoint));
 		}
 		requestBody.put("content", content);
 		return requestBody;
+	}
+
+	private static Map<String, Object> buildBodyMediaContent(final ApiModel endpoint) {
+		final Map<String, Object> mediaContent = new LinkedHashMap<>();
+		if (!endpoint.unnamedElement.isEmpty()) {
+			final ParameterClassModelList body = endpoint.unnamedElement.get(0);
+			if (!body.models().isEmpty()) {
+				mediaContent.put("schema", buildSchemaRefWithGroups(body));
+			}
+		}
+		return mediaContent;
 	}
 
 	private static Map<String, Object> buildMultiPartRequestBody(final ApiModel endpoint) {
