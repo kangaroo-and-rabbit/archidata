@@ -660,18 +660,9 @@ public final class DBAccessMongo implements Closeable {
 		if (override.size() != 0) {
 			injectedOptions.add(override.get(0));
 		}
-		final List<OptionSpecifyType> typeOptions = options.get(OptionSpecifyType.class);
-		for (final OptionSpecifyType elem : typeOptions) {
-			injectedOptions.add(elem);
-		}
-		final List<ReadAllColumn> readAllColumnOptions = options.get(ReadAllColumn.class);
-		for (final ReadAllColumn elem : readAllColumnOptions) {
-			injectedOptions.add(elem);
-		}
-		final List<AccessDeletedItems> accessDeletedItemsOptions = options.get(AccessDeletedItems.class);
-		for (final AccessDeletedItems elem : accessDeletedItemsOptions) {
-			injectedOptions.add(elem);
-		}
+		forwardOptions(options, injectedOptions, OptionSpecifyType.class);
+		forwardOptions(options, injectedOptions, ReadAllColumn.class);
+		forwardOptions(options, injectedOptions, AccessDeletedItems.class);
 		return (T) getById(data.getClass(), insertedId, injectedOptions.getAllArray());
 	}
 
@@ -1658,6 +1649,28 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
+	 * Adds to a read the options of one type that the caller of a write passed, all of them and in order.
+	 *
+	 * <p>The callers differ on purpose in what they forward of the other types: {@code insert} forwards the
+	 * first {@link OverrideTableName} only, and forwards {@link ReadAllColumn} and {@link AccessDeletedItems}
+	 * as the caller gave them; {@code readPreviousDataForUpdate} forwards every {@link OverrideTableName},
+	 * and always adds its own {@link ReadAllColumn} and, when the caller has one, a new
+	 * {@link AccessDeletedItems}.
+	 *
+	 * @param from the options of the write
+	 * @param to the options of the read, completed
+	 * @param type the type of option to forward
+	 */
+	private static <T extends QueryOption> void forwardOptions(
+			final QueryOptions from,
+			final QueryOptions to,
+			final Class<T> type) {
+		for (final T elem : from.get(type)) {
+			to.add(elem);
+		}
+	}
+
+	/**
 	 * Reads the stored state of the document an update targets, for the relation side effects of its add-on
 	 * fields.
 	 *
@@ -1680,12 +1693,8 @@ public final class DBAccessMongo implements Closeable {
 		final QueryOptions readOptions = new QueryOptions();
 		readOptions.add(condition);
 		readOptions.add(new Condition(getTableIdCondition(clazz, primaryKey, options)));
-		for (final OverrideTableName elem : options.get(OverrideTableName.class)) {
-			readOptions.add(elem);
-		}
-		for (final OptionSpecifyType elem : options.get(OptionSpecifyType.class)) {
-			readOptions.add(elem);
-		}
+		forwardOptions(options, readOptions, OverrideTableName.class);
+		forwardOptions(options, readOptions, OptionSpecifyType.class);
 		if (options.exist(AccessDeletedItems.class)) {
 			readOptions.add(new AccessDeletedItems());
 		}
