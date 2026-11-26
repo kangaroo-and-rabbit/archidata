@@ -58,6 +58,15 @@ class TestDbConfig {
 		Assertions.assertInstanceOf(IllegalArgumentException.class, ex.getCause());
 	}
 
+	@Test
+	void testNullInterfacesClassesGiveAnEmptyListToTheConfigurationConstructor() throws DataAccessException {
+		ConfigBaseVariable.setDbPassword("pass");
+		ConfigBaseVariable.setDbInterfacesClasses(null);
+		Assertions.assertEquals(List.of(), new DbConfig().getClasses());
+		ConfigBaseVariable.setBbInterfacesClasses(null);
+		Assertions.assertEquals(List.of(), new DbConfig().getClasses());
+	}
+
 	@AfterEach
 	void restoreConfiguration() {
 		ConfigBaseVariable.clearAllValue();

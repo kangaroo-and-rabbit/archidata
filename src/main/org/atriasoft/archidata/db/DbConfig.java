@@ -41,7 +41,8 @@ public final class DbConfig implements Cloneable {
 	private static final AtomicBoolean ROOT_WARNED = new AtomicBoolean(false);
 
 	/**
-	 * Constructs a DbConfig using values from {@link ConfigBaseVariable}.
+	 * Constructs a DbConfig using values from {@link ConfigBaseVariable}. A {@code null} array of classes there
+	 * means no class: {@link #getClasses()} is then an empty list.
 	 *
 	 * @throws DataAccessException if the configuration cannot be loaded, including a {@code DB_PORT} that is
 	 *         not an integer between 1 and 65535 (the {@code IllegalArgumentException} of
@@ -50,7 +51,12 @@ public final class DbConfig implements Cloneable {
 	public DbConfig() throws DataAccessException {
 		this(ConfigBaseVariable.getDBHost(), configuredPort(), ConfigBaseVariable.getDBUser(),
 				ConfigBaseVariable.getDBPassword(), ConfigBaseVariable.getDBName(),
-				ConfigBaseVariable.getDBKeepConnected(), List.of(ConfigBaseVariable.getDbInterfacesClasses()));
+				ConfigBaseVariable.getDBKeepConnected(), configuredClasses());
+	}
+
+	private static List<Class<?>> configuredClasses() {
+		final Class<?>[] configured = ConfigBaseVariable.getDbInterfacesClasses();
+		return configured == null ? List.of() : List.of(configured);
 	}
 
 	/**

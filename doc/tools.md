@@ -61,7 +61,7 @@ as text.
 | `QUERY_STATISTICS_PERIOD` | `setQueryStatisticsPeriod` | `getQueryStatisticsPeriod()` | `*/10 * * * *` | cron expression of the report flush |
 | `CORS_ALLOWED_ORIGINS` | `setCorsAllowedOrigins` | `getCorsAllowedOrigins()` (`List<String>`) | none (`null`) | origins allowed by `CORSFilter`, comma separated; unset: any origin, without credentials (see [security](security.md#cors)) |
 | `API_DOC_ENABLED` | `setApiDocEnabled` | `getApiDocEnabled()` (`boolean`) | `false` | serve the OpenAPI specification and Swagger UI (`openApiResource`, `SwaggerUiExternal`); otherwise they answer 404 |
-| (none) | `setDbInterfacesClasses(Class<?>[])` | `getDbInterfacesClasses()` | empty array | a list carried to `DbConfig` and compared in its `equals`; it registers no model (`DbConfig.getClasses()` is deprecated) |
+| (none) | `setDbInterfacesClasses(Class<?>[])` | `getDbInterfacesClasses()` | empty array | a list carried to `DbConfig` and compared in its `equals` (`null` means no class: `new DbConfig()` then has an empty list); it registers no model (`DbConfig.getClasses()` is deprecated) |
 
 Empty strings are treated as "unset" only for the thumbnail and query-statistics
 values and the encryption key; for the others an empty variable is a value.
