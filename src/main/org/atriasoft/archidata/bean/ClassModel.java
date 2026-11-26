@@ -1,6 +1,7 @@
 package org.atriasoft.archidata.bean;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -301,7 +302,13 @@ public final class ClassModel {
 			final Object[] args = new Object[bestConstructor.parameterCount()];
 			for (int i = 0; i < args.length; i++) {
 				final String parameterName = bestConstructor.parameterName(i);
-				args[i] = values.get(parameterName);
+				final Object given = values.get(parameterName);
+				// a primitive parameter can not take null: a value absent from the map is its default value
+				final Class<?> parameterType = bestConstructor.constructor().getParameterTypes()[i];
+				final Object value = given == null && parameterType.isPrimitive()
+						? Array.get(Array.newInstance(parameterType, 1), 0)
+						: given;
+				args[i] = value;
 				remaining.remove(parameterName);
 			}
 			instance = bestConstructor.newInstance(args);

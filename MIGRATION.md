@@ -70,6 +70,9 @@
 - `EncryptionKeyStore.reset()` lève une `IllegalStateException` une fois la configuration verrouillée (`ConfigBaseVariable.lock()`).
   Avant, `reset()` puis `register(...)` remplaçaient une clé enregistrée à l'exécution, ce que `register` seul refuse. Un
   test qui appelle `reset()` configuration verrouillée doit déverrouiller avant (`allowReconfiguration(true)`, `unlock()`).
+- Lire un objet embarqué (record ou classe à constructeur) dont un paramètre est de type primitif (`int`...) absent du
+  document (jamais écrit, ou `@DataNotRead` sans `ReadAllColumn`) donne la valeur par défaut du primitif (`0`, `false`...).
+  Avant, la lecture échouait (`Failed to instantiate`).
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
