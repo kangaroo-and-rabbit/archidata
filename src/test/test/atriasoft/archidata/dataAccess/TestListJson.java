@@ -36,10 +36,6 @@ public class TestListJson {
 		ConfigureDb.clear();
 	}
 
-	@Order(1)
-	@Test
-	public void testTableInsertAndRetrieve() throws Exception {}
-
 	@Order(2)
 	@Test
 	public void testIO() throws Exception {

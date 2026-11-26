@@ -33,10 +33,6 @@ public class TestJson {
 		ConfigureDb.clear();
 	}
 
-	@Order(1)
-	@Test
-	public void testTableFactory() throws Exception {}
-
 	@Order(2)
 	@Test
 	public void testIO() throws Exception {

@@ -35,10 +35,6 @@ public class TestListElements {
 		ConfigureDb.clear();
 	}
 
-	@Order(1)
-	@Test
-	public void testTableInsertAndRetrieve() throws Exception {}
-
 	@Order(2)
 	@Test
 	public void testListInteger() throws Exception {
