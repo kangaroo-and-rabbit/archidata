@@ -13,6 +13,9 @@
   source n'a plus la cible dans sa liste, la cible a encore la source dans la sienne). Avant, elle retirait la clé de la
   cible de sa propre liste (sans effet) mais comptait le lien comme corrigé : `getInconsistentLinksFixed()` ne change pas
   de sens, mais le lien est vraiment réparé, et le détail nomme la source retirée.
+- `BackupEngine.restore(String sequence)` lève une `IOException` quand la base a déjà des collections (rien n'est
+  restauré). Avant, elle revenait sans erreur alors que `restoreFile` avait refusé : l'appelant croyait la base restaurée.
+  `restoreFile` garde son retour `false`.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

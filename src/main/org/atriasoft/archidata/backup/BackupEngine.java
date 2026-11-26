@@ -1233,7 +1233,10 @@ public class BackupEngine {
 	private void executeRestore(final String sequence) throws IOException, DataAccessException {
 		final String fileName = archiveFileName(sequence);
 		final Path restoreFileName = this.pathStore.resolve(fileName);
-		restoreFile(restoreFileName, null);
+		if (!restoreFile(restoreFileName, null)) {
+			throw new IOException("Nothing restored from '" + restoreFileName
+					+ "': the database already has collections, restore needs an empty database");
+		}
 	}
 
 	/**
@@ -1408,9 +1411,10 @@ public class BackupEngine {
 	/**
 	 * Restore all collections and media data from the archive identified by the given sequence.
 	 * The archive filename is resolved as {@code baseName_sequence.tar.gz} in the store directory.
-	 * The target database must be empty.
+	 * The target database must be empty: otherwise nothing is restored and an {@link IOException} is thrown
+	 * (unlike {@link #restoreFile(Path, String)}, which returns {@code false}).
 	 * @param sequence the sequence identifier of the archive to restore
-	 * @throws IOException if the archive cannot be read or a collection is not empty
+	 * @throws IOException if the archive cannot be read or the database already has collections
 	 * @throws DataAccessException if the database connection fails
 	 */
 	public void restore(final String sequence) throws IOException, DataAccessException {

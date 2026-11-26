@@ -437,6 +437,31 @@ public class TestBackupAndRestoreRaw {
 	}
 
 	@Test
+	public void testRestoreBySequenceThrowsWhenDbNotEmpty() throws Exception {
+		insertData();
+		final Path backupDir = Files.createTempDirectory("backup_restore_seq_notempty");
+		try {
+			final BackupEngine engine = new BackupEngine(backupDir, "seqnotempty", EngineBackupType.JSON_EXTENDED);
+			engine.addClass(DataStoreWithUpdate.class);
+			engine.setEnableStoreOrRestoreData(false);
+			engine.store("2025-07-02");
+
+			// The database still has its collections: restoreFile refuses (false), restore must not look like a success.
+			Assertions.assertThrows(IOException.class, () -> engine.restore("2025-07-02"));
+		} finally {
+			try (var stream = Files.walk(backupDir)) {
+				stream.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+					try {
+						Files.deleteIfExists(p);
+					} catch (IOException e) {
+						// ignore
+					}
+				});
+			}
+		}
+	}
+
+	@Test
 	public void testRestoreFileSingleCollection() throws Exception {
 		// Clean both collections
 		DataAccess.drop(DataStoreWithoutUpdate.class);

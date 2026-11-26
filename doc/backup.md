@@ -541,8 +541,9 @@ Pitfalls
   "already exists" check of `restoreFile` lists the collections of the database
   of the connection, whatever `baseName` is. Pass the real database name
   (`ConfigBaseVariable.getDBName()`) as prefix, by convention.
-- Restoring on a non-empty database does nothing and returns `false`; callers
-  that ignore the return value believe the restore happened.
+- `restoreFile` on a non-empty database does nothing and returns `false`; callers
+  that ignore the return value believe the restore happened. `restore(String
+  sequence)` throws an `IOException` in that case instead.
 - `restoreDeltaFile` performs no consistency check: applying a delta on a
   database that is not the restored base full silently replaces newer documents
   with the archived ones.
