@@ -64,6 +64,10 @@ import com.mongodb.client.model.changestream.OperationType;
  */
 public class ChangeStreamWorker implements Runnable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeStreamWorker.class);
+	/** Server error InvalidResumeToken: the resume token is not one the server accepts. */
+	private static final int INVALID_RESUME_TOKEN = 260;
+	/** Server error ChangeStreamHistoryLost: the resume position is no longer in the oplog. */
+	private static final int CHANGE_STREAM_HISTORY_LOST = 286;
 
 	// Threads: the worker thread is the one the manager's executor runs run() on, one per worker; the manager's
 	// notifyChange() calls eventDispatched() on it. The threads that call the manager (and the listener-facing
@@ -91,7 +95,8 @@ public class ChangeStreamWorker implements Runnable {
 	// the worker was started from, then the token of each event the manager DISPATCHED, or the post-batch resume token
 	// of the stream when a poll returns no change. Written by setResumeToken() (before the submission, as above), by
 	// eventDispatched(), which notifyChange() calls on the worker thread with the manager's read lock held once the
-	// listeners returned, and by streamIdle() on the worker thread without lock (no event is pending then). Read by
+	// listeners returned, and by streamIdle() on the worker thread without lock (no event is pending then); cleared
+	// by forgetPosition() on the worker thread without lock when the server refuses the position (260, 286). Read by
 	// getResumeToken(), which the manager calls with its write lock held when it stops the worker: the two sides of
 	// the lock exclude each other, so the manager reads the position before an event or after an event dispatched in
 	// full, never the token of an event read and not dispatched. Null for a worker started without a token until its
@@ -148,6 +153,28 @@ public class ChangeStreamWorker implements Runnable {
 		if (token != null) {
 			this.dispatchedToken = token;
 		}
+	}
+
+	/**
+	 * Tells whether the server refused the position the stream was opened from, for good: an invalid resume token
+	 * (260, InvalidResumeToken), or a position no longer in the oplog (286, ChangeStreamHistoryLost: the collection was
+	 * unwatched, or its worker unable to reconnect, for longer than the oplog window). The code is tested, not the
+	 * {@code NonResumableChangeStreamError} label the server also puts on 286: the label means "the driver must not
+	 * resume", a wider set the server may extend with errors that do not come from the position, and forgetting the
+	 * position for those would lose events for nothing.
+	 */
+	private static boolean isPositionRefused(final MongoCommandException e) {
+		return e.getErrorCode() == INVALID_RESUME_TOKEN || e.getErrorCode() == CHANGE_STREAM_HISTORY_LOST;
+	}
+
+	/**
+	 * Forgets the position of the worker, the one it re-opens its stream from and the one the manager saves, on the
+	 * worker thread, without lock: a stop that reads the refused position before it is forgotten saves it, and the
+	 * next worker meets the same refusal and forgets it in turn.
+	 */
+	private void forgetPosition() {
+		this.resumeToken = null;
+		this.dispatchedToken = null;
 	}
 
 	/**
@@ -211,12 +238,14 @@ public class ChangeStreamWorker implements Runnable {
 					break;
 				}
 			} catch (final MongoCommandException e) {
-				// Handle InvalidResumeToken error (code 260) - reset token and restart from beginning
-				if (e.getErrorCode() == 260) {
+				// The position itself is refused, for good: retrying it would fail forever (every 5 s below)
+				if (isPositionRefused(e)) {
+					// Forgotten before the log: a thread that reads the log sees the position gone
+					forgetPosition();
 					LOGGER.warn(
-							"InvalidResumeToken error for collection: {}. Resetting resume token and restarting from beginning.",
-							this.collectionName);
-					this.resumeToken = null;
+							"Change stream of collection {}: the server refuses its resume position ({} {}), the"
+									+ " events written since that position are lost; restarting from now",
+							this.collectionName, e.getErrorCode(), e.getErrorCodeName());
 					this.status = WorkerStatus.RECONNECTING;
 					// Short delay before reconnecting
 					try {

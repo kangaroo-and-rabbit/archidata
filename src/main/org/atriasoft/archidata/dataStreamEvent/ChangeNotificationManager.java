@@ -121,7 +121,9 @@ import com.mongodb.client.model.changestream.FullDocument;
  * dispatched once, by the new worker. Except for a worker started without a saved token, until it dispatches an
  * event or sees its stream idle (a {@code getMore} with no change, at most the server's await time after the stream
  * opened, 1 s by default): it has no position, nothing is saved, and the next worker starts when its own stream
- * opens, so such an event and the writes made before that are not notified.
+ * opens, so such an event and the writes made before that are not notified. A position the server no longer has
+ * (unwatched for longer than the oplog window, error 286) is forgotten: the new worker logs a WARN saying the events
+ * written since are lost for that collection, and starts from the time its stream re-opens.
  * </p>
  *
  * @see ChangeEvent
@@ -152,7 +154,10 @@ public class ChangeNotificationManager {
 	// safe), and with the read lock by notifyChange(), which compares the worker of the event with the registered one.
 	private final Map<String, ChangeStreamWorker> workers = new ConcurrentHashMap<>();
 	// Resume token of the collections whose worker was stopped: a new worker of the collection resumes from it.
-	// Guarded by `lock` (write side): written by stopWorkerForCollection() and stop(), read by startWorkerForCollection().
+	// Guarded by `lock` (write side): written by stopWorkerForCollection() and stop(), removed by
+	// startWorkerForCollection(), which hands it to the new worker: from then on the worker owns the position, and
+	// its stop saves it again, or nothing when the worker forgot it (a position the server refused, error 260 or
+	// 286), so a refused token never comes back to a later worker.
 	// The token saved is the worker's position (the last event notifyChange() dispatched, recorded under the read
 	// lock, or the stream's position when it was last idle), not the last event it read: an event read and not
 	// dispatched is dispatched by the next worker. A worker with no position yet saves nothing (see getResumeToken()).
@@ -1156,8 +1161,8 @@ public class ChangeNotificationManager {
 
 		final ChangeStreamWorker worker = new ChangeStreamWorker(collectionName, collection, this, mode, pipeline);
 
-		// If we have a saved resume token for this collection, use it
-		final org.bson.BsonDocument savedResumeToken = this.resumeTokens.get(collectionName);
+		// If we have a saved resume token for this collection, hand it to the new worker (see resumeTokens)
+		final org.bson.BsonDocument savedResumeToken = this.resumeTokens.remove(collectionName);
 		if (savedResumeToken != null) {
 			worker.setResumeToken(savedResumeToken);
 			LOGGER.info("Using saved resume token for collection: {}", collectionName);

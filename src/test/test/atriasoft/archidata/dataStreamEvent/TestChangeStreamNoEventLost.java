@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +22,9 @@ import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationListener;
 import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationManager;
 import org.atriasoft.archidata.dataStreamEvent.ChangeStreamWorker;
 import org.atriasoft.archidata.dataStreamEvent.WorkerStatus;
+import org.bson.BsonDocument;
 import org.bson.BsonObjectId;
+import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
@@ -69,6 +72,12 @@ import test.atriasoft.archidata.ConfigureDb;
  * never reached the listeners after it. A listener that throws an {@link Error} ends the worker, as before, but no
  * longer in silence: the worker logs it and reports {@link WorkerStatus#STOPPED} instead of RUNNING.
  * </p>
+ *
+ * <p>
+ * A saved position the server no longer has (error 286, ChangeStreamHistoryLost) used to be retried every 5 s,
+ * forever, and came back after an unwatch then a watch: the worker now forgets it, logs a WARN and re-opens its stream
+ * from now, and the manager does not hand it to a later worker.
+ * </p>
  */
 public class TestChangeStreamNoEventLost {
 	private static final String COLLECTION_PREFIX = "TestChangeStreamNoEventLost_";
@@ -79,8 +88,18 @@ public class TestChangeStreamNoEventLost {
 	/** Collection whose {@code getCollection()} runs {@link #hook}, once. */
 	private static volatile String hookCollection = null;
 	private static volatile Runnable hook = null;
-	/** Released at the first idle poll of the change stream of each collection. */
+	/**
+	 * Released at the second idle poll of the change streams of each collection: the worker has then recorded the
+	 * position of the first one (it does between the two polls).
+	 */
 	private static final Map<String, CountDownLatch> IDLE = new ConcurrentHashMap<>();
+	/**
+	 * Collections whose change streams report a position aged to 1970, as one that left the oplog long ago: the
+	 * position the worker records when its stream is idle, and the manager saves when it stops the worker.
+	 */
+	private static final Set<String> AGED = ConcurrentHashMap.newKeySet();
+	/** Gate a change stream of the collection opened without a resume position waits for before it opens. */
+	private static final Map<String, CountDownLatch> GATES = new ConcurrentHashMap<>();
 
 	private static MongoDatabase database;
 	private static ChangeNotificationManager manager;
@@ -129,7 +148,7 @@ public class TestChangeStreamNoEventLost {
 						toRun.run();
 					}
 				}
-				return observed(invoke(real, method, args), MongoCollection.class, (String) args[0]);
+				return observed(invoke(real, method, args), MongoCollection.class, (String) args[0], false);
 			}
 			return invoke(real, method, args);
 		};
@@ -139,26 +158,41 @@ public class TestChangeStreamNoEventLost {
 
 	/**
 	 * Wraps a collection, a change stream iterable or a change stream cursor of the driver: its change streams wait
-	 * {@link #AWAIT_MS} ms for a change, and report their idle polls in {@link #IDLE}.
+	 * {@link #AWAIT_MS} ms for a change, report their idle polls in {@link #IDLE}, report an aged position for the
+	 * collections of {@link #AGED}, and wait for the gate of {@link #GATES} before they open without a resume
+	 * position ({@code resumed} tells whether {@code resumeAfter} was called on the way).
 	 */
-	private static Object observed(final Object target, final Class<?> type, final String collection) {
+	private static Object observed(
+			final Object target,
+			final Class<?> type,
+			final String collection,
+			final boolean resumed) {
 		final InvocationHandler handler = (proxy, method, args) -> {
 			Object receiver = target;
 			if (target instanceof final ChangeStreamIterable<?> iterable && "cursor".equals(method.getName())) {
+				if (!resumed) {
+					passGate(collection);
+				}
 				receiver = iterable.maxAwaitTime(AWAIT_MS, TimeUnit.MILLISECONDS);
 			}
 			final Object result = invoke(receiver, method, args);
-			if (target instanceof MongoChangeStreamCursor && "tryNext".equals(method.getName()) && result == null) {
-				idle(collection).countDown();
+			if (target instanceof MongoChangeStreamCursor) {
+				if ("tryNext".equals(method.getName()) && result == null) {
+					idle(collection).countDown();
+				}
+				if ("getResumeToken".equals(method.getName()) && result != null && AGED.contains(collection)) {
+					return aged((BsonDocument) result);
+				}
 			}
+			final boolean resumedNow = resumed || "resumeAfter".equals(method.getName());
 			if (result instanceof MongoChangeStreamCursor) {
-				return observed(result, MongoChangeStreamCursor.class, collection);
+				return observed(result, MongoChangeStreamCursor.class, collection, resumedNow);
 			}
 			if (result instanceof ChangeStreamIterable) {
-				return observed(result, ChangeStreamIterable.class, collection);
+				return observed(result, ChangeStreamIterable.class, collection, resumedNow);
 			}
 			if (result instanceof MongoCollection) {
-				return observed(result, MongoCollection.class, collection);
+				return observed(result, MongoCollection.class, collection, resumedNow);
 			}
 			return result;
 		};
@@ -167,7 +201,31 @@ public class TestChangeStreamNoEventLost {
 	}
 
 	private static CountDownLatch idle(final String collection) {
-		return IDLE.computeIfAbsent(collection, key -> new CountDownLatch(1));
+		return IDLE.computeIfAbsent(collection, key -> new CountDownLatch(2));
+	}
+
+	/**
+	 * The same position with its time set to the second 1 of 1970: the server answers 286 (ChangeStreamHistoryLost)
+	 * to a stream resumed from it. The first byte of {@code _data} is the type of the time, the next eight its
+	 * seconds and its increment.
+	 */
+	private static BsonDocument aged(final BsonDocument token) {
+		final String data = token.getString("_data").getValue();
+		return new BsonDocument("_data",
+				new BsonString(data.substring(0, 2) + "0000000100000001" + data.substring(18)));
+	}
+
+	private static void passGate(final String collection) {
+		final CountDownLatch gate = GATES.get(collection);
+		if (gate == null) {
+			return;
+		}
+		try {
+			// Bounded: a gate never released lets the stream open after the delay
+			gate.await(WAIT_SECONDS, TimeUnit.SECONDS);
+		} catch (final InterruptedException ex) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	/** Records, in order, the ids of the documents a listener receives. */
@@ -371,6 +429,123 @@ public class TestChangeStreamNoEventLost {
 		} finally {
 			workerLogger.detachAppender(appender);
 			appender.stop();
+			manager.unwatchCollection(watched);
+		}
+	}
+
+	/**
+	 * Registers {@code received} on a collection, waits until its worker recorded a position, aged to 1970 by the
+	 * database as one that left the oplog long ago, and unwatches the collection: the manager saves that position, as
+	 * for a collection unwatched for longer than the oplog window.
+	 */
+	private static void saveAPositionThatLeftTheOplog(final String watched, final Received received)
+			throws InterruptedException {
+		AGED.add(watched);
+		try {
+			manager.registerListener(received, watched);
+			Assertions.assertTrue(idle(watched).await(WAIT_SECONDS, TimeUnit.SECONDS),
+					"the change stream of " + watched + " never polled");
+			manager.unwatchCollection(watched);
+		} finally {
+			AGED.remove(watched);
+			// The next stream of the collection counts its own idle polls (the stopped one adds one at most)
+			IDLE.remove(watched);
+		}
+	}
+
+	private static ListAppender<ILoggingEvent> captureWorkerLog() {
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		((Logger) LoggerFactory.getLogger(ChangeStreamWorker.class)).addAppender(appender);
+		return appender;
+	}
+
+	private static void releaseWorkerLog(final ListAppender<ILoggingEvent> appender) {
+		((Logger) LoggerFactory.getLogger(ChangeStreamWorker.class)).detachAppender(appender);
+		appender.stop();
+	}
+
+	/** Counts the WARN of the worker saying the server refused the position of the collection with 286. */
+	private static long positionRefusedWarnings(final ListAppender<ILoggingEvent> appender, final String collection) {
+		final List<ILoggingEvent> logged;
+		// The appender appends under its own monitor
+		synchronized (appender) {
+			logged = List.copyOf(appender.list);
+		}
+		return logged.stream()
+				.filter(event -> event.getLevel() == Level.WARN
+						&& event.getFormattedMessage().contains("collection " + collection + ":")
+						&& event.getFormattedMessage().contains("286"))
+				.count();
+	}
+
+	private static void awaitPositionRefused(final ListAppender<ILoggingEvent> appender, final String collection) {
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+		while (System.nanoTime() < deadline) {
+			if (positionRefusedWarnings(appender, collection) > 0) {
+				return;
+			}
+			LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+		}
+		Assertions.fail("the worker of " + collection + " never reported its position refused");
+	}
+
+	@RepeatedTest(3)
+	public void aSavedPositionThatLeftTheOplogIsForgottenAndTheStreamRestartsFromNow() throws Exception {
+		final String watched = COLLECTION_PREFIX + "lost_" + RUN.incrementAndGet();
+		final Received received = new Received();
+		final ListAppender<ILoggingEvent> appender = captureWorkerLog();
+		try {
+			saveAPositionThatLeftTheOplog(watched, received);
+
+			// The new worker resumes from it: the server answers 286, the worker forgets it and re-opens from now
+			manager.watchCollection(watched);
+			Assertions.assertTrue(idle(watched).await(WAIT_SECONDS, TimeUnit.SECONDS),
+					"the change stream of " + watched + " never re-opened");
+			Assertions.assertEquals(1, positionRefusedWarnings(appender, watched),
+					"one WARN naming the collection and the error 286");
+
+			final ObjectId next = insert(watched);
+			received.await(next);
+			Assertions.assertEquals(List.of(next), received.ids(), "the events from the re-opening on");
+		} finally {
+			releaseWorkerLog(appender);
+			manager.unwatchCollection(watched);
+		}
+	}
+
+	@RepeatedTest(3)
+	public void aPositionRefusedOnceIsNotSavedAgainForTheNextWorker() throws Exception {
+		final String watched = COLLECTION_PREFIX + "lost_again_" + RUN.incrementAndGet();
+		final Received received = new Received();
+		final ListAppender<ILoggingEvent> appender = captureWorkerLog();
+		try {
+			saveAPositionThatLeftTheOplog(watched, received);
+
+			// The new worker meets 286 and forgets the position; it is stopped before its stream re-opens (the
+			// re-opening waits at the gate), so it has no position of its own to save
+			final CountDownLatch gate = new CountDownLatch(1);
+			GATES.put(watched, gate);
+			try {
+				manager.watchCollection(watched);
+				awaitPositionRefused(appender, watched);
+				manager.unwatchCollection(watched);
+			} finally {
+				GATES.remove(watched);
+				gate.countDown();
+			}
+
+			// Watched again: the manager does not hand the refused position to the next worker
+			manager.watchCollection(watched);
+			Assertions.assertTrue(idle(watched).await(WAIT_SECONDS, TimeUnit.SECONDS),
+					"the change stream of " + watched + " never re-opened");
+			final ObjectId next = insert(watched);
+			received.await(next);
+			Assertions.assertEquals(1, positionRefusedWarnings(appender, watched),
+					"the refused position is not used again");
+			Assertions.assertEquals(List.of(next), received.ids(), "the events from the re-opening on");
+		} finally {
+			releaseWorkerLog(appender);
 			manager.unwatchCollection(watched);
 		}
 	}

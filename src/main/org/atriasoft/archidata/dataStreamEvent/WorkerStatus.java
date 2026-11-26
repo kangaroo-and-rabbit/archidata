@@ -33,7 +33,8 @@ public enum WorkerStatus {
 	/**
 	 * Worker is reconnecting to MongoDB after a connection error. This is a
 	 * temporary state: the worker waits a fixed delay before retrying (1 s after an
-	 * interruption or an invalid resume token, 5 s after another MongoDB error),
+	 * interruption, an invalid resume token or a resume position no longer in the
+	 * oplog, both then forgotten, 5 s after another MongoDB error),
 	 * with no exponential backoff and no retry limit.
 	 */
 	RECONNECTING,

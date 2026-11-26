@@ -47,6 +47,12 @@
   `getWorkerStatuses()` rend `STOPPED` pour cette collection. Avant, rien n'était journalisé (l'exécuteur gardait
   l'erreur dans un `Future` jamais lu) et le statut restait `RUNNING`. La collection reste surveillée : pour relancer
   un worker, `unwatchCollection` puis `watchCollection`.
+- Une position de reprise sortie de l'oplog (erreur 286, `ChangeStreamHistoryLost` : collection non surveillée, ou
+  worker incapable de se reconnecter, plus longtemps que la fenêtre de l'oplog) est oubliée comme un jeton invalide
+  (260) : un WARN nomme la collection et dit que les événements écrits depuis sont perdus, et le flux repart de
+  maintenant après 1 s. Avant, le worker la réessayait toutes les 5 s sans fin (statut `RECONNECTING`), et
+  `unwatchCollection` puis `watchCollection` la redonnait au worker suivant ; le gestionnaire remet maintenant une
+  position sauvée au nouveau worker sans en garder de copie.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

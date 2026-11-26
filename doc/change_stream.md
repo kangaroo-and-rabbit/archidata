@@ -105,7 +105,10 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   stopped worker had read but not dispatched is dispatched once, by the new worker. The writes made
   meanwhile are replayed as long as that position is still in the oplog: after a long unwatch, every one
   of them is dispatched on the new worker's thread, one after the other, a burst that holds back the
-  listeners of that collection (the new writes included) until it is drained.
+  listeners of that collection (the new writes included) until it is drained. Beyond the oplog window
+  the position is refused (error 286, see below): the new worker forgets it and starts from now. The
+  manager hands a saved position to the new worker and keeps no copy, so a position refused once is
+  never used again.
   **Exception:** a worker started without a saved token has no position until it dispatches an event
   or sees its stream idle once (at most the server's await time after the stream opened, 1 s by
   default): the driver gives no token for a stream just opened. Stopped before, it saves nothing, and
@@ -113,8 +116,15 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   next worker opens are not notified. Tokens live in memory only: they do not survive a process restart
   or `stop()`.
 - **Error handling in the worker loop** (see `WorkerStatus`):
-  `MongoInterruptedException` and `InvalidResumeToken` (code 260) reset the token and retry after
-  1 s; other `MongoCommandException` / `MongoException` set `RECONNECTING` and retry after 5 s;
+  `MongoInterruptedException` resets the token the worker re-opens from and retries after 1 s. A
+  position the server refuses for good, `InvalidResumeToken` (code 260) or `ChangeStreamHistoryLost`
+  (code 286: the position is no longer in the oplog, after an unwatch, or a worker unable to reconnect,
+  longer than the oplog window), is forgotten (the one the worker re-opens from and the one the manager
+  saves), with a WARN naming the collection and saying the events written since are lost; the worker
+  sets `RECONNECTING` and re-opens from now after 1 s. The code is tested, not the
+  `NonResumableChangeStreamError` label the server puts on 286: that label also covers errors that do
+  not come from the position. Other `MongoCommandException` / `MongoException` set `RECONNECTING`
+  and retry after 5 s with the same position;
   any other exception sets `ERROR` and retries after 5 s. The loop ends on `stop()` (`STOPPED`).
   The delay is fixed (no exponential backoff, no retry limit).
 - **An `Error` ends the worker.** An `Error` thrown on the worker thread (by a listener, an
@@ -309,7 +319,10 @@ carries the raw document, `@DataNotRead` fields included.
   one after the other; pass a `Set<String>` to open them in parallel. If MongoDB does not answer, each
   registration waits at most 10 s and logs a WARN.
 - **Events can be lost** across restarts or when the oplog window is exceeded; resume tokens are
-  not persisted. Treat notifications as hints (invalidate, refresh), not as a durable log. Use the
+  not persisted. A collection unwatched, or a worker unable to reconnect, for longer than the oplog
+  window resumes from a position the server no longer has (error 286): the worker logs a WARN naming
+  the collection and re-opens its stream from now, so the writes made in between are not notified.
+  Treat notifications as hints (invalidate, refresh), not as a durable log. Use the
   [change journal](change_journal.md) if you need history.
 - **Slow listeners block their collection.** Dispatch is synchronous on the worker thread; push
   heavy work to an executor.
@@ -345,7 +358,10 @@ used by the other integration tests (`ConfigureDb.configure()`):
   that worker (the interleaving is forced through a database whose `getCollection()` runs code with the
   manager's write lock held); a client filter that throws does not take the event from the other
   listeners; a listener that throws an `AssertionError` ends the worker with an ERROR log and the
-  `STOPPED` status, and the event reaches the listeners once the collection is watched again.
+  `STOPPED` status, and the event reaches the listeners once the collection is watched again; a saved
+  position the server no longer has (aged to 1970 by the test database, the server answers 286) is
+  forgotten, the stream re-opens from now and delivers the next write, and a later watch does not use
+  that position again.
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 
