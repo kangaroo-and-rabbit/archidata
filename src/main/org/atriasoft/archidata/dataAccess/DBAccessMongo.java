@@ -158,6 +158,105 @@ public final class DBAccessMongo implements Closeable {
 	public static final MongoDbStatistic statistic = new MongoDbStatistic();
 
 	/**
+	 * {@code collection.findOneAndUpdate(...)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param filter the filter
+	 * @param update the update
+	 * @param options the options of the driver call
+	 * @return the document the driver returns
+	 */
+	private Document findOneAndUpdateIn(
+			final MongoCollection<Document> collection,
+			final Bson filter,
+			final Bson update,
+			final FindOneAndUpdateOptions options) {
+		return this.session != null ? collection.findOneAndUpdate(this.session, filter, update, options)
+				: collection.findOneAndUpdate(filter, update, options);
+	}
+
+	/**
+	 * {@code collection.insertOne(...)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param document the document to insert
+	 * @return the result of the driver
+	 */
+	private InsertOneResult insertOneIn(final MongoCollection<Document> collection, final Document document) {
+		return this.session != null ? collection.insertOne(this.session, document) : collection.insertOne(document);
+	}
+
+	/**
+	 * {@code collection.updateMany(...)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param filter the filter
+	 * @param update the update
+	 * @return the result of the driver
+	 */
+	private UpdateResult updateManyIn(
+			final MongoCollection<Document> collection,
+			final Bson filter,
+			final Bson update) {
+		return this.session != null ? collection.updateMany(this.session, filter, update)
+				: collection.updateMany(filter, update);
+	}
+
+	/**
+	 * {@code collection.deleteMany(...)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param filter the filter
+	 * @return the result of the driver
+	 */
+	private DeleteResult deleteManyIn(final MongoCollection<Document> collection, final Bson filter) {
+		return this.session != null ? collection.deleteMany(this.session, filter) : collection.deleteMany(filter);
+	}
+
+	/**
+	 * {@code collection.find(filter)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param filter the filter
+	 * @return the cursor of the driver
+	 */
+	private FindIterable<Document> findIn(final MongoCollection<Document> collection, final Bson filter) {
+		return this.session != null ? collection.find(this.session, filter) : collection.find(filter);
+	}
+
+	/**
+	 * {@code collection.find()} without filter, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @return the cursor of the driver
+	 */
+	private FindIterable<Document> findAllIn(final MongoCollection<Document> collection) {
+		return this.session != null ? collection.find(this.session) : collection.find();
+	}
+
+	/**
+	 * {@code collection.countDocuments(filter)}, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @param filter the filter
+	 * @return the number of documents
+	 */
+	private long countIn(final MongoCollection<Document> collection, final Bson filter) {
+		return this.session != null ? collection.countDocuments(this.session, filter)
+				: collection.countDocuments(filter);
+	}
+
+	/**
+	 * {@code collection.countDocuments()} without filter, inside the active transaction when there is one.
+	 *
+	 * @param collection the collection
+	 * @return the number of documents
+	 */
+	private long countAllIn(final MongoCollection<Document> collection) {
+		return this.session != null ? collection.countDocuments(this.session) : collection.countDocuments();
+	}
+
+	/**
 	 * Runs the lazy actions collected by a read, an insert, an update or a delete, then the actions those
 	 * actions queue in turn, round after round.
 	 *
@@ -1212,9 +1311,7 @@ public final class DBAccessMongo implements Closeable {
 
 		// Real creation of the unique counter.
 		statistic.countFindOneAndUpdate++;
-		final Document updatedCounter = this.session != null
-				? countersCollection.findOneAndUpdate(this.session, filter, update, options)
-				: countersCollection.findOneAndUpdate(filter, update, options);
+		final Document updatedCounter = findOneAndUpdateIn(countersCollection, filter, update, options);
 
 		// Return the new sequence value...
 		final Long value = updatedCounter == null ? null : updatedCounter.getLong(counterField);
@@ -1357,8 +1454,7 @@ public final class DBAccessMongo implements Closeable {
 			}
 
 			statistic.countInsertOne++;
-			final InsertOneResult result = this.session != null ? collection.insertOne(this.session, docSet)
-					: collection.insertOne(docSet);
+			final InsertOneResult result = insertOneIn(collection, docSet);
 		} catch (final Exception ex) {
 			LOGGER.error("Fail Mongo request: {} ({})", ex.getMessage(), ex.getClass().getSimpleName(), ex);
 			throw new DataAccessException("Fail to Insert data in DB : " + ex.getMessage(), ex);
@@ -1538,8 +1634,7 @@ public final class DBAccessMongo implements Closeable {
 			}
 
 			statistic.countUpdateMany++;
-			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
-					: collection.updateMany(filters, actions);
+			final UpdateResult ret = updateManyIn(collection, filters, actions);
 			if (ret.getMatchedCount() == 0) {
 				// The update reached no document (caller's condition, soft delete): its relation side effects
 				// must not run either, they would escape the caller's scope.
@@ -1731,9 +1826,9 @@ public final class DBAccessMongo implements Closeable {
 			FindIterable<Document> retFind = null;
 			statistic.countFind++;
 			if (filters != null) {
-				retFind = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
+				retFind = findIn(collection, filters);
 			} else {
-				retFind = this.session != null ? collection.find(this.session) : collection.find();
+				retFind = findAllIn(collection);
 			}
 			if (sorts != null) {
 				retFind = retFind.sort(sorts);
@@ -1914,10 +2009,9 @@ public final class DBAccessMongo implements Closeable {
 					statisticSoftDeleteField(options, deletedFieldName));
 			statistic.countCountDocuments++;
 			if (filters != null) {
-				return this.session != null ? collection.countDocuments(this.session, filters)
-						: collection.countDocuments(filters);
+				return countIn(collection, filters);
 			}
-			return this.session != null ? collection.countDocuments(this.session) : collection.countDocuments();
+			return countAllIn(collection);
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to count documents: {}", ex.getMessage(), ex);
 			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
@@ -2036,16 +2130,14 @@ public final class DBAccessMongo implements Closeable {
 			}
 			final Document actions = new Document("$set", setFields);
 			statistic.countUpdateMany++;
-			final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
-					: collection.updateMany(filters, actions);
+			final UpdateResult ret = updateManyIn(collection, filters, actions);
 			return ret.getModifiedCount();
 		}
 
 		actionOnDelete(clazz, option);
 
 		statistic.countDeleteMany++;
-		final DeleteResult retFind = this.session != null ? collection.deleteMany(this.session, filters)
-				: collection.deleteMany(filters);
+		final DeleteResult retFind = deleteManyIn(collection, filters);
 		return retFind.getDeletedCount();
 	}
 
@@ -2116,8 +2208,7 @@ public final class DBAccessMongo implements Closeable {
 		}
 		actionOnDelete(clazz, option);
 		statistic.countUpdateMany++;
-		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
-				: collection.updateMany(filters, actions);
+		final UpdateResult ret = updateManyIn(collection, filters, actions);
 		return ret.getModifiedCount();
 	}
 
@@ -2243,8 +2334,7 @@ public final class DBAccessMongo implements Closeable {
 		}
 		final Document actions = new Document("$set", fields);
 		statistic.countUpdateMany++;
-		final UpdateResult ret = this.session != null ? collection.updateMany(this.session, filters, actions)
-				: collection.updateMany(filters, actions);
+		final UpdateResult ret = updateManyIn(collection, filters, actions);
 		return ret.getModifiedCount();
 	}
 
@@ -2301,11 +2391,7 @@ public final class DBAccessMongo implements Closeable {
 		final String collectionName = DbClassModel.of(clazz).getTableName(options);
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 		statistic.countDeleteMany++;
-		if (this.session != null) {
-			collection.deleteMany(this.session, new Document());
-		} else {
-			collection.deleteMany(new Document());
-		}
+		deleteManyIn(collection, new Document());
 	}
 
 	// =======================================================================
@@ -2344,8 +2430,7 @@ public final class DBAccessMongo implements Closeable {
 		try {
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
 			statistic.countInsertOne++;
-			final InsertOneResult result = this.session != null ? collection.insertOne(this.session, document)
-					: collection.insertOne(document);
+			final InsertOneResult result = insertOneIn(collection, document);
 			final Object insertedId = result.getInsertedId();
 			if (insertedId != null && insertedId instanceof org.bson.BsonObjectId) {
 				return ((org.bson.BsonObjectId) insertedId).getValue();
@@ -2405,9 +2490,9 @@ public final class DBAccessMongo implements Closeable {
 			statistic.countFind++;
 			final FindIterable<Document> cursor;
 			if (filters != null) {
-				cursor = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
+				cursor = findIn(collection, filters);
 			} else {
-				cursor = this.session != null ? collection.find(this.session) : collection.find();
+				cursor = findAllIn(collection);
 			}
 			try (MongoCursor<Document> iterator = cursor.iterator()) {
 				if (iterator.hasNext()) {
@@ -2458,9 +2543,9 @@ public final class DBAccessMongo implements Closeable {
 			statistic.countFind++;
 			FindIterable<Document> cursor;
 			if (filters != null) {
-				cursor = this.session != null ? collection.find(this.session, filters) : collection.find(filters);
+				cursor = findIn(collection, filters);
 			} else {
-				cursor = this.session != null ? collection.find(this.session) : collection.find();
+				cursor = findAllIn(collection);
 			}
 
 			// Apply ordering
@@ -2535,15 +2620,11 @@ public final class DBAccessMongo implements Closeable {
 			QueryStatistics.record(collectionName, Operation.UPDATE, condition.getFilter(), null, null);
 			statistic.countUpdateMany++;
 			if (filters != null) {
-				final UpdateResult result = this.session != null
-						? collection.updateMany(this.session, filters, updateDocument)
-						: collection.updateMany(filters, updateDocument);
+				final UpdateResult result = updateManyIn(collection, filters, updateDocument);
 				return result.getModifiedCount();
 			}
 			// No filter: AllowMassOperation was given, update all documents
-			final UpdateResult result = this.session != null
-					? collection.updateMany(this.session, new Document(), updateDocument)
-					: collection.updateMany(new Document(), updateDocument);
+			final UpdateResult result = updateManyIn(collection, new Document(), updateDocument);
 			return result.getModifiedCount();
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to update BSON documents: {}", ex.getMessage(), ex);
