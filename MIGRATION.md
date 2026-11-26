@@ -76,6 +76,9 @@
 - Un champ `Character` ou `char` se relit : il est stocké en chaîne d'un caractère (comme avant) et la lecture
   l'accepte, ainsi qu'un code entier. Avant, toute lecture d'une entité portant un `Character` levait une
   `ClassCastException` (`String` en `Integer`), et un `char` primitif était pris pour un objet embarqué (échec de lecture).
+- `MigrationException` a un constructeur `(String message, Throwable cause)`, et `MigrationEngine` y passe l'exception
+  d'origine (connexion, `getNumberOfStep`, lecture, insertion et mise à jour de l'historique, étape qui échoue) : `getCause()` n'est
+  plus `null`. Les messages ne changent pas.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
