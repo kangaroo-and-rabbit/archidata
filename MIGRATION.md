@@ -26,6 +26,35 @@
 - `WebApplicationExceptionCatcher` garde les en-têtes de la réponse de l'exception (`Retry-After` d'un 429,
   `WWW-Authenticate` d'un 401, `Allow` d'un 405...). Avant, seuls le statut et le corps JSON étaient renvoyés. Le
   corps JSON ne change pas.
+- `ChangeNotificationManager` : un événement lu par le worker d'une collection que `unwatchCollection` arrête avant
+  qu'il l'ait distribué n'est plus perdu. Le jeton sauvé était celui du dernier événement lu, et le worker suivant de la
+  collection reprenait après lui ; c'est maintenant celui du dernier événement distribué aux listeners, ou celui du flux
+  à sa dernière attente sans changement, et le worker suivant distribue cet événement, une seule fois.
+  `ChangeStreamWorker.getResumeToken()` rend cette position. Exception : un worker démarré sans jeton n'a pas de
+  position avant son premier événement distribué ou sa première attente vide (au plus 1 s par défaut après l'ouverture
+  du flux) ; arrêté avant, il ne sauve rien et le worker suivant part de l'ouverture de son propre flux.
+- Conséquence visible : un worker arrêté sans avoir rien distribué sauve maintenant une position (celle du flux à sa
+  dernière attente vide). Si la collection est surveillée de nouveau, les écritures faites entre `unwatchCollection` et
+  la reprise sont notifiées, comme elles l'étaient déjà quand un événement avait été distribué ; avant, elles étaient
+  perdues. Elles sont rejouées tant que cette position est encore dans l'oplog : après un long arrêt, toutes sont
+  distribuées à la reprise, une à une sur le thread du nouveau worker, une rafale qui retient les listeners de cette
+  collection (les nouvelles écritures comprises) jusqu'à ce qu'elle soit écoulée.
+- Un filtre client (`ListenerRegistrationBuilder.filter(...)`) qui lève une exception est journalisé comme un listener
+  qui lève : seul son listener est sauté pour cet événement. Avant, l'exception sortait de la distribution, le flux de
+  la collection reprenait 5 s plus tard après l'événement, et les listeners suivants ne le recevaient jamais.
+- Une `Error` levée sur le thread d'un worker de change stream (par un listener, `AssertionError` comprise) arrête
+  toujours ce worker, mais plus en silence : elle est journalisée en ERROR avec le nom de la collection et l'erreur, et
+  `getWorkerStatuses()` rend `STOPPED` pour cette collection. Avant, rien n'était journalisé (l'exécuteur gardait
+  l'erreur dans un `Future` jamais lu) et le statut restait `RUNNING`. La collection reste surveillée : pour relancer
+  un worker, `unwatchCollection` puis `watchCollection`.
+- Une position de reprise sortie de l'oplog (erreur 286, `ChangeStreamHistoryLost` : collection non surveillée, ou
+  worker incapable de se reconnecter, plus longtemps que la fenêtre de l'oplog) est oubliée comme un jeton invalide
+  (260) : un WARN nomme la collection et dit que les événements écrits depuis sont perdus, et le flux repart de
+  maintenant après 1 s. Avant, le worker la réessayait toutes les 5 s sans fin (statut `RECONNECTING`), et
+  `unwatchCollection` puis `watchCollection` la redonnait au worker suivant ; le gestionnaire remet maintenant une
+  position sauvée au nouveau worker sans en garder de copie.
+- `getWorkerStatuses()` rend de nouveau `RUNNING` pour un worker dont le flux s'est rouvert après une erreur. Avant, le
+  statut restait `RECONNECTING` (ou `ERROR`) après la première reconnexion réussie, alors que le flux était lu.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

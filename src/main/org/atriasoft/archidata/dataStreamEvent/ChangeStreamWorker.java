@@ -50,7 +50,12 @@ import com.mongodb.client.model.changestream.OperationType;
  * returns only once a write made after it is sure to be notified. After {@link #stop()}, the worker
  * ends when its current {@code getMore} returns (the server waits at most its await time, 1 s by
  * default, when there is no change), and the manager does not dispatch any event it reads after it
- * was stopped.
+ * was stopped. The position the manager keeps when it stops the worker ({@link #getResumeToken()}) is the one of
+ * the last event dispatched (or of the stream when it was last idle), not of the last event read: the next worker of
+ * the collection dispatches an event this one read but did not dispatch. Except for a worker started without a
+ * token, until it dispatches an event or sees its stream idle (a {@code getMore} with no change, at most the server's
+ * await time after the stream opened, 1 s by default): it has no position then, and the next worker starts when its
+ * own stream opens, after such an event.
  * </p>
  *
  * @see ChangeNotificationManager
@@ -59,9 +64,14 @@ import com.mongodb.client.model.changestream.OperationType;
  */
 public class ChangeStreamWorker implements Runnable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeStreamWorker.class);
+	/** Server error InvalidResumeToken: the resume token is not one the server accepts. */
+	private static final int INVALID_RESUME_TOKEN = 260;
+	/** Server error ChangeStreamHistoryLost: the resume position is no longer in the oplog. */
+	private static final int CHANGE_STREAM_HISTORY_LOST = 286;
 
-	// Threads: the worker thread is the one the manager's executor runs run() on, one per worker. The
-	// threads that call the manager (and the listener-facing getters) call stop(), setResumeToken() and the getters.
+	// Threads: the worker thread is the one the manager's executor runs run() on, one per worker; the manager's
+	// notifyChange() calls eventDispatched() on it. The threads that call the manager (and the listener-facing
+	// getters) call stop(), setResumeToken() and the getters.
 	// The five final fields below are set by the constructor and never change, so any thread reads them.
 	private final String collectionName;
 	private final MongoCollection<Document> collection;
@@ -71,18 +81,28 @@ public class ChangeStreamWorker implements Runnable {
 
 	// Written by stop() (any thread, the manager calls it with its write lock held), read by the worker thread. Volatile.
 	private volatile boolean running = true;
-	// Written by the worker thread only (runLoop), read by any thread through getStatus(). Volatile.
+	// Written by the worker thread only (runLoop, watchChangeStream() when the stream opens, and run() when an Error
+	// ends it), read by any thread through getStatus(). Volatile.
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
-	// Plain field, no lock. Written by the worker thread (runLoop and watchChangeStream) and by setResumeToken(),
-	// which the manager calls on its own thread before it submits the worker (the submission orders that write
-	// before the worker thread starts). Read by the worker thread, and by getResumeToken(), which the manager
-	// calls with its write lock held when it stops the worker. The worker writes the token of an event before
-	// it hands the event to notifyChange(), which takes the manager's read lock: the manager's read therefore
-	// sees at least the token of the last event notifyChange() returned for. It may also see the token of the
-	// event the worker is about to hand over. The manager then saves that token, notifyChange() does not
-	// dispatch the event because the worker is no longer registered, and a worker started later from the saved
-	// token resumes after that event.
+	// Position of this worker's own stream: the token of the last event it READ, dispatched or not. Plain field, no
+	// lock, confined to the worker thread: written by setResumeToken(), which the manager calls on its own thread
+	// before it submits the worker (the submission orders that write before the worker thread starts), then read
+	// and written by the worker thread only (runLoop and watchChangeStream), which re-opens its stream from it after
+	// a failure. It is never the position the manager saves: an event read here may never be dispatched (the worker
+	// was stopped meanwhile), so resuming after it would lose it. See dispatchedToken.
 	private BsonDocument resumeToken = null;
+	// Position a later worker of the collection resumes from, before which every event read was handled: the token
+	// the worker was started from, then the token of each event the manager DISPATCHED, or the post-batch resume token
+	// of the stream when a poll returns no change. Written by setResumeToken() (before the submission, as above), by
+	// eventDispatched(), which notifyChange() calls on the worker thread with the manager's read lock held once the
+	// listeners returned, and by streamIdle() on the worker thread without lock (no event is pending then); cleared
+	// by forgetPosition() on the worker thread without lock when the server refuses the position (260, 286). Read by
+	// getResumeToken(), which the manager calls with its write lock held when it stops the worker: the two sides of
+	// the lock exclude each other, so the manager reads the position before an event or after an event dispatched in
+	// full, never the token of an event read and not dispatched. Null for a worker started without a token until its
+	// first dispatch or idle poll: the driver gives no token for a stream just opened without a start point.
+	// Volatile: getResumeToken() is public, and the volatile write publishes the token object it holds.
+	private volatile BsonDocument dispatchedToken = null;
 	// Incremented by the worker thread only, read by any thread through getEventsProcessed(). Atomic.
 	private final AtomicLong eventsProcessed = new AtomicLong(0);
 	/** Released when the first attempt to open the change stream is over, whether it opened it or failed. */
@@ -114,19 +134,83 @@ public class ChangeStreamWorker implements Runnable {
 	}
 
 	/**
-	 * Sets the resume token to use when reconnecting to the change stream.
+	 * Sets the resume token the worker opens its change stream from. Call it before the worker runs.
 	 *
-	 * @param token the BSON resume token, or {@code null} to start from the beginning
+	 * @param token the BSON resume token, or {@code null} to start when the stream opens
 	 */
 	public void setResumeToken(final BsonDocument token) {
 		this.resumeToken = token == null ? null : token.clone();
+		this.dispatchedToken = token == null ? null : token.clone();
 	}
 
-	/** {@inheritDoc} */
+	/**
+	 * Records that the manager dispatched an event of this worker to the listeners. Called by
+	 * {@link ChangeNotificationManager} on the worker thread, with its read lock held, once the listeners returned.
+	 *
+	 * @param token the resume token of the event (a copy the caller does not keep), ignored when {@code null}
+	 */
+	void eventDispatched(final BsonDocument token) {
+		if (token != null) {
+			this.dispatchedToken = token;
+		}
+	}
+
+	/**
+	 * Tells whether the server refused the position the stream was opened from, for good: an invalid resume token
+	 * (260, InvalidResumeToken), or a position no longer in the oplog (286, ChangeStreamHistoryLost: the collection was
+	 * unwatched, or its worker unable to reconnect, for longer than the oplog window). The code is tested, not the
+	 * {@code NonResumableChangeStreamError} label the server also puts on 286: the label means "the driver must not
+	 * resume", a wider set the server may extend with errors that do not come from the position, and forgetting the
+	 * position for those would lose events for nothing.
+	 */
+	private static boolean isPositionRefused(final MongoCommandException e) {
+		return e.getErrorCode() == INVALID_RESUME_TOKEN || e.getErrorCode() == CHANGE_STREAM_HISTORY_LOST;
+	}
+
+	/**
+	 * Forgets the position of the worker, the one it re-opens its stream from and the one the manager saves, on the
+	 * worker thread, without lock: a stop that reads the refused position before it is forgotten saves it, and the
+	 * next worker meets the same refusal and forgets it in turn.
+	 */
+	private void forgetPosition() {
+		this.resumeToken = null;
+		this.dispatchedToken = null;
+	}
+
+	/**
+	 * Records the position of the stream when a poll returned no change, on the worker thread, without lock: every
+	 * event read before was handled, so the manager may resume from there, whichever of this value and the previous
+	 * one it reads.
+	 */
+	private void streamIdle(final BsonDocument token) {
+		if (token != null && this.running) {
+			this.dispatchedToken = token;
+		}
+	}
+
+	/**
+	 * Runs the worker until {@link #stop()}. An {@link Error} thrown on this thread (by a listener, an
+	 * {@code AssertionError} included, or by the JVM) ends the worker: it is logged at ERROR with the collection
+	 * name, the status becomes {@link WorkerStatus#STOPPED}, and the error is thrown again.
+	 */
 	@Override
 	public void run() {
 		try {
 			runLoop();
+		} catch (final Error e) {
+			// Not retried like an exception: the JVM may be in a broken state (OutOfMemoryError,
+			// StackOverflowError...). The executor keeps the Error in the Future nobody reads, so without this
+			// log and status the worker died in silence and the manager went on reporting it RUNNING
+			try {
+				LOGGER.error(
+						"ChangeStreamWorker for collection {} ended by an Error (a listener's included): it no"
+								+ " longer reads its stream, unwatch then watch the collection to start a new one",
+						this.collectionName, e);
+			} finally {
+				// After the log: a thread that sees STOPPED sees the log written
+				this.status = WorkerStatus.STOPPED;
+			}
+			throw e;
 		} finally {
 			this.firstOpenAttemptDone.countDown();
 			this.ended.countDown();
@@ -154,12 +238,14 @@ public class ChangeStreamWorker implements Runnable {
 					break;
 				}
 			} catch (final MongoCommandException e) {
-				// Handle InvalidResumeToken error (code 260) - reset token and restart from beginning
-				if (e.getErrorCode() == 260) {
+				// The position itself is refused, for good: retrying it would fail forever (every 5 s below)
+				if (isPositionRefused(e)) {
+					// Forgotten before the log: a thread that reads the log sees the position gone
+					forgetPosition();
 					LOGGER.warn(
-							"InvalidResumeToken error for collection: {}. Resetting resume token and restarting from beginning.",
-							this.collectionName);
-					this.resumeToken = null;
+							"Change stream of collection {}: the server refuses its resume position ({} {}), the"
+									+ " events written since that position are lost; restarting from now",
+							this.collectionName, e.getErrorCode(), e.getErrorCodeName());
 					this.status = WorkerStatus.RECONNECTING;
 					// Short delay before reconnecting
 					try {
@@ -230,6 +316,8 @@ public class ChangeStreamWorker implements Runnable {
 		try {
 			cursor = changeStreamBuilder.cursor();
 			this.streamOpen = true;
+			// Also after a reconnection: RECONNECTING or ERROR described the failure, the stream is open again
+			this.status = WorkerStatus.RUNNING;
 		} finally {
 			// Opened or failed, the first attempt is over: a registration does not wait for the retries
 			this.firstOpenAttemptDone.countDown();
@@ -244,10 +332,16 @@ public class ChangeStreamWorker implements Runnable {
 						// The server closed the stream (invalidate): open it again
 						return;
 					}
+					// The stream is idle: every event it returned before was handled (dispatched, or read by this
+					// worker once stopped, which then ends here). Its position, the post-batch resume token, is the
+					// only one a worker that dispatched nothing yet has: a fresh stream gives no token before this
+					streamIdle(cursor.getResumeToken());
 					continue;
 				}
 
-				// Save resume token for resilience
+				// Position of this stream, re-opened from it after a failure. The position the manager saves when it
+				// stops the worker moves only once notifyChange() has dispatched the event (eventDispatched()), or
+				// when the stream is idle (streamIdle())
 				this.resumeToken = changeDoc.getResumeToken();
 
 				// Convert to ChangeEvent and notify manager
@@ -357,14 +451,17 @@ public class ChangeStreamWorker implements Runnable {
 	}
 
 	/**
-	 * Gets the current resume token. This token represents the position in the
-	 * change stream and can be used to resume from this point if the worker is
-	 * restarted.
+	 * Gets the position a new worker of the collection can resume from without losing an event: the resume token of
+	 * the last event the manager dispatched to the listeners, or the position of the stream when it was last idle (a
+	 * poll that returned no change), whichever is the latest, or, before both, the token this worker was started
+	 * from. An event the worker has read but that was not dispatched (the worker was stopped meanwhile) comes after
+	 * this position.
 	 *
-	 * @return A copy of the resume token, or null if no events have been processed yet
+	 * @return A copy of the resume token, or null for a worker started without a token that has neither dispatched an
+	 *         event nor seen its stream idle yet (the driver gives no token for a stream just opened)
 	 */
 	public BsonDocument getResumeToken() {
-		final BsonDocument token = this.resumeToken;
+		final BsonDocument token = this.dispatchedToken;
 		return token == null ? null : token.clone();
 	}
 

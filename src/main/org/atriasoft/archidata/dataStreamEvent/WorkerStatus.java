@@ -13,7 +13,7 @@ package org.atriasoft.archidata.dataStreamEvent;
  * <li>RECONNECTING - Worker is attempting to reconnect after a MongoDB error
  * (temporary state)</li>
  * <li>ERROR - Worker encountered an unexpected error (may retry)</li>
- * <li>STOPPED - Worker has been stopped and will not restart</li>
+ * <li>STOPPED - Worker has been stopped, or ended by an {@link Error}, and will not restart</li>
  * </ol>
  *
  * @see ChangeStreamWorker
@@ -26,27 +26,35 @@ public enum WorkerStatus {
 	STARTING,
 
 	/**
-	 * Worker is actively listening to the change stream and processing events.
+	 * Worker is actively listening to the change stream and processing events. Set
+	 * when the worker starts, and again each time its stream opens, after a
+	 * reconnection included.
 	 */
 	RUNNING,
 
 	/**
 	 * Worker is reconnecting to MongoDB after a connection error. This is a
 	 * temporary state: the worker waits a fixed delay before retrying (1 s after an
-	 * interruption or an invalid resume token, 5 s after another MongoDB error),
-	 * with no exponential backoff and no retry limit.
+	 * interruption, an invalid resume token or a resume position no longer in the
+	 * oplog, both then forgotten, 5 s after another MongoDB error),
+	 * with no exponential backoff and no retry limit. Back to {@link #RUNNING} once
+	 * the stream is open again.
 	 */
 	RECONNECTING,
 
 	/**
 	 * Worker encountered an unexpected error. The worker retries after a fixed
-	 * 5 s delay, with no retry limit.
+	 * 5 s delay, with no retry limit, and is {@link #RUNNING} again once its
+	 * stream is open again.
 	 */
 	ERROR,
 
 	/**
 	 * Worker has been stopped and will not process any more events. This is a
-	 * terminal state.
+	 * terminal state. A worker of a collection still watched reports it when an
+	 * {@link Error} thrown on its thread (by a listener, an
+	 * {@code AssertionError} included) ended it, logged at ERROR: unwatch then
+	 * watch the collection to start a new worker.
 	 */
 	STOPPED
 }
