@@ -270,10 +270,10 @@ public class TsClassElement {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
 		out.append("\n");
-		if (System.getenv("ARCHIDATA_GENERATE_ZOD_ENUM") != null) {
+		if (tsGroup.isZodEnum()) {
 			boolean first = true;
 			out.append("export const ");
-			out.append(this.tsTypeName);
+			out.append(this.getZodName());
 			out.append(" = ");
 			out.append("zod.enum([");
 			for (final Entry<String, Object> elem : model.getListOfValues().entrySet()) {

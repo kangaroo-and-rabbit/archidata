@@ -27,6 +27,13 @@
   `WWW-Authenticate` d'un 401, `Allow` d'un 405...). Avant, seuls le statut et le corps JSON étaient renvoyés. Le
   corps JSON ne change pas.
 
+## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
+
+À la régénération du client, relire le diff des fichiers générés.
+
+- TypeScript, `ARCHIDATA_GENERATE_ZOD_ENUM` : l'enum est maintenant déclaré `export const ZodFoo = zod.enum([...])`
+  (avant : `export const null = ...`, du TypeScript invalide), avec `export type Foo = zod.infer<typeof ZodFoo>`.
+
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
 - `JWTWrapper.generateJWToken(..., timeoutInMinutes, extraClaims)` ajoute des claims au jeton ; les noms réservés

@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
  */
 public class TsClassElementGroup {
 	private final List<TsClassElement> tsElements;
+	private final boolean zodEnum;
 
 	/**
 	 * Gets all registered TypeScript class elements.
@@ -28,7 +29,25 @@ public class TsClassElementGroup {
 	 * @param tsElements the list of TypeScript class elements to register, copied
 	 */
 	public TsClassElementGroup(final List<TsClassElement> tsElements) {
+		this(tsElements, false);
+	}
+
+	/**
+	 * Constructs a new group with the given list of TypeScript class elements.
+	 * @param tsElements the list of TypeScript class elements to register, copied
+	 * @param zodEnum true to generate the enums as {@code zod.enum([...])} instead of a TypeScript enum
+	 */
+	public TsClassElementGroup(final List<TsClassElement> tsElements, final boolean zodEnum) {
 		this.tsElements = List.copyOf(tsElements);
+		this.zodEnum = zodEnum;
+	}
+
+	/**
+	 * Tells how the enums are generated.
+	 * @return true when the enums are generated as {@code zod.enum([...])}
+	 */
+	public boolean isZodEnum() {
+		return this.zodEnum;
 	}
 
 	/**

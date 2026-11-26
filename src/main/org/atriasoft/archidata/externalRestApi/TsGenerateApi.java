@@ -36,6 +36,8 @@ import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
  * files that can be compiled with strict TypeScript settings.
  */
 public class TsGenerateApi {
+	/** Environment variable that switches the enums to {@code zod.enum([...])} when it is set. */
+	private static final String ENV_GENERATE_ZOD_ENUM = "ARCHIDATA_GENERATE_ZOD_ENUM";
 
 	/** Private constructor to prevent instantiation of this utility class. */
 	private TsGenerateApi() {
@@ -78,9 +80,21 @@ public class TsGenerateApi {
 	 * @throws Exception if generation fails
 	 */
 	public static final Map<Path, String> generateApi(final AnalyzeApi api) throws Exception {
+		return generateApi(api, System.getenv(ENV_GENERATE_ZOD_ENUM) != null);
+	}
+
+	/**
+	 * Generates TypeScript API client code as an in-memory map of file paths to content.
+	 * @param api the analyzed API model to generate from
+	 * @param zodEnum true to generate the enums as {@code zod.enum([...])}, false for TypeScript enums
+	 * (the default of {@link #generateApi(AnalyzeApi)} follows the {@code ARCHIDATA_GENERATE_ZOD_ENUM} variable)
+	 * @return a map of relative file paths to their generated TypeScript content
+	 * @throws Exception if generation fails
+	 */
+	public static final Map<Path, String> generateApi(final AnalyzeApi api, final boolean zodEnum) throws Exception {
 		final Map<Path, String> generation = new HashMap<>();
 		final List<TsClassElement> localModel = generateApiModel(api);
-		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
+		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel, zodEnum);
 
 		// -----------------------------------------------------------
 		// -- Generate The API
