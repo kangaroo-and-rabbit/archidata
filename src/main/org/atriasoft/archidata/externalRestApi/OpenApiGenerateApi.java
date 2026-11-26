@@ -465,7 +465,7 @@ public class OpenApiGenerateApi {
 	}
 
 	private static Map<String, Object> buildFieldSchema(final FieldProperty field) {
-		final Map<String, Object> prop = buildSchemaForModel(field.model());
+		final Map<String, Object> prop = buildSchemaRef(field.model());
 
 		if (field.comment() != null) {
 			prop.put("description", field.comment());
@@ -667,50 +667,6 @@ public class OpenApiGenerateApi {
 	}
 
 	private static Map<String, Object> buildSchemaRef(final ClassModel model) {
-		if (model instanceof ClassObjectModel) {
-			final ClassObjectModel objModel = (ClassObjectModel) model;
-			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
-				return buildPrimitiveSchema(objModel.getOriginClasses());
-			}
-			final String name = getSchemaName(objModel);
-			if (name != null) {
-				final Map<String, Object> ref = new LinkedHashMap<>();
-				ref.put("$ref", "#/components/schemas/" + name);
-				return ref;
-			}
-			return buildPrimitiveSchema(objModel.getOriginClasses());
-		}
-		if (model instanceof ClassEnumModel) {
-			final Map<String, Object> ref = new LinkedHashMap<>();
-			ref.put("$ref", "#/components/schemas/" + getSimpleName(model));
-			return ref;
-		}
-		if (model instanceof final ClassPaginationModel paginationModel) {
-			// On the wire a Pagination<T> is the plain item list: the totals travel in the
-			// X-Total-Count and Link headers (see PaginationResponseFilter).
-			final Map<String, Object> schema = new LinkedHashMap<>();
-			schema.put("type", "array");
-			schema.put("items", buildSchemaRef(paginationModel.valueModel));
-			return schema;
-		}
-		if (model instanceof ClassListModel) {
-			final ClassListModel listModel = (ClassListModel) model;
-			final Map<String, Object> schema = new LinkedHashMap<>();
-			schema.put("type", "array");
-			schema.put("items", buildSchemaRef(listModel.valueModel));
-			return schema;
-		}
-		if (model instanceof ClassMapModel) {
-			final ClassMapModel mapModel = (ClassMapModel) model;
-			final Map<String, Object> schema = new LinkedHashMap<>();
-			schema.put("type", "object");
-			schema.put("additionalProperties", buildSchemaRef(mapModel.valueModel));
-			return schema;
-		}
-		return buildPrimitiveSchema(model.getOriginClasses());
-	}
-
-	private static Map<String, Object> buildSchemaForModel(final ClassModel model) {
 		if (model instanceof ClassObjectModel) {
 			final ClassObjectModel objModel = (ClassObjectModel) model;
 			if (objModel.isPrimitive() || isBasicType(objModel.getOriginClasses())) {
