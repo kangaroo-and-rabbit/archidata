@@ -1358,8 +1358,12 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Fills the document to insert with the value of every field of the entity, in declaration order (to
-	 * preserve the field ordering of the {@link Document}).
+	 * Fills the document to insert from the fields of the entity, walked in declaration order (to preserve
+	 * the field ordering of the {@link Document}).
+	 *
+	 * <p>Not every field is written: a regular field without codec, or {@code null} without
+	 * {@code @InitValue}, is left out; a relation field is written by its add-on only if the add-on can
+	 * insert; under {@link DirectData} the timestamps and the deleted flag are not written.
 	 *
 	 * @param <T>              the type of the entity
 	 * @param model            the model of the entity
@@ -1764,8 +1768,8 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Runs the add-ons of the fields an update writes: schedules their asynchronous update and lets them
-	 * complete the {@code $set} and {@code $unset} documents.
+	 * Runs the add-ons of the fields an update writes: schedules the asynchronous update of those that have
+	 * one, and lets those that can insert complete the {@code $set} and {@code $unset} documents.
 	 *
 	 * @param <T>                the type of the entity
 	 * @param model              the model of the entity
@@ -1778,8 +1782,8 @@ public final class DBAccessMongo implements Closeable {
 	 * @param docSet             the {@code $set} document, completed
 	 * @param docUnSet           the {@code $unset} document, completed
 	 * @param asyncActions       the deferred actions, completed
-	 * @return {@code true} if a relation field needing the stored state could not be synchronized because it
-	 *         was not read
+	 * @return {@code true} if the asynchronous update of a relation field that needs the stored state was not
+	 *         scheduled because {@code previousData} is {@code null}
 	 * @throws Exception if an add-on fails or no single {@link TransmitKey} is given for an asynchronous update
 	 */
 	private <T> boolean appendAddonFieldsForUpdate(
