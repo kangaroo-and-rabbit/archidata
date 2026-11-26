@@ -71,22 +71,22 @@ public class TestProtectedFieldUpdate {
 		ConfigureDb.configure();
 		final byte[] aesKey = Base64.getDecoder().decode(EncryptionKeyGenerator.generateAesKeyBase64());
 		EncryptionKeyStore.register(EncryptionKeyStore.DEFAULT_KEY_NAME, new AesGcmCipherProvider(aesKey));
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 	}
 
 	@AfterAll
 	public static void removeDataBase() throws IOException {
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 		EncryptionKeyStore.reset();
 		ConfigureDb.clear();
 	}
 
 	private static ProtectedEntity readAll() throws Exception {
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 		try {
 			return ConfigureDb.da.getById(ProtectedEntity.class, entityId, new ReadAllColumn());
 		} finally {
-			ConfigBaseVariable.setDataDecryptEnable("false");
+			ConfigBaseVariable.setDataDecryptEnabled("false");
 		}
 	}
 

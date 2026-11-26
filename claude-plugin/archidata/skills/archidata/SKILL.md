@@ -45,7 +45,7 @@ rc.register(CORSFilter.class);             // origins from CORS_ALLOWED_ORIGINS
 rc.register(SecurityHeadersFilter.class);  // nosniff, Referrer-Policy, X-Frame-Options, HSTS (https)
 rc.register(MyAuthenticationFilter.class); // subclass of filter.AuthenticationFilter
 GenericCatcher.addAll(rc);                 // catcher.*: JSON errors with the right status
-ContextGenericTools.addJsr310(rc);         // Jackson mapper + ValidGroupInterceptor
+ContextGenericTools.registerArchidataJson(rc);         // Jackson mapper + ValidGroupInterceptor
 rc.register(JacksonFeature.class);
 rc.register(ValidationFeature.class);      // Jersey Bean Validation for @Valid
 rc.register(MyResource.class);
@@ -110,7 +110,7 @@ Current user: `(GenericContext) securityContext.getUserPrincipal()` (`@Context S
 ### Media upload
 Register `api.DataResource` (and Jersey `MultiPartFeature`): `POST /data/upload` (multipart
 field `file`) returns the `ObjectId` of a `model.Data`; files are deduplicated by SHA-512 under
-`ConfigBaseVariable.getMediaDataFolder()`. In your own resource: `DataTools.uploadData(stream, disposition)`,
+`ConfigBaseVariable.getDataFolder()`. In your own resource: `DataTools.uploadData(stream, disposition)`,
 `DataTools.uploadCover(...)`, `uploadDataFromUri` (SSRF-guarded). Docs: `doc/tools.md` (Data files).
 
 ### Client generation (TypeScript, Python, OpenAPI)
@@ -152,7 +152,7 @@ Docs: `doc/backup.md`. Incremental capture of modified documents: `journal.Chang
 
 ## Pitfalls (verified in the code)
 
-- **Launcher**: register `SecurityHeadersFilter` too. Without `ContextGenericTools.addJsr310(rc)`,
+- **Launcher**: register `SecurityHeadersFilter` too. Without `ContextGenericTools.registerArchidataJson(rc)`,
   `@ValidGroup` is silently ignored, dates are serialized differently and `@ApiReadOnly` request
   properties are no longer dropped; without `GenericCatcher.addAll(rc)`, errors are not
   the archidata JSON with the right status.

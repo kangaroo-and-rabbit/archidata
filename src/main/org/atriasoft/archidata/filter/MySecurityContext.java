@@ -22,7 +22,7 @@ import jakarta.ws.rs.core.SecurityContext;
  * Instances are created by {@link AuthenticationFilter} once the token is validated and attached to the
  * request; the principal is a {@link GenericContext}. The resources of archidata ({@code DataResource},
  * {@code BackupResource}) read the user through {@code sc.getUserPrincipal()}, cast to {@link GenericContext}
- * ({@code userByToken}, {@code getUserID()}, {@code getApplicationName()}), and check a role with
+ * ({@code getUserByToken()}, {@code getUserID()}, {@code getApplicationName()}), and check a role with
  * {@link SecurityContext#isUserInRole(String)}; none of them casts the injected {@code SecurityContext} to this
  * class, which {@link GenericContext#getApplicationName()} describes as a proxy.
  * </p>
@@ -86,8 +86,8 @@ public class MySecurityContext implements SecurityContext {
 	 * @return the {@link PartRight} for the role, or {@code null} if the user has no roles
 	 */
 	public PartRight getRightOfRoleInGroup(final String group, final String role) {
-		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getRoleForKey(group, role);
+		if (this.contextPrincipale.getUserByToken() != null) {
+			return this.contextPrincipale.getUserByToken().getRoleForKey(group, role);
 		}
 		return null;
 	}
@@ -98,8 +98,8 @@ public class MySecurityContext implements SecurityContext {
 	 * @return the set of group names, or an empty set if no user is available
 	 */
 	public Set<String> getGroups() {
-		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getGroups();
+		if (this.contextPrincipale.getUserByToken() != null) {
+			return this.contextPrincipale.getUserByToken().getGroups();
 		}
 		return Set.of();
 	}
@@ -111,8 +111,8 @@ public class MySecurityContext implements SecurityContext {
 	 * @return {@code true} if the group exists for the user
 	 */
 	public boolean groupExist(final String group) {
-		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.groupExist(group);
+		if (this.contextPrincipale.getUserByToken() != null) {
+			return this.contextPrincipale.getUserByToken().groupExist(group);
 		}
 		return false;
 	}
@@ -123,15 +123,15 @@ public class MySecurityContext implements SecurityContext {
 	 * @return the user ID, or {@code null} if no user is available
 	 */
 	public Object getUserID() {
-		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getOid();
+		if (this.contextPrincipale.getUserByToken() != null) {
+			return this.contextPrincipale.getUserByToken().getOid();
 		}
 		return null;
 	}
 
 	/** Whether the caller is a trusted device ({@link UserByToken#TYPE_DEVICE}), which never is a {@code USER}. */
 	private boolean isDevice() {
-		final UserByToken user = this.contextPrincipale.userByToken;
+		final UserByToken user = this.contextPrincipale.getUserByToken();
 		return user != null && Integer.valueOf(UserByToken.TYPE_DEVICE).equals(user.getType());
 	}
 
@@ -226,10 +226,10 @@ public class MySecurityContext implements SecurityContext {
 	public Object getRole(final String group) {
 		// Identity and roles of the caller: debugging only, never at INFO.
 		LOGGER.trace("contextPrincipale={}", this.contextPrincipale);
-		if (this.contextPrincipale.userByToken != null) {
-			LOGGER.trace("contextPrincipale.userByToken={}", this.contextPrincipale.userByToken);
-			LOGGER.trace("contextPrincipale.userByToken.roles={}", this.contextPrincipale.userByToken.getRoles());
-			return this.contextPrincipale.userByToken.getRoles().get(group);
+		if (this.contextPrincipale.getUserByToken() != null) {
+			LOGGER.trace("contextPrincipale.userByToken={}", this.contextPrincipale.getUserByToken());
+			LOGGER.trace("contextPrincipale.userByToken.roles={}", this.contextPrincipale.getUserByToken().getRoles());
+			return this.contextPrincipale.getUserByToken().getRoles().get(group);
 		}
 		return null;
 	}
@@ -247,10 +247,10 @@ public class MySecurityContext implements SecurityContext {
 			final String applicationName,
 			final String rightName,
 			final PartRight requiredAccess) {
-		if (this.contextPrincipale.userByToken == null) {
+		if (this.contextPrincipale.getUserByToken() == null) {
 			return false;
 		}
-		final PartRight userRight = this.contextPrincipale.userByToken.getRightForKey(applicationName, rightName);
+		final PartRight userRight = this.contextPrincipale.getUserByToken().getRightForKey(applicationName, rightName);
 		if (userRight == null) {
 			return false;
 		}
@@ -265,8 +265,8 @@ public class MySecurityContext implements SecurityContext {
 	 * @return the {@link PartRight} for the right, or {@code null} if not found
 	 */
 	public PartRight getResourceRight(final String applicationName, final String rightName) {
-		if (this.contextPrincipale.userByToken != null) {
-			return this.contextPrincipale.userByToken.getRightForKey(applicationName, rightName);
+		if (this.contextPrincipale.getUserByToken() != null) {
+			return this.contextPrincipale.getUserByToken().getRightForKey(applicationName, rightName);
 		}
 		return null;
 	}
@@ -288,7 +288,7 @@ public class MySecurityContext implements SecurityContext {
 	 */
 	@Override
 	public String getAuthenticationScheme() {
-		if (this.contextPrincipale.userByToken != null) {
+		if (this.contextPrincipale.getUserByToken() != null) {
 			return "Bearer";
 		}
 		return null;

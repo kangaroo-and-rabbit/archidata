@@ -198,9 +198,16 @@ public class AddOnManyToOneDoc implements DataAccessAddOn {
 	}
 
 	@Override
-	public boolean asDeleteAction(final DbPropertyDescriptor desc) {
+	public boolean hasDeleteAction(final DbPropertyDescriptor desc) {
 		final ManyToOneDoc decorators = desc.getProperty().getAnnotation(ManyToOneDoc.class);
 		return decorators.removeLinkWhenDelete();
+	}
+
+	@Override
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	@SuppressWarnings("removal")
+	public boolean asDeleteAction(final DbPropertyDescriptor desc) {
+		return hasDeleteAction(desc);
 	}
 
 	@Override

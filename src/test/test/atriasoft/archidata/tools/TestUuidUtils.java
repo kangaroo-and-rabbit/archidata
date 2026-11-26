@@ -10,6 +10,7 @@ import org.atriasoft.archidata.tools.UuidUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("removal")
 class TestUuidUtils {
 
 	@Test

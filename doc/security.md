@@ -130,7 +130,7 @@ appRights.put("users", PartRight.READ.getValue());
 rights.put("myapp", appRights);
 
 final String token = JWTWrapper.generateJWToken(
-	userId,          // Object: user ID (must be an ObjectId: AuthenticationFilter rejects other types)
+	userId,          // ObjectId: user ID (the only type AuthenticationFilter accepts)
 	"john.doe",      // String: user login
 	"my-app",        // String: issuer
 	"my-app",        // String: application (also written as the standard "aud" claim)
@@ -350,19 +350,19 @@ public Response getCurrentUser(@Context final SecurityContext sc) {
 	final GenericContext ctx = (GenericContext) sc.getUserPrincipal();
 
 	// Get user's ObjectId
-	final ObjectId userId = ctx.userByToken.getOid();
+	final ObjectId userId = ctx.getUserByToken().getOid();
 
 	// Check group membership (roles)
-	final boolean isAdmin = ctx.userByToken.groupExist("admin");
+	final boolean isAdmin = ctx.getUserByToken().groupExist("admin");
 
 	// Check specific role permissions
-	final PartRight roleRight = ctx.userByToken.getRoleForKey("myapp", "ADMIN");
+	final PartRight roleRight = ctx.getUserByToken().getRoleForKey("myapp", "ADMIN");
 
 	// Check a role the way AuthenticationFilter does (application name, then role)
 	final boolean canWrite = sc.isUserInRole("myapp/ADMIN:w");
 
 	// Get raw resource right value (the `right` claim)
-	final PartRight articlesRight = ctx.userByToken.getRightForKey("myapp", "articles");
+	final PartRight articlesRight = ctx.getUserByToken().getRightForKey("myapp", "articles");
 
 	return Response.ok(da.getById(User.class, userId)).build();
 }
@@ -372,7 +372,7 @@ public Response getCurrentUser(@Context final SecurityContext sc) {
 
 These are the methods of the class that `AuthenticationFilter` attaches to the request. archidata's own resources
 (`DataResource`, `BackupResource`) do not cast the `SecurityContext` they receive through `@Context` to it: they go
-through `getUserPrincipal()` (a `GenericContext`, with `userByToken`, `getUserID()` and `getApplicationName()`) and
+through `getUserPrincipal()` (a `GenericContext`, with `getUserByToken()`, `getUserID()` and `getApplicationName()`) and
 `isUserInRole(...)`, as above. The javadoc of `GenericContext` says the injected `SecurityContext` is a proxy.
 
 #### Role checking (operates on `roles` claim)
@@ -501,7 +501,7 @@ public class ArticleResource {
 	@RolesAllowed("myapp/articles:w")
 	public Article create(final Article data, @Context final SecurityContext sc) throws Exception {
 		final GenericContext ctx = (GenericContext) sc.getUserPrincipal();
-		data.authorId = ctx.userByToken.getOid();
+		data.authorId = ctx.getUserByToken().getOid();
 		final DBAccessMongo da = DBAccessMongo.createInterface();
 		return da.insert(data);
 	}
@@ -844,7 +844,7 @@ describes as a proxy. They read the user through the principal instead:
 
 ```java
 final GenericContext ctx = (GenericContext) securityContext.getUserPrincipal();
-final PartRight level = ctx.userByToken.getRightForKey("myapp", "articles");
+final PartRight level = ctx.getUserByToken().getRightForKey("myapp", "articles");
 ```
 
 ### 7. Test tokens

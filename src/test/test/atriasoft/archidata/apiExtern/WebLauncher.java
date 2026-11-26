@@ -49,7 +49,7 @@ public class WebLauncher {
 	}
 
 	private static URI getBaseURI() {
-		return UriBuilder.fromUri(ConfigBaseVariable.getLocalAddress()).build();
+		return UriBuilder.fromUri(ConfigBaseVariable.getApiAddress()).build();
 	}
 
 	public void migrateDB() throws Exception {
@@ -137,7 +137,7 @@ public class WebLauncher {
 		rc.register(DataAccessTestResource.class);
 		rc.register(DocumentResource.class);
 
-		ContextGenericTools.addJsr310(rc);
+		ContextGenericTools.registerArchidataJson(rc);
 
 		// add jackson to be discover when we are ins standalone server
 		rc.register(JacksonFeature.class);
@@ -148,7 +148,7 @@ public class WebLauncher {
 		// System.out.println("Connect on the BDD:");
 		// System.out.println(" getDBHost: '" + ConfigVariable.getDBHost() + "'");
 		// System.out.println(" getDBPort: '" + ConfigVariable.getDBPort() + "'");
-		// System.out.println(" getDBLogin: '" + ConfigVariable.getDBLogin() + "'");
+		// System.out.println(" getDBUser: '" + ConfigVariable.getDBUser() + "'");
 		// System.out.println(" getDBPassword: '" + ConfigVariable.getDBPassword() +
 		// "'");
 		// System.out.println(" getDBName: '" + ConfigVariable.getDBName() + "'");

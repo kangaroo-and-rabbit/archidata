@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
  * Tests for {@link LambdaAccessorFactory} — verifies that lambda-based property
  * accessors work correctly for various access patterns.
  */
+@SuppressWarnings("removal")
 class TestLambdaAccessorFactory {
 
 	// ===== Test model classes =====

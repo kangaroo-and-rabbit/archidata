@@ -101,6 +101,7 @@ class TestDataTools {
 	}
 
 	@Test
+	@SuppressWarnings("removal")
 	void testSaveFileInputStreamAndReadBack() throws Exception {
 		final String tmpDir = System.getProperty("java.io.tmpdir");
 		final String filePath = tmpDir + "/test_data_tools_is_" + System.currentTimeMillis();
@@ -120,6 +121,7 @@ class TestDataTools {
 	}
 
 	@Test
+	@SuppressWarnings("removal")
 	void testSaveFileBothMethodsProduceSameHash() throws Exception {
 		final String tmpDir = System.getProperty("java.io.tmpdir");
 		final String filePath1 = tmpDir + "/test_dt_hash1_" + System.currentTimeMillis();

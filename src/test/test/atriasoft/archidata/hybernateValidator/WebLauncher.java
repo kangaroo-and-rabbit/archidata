@@ -38,7 +38,7 @@ public class WebLauncher {
 	public WebLauncher() {}
 
 	private static URI getBaseURI() {
-		return UriBuilder.fromUri(ConfigBaseVariable.getLocalAddress()).build();
+		return UriBuilder.fromUri(ConfigBaseVariable.getApiAddress()).build();
 	}
 
 	public void migrateDB() throws Exception {
@@ -114,7 +114,7 @@ public class WebLauncher {
 		// enable jersey specific validations (@Valid
 		rc.register(ValidationFeature.class);
 
-		ContextGenericTools.addJsr310(rc);
+		ContextGenericTools.registerArchidataJson(rc);
 
 		// add jackson to be discover when we are ins standalone server
 		rc.register(JacksonFeature.class);

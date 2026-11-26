@@ -54,12 +54,12 @@ public class WebLauncher {
 		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 		// Default database name when DB_DATABASE is not set.
 		if (ConfigBaseVariable.getDBName() == null) {
-			ConfigBaseVariable.setBdDatabase("sample_basic");
+			ConfigBaseVariable.setDbName("sample_basic");
 		}
 	}
 
 	private static URI getBaseURI() {
-		return UriBuilder.fromUri(ConfigBaseVariable.getLocalAddress()).build();
+		return UriBuilder.fromUri(ConfigBaseVariable.getApiAddress()).build();
 	}
 
 	/** Bring the database to the current version of the model. */
@@ -99,7 +99,7 @@ public class WebLauncher {
 		rc.register(TaskResource.class);
 		// Jackson configured by archidata (java.time, ObjectId...) AND the interceptor that applies
 		// @ValidGroup: without this call @ValidGroup is silently ignored.
-		ContextGenericTools.addJsr310(rc);
+		ContextGenericTools.registerArchidataJson(rc);
 		rc.register(JacksonFeature.class);
 		// Bean Validation of the @Valid parameters.
 		rc.register(ValidationFeature.class);

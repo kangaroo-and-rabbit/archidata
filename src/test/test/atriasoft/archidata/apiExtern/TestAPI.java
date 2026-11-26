@@ -38,7 +38,7 @@ public class TestAPI {
 		LOGGER.info("Start REST (BEGIN)");
 		webInterface.process();
 		LOGGER.info("Start REST (DONE)");
-		api = new RESTApi(ConfigBaseVariable.getLocalAddress());
+		api = new RESTApi(ConfigBaseVariable.getApiAddress());
 		api.setToken(Common.ADMIN_TOKEN);
 	}
 

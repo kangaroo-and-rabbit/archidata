@@ -22,6 +22,7 @@ import test.atriasoft.archidata.ConfigureDb;
  * A per-listener or per-watch FullDocument mode is always ignored: a warning is logged as soon as one is
  * passed, before or after {@code start()}.
  */
+@SuppressWarnings("removal")
 class TestFullDocumentModeWarning {
 	private final Logger managerLogger = (Logger) LoggerFactory.getLogger(ChangeNotificationManager.class);
 	private final ListAppender<ILoggingEvent> appender = new ListAppender<>();

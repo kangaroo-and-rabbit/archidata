@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Usage with ThreadLocal connection (within {@code @DataAccessSingleConnection} context):</p>
  * <pre>
- * try (TransactionContext tx = TransactionContext.getTransactionContext()) {
+ * try (TransactionContext tx = TransactionContext.startTransaction()) {
  *     final DBAccessMongo db = DataAccessConnectionContext.getConnection();
  *     db.insert(entity1);
  *     db.insert(entity2);
@@ -95,8 +95,21 @@ public final class TransactionContext implements AutoCloseable {
 	 * @throws IllegalStateException if the current thread has no {@link DataAccessConnectionContext}
 	 * @throws DataAccessException if a transaction is already active on that connection or cannot be started
 	 */
-	public static TransactionContext getTransactionContext() throws DataAccessException {
+	public static TransactionContext startTransaction() throws DataAccessException {
 		final DBAccessMongo db = DataAccessConnectionContext.getConnection();
 		return new TransactionContext(db);
+	}
+
+	/**
+	 * Starts a transaction on the connection of the current thread.
+	 *
+	 * @return a new TransactionContext wrapping the current thread's connection
+	 * @throws DataAccessException if a transaction is already active on that connection or cannot be started
+	 * @deprecated misleading name: it does not get a context, it starts a transaction. Use
+	 *             {@link #startTransaction()}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static TransactionContext getTransactionContext() throws DataAccessException {
+		return startTransaction();
 	}
 }

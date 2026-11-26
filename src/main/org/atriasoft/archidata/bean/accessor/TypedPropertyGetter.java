@@ -9,8 +9,11 @@ package org.atriasoft.archidata.bean.accessor;
  *
  * @param <T> the bean (instance) type
  * @param <V> the property value type
+ *
+ * @deprecated not used by archidata (only tests call it): use {@link PropertyGetter}.
  */
 @FunctionalInterface
+@Deprecated(since = "0.55.0", forRemoval = true)
 public interface TypedPropertyGetter<T, V> {
 
 	/**

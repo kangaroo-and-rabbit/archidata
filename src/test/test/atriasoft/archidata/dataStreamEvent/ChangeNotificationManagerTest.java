@@ -113,6 +113,7 @@ public class ChangeNotificationManagerTest {
 		assertEquals(FullDocument.UPDATE_LOOKUP, this.manager.getDefaultFullDocumentMode());
 	}
 
+	@SuppressWarnings("removal")
 	@Test
 	@Order(80)
 	public void testComputeEffectiveMode() {
@@ -121,7 +122,7 @@ public class ChangeNotificationManagerTest {
 		this.manager.registerListener(event -> LOGGER.info("Listener 2"), "users", FullDocument.UPDATE_LOOKUP);
 
 		// The effective mode is always the global mode (UPDATE_LOOKUP by default)
-		final FullDocument effectiveMode = this.manager.computeEffectiveMode("users");
+		final FullDocument effectiveMode = this.manager.getDefaultFullDocumentMode();
 		assertEquals(FullDocument.UPDATE_LOOKUP, effectiveMode, "Should always return the global mode");
 	}
 

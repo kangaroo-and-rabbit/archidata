@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
  * the value the constructor gives it. No error is raised, because the fronts often send back the whole
  * object they read (with its id, its timestamps...).
  *
- * <p>Only the JSON provider of the server registers it ({@code ContextGenericTools.addJsr310}). The
+ * <p>Only the JSON provider of the server registers it ({@code ContextGenericTools.registerArchidataJson}). The
  * mappers that read data produced by a server ({@code RESTApiRequest}, backups...) must not: they would
  * lose the read-only fields of the responses. Properties set through a constructor (records,
  * {@code @JsonCreator}) are left untouched.

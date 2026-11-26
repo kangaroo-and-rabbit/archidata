@@ -10,8 +10,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param token the token string value
  * @param createTime timestamp when the token was created
  * @param endValidityTime timestamp when the token expires
+ *
+ * @deprecated not used by archidata: authentication reads {@link UserByToken}. Define the record in your application.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Deprecated(since = "0.55.0", forRemoval = true)
 public record Token(
 		Long id,
 		Long userId,

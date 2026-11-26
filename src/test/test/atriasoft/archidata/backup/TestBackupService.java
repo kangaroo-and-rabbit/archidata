@@ -171,7 +171,7 @@ public class TestBackupService {
 	@BeforeEach
 	public void createFolder() throws IOException {
 		this.folder = Files.createTempDirectory("test_backup_service_");
-		this.previousDataFolder = ConfigBaseVariable.getMediaDataFolder();
+		this.previousDataFolder = ConfigBaseVariable.getDataFolder();
 	}
 
 	@AfterEach

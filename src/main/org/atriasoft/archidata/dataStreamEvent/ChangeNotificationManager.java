@@ -101,7 +101,7 @@ import com.mongodb.client.model.changestream.FullDocument;
  * concurrent collection, so each of those reads is safe but two of them are not a consistent snapshot.
  * Two plain fields, neither volatile, are accessed without the lock: {@code watchAllCollections} reads
  * {@code database}; {@code setDefaultFullDocumentMode} writes {@code globalFullDocumentMode}, and
- * {@code getDefaultFullDocumentMode} and {@code computeEffectiveMode} (so {@code getCollectionModes}
+ * {@code getDefaultFullDocumentMode} (so {@code getCollectionModes}
  * too) read it.
  * </p>
  *
@@ -170,7 +170,7 @@ public class ChangeNotificationManager {
 	// Global FullDocument mode set at startup (applies to all collections).
 	// Plain field. Written with the write lock held by start() and stop(), and WITHOUT lock by
 	// setDefaultFullDocumentMode(); read with the write lock held by start() and startWorkerForCollection(), and
-	// WITHOUT lock by getDefaultFullDocumentMode() and computeEffectiveMode() (so by getCollectionModes()).
+	// WITHOUT lock by getDefaultFullDocumentMode() (so by getCollectionModes()).
 	private FullDocument globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;
 
 	// Lifecycle.
@@ -672,10 +672,10 @@ public class ChangeNotificationManager {
 	 *
 	 * @param listener The listener
 	 * @param mode FullDocument mode (ignored)
-	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener)} and
+	 * @deprecated the mode is ignored (removed with the next minor version); use {@link #registerListener(ChangeNotificationListener)} and
 	 *             choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
-	@Deprecated
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public void registerListener(final ChangeNotificationListener listener, final FullDocument mode) {
 		registerListenerInternal(listener, null, mode, null);
 	}
@@ -713,10 +713,10 @@ public class ChangeNotificationManager {
 	 * @param listener The listener
 	 * @param collectionName Collection name
 	 * @param mode FullDocument mode (ignored)
-	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener, String)}
+	 * @deprecated the mode is ignored (removed with the next minor version); use {@link #registerListener(ChangeNotificationListener, String)}
 	 *             and choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
-	@Deprecated
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public void registerListener(
 			final ChangeNotificationListener listener,
 			final String collectionName,
@@ -760,10 +760,10 @@ public class ChangeNotificationManager {
 	 * @param listener The listener
 	 * @param collectionNames Collection names
 	 * @param mode FullDocument mode (ignored)
-	 * @deprecated the mode is ignored; use {@link #registerListener(ChangeNotificationListener, Set)}
+	 * @deprecated the mode is ignored (removed with the next minor version); use {@link #registerListener(ChangeNotificationListener, Set)}
 	 *             and choose the mode once with {@link #start(MongoDatabase, FullDocument)}.
 	 */
-	@Deprecated
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public void registerListener(
 			final ChangeNotificationListener listener,
 			final Set<String> collectionNames,
@@ -960,7 +960,7 @@ public class ChangeNotificationManager {
 
 	/**
 	 * Gets the effective FullDocument mode for each watched collection. It is the
-	 * global mode (see {@link #computeEffectiveMode(String)}): the modes requested
+	 * global mode (see {@link #getDefaultFullDocumentMode()}): the modes requested
 	 * by the listeners are ignored.
 	 *
 	 * @return An unmodifiable map of collection names to their effective
@@ -969,7 +969,7 @@ public class ChangeNotificationManager {
 	public Map<String, FullDocument> getCollectionModes() {
 		final Map<String, FullDocument> modes = new HashMap<>();
 		for (final String collectionName : this.workers.keySet()) {
-			modes.put(collectionName, computeEffectiveMode(collectionName));
+			modes.put(collectionName, getDefaultFullDocumentMode());
 		}
 		return Collections.unmodifiableMap(modes);
 	}
@@ -1063,17 +1063,17 @@ public class ChangeNotificationManager {
 	 * Gets the effective FullDocument mode for a collection.
 	 *
 	 * <p>
-	 * Since the architecture uses a global mode set at startup, this method
-	 * returns the same mode for all collections regardless of the collection name.
-	 * The mode is defined when calling {@link #start(MongoDatabase, FullDocument)}
-	 * and remains fixed for the lifetime of the application.
+	 * The mode is global: this method returns the same mode for every collection, whatever the name.
+	 * It is the mode given to {@link #start(MongoDatabase, FullDocument)}, or the one set by
+	 * {@link #setDefaultFullDocumentMode(FullDocument)} since.
 	 * </p>
 	 *
-	 * @param collectionName The collection name (parameter kept for backward compatibility)
-	 * @return The global FullDocument mode set at startup
+	 * @param collectionName The collection name (never read)
+	 * @return The global FullDocument mode
+	 * @deprecated the name is never read: use {@link #getDefaultFullDocumentMode()}.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public FullDocument computeEffectiveMode(final String collectionName) {
-		// Mode is now global and fixed at startup
 		return this.globalFullDocumentMode;
 	}
 
@@ -1124,7 +1124,7 @@ public class ChangeNotificationManager {
 		}
 
 		final MongoCollection<org.bson.Document> collection = this.database.getCollection(collectionName);
-		final FullDocument mode = computeEffectiveMode(collectionName);
+		final FullDocument mode = getDefaultFullDocumentMode();
 		final List<Bson> pipeline = this.collectionPipelines.get(collectionName);
 
 		final ChangeStreamWorker worker = new ChangeStreamWorker(collectionName, collection, this, mode, pipeline);

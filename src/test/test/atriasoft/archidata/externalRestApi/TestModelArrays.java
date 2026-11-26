@@ -57,6 +57,7 @@ class TestModelArrays {
 		Assertions.assertEquals(new PairElem(ModeImport.ZOD, true, new Class<?>[] { GroupCreate.class }), pair);
 	}
 
+	@SuppressWarnings("removal")
 	@Test
 	void aConstructorDescriptorKeepsItsParameters() throws Exception {
 		final ClassModel model = ClassModel.of(Sample.class);

@@ -721,7 +721,7 @@ public final class MongoCodecFactory {
 	 * @deprecated nothing is written by the class of its value any more; the type rules are in
 	 *             {@link DeclaredTypeRules}
 	 */
-	@Deprecated(since = "0.51.4")
+	@Deprecated(since = "0.51.4", forRemoval = true)
 	public static boolean isWrittenByRuntimeClass(final TypeInfo typeInfo) {
 		return false;
 	}
@@ -802,9 +802,9 @@ public final class MongoCodecFactory {
 	 * @deprecated the class of the value may be a subclass of the declared type of the field, whose added fields
 	 *             would be written: use
 	 *             {@link #writeEmbeddedVisibleFields(String, DbPropertyDescriptor, Object, Document, Document)},
-	 *             which writes by the declared type
+	 *             which writes by the declared type; nothing calls this one
 	 */
-	@Deprecated(since = "0.51.4")
+	@Deprecated(since = "0.51.4", forRemoval = true)
 	public static void writeEmbeddedVisibleFields(
 			final String path,
 			final Object value,
@@ -902,7 +902,9 @@ public final class MongoCodecFactory {
 	 * @param parentTypeInfo the type of the list, set or map
 	 * @return the type of its elements (values), or {@code null} when it cannot be known (raw type, wildcard,
 	 *         type variable): see {@link DeclaredTypeRules#elementOf(TypeInfo)}
+	 * @deprecated not used by archidata: it only forwards to {@link DeclaredTypeRules#elementOf(TypeInfo)}, use that.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static TypeInfo resolveElementTypeInfo(final TypeInfo parentTypeInfo) {
 		return DeclaredTypeRules.elementOf(parentTypeInfo);
 	}
@@ -912,7 +914,7 @@ public final class MongoCodecFactory {
 	 * type (raw type, wildcard, type variable) gives a writer that refuses the elements.
 	 */
 	private static MongoTypeWriter buildElementWriterFromTypeInfo(final TypeInfo parentTypeInfo, final String site) {
-		final TypeInfo elementTi = resolveElementTypeInfo(parentTypeInfo);
+		final TypeInfo elementTi = DeclaredTypeRules.elementOf(parentTypeInfo);
 		if (elementTi == null) {
 			return refusingWriter(parentTypeInfo);
 		}
@@ -923,7 +925,7 @@ public final class MongoCodecFactory {
 	 * Build a reader for collection/map element types, preserving full generic type info.
 	 */
 	private static MongoTypeReader buildElementReaderFromTypeInfo(final TypeInfo parentTypeInfo) {
-		final TypeInfo elementTi = resolveElementTypeInfo(parentTypeInfo);
+		final TypeInfo elementTi = DeclaredTypeRules.elementOf(parentTypeInfo);
 		if (elementTi == null) {
 			return IDENTITY_R;
 		}

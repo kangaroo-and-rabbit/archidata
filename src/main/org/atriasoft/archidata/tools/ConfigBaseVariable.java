@@ -41,9 +41,9 @@ public class ConfigBaseVariable {
 	private static String dbTls;
 	private static String dbAuthSource;
 	private static String dbPassword;
-	private static String bdDatabase;
-	private static String apiAdress;
-	private static String ssoAdress;
+	private static String dbName;
+	private static String apiAddress;
+	private static String ssoAddress;
 	private static String ssoToken;
 	private static String ssoAllowInsecure;
 	private static String testMode;
@@ -229,12 +229,22 @@ public class ConfigBaseVariable {
 	}
 
 	/**
-	 * Sets the database name.
+	 * Sets the database name ({@code DB_DATABASE}).
 	 * @param value the new database name
 	 */
-	public static void setBdDatabase(final String value) {
+	public static void setDbName(final String value) {
 		checkNotLocked("bdDatabase");
-		bdDatabase = value;
+		dbName = value;
+	}
+
+	/**
+	 * Sets the database name ({@code DB_DATABASE}).
+	 * @param value the new database name
+	 * @deprecated misspelt name, use {@link #setDbName(String)}, the counterpart of {@link #getDBName()}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static void setBdDatabase(final String value) {
+		setDbName(value);
 	}
 
 	/**
@@ -243,7 +253,7 @@ public class ConfigBaseVariable {
 	 */
 	public static void setApiAddress(final String value) {
 		checkNotLocked("apiAdress");
-		apiAdress = value;
+		apiAddress = value;
 	}
 
 	/**
@@ -252,7 +262,7 @@ public class ConfigBaseVariable {
 	 */
 	public static void setSsoAddress(final String value) {
 		checkNotLocked("ssoAdress");
-		ssoAdress = value;
+		ssoAddress = value;
 	}
 
 	/**
@@ -341,9 +351,19 @@ public class ConfigBaseVariable {
 	 * Enables or disables the decryption of {@code @DataEncrypt} fields on read.
 	 * @param value {@code "true"} to allow decryption, anything else (or {@code null}) to forbid it.
 	 */
-	public static void setDataDecryptEnable(final String value) {
+	public static void setDataDecryptEnabled(final String value) {
 		checkNotLocked("dataDecryptEnable");
 		dataDecryptEnable = value;
+	}
+
+	/**
+	 * Enables or disables the decryption of {@code @DataEncrypt} fields on read.
+	 * @param value {@code "true"} to allow decryption, anything else (or {@code null}) to forbid it.
+	 * @deprecated use {@link #setDataDecryptEnabled(String)}, the counterpart of {@link #getDataDecryptEnabled()}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static void setDataDecryptEnable(final String value) {
+		setDataDecryptEnabled(value);
 	}
 
 	/**
@@ -404,9 +424,9 @@ public class ConfigBaseVariable {
 		dbTls = System.getenv("DB_TLS");
 		dbAuthSource = System.getenv("DB_AUTH_SOURCE");
 		dbPassword = readSecret("DB_PASSWORD");
-		bdDatabase = System.getenv("DB_DATABASE");
-		apiAdress = System.getenv("API_ADDRESS");
-		ssoAdress = System.getenv("SSO_ADDRESS");
+		dbName = System.getenv("DB_DATABASE");
+		apiAddress = System.getenv("API_ADDRESS");
+		ssoAddress = System.getenv("SSO_ADDRESS");
 		ssoToken = readSecret("SSO_TOKEN");
 		ssoAllowInsecure = System.getenv("SSO_ALLOW_INSECURE");
 		testMode = System.getenv("TEST_MODE");
@@ -472,11 +492,21 @@ public class ConfigBaseVariable {
 	 * Returns the media data folder path, defaulting to {@code "./data/media"}.
 	 * @return The media data folder path.
 	 */
-	public static String getMediaDataFolder() {
+	public static String getDataFolder() {
 		if (dataFolder == null) {
 			return "./data/media";
 		}
 		return dataFolder;
+	}
+
+	/**
+	 * Returns the media data folder path, defaulting to {@code "./data/media"}.
+	 * @return The media data folder path.
+	 * @deprecated use {@link #getDataFolder()}, the counterpart of {@link #setDataFolder(String)}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String getMediaDataFolder() {
+		return getDataFolder();
 	}
 
 	/**
@@ -526,11 +556,21 @@ public class ConfigBaseVariable {
 	 * Returns the database login user name, defaulting to {@code "root"}.
 	 * @return The database login user name.
 	 */
-	public static String getDBLogin() {
+	public static String getDBUser() {
 		if (dbUser == null) {
 			return "root";
 		}
 		return dbUser;
+	}
+
+	/**
+	 * Returns the database login user name, defaulting to {@code "root"}.
+	 * @return The database login user name.
+	 * @deprecated use {@link #getDBUser()}, the counterpart of {@link #setDbUser(String)} ({@code DB_USER}).
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String getDBLogin() {
+		return getDBUser();
 	}
 
 	/**
@@ -551,7 +591,7 @@ public class ConfigBaseVariable {
 	 * @return The database name.
 	 */
 	public static String getDBName() {
-		return bdDatabase;
+		return dbName;
 	}
 
 	/**
@@ -586,11 +626,21 @@ public class ConfigBaseVariable {
 	 * Returns the local API address, defaulting to {@code "http://localhost:80/api/"}.
 	 * @return The local API address.
 	 */
-	public static String getLocalAddress() {
-		if (apiAdress == null) {
+	public static String getApiAddress() {
+		if (apiAddress == null) {
 			return "http://localhost:80/api/";
 		}
-		return apiAdress;
+		return apiAddress;
+	}
+
+	/**
+	 * Returns the local API address, defaulting to {@code "http://localhost:80/api/"}.
+	 * @return The local API address.
+	 * @deprecated use {@link #getApiAddress()}, the counterpart of {@link #setApiAddress(String)} ({@code API_ADDRESS}).
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String getLocalAddress() {
+		return getApiAddress();
 	}
 
 	/**
@@ -598,15 +648,25 @@ public class ConfigBaseVariable {
 	 * @return The SSO server address.
 	 */
 	public static String getSSOAddress() {
-		return ssoAdress;
+		return ssoAddress;
 	}
 
 	/**
 	 * Returns the SSO authentication token, or {@code null} if not configured.
 	 * @return The SSO token.
 	 */
-	public static String ssoToken() {
+	public static String getSSOToken() {
 		return ssoToken;
+	}
+
+	/**
+	 * Returns the SSO authentication token, or {@code null} if not configured.
+	 * @return The SSO token.
+	 * @deprecated use {@link #getSSOToken()}: the only getter of this class without the {@code get} prefix.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static String ssoToken() {
+		return getSSOToken();
 	}
 
 	/**
@@ -652,20 +712,44 @@ public class ConfigBaseVariable {
 	}
 
 	/**
-	 * Returns the registered database interface classes.
+	 * Returns the database interface classes carried to {@link org.atriasoft.archidata.db.DbConfig}.
+	 *
+	 * <p>The list does not register any model: archidata only compares it in {@code DbConfig.equals}.</p>
 	 * @return A copy of the array of database interface classes.
 	 */
-	public static Class<?>[] getBbInterfacesClasses() {
+	public static Class<?>[] getDbInterfacesClasses() {
 		return dbInterfacesClasses == null ? null : dbInterfacesClasses.clone();
 	}
 
 	/**
-	 * Sets the database interface classes for data access registration.
-	 * @param data The array of database interface classes to register, copied.
+	 * Returns the database interface classes.
+	 * @return A copy of the array of database interface classes.
+	 * @deprecated misspelt name, use {@link #getDbInterfacesClasses()}.
 	 */
-	public static void setBbInterfacesClasses(final Class<?>[] data) {
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static Class<?>[] getBbInterfacesClasses() {
+		return getDbInterfacesClasses();
+	}
+
+	/**
+	 * Sets the database interface classes carried to {@link org.atriasoft.archidata.db.DbConfig}.
+	 *
+	 * <p>The list does not register any model: archidata only compares it in {@code DbConfig.equals}.</p>
+	 * @param data The array of database interface classes, copied.
+	 */
+	public static void setDbInterfacesClasses(final Class<?>[] data) {
 		checkNotLocked("dbInterfacesClasses");
 		dbInterfacesClasses = data == null ? null : data.clone();
+	}
+
+	/**
+	 * Sets the database interface classes.
+	 * @param data The array of database interface classes, copied.
+	 * @deprecated misspelt name, use {@link #setDbInterfacesClasses(Class[])}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public static void setBbInterfacesClasses(final Class<?>[] data) {
+		setDbInterfacesClasses(data);
 	}
 
 	/**

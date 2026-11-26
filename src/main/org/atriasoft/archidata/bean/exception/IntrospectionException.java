@@ -2,7 +2,8 @@ package org.atriasoft.archidata.bean.exception;
 
 /**
  * Exception thrown when an error occurs during bean introspection,
- * such as type conflicts, inaccessible members, or lambda generation failures.
+ * such as type conflicts, inaccessible members, or a failed instantiation. A failure to generate an accessor
+ * lambda is not thrown: the factory logs it at debug level and falls back to a {@code MethodHandle}.
  */
 public class IntrospectionException extends Exception {
 

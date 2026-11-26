@@ -10,7 +10,12 @@ import org.atriasoft.archidata.model.UserByToken;
  */
 public class GenericContext implements Principal {
 
-	/** The user token data associated with this principal. */
+	/**
+	 * The user token data associated with this principal.
+	 * @deprecated public mutable field: any resource could replace the identity of the request. Read it through
+	 *             {@link #getUserByToken()}; the field becomes private.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public UserByToken userByToken;
 	private final String applicationName;
 
@@ -44,6 +49,15 @@ public class GenericContext implements Principal {
 	 */
 	public String getApplicationName() {
 		return this.applicationName;
+	}
+
+	/**
+	 * Returns the user token data associated with this principal.
+	 *
+	 * @return the authenticated user's token data, or {@code null} if no user is available
+	 */
+	public UserByToken getUserByToken() {
+		return this.userByToken;
 	}
 
 	/**

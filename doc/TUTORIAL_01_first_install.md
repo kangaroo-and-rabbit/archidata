@@ -276,7 +276,7 @@ public void process() throws Exception {
 	rc.register(SampleAuthenticationFilter.class);
 	GenericCatcher.addAll(rc);
 	rc.register(TaskResource.class);
-	ContextGenericTools.addJsr310(rc);
+	ContextGenericTools.registerArchidataJson(rc);
 	rc.register(JacksonFeature.class);
 	rc.register(ValidationFeature.class);
 
@@ -292,7 +292,7 @@ public void process() throws Exception {
 | `OptionFilter`, `CORSFilter` | Answer the CORS pre-flight `OPTIONS` requests, add the CORS headers. |
 | `SampleAuthenticationFilter` | JWT check and access annotations. Without it, `@RolesAllowed` is ignored. |
 | `GenericCatcher.addAll(rc)` | All the exception catchers: errors become JSON with the right status. |
-| `ContextGenericTools.addJsr310(rc)` | archidata's Jackson mapper (java.time, ObjectId) **and** the `@ValidGroup` interceptor. Without it, `@ValidGroup` is silently ignored. |
+| `ContextGenericTools.registerArchidataJson(rc)` | archidata's Jackson mapper (java.time, ObjectId) **and** the `@ValidGroup` interceptor. Without it, `@ValidGroup` is silently ignored. |
 | `ValidationFeature` | Bean Validation of the `@Valid` parameters. |
 | `UpdateJwtPublicKey` | Thread fetching the JWT public key from `SSO_ADDRESS`; stops at once when it is not set. Started by `startJwtKeyUpdater()`, before the server. |
 
@@ -307,7 +307,7 @@ configuration:
 | `DB_PORT` | `setDbPort` | `27017` |
 | `DB_USER` | `setDbUser` | `root` |
 | `DB_PASSWORD` | `setDbPassword` | none: **mandatory** |
-| `DB_DATABASE` | `setBdDatabase` | none (the sample sets `sample_basic`) |
+| `DB_DATABASE` | `setDbName` | none (the sample sets `sample_basic`) |
 | `API_ADDRESS` | `setApiAddress` | `http://localhost:80/api/` (address the server listens on) |
 | `SSO_ADDRESS` | `setSsoAddress` | none |
 

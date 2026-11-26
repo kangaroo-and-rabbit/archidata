@@ -21,7 +21,7 @@ getter that applies the default.
 
 ```java
 ConfigBaseVariable.setDbHost("mongo.internal");   // overrides DB_HOST
-ConfigBaseVariable.setBdDatabase("my_app");
+ConfigBaseVariable.setDbName("my_app");
 ConfigBaseVariable.setDbPassword(secret);
 // ... start the server, then freeze the configuration:
 ConfigBaseVariable.lock();
@@ -36,32 +36,32 @@ as text.
 | Environment variable | Setter | Getter | Default | Role |
 |---|---|---|---|---|
 | `DATA_TMP_FOLDER` | `setTmpDataFolder` | `getTmpDataFolder()` | `./data/tmp` | folder of the temporary uploads |
-| `DATA_FOLDER` | `setDataFolder` | `getMediaDataFolder()` | `./data/media` | folder of the stored media files (also the folder saved by the [backup](backup.md)) |
+| `DATA_FOLDER` | `setDataFolder` | `getDataFolder()` | `./data/media` | folder of the stored media files (also the folder saved by the [backup](backup.md)) |
 | `DB_ABLE_TO_CREATE` | `setDbAbleToCreate` | `getDBAbleToCreate()` | `true` | whether the database may be created automatically. See the pitfall below: no code of the library reads it |
 | `DB_HOST` | `setDbHost` | `getDBHost()` | `localhost` | MongoDB host |
 | `DB_PORT` | `setDbPort` | `getDBPort()` (`int`) | `27017` | MongoDB port |
-| `DB_USER` | `setDbUser` | `getDBLogin()` | `root` | MongoDB user. `root` is the cluster administrator: a WARN is written once; prefer an account with the `readWrite` role on the application database only |
+| `DB_USER` | `setDbUser` | `getDBUser()` | `root` | MongoDB user. `root` is the cluster administrator: a WARN is written once; prefer an account with the `readWrite` role on the application database only |
 | `DB_PASSWORD` or `DB_PASSWORD_FILE` | `setDbPassword` | `getDBPassword()` | none: **throws `IllegalStateException`** when unset | MongoDB password (see [Secrets](#secrets)) |
-| `DB_DATABASE` | `setBdDatabase` | `getDBName()` | none (`null`) | database name |
+| `DB_DATABASE` | `setDbName` | `getDBName()` | none (`null`) | database name |
 | `DB_KEEP_CONNECTED` | `setDbKeepConnected` | `getDBKeepConnected()` | `false` | keep the connection open between operations (see [Connection management](connectionManagement.md)) |
 | `DB_TLS` | `setDbTls` | `getDBTls()` | `false` | `true` adds `tls=true` to the connection URL (`DbConfig.setTls` per configuration) |
 | `DB_AUTH_SOURCE` | `setDbAuthSource` | `getDBAuthSource()` | none: `admin` for `root`, the driver default otherwise | authentication database of the account (`DbConfig.setAuthSource` per configuration) |
-| `API_ADDRESS` | `setApiAddress` | `getLocalAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
+| `API_ADDRESS` | `setApiAddress` | `getApiAddress()` | `http://localhost:80/api/` | base URL the server listens on; also the base URL of the clients built in tests |
 | `SSO_ADDRESS` | `setSsoAddress` | `getSSOAddress()` | none (`null`) | URL of the SSO that publishes the JWT public key (`UpdateJwtPublicKey`, `JWTWrapper.initLocalTokenRemote`); must be `https://` unless the host is a loopback one or `SSO_ALLOW_INSECURE` is `true` |
 | `SSO_ALLOW_INSECURE` | (`JWTWrapper.setAllowInsecureSsoAddress`) | `getSsoAllowInsecure()` | `false` | `true` accepts an `http://` `SSO_ADDRESS` to any host (trusted private network only, WARN at startup); without it such an address stops the startup |
-| `SSO_TOKEN` or `SSO_TOKEN_FILE` | `setSsoToken` | `ssoToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
+| `SSO_TOKEN` or `SSO_TOKEN_FILE` | `setSsoToken` | `getSSOToken()` | none (`null`) | token sent to the SSO when fetching its public key (header `ApiKey`, never logged) |
 | `TEST_MODE` | `setTestMode` | `getTestMode()` | `false` | test flag, exposed by the health check of the applications |
 | `EMAIL_FROM`, `EMAIL_LOGIN`, `EMAIL_PASSWORD` or `EMAIL_PASSWORD_FILE` | `setEMailFrom`, `setEMailLogin`, `setEMailPassword` | `getEMailConfig()` | none | outgoing mail account. The getter returns a record `EMailConfig(from, login, password)`, or `null` unless **all three** are set |
 | `THUMBNAIL_FORMAT` | `setThumbnailFormat` | `getThumbnailFormat()` | `png` | format of the generated thumbnails |
 | `THUMBNAIL_WIDTH` | `setThumbnailWidth` | `getThumbnailWidth()` (`int`) | `256` | width in pixels of the thumbnails |
-| `DATA_DECRYPT_ENABLE` | `setDataDecryptEnable` | `getDataDecryptEnabled()` | `false` | allow the decryption of `@DataEncrypt` fields on read; when off the field comes back unset (see [Field encryption](field_encryption.md)) |
+| `DATA_DECRYPT_ENABLE` | `setDataDecryptEnabled` | `getDataDecryptEnabled()` | `false` | allow the decryption of `@DataEncrypt` fields on read; when off the field comes back unset (see [Field encryption](field_encryption.md)) |
 | `DATA_ENCRYPT_KEY` or `DATA_ENCRYPT_KEY_FILE` | `setEncryptDefaultKey(byte[])` | `getEncryptDefaultKey()` | none | key material of the logical key `default`. The `_FILE` variant holds the path of a file (Docker secret) and wins over the inline value |
 | `DATA_ENCRYPT_KEYS_DIR` | `setEncryptKeysDir` | `getEncryptKeysDir()` | none | folder scanned for additional named keys |
 | `QUERY_STATISTICS_FILE` | `setQueryStatisticsFile` | `getQueryStatisticsFile()` | none (mode off) | enables the [query statistics](statistics.md); path of the report |
 | `QUERY_STATISTICS_PERIOD` | `setQueryStatisticsPeriod` | `getQueryStatisticsPeriod()` | `*/10 * * * *` | cron expression of the report flush |
 | `CORS_ALLOWED_ORIGINS` | `setCorsAllowedOrigins` | `getCorsAllowedOrigins()` (`List<String>`) | none (`null`) | origins allowed by `CORSFilter`, comma separated; unset: any origin, without credentials (see [security](security.md#cors)) |
 | `API_DOC_ENABLED` | `setApiDocEnabled` | `getApiDocEnabled()` (`boolean`) | `false` | serve the OpenAPI specification and Swagger UI (`openApiResource`, `SwaggerUiExternal`); otherwise they answer 404 |
-| (none) | `setBbInterfacesClasses(Class<?>[])` | `getBbInterfacesClasses()` | empty array | the entity classes the data layer manages (used by `DbConfig`) |
+| (none) | `setDbInterfacesClasses(Class<?>[])` | `getDbInterfacesClasses()` | empty array | a list carried to `DbConfig` and compared in its `equals`; it registers no model (`DbConfig.getClasses()` is deprecated) |
 
 Empty strings are treated as "unset" only for the thumbnail and query-statistics
 values and the encryption key; for the others an empty variable is a value.
@@ -148,7 +148,7 @@ and by server-to-server calls. It serializes with the archidata
 `OffsetDateTime` use the same format as on the server.
 
 ```java
-final RESTApi api = new RESTApi(ConfigBaseVariable.getLocalAddress());
+final RESTApi api = new RESTApi(ConfigBaseVariable.getApiAddress());
 api.setToken(jwt);                                  // "Authorization: Bearer <jwt>"
 
 final Article created = api.request("articles").post().bodyJson(newArticle).fetch(Article.class);
@@ -215,8 +215,8 @@ Identifiers and text
 | Method | Role |
 |---|---|
 | `nextUUID()` | next UUID of the process-wide generator |
-| `asUuid(BigInteger)`, `asUuid(byte[])` (16 bytes, else `DataAccessException`) | build a `UUID` |
-| `asBytes(UUID)` | the 16 bytes |
+| `asUuid(BigInteger)`, `asUuid(byte[])` (16 bytes, else `DataAccessException`) | build a `UUID` (deprecated: not used by archidata) |
+| `asBytes(UUID)` | the 16 bytes (deprecated: not used by archidata) |
 
 The generator builds time-based UUIDs: the most significant half is the number
 of milliseconds since the process started (strictly increasing, one per call
@@ -233,7 +233,9 @@ by creation time.
 
 `randGeneratedStr(int length)` (letters, digits, accented letters and a few
 punctuation characters) and `generateToken(int length)` (ASCII letters, digits,
-`_` and `-` only, URL-safe). Both use `SecureRandom`.
+`_` and `-` only, URL-safe). Both use `SecureRandom`. The class is deprecated
+for removal: archidata does not use it, draw the characters from your own
+`SecureRandom`.
 
 ### `DateTools`
 
@@ -261,7 +263,7 @@ JSON and validation
   written as ISO strings, the archidata modules (`ObjectId`, `Date`,
   `OffsetDateTime`, BSON `Document`) and `JavaTimeModule`. The backup, the JWT
   wrapper and the REST client use it.
-- `ContextGenericTools.addJsr310(ResourceConfig)`: registers that mapper as the
+- `ContextGenericTools.registerArchidataJson(ResourceConfig)`: registers that mapper as the
   Jersey JSON provider and registers `ValidGroupInterceptor`. Call it in every
   server launcher.
 - `ValidationProxy.create(Class<I> interface, T target)`: wraps `target` in a
@@ -282,17 +284,19 @@ creates its file atomically, so two uploads never share a temporary file; a
 caller that does not move the file removes it with `removeTemporaryFile(id)`.
 
 - Folders and temporary files: `createFolder`, `getTmpDataId`, `getTmpFileInData`,
-  `getTmpFolder`, `saveTemporaryFile(InputStream | byte[], long id)`,
-  `removeTemporaryFile`, `saveFile(InputStream | byte[], String path)`. The
-  bounded variants `saveTemporaryFile(InputStream, long id, long maxSize)` and
+  `getTmpFolder`, `saveTemporaryFile(byte[], long id)`, `removeTemporaryFile`,
+  `saveFile(byte[], String path)`. The bounded stream variants
+  `saveTemporaryFile(InputStream, long id, long maxSize)` and
   `saveFile(InputStream, String path, long maxSize)` throw a `FailException`
   (HTTP 413) and remove the file when the stream is larger than `maxSize`: use
-  them for any stream that comes from a client.
+  them for any stream that comes from a client. `saveTemporaryFile(InputStream, long)` is unbounded and meant for streams the
+  server itself produces (it answers `""` on an I/O error); `saveFile(InputStream, String)`
+  is deprecated for removal in favour of `saveFile(InputStream, String, long)`.
 - Upload limit: `setMaxUploadSize(long)` / `getMaxUploadSize()` (default
   `DEFAULT_MAX_UPLOAD_SIZE`, 1 GiB) bound `uploadData` and `uploadCover`, hence
   `POST /data/upload`. Every upload entry point removes its temporary file in a
   `finally` (refused type, data already stored, error).
-- `Data` records: `getWithSha512`, `getWithId`, `createNewData` (two overloads,
+- `Data` records: `getWithSha512`, `createNewData` (two overloads,
   the short one deduces the MIME type from the extension), `undelete`.
 - Upload entry points: `uploadData(InputStream, FormDataContentDisposition)`,
   `uploadDataFromUri(String url)`, `uploadCover(...)`, `uploadCoverFromUri(...)`.
@@ -307,10 +311,11 @@ caller that does not move the file removes it with `removeTemporaryFile(id)`.
   (`detectAcceptedMimeType(path, accepted)`, HTTP 406 otherwise).
 - Type detection: `getMimeType(byte[])`, `getMimeTypeFromFile(String)`,
   `bytesToHex`, `multipartCorrection`, and the constants: the immutable lists
-  `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg), `SUPPORTED_AUDIO_MIME_TYPE`,
-  `SUPPORTED_VIDEO_MIME_TYPE`, `SUPPORTED_UPLOAD_MIME_TYPES`, then `MIME_SVG`,
-  `CHUNK_SIZE` (1 MiB), `CHUNK_SIZE_IN` (50 MiB, deprecated and unused: the
-  copies use a 64 KiB buffer).
+  `SUPPORTED_IMAGE_MIME_TYPE` (jpeg, png, webp, svg),
+  `SUPPORTED_UPLOAD_MIME_TYPES`, then `MIME_SVG`, `CHUNK_SIZE` (1 MiB) and
+  `CHUNK_SIZE_IN` (50 MiB, deprecated for removal and unused: the copies use a
+  64 KiB buffer). `SUPPORTED_AUDIO_MIME_TYPE` and `SUPPORTED_VIDEO_MIME_TYPE` are
+  deprecated for removal: no upload checks them.
 
 SVG stays accepted for upload: rendered with `<img>`, it does not run scripts.
 Opening its URL directly would run them on the origin of the API, so
@@ -405,5 +410,5 @@ Pitfalls
   setters.
 - After `lock()`, any setter call throws. Tests that change the configuration
   between runs must call `allowReconfiguration(true)` before the first `lock()`.
-- `getLocalAddress()` ends with a slash by default. `RESTApi` strips trailing
+- `getApiAddress()` ends with a slash by default. `RESTApi` strips trailing
   slashes from the base URL, so both forms work with it.

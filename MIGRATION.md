@@ -1,5 +1,124 @@
 # Migration Guide
 
+## Prochaine version (après v0.54.4) - Membres publics dépréciés (retrait à la version mineure suivante)
+
+Rien n'est supprimé ni renommé sur place : chaque membre ci-dessous reste utilisable et porte
+`@Deprecated(since = "0.55.0", forRemoval = true)` (un membre déjà déprécié garde son `since` d'origine et reçoit
+`forRemoval = true`). Le compilateur signale (« deprecated and marked for removal ») les appels à migrer ; ils seront
+supprimés à la version mineure suivante. Archidata appelle désormais les nouveaux noms : voir le paragraphe sur les
+redéfinitions ci-dessous. `JWTWrapper.generateJWToken(Object, ...)` et `generateJWToken(ObjectId, ...)` sont deux
+surcharges distinctes : un appel dont l'argument est typé `Object` ou `Long` reste sur l'ancienne.
+
+### Renommés : l'ancien nom délègue au nouveau
+
+`tools` :
+
+- `ConfigBaseVariable.setBdDatabase(String)` : `setDbName(String)` (variable `DB_DATABASE`, pendant de `getDBName()`).
+- `ConfigBaseVariable.getDBLogin()` : `getDBUser()` (variable `DB_USER`, pendant de `setDbUser`).
+- `ConfigBaseVariable.getMediaDataFolder()` : `getDataFolder()` (variable `DATA_FOLDER`, pendant de `setDataFolder`).
+- `ConfigBaseVariable.getLocalAddress()` : `getApiAddress()` (variable `API_ADDRESS`, pendant de `setApiAddress`).
+- `ConfigBaseVariable.ssoToken()` : `getSSOToken()`.
+- `ConfigBaseVariable.setDataDecryptEnable(String)` : `setDataDecryptEnabled(String)` (pendant de `getDataDecryptEnabled()`).
+- `ConfigBaseVariable.getBbInterfacesClasses()` / `setBbInterfacesClasses(Class[])` : `getDbInterfacesClasses()` /
+  `setDbInterfacesClasses(Class[])`. Cette liste n'enregistre aucun modèle : elle est seulement transmise à `DbConfig`.
+- `ContextGenericTools.addJsr310(ResourceConfig)` : `registerArchidataJson(ResourceConfig)`. Le nom disait JSR-310, mais
+  l'appel enregistre aussi le fournisseur JSON, le filtre `@ApiReadOnly` et `ValidGroupInterceptor`.
+- `JWTWrapper.generateJWToken(Object userID, ...)` (deux surcharges) : les surcharges `generateJWToken(ObjectId userID, ...)`.
+  `AuthenticationFilter` ne lit que des `ObjectId` : un `Long` donnait un jeton refusé, tout autre type donnait `null`.
+
+`dataAccess` :
+
+- `TransactionContext.getTransactionContext()` : `TransactionContext.startTransaction()` (il démarre une transaction, il ne
+  « récupère » rien ; même nom que `DBAccessMongo.startTransaction()`).
+- `DataAccessAddOn.asDeleteAction(DbPropertyDescriptor)` : `hasDeleteAction(DbPropertyDescriptor)`. Le nouveau appelle l'ancien
+  par défaut : un add-on d'application qui redéfinit encore `asDeleteAction` continue de fonctionner.
+- `AddOnManyToManyDoc.canRetreiveAnWrite(DbPropertyDescriptor)` : `canRetrieveAndWrite(DbPropertyDescriptor)`.
+- Champ public `OptionRenameColumn.ColumnNewName` : `getNewName()`.
+- Champs publics `FilterValue.filterValue` et `FilterOmit.filterValue` : `getValues()`.
+
+`api` / `filter` :
+
+- `DataAccessRetentionConnectionFilter.lock()` et `unlock()` : `openConnection()` et `closeConnection()` (ils ouvrent et
+  ferment une connexion, aucun verrou n'est posé).
+- Champ public `GenericContext.userByToken` : `getUserByToken()`.
+
+`dataStreamEvent` :
+
+- `ChangeNotificationManager.computeEffectiveMode(String)` : `getDefaultFullDocumentMode()` (le nom de la collection n'est jamais
+  lu, le mode est global).
+
+**Redéfinitions** : archidata appelle les nouveaux noms, donc une sous-classe qui redéfinit un ancien nom n'est plus
+appelée par archidata et doit redéfinir le nouveau : `DataAccessRetentionConnectionFilter.lock()` / `unlock()`
+(`openConnection()` / `closeConnection()`), `AddOnManyToOneDoc.asDeleteAction` et `AddOnOneToManyDoc.asDeleteAction`
+(`hasDeleteAction`), `AddOnManyToManyDoc.canRetreiveAnWrite` (`canRetrieveAndWrite`) et
+`ChangeNotificationManager.computeEffectiveMode` (`getDefaultFullDocumentMode`). Seul `DataAccessAddOn.hasDeleteAction`
+rappelle `asDeleteAction` par défaut : un add-on d'application qui redéfinit `asDeleteAction` continue de fonctionner.
+
+### Inutilisés par archidata : à retirer ou à remplacer par du code de l'application
+
+`tools` :
+
+- `DataTools.getWithId(DBAccessMongo, long)` : lire par `ObjectId` avec `ioDb.get(Data.class, ...)`, ou `getWithSha512`.
+- `DataTools.saveFile(InputStream, String)` : `saveFile(InputStream, String, long maxSize)`, qui borne la copie.
+- `DataTools.SUPPORTED_AUDIO_MIME_TYPE`, `DataTools.SUPPORTED_VIDEO_MIME_TYPE`, `DataTools.CHUNK_SIZE_IN` : sans remplaçant.
+- `StringTools` (`randGeneratedStr`, `generateToken`) et `UuidUtils.asUuid(BigInteger)`, `asUuid(byte[])`, `asBytes(UUID)` :
+  sans remplaçant (un `SecureRandom` ou `new UUID(msb, lsb)` suffisent).
+
+`dataAccess` :
+
+- `DataAccess.getTableIdCondition(...)` et `DataAccess.conditionFusionOrEmpty(...)` : calculs purs qui ouvrent une connexion pour
+  rien ; les méthodes d'instance de `DBAccessMongo` font la même chose sur une connexion déjà ouverte.
+- `AddOnFieldContext.getRemoteField()`, `getTargetPk()` et `isRemoveLinkWhenDelete()` : les add-ons lisent l'annotation.
+  `getRemoteFieldColumn()` et `getTargetPkColumn()` restent.
+- `DbClassModel.getAsyncUpdateFields()` : `DBAccessMongo` parcourt `getAddonFields()`.
+- `MongoCodecFactory.isWrittenByRuntimeClass(TypeInfo)` (toujours `false`),
+  `MongoCodecFactory.writeEmbeddedVisibleFields(String, Object, Document, Document)` et
+  `MongoCodecFactory.resolveElementTypeInfo(TypeInfo)` : `DeclaredTypeRules` (`elementOf`) et la variante de
+  `writeEmbeddedVisibleFields` qui prend un `DbPropertyDescriptor`.
+
+`annotation` / `bean` / `model` :
+
+- `ApiAsyncType.tsComplement()` : sans remplaçant (aucun générateur ne la lit).
+- `AnnotationTools` : `hasAnnotation(Class, Class)`, les trois `gets(...)`, `getCollectionItemNotNull`,
+  `getCollectionItemUnique`, `getCollectionNotEmpty` (`get(Field, Class)`), `isAnnotationGroup`, `getConstraintsNotNull`,
+  `getPrimaryKeyField`, `getIdField`, `getFieldOfId` (trois recherches identiques de la clé primaire),
+  `getDeletedFieldName(Class)` (`DbClassModel.getDeletedFieldName()`), `getUpdatedFieldName`, `hasFieldsName`, `getFieldNamed`,
+  `getEditableFieldsNames` et `getAllFieldsNames` (`getFieldsNamesFilter(Class, boolean)`).
+- `Token` : sans remplaçant, à définir dans l'application.
+- `bean` : `ClassModel.isInnerClass()`, `getConstructors()`, `getDefaultConstructor()`, `hasClassAnnotation(Class)`,
+  `getClassAnnotation(Class)`, `findPropertyWithAnnotation(Class)`, `findPropertiesWithAnnotation(Class)`,
+  `PropertyDescriptor.isConstructorSettable()`, `getAllAnnotations()`, `ConstructorDescriptor.indexOfParameter(String)`,
+  `TypeInfo.isOptional()` : sans remplaçant (seuls des tests les appellent).
+- Accesseurs typés : `PropertyDescriptor.createTypedGetter/createTypedSetter`, `LambdaAccessorFactory.createTypedGetter`,
+  `createTypedSetter`, `createTypedFieldGetter`, `createTypedFieldSetter`, `TypedPropertyGetter`, `TypedPropertySetter` :
+  `createGetter`, `createSetter`, `createFieldGetter`, `createFieldSetter` et `PropertyGetter` / `PropertySetter`. Les accesseurs
+  typés ne font que convertir le résultat de l'accesseur non typé.
+
+`migration` / `dataStreamEvent` :
+
+- `MigrationEngine.revertTo(DBAccessMongo, String)` et `revertSingle(...)` : sans remplaçant, elles lèvent toujours
+  `UnsupportedOperationException` (écrire une nouvelle migration vers l'avant).
+- `Migration1` et `Migration2` (modèles `KAR_migration` des anciens formats) : le moteur ne lit que `Migration`.
+- Les `@Deprecated` existants gardent leur `since` et reçoivent `forRemoval = true` : `MigrationSqlStep` (`MigrationStep`),
+  `ChangeNotificationManager.registerListener(..., FullDocument)` (trois surcharges), `CollectionWatchBuilder.fullDocument(...)`
+  et `ListenerRegistrationBuilder.withMode(...)` (le mode se choisit une fois, à `start(..., mode)`).
+
+`api` / `filter` / `catcher` :
+
+- `DataResource.getFileDataOld(UUID)`, `getFileMetaData(ObjectId)` et `modeFileOldModelToNewModel(UUID, ObjectId)` : sans
+  remplaçant.
+- `DataResource.getWithSha512(String)`, `createNewData(long, String, String)`, `bytesToHex(byte[])` : les méthodes
+  statiques de `DataTools` du même nom (elles prennent un `DBAccessMongo` quand elles lisent la base).
+- `DataResource.getWithId(long)` et `undelete(Long)` : `getSmall(ObjectId)` et `DataTools.undelete(DBAccessMongo, ObjectId)`.
+- `RestErrorResponse(Status)` et `RestErrorResponse(Status, String, String, String)` : les constructeurs qui donnent le nom de
+  l'erreur et le message, avec ou sans horodatage.
+
+`db` :
+
+- `DbConfig.getClasses()` : la liste n'enregistre rien, elle ne sert qu'à `equals` et `hashCode`.
+- `DbConfig(String, Short, ...)` (port `Short`, déjà déprécié) : `DbConfig(String, Integer, ...)`.
+- `DbIoMongo.forceReconnect()` : `DbIoMongo.shutdownAll()`. `DbIoMongo.describeSharedClusters()` : sans remplaçant.
+
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
 - `JWTWrapper.generateJWToken(..., timeoutInMinutes, extraClaims)` ajoute des claims au jeton ; les noms réservés
@@ -339,8 +458,7 @@ API :
   que `X` protège n'est rendu que si la lecture le rend (`ReadAllColumn`, déchiffrement activé), même si `Y`
   le déclare sans protection (voir « Les lectures projettent les objets embarqués jusqu'aux feuilles »). Sur
   tout autre champ, la lecture ignore l'option.
-- `MongoCodecFactory.isWrittenByRuntimeClass` (ajoutée après v0.51.3, dans aucune version publiée) est
-  dépréciée et répond toujours `false` : plus rien n'est écrit par la classe de la valeur. Les règles de
+- `MongoCodecFactory.isWrittenByRuntimeClass` est dépréciée depuis la v0.51.4 et répond toujours `false` : plus rien n'est écrit par la classe de la valeur. Les règles de
   type sont dans `org.atriasoft.archidata.dataAccess.model.DeclaredTypeRules`.
 - `MongoCodecFactory.resolveElementTypeInfo` (publique) rend `null` quand le type des éléments est inconnu :
   joker (`List<?>`, `List<? extends X>`), variable de type (`List<T>`) ou tableau générique, où elle levait

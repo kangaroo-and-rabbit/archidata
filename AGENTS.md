@@ -141,7 +141,7 @@ The jar ships `META-INF/archidata/llms.txt`, `META-INF/archidata/AGENTS.md` and
 Each point was checked against the code; the doc page gives the details.
 
 - **Launcher**: call `GenericCatcher.addAll(rc)` (JSON errors with the right HTTP status) and
-  `ContextGenericTools.addJsr310(rc)`. The second one registers the Jackson mapper (ISO dates
+  `ContextGenericTools.registerArchidataJson(rc)`. The second one registers the Jackson mapper (ISO dates
   instead of timestamps, archidata modules, and the drop of `@ApiReadOnly` properties of request
   bodies) and the `ValidGroupInterceptor`: without it, `@ValidGroup` is silently ignored and the
   date format changes. Also register `rc.register(SecurityHeadersFilter.class)` (`nosniff`,
@@ -182,14 +182,14 @@ Each point was checked against the code; the doc page gives the details.
   `new FilterValue(List.of("field1", "field2"))` for a partial update. `update(...)` with a
   `Condition` refuses to run without exactly one `FilterValue`. See `doc/database_access.md`.
 - **`@ApiReadOnly`**: a property sent by a client in a request body is ignored (dropped by the
-  server JSON provider registered by `addJsr310`; records and `@JsonCreator` constructors are not
+  server JSON provider registered by `registerArchidataJson`; records and `@JsonCreator` constructors are not
   filtered). Server code can still write it with `insert`; `update` needs `ForceReadOnlyField`.
 - **`MigrationEngine`**: the history is the `KAR_migration` collection. On an empty database
   only the initialization (`setInit`) runs, and the last migration is recorded as done (the
   migrations `add`ed are never played on a fresh install, so the init must create the final
   state). If the last recorded name is not found (migration renamed), the engine throws a
   `MigrationException` and the startup is blocked. Reverting is not supported: `revertSingle` /
-  `revertTo` throw `UnsupportedOperationException` (write a new forward migration). See
+  `revertTo` (both deprecated for removal) throw `UnsupportedOperationException` (write a new forward migration). See
   `doc/migration.md`.
 - **SLF4J backend**: archidata's logback is test-scoped on purpose, so no backend comes
   transitively: the application must declare `ch.qos.logback:logback-classic` (or another
@@ -217,7 +217,9 @@ Each point was checked against the code; the doc page gives the details.
   `RESTErrorResponseException` on an error status, whereas `fetchString()` / `fetchByte()` are
   raw accessors that do not throw on 4xx/5xx (check the status yourself). `header(key, value)`
   adds a request header.
-- **Deprecated**: `tools.PublicKey` (`forRemoval`): use `JWTWrapper.PublicKey`.
+- **Deprecated**: `tools.PublicKey` (`forRemoval`): use `JWTWrapper.PublicKey`. Every member marked for removal by 0.55.0
+  (old names of `ConfigBaseVariable`, `ContextGenericTools.addJsr310`, members unused by archidata...) is listed with its
+  replacement in `MIGRATION.md`; they go at the next minor version.
 - **`ConfigBaseVariable` reads the environment once, when the class is loaded** (static
   initializer): `System.setenv`-style tricks afterwards have no effect, use the setters before
   the first use (they are locked by `lock()`). `getDBPassword()` throws `IllegalStateException`

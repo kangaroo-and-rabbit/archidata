@@ -157,7 +157,7 @@ Listeners:
 Monitoring and configuration: `getWorkerStatuses()` (`Map<String, WorkerStatus>`),
 `getCollectionModes()` (the global mode, per watched collection), `getTotalEventsProcessed()`,
 `getDefaultFullDocumentMode()`, `setDefaultFullDocumentMode(FullDocument)` (only affects workers
-created afterwards), `computeEffectiveMode(String)` (always the global mode).
+created afterwards).
 
 ### ChangeNotificationListener
 

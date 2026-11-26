@@ -32,14 +32,14 @@ public class RestErrorResponse {
 	public String time;
 	/** The HTTP status code associated with this error. */
 	@NotNull
-	final public int status;
+	public final int status;
 	/** The human-readable HTTP status reason phrase. */
 	@NotNull
-	final public String statusMessage;
+	public final String statusMessage;
 
 	/** Optional list of input validation errors providing details about specific field failures. */
 	@Nullable
-	final public List<@NotNull RestInputError> inputError;
+	public final List<@NotNull RestInputError> inputError;
 
 	/**
 	 * Constructs a REST error response with input validation errors.
@@ -65,7 +65,11 @@ public class RestErrorResponse {
 	 * @param time the ISO-8601 timestamp of the error
 	 * @param error the error name or type identifier
 	 * @param message the human-readable error message
+	 * @deprecated not used by archidata: use
+	 *             {@link #RestErrorResponse(Response.Status, String, String, String, List)} with a {@code null}
+	 *             list, or {@link #RestErrorResponse(Response.Status, String, String)} for the current timestamp.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public RestErrorResponse(final Response.Status status, final String time, final String error,
 			final String message) {
 		this.time = time;
@@ -106,7 +110,10 @@ public class RestErrorResponse {
 	/**
 	 * Constructs a generic REST error response with default error name and empty message.
 	 * @param status the HTTP response status
+	 * @deprecated not used by archidata: use {@link #RestErrorResponse(Response.Status, String, String)} and
+	 *             give the error name and the message.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public RestErrorResponse(final Response.Status status) {
 		this.name = "generic";
 		this.message = "";

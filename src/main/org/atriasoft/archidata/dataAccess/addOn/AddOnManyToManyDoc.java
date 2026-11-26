@@ -49,7 +49,7 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 	 * @param desc The property descriptor to check
 	 * @return true if the field can be both retrieved and written
 	 */
-	public boolean canRetreiveAnWrite(final DbPropertyDescriptor desc) {
+	public boolean canRetrieveAndWrite(final DbPropertyDescriptor desc) {
 		final PropertyDescriptor prop = desc.getProperty();
 		if (prop.getType() != List.class) {
 			return false;
@@ -66,6 +66,18 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Checks whether the field is a writable and retrievable ManyToMany list of IDs or entities.
+	 *
+	 * @param desc The property descriptor to check
+	 * @return true if the field can be both retrieved and written
+	 * @deprecated misspelt name, use {@link #canRetrieveAndWrite(DbPropertyDescriptor)}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public boolean canRetreiveAnWrite(final DbPropertyDescriptor desc) {
+		return canRetrieveAndWrite(desc);
 	}
 
 	@Override
@@ -173,12 +185,12 @@ public class AddOnManyToManyDoc implements DataAccessAddOn {
 
 	@Override
 	public boolean canInsert(final DbPropertyDescriptor desc) {
-		return canRetreiveAnWrite(desc);
+		return canRetrieveAndWrite(desc);
 	}
 
 	@Override
 	public boolean canRetrieve(final DbPropertyDescriptor desc) {
-		return canRetreiveAnWrite(desc);
+		return canRetrieveAndWrite(desc);
 	}
 
 	@SuppressWarnings("unchecked")

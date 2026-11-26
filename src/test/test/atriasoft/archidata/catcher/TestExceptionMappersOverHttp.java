@@ -187,7 +187,7 @@ public class TestExceptionMappersOverHttp {
 		final ResourceConfig rc = new ResourceConfig();
 		GenericCatcher.addAll(rc);
 		rc.register(ThrowingResource.class);
-		ContextGenericTools.addJsr310(rc);
+		ContextGenericTools.registerArchidataJson(rc);
 		rc.register(JacksonFeature.class);
 		server = GrizzlyHttpServerFactory.createHttpServer(URI.create("http://127.0.0.1:0/"), rc);
 		base = "http://127.0.0.1:" + server.getListeners().iterator().next().getPort() + "/throw/";

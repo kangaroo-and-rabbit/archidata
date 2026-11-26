@@ -13,8 +13,7 @@
  * <li>The {@code ...SoftDelete} variants, such as
  * {@link org.atriasoft.archidata.model.OIDGenericDataSoftDelete}, add a {@code deleted} flag;
  * {@link org.atriasoft.archidata.model.OIDGenericDataSoftAsyncHardDelete} lets the row be purged later.</li>
- * <li>{@link org.atriasoft.archidata.model.UserByToken} and
- * {@link org.atriasoft.archidata.model.Token}: identity models used by the authentication.</li>
+ * <li>{@link org.atriasoft.archidata.model.UserByToken}: the identity model used by the authentication.</li>
  * </ul>
  *
  * <p>Example:</p>

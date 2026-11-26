@@ -125,12 +125,12 @@ try (TransactionContext tx = new TransactionContext(db)) {
 ```
 
 
-### TransactionContext.getTransactionContext()
+### TransactionContext.startTransaction()
 
 Within a `@DataAccessSingleConnection` context, you can use the convenience factory to auto-retrieve the current thread's connection:
 
 ```java
-try (TransactionContext tx = TransactionContext.getTransactionContext()) {
+try (TransactionContext tx = TransactionContext.startTransaction()) {
     final DBAccessMongo db = DataAccessConnectionContext.getConnection();
     db.insert(entity1);
     db.insert(entity2);

@@ -70,9 +70,9 @@ public class CollectionWatchBuilder {
 	 *
 	 * @param mode The FullDocument mode (ignored)
 	 * @return this builder for chaining
-	 * @deprecated the mode is ignored; choose it once with {@code ChangeNotificationManager.start(..., mode)}.
+	 * @deprecated the mode is ignored (removed with the next minor version); choose it once with {@code ChangeNotificationManager.start(..., mode)}.
 	 */
-	@Deprecated
+	@Deprecated(since = "0.51.0", forRemoval = true)
 	public CollectionWatchBuilder fullDocument(final FullDocument mode) {
 		this.fullDocumentMode = mode;
 		return this;

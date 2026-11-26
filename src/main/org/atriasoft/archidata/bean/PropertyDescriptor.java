@@ -120,7 +120,9 @@ public final class PropertyDescriptor {
 	 * Whether this property can be set via a constructor parameter.
 	 *
 	 * @return {@code true} if settable via constructor
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public boolean isConstructorSettable() {
 		return this.constructorSettable;
 	}
@@ -193,7 +195,9 @@ public final class PropertyDescriptor {
 	 * Get all annotations (unmodifiable map).
 	 *
 	 * @return unmodifiable map of annotation class to annotation instance
+	 * @deprecated not used by archidata: no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public Map<Class<? extends Annotation>, Annotation> getAllAnnotations() {
 		return Collections.unmodifiableMap(this.annotationCache);
 	}
@@ -260,8 +264,8 @@ public final class PropertyDescriptor {
 	}
 
 	/**
-	 * Create a typed getter for this property. The returned getter preserves
-	 * generic type information and avoids boxing for reference types.
+	 * Create a typed getter for this property. The typed getter casts the result of the
+	 * untyped accessor: it neither avoids boxing nor keeps more type information.
 	 *
 	 * <p>Note: this creates a new accessor each time; callers should cache the result.
 	 *
@@ -271,8 +275,11 @@ public final class PropertyDescriptor {
 	 * @param valueType the property value class
 	 * @return a typed property getter
 	 * @throws IntrospectionException if no getter is available
+	 * @deprecated not used by archidata (only tests call it): the typed accessors cast the same {@code Object} accessor,
+	 *             use {@code getGetter()} and {@code getSetter()}.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <T, V> TypedPropertyGetter<T, V> createTypedGetter(final Class<T> beanType, final Class<V> valueType)
 			throws IntrospectionException {
 		if (this.getter != null) {
@@ -285,8 +292,8 @@ public final class PropertyDescriptor {
 	}
 
 	/**
-	 * Create a typed setter for this property. The returned setter preserves
-	 * generic type information and avoids boxing for reference types.
+	 * Create a typed setter for this property. The typed setter casts the value for the
+	 * untyped accessor: it neither avoids boxing nor keeps more type information.
 	 *
 	 * <p>Note: this creates a new accessor each time; callers should cache the result.
 	 *
@@ -296,8 +303,11 @@ public final class PropertyDescriptor {
 	 * @param valueType the property value class
 	 * @return a typed property setter
 	 * @throws IntrospectionException if no setter is available
+	 * @deprecated not used by archidata (only tests call it): the typed accessors cast the same {@code Object} accessor,
+	 *             use {@code getGetter()} and {@code getSetter()}.
 	 */
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "removal" })
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <T, V> TypedPropertySetter<T, V> createTypedSetter(final Class<T> beanType, final Class<V> valueType)
 			throws IntrospectionException {
 		if (this.setter != null) {

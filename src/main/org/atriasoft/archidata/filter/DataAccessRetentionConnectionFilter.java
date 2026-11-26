@@ -58,7 +58,7 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	 *
 	 * @throws IOException if connection fails
 	 */
-	public void lock() throws IOException {
+	public void openConnection() throws IOException {
 		try {
 			contextHolder.set(new DataAccessConnectionContext());
 		} catch (final InternalServerErrorException | IOException | DataAccessException ex) {
@@ -68,11 +68,22 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	}
 
 	/**
+	 * Opens a database connection for the current thread.
+	 *
+	 * @throws IOException if connection fails
+	 * @deprecated misleading name: no lock is involved, a connection is opened. Use {@link #openConnection()}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public void lock() throws IOException {
+		openConnection();
+	}
+
+	/**
 	 * Closes the database connection for the current thread.
 	 *
 	 * @throws IOException if closing fails
 	 */
-	public void unlock() throws IOException {
+	public void closeConnection() throws IOException {
 		final DataAccessConnectionContext ctx = contextHolder.get();
 		if (ctx != null) {
 			try {
@@ -84,6 +95,17 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	}
 
 	/**
+	 * Closes the database connection for the current thread.
+	 *
+	 * @throws IOException if closing fails
+	 * @deprecated misleading name: no lock is involved, a connection is closed. Use {@link #closeConnection()}.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
+	public void unlock() throws IOException {
+		closeConnection();
+	}
+
+	/**
 	 * Opens a database connection and optionally starts a transaction for the incoming request.
 	 *
 	 * @param requestContext the container request context
@@ -91,7 +113,7 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
-		lock();
+		openConnection();
 		// Check if transactional mode is requested
 		final DataAccessSingleConnection annotation = getMatchedAnnotation();
 		if (annotation != null && annotation.transactional()) {
@@ -136,7 +158,7 @@ public class DataAccessRetentionConnectionFilter implements ContainerRequestFilt
 				LOGGER.error("Failed to finalize auto-transaction: {}", ex.getMessage(), ex);
 			}
 		}
-		unlock();
+		closeConnection();
 	}
 
 	/**

@@ -132,7 +132,9 @@ public final class ClassModel {
 	 * Check if the introspected class is a non-static inner class.
 	 *
 	 * @return {@code true} if the class is a non-static inner class
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public boolean isInnerClass() {
 		return this.isInnerClass;
 	}
@@ -160,7 +162,9 @@ public final class ClassModel {
 	 * All constructors, sorted by parameter count descending.
 	 *
 	 * @return unmodifiable list of constructor descriptors
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public List<ConstructorDescriptor> getConstructors() {
 		return this.constructors;
 	}
@@ -169,7 +173,9 @@ public final class ClassModel {
 	 * The no-arg constructor, or null if none exists.
 	 *
 	 * @return the default constructor descriptor, or null
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public ConstructorDescriptor getDefaultConstructor() {
 		return this.defaultConstructor;
 	}
@@ -182,7 +188,9 @@ public final class ClassModel {
 	 * @param <A> the annotation type
 	 * @param annotationClass the annotation class to check for
 	 * @return {@code true} if the annotation is present
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <A extends Annotation> boolean hasClassAnnotation(final Class<A> annotationClass) {
 		return this.classAnnotationCache.containsKey(annotationClass);
 	}
@@ -193,8 +201,10 @@ public final class ClassModel {
 	 * @param <A> the annotation type
 	 * @param annotationClass the annotation class to retrieve
 	 * @return the annotation instance, or null if not present
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
 	@SuppressWarnings("unchecked")
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <A extends Annotation> A getClassAnnotation(final Class<A> annotationClass) {
 		return (A) this.classAnnotationCache.get(annotationClass);
 	}
@@ -207,7 +217,9 @@ public final class ClassModel {
 	 * @param <A> the annotation type
 	 * @param annotationClass the annotation class to search for
 	 * @return the first matching property descriptor, or null if none found
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <A extends Annotation> PropertyDescriptor findPropertyWithAnnotation(final Class<A> annotationClass) {
 		for (final PropertyDescriptor p : this.properties) {
 			if (p.hasAnnotation(annotationClass)) {
@@ -223,7 +235,9 @@ public final class ClassModel {
 	 * @param <A> the annotation type
 	 * @param annotationClass the annotation class to search for
 	 * @return list of property descriptors that have the annotation (may be empty)
+	 * @deprecated not used by archidata (only tests call it): no replacement.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public <A extends Annotation> List<PropertyDescriptor> findPropertiesWithAnnotation(
 			final Class<A> annotationClass) {
 		final List<PropertyDescriptor> result = new ArrayList<>();

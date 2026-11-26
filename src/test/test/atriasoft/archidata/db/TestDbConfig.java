@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
  * Port handling of {@link DbConfig}: range validation ({@link DataAccessException}) and the deprecated
  * {@code Short} constructor.
  */
+@SuppressWarnings("removal")
 class TestDbConfig {
 
 	private static DbConfig withPort(final Integer port) throws DataAccessException {

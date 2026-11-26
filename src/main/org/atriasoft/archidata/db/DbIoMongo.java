@@ -46,8 +46,8 @@ import com.mongodb.event.ClusterListener;
  * </p>
  *
  * <p>
- * Use {@link #forceReconnect()} to drop the cached clients (admin lever for
- * the rare case where the driver fails to recover).
+ * Use {@link #shutdownAll()} to drop the cached clients (the next connection
+ * creates a fresh one).
  * </p>
  *
  * <p>
@@ -102,8 +102,8 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 *
 	 * <p>
 	 * The shared client itself is NOT closed here — it is kept alive for reuse
-	 * by subsequent {@code DbIoMongo} instances. Use {@link #shutdownAll()} or
-	 * {@link #forceReconnect()} to actually close the cached clients.
+	 * by subsequent {@code DbIoMongo} instances. Use {@link #shutdownAll()} to
+	 * actually close the cached clients.
 	 * </p>
 	 */
 	@Override
@@ -189,7 +189,9 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * Drops every cached {@link MongoClient} so the next {@code openImplement()}
 	 * recreates a fresh one. Use as an admin lever when the driver fails to
 	 * recover from a MongoDB outage on its own.
+	 * @deprecated not used by archidata: it only logs and calls {@link #shutdownAll()}, use that.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static void forceReconnect() {
 		LOGGER.warn("Force-reconnect requested: dropping {} cached MongoClient(s)", CLIENT_CACHE.size());
 		shutdownAll();
@@ -208,7 +210,9 @@ public class DbIoMongo extends DbIo implements Closeable {
 	 * Returns a short human-readable description of every cached cluster, for
 	 * health-check / heartbeat logs.
 	 * @return a human-readable summary of the cached clusters, or {@code "no-shared-client"} when none
+	 * @deprecated not used by archidata: nothing calls it.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public static String describeSharedClusters() {
 		if (CLIENT_CACHE.isEmpty()) {
 			return "no-shared-client";

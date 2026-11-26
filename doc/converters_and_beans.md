@@ -11,7 +11,7 @@ chosen.
 | `converter.jackson` | JSON serializers/deserializers for `ObjectId`, `Date`, `OffsetDateTime`, BSON `Document` | no: `ContextGenericTools` installs them |
 | `converter.Jakarta` | JAX-RS parameter converters for `Date` and `OffsetDateTime` | register them once |
 | `converter.mongo` | BSON codec for `OffsetDateTime`, installed in the MongoDB client | no |
-| `interceptor` | `ValidGroupInterceptor`: bean validation by group on request bodies | registered by `ContextGenericTools.addJsr310` |
+| `interceptor` | `ValidGroupInterceptor`: bean validation by group on request bodies | registered by `ContextGenericTools.registerArchidataJson` |
 | `bean`, `bean.accessor`, `bean.annotation`, `bean.exception` | cached class introspection and fast property accessors | internal, see the last section |
 
 
@@ -22,12 +22,12 @@ Server setup
 final ResourceConfig rc = new ResourceConfig();
 rc.register(DateParamConverterProvider.class);            // @QueryParam / @PathParam of type Date
 rc.register(OffsetDateTimeParamConverterProvider.class);  // ... and of type OffsetDateTime
-ContextGenericTools.addJsr310(rc);                        // JSON mapper + ValidGroupInterceptor
+ContextGenericTools.registerArchidataJson(rc);                        // JSON mapper + ValidGroupInterceptor
 rc.register(JacksonFeature.class);
 rc.register(ValidationFeature.class);
 ```
 
-`addJsr310` is the important call: it builds the `ObjectMapper` of
+`registerArchidataJson` is the important call: it builds the `ObjectMapper` of
 [tools.md](tools.md) (`ContextGenericTools.createObjectMapper()`), registers it as
 the Jersey JSON provider and registers `ValidGroupInterceptor`. Without it, JSON
 dates and `ObjectId` use Jackson's defaults, and `@ValidGroup` is ignored.
@@ -91,7 +91,7 @@ There is one extension point per channel.
 
 ### A new JSON type
 
-`addJsr310` builds its mapper internally and has no hook. To add your own module,
+`registerArchidataJson` builds its mapper internally and has no hook. To add your own module,
 build the provider yourself instead of calling it:
 
 ```java
@@ -229,5 +229,5 @@ Pitfalls
   on a field is not enforced. Use both.
 - The groups are chosen on the endpoint parameter, not on the model: the same
   `Article` class is validated differently by `create` and `update`.
-- Forgetting `ContextGenericTools.addJsr310(rc)` silently disables
+- Forgetting `ContextGenericTools.registerArchidataJson(rc)` silently disables
   `@ValidGroup` and changes the date format of the responses.

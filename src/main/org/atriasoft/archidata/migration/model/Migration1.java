@@ -17,15 +17,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * </p>
  *
  * <p>
- * Kept only to read and upgrade databases written by the first engine; new code uses
- * {@link Migration}. See also {@link Migration2}.
+ * Superseded by {@link Migration}. See also {@link Migration2}.
  * </p>
+ *
+ * @deprecated not used by archidata: the migration engine reads and writes {@link Migration} only.
  */
 // For logs only
 //public static final String TABLE_NAME = "KAR_migration";
 
 @Collection("KAR_migration")
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Deprecated(since = "0.55.0", forRemoval = true)
 public class Migration1 extends GenericDataSoftDelete {
 	/** Creates an empty {@link Migration1} instance. */
 	public Migration1() {}

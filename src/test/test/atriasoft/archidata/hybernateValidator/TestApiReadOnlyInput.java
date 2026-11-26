@@ -39,7 +39,7 @@ public class TestApiReadOnlyInput {
 		ConfigureDb.configure();
 		webInterface = new WebLauncherTest();
 		webInterface.process();
-		api = new RESTApi(ConfigBaseVariable.getLocalAddress());
+		api = new RESTApi(ConfigBaseVariable.getApiAddress());
 		api.setToken(Common.ADMIN_TOKEN);
 	}
 

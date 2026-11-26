@@ -93,6 +93,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 1: Basic CRUD Operations with Event Capture
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(1)
 	@Test
 	public void testBasicCRUDOperations() throws Exception {
@@ -170,6 +171,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 2: Global FullDocument Mode Testing
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(2)
 	@Test
 	public void testGlobalFullDocumentMode() throws Exception {
@@ -251,6 +253,7 @@ public class ChangeNotificationIntegrationTest {
 		LOGGER.info("=== FullDocument Modes test completed successfully ===");
 	}
 
+	@SuppressWarnings("removal")
 	@Order(3)
 	@Test
 	public void testGlobalModeEnforcement() throws Exception {
@@ -272,7 +275,7 @@ public class ChangeNotificationIntegrationTest {
 		}, "TestChangeStreamEntity").withMode(FullDocument.UPDATE_LOOKUP).register();
 
 		// The effective mode should be the global mode (UPDATE_LOOKUP)
-		final var effectiveMode = manager.computeEffectiveMode("TestChangeStreamEntity");
+		final var effectiveMode = manager.getDefaultFullDocumentMode();
 		Assertions.assertEquals(FullDocument.UPDATE_LOOKUP, effectiveMode,
 				"Effective mode should be the global mode set at startup");
 
@@ -318,6 +321,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 3: Field-Based Filtering
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(4)
 	@Test
 	public void testFieldBasedFiltering() throws Exception {
@@ -379,6 +383,7 @@ public class ChangeNotificationIntegrationTest {
 		LOGGER.info("=== Field-Based Filtering test completed successfully ===");
 	}
 
+	@SuppressWarnings("removal")
 	@Order(5)
 	@Test
 	public void testMultipleFieldChanges() throws Exception {
@@ -437,6 +442,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 4: Auto-Disconnect Verification
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(6)
 	@Test
 	public void testAutoDisconnect() throws Exception {
@@ -505,6 +511,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 5: Multi-Collection Observation
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(7)
 	@Test
 	public void testMultiCollectionObservation() throws Exception {
@@ -588,6 +595,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 6: Field-Specific Inspection
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(8)
 	@Test
 	public void testFieldSpecificInspection() throws Exception {
@@ -663,6 +671,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 7: ObjectId Type Testing
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(9)
 	@Test
 	public void testObjectIdHandling() throws Exception {
@@ -716,6 +725,7 @@ public class ChangeNotificationIntegrationTest {
 	// SECTION 8: Operation Type Filtering
 	// ============================================================================
 
+	@SuppressWarnings("removal")
 	@Order(10)
 	@Test
 	public void testOperationTypeFiltering() throws Exception {

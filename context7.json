@@ -7,7 +7,7 @@
 	"excludeFolders": ["src", "target", "plans", "tools", "env_dev", "typescript_model", "**/target"],
 	"excludeFiles": ["log.txt", "spec.md", "IMPROVEMENTS.md", "SECURITY_AUDIT.md", "MIGRATION.md", "CLAUDE.md"],
 	"rules": [
-		"Register GenericCatcher.addAll(rc), ContextGenericTools.addJsr310(rc) and SecurityHeadersFilter in the launcher; without addJsr310 @ValidGroup is silently ignored, dates change and @ApiReadOnly request properties are kept.",
+		"Register GenericCatcher.addAll(rc), ContextGenericTools.registerArchidataJson(rc) and SecurityHeadersFilter in the launcher; without registerArchidataJson @ValidGroup is silently ignored, dates change and @ApiReadOnly request properties are kept.",
 		"@ValidGroup does not check the Default group: also put @Valid on the parameter and register Jersey's ValidationFeature.",
 		"AuthenticationFilter answers 403 to any endpoint without @PermitAll, @RolesAllowed or @RightAllowed; without an authentication filter, @RolesAllowed is ignored.",
 		"JWT: the subject must be an ObjectId, the default issuer is \"Karso\", roles and rights are PartRight codes (int 0-3 or name), never Boolean.",

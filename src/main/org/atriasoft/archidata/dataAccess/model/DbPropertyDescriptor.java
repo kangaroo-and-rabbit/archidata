@@ -106,7 +106,7 @@ public final class DbPropertyDescriptor {
 					this.previousDataNeeded = candidate.isPreviousDataNeeded(this);
 					this.canInsert = candidate.canInsert(this);
 					this.canRetrieve = candidate.canRetrieve(this);
-					this.hasDeleteAction = candidate.asDeleteAction(this);
+					this.hasDeleteAction = candidate.hasDeleteAction(this);
 				} catch (final Exception e) {
 					LOGGER.warn("Add-on {} failed on {}: the default capabilities are kept: {}",
 							candidate.getClass().getSimpleName(), this.property.getName(), e.getMessage());
@@ -313,7 +313,7 @@ public final class DbPropertyDescriptor {
 			final List<OptionRenameColumn> renames = options.get(OptionRenameColumn.class);
 			for (final OptionRenameColumn rename : renames) {
 				if (rename.columnName.equals(this.dbFieldName)) {
-					inTable = rename.ColumnNewName;
+					inTable = rename.getNewName();
 					break;
 				}
 			}

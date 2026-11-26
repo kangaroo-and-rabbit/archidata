@@ -23,6 +23,8 @@ public @interface ApiAsyncType {
 	/**
 	 * Direct copy values to include in TypeScript output, separated by a pipe ({@code |}) from the main type.
 	 * @return an array of TypeScript type complements, empty by default
+	 * @deprecated not used by archidata: no generator reads it, the TypeScript type comes from {@link #value()} only.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	String[] tsComplement() default {};
 }

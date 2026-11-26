@@ -54,7 +54,7 @@ public class TestSecuredField {
 		EncryptionKeyStore.register("rsa-priv", new RsaCipherProvider(null, rsa.getPrivate()));
 
 		// Authorize decryption on read.
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 	}
 
 	@AfterAll
@@ -105,7 +105,7 @@ public class TestSecuredField {
 	@Order(3)
 	@Test
 	public void testDecryptionDisabledLeavesFieldsUnset() throws Exception {
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 		try {
 			final SecuredTable retrieve = ConfigureDb.da.getById(SecuredTable.class, objectId);
 			Assertions.assertNotNull(retrieve);
@@ -115,7 +115,7 @@ public class TestSecuredField {
 			Assertions.assertNull(retrieve.asymX25519);
 			Assertions.assertNull(retrieve.asymRsa);
 		} finally {
-			ConfigBaseVariable.setDataDecryptEnable("true");
+			ConfigBaseVariable.setDataDecryptEnabled("true");
 		}
 	}
 }

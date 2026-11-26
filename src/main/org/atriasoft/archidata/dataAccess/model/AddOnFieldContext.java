@@ -66,7 +66,10 @@ public final class AddOnFieldContext {
 	 * Returns the name of the remote field on the target entity used for the relation mapping.
 	 *
 	 * @return the remote field name
+	 * @deprecated not used by archidata: the add-ons read the annotation, and {@link #getRemoteFieldColumn()} gives
+	 *             the column.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public String getRemoteField() {
 		return this.remoteField;
 	}
@@ -84,7 +87,9 @@ public final class AddOnFieldContext {
 	 * Returns the primary key descriptor of the target entity.
 	 *
 	 * @return the target entity primary key descriptor
+	 * @deprecated not used by archidata: {@link #getTargetPkColumn()} gives the column.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public DbPropertyDescriptor getTargetPk() {
 		return this.targetPk;
 	}
@@ -129,7 +134,10 @@ public final class AddOnFieldContext {
 	 * Checks whether a link should be removed when the owning entity is deleted.
 	 *
 	 * @return {@code true} if the link should be removed on delete
+	 * @deprecated not used by archidata: the add-on reads {@code removeLinkWhenDelete} from the annotation, before
+	 *             this context exists.
 	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public boolean isRemoveLinkWhenDelete() {
 		return this.removeLinkWhenDelete;
 	}

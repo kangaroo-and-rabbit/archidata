@@ -48,12 +48,12 @@ public class TestEncryptedInitValue {
 		ConfigureDb.configure();
 		final byte[] aesKey = Base64.getDecoder().decode(EncryptionKeyGenerator.generateAesKeyBase64());
 		EncryptionKeyStore.register(EncryptionKeyStore.DEFAULT_KEY_NAME, new AesGcmCipherProvider(aesKey));
-		ConfigBaseVariable.setDataDecryptEnable("true");
+		ConfigBaseVariable.setDataDecryptEnabled("true");
 	}
 
 	@AfterAll
 	public static void removeDataBase() throws IOException {
-		ConfigBaseVariable.setDataDecryptEnable("false");
+		ConfigBaseVariable.setDataDecryptEnabled("false");
 		EncryptionKeyStore.reset();
 		ConfigureDb.clear();
 	}
