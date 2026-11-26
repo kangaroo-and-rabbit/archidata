@@ -26,7 +26,9 @@ public enum WorkerStatus {
 	STARTING,
 
 	/**
-	 * Worker is actively listening to the change stream and processing events.
+	 * Worker is actively listening to the change stream and processing events. Set
+	 * when the worker starts, and again each time its stream opens, after a
+	 * reconnection included.
 	 */
 	RUNNING,
 
@@ -35,13 +37,15 @@ public enum WorkerStatus {
 	 * temporary state: the worker waits a fixed delay before retrying (1 s after an
 	 * interruption, an invalid resume token or a resume position no longer in the
 	 * oplog, both then forgotten, 5 s after another MongoDB error),
-	 * with no exponential backoff and no retry limit.
+	 * with no exponential backoff and no retry limit. Back to {@link #RUNNING} once
+	 * the stream is open again.
 	 */
 	RECONNECTING,
 
 	/**
 	 * Worker encountered an unexpected error. The worker retries after a fixed
-	 * 5 s delay, with no retry limit.
+	 * 5 s delay, with no retry limit, and is {@link #RUNNING} again once its
+	 * stream is open again.
 	 */
 	ERROR,
 

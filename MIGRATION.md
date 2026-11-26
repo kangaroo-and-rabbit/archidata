@@ -53,6 +53,8 @@
   maintenant après 1 s. Avant, le worker la réessayait toutes les 5 s sans fin (statut `RECONNECTING`), et
   `unwatchCollection` puis `watchCollection` la redonnait au worker suivant ; le gestionnaire remet maintenant une
   position sauvée au nouveau worker sans en garder de copie.
+- `getWorkerStatuses()` rend de nouveau `RUNNING` pour un worker dont le flux s'est rouvert après une erreur. Avant, le
+  statut restait `RECONNECTING` (ou `ERROR`) après la première reconnexion réussie, alors que le flux était lu.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

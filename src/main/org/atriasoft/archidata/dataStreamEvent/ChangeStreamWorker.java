@@ -81,8 +81,8 @@ public class ChangeStreamWorker implements Runnable {
 
 	// Written by stop() (any thread, the manager calls it with its write lock held), read by the worker thread. Volatile.
 	private volatile boolean running = true;
-	// Written by the worker thread only (runLoop, and run() when an Error ends it), read by any thread through
-	// getStatus(). Volatile.
+	// Written by the worker thread only (runLoop, watchChangeStream() when the stream opens, and run() when an Error
+	// ends it), read by any thread through getStatus(). Volatile.
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
 	// Position of this worker's own stream: the token of the last event it READ, dispatched or not. Plain field, no
 	// lock, confined to the worker thread: written by setResumeToken(), which the manager calls on its own thread
@@ -316,6 +316,8 @@ public class ChangeStreamWorker implements Runnable {
 		try {
 			cursor = changeStreamBuilder.cursor();
 			this.streamOpen = true;
+			// Also after a reconnection: RECONNECTING or ERROR described the failure, the stream is open again
+			this.status = WorkerStatus.RUNNING;
 		} finally {
 			// Opened or failed, the first attempt is over: a registration does not wait for the retries
 			this.firstOpenAttemptDone.countDown();

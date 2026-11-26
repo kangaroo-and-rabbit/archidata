@@ -550,6 +550,24 @@ public class TestChangeStreamNoEventLost {
 		}
 	}
 
+	@RepeatedTest(3)
+	public void aWorkerWhoseStreamReopenedReportsRunning() throws Exception {
+		final String watched = COLLECTION_PREFIX + "reopened_" + RUN.incrementAndGet();
+		final Received received = new Received();
+		try {
+			// A reconnection: the new worker meets 286 (RECONNECTING), then re-opens its stream from now
+			saveAPositionThatLeftTheOplog(watched, received);
+			manager.watchCollection(watched);
+			// The status is written when the stream opens, before its first poll
+			Assertions.assertTrue(idle(watched).await(WAIT_SECONDS, TimeUnit.SECONDS),
+					"the change stream of " + watched + " never re-opened");
+			Assertions.assertEquals(WorkerStatus.RUNNING, manager.getWorkerStatuses().get(watched),
+					"the stream is open again");
+		} finally {
+			manager.unwatchCollection(watched);
+		}
+	}
+
 	@Test
 	public void aClientFilterThatThrowsDoesNotTakeTheEventFromTheOtherListeners() throws Exception {
 		final String watched = COLLECTION_PREFIX + "filter";

@@ -125,7 +125,8 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   `NonResumableChangeStreamError` label the server puts on 286: that label also covers errors that do
   not come from the position. Other `MongoCommandException` / `MongoException` set `RECONNECTING`
   and retry after 5 s with the same position;
-  any other exception sets `ERROR` and retries after 5 s. The loop ends on `stop()` (`STOPPED`).
+  any other exception sets `ERROR` and retries after 5 s. The status is `RUNNING` again as soon as
+  the stream re-opens. The loop ends on `stop()` (`STOPPED`).
   The delay is fixed (no exponential backoff, no retry limit).
 - **An `Error` ends the worker.** An `Error` thrown on the worker thread (by a listener, an
   `AssertionError` included, or by the JVM: `OutOfMemoryError`, `StackOverflowError`) is not retried,
@@ -361,7 +362,7 @@ used by the other integration tests (`ConfigureDb.configure()`):
   `STOPPED` status, and the event reaches the listeners once the collection is watched again; a saved
   position the server no longer has (aged to 1970 by the test database, the server answers 286) is
   forgotten, the stream re-opens from now and delivers the next write, and a later watch does not use
-  that position again.
+  that position again; a worker whose stream re-opened reports `RUNNING`.
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 
