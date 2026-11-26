@@ -1495,33 +1495,13 @@ public final class DBAccessMongo implements Closeable {
 		final boolean directdata = queryOptions.exist(DirectData.class);
 		final boolean forceReadOnlyField = queryOptions.exist(ForceReadOnlyField.class);
 		final Condition condition = conditionFusionOrEmpty(queryOptions, true);
-		final List<FilterValue> filterKeys = queryOptions.get(FilterValue.class);
-		if (filterKeys.size() != 1) {
-			throw new DataAccessException("request a gets without/or with more 1 FilterValue of values");
-		}
-		final FilterValue filterKey = filterKeys.get(0);
-		final List<FilterOmit> filterOmitKeys = queryOptions.get(FilterOmit.class);
-		FilterOmit filterOmitKey = null;
-		if (filterOmitKeys.size() > 1) {
-			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
-		} else if (filterOmitKeys.size() == 1) {
-			filterOmitKey = filterOmitKeys.get(0);
-		}
+		final FilterValue filterKey = singleFilterValueForUpdate(queryOptions);
+		final FilterOmit filterOmitKey = optionalFilterOmitForUpdate(queryOptions);
 
 		final DbClassModel model = DbClassModel.of(clazz);
 		final List<LazyGetter> asyncActions = new ArrayList<>();
 
-		// The relation add-ons diff the stored document against the new values: load it with the filter of
-		// the update itself, so that a document the update does not reach never feeds a side effect.
-		Object previousData = null;
-		if (model.needsPreviousDataForUpdate()) {
-			final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
-			if (transmitKey.size() == 1) {
-				previousData = readPreviousDataForUpdate(clazz, transmitKey.get(0).getKey(), condition, queryOptions);
-			}
-		}
-		// A relation field to synchronize whose stored document the update does not reach.
-		boolean relationSideEffectSkipped = false;
+		final Object previousData = readPreviousDataIfNeeded(model, clazz, condition, queryOptions);
 
 		// real add in the BDD:
 		try {
@@ -1533,119 +1513,330 @@ public final class DBAccessMongo implements Closeable {
 			final Document docSet = new Document();
 			final Document docUnSet = new Document();
 
-			// --- Handle update timestamp (unconditionally, not subject to filter) ---
-			final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
-			if (updateTsDesc != null && !directdata) {
-				final FieldName fieldName = updateTsDesc.getFieldName(queryOptions);
-				docSet.append(fieldName.inTable(), Date.from(Instant.now()));
-			}
-
-			// --- Handle addon fields ---
-			for (final DbPropertyDescriptor desc : model.getAddonFields()) {
-				final FieldName fieldName = desc.getFieldName(queryOptions);
-				// Apply filter/omit logic
-				if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
-					continue;
-				}
-				if (!filterKey.getValues().contains(fieldName.inStruct())) {
-					continue;
-				}
-				if (!forceReadOnlyField && desc.isApiReadOnly()) {
-					continue;
-				}
-				if (desc.isAsyncUpdate()) {
-					final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
-					if (transmitKey.size() != 1) {
-						throw new DataAccessException(
-								"Fail to transmit Key to update the async update... (must have only 1)");
-					}
-					if (previousData == null && desc.isPreviousDataNeeded()) {
-						relationSideEffectSkipped = true;
-					} else {
-						desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
-								desc.getProperty().getValue(data), asyncActions, queryOptions);
-					}
-				}
-				if (!desc.canInsert()) {
-					continue;
-				}
-				desc.getAddOn().insertData(this, desc, data, queryOptions, docSet, docUnSet);
-			}
-
-			// --- Handle regular fields (via pre-compiled codecs) ---
-			for (final DbPropertyDescriptor desc : model.getRegularFields()) {
-				final FieldName fieldName = desc.getFieldName(queryOptions);
-				// Apply filter/omit logic
-				if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
-					continue;
-				}
-				if (!filterKey.getValues().contains(fieldName.inStruct())) {
-					continue;
-				}
-				if (!forceReadOnlyField && desc.isApiReadOnly()) {
-					continue;
-				}
-				final MongoFieldCodec codec = desc.getCodec();
-				if (codec == null) {
-					continue;
-				}
-				final PropertyDescriptor prop = desc.getProperty();
-				if (!prop.getType().isPrimitive()) {
-					final Object tmp = prop.getValue(data);
-					if (tmp == null && desc.getInitValue() != null) {
-						continue;
-					}
-				}
-				if (filterKey.isFullUpdate() && MongoCodecFactory.hasProtectedSubFields(prop.getTypeInfo())) {
-					// A read leaves the protected fields of embedded objects null: never rewrite them as a whole
-					// in a full update. An embedded object is written field by field (dot notation), a list,
-					// set or map of such objects is kept as stored (name it in a FilterValue to rewrite it).
-					if (MongoCodecFactory.isEmbeddedObjectType(prop.getTypeInfo())) {
-						final Object embedded = prop.getValue(data);
-						if (embedded == null) {
-							docUnSet.append(fieldName.inTable(), "");
-						} else {
-							MongoCodecFactory.writeEmbeddedVisibleFields(fieldName.inTable(), desc, embedded, docSet,
-									docUnSet);
-						}
-					}
-					continue;
-				}
-				codec.writeToDoc(null, fieldName.inTable(), data, docSet, docUnSet);
-			}
+			appendUpdateTimestamp(model, queryOptions, directdata, docSet);
+			// A relation field to synchronize whose stored document the update does not reach.
+			final boolean relationSideEffectSkipped = appendAddonFieldsForUpdate(model, data, queryOptions, filterKey,
+					filterOmitKey, forceReadOnlyField, previousData, docSet, docUnSet, asyncActions);
+			appendRegularFieldsForUpdate(model, data, queryOptions, filterKey, filterOmitKey, forceReadOnlyField,
+					docSet, docUnSet);
 
 			// Do the query ...
 			final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-			final Document actions = new Document();
-			if (!docSet.isEmpty()) {
-				actions.append("$set", docSet);
-			}
-			if (!docUnSet.isEmpty()) {
-				actions.append("$unset", docUnSet);
-			}
+			final Document actions = buildUpdateActions(docSet, docUnSet);
 
 			statistic.countUpdateMany++;
 			final UpdateResult ret = updateManyIn(collection, filters, actions);
-			if (ret.getMatchedCount() == 0) {
-				// The update reached no document (caller's condition, soft delete): its relation side effects
-				// must not run either, they would escape the caller's scope.
-				if (!asyncActions.isEmpty()) {
-					LOGGER.debug("update of {} matched no document: {} relation side effect(s) dropped", collectionName,
-							asyncActions.size());
-				}
-				return ret.getModifiedCount();
-			}
-			if (relationSideEffectSkipped) {
-				LOGGER.warn("update of {} applied to a document not reachable when its previous state was read "
-						+ "(concurrent write?): its relation fields were written without synchronizing the remote "
-						+ "documents", collectionName);
-			}
-			runLazyActions(asyncActions);
-			return ret.getModifiedCount();
+			return finishUpdate(ret, collectionName, asyncActions, relationSideEffectSkipped);
 		} catch (final Exception ex) {
 			LOGGER.error("Error in update: {}", ex.getMessage(), ex);
 			throw ex;
 		}
+	}
+
+	/**
+	 * Returns the only {@link FilterValue} of an update.
+	 *
+	 * @param queryOptions the options of the update
+	 * @return the {@link FilterValue}
+	 * @throws DataAccessException if the options hold none or more than one
+	 */
+	private static FilterValue singleFilterValueForUpdate(final QueryOptions queryOptions) throws DataAccessException {
+		final List<FilterValue> filterKeys = queryOptions.get(FilterValue.class);
+		if (filterKeys.size() != 1) {
+			throw new DataAccessException("request a gets without/or with more 1 FilterValue of values");
+		}
+		return filterKeys.get(0);
+	}
+
+	/**
+	 * Returns the optional {@link FilterOmit} of an update.
+	 *
+	 * @param queryOptions the options of the update
+	 * @return the {@link FilterOmit}, or {@code null} when the options hold none
+	 * @throws DataAccessException if the options hold more than one
+	 */
+	private static FilterOmit optionalFilterOmitForUpdate(final QueryOptions queryOptions) throws DataAccessException {
+		final List<FilterOmit> filterOmitKeys = queryOptions.get(FilterOmit.class);
+		FilterOmit filterOmitKey = null;
+		if (filterOmitKeys.size() > 1) {
+			throw new DataAccessException("request a gets without/or with more 1 FilterOmit of values");
+		} else if (filterOmitKeys.size() == 1) {
+			filterOmitKey = filterOmitKeys.get(0);
+		}
+		return filterOmitKey;
+	}
+
+	/**
+	 * Loads the stored state of the document an update targets, when an add-on field of the model needs it.
+	 *
+	 * <p>The relation add-ons diff the stored document against the new values: it is loaded with the filter of
+	 * the update itself, so that a document the update does not reach never feeds a side effect.
+	 *
+	 * @param model        the model of the entity
+	 * @param clazz        the entity class
+	 * @param condition    the merged condition of the update
+	 * @param queryOptions the options of the update
+	 * @return the stored entity, or {@code null} when no add-on needs it, when no single {@link TransmitKey} is
+	 *         given or when the update does not reach the document
+	 * @throws Exception if the read fails
+	 */
+	private Object readPreviousDataIfNeeded(
+			final DbClassModel model,
+			final Class<?> clazz,
+			final Condition condition,
+			final QueryOptions queryOptions) throws Exception {
+		Object previousData = null;
+		if (model.needsPreviousDataForUpdate()) {
+			final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
+			if (transmitKey.size() == 1) {
+				previousData = readPreviousDataForUpdate(clazz, transmitKey.get(0).getKey(), condition, queryOptions);
+			}
+		}
+		return previousData;
+	}
+
+	/**
+	 * Adds the date of the {@code @UpdateTimestamp} field to the {@code $set} document, unconditionally (not
+	 * subject to {@link FilterValue}), unless {@code directdata}.
+	 *
+	 * @param model        the model of the entity
+	 * @param queryOptions the options of the update
+	 * @param directdata   {@code true} when the update carries {@link DirectData}
+	 * @param docSet       the {@code $set} document, completed
+	 */
+	private static void appendUpdateTimestamp(
+			final DbClassModel model,
+			final QueryOptions queryOptions,
+			final boolean directdata,
+			final Document docSet) {
+		final DbPropertyDescriptor updateTsDesc = model.getUpdateTimestamp();
+		if (updateTsDesc != null && !directdata) {
+			final FieldName fieldName = updateTsDesc.getFieldName(queryOptions);
+			docSet.append(fieldName.inTable(), Date.from(Instant.now()));
+		}
+	}
+
+	/**
+	 * Tells whether an update writes a field: it is named by the {@link FilterValue}, not by the
+	 * {@link FilterOmit}, and not read-only for the API unless {@link ForceReadOnlyField}.
+	 *
+	 * @param desc               the field
+	 * @param fieldName          the names of the field
+	 * @param filterKey          the fields to write
+	 * @param filterOmitKey      the fields to leave out, may be {@code null}
+	 * @param forceReadOnlyField {@code true} when the update carries {@link ForceReadOnlyField}
+	 * @return {@code true} if the field is written
+	 */
+	private static boolean isFieldWrittenByUpdate(
+			final DbPropertyDescriptor desc,
+			final FieldName fieldName,
+			final FilterValue filterKey,
+			final FilterOmit filterOmitKey,
+			final boolean forceReadOnlyField) {
+		if (filterOmitKey != null && filterOmitKey.getValues().contains(fieldName.inStruct())) {
+			return false;
+		}
+		if (!filterKey.getValues().contains(fieldName.inStruct())) {
+			return false;
+		}
+		if (!forceReadOnlyField && desc.isApiReadOnly()) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Runs the add-ons of the fields an update writes: schedules their asynchronous update and lets them
+	 * complete the {@code $set} and {@code $unset} documents.
+	 *
+	 * @param <T>                the type of the entity
+	 * @param model              the model of the entity
+	 * @param data               the entity holding the new values
+	 * @param queryOptions       the options of the update
+	 * @param filterKey          the fields to write
+	 * @param filterOmitKey      the fields to leave out, may be {@code null}
+	 * @param forceReadOnlyField {@code true} when the update carries {@link ForceReadOnlyField}
+	 * @param previousData       the stored state of the document, may be {@code null}
+	 * @param docSet             the {@code $set} document, completed
+	 * @param docUnSet           the {@code $unset} document, completed
+	 * @param asyncActions       the deferred actions, completed
+	 * @return {@code true} if a relation field needing the stored state could not be synchronized because it
+	 *         was not read
+	 * @throws Exception if an add-on fails or no single {@link TransmitKey} is given for an asynchronous update
+	 */
+	private <T> boolean appendAddonFieldsForUpdate(
+			final DbClassModel model,
+			final T data,
+			final QueryOptions queryOptions,
+			final FilterValue filterKey,
+			final FilterOmit filterOmitKey,
+			final boolean forceReadOnlyField,
+			final Object previousData,
+			final Document docSet,
+			final Document docUnSet,
+			final List<LazyGetter> asyncActions) throws Exception {
+		boolean relationSideEffectSkipped = false;
+		// --- Handle addon fields ---
+		for (final DbPropertyDescriptor desc : model.getAddonFields()) {
+			final FieldName fieldName = desc.getFieldName(queryOptions);
+			// Apply filter/omit logic
+			if (!isFieldWrittenByUpdate(desc, fieldName, filterKey, filterOmitKey, forceReadOnlyField)) {
+				continue;
+			}
+			if (desc.isAsyncUpdate()) {
+				final List<TransmitKey> transmitKey = queryOptions.get(TransmitKey.class);
+				if (transmitKey.size() != 1) {
+					throw new DataAccessException(
+							"Fail to transmit Key to update the async update... (must have only 1)");
+				}
+				if (previousData == null && desc.isPreviousDataNeeded()) {
+					relationSideEffectSkipped = true;
+				} else {
+					desc.getAddOn().asyncUpdate(this, previousData, transmitKey.get(0).getKey(), desc,
+							desc.getProperty().getValue(data), asyncActions, queryOptions);
+				}
+			}
+			if (!desc.canInsert()) {
+				continue;
+			}
+			desc.getAddOn().insertData(this, desc, data, queryOptions, docSet, docUnSet);
+		}
+		return relationSideEffectSkipped;
+	}
+
+	/**
+	 * Writes the regular fields an update writes, through their pre-compiled codecs, in the {@code $set} and
+	 * {@code $unset} documents.
+	 *
+	 * @param <T>                the type of the entity
+	 * @param model              the model of the entity
+	 * @param data               the entity holding the new values
+	 * @param queryOptions       the options of the update
+	 * @param filterKey          the fields to write
+	 * @param filterOmitKey      the fields to leave out, may be {@code null}
+	 * @param forceReadOnlyField {@code true} when the update carries {@link ForceReadOnlyField}
+	 * @param docSet             the {@code $set} document, completed
+	 * @param docUnSet           the {@code $unset} document, completed
+	 * @throws Exception if a codec fails
+	 */
+	private <T> void appendRegularFieldsForUpdate(
+			final DbClassModel model,
+			final T data,
+			final QueryOptions queryOptions,
+			final FilterValue filterKey,
+			final FilterOmit filterOmitKey,
+			final boolean forceReadOnlyField,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		// --- Handle regular fields (via pre-compiled codecs) ---
+		for (final DbPropertyDescriptor desc : model.getRegularFields()) {
+			final FieldName fieldName = desc.getFieldName(queryOptions);
+			// Apply filter/omit logic
+			if (!isFieldWrittenByUpdate(desc, fieldName, filterKey, filterOmitKey, forceReadOnlyField)) {
+				continue;
+			}
+			final MongoFieldCodec codec = desc.getCodec();
+			if (codec == null) {
+				continue;
+			}
+			final PropertyDescriptor prop = desc.getProperty();
+			if (!prop.getType().isPrimitive()) {
+				final Object tmp = prop.getValue(data);
+				if (tmp == null && desc.getInitValue() != null) {
+					continue;
+				}
+			}
+			if (filterKey.isFullUpdate() && MongoCodecFactory.hasProtectedSubFields(prop.getTypeInfo())) {
+				appendEmbeddedVisibleFieldsForFullUpdate(desc, fieldName, prop, data, docSet, docUnSet);
+				continue;
+			}
+			codec.writeToDoc(null, fieldName.inTable(), data, docSet, docUnSet);
+		}
+	}
+
+	/**
+	 * Writes, in a full update, a field whose type holds protected sub-fields.
+	 *
+	 * <p>A read leaves the protected fields of embedded objects null: never rewrite them as a whole in a full
+	 * update. An embedded object is written field by field (dot notation), a list, set or map of such objects
+	 * is kept as stored (name it in a {@link FilterValue} to rewrite it).
+	 *
+	 * @param <T>       the type of the entity
+	 * @param desc      the field
+	 * @param fieldName the names of the field
+	 * @param prop      the property of the field
+	 * @param data      the entity holding the new values
+	 * @param docSet    the {@code $set} document, completed
+	 * @param docUnSet  the {@code $unset} document, completed
+	 * @throws Exception if the embedded object cannot be written
+	 */
+	private static <T> void appendEmbeddedVisibleFieldsForFullUpdate(
+			final DbPropertyDescriptor desc,
+			final FieldName fieldName,
+			final PropertyDescriptor prop,
+			final T data,
+			final Document docSet,
+			final Document docUnSet) throws Exception {
+		if (MongoCodecFactory.isEmbeddedObjectType(prop.getTypeInfo())) {
+			final Object embedded = prop.getValue(data);
+			if (embedded == null) {
+				docUnSet.append(fieldName.inTable(), "");
+			} else {
+				MongoCodecFactory.writeEmbeddedVisibleFields(fieldName.inTable(), desc, embedded, docSet, docUnSet);
+			}
+		}
+	}
+
+	/**
+	 * Builds the update document of the driver.
+	 *
+	 * @param docSet   the {@code $set} document
+	 * @param docUnSet the {@code $unset} document
+	 * @return a document holding {@code $set} and {@code $unset} when they are not empty
+	 */
+	private static Document buildUpdateActions(final Document docSet, final Document docUnSet) {
+		final Document actions = new Document();
+		if (!docSet.isEmpty()) {
+			actions.append("$set", docSet);
+		}
+		if (!docUnSet.isEmpty()) {
+			actions.append("$unset", docUnSet);
+		}
+		return actions;
+	}
+
+	/**
+	 * Ends an update once the driver answered: runs the relation side effects when the update reached a
+	 * document, drops them otherwise.
+	 *
+	 * @param ret                       the answer of the driver
+	 * @param collectionName            the collection updated
+	 * @param asyncActions              the deferred relation actions, run when the update matched a document
+	 * @param relationSideEffectSkipped {@code true} when a relation field was written without being synchronized
+	 * @return the number of documents modified
+	 * @throws Exception if a deferred action fails
+	 */
+	private long finishUpdate(
+			final UpdateResult ret,
+			final String collectionName,
+			final List<LazyGetter> asyncActions,
+			final boolean relationSideEffectSkipped) throws Exception {
+		if (ret.getMatchedCount() == 0) {
+			// The update reached no document (caller's condition, soft delete): its relation side effects
+			// must not run either, they would escape the caller's scope.
+			if (!asyncActions.isEmpty()) {
+				LOGGER.debug("update of {} matched no document: {} relation side effect(s) dropped", collectionName,
+						asyncActions.size());
+			}
+			return ret.getModifiedCount();
+		}
+		if (relationSideEffectSkipped) {
+			LOGGER.warn("update of {} applied to a document not reachable when its previous state was read "
+					+ "(concurrent write?): its relation fields were written without synchronizing the remote "
+					+ "documents", collectionName);
+		}
+		runLazyActions(asyncActions);
+		return ret.getModifiedCount();
 	}
 
 	/**
