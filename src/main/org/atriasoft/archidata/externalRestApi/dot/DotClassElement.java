@@ -419,6 +419,8 @@ public class DotClassElement {
 			return generateDotMapClassName(fieldMapModel, dotGroup);
 		} else if (model.valueModel instanceof final ClassObjectModel fieldObjectModel) {
 			return generateDotObjectClassName(fieldObjectModel, dotGroup);
+		} else if (model.valueModel instanceof final ClassEnumModel fieldEnumModel) {
+			return generateDotEnum(fieldEnumModel, dotGroup);
 		}
 		return null;
 	}
@@ -447,6 +449,9 @@ public class DotClassElement {
 			out.append(tmp);
 		} else if (model.valueModel instanceof final ClassObjectModel fieldObjectModel) {
 			final String tmp = generateDotObject(fieldObjectModel, dotGroup);
+			out.append(tmp);
+		} else if (model.valueModel instanceof final ClassEnumModel fieldEnumModel) {
+			final String tmp = generateDotEnum(fieldEnumModel, dotGroup);
 			out.append(tmp);
 		}
 		out.append("&gt;");

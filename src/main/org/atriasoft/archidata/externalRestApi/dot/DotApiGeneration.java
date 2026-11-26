@@ -3,7 +3,9 @@ package org.atriasoft.archidata.externalRestApi.dot;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.atriasoft.archidata.externalRestApi.dot.DotClassElement.DefinedPosition;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
@@ -13,6 +15,7 @@ import org.atriasoft.archidata.externalRestApi.model.ClassListModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
+import org.atriasoft.archidata.externalRestApi.model.ParameterClassModelList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,15 +240,27 @@ public class DotApiGeneration {
 				}
 				hasParam = true;
 				data.append("data: ");
-				// TODO: set it back: data.append(	generateClassModelTypescript(interfaceElement.unnamedElement.get(0), dotGroup, writeImports));
+				data.append(generateClassModelsTypescript(interfaceElement.unnamedElement.get(0).models(), dotGroup));
 			} else if (interfaceElement.multiPartParameters.size() != 0) {
 				if (hasParam) {
 					data.append(", ");
 				}
 				hasParam = true;
-				final boolean hasParam2 = false;
 				data.append("data: {");
-				// TODO: set it back:
+				boolean isFirstPart = true;
+				for (final Entry<String, ParameterClassModelList> part : new TreeMap<>(
+						interfaceElement.multiPartParameters).entrySet()) {
+					if (!isFirstPart) {
+						data.append(", ");
+					}
+					isFirstPart = false;
+					data.append(part.getKey());
+					if (part.getValue().optional()) {
+						data.append("?");
+					}
+					data.append(": ");
+					data.append(generateClassModelsTypescript(part.getValue().models(), dotGroup));
+				}
 				data.append("}");
 			}
 			data.append("): ");

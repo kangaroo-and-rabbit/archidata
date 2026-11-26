@@ -47,6 +47,9 @@
   `pydantic.Base64Bytes` dans un modèle ou une réponse JSON (Jackson l'écrit en base64 ; `bytes` de Pydantic v2 ne le
   décode pas), `bytes` pour une réponse binaire (`@Produces` non JSON). Avant : un fichier `model/byte[].py` invalide et
   un modèle `model/char_sequence.py` sans intérêt, importés par l'API.
+- DOT : un champ `List<UneEnum>` est dessiné `List<UneEnum>` avec son arête vers l'enum (avant : `List<>`, sans arête),
+  et le libellé d'un endpoint qui reçoit un corps donne son type (`create(data: Settings)`, `upload(data: {file: File,
+  title: string})`) à la place de `data: `.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

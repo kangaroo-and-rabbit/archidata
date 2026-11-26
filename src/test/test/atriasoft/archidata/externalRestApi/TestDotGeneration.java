@@ -30,9 +30,7 @@ import test.atriasoft.archidata.externalRestApi.TestDrawioGeneration.RelParent;
  * covering a plain field, a list of models, a map, an enum, a parent class, a relation, a path
  * parameter and a query parameter.
  *
- * <p>The label of an endpoint that takes a body is deliberately left out: it prints {@code data: }
- * with no type (see {@code DotApiGeneration.generateApiFile}), and a {@code List} of enums is drawn
- * {@code List<>} with no edge (see {@code DotClassElement.generateDotList}).
+ * <p>The body of an endpoint and the {@code List} of enums are pinned by {@link TestDotEnumListAndBody}.
  */
 public class TestDotGeneration {
 
