@@ -448,7 +448,17 @@ final String token = JWTWrapper.generateJWToken(userId, login, issuer, app,
     rolesMap, rightsMap, timeoutMinutes);
 ```
 
-When multiple roles grant the same right, access levels are merged using bitmask OR (e.g., `READ | WRITE = READ_WRITE`). Unknown roles are ignored.
+The level of each role of the user caps the rights that role gives, with the same meaning as in `MySecurityContext`: the access level of
+each definition is combined with the level of the role by bitmask AND.
+
+| Level of the role | Rights it gives |
+|---|---|
+| `NONE` (or `null`) | none |
+| `READ` | the read part of each right (a `WRITE` right is not given) |
+| `WRITE` | the write part of each right (a `READ` right is not given) |
+| `READ_WRITE` | every right at its own level |
+
+A right left with no access by this cap is not in the result. When multiple roles grant the same right, the capped access levels are merged using bitmask OR (e.g., `READ | WRITE = READ_WRITE`). Unknown roles are ignored.
 
 
 Registering the Authentication Filter

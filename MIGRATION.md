@@ -80,6 +80,17 @@
   d'origine (connexion, `getNumberOfStep`, lecture, insertion et mise à jour de l'historique, étape qui échoue) : `getCause()` n'est
   plus `null`. Les messages ne changent pas.
 
+## Prochaine version (après v0.54.4) - `RightRoleMapper` : le niveau du rôle compte (CHANGEMENT DE COMPORTEMENT)
+
+- `RightRoleMapper.generateRights(roles)` limite maintenant les droits d'un rôle par le niveau de ce rôle (ET binaire
+  avec le niveau de chaque droit), comme `MySecurityContext` le fait pour les rôles : un rôle à `NONE` (ou `null`) ne
+  donne rien, un rôle à `READ` ne donne que la lecture de ses droits, un rôle à `WRITE` que l'écriture, un rôle à
+  `READ_WRITE` garde le comportement précédent. Un droit qui n'a plus aucun accès après cette limite n'est pas dans le
+  résultat. La fusion d'un même droit venu de deux rôles reste un OU binaire des niveaux limités. Avant, le niveau du
+  rôle n'était pas lu : tout rôle connu donnait tous ses droits à leur niveau complet. Un code qui passe des rôles à
+  `NONE`, `READ` ou `WRITE` à `generateRights` obtient donc moins de droits ; un code qui ne passe que des rôles à
+  `READ_WRITE` ne change pas.
+
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
 À la régénération du client, relire le diff des fichiers générés.

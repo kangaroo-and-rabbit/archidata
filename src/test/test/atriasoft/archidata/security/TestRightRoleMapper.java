@@ -184,6 +184,68 @@ public class TestRightRoleMapper {
 		// settings: not present (only ADMIN has it)
 	}
 
+	// ========================================================================
+	// Test the level of the role caps the rights it gives
+	// ========================================================================
+
+	private static RightRoleMapper adminMapper() {
+		return new RightRoleMapper(Map.of("ADMIN", List.of(new RightDefinition("articles", PartRight.READ_WRITE),
+				new RightDefinition("logs", PartRight.READ), new RightDefinition("tasks", PartRight.WRITE))));
+	}
+
+	@Test
+	public void testRoleAtNoneGrantsNothing() {
+		final Map<String, PartRight> result = adminMapper().generateRights(Map.of("ADMIN", PartRight.NONE));
+
+		assertTrue(result.isEmpty());
+	}
+
+	@Test
+	public void testRoleAtReadIsCappedToRead() {
+		final Map<String, PartRight> result = adminMapper().generateRights(Map.of("ADMIN", PartRight.READ));
+
+		// articles RW & R = R, logs R & R = R, tasks W & R = nothing
+		assertEquals(Map.of("articles", PartRight.READ, "logs", PartRight.READ), result);
+	}
+
+	@Test
+	public void testRoleAtWriteIsCappedToWrite() {
+		final Map<String, PartRight> result = adminMapper().generateRights(Map.of("ADMIN", PartRight.WRITE));
+
+		// articles RW & W = W, logs R & W = nothing, tasks W & W = W
+		assertEquals(Map.of("articles", PartRight.WRITE, "tasks", PartRight.WRITE), result);
+	}
+
+	@Test
+	public void testRoleAtReadWriteKeepsEveryRight() {
+		final Map<String, PartRight> result = adminMapper().generateRights(Map.of("ADMIN", PartRight.READ_WRITE));
+
+		assertEquals(Map.of("articles", PartRight.READ_WRITE, "logs", PartRight.READ, "tasks", PartRight.WRITE),
+				result);
+	}
+
+	@Test
+	public void testSameRightFromTwoRolesAtDifferentLevelsIsTheUnionOfTheCappedRights() {
+		// ADMIN (level READ) gives articles:RW -> R; USER (level WRITE) gives articles:RW -> W; union = RW
+		final RightRoleMapper mapper = new RightRoleMapper(
+				Map.of("ADMIN", List.of(new RightDefinition("articles", PartRight.READ_WRITE)), "USER",
+						List.of(new RightDefinition("articles", PartRight.READ_WRITE))));
+
+		assertEquals(Map.of("articles", PartRight.READ_WRITE),
+				mapper.generateRights(Map.of("ADMIN", PartRight.READ, "USER", PartRight.WRITE)));
+		// a role at NONE adds nothing to the other one
+		assertEquals(Map.of("articles", PartRight.READ),
+				mapper.generateRights(Map.of("ADMIN", PartRight.READ, "USER", PartRight.NONE)));
+	}
+
+	@Test
+	public void testRoleWithoutLevelGrantsNothing() {
+		final Map<String, PartRight> roles = new HashMap<>();
+		roles.put("ADMIN", null);
+
+		assertTrue(adminMapper().generateRights(roles).isEmpty());
+	}
+
 	@Test
 	public void testTheMappingIsCopied() {
 		final List<RightDefinition> definitions = new ArrayList<>(

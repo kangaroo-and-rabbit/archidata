@@ -12,7 +12,8 @@ import org.atriasoft.archidata.filter.PartRight;
  *
  * <p>
  * Given a mapping of role names to their associated right definitions, this class
- * computes the effective rights for a user based on their roles. When multiple roles
+ * computes the effective rights for a user based on their roles. The level of each role
+ * of the user caps the rights it gives (bitmask AND). When multiple roles
  * grant the same right, access levels are merged using bitmask OR logic.
  * </p>
  *
@@ -67,25 +68,40 @@ public class RightRoleMapper {
 	 *
 	 * <p>
 	 * For each role the user has, the associated right definitions are looked up.
-	 * If multiple roles grant the same right, the access levels are merged using
+	 * The level of the role caps what it gives, as in
+	 * {@link org.atriasoft.archidata.filter.MySecurityContext}: the access level of each
+	 * definition is combined with the level of the role by bitmask AND. A role at
+	 * {@link PartRight#NONE} (or with a {@code null} level) gives nothing, a role at
+	 * {@link PartRight#READ} gives only the read part of its rights, a role at
+	 * {@link PartRight#WRITE} only the write part, a role at {@link PartRight#READ_WRITE} all of them.
+	 * A right left with no access by this cap is not added.
+	 * If multiple roles grant the same right, the capped access levels are merged using
 	 * bitmask OR (e.g., READ | WRITE = READ_WRITE).
 	 * Roles not present in the mapping are ignored.
 	 * </p>
 	 *
-	 * @param userRoles the user's roles as a map of role name to access level
+	 * @param userRoles the user's roles as a map of role name to the level of the role
 	 * @return the computed rights map
 	 */
 	public Map<String, PartRight> generateRights(final Map<String, PartRight> userRoles) {
 		final Map<String, Integer> mergedRights = new HashMap<>();
 		for (final Map.Entry<String, PartRight> roleEntry : userRoles.entrySet()) {
 			final String roleName = roleEntry.getKey();
+			final PartRight roleLevel = roleEntry.getValue();
+			if (roleLevel == null || roleLevel == PartRight.NONE) {
+				continue;
+			}
 			final List<RightDefinition> definitions = this.roleToRights.get(roleName);
 			if (definitions == null) {
 				continue;
 			}
 			for (final RightDefinition definition : definitions) {
+				final int capped = definition.access().getValue() & roleLevel.getValue();
+				if (capped == 0 && definition.access() != PartRight.NONE) {
+					continue;
+				}
 				final int current = mergedRights.getOrDefault(definition.right(), 0);
-				mergedRights.put(definition.right(), current | definition.access().getValue());
+				mergedRights.put(definition.right(), current | capped);
 			}
 		}
 		final Map<String, PartRight> result = new HashMap<>();
