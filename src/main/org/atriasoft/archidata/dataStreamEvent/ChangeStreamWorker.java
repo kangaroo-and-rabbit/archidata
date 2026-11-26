@@ -77,7 +77,8 @@ public class ChangeStreamWorker implements Runnable {
 
 	// Written by stop() (any thread, the manager calls it with its write lock held), read by the worker thread. Volatile.
 	private volatile boolean running = true;
-	// Written by the worker thread only (runLoop), read by any thread through getStatus(). Volatile.
+	// Written by the worker thread only (runLoop, and run() when an Error ends it), read by any thread through
+	// getStatus(). Volatile.
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
 	// Position of this worker's own stream: the token of the last event it READ, dispatched or not. Plain field, no
 	// lock, confined to the worker thread: written by setResumeToken(), which the manager calls on its own thread
@@ -160,11 +161,29 @@ public class ChangeStreamWorker implements Runnable {
 		}
 	}
 
-	/** {@inheritDoc} */
+	/**
+	 * Runs the worker until {@link #stop()}. An {@link Error} thrown on this thread (by a listener, an
+	 * {@code AssertionError} included, or by the JVM) ends the worker: it is logged at ERROR with the collection
+	 * name, the status becomes {@link WorkerStatus#STOPPED}, and the error is thrown again.
+	 */
 	@Override
 	public void run() {
 		try {
 			runLoop();
+		} catch (final Error e) {
+			// Not retried like an exception: the JVM may be in a broken state (OutOfMemoryError,
+			// StackOverflowError...). The executor keeps the Error in the Future nobody reads, so without this
+			// log and status the worker died in silence and the manager went on reporting it RUNNING
+			try {
+				LOGGER.error(
+						"ChangeStreamWorker for collection {} ended by an Error (a listener's included): it no"
+								+ " longer reads its stream, unwatch then watch the collection to start a new one",
+						this.collectionName, e);
+			} finally {
+				// After the log: a thread that sees STOPPED sees the log written
+				this.status = WorkerStatus.STOPPED;
+			}
+			throw e;
 		} finally {
 			this.firstOpenAttemptDone.countDown();
 			this.ended.countDown();

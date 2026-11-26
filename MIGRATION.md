@@ -42,6 +42,11 @@
 - Un filtre client (`ListenerRegistrationBuilder.filter(...)`) qui lève une exception est journalisé comme un listener
   qui lève : seul son listener est sauté pour cet événement. Avant, l'exception sortait de la distribution, le flux de
   la collection reprenait 5 s plus tard après l'événement, et les listeners suivants ne le recevaient jamais.
+- Une `Error` levée sur le thread d'un worker de change stream (par un listener, `AssertionError` comprise) arrête
+  toujours ce worker, mais plus en silence : elle est journalisée en ERROR avec le nom de la collection et l'erreur, et
+  `getWorkerStatuses()` rend `STOPPED` pour cette collection. Avant, rien n'était journalisé (l'exécuteur gardait
+  l'erreur dans un `Future` jamais lu) et le statut restait `RUNNING`. La collection reste surveillée : pour relancer
+  un worker, `unwatchCollection` puis `watchCollection`.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

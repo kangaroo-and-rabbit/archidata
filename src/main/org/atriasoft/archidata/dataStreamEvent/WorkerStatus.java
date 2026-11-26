@@ -13,7 +13,7 @@ package org.atriasoft.archidata.dataStreamEvent;
  * <li>RECONNECTING - Worker is attempting to reconnect after a MongoDB error
  * (temporary state)</li>
  * <li>ERROR - Worker encountered an unexpected error (may retry)</li>
- * <li>STOPPED - Worker has been stopped and will not restart</li>
+ * <li>STOPPED - Worker has been stopped, or ended by an {@link Error}, and will not restart</li>
  * </ol>
  *
  * @see ChangeStreamWorker
@@ -46,7 +46,10 @@ public enum WorkerStatus {
 
 	/**
 	 * Worker has been stopped and will not process any more events. This is a
-	 * terminal state.
+	 * terminal state. A worker of a collection still watched reports it when an
+	 * {@link Error} thrown on its thread (by a listener, an
+	 * {@code AssertionError} included) ended it, logged at ERROR: unwatch then
+	 * watch the collection to start a new worker.
 	 */
 	STOPPED
 }

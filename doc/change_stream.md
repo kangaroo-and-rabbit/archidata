@@ -94,7 +94,7 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   order. For each event the manager calls the global listeners first, then the listeners of the
   collection. A client-side filter that returns `false` skips the listener; an exception thrown by a
   client-side filter or by a listener is caught and logged, skips that listener for that event, and
-  does not affect other listeners.
+  does not affect other listeners. An `Error` is not caught there: it ends the worker (see below).
 - **Resume tokens.** The worker keeps the token of the last event it read: if its stream errors it
   re-opens with `resumeAfter(token)`. When `unwatchCollection(...)` stops a worker, the manager saves
   another position: the token of the last event **dispatched** to the listeners (it moves once they
@@ -115,8 +115,20 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
 - **Error handling in the worker loop** (see `WorkerStatus`):
   `MongoInterruptedException` and `InvalidResumeToken` (code 260) reset the token and retry after
   1 s; other `MongoCommandException` / `MongoException` set `RECONNECTING` and retry after 5 s;
-  any other exception sets `ERROR` and retries after 5 s. The loop ends only on `stop()`
-  (`STOPPED`). The delay is fixed (no exponential backoff, no retry limit).
+  any other exception sets `ERROR` and retries after 5 s. The loop ends on `stop()` (`STOPPED`).
+  The delay is fixed (no exponential backoff, no retry limit).
+- **An `Error` ends the worker.** An `Error` thrown on the worker thread (by a listener, an
+  `AssertionError` included, or by the JVM: `OutOfMemoryError`, `StackOverflowError`) is not retried,
+  since the JVM may be in a broken state: the worker logs it at ERROR with the collection name and the
+  throwable, reports `STOPPED`, and reads its stream no more, while the collection stays watched
+  (`isWatching` is still `true`). The listeners after the one that threw do not receive the event.
+  The dead worker stays registered: `watchCollection(name)` and `registerListener(..., name)` do not
+  start a new one (they log the WARN "Change stream of collection ... not open"). To start a new
+  worker, call `unwatchCollection(name)` then `watchCollection(name)`: once the old worker had a
+  position (see the resume tokens above), the new one resumes before the event the `Error` interrupted
+  and dispatches it to every listener, those that already had it included. If a listener throws an
+  `Error` again on that event, the new worker ends too; `stop()` then `start()`, which forget the
+  positions, get past it (the new workers start from the time their streams open).
 - **Stopping.** A worker reads its stream with `tryNext()`: a `getMore` with no change returns after
   the server's await time (1 s by default), and the worker then sees it was stopped. `stop()` waits
   for every worker to end (so about 1 s), interrupts the ones still running after 5 s (a listener
@@ -332,7 +344,8 @@ used by the other integration tests (`ConfigureDb.configure()`):
   dispatches it reaches the listeners once, through the next worker, also when it is the first event of
   that worker (the interleaving is forced through a database whose `getCollection()` runs code with the
   manager's write lock held); a client filter that throws does not take the event from the other
-  listeners.
+  listeners; a listener that throws an `AssertionError` ends the worker with an ERROR log and the
+  `STOPPED` status, and the event reaches the listeners once the collection is watched again.
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 

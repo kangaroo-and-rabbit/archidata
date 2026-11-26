@@ -199,7 +199,9 @@ Each point was checked against the code; the doc page gives the details.
   per-listener / per-watch mode is always ignored: those overloads are `@Deprecated` and log a
   warning); the retry delay after a failure is fixed (1 s / 5 s, no exponential backoff);
   listeners run synchronously on the collection's worker thread, so a slow listener blocks that
-  collection (hand heavy work to an executor); `start()` and `registerListener()` return once the
+  collection (hand heavy work to an executor); an `Error` thrown by a listener ends the worker of
+  that collection (status `STOPPED`, until `unwatchCollection` then `watchCollection`), an
+  `Exception` does not; `start()` and `registerListener()` return once the
   change streams are open (a write made after them is notified), `stop()` once its workers have
   ended; `stop()` clears the listeners and the resume tokens (register them again after a restart).
   See `doc/change_stream.md`.

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -18,6 +19,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.atriasoft.archidata.dataStreamEvent.ChangeEvent;
 import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationListener;
 import org.atriasoft.archidata.dataStreamEvent.ChangeNotificationManager;
+import org.atriasoft.archidata.dataStreamEvent.ChangeStreamWorker;
+import org.atriasoft.archidata.dataStreamEvent.WorkerStatus;
 import org.bson.BsonObjectId;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -27,7 +30,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoChangeStreamCursor;
 import com.mongodb.client.MongoCollection;
@@ -58,7 +66,8 @@ import test.atriasoft.archidata.ConfigureDb;
  *
  * <p>
  * A client filter that throws is caught like a listener that throws: it used to leave the dispatch, and the event
- * never reached the listeners after it.
+ * never reached the listeners after it. A listener that throws an {@link Error} ends the worker, as before, but no
+ * longer in silence: the worker logs it and reports {@link WorkerStatus#STOPPED} instead of RUNNING.
  * </p>
  */
 public class TestChangeStreamNoEventLost {
@@ -302,6 +311,67 @@ public class TestChangeStreamNoEventLost {
 		} finally {
 			manager.unwatchCollection(watched);
 			manager.unwatchCollection(hooked);
+		}
+	}
+
+	private static void awaitStatus(final String collection, final WorkerStatus expected) {
+		final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(WAIT_SECONDS);
+		while (System.nanoTime() < deadline) {
+			if (manager.getWorkerStatuses().get(collection) == expected) {
+				return;
+			}
+			LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+		}
+		Assertions.fail("the worker of " + collection + " never reported " + expected + ", it reports "
+				+ manager.getWorkerStatuses().get(collection));
+	}
+
+	@RepeatedTest(3)
+	public void aListenerThatThrowsAnErrorEndsTheWorkerWithALogAndAStoppedStatus() throws Exception {
+		final String watched = COLLECTION_PREFIX + "error_" + RUN.incrementAndGet();
+		final Received received = new Received();
+		final ObjectId poisoned = new ObjectId();
+		final BsonObjectId poisonedKey = new BsonObjectId(poisoned);
+		final AtomicBoolean thrown = new AtomicBoolean(false);
+		final Logger workerLogger = (Logger) LoggerFactory.getLogger(ChangeStreamWorker.class);
+		final ListAppender<ILoggingEvent> appender = new ListAppender<>();
+		appender.start();
+		workerLogger.addAppender(appender);
+		// The global listeners are called before the listeners of the collection: the Error takes the event from them
+		manager.registerListener(event -> {
+			if (poisonedKey.equals(event.getOid()) && thrown.compareAndSet(false, true)) {
+				throw new AssertionError("listener failure raised by the test");
+			}
+		});
+		manager.registerListener(received, watched);
+		try {
+			// The worker has a position before the event (see the test of the first event)
+			Assertions.assertTrue(idle(watched).await(WAIT_SECONDS, TimeUnit.SECONDS),
+					"the change stream of " + watched + " never polled");
+			insert(watched, poisoned);
+
+			// The status is written after the log: once it is seen, the log is there
+			awaitStatus(watched, WorkerStatus.STOPPED);
+			final List<ILoggingEvent> errors = appender.list.stream().filter(
+					logged -> logged.getLevel() == Level.ERROR && logged.getFormattedMessage().contains(watched))
+					.toList();
+			Assertions.assertEquals(1, errors.size(), "one ERROR naming the collection");
+			Assertions.assertNotNull(errors.get(0).getThrowableProxy(), "the ERROR carries the throwable");
+			Assertions.assertEquals(AssertionError.class.getName(), errors.get(0).getThrowableProxy().getClassName());
+			Assertions.assertTrue(manager.isWatching(watched), "the collection stays watched");
+			Assertions.assertEquals(List.of(), received.ids(), "the Error took the event from the next listeners");
+
+			// Unchanged semantics: a new worker resumes from the position before the event, and dispatches it
+			manager.unwatchCollection(watched);
+			manager.watchCollection(watched);
+			final ObjectId last = insert(watched);
+			received.await(last);
+			Assertions.assertEquals(List.of(poisoned, last), received.ids(),
+					"the new worker dispatches the event the Error interrupted, then the next one");
+		} finally {
+			workerLogger.detachAppender(appender);
+			appender.stop();
+			manager.unwatchCollection(watched);
 		}
 	}
 
