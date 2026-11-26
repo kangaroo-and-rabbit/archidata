@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
@@ -13,7 +14,8 @@ import jakarta.ws.rs.ext.ExceptionMapper;
  * and converts them into standardized JSON error responses.
  * <p>
  * The message of a client error (4xx) is sent back; the message of a server error (5xx) is replaced by
- * {@link ExceptionCatcher#GENERIC_MESSAGE} and only logged.
+ * {@link ExceptionCatcher#GENERIC_MESSAGE} and only logged. The headers of the response of the exception
+ * are kept ({@code Retry-After}, {@code WWW-Authenticate}, {@code Allow}...); its body is replaced.
  * </p>
  */
 public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplicationException> {
@@ -31,8 +33,12 @@ public class WebApplicationExceptionCatcher implements ExceptionMapper<WebApplic
 	public Response toResponse(final WebApplicationException exception) {
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error OID={}", ret.oid);
-		return Response.status(exception.getResponse().getStatusInfo()).entity(ret).type(MediaType.APPLICATION_JSON)
-				.build();
+		// Built from the response of the exception, not from its status alone: its headers (Retry-After of a
+		// 429, WWW-Authenticate of a 401, Allow of a 405...) are part of the answer. The body and its
+		// description are replaced by the JSON error.
+		// fromResponse copies the status as a number: the status is set again to keep its reason phrase.
+		return Response.fromResponse(exception.getResponse()).status(exception.getResponse().getStatusInfo())
+				.entity(ret).type(MediaType.APPLICATION_JSON).header(HttpHeaders.CONTENT_LENGTH, null).build();
 	}
 
 	private RestErrorResponse build(final WebApplicationException exception) {

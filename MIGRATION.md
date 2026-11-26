@@ -21,6 +21,9 @@
   qu'une ligne.
 - `count`, `insertBsonDocument`, `getBsonDocument`, `getBsonDocuments` et `updateBsonDocuments` gardent l'exception
   du pilote comme `getCause()` de la `DataAccessException` qu'elles lèvent (message inchangé).
+- `WebApplicationExceptionCatcher` garde les en-têtes de la réponse de l'exception (`Retry-After` d'un 429,
+  `WWW-Authenticate` d'un 401, `Allow` d'un 405...). Avant, seuls le statut et le corps JSON étaient renvoyés. Le
+  corps JSON ne change pas.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

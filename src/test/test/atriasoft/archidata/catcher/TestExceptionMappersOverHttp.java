@@ -38,6 +38,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.InternalServerErrorException;
+import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -125,6 +126,19 @@ public class TestExceptionMappersOverHttp {
 		@Path("web-too-many")
 		public String webTooMany() {
 			throw new WebApplicationException("slow down", Response.status(429).build());
+		}
+
+		@GET
+		@Path("web-retry-after")
+		public String webRetryAfter() {
+			throw new WebApplicationException("slow down",
+					Response.status(429).header("Retry-After", "30").header("X-Rate-Remaining", "0").build());
+		}
+
+		@GET
+		@Path("web-unauthorized")
+		public String webUnauthorized() {
+			throw new NotAuthorizedException("who are you", "Bearer realm=\"archidata\"");
 		}
 
 		@GET
@@ -300,6 +314,32 @@ public class TestExceptionMappersOverHttp {
 	@Test
 	public void testWebApplicationExceptionOfAStatusUnknownToTheEnum() throws Exception {
 		check(get("web-too-many"), 429, "Too Many Requests", "Catch system exception", "slow down");
+	}
+
+	@Test
+	public void testWebApplicationExceptionKeepsTheHeadersOfItsResponse() throws Exception {
+		final HttpResponse<String> response = get("web-retry-after");
+		check(response, 429, "Too Many Requests", "Catch system exception", "slow down");
+		Assertions.assertEquals("30", response.headers().firstValue("Retry-After").orElse(null));
+		Assertions.assertEquals("0", response.headers().firstValue("X-Rate-Remaining").orElse(null));
+	}
+
+	@Test
+	public void testWebApplicationExceptionKeepsTheChallengeOfA401() throws Exception {
+		final HttpResponse<String> response = get("web-unauthorized");
+		check(response, 401, "Unauthorized", "Catch system exception", "who are you");
+		Assertions.assertEquals("Bearer realm=\"archidata\"",
+				response.headers().firstValue("WWW-Authenticate").orElse(null));
+	}
+
+	@Test
+	public void testAMethodNotAllowedKeepsTheAllowHeader() throws Exception {
+		final HttpResponse<String> response = CLIENT.send(
+				HttpRequest.newBuilder(URI.create(base + "query")).POST(HttpRequest.BodyPublishers.noBody()).build(),
+				HttpResponse.BodyHandlers.ofString());
+		Assertions.assertEquals(405, response.statusCode(), response.body());
+		final String allow = response.headers().firstValue("Allow").orElse("");
+		Assertions.assertTrue(allow.contains("GET"), "Allow header lost: '" + allow + "'");
 	}
 
 	@Test
