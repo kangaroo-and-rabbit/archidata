@@ -96,7 +96,6 @@ public class DataResource {
 
 	private static void createFolder(final String path) throws IOException {
 		if (!Files.exists(java.nio.file.Path.of(path))) {
-			// Log.print("Create folder: " + path);
 			Files.createDirectories(java.nio.file.Path.of(path));
 		}
 	}
@@ -477,7 +476,6 @@ public class DataResource {
 	@PermitTokenInURI
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	@Operation(description = "Get a thumbnail of from the data environment (if resize is possible)", tags = "SYSTEM")
-	// @CacheMaxAge(time = 10, unit = TimeUnit.DAYS)
 	public Response retrieveDataThumbnailId(
 			@Context final SecurityContext sc,
 			@Context final Request request,
@@ -504,9 +502,7 @@ public class DataResource {
 			return Response.status(404).entity("{\"error\":\"media Does not exist: " + oid + "\"}")
 					.type("application/json").build();
 		}
-		if (value.getMimeType().contentEquals("image/jpeg") || value.getMimeType().contentEquals("image/png")
-		// || value.mimeType.contentEquals("image/webp")
-		) {
+		if (value.getMimeType().contentEquals("image/jpeg") || value.getMimeType().contentEquals("image/png")) {
 			final int thumbnailWidth = ConfigBaseVariable.getThumbnailWidth();
 			// reads input image: dimensions checked on the header first, then decoded sub-sampled
 			final BufferedImage inputImage = readThumbnailSource(inputFile, thumbnailWidth);
@@ -811,7 +807,6 @@ public class DataResource {
 						while ((len = in.read(buf)) != -1) {
 							try {
 								out.write(buf, 0, len);
-								// logger.info("---- wrote {} bytes file ----", len);
 							} catch (final IOException ex) {
 								LOGGER.info("remote close connection");
 								break;
@@ -837,7 +832,6 @@ public class DataResource {
 		final long from = asked.from();
 		final long to = asked.to();
 		final String responseRange = String.format("bytes %d-%d/%d", from, to, file.length());
-		// LOGGER.info("responseRange: {}", responseRange);
 		try {
 			if (!file.canRead()) {
 				throw new FileNotFoundException(filename);

@@ -827,7 +827,6 @@ public class DataTools {
 			final FormDataContentDisposition fileMetaData) throws Exception {
 		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
 			final DBAccessMongo ioDb = ctx.get();
-			// public NodeSmall uploadFile(final FormDataMultiPart form) {
 			LOGGER.info("Upload media file: {}", LogSanitizer.clean(fileMetaData));
 			LOGGER.info("    - id: {}", id);
 			LOGGER.info("    - file_name: {} ", LogSanitizer.clean(fileMetaData.getFileName()));

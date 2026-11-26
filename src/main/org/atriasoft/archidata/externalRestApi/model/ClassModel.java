@@ -185,15 +185,6 @@ public abstract class ClassModel {
 			final Class<?> clazz,
 			final Type parameterizedType,
 			final ModelGroup previousModel) throws IOException {
-		/*
-		if (clazz == List.class) {
-			return new ClassListModel((ParameterizedType) parameterizedType, previousModel);
-		}
-		if (clazz == Map.class) {
-			return new ClassMapModel((ParameterizedType) parameterizedType, previousModel);
-		}
-		return previousModel.add(clazz);
-		*/
 		return getModel(parameterizedType, previousModel);
 	}
 

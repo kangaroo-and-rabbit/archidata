@@ -64,7 +64,7 @@ public class RestInputError {
 	public RestInputError(final Path path, final String message) {
 		final Matcher matcher = PATTERN.matcher(path.toString());
 		if (matcher.find()) {
-			//String firstPart = matcher.group(1); this is the request base element ==> not needed
+			// group 1 is the request base element: not needed
 			this.argument = matcher.group(2);
 			this.path = matcher.group(4);
 		} else {

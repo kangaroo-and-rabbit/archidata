@@ -31,7 +31,6 @@ import jakarta.validation.constraints.Null;
  * {@link GenericData} (Long), with {@code ...SoftDelete} variants.
  * </p>
  */
-//@ApiGenerationMode(create = true, update = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenericTiming {
 

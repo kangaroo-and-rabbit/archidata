@@ -120,7 +120,6 @@ import jakarta.ws.rs.ext.Provider;
  * @see MySecurityContext
  * @see JWTWrapper
  */
-//@PreMatching
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 public class AuthenticationFilter implements ContainerRequestFilter {
@@ -191,9 +190,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
-		/* logger.debug("-----------------------------------------------------"); logger.debug("----          Check if have authorization        ----");
-		 * logger.debug("-----------------------------------------------------"); logger.debug("   for:{}", LogSanitizer.clean(requestContext.getUriInfo().getPath())); */
-
 		final Method method = this.resourceInfo.getResourceMethod();
 		// Access denied for all
 		if (AnnotationTools.methodHasAnnotation(method, DenyAll.class)) {
@@ -204,7 +200,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
 		// Access allowed for all
 		if (AnnotationTools.methodHasAnnotation(method, PermitAll.class)) {
-			// logger.debug(" ==> permit all " + LogSanitizer.clean(requestContext.getUriInfo().getPath()));
 			// no control ...
 			return;
 		}
@@ -221,7 +216,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		// Get the Authorization header from the request
 		String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
 		String apikeyHeader = requestContext.getHeaderString(APIKEY);
-		// logger.debug("authorizationHeader: {}", authorizationHeader);
 		if (authorizationHeader == null && apikeyHeader == null && method.isAnnotationPresent(PermitTokenInURI.class)) {
 			final MultivaluedMap<String, String> quaryparam = requestContext.getUriInfo().getQueryParameters();
 			for (final Entry<String, List<String>> item : quaryparam.entrySet()) {
@@ -234,8 +228,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 				}
 			}
 		}
-		//LOGGER.error("authorizationHeader: {}", authorizationHeader);
-		//LOGGER.error("apikeyHeader: {}", apikeyHeader);
 		final boolean isApplicationToken = apikeyHeader != null;
 		final boolean isJwtToken = isTokenBasedAuthenticationBearer(authorizationHeader);
 		final boolean isApiToken = isTokenBasedAuthenticationApiKey(authorizationHeader);
@@ -248,7 +240,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		if (isJwtToken) {
 			// Extract the token from the Authorization header (Remove "Bearer ")
 			final String token = authorizationHeader.substring(AUTHENTICATION_SCHEME.length()).trim();
-			// logger.debug("token: {}", token);
 			try {
 				userByToken = validateJwtToken(token);
 			} catch (final Exception e) {
@@ -316,7 +307,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			return;
 		}
 		requestContext.setSecurityContext(userContext);
-		// logger.debug("Get local user : {} / {}", user, userByToken);
 	}
 
 	/**
@@ -419,7 +409,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 	 * @throws Exception if token validation or parsing fails
 	 */
 	protected UserByToken validateJwtToken(final String authorization) throws Exception {
-		// logger.debug(" validate token : " + authorization);
 		// The token must be meant for this application (aud claim, or application claim of an older token)
 		final JWTClaimsSet ret = JWTWrapper.validateToken(authorization, this.issuer, this.applicationName);
 		// check the token is valid !!! (signed and coherent issuer...
@@ -460,8 +449,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 			LOGGER.trace("Detect right in Authentication Filter: {}", rowRight);
 			user.setRight(RightSafeCaster.safeCastAndTransform(rowRight));
 		}
-		// logger.debug("request user: '{}' right: '{}' row='{}'", userUID, user.right, rowRight);
 		return user;
-		// return UserDB.getUserOrCreate(id, (String)ret.getClaim("login") );
 	}
 }

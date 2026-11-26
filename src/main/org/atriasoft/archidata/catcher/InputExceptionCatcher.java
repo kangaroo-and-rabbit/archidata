@@ -36,7 +36,6 @@ public class InputExceptionCatcher implements ExceptionMapper<InputException> {
 		final RestErrorResponse ret = build(exception);
 		LOGGER.error("Error OID={} ==> '{}'=>'{}'", ret.oid, exception.missingVariable,
 				exception.getLocalizedMessage());
-		// exception.printStackTrace();
 		return Response.status(exception.status).entity(ret).type(MediaType.APPLICATION_JSON).build();
 	}
 

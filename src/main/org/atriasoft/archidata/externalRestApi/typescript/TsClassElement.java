@@ -23,8 +23,6 @@ import org.atriasoft.archidata.externalRestApi.model.ParameterClassModel;
 import org.atriasoft.archidata.externalRestApi.typescript.ImportModel.ModeImport;
 import org.atriasoft.archidata.externalRestApi.typescript.ImportModel.PairElem;
 import org.atriasoft.archidata.tools.TypeUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
 
@@ -33,9 +31,6 @@ import jakarta.validation.Valid;
  * Handles generation of Zod schemas, TypeScript types, and type-check functions.
  */
 public class TsClassElement {
-	/** Logger for this class. */
-	static final Logger LOGGER = LoggerFactory.getLogger(TsClassElement.class);
-
 	/** Defines where a type is positioned in the generation hierarchy. */
 	public enum DefinedPosition {
 		/** Native element of the TypeScript language. */
@@ -82,9 +77,6 @@ public class TsClassElement {
 	 */
 	public TsClassElement(final List<ClassModel> model, final String zodName, final String tsTypeName,
 			final String tsCheckType, final String declaration, final DefinedPosition nativeType) {
-		if (model.get(0).getOriginClasses().getSimpleName().equals("TestObject")) {
-			LOGGER.error("lkjlkj");
-		}
 		this.models = model;
 		this.zodName = zodName;
 		this.tsTypeName = tsTypeName;
@@ -278,7 +270,6 @@ public class TsClassElement {
 		final StringBuilder out = new StringBuilder();
 		out.append(getBaseHeader());
 		out.append("\n");
-		// out.append(generateComment(model));
 		if (System.getenv("ARCHIDATA_GENERATE_ZOD_ENUM") != null) {
 			boolean first = true;
 			out.append("export const ");
@@ -377,7 +368,6 @@ public class TsClassElement {
 	 */
 	public String generateImports(final ImportModel imports, final TsClassElementGroup tsGroup) {
 		final Map<String, String> mapOutput = new TreeMap<>();
-		// TODO: order alphabetical order...
 		final Map<String, ClassModel> orderedMap = new TreeMap<>();
 
 		for (final Entry<ClassModel, Set<PairElem>> depModel : imports.data.entrySet()) {
@@ -624,16 +614,6 @@ public class TsClassElement {
 					builder.append(")");
 				}
 			}
-			/*
-			 * Must be tested before if (field.pattern() != null) {
-			 * builder.append(".regex(("); builder.append(field.pattern().regexp());
-			 * builder.append(")"); }
-			 */
-			/*
-			 * Must be tested before if (field.email() != null) {
-			 * builder.append(".regex(("); builder.append(field.email().regexp());
-			 * builder.append(")"); }
-			 */
 		}
 		if (clazz == short.class || clazz == Short.class || clazz == int.class || clazz == Integer.class
 				|| clazz == long.class || clazz == Long.class || clazz == float.class || clazz == Float.class
@@ -1015,7 +995,6 @@ public class TsClassElement {
 			}
 			out.append("]);");
 		}
-		// model.getDependencyModels()
 		out.append(generateZodInfer(modelName, "Zod" + modelName));
 		out.append(generateExportCheckFunction("is" + modelName, modelName, "Zod" + modelName));
 		return out.toString();

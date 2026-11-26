@@ -224,54 +224,13 @@ public class DotApiGeneration {
 							<td>
 								<table border="0" cellborder="0" cellspacing="0" >
 				""".replace("%s", element.name));
-		//final Set<ClassModel> imports = new HashSet<>();
-		//final Set<ClassModel> zodImports = new HashSet<>();
-		//final Set<ClassModel> isImports = new HashSet<>();
-		//final Set<String> toolImports = new HashSet<>();
 		for (final ApiModel interfaceElement : element.interfaces) {
-			//final List<String> consumes = interfaceElement.consumes;
-			//final List<String> produces = interfaceElement.produces;
-			//final boolean needGenerateProgress = interfaceElement.needGenerateProgress;
-			/*
-			if (returnComplexModel != null) {
-				data.append(returnComplexModel.replaceAll("(?m)^", "\t"));
-				for (final ClassModel elem : interfaceElement.returnTypes) {
-					zodImports.addAll(elem.getDependencyGroupModels());
-				}
-			}
-			*/
 			data.append("\t\t\t\t\t<tr><td  align=\"left\" port=\"");
 			data.append(interfaceElement.name);
 			data.append("\"><b> + ");
 			data.append(interfaceElement.name);
 			data.append("(");
 			boolean hasParam = false;
-			/*
-			if (!interfaceElement.queries.isEmpty()) {
-				data.append("\n\t\tqueries: {");
-				for (final Entry<String, List<ClassModel>> queryEntry : interfaceElement.queries.entrySet()) {
-					data.append("\n\t\t\t");
-					data.append(queryEntry.getKey());
-					data.append("?: ");
-					data.append(generateClassModelsTypescript(queryEntry.getValue(), dotGroup, imports, false));
-					data.append(",");
-				}
-				data.append("\n\t\t},");
-			}
-			*/
-			/* fonctionnel mais trop de donnée
-			if (!interfaceElement.parameters.isEmpty()) {
-				//data.append("params: {");
-				for (final Entry<String, List<ClassModel>> paramEntry : interfaceElement.parameters.entrySet()) {
-					data.append("");
-					data.append(paramEntry.getKey());
-					data.append(": ");
-					data.append(generateClassModelsTypescript(paramEntry.getValue(), dotGroup, imports, false));
-					data.append(",");
-				}
-				//data.append("},");
-			}
-			*/
 			if (interfaceElement.unnamedElement.size() == 1) {
 				if (hasParam) {
 					data.append(", ");
@@ -287,31 +246,9 @@ public class DotApiGeneration {
 				final boolean hasParam2 = false;
 				data.append("data: {");
 				// TODO: set it back:
-				/*
-				for (final Entry<String, OptionalClassModel> pathEntry : interfaceElement.multiPartParameters
-						.entrySet()) {
-					if (hasParam2) {
-						data.append(", ");
-					}
-					hasParam2 = true;
-					data.append(pathEntry.getKey());
-					data.append(": ");
-					data.append(generateClassModelsTypescript(pathEntry.getValue().model(), dotGroup));
-				}
-				*/
 				data.append("}");
 			}
 			data.append("): ");
-			/*
-			String tmp = DotClassElement.generateLocalModel(
-					final String ModelName,
-					final List<ClassModel> models,
-					final DotClassElementGroup dotGroup)
-					public static String generateClassModelsTypescript(
-							final List<ClassModel> models,
-							final DotClassElementGroup dotGroup,
-							final Set<ClassModel> imports) throws IOException {
-			*/
 			final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, dotGroup);
 			data.append(returnType);
 			final List<String> returnLinks = generateClassModelsLinks(interfaceElement.returnTypes, dotGroup);
@@ -325,154 +262,10 @@ public class DotApiGeneration {
 				outLinks.append(":NAME:w\n");
 			}
 			data.append("</b>");
-			//data.append("<br align=\"left\"/>&nbsp;&nbsp;&nbsp;&nbsp;");
 			data.append("</td></tr>\n\t\t\t\t\t\t\t<tr><td  align=\"left\">    ");
-			/*
-			data.append("\n\t\t\trestModel: {");
-			data.append("\n\t\t\t\tendPoint: \"");
-			*/
 			data.append(interfaceElement.restEndPoint);
-			/*
-			data.append("\",");
-			data.append("\n\t\t\t\trequestType: HTTPRequestModel.");
-			toolImports.add("HTTPRequestModel");
-			data.append(interfaceElement.restTypeRequest);
-			data.append(",");
-			if (consumes != null) {
-				for (final String elem : consumes) {
-					if (MediaType.APPLICATION_JSON.equals(elem)) {
-						data.append("\n\t\t\t\tcontentType: HTTPMimeType.JSON,");
-						toolImports.add("HTTPMimeType");
-						break;
-					} else if (MediaType.MULTIPART_FORM_DATA.equals(elem)) {
-						data.append("\n\t\t\t\tcontentType: HTTPMimeType.MULTIPART,");
-						toolImports.add("HTTPMimeType");
-						break;
-					} else if (MediaType.TEXT_PLAIN.equals(elem)) {
-						data.append("\n\t\t\t\tcontentType: HTTPMimeType.TEXT_PLAIN,");
-						toolImports.add("HTTPMimeType");
-						break;
-					}
-				}
-			} else if (RestTypeRequest.DELETE.equals(interfaceElement.restTypeRequest)) {
-				data.append("\n\t\t\t\tcontentType: HTTPMimeType.TEXT_PLAIN,");
-				toolImports.add("HTTPMimeType");
-			}
-			if (produces != null) {
-				if (produces.size() > 1) {
-					data.append("\n\t\t\t\taccept: produce,");
-				} else {
-					final String returnType = generateClassModelsTypescript(interfaceElement.returnTypes, dotGroup,
-							imports, false);
-					if (!"void".equals(returnType)) {
-						for (final String elem : produces) {
-							if (MediaType.APPLICATION_JSON.equals(elem)) {
-								data.append("\n\t\t\t\taccept: HTTPMimeType.JSON,");
-								toolImports.add("HTTPMimeType");
-								break;
-							}
-						}
-					}
-				}
-			}
-			data.append("\n\t\t\t},");
-			data.append("\n\t\t\trestConfig,");
-			if (!interfaceElement.parameters.isEmpty()) {
-				data.append("\n\t\t\tparams,");
-			}
-			if (!interfaceElement.queries.isEmpty()) {
-				data.append("\n\t\t\tqueries,");
-			}
-			if (interfaceElement.unnamedElement.size() == 1) {
-				data.append("\n\t\t\tdata,");
-			} else if (interfaceElement.multiPartParameters.size() != 0) {
-				data.append("\n\t\t\tdata,");
-			}
-			if (needGenerateProgress) {
-				data.append("\n\t\t\tcallback,");
-			}
-			data.append("\n\t\t}");
-			if (returnComplexModel != null) {
-				data.append(", is");
-				data.append(returnModelNameIfComplex);
-			} else {
-				final DotClassElement retType = dotGroup.find(interfaceElement.returnTypes.get(0));
-				if (retType.dotCheckType != null) {
-					data.append(", ");
-					data.append(retType.dotCheckType);
-					imports.add(interfaceElement.returnTypes.get(0));
-				}
-			}
-			*/
 			data.append("</td></tr>\n");
 		}
-		/*
-		data.append("\n}\n");
-
-		final StringBuilder out = new StringBuilder();
-
-		final List<String> toolImportsList = new ArrayList<>(toolImports);
-		Collections.sort(toolImportsList);
-		if (toolImportsList.size() != 0) {
-			out.append("import {");
-			for (final String elem : toolImportsList) {
-				out.append("\n\t");
-				out.append(elem);
-				out.append(",");
-			}
-			out.append("\n} from \"../rest-tools\";\n\n");
-		}
-
-		if (zodImports.size() != 0) {
-			out.append("import { z as zod } from \"zod\"\n");
-		}
-
-		final Set<String> finalImportSet = new TreeSet<>();
-
-		for (final ClassModel model : imports) {
-			final DotClassElement dotModel = dotGroup.find(model);
-			if (dotModel.nativeType == DefinedPosition.NATIVE) {
-				continue;
-			}
-			finalImportSet.add(dotModel.dotTypeName);
-		}
-		for (final ClassModel model : isImports) {
-			final DotClassElement dotModel = dotGroup.find(model);
-			if (dotModel.nativeType == DefinedPosition.NATIVE) {
-				continue;
-			}
-			if (dotModel.dotCheckType != null) {
-				finalImportSet.add(dotModel.dotCheckType);
-			}
-		}
-		for (final ClassModel model : zodImports) {
-			final DotClassElement dotModel = dotGroup.find(model);
-			if (dotModel.nativeType == DefinedPosition.NATIVE) {
-				continue;
-			}
-			finalImportSet.add("Zod" + dotModel.dotTypeName);
-		}
-		for (final ClassModel model : writeImports) {
-			final DotClassElement dotModel = dotGroup.find(model);
-			if (dotModel.nativeType == DefinedPosition.NATIVE) {
-				continue;
-			}
-			finalImportSet.add(dotModel.dotTypeName + "Write");
-		}
-
-		if (finalImportSet.size() != 0) {
-			out.append("import {");
-			for (final String elem : finalImportSet) {
-				out.append("\n\t");
-				out.append(elem);
-				out.append(",");
-			}
-			out.append("\n} from \"../model\";\n\n");
-		}
-
-		out.append(data.toString());
-		*/
-
 		data.append("""
 									</table>
 								</td>

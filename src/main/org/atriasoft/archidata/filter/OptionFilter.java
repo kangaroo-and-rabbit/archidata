@@ -32,13 +32,6 @@ public class OptionFilter implements ContainerRequestFilter {
 	 */
 	@Override
 	public void filter(final ContainerRequestContext requestContext) throws IOException {
-		// Not in production: LOGGER.warn("Receive message from: [{}] '{}'", requestContext.getMethod(), requestContext.getUriInfo().getPath());
-		/* Not in production:
-		final Map<String, List<String>> queryParams = requestContext.getUriInfo().getQueryParameters();
-		for (final Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
-			LOGGER.warn("queryParam: '{}' => '{}'", entry.getKey(), entry.getValue());
-		}
-		*/
 		if (requestContext.getMethod().contentEquals("OPTIONS")) {
 			requestContext.abortWith(Response.status(Response.Status.NO_CONTENT).build());
 		}

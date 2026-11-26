@@ -83,13 +83,6 @@ public class TsGenerateApi {
 		final List<TsClassElement> localModel = generateApiModel(api);
 		final TsClassElementGroup tsGroup = new TsClassElementGroup(localModel);
 
-		/*
-		for (final TsClassElement element : localModel) {
-			element.generateFile(tsGroup, generation);
-		}
-		// Generate index of model files
-		createModelIndex(tsGroup, generation);
-		 */
 		// -----------------------------------------------------------
 		// -- Generate The API
 		// -----------------------------------------------------------

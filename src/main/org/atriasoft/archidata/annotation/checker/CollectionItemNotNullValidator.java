@@ -33,7 +33,6 @@ public class CollectionItemNotNullValidator implements ConstraintValidator<Colle
 			for (final Object element : elements) {
 				if (element == null) {
 					return false;
-					//throw new InputException(baseName + fieldName + '[' + iii + ']', "Collection can not contain NULL item");
 				}
 			}
 		}

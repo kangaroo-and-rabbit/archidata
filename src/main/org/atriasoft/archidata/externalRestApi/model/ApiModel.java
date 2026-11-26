@@ -73,7 +73,6 @@ public final class ApiModel {
 	private void updateReturnTypes(final Method method, final ModelGroup previousModel) throws Exception {
 		// get return type from the user specification:
 		final Class<?>[] returnTypeModel = ApiTool.apiAnnotationGetAsyncType(method);
-		// LOGGER.info("Get return Type async = {}", returnTypeModel);
 		if (returnTypeModel != null) {
 			if (returnTypeModel.length == 0) {
 				throw new IOException("Create a @AsyncType with empty elements ...");
@@ -194,7 +193,6 @@ public final class ApiModel {
 			LOGGER.trace("             - {}", elem);
 		}
 
-		// LOGGER.info(" Parameters:");
 		Parameter[] parameters = method.getParameters();
 		for (int iii = 0; iii < parameters.length; iii++) {
 			Parameter parameter = parameters[iii];

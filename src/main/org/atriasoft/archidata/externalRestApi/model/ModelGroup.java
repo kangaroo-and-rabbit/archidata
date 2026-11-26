@@ -45,23 +45,19 @@ public class ModelGroup {
 		if (clazz == Number.class) {
 			return null;
 		}
-		//LOGGER.trace("Search element {}", clazz.getCanonicalName());
 		for (final ClassModel value : this.models) {
 			if (value.isCompatible(clazz)) {
-				//LOGGER.trace("  ==> return {}", value);
 				return value;
 			}
 		}
 		if (clazz.isEnum()) {
 			final ClassModel elem = new ClassEnumModel(clazz);
 			this.models.add(elem);
-			//LOGGER.trace("  ==> return enum {}", elem);
 			return elem;
 		}
 		// create new model:
 		final ClassModel elem = new ClassObjectModel(clazz);
 		this.models.add(elem);
-		//LOGGER.trace("  ==> return object {}", elem);
 		return elem;
 	}
 

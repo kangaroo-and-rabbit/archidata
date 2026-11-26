@@ -374,15 +374,10 @@ public class JWTWrapper {
 		try {
 			String generatedStringForKey = baseUUID;
 			if (generatedStringForKey == null) {
-				// LOGGER.trace("Generate new UUID: {}", generatedStringForKey);
 				generatedStringForKey = UUID.randomUUID().toString();
-			} else {
-				// LOGGER.trace("USE UUID: {}", generatedStringForKey);
 			}
 			rsaJWK = new RSAKeyGenerator(2048).keyID(generatedStringForKey).generate();
 			rsaPublicJWK = rsaJWK.toPublicJWK();
-			// LOGGER.trace("RSA key (all): " + rsaJWK.toJSONString());
-			// LOGGER.trace("RSA key (pub): " + rsaPublicJWK.toJSONString());
 		} catch (final JOSEException e) {
 			LOGGER.error("Can not generate keys, aborting private keys: {}", e.getMessage(), e);
 			rsaJWK = null;
@@ -538,8 +533,8 @@ public class JWTWrapper {
 			}
 			// Prepare JWT with claims set
 			final JWTClaimsSet claimsSet = builder.build();
-			final SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT)
-					/* .keyID(rsaJWK.getKeyID()) */.build(), claimsSet);
+			final SignedJWT signedJWT = new SignedJWT(
+					new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT).build(), claimsSet);
 
 			// Compute the RSA signature
 			signedJWT.sign(signer);
@@ -666,8 +661,6 @@ public class JWTWrapper {
 				return null;
 			}
 			// the element must be validated outside ...
-			// LOGGER.debug("JWT token is verified 'alice' =?= '" + signedJWT.getJWTClaimsSet().getSubject() + "'");
-			// LOGGER.debug("JWT token isuer 'https://c2id.com' =?= '" + signedJWT.getJWTClaimsSet().getIssuer() + "'");
 			return signedJWT.getJWTClaimsSet();
 		} catch (final JOSEException | ParseException e) {
 			// A malformed token is the caller's problem: no stack trace, which would flood the log.

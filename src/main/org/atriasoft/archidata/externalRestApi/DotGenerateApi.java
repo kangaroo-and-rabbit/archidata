@@ -69,7 +69,6 @@ public class DotGenerateApi {
 				myWriter.write(tmp);
 				myWriter.write("\n");
 			}
-			// create an invisible link to force all element to be link together:
 			// Generates all MODEL files
 			for (final DotClassElement element : localModel) {
 				final String tmp = element.generateFile(dotGroup);
