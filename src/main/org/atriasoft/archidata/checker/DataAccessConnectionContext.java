@@ -37,7 +37,6 @@ import jakarta.ws.rs.InternalServerErrorException;
  * {@link org.atriasoft.archidata.annotation.filter.DataAccessSingleConnection}.
  * </p>
  */
-// Note: never sent the DBAccessMongo through an other thread.
 public final class DataAccessConnectionContext implements AutoCloseable {
 	private static final ThreadLocal<DBAccessMongo> threadLocalConnection = new ThreadLocal<>();
 	private final boolean isOwner;
@@ -68,12 +67,7 @@ public final class DataAccessConnectionContext implements AutoCloseable {
 	 * @throws IllegalStateException if no connection is available in the current thread
 	 */
 	public DBAccessMongo get() {
-		final DBAccessMongo db = threadLocalConnection.get();
-		if (db == null) {
-			throw new IllegalStateException(
-					"No DBAccessMongo available in current thread. Ensure you're within a DataAccessConnectionContext.");
-		}
-		return db;
+		return getConnection();
 	}
 
 	/**

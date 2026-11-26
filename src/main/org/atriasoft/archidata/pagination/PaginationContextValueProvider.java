@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.MultivaluedMap;
 
 /**
  * Jersey {@link ValueParamProvider} that binds an
@@ -70,34 +71,39 @@ public class PaginationContextValueProvider implements ValueParamProvider {
 	}
 
 	private static long readNonNegativeLong(final ContainerRequest request, final String name, final long fallback) {
-		final String raw = readRawValue(request, name);
-		if (raw == null) {
-			return fallback;
-		}
-		try {
-			final long parsed = Long.parseLong(raw);
-			// Clamp to what Skip accepts: such an offset is past any real collection (empty page).
-			return parsed >= 0L ? Math.min(parsed, Skip.MAX_VALUE) : fallback;
-		} catch (final NumberFormatException ex) {
-			// The raw client value is not logged (log forging, size): only its length.
-			LOGGER.warn("Ignoring non-numeric {} value ({} characters), falling back to {}", name, raw.length(),
-					fallback);
-			return fallback;
-		}
+		// Clamp to what Skip accepts: such an offset is past any real collection (empty page).
+		return readLong(request, name, fallback, 0L, Skip.MAX_VALUE);
 	}
 
 	private static long readPositiveLong(final ContainerRequest request, final String name, final long fallback) {
+		// Clamp oversized page requests so a single call can never pull an unbounded page.
+		return readLong(request, name, fallback, 1L, PaginationContext.MAX_LIMIT);
+	}
+
+	/**
+	 * Reads a number from the header or the query parameter {@code name}.
+	 *
+	 * @param request the request
+	 * @param name the name of the header and of the query parameter
+	 * @param fallback the value returned when the client sent nothing, a non-numeric value or one below
+	 *        {@code min}
+	 * @param min the smallest value accepted
+	 * @param max the largest value, a larger one is reduced to it
+	 * @return the number read, kept at most {@code max}, or {@code fallback}
+	 */
+	private static long readLong(
+			final ContainerRequest request,
+			final String name,
+			final long fallback,
+			final long min,
+			final long max) {
 		final String raw = readRawValue(request, name);
 		if (raw == null) {
 			return fallback;
 		}
 		try {
 			final long parsed = Long.parseLong(raw);
-			if (parsed <= 0L) {
-				return fallback;
-			}
-			// Clamp oversized page requests so a single call can never pull an unbounded page.
-			return Math.min(parsed, PaginationContext.MAX_LIMIT);
+			return parsed >= min ? Math.min(parsed, max) : fallback;
 		} catch (final NumberFormatException ex) {
 			// The raw client value is not logged (log forging, size): only its length.
 			LOGGER.warn("Ignoring non-numeric {} value ({} characters), falling back to {}", name, raw.length(),
@@ -111,7 +117,7 @@ public class PaginationContextValueProvider implements ValueParamProvider {
 		if (header != null && !header.isBlank()) {
 			return header;
 		}
-		final var queryParams = request.getUriInfo().getQueryParameters();
+		final MultivaluedMap<String, String> queryParams = request.getUriInfo().getQueryParameters();
 		if (queryParams != null) {
 			final String fromQuery = queryParams.getFirst(name);
 			if (fromQuery != null && !fromQuery.isBlank()) {

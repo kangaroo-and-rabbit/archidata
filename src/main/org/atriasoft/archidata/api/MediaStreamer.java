@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
+import org.atriasoft.archidata.tools.DataTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +22,7 @@ import jakarta.ws.rs.core.StreamingOutput;
  */
 public final class MediaStreamer implements StreamingOutput {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MediaStreamer.class);
-	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	final byte[] buf = new byte[CHUNK_SIZE];
+	final byte[] buf = new byte[DataTools.CHUNK_SIZE];
 	private long length;
 	private final File file;
 	private final long from;

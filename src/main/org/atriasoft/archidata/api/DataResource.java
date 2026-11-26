@@ -75,7 +75,6 @@ import jakarta.ws.rs.core.StreamingOutput;
 @Produces(MediaType.APPLICATION_JSON)
 public class DataResource {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DataResource.class);
-	private static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 	/** How long the browser may keep a data without asking again.
 	 *
 	 * <p>
@@ -802,7 +801,7 @@ public class DataResource {
 				@Override
 				public void write(final OutputStream out) {
 					try (FileInputStream in = new FileInputStream(file)) {
-						final byte[] buf = new byte[CHUNK_SIZE];
+						final byte[] buf = new byte[DataTools.CHUNK_SIZE];
 						int len;
 						while ((len = in.read(buf)) != -1) {
 							try {
