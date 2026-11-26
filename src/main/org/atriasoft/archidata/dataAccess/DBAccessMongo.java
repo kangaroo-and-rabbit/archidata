@@ -769,13 +769,15 @@ public final class DBAccessMongo implements Closeable {
 	 *
 	 * @param <T>     The type of the entity
 	 * @param clazz   The class of the entity
-	 * @param options Query options including conditions, filters, etc.
+	 * @param options Query options including conditions, filters, etc. (not modified: they can be reused)
 	 * @return The first matching entity or null if none found
 	 * @throws Exception if retrieval operation fails
 	 */
 	public <T> T get(final Class<T> clazz, final QueryOptions options) throws Exception {
-		options.add(new Limit(1));
-		final List<T> values = gets(clazz, options);
+		// A copy: the Limit(1) must not stay in the options of the caller, who may use them again.
+		final QueryOptions limited = new QueryOptions(options.getAllArray());
+		limited.add(new Limit(1));
+		final List<T> values = gets(clazz, limited);
 		if (values.size() == 0) {
 			return null;
 		}
@@ -786,13 +788,15 @@ public final class DBAccessMongo implements Closeable {
 	 * Retrieves a single entity matching the specified conditions (internal raw version).
 	 *
 	 * @param clazz   The class of the entity
-	 * @param options Query options
+	 * @param options Query options (not modified: they can be reused)
 	 * @return The first matching entity as Object or null
 	 * @throws Exception if retrieval operation fails
 	 */
 	public Object getRaw(final Class<?> clazz, final QueryOptions options) throws Exception {
-		options.add(new Limit(1));
-		final List<Object> values = getsRaw(clazz, options);
+		// A copy: the Limit(1) must not stay in the options of the caller, who may use them again.
+		final QueryOptions limited = new QueryOptions(options.getAllArray());
+		limited.add(new Limit(1));
+		final List<Object> values = getsRaw(clazz, limited);
 		if (values.size() == 0) {
 			return null;
 		}

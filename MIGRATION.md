@@ -16,6 +16,9 @@
 - `BackupEngine.restore(String sequence)` lève une `IOException` quand la base a déjà des collections (rien n'est
   restauré). Avant, elle revenait sans erreur alors que `restoreFile` avait refusé : l'appelant croyait la base restaurée.
   `restoreFile` garde son retour `false`.
+- `get(clazz, QueryOptions)` et `getRaw(clazz, QueryOptions)` ne laissent plus un `Limit(1)` dans le `QueryOptions` reçu.
+  Avant, un second appel avec le même objet levait « Request with multiple 'limit' » et un `gets` suivant ne rendait
+  qu'une ligne.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

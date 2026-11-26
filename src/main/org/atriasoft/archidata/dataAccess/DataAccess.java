@@ -276,7 +276,7 @@ public class DataAccess {
 	 *
 	 * @param <T>     The type of entity
 	 * @param clazz   Entity class
-	 * @param options Query options with conditions
+	 * @param options Query options with conditions (not modified: they can be reused)
 	 * @return First matching entity or null
 	 * @throws Exception if retrieval fails
 	 * @see #get(Class, QueryOption...)

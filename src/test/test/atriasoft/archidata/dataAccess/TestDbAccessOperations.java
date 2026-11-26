@@ -12,9 +12,11 @@ import org.atriasoft.archidata.annotation.Id;
 import org.atriasoft.archidata.dataAccess.DBAccessMongo;
 import org.atriasoft.archidata.dataAccess.DataAccess;
 import org.atriasoft.archidata.dataAccess.Filters;
+import org.atriasoft.archidata.dataAccess.QueryOptions;
 import org.atriasoft.archidata.dataAccess.options.AccessDeletedItems;
 import org.atriasoft.archidata.dataAccess.options.AllowMassOperation;
 import org.atriasoft.archidata.dataAccess.options.Condition;
+import org.atriasoft.archidata.dataAccess.options.Limit;
 import org.atriasoft.archidata.dataAccess.options.OrderBy;
 import org.atriasoft.archidata.dataAccess.options.OrderItem;
 import org.atriasoft.archidata.dataAccess.options.ReadAllColumn;
@@ -181,6 +183,19 @@ public class TestDbAccessOperations {
 		Assertions.assertNull(ConfigureDb.da.getRaw(SimpleTableSoftDelete.class, dataIs("raw-soft")));
 		Assertions.assertNotNull(
 				ConfigureDb.da.getRaw(SimpleTableSoftDelete.class, dataIs("raw-soft"), new AccessDeletedItems()));
+	}
+
+	@Test
+	public void testGetAndGetRawLeaveTheOptionsOfTheCallerUntouched() throws Exception {
+		ConfigureDb.da.insertMultiple(List.of(simple("reuse-a"), simple("reuse-b"), simple("reuse-c")));
+		final QueryOptions options = new QueryOptions(new Condition(Filters.regex("data", "^reuse-")));
+
+		Assertions.assertNotNull(ConfigureDb.da.get(SimpleTable.class, options));
+		Assertions.assertNotNull(ConfigureDb.da.getRaw(SimpleTable.class, options));
+		// the same object, used again: no Limit(1) was left in it
+		Assertions.assertEquals(0, options.get(Limit.class).size());
+		Assertions.assertEquals(3, ConfigureDb.da.gets(SimpleTable.class, options).size());
+		Assertions.assertNotNull(ConfigureDb.da.get(SimpleTable.class, options));
 	}
 
 	// ---------------------------------------------------------------- listCollections
