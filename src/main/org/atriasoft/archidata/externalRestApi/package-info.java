@@ -1,8 +1,8 @@
 /**
  * REST API analysis and client code generation.
  *
- * <p>Analyzes JAX-RS resource classes to build an intermediate model,
- * then generates client code in TypeScript, Python, or Graphviz DOT format.</p>
+ * <p>Analyzes JAX-RS resource classes to build an intermediate model, then generates an OpenAPI
+ * specification, client code in TypeScript or Python, and diagrams in Graphviz DOT or Draw.io format.</p>
  *
  * @see org.atriasoft.archidata.externalRestApi.typescript
  * @see org.atriasoft.archidata.externalRestApi.python

@@ -23,7 +23,8 @@ import jakarta.validation.constraints.NotNull;
  * Abstract base class representing a data model extracted from a Java class for API generation.
  *
  * <p>Subclasses represent different kinds of models: objects ({@link ClassObjectModel}),
- * enums ({@link ClassEnumModel}), lists ({@link ClassListModel}), and maps ({@link ClassMapModel}).
+ * enums ({@link ClassEnumModel}), lists ({@link ClassListModel}), maps ({@link ClassMapModel}) and
+ * paginated lists ({@link ClassPaginationModel}).
  */
 public abstract class ClassModel {
 	/** Logger instance. */

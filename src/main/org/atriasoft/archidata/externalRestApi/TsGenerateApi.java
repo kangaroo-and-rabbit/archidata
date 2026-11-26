@@ -281,7 +281,8 @@ public class TsGenerateApi {
 	 * @param name the resource name on the classpath
 	 * @param destinationPath the relative path to use as the key in the generation map
 	 * @param generation the map to store the resource content into
-	 * @throws IOException if the resource cannot be found or read
+	 * @throws IOException if the resource cannot be read
+	 * @throws IllegalArgumentException if the resource is not on the classpath
 	 */
 	public static void copyResourceFile(
 			final String name,

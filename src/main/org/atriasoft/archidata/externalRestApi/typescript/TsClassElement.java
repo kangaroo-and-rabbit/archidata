@@ -263,7 +263,7 @@ public class TsClassElement {
 	/**
 	 * Generates TypeScript code for an enum type with Zod schema.
 	 * @param model the enum model to generate code for
-	 * @param tsGroup the group registry for resolving type references
+	 * @param tsGroup not used
 	 * @return the generated TypeScript source code
 	 */
 	public String generateEnum(final ClassEnumModel model, final TsClassElementGroup tsGroup) {
@@ -689,7 +689,7 @@ public class TsClassElement {
 	 */
 	public String generateObject(final ClassObjectModel model, final TsClassElementGroup tsGroup) {
 
-		// the key is the fileName
+		// The imports of this file, keyed by the model they come from
 		final ImportModel imports = new ImportModel();
 
 		final StringBuilder outData = new StringBuilder();

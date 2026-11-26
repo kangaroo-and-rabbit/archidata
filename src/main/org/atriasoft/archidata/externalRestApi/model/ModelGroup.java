@@ -56,7 +56,7 @@ public class ModelGroup {
 
 	/**
 	 * Returns all registered class models.
-	 * @return the list of class models
+	 * @return the live list (not a copy): it must not be modified by the caller
 	 */
 	public List<ClassModel> getModels() {
 		return this.models;

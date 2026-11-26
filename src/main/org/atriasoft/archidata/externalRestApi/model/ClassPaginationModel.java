@@ -16,8 +16,8 @@ import java.util.Set;
  *
  * <p>From the model-graph standpoint, this class behaves like
  * {@link ClassListModel} — it delegates {@code getAlls()} and
- * {@code getDependencyGroupModels()} to the item type, so the generated DTOs
- * for {@code T} are produced exactly as before.
+ * {@code getDependencyGroupModels()} to the item type, so the DTOs of
+ * {@code T} are generated as for a plain list.
  */
 public final class ClassPaginationModel extends ClassModel {
 

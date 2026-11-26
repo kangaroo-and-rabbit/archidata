@@ -389,7 +389,8 @@ public class ClassObjectModel extends ClassModel {
 	List<FieldProperty> fields = new ArrayList<>();
 
 	/**
-	 * Returns the fully qualified name of this model.
+	 * Returns the name of this model: the binary name of the class ({@link Class#getName()}). For a class
+	 * nested once ({@code Outer$Inner}) it is reduced to the inner name ({@code Inner}), and a warning is logged.
 	 * @return the model name
 	 */
 	public String getName() {
@@ -472,7 +473,7 @@ public class ClassObjectModel extends ClassModel {
 			return;
 		}
 
-		// Detect @JsonInclude(NON_NULL) on this class or any parent class
+		// Detect @JsonInclude(NON_NULL) declared on this class itself (a parent class is not looked at)
 		this.jsonIncludeNonNull = hasJsonIncludeNonNull(clazz);
 
 		// Detect @ApiOptionalIsNullable on this class

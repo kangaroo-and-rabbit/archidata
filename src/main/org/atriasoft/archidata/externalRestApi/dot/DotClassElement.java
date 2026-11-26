@@ -34,7 +34,7 @@ public class DotClassElement {
 
 	/** The list of class models associated with this element. */
 	public List<ClassModel> models;
-	/** The Zod schema variable name (used for cross-references). */
+	/** Not used by the DOT generator. */
 	public String zodName;
 	/** The DOT type name used in diagram labels. */
 	public String dotTypeName;
@@ -189,7 +189,7 @@ public class DotClassElement {
 
 	/**
 	 * Generates DOT code for a basic (non-complex) object type.
-	 * @return the generated DOT source code (currently empty)
+	 * @return the generated DOT source code (an empty string: a basic type has no node)
 	 */
 	public String generateBaseObject() {
 		final StringBuilder out = new StringBuilder();
@@ -351,7 +351,6 @@ public class DotClassElement {
 		}
 		if (!outLinks.isEmpty()) {
 			out.append("\tedge [dir=back arrowtail=diamond arrowsize=2]\n");
-			//out.append("\tedge [arrowhead=diamond arrowsize=2]\n");
 			out.append(outLinks.toString());
 
 		}
@@ -467,7 +466,7 @@ public class DotClassElement {
 		final ClassModel model = this.models.get(0);
 		String data = "";
 		if (this.nativeType == DefinedPosition.BASIC && model instanceof ClassObjectModel) {
-			// nothing to do___ data = generateBaseObject();
+			// a basic type has no node in the diagram: data stays empty
 		} else if (model instanceof final ClassEnumModel modelEnum) {
 			data = generateEnum(modelEnum, dotGroup);
 		} else if (model instanceof final ClassObjectModel modelObject) {

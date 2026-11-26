@@ -89,7 +89,7 @@ public class AnalyzeApi {
 
 	/**
 	 * Returns all registered class models.
-	 * @return the list of class models
+	 * @return the live list of the model group (not a copy): it grows while the models are analyzed
 	 */
 	public List<ClassModel> getAllModel() {
 		return this.modelGroup.getModels();

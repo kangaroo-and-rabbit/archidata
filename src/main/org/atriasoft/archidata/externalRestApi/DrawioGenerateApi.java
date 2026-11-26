@@ -1113,8 +1113,8 @@ public class DrawioGenerateApi {
 	// ========== TOPOLOGICAL SORT ==========
 
 	/**
-	 * Sort models so that parent classes appear before children.
-	 * This ensures inheritance arrows go top-to-bottom in the diagram.
+	 * Sort models so that parent classes appear before children. This fixes the order of the models (and so
+	 * of their cell ids); the position of the boxes is decided by {@code layoutTree}.
 	 */
 	private static List<ClassObjectModel> topologicalSort(final List<ClassObjectModel> models) {
 		final Map<ClassObjectModel, Boolean> visited = new LinkedHashMap<>();
