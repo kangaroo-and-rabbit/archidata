@@ -1,9 +1,11 @@
 package test.atriasoft.archidata.dataAccess;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -28,6 +30,11 @@ public class TestMapElements {
 	@BeforeAll
 	public static void configureWebServer() throws Exception {
 		ConfigureDb.configure();
+	}
+
+	@AfterAll
+	public static void removeDataBase() throws IOException {
+		ConfigureDb.clear();
 	}
 
 	@Order(2)

@@ -23,13 +23,18 @@ public class ConfigureDb {
 		da = DBAccessMongo.createInterface();
 	}
 
+	/**
+	 * Drops the test database. A failure is thrown: the next class would otherwise run on the data of the previous
+	 * one and its failures would point at the wrong cause.
+	 *
+	 * @throws IllegalStateException when the database cannot be dropped
+	 */
 	public static void removeDB() {
-		DbConfig config = null;
+		final DbConfig config;
 		try {
 			config = new DbConfig();
 		} catch (final DataAccessException e) {
-			LOGGER.error("Fail to clean the DB", e);
-			return;
+			throw new IllegalStateException("Fail to clean the DB: the configuration is not readable", e);
 		}
 		LOGGER.info("Remove the DB and create a new one '{}'", config.getDbName());
 		final int maxAttempts = 3;
@@ -39,30 +44,31 @@ public class ConfigureDb {
 				return;
 			} catch (final RuntimeException e) {
 				if (attempt == maxAttempts) {
-					LOGGER.error("Fail to clean the DB after {} attempts", maxAttempts, e);
-					return;
+					throw new IllegalStateException("Fail to clean the DB after " + maxAttempts + " attempts", e);
 				}
 				LOGGER.warn("DB cleanup attempt {} failed: {} -- retrying", attempt, e.getMessage());
 				try {
 					Thread.sleep(100L * attempt);
 				} catch (final InterruptedException ie) {
 					Thread.currentThread().interrupt();
-					return;
+					throw new IllegalStateException("Interrupted while cleaning the DB", ie);
 				}
 			} catch (final IOException e) {
-				LOGGER.error("Fail to clean the DB", e);
-				return;
+				throw new IllegalStateException("Fail to clean the DB", e);
 			}
 		}
 	}
 
 	public static void clear() throws IOException {
 		LOGGER.info("Remove the test db");
-		removeDB();
-		// The connection is by default open ==> close it at the end of test:
-		da.close();
-		DbIoFactory.closeAllForceMode();
-		ConfigBaseVariable.clearAllValue();
-		DBAccessMongo.statistic.display();
+		try {
+			removeDB();
+		} finally {
+			// The connection is by default open ==> close it at the end of test, even if the drop failed:
+			da.close();
+			DbIoFactory.closeAllForceMode();
+			ConfigBaseVariable.clearAllValue();
+			DBAccessMongo.statistic.display();
+		}
 	}
 }
