@@ -47,11 +47,12 @@ public class DateTools {
 	}
 
 	/**
-	 * Attempts to parse a date string into an OffsetDateTime using a flexible list of patterns.
-	 * Supports ISO 8601 formats, optional zone, and fallback to LocalDate or LocalTime if needed.
+	 * Parses a date string into an OffsetDateTime with the first matching pattern of a list (ISO 8601
+	 * date-times with an offset or a zone, and the same with {@code /} separators). The offset is required: a
+	 * date alone, a time alone or a date-time without offset is not accepted.
 	 *
 	 * @param dateString the date string to parse
-	 * @return OffsetDateTime representation of the parsed input
+	 * @return OffsetDateTime representation of the parsed input, or {@code null} if {@code dateString} is {@code null}
 	 * @throws IOException if no supported format matches the input
 	 */
 	public static OffsetDateTime parseOffsetDateTime(final String dateString) throws IOException {
@@ -59,12 +60,12 @@ public class DateTools {
 	}
 
 	/**
-	 * Attempts to parse a date string into an OffsetDateTime using a flexible list of patterns.
-	 * Supports ISO 8601 formats, optional zone, and fallback to LocalDate or LocalTime if needed.
+	 * Parses a date string as {@link #parseOffsetDateTime(String)} does; when {@code missingAsUTC} is
+	 * {@code true}, a date-time without offset is read as UTC.
 	 *
 	 * @param dateString the date string to parse
-	 * @param missingAsUTC Parse date when missing the time zone consider it as a UTC Date-time
-	 * @return OffsetDateTime representation of the parsed input
+	 * @param missingAsUTC {@code true} to read a date-time without offset as UTC
+	 * @return OffsetDateTime representation of the parsed input, or {@code null} if {@code dateString} is {@code null}
 	 * @throws IOException if no supported format matches the input
 	 */
 	public static OffsetDateTime parseOffsetDateTime(final String dateString, final boolean missingAsUTC)
@@ -93,8 +94,8 @@ public class DateTools {
 	}
 
 	/**
-	 * Parses a flexible date string and returns a java.util.Date,
-	 * using system default time-zone for conversion.
+	 * Parses a flexible date string (see {@link #parseOffsetDateTime(String, boolean)}, a date-time without
+	 * offset is read as UTC) and returns the matching instant as a java.util.Date. The system time-zone plays no role.
 	 *
 	 * @param dateString the input string to parse
 	 * @return The parsed Date

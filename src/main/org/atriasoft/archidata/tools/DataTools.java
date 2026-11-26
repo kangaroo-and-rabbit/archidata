@@ -57,8 +57,8 @@ public class DataTools {
 
 	/** Read/write chunk size for streaming operations (1 MB). */
 	public static final int CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-	/** Former input buffer size for file uploads (50 MB).
-	 * @deprecated No longer used: a 50 MiB buffer per upload let a few concurrent uploads fill the heap; the
+	/** Input buffer size of 50 MB, not used by the upload.
+	 * @deprecated Unused: a 50 MiB buffer per upload would let a few concurrent uploads fill the heap; the
 	 *             copy uses a 64 KiB buffer. */
 	@Deprecated
 	public static final int CHUNK_SIZE_IN = 50 * 1024 * 1024; // 50MB chunks
@@ -70,7 +70,7 @@ public class DataTools {
 	private static volatile long maxUploadSize = DEFAULT_MAX_UPLOAD_SIZE;
 	/** Source of the temporary file identifiers: unpredictable, shared by {@link DataTools} and {@link DataResource}. */
 	private static final SecureRandom TMP_ID_RANDOM = new SecureRandom();
-	/** Smallest temporary identifier: keeps clear of the small counters older code may still use. */
+	/** Smallest temporary identifier (2^40): a temporary identifier is never a small sequential counter. */
 	private static final long TMP_ID_BASE = 1L << 40;
 	/** Number of random names tried before giving up when reserving a temporary file or folder. */
 	private static final int TMP_RESERVE_ATTEMPTS = 16;

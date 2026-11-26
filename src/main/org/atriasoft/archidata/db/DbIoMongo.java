@@ -31,11 +31,10 @@ import com.mongodb.event.ClusterListener;
  * {@link MongoClient} and its associated {@link MongoDatabase}.
  *
  * <p>
- * The {@link MongoClient} is cached per connection URL and shared across all
- * {@code DbIoMongo} instances pointing at the same server. This matches the
- * MongoDB Java driver guidance ("a single MongoClient instance is sufficient
- * for an entire application") and avoids the per-request topology discovery
- * overhead that occurred when each {@code DbIoMongo} owned its own client.
+ * The {@link MongoClient} is cached per connection URL ({@link DbConfig#getUrl()}: host, port, credentials,
+ * database and options) and shared across all {@code DbIoMongo} instances with the same URL, so there is one
+ * client per database and credentials. This matches the MongoDB Java driver guidance ("a single MongoClient
+ * instance is sufficient for an entire application") and avoids a topology discovery per request.
  * </p>
  *
  * <p>

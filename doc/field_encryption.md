@@ -24,7 +24,8 @@ decrypt them on read — provided the server is explicitly authorized to decrypt
 The RSA-OAEP parameters are explicit (SHA-256 digest, MGF1 with SHA-1, the SunJCE default of
 `OAEPWithSHA-256AndMGF1Padding`): the data stays readable whatever the JCE provider, BouncyCastle
 included (which reads that name as MGF1-SHA-256). MGF1-SHA-256 is not used on purpose: the data
-already stored would no longer decrypt, and the envelope has no version to tell the two apart.
+already stored would no longer decrypt, and nothing in the envelope tells MGF1-SHA-1 data from MGF1-SHA-256 data
+(a new scheme id or a new envelope version would be needed, and neither exists).
 
 > Ed25519 keys are signature keys and **cannot** encrypt. Generate X25519 keys for the asymmetric
 > sealed-box scheme (the JDK does not provide an Ed25519→X25519 conversion).

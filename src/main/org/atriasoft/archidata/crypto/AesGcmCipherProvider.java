@@ -1,7 +1,7 @@
 package org.atriasoft.archidata.crypto;
 
 /**
- * Symmetric {@link CipherProvider} backed by AES-256-GCM.
+ * Symmetric {@link CipherProvider} backed by AES-GCM (128, 192 or 256 bits, following the length of the key).
  *
  * <p>A single key is used for both encryption and decryption. The produced payload is
  * {@code nonce(12) || ciphertext+tag}.</p>

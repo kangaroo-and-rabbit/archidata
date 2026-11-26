@@ -8,7 +8,7 @@ package org.atriasoft.archidata.crypto;
  * at decryption time regardless of how the field annotation was configured.</p>
  */
 public enum EncryptionScheme {
-	/** Symmetric AES-256-GCM (one key encrypts and decrypts). */
+	/** Symmetric AES-GCM with a 16, 24 or 32 bytes key (one key encrypts and decrypts). */
 	AES_GCM((byte) 1),
 	/** Asymmetric X25519 sealed box (public key encrypts, private key decrypts). */
 	X25519((byte) 2),

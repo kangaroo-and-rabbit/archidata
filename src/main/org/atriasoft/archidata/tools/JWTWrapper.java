@@ -578,8 +578,8 @@ public class JWTWrapper {
 	/**
 	 * Tells whether a token is meant for an application.
 	 * <p>
-	 * A token with an {@code aud} claim must list the application in it. A token without {@code aud} (issued
-	 * before the audience was written) must carry the application in its {@code application} claim.
+	 * A token with an {@code aud} claim must list the application in it. A token without {@code aud} must
+	 * carry the application in its {@code application} claim.
 	 * </p>
 	 * @param claims The claims of the token.
 	 * @param application The name of the application validating the token.

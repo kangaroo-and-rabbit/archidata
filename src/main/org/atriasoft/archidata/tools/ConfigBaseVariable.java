@@ -62,7 +62,9 @@ public class ConfigBaseVariable {
 	private static Class<?>[] dbInterfacesClasses;
 
 	/**
-	 * Checks that the configuration is not locked before allowing a set operation.
+	 * Checks that the configuration is not locked before allowing a set operation. The setters must run before
+	 * {@code lock()}; calling {@code unlock()} to get around it halts the JVM unless
+	 * {@link #allowReconfiguration(boolean)} was set to {@code true}.
 	 * @param fieldName The name of the field being set (for error messages).
 	 * @throws IllegalStateException If the configuration is locked.
 	 */
@@ -114,7 +116,8 @@ public class ConfigBaseVariable {
 			LOGGER.error("Caller stack trace:", violation);
 			LOGGER.error("The JVM will now terminate.");
 			LOGGER.error("==========================================================");
-			// Also print to stderr to ensure visibility even if logging is misconfigured
+			// Deliberate System.err use (the only one besides the logger): this message must be visible even if
+			// logging is misconfigured, as the JVM is about to be halted
 			System.err.println("SECURITY VIOLATION: unauthorized attempt to unlock configuration.");
 			violation.printStackTrace(System.err);
 			System.err.flush();

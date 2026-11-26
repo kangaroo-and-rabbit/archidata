@@ -54,7 +54,8 @@ public final class DbConfig implements Cloneable {
 	}
 
 	/**
-	 * Constructs a DbConfig with explicit connection parameters.
+	 * Constructs a DbConfig with explicit connection parameters. The TLS flag and the authentication database
+	 * are not parameters: they are read from {@code ConfigBaseVariable} ({@code DB_TLS}, {@code DB_AUTH_SOURCE}).
 	 *
 	 * @param hostname the database server hostname (defaults to "localhost" if null)
 	 * @param port the database server port, between 1 and 65535 (defaults to 27017 if null)
@@ -90,8 +91,8 @@ public final class DbConfig implements Cloneable {
 	}
 
 	/**
-	 * Constructs a DbConfig with a {@code Short} port (former signature, kept for source and binary
-	 * compatibility). A port above 32767 cannot be given this way: a negative value is rejected.
+	 * Constructs a DbConfig with a {@code Short} port (kept for source and binary compatibility with the
+	 * {@code Short} signature). A port above 32767 cannot be given this way: a negative value is rejected.
 	 *
 	 * @param hostname the database server hostname (defaults to "localhost" if null)
 	 * @param port the database server port (defaults to 27017 if null)

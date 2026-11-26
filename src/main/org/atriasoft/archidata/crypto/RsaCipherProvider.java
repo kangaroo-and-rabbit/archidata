@@ -14,8 +14,9 @@ import javax.crypto.spec.PSource;
  * <p>The OAEP parameters are explicit: SHA-256 digest, MGF1 with SHA-1 (what the SunJCE provider uses for
  * {@code RSA/ECB/OAEPWithSHA-256AndMGF1Padding}). Other providers (BouncyCastle) read that transformation
  * name as MGF1 with SHA-256, so the explicit parameters keep the stored data readable whatever the provider.
- * MGF1-SHA-1 is kept on purpose: moving to MGF1-SHA-256 would make the data already stored unreadable, and
- * the envelope carries no version to tell the two apart (see the pending format change).</p>
+ * MGF1-SHA-1 is kept on purpose: moving to MGF1-SHA-256 would make the data already stored unreadable. The
+ * envelope carries a version and a scheme id, but nothing tells MGF1-SHA-1 data from MGF1-SHA-256 data: a
+ * new scheme id or a new version would be needed, and neither exists.</p>
  *
  * <p>The public key encrypts and the private key decrypts. A provider holding only the public key
  * can encrypt but not decrypt (typical of a front-end server that must store secrets it cannot read

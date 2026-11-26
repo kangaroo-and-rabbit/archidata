@@ -73,7 +73,8 @@ public class UuidUtils {
 
 		public Generator() {
 			this.offset = System.currentTimeMillis();
-			// The local method never generate new UUID in the past, then we use the creation function time to prevent 2038 error
+			// The low 64 bits: the server id (16 high bits) plus the seconds elapsed since 2024-03-19 (UTC) at the
+			// creation of this generator, so two generators started at different times do not produce the same UUIDs
 			final Instant startingUUID = LocalDate.of(2024, 03, 19).atStartOfDay(ZoneOffset.UTC).toInstant();
 			this.base = startingUUID.until(Instant.now(), ChronoUnit.SECONDS);
 			final String serveurBaseUUID = System.getenv("UUID_SERVER_ID");
