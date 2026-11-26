@@ -5,7 +5,7 @@
 	"branch": "develop",
 	"folders": ["doc", "sample"],
 	"excludeFolders": ["src", "target", "plans", "tools", "env_dev", "typescript_model", "**/target"],
-	"excludeFiles": ["log.txt", "spec.md", "IMPROVEMENTS.md", "SECURITY_AUDIT.md", "MIGRATION.md", "res.txt", "CLAUDE.md"],
+	"excludeFiles": ["log.txt", "spec.md", "IMPROVEMENTS.md", "SECURITY_AUDIT.md", "MIGRATION.md", "CLAUDE.md"],
 	"rules": [
 		"Register GenericCatcher.addAll(rc), ContextGenericTools.addJsr310(rc) and SecurityHeadersFilter in the launcher; without addJsr310 @ValidGroup is silently ignored, dates change and @ApiReadOnly request properties are kept.",
 		"@ValidGroup does not check the Default group: also put @Valid on the parameter and register Jersey's ValidationFeature.",
