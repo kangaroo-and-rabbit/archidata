@@ -64,6 +64,9 @@
   le nom de l'erreur est `Error on input='q'`. Avant, `Error on input='null'`. Le cas d'un chemin de bean ne change pas.
 - `UserByToken.getGroups()` et `groupExist(group)` ne lèvent plus de `NullPointerException` après `setRoles(null)` :
   `getGroups()` rend un ensemble vide et `groupExist` rend `false`. `getRoles()` rend toujours `null` dans ce cas.
+- `DbIoFactory.create(config)` n'ajoute plus une référence à une connexion gardée (`DB_KEEP_CONNECTED=true`) à chaque
+  réutilisation. Avant, après N `DBAccessMongo.createInterface()` puis `close()`, le compteur restait à N+1 : `DbIoFactory.close()`
+  ne fermait jamais la connexion et `closeAllForceMode()` écrivait un « Force close: with N connection » trompeur.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
