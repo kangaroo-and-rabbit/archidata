@@ -17,7 +17,6 @@ import org.atriasoft.archidata.externalRestApi.dot.DotClassElement;
 import org.atriasoft.archidata.externalRestApi.dot.DotClassElement.DefinedPosition;
 import org.atriasoft.archidata.externalRestApi.dot.DotClassElementGroup;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
-import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.glassfish.jersey.media.multipart.ContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
@@ -84,115 +83,55 @@ public class DotGenerateApi {
 	private static List<DotClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
 		// First step is to add all specific basic elements the wrap correctly the model
 		final List<DotClassElement> dotModels = new ArrayList<>();
-		List<ClassModel> models = api.getCompatibleModels(List.of(Void.class, void.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "void", "void", null, null, DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(Object.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Object", "object", null, "Object", DefinedPosition.NATIVE));
-		}
+		GeneratedModels.addNative(api, dotModels, List.of(Void.class, void.class),
+				models -> new DotClassElement(models, "void", "void", null, null, DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels, List.of(Object.class),
+				models -> new DotClassElement(models, "Object", "object", null, "Object", DefinedPosition.NATIVE));
 		// Map is binded to any ==> can not determine this complex model for now
-		models = api.getCompatibleModels(List.of(Map.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Object", "any", null, null, DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(String.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "String", "string", null, "String", DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(
-				List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "File", "File", null, "File", DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(Boolean.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Boolean", "boolean", null, "Boolean", DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(boolean.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "boolean", "boolean", null, "boolean", DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(UUID.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "UUID", "UUID", "isUUID", "UUID", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(long.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "long", "Long", "isLong", "long", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Long.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Long", "Long", "isLong", "Long", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(short.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "short", "Short", "isShort", "short", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Short.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Short", "Short", "isShort", "Short", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(int.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "int", "Integer", "isInteger", "int", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Integer.class));
-		if (models != null) {
-			dotModels.add(
-					new DotClassElement(models, "Integer", "Integer", "isInteger", "Integer", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(double.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Double", "Double", "isDouble", "double", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Double.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Double", "Double", "isDouble", "Double", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(float.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "float", "Float", "isFloat", "float", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Float.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Float", "Float", "isFloat", "Float", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Instant.class));
-		if (models != null) {
-			dotModels.add(
-					new DotClassElement(models, "Instant", "Instant", "isInstant", "Instant", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Date.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "Date", "IsoDate", "isIsoDate", "Date", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(LocalDate.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "LocalDate", "LocalDate", "isLocalDate", "LocalDate",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(LocalTime.class));
-		if (models != null) {
-			dotModels.add(new DotClassElement(models, "LocalTime", "LocalTime", "isLocalTime", "LocalTime",
-					DefinedPosition.BASIC));
-		}
+		GeneratedModels.addNative(api, dotModels, List.of(Map.class),
+				models -> new DotClassElement(models, "Object", "any", null, null, DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels, List.of(String.class),
+				models -> new DotClassElement(models, "String", "string", null, "String", DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels,
+				List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class),
+				models -> new DotClassElement(models, "File", "File", null, "File", DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels, List.of(Boolean.class),
+				models -> new DotClassElement(models, "Boolean", "boolean", null, "Boolean", DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels, List.of(boolean.class),
+				models -> new DotClassElement(models, "boolean", "boolean", null, "boolean", DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, dotModels, List.of(UUID.class),
+				models -> new DotClassElement(models, "UUID", "UUID", "isUUID", "UUID", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(long.class),
+				models -> new DotClassElement(models, "long", "Long", "isLong", "long", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Long.class),
+				models -> new DotClassElement(models, "Long", "Long", "isLong", "Long", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(short.class),
+				models -> new DotClassElement(models, "short", "Short", "isShort", "short", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Short.class),
+				models -> new DotClassElement(models, "Short", "Short", "isShort", "Short", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(int.class),
+				models -> new DotClassElement(models, "int", "Integer", "isInteger", "int", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Integer.class), models -> new DotClassElement(models,
+				"Integer", "Integer", "isInteger", "Integer", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(double.class),
+				models -> new DotClassElement(models, "Double", "Double", "isDouble", "double", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Double.class),
+				models -> new DotClassElement(models, "Double", "Double", "isDouble", "Double", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(float.class),
+				models -> new DotClassElement(models, "float", "Float", "isFloat", "float", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Float.class),
+				models -> new DotClassElement(models, "Float", "Float", "isFloat", "Float", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Instant.class), models -> new DotClassElement(models,
+				"Instant", "Instant", "isInstant", "Instant", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(Date.class),
+				models -> new DotClassElement(models, "Date", "IsoDate", "isIsoDate", "Date", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(LocalDate.class), models -> new DotClassElement(models,
+				"LocalDate", "LocalDate", "isLocalDate", "LocalDate", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, dotModels, List.of(LocalTime.class), models -> new DotClassElement(models,
+				"LocalTime", "LocalTime", "isLocalTime", "LocalTime", DefinedPosition.BASIC));
 		// needed for Rest interface
 		api.addModel(RestErrorResponse.class);
-		for (final ClassModel model : api.getAllModel()) {
-			boolean alreadyExist = false;
-			for (final DotClassElement elem : dotModels) {
-				if (elem.isCompatible(model)) {
-					alreadyExist = true;
-					break;
-				}
-			}
-			if (alreadyExist) {
-				continue;
-			}
-			dotModels.add(new DotClassElement(model));
-		}
+		GeneratedModels.addRemaining(api, dotModels, DotClassElement::isCompatible, DotClassElement::new);
 		return dotModels;
 
 	}

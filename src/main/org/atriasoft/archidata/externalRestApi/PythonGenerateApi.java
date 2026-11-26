@@ -325,10 +325,8 @@ public class PythonGenerateApi {
 			final List<Class<?>> classes,
 			final String typeName,
 			final List<ImportSpec> usageImports) {
-		final List<ClassModel> models = api.getCompatibleModels(classes);
-		if (models != null) {
-			elements.add(new PyClassElement(models, typeName, null, usageImports, null, DefinedPosition.NATIVE));
-		}
+		GeneratedModels.addNative(api, elements, classes,
+				models -> new PyClassElement(models, typeName, null, usageImports, null, DefinedPosition.NATIVE));
 	}
 
 	private static List<PyClassElement> generateApiModel(final AnalyzeApi api) throws Exception {
@@ -351,31 +349,14 @@ public class PythonGenerateApi {
 				List.of(new ImportSpec("datetime", "datetime")));
 		addNative(api, elements, List.of(LocalDate.class), "date", List.of(new ImportSpec("datetime", "date")));
 		addNative(api, elements, List.of(LocalTime.class), "time", List.of(new ImportSpec("datetime", "time")));
-		List<ClassModel> models = api.getCompatibleModels(List.of(Document.class));
-		if (models != null) {
-			elements.add(new PyClassElement(models, "Document", "dict[str, Any]", null,
-					List.of(new ImportSpec("typing", "Any")), DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(ObjectId.class));
-		if (models != null) {
-			elements.add(new PyClassElement(models, "ObjectId",
-					"Annotated[\n    str,\n    Field(pattern=r\"^[a-fA-F0-9]{24}$\", description=\"MongoDB ObjectId\"),\n]",
-					null, List.of(new ImportSpec("typing", "Annotated"), new ImportSpec("pydantic", "Field")),
-					DefinedPosition.BASIC));
-		}
-		for (final ClassModel model : api.getAllModel()) {
-			boolean alreadyExist = false;
-			for (final PyClassElement elem : elements) {
-				if (elem.isCompatible(model)) {
-					alreadyExist = true;
-					break;
-				}
-			}
-			if (alreadyExist) {
-				continue;
-			}
-			elements.add(new PyClassElement(model));
-		}
+		GeneratedModels.addNative(api, elements, List.of(Document.class), models -> new PyClassElement(models,
+				"Document", "dict[str, Any]", null, List.of(new ImportSpec("typing", "Any")), DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, elements, List.of(ObjectId.class), models -> new PyClassElement(models,
+				"ObjectId",
+				"Annotated[\n    str,\n    Field(pattern=r\"^[a-fA-F0-9]{24}$\", description=\"MongoDB ObjectId\"),\n]",
+				null, List.of(new ImportSpec("typing", "Annotated"), new ImportSpec("pydantic", "Field")),
+				DefinedPosition.BASIC));
+		GeneratedModels.addRemaining(api, elements, PyClassElement::isCompatible, PyClassElement::new);
 		return elements;
 	}
 }

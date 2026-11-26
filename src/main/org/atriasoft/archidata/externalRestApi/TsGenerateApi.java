@@ -20,7 +20,6 @@ import java.util.UUID;
 
 import org.atriasoft.archidata.catcher.RestErrorResponse;
 import org.atriasoft.archidata.externalRestApi.model.ApiGroupModel;
-import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.typescript.TsApiGeneration;
 import org.atriasoft.archidata.externalRestApi.typescript.TsClassElement;
 import org.atriasoft.archidata.externalRestApi.typescript.TsClassElement.DefinedPosition;
@@ -168,110 +167,52 @@ public class TsGenerateApi {
 		api.addModel(RestErrorResponse.class);
 		// First step is to add all specific basic elements the wrap correctly the model
 		final List<TsClassElement> tsModels = new ArrayList<>();
-		List<ClassModel> models = api.getCompatibleModels(List.of(Void.class, void.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "void", "void", null, null, DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(Object.class));
-		if (models != null) {
-			tsModels.add(
-					new TsClassElement(models, "zod.any()", "object", null, "zod.object()", DefinedPosition.NATIVE));
-		}
+		GeneratedModels.addNative(api, tsModels, List.of(Void.class, void.class),
+				models -> new TsClassElement(models, "void", "void", null, null, DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, tsModels, List.of(Object.class), models -> new TsClassElement(models,
+				"zod.any()", "object", null, "zod.object()", DefinedPosition.NATIVE));
 		// Map is binded to any ==> can not determine this complex model for now
-		models = api.getCompatibleModels(List.of(Map.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "zod.any()", "any", null, null, DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(String.class));
-		if (models != null) {
-			tsModels.add(
-					new TsClassElement(models, "zod.string()", "string", null, "zod.string()", DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(
-				List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "z.instanceof(File)", "File", null, "z.instanceof(File)",
-					DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(Boolean.class, boolean.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "zod.boolean()", "boolean", null, "zod.boolean()",
-					DefinedPosition.NATIVE));
-		}
-		models = api.getCompatibleModels(List.of(UUID.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodUUID", "UUID", "isUUID", "zod.string().uuid()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Document.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodDocument", "Document", "isDocument",
-					"zod.record(zod.string(), zod.any()).nullable()", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(ObjectId.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodObjectId", "ObjectId", "isObjectId",
-					"zod.string().length(24, \"Invalid ObjectId length\").regex(/^[a-fA-F0-9]{24}$/, \"Invalid ObjectId format\")",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Long.class, long.class));
-		if (models != null) {
-			tsModels.add(
-					new TsClassElement(models, "ZodLong", "Long", "isLong", "zod.number()", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Short.class, short.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodShort", "Short", "isShort", "zod.number().safe()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Integer.class, int.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodInteger", "Integer", "isInteger", "zod.number().safe()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Double.class, double.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodDouble", "Double", "isDouble", "zod.number()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Float.class, float.class));
-		if (models != null) {
-			tsModels.add(
-					new TsClassElement(models, "ZodFloat", "Float", "isFloat", "zod.number()", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Instant.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodInstant", "Instant", "isInstant", "zod.string()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(Date.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodIsoDate", "IsoDate", "isIsoDate",
-					"zod.string().datetime({ precision: 3 })", DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(LocalDate.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodLocalDate", "LocalDate", "isLocalDate", "zod.string().date()",
-					DefinedPosition.BASIC));
-		}
-		models = api.getCompatibleModels(List.of(LocalTime.class));
-		if (models != null) {
-			tsModels.add(new TsClassElement(models, "ZodLocalTime", "LocalTime", "isLocalTime", "zod.string().time()",
-					DefinedPosition.BASIC));
-		}
-		for (final ClassModel model : api.getAllModel()) {
-			boolean alreadyExist = false;
-			for (final TsClassElement elem : tsModels) {
-				if (elem.isCompatible(model)) {
-					alreadyExist = true;
-					break;
-				}
-			}
-			if (alreadyExist) {
-				continue;
-			}
-			tsModels.add(new TsClassElement(model, false));
-		}
+		GeneratedModels.addNative(api, tsModels, List.of(Map.class),
+				models -> new TsClassElement(models, "zod.any()", "any", null, null, DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, tsModels, List.of(String.class), models -> new TsClassElement(models,
+				"zod.string()", "string", null, "zod.string()", DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, tsModels,
+				List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class),
+				models -> new TsClassElement(models, "z.instanceof(File)", "File", null, "z.instanceof(File)",
+						DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, tsModels, List.of(Boolean.class, boolean.class),
+				models -> new TsClassElement(models, "zod.boolean()", "boolean", null, "zod.boolean()",
+						DefinedPosition.NATIVE));
+		GeneratedModels.addNative(api, tsModels, List.of(UUID.class), models -> new TsClassElement(models, "ZodUUID",
+				"UUID", "isUUID", "zod.string().uuid()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Document.class),
+				models -> new TsClassElement(models, "ZodDocument", "Document", "isDocument",
+						"zod.record(zod.string(), zod.any()).nullable()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(ObjectId.class), models -> new TsClassElement(models,
+				"ZodObjectId", "ObjectId", "isObjectId",
+				"zod.string().length(24, \"Invalid ObjectId length\").regex(/^[a-fA-F0-9]{24}$/, \"Invalid ObjectId format\")",
+				DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Long.class, long.class), models -> new TsClassElement(models,
+				"ZodLong", "Long", "isLong", "zod.number()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Short.class, short.class), models -> new TsClassElement(models,
+				"ZodShort", "Short", "isShort", "zod.number().safe()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Integer.class, int.class), models -> new TsClassElement(models,
+				"ZodInteger", "Integer", "isInteger", "zod.number().safe()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Double.class, double.class),
+				models -> new TsClassElement(models, "ZodDouble", "Double", "isDouble", "zod.number()",
+						DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Float.class, float.class), models -> new TsClassElement(models,
+				"ZodFloat", "Float", "isFloat", "zod.number()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Instant.class), models -> new TsClassElement(models,
+				"ZodInstant", "Instant", "isInstant", "zod.string()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(Date.class), models -> new TsClassElement(models, "ZodIsoDate",
+				"IsoDate", "isIsoDate", "zod.string().datetime({ precision: 3 })", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(LocalDate.class), models -> new TsClassElement(models,
+				"ZodLocalDate", "LocalDate", "isLocalDate", "zod.string().date()", DefinedPosition.BASIC));
+		GeneratedModels.addNative(api, tsModels, List.of(LocalTime.class), models -> new TsClassElement(models,
+				"ZodLocalTime", "LocalTime", "isLocalTime", "zod.string().time()", DefinedPosition.BASIC));
+		GeneratedModels.addRemaining(api, tsModels, TsClassElement::isCompatible,
+				model -> new TsClassElement(model, false));
 		return tsModels;
 
 	}
