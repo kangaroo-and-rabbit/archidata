@@ -67,6 +67,8 @@ public class MigrationEngine {
 			try {
 				data = da.gets(Migration.class, new ReadAllColumn());
 			} catch (final Exception e) {
+				// The history collection of an older schema may not be readable with all its columns: read it
+				// again without ReadAllColumn.
 				data = da.gets(Migration.class);
 			}
 			if (data.size() == 0) {
