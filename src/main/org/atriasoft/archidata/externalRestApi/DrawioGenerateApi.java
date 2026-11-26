@@ -151,13 +151,13 @@ public class DrawioGenerateApi {
 		// 3. Calculate dimensions for each element
 		final Map<Object, int[]> dimensions = new LinkedHashMap<>(); // [width, height]
 		for (final ClassObjectModel model : sortedModels) {
-			dimensions.put(model, computeModelDimensions(model));
+			dimensions.put(model, computeBoxDimensions(modelTitle(model), modelLines(model)));
 		}
 		for (final ClassEnumModel model : enumModels) {
-			dimensions.put(model, computeEnumDimensions(model));
+			dimensions.put(model, computeBoxDimensions(enumTitle(model), enumLines(model)));
 		}
 		for (final ApiGroupModel group : restGroups) {
-			dimensions.put(group, computeRestDimensions(group));
+			dimensions.put(group, computeBoxDimensions(restTitle(group), restLines(group)));
 		}
 
 		// 4. Layout: place elements in columns
@@ -168,7 +168,8 @@ public class DrawioGenerateApi {
 		for (final ClassObjectModel model : sortedModels) {
 			final int[] pos = positions.get(model);
 			final int[] dim = dimensions.get(model);
-			final String nodeId = generateModelNode(cells, idCounter, model, pos[0], pos[1], dim[0], dim[1]);
+			final String nodeId = generateBoxNode(cells, idCounter, modelTitle(model), STYLE_MODEL, modelLines(model),
+					pos[0], pos[1], dim[0], dim[1]);
 			modelNodeIds.put(model, nodeId);
 		}
 
@@ -176,7 +177,8 @@ public class DrawioGenerateApi {
 		for (final ClassEnumModel model : enumModels) {
 			final int[] pos = positions.get(model);
 			final int[] dim = dimensions.get(model);
-			final String nodeId = generateEnumNode(cells, idCounter, model, pos[0], pos[1], dim[0], dim[1]);
+			final String nodeId = generateBoxNode(cells, idCounter, enumTitle(model), STYLE_ENUM, enumLines(model),
+					pos[0], pos[1], dim[0], dim[1]);
 			modelNodeIds.put(model, nodeId);
 		}
 
@@ -184,7 +186,8 @@ public class DrawioGenerateApi {
 		for (final ApiGroupModel group : restGroups) {
 			final int[] pos = positions.get(group);
 			final int[] dim = dimensions.get(group);
-			final String nodeId = generateRestNode(cells, idCounter, group, pos[0], pos[1], dim[0], dim[1]);
+			final String nodeId = generateBoxNode(cells, idCounter, restTitle(group), STYLE_REST, restLines(group),
+					pos[0], pos[1], dim[0], dim[1]);
 			restNodeIds.put(group, nodeId);
 		}
 
@@ -210,33 +213,49 @@ public class DrawioGenerateApi {
 
 	// ========== NODE GENERATION ==========
 
-	private static String generateModelNode(
+	/**
+	 * Draws a box made of a header, a separator and one text line per entry.
+	 *
+	 * @return the id of the box cell
+	 */
+	private static String generateBoxNode(
 			final StringBuilder cells,
 			final IdCounter idCounter,
-			final ClassObjectModel model,
+			final String title,
+			final String style,
+			final List<String> lines,
 			final int x,
 			final int y,
 			final int width,
 			final int height) {
 		final String parentId = idCounter.next();
-		final String name = getSimpleName(model);
-		cells.append(mxCell(parentId, escapeXml(name), STYLE_MODEL, "1", x, y, width, height));
+		cells.append(mxCell(parentId, escapeXml(title), style, "1", x, y, width, height));
 
 		// Separator line
 		final String sepId = idCounter.next();
-		cells.append(mxCellChild(sepId, parentId, "", STYLE_SEPARATOR, 0, HEADER_HEIGHT, width, 8));
+		cells.append(mxCell(sepId, "", STYLE_SEPARATOR, parentId, 0, HEADER_HEIGHT, width, 8));
 
-		// Fields
 		int fieldY = HEADER_HEIGHT + 8;
-		for (final FieldProperty field : model.getFields()) {
+		for (final String line : lines) {
 			final String fieldId = idCounter.next();
-			final String fieldText = fieldLine(field);
-			cells.append(
-					mxCellChild(fieldId, parentId, escapeXml(fieldText), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
+			cells.append(mxCell(fieldId, escapeXml(line), STYLE_FIELD, parentId, 0, fieldY, width, FIELD_HEIGHT));
 			fieldY += FIELD_HEIGHT;
 		}
 
 		return parentId;
+	}
+
+	private static String modelTitle(final ClassObjectModel model) {
+		return getSimpleName(model);
+	}
+
+	/** The text of each field of a model in its box. */
+	private static List<String> modelLines(final ClassObjectModel model) {
+		final List<String> lines = new ArrayList<>();
+		for (final FieldProperty field : model.getFields()) {
+			lines.add(fieldLine(field));
+		}
+		return lines;
 	}
 
 	/** The text of a field in its box, with the target of a standalone {@code @CheckForeignKey} (no linkClass). */
@@ -248,62 +267,28 @@ public class DrawioGenerateApi {
 		return line;
 	}
 
-	private static String generateEnumNode(
-			final StringBuilder cells,
-			final IdCounter idCounter,
-			final ClassEnumModel model,
-			final int x,
-			final int y,
-			final int width,
-			final int height) {
-		final String parentId = idCounter.next();
-		final String name = "\u00ABenum\u00BB " + getSimpleName(model);
-		cells.append(mxCell(parentId, escapeXml(name), STYLE_ENUM, "1", x, y, width, height));
-
-		// Separator
-		final String sepId = idCounter.next();
-		cells.append(mxCellChild(sepId, parentId, "", STYLE_SEPARATOR, 0, HEADER_HEIGHT, width, 8));
-
-		// Values
-		int fieldY = HEADER_HEIGHT + 8;
-		for (final String value : model.getListOfValues().keySet()) {
-			final String fieldId = idCounter.next();
-			cells.append(mxCellChild(fieldId, parentId, escapeXml(value), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
-			fieldY += FIELD_HEIGHT;
-		}
-
-		return parentId;
+	private static String enumTitle(final ClassEnumModel model) {
+		return "\u00ABenum\u00BB " + getSimpleName(model);
 	}
 
-	private static String generateRestNode(
-			final StringBuilder cells,
-			final IdCounter idCounter,
-			final ApiGroupModel group,
-			final int x,
-			final int y,
-			final int width,
-			final int height) {
-		final String parentId = idCounter.next();
-		final String name = "\u00ABREST\u00BB " + group.name;
-		cells.append(mxCell(parentId, escapeXml(name), STYLE_REST, "1", x, y, width, height));
+	private static List<String> enumLines(final ClassEnumModel model) {
+		return new ArrayList<>(model.getListOfValues().keySet());
+	}
 
-		// Separator
-		final String sepId = idCounter.next();
-		cells.append(mxCellChild(sepId, parentId, "", STYLE_SEPARATOR, 0, HEADER_HEIGHT, width, 8));
+	private static String restTitle(final ApiGroupModel group) {
+		return "\u00ABREST\u00BB " + group.name;
+	}
 
-		// Endpoints
-		int fieldY = HEADER_HEIGHT + 8;
+	/** The text of each endpoint of a REST group in its box. */
+	private static List<String> restLines(final ApiGroupModel group) {
+		final List<String> lines = new ArrayList<>();
 		for (final ApiModel endpoint : group.interfaces) {
-			final String fieldId = idCounter.next();
 			final String method = toHttpMethodName(endpoint.restTypeRequest);
 			final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
 			final String returnType = resolveReturnType(endpoint);
-			final String line = method + " " + path + " \u2192 " + returnType;
-			cells.append(mxCellChild(fieldId, parentId, escapeXml(line), STYLE_FIELD, 0, fieldY, width, FIELD_HEIGHT));
-			fieldY += FIELD_HEIGHT;
+			lines.add(method + " " + path + " \u2192 " + returnType);
 		}
-
-		return parentId;
+		return lines;
 	}
 
 	// ========== EDGE GENERATION ==========
@@ -396,29 +381,40 @@ public class DrawioGenerateApi {
 			if (sourceId == null) {
 				continue;
 			}
-			for (final ApiModel endpoint : group.interfaces) {
-				for (final ClassModel returnModel : endpoint.returnTypes) {
-					final ClassModel leaf = resolveLeafModel(returnModel);
-					if (leaf != null && modelNodeIds.containsKey(leaf)) {
-						final String targetId = modelNodeIds.get(leaf);
-						final String edgeId = idCounter.next();
-						final String style = appendPortStyle(STYLE_REST_LINK, group, leaf, positions, dimensions);
-						cells.append(mxEdge(edgeId, sourceId, targetId, style, null));
-					}
+			for (final ClassModel leaf : restTargetModels(group)) {
+				if (modelNodeIds.containsKey(leaf)) {
+					final String targetId = modelNodeIds.get(leaf);
+					final String edgeId = idCounter.next();
+					final String style = appendPortStyle(STYLE_REST_LINK, group, leaf, positions, dimensions);
+					cells.append(mxEdge(edgeId, sourceId, targetId, style, null));
 				}
-				for (final ParameterClassModelList param : endpoint.unnamedElement) {
-					for (final ClassModel bodyModel : param.models()) {
-						final ClassModel leaf = resolveLeafModel(bodyModel);
-						if (leaf != null && modelNodeIds.containsKey(leaf)) {
-							final String targetId = modelNodeIds.get(leaf);
-							final String edgeId = idCounter.next();
-							final String style = appendPortStyle(STYLE_REST_LINK, group, leaf, positions, dimensions);
-							cells.append(mxEdge(edgeId, sourceId, targetId, style, null));
-						}
+			}
+		}
+	}
+
+	/**
+	 * The models a REST group returns or receives, one entry per use: for each endpoint the leaf of its
+	 * return types, then the leaf of its body models. A type with no box (primitive, basic) is left out.
+	 */
+	private static List<ClassModel> restTargetModels(final ApiGroupModel group) {
+		final List<ClassModel> targets = new ArrayList<>();
+		for (final ApiModel endpoint : group.interfaces) {
+			for (final ClassModel returnModel : endpoint.returnTypes) {
+				final ClassModel leaf = resolveLeafModel(returnModel);
+				if (leaf != null) {
+					targets.add(leaf);
+				}
+			}
+			for (final ParameterClassModelList param : endpoint.unnamedElement) {
+				for (final ClassModel bodyModel : param.models()) {
+					final ClassModel leaf = resolveLeafModel(bodyModel);
+					if (leaf != null) {
+						targets.add(leaf);
 					}
 				}
 			}
 		}
+		return targets;
 	}
 
 	/**
@@ -585,20 +581,9 @@ public class DrawioGenerateApi {
 
 		// REST → model edges (weight=2)
 		for (final ApiGroupModel group : restGroups) {
-			for (final ApiModel endpoint : group.interfaces) {
-				for (final ClassModel returnModel : endpoint.returnTypes) {
-					final ClassModel leaf = resolveLeafModel(returnModel);
-					if (leaf != null && (objectModelSet.contains(leaf) || enumModelSet.contains(leaf))) {
-						edges.add(new LayoutEdge(group, leaf, 2, false));
-					}
-				}
-				for (final ParameterClassModelList param : endpoint.unnamedElement) {
-					for (final ClassModel bodyModel : param.models()) {
-						final ClassModel leaf = resolveLeafModel(bodyModel);
-						if (leaf != null && (objectModelSet.contains(leaf) || enumModelSet.contains(leaf))) {
-							edges.add(new LayoutEdge(group, leaf, 2, false));
-						}
-					}
+			for (final ClassModel leaf : restTargetModels(group)) {
+				if (objectModelSet.contains(leaf) || enumModelSet.contains(leaf)) {
+					edges.add(new LayoutEdge(group, leaf, 2, false));
 				}
 			}
 		}
@@ -1069,42 +1054,12 @@ public class DrawioGenerateApi {
 
 	// ========== DIMENSIONS ==========
 
-	private static int[] computeModelDimensions(final ClassObjectModel model) {
-		final int fieldCount = model.getFields().size();
-		final int height = HEADER_HEIGHT + 8 + Math.max(fieldCount, 1) * FIELD_HEIGHT + 8;
-		int maxTextLen = getSimpleName(model).length();
-		for (final FieldProperty field : model.getFields()) {
-			maxTextLen = Math.max(maxTextLen, fieldLine(field).length());
-		}
-		final int width = Math.max(MIN_BOX_WIDTH, maxTextLen * CHAR_WIDTH + 20);
-		return new int[] { width, height };
-	}
-
-	private static int[] computeEnumDimensions(final ClassEnumModel model) {
-		final int valueCount = model.getListOfValues().size();
-		final int height = HEADER_HEIGHT + 8 + Math.max(valueCount, 1) * FIELD_HEIGHT + 8;
-		int maxTextLen = ("\u00ABenum\u00BB " + getSimpleName(model)).length();
-		for (final String value : model.getListOfValues().keySet()) {
-			if (value.length() > maxTextLen) {
-				maxTextLen = value.length();
-			}
-		}
-		final int width = Math.max(MIN_BOX_WIDTH, maxTextLen * CHAR_WIDTH + 20);
-		return new int[] { width, height };
-	}
-
-	private static int[] computeRestDimensions(final ApiGroupModel group) {
-		final int endpointCount = group.interfaces.size();
-		final int height = HEADER_HEIGHT + 8 + Math.max(endpointCount, 1) * FIELD_HEIGHT + 8;
-		int maxTextLen = ("\u00ABREST\u00BB " + group.name).length();
-		for (final ApiModel endpoint : group.interfaces) {
-			final String method = toHttpMethodName(endpoint.restTypeRequest);
-			final String path = ApiNaming.normalizePath(endpoint.restEndPoint);
-			final String returnType = resolveReturnType(endpoint);
-			final String line = method + " " + path + " \u2192 " + returnType;
-			if (line.length() > maxTextLen) {
-				maxTextLen = line.length();
-			}
+	/** The size of a box made of a header and the given text lines. */
+	private static int[] computeBoxDimensions(final String title, final List<String> lines) {
+		final int height = HEADER_HEIGHT + 8 + Math.max(lines.size(), 1) * FIELD_HEIGHT + 8;
+		int maxTextLen = title.length();
+		for (final String line : lines) {
+			maxTextLen = Math.max(maxTextLen, line.length());
 		}
 		final int width = Math.max(MIN_BOX_WIDTH, maxTextLen * CHAR_WIDTH + 20);
 		return new int[] { width, height };
@@ -1167,20 +1122,6 @@ public class DrawioGenerateApi {
 			final int height) {
 		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
 				+ "\" vertex=\"1\" parent=\"" + parent + "\">\n" + "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y
-				+ "\" width=\"" + width + "\" height=\"" + height + "\" as=\"geometry\"/>\n" + "\t\t\t\t</mxCell>\n";
-	}
-
-	private static String mxCellChild(
-			final String id,
-			final String parentId,
-			final String value,
-			final String style,
-			final int x,
-			final int y,
-			final int width,
-			final int height) {
-		return "\t\t\t\t<mxCell id=\"" + id + "\" value=\"" + value + "\" style=\"" + style
-				+ "\" vertex=\"1\" parent=\"" + parentId + "\">\n" + "\t\t\t\t\t<mxGeometry x=\"" + x + "\" y=\"" + y
 				+ "\" width=\"" + width + "\" height=\"" + height + "\" as=\"geometry\"/>\n" + "\t\t\t\t</mxCell>\n";
 	}
 
