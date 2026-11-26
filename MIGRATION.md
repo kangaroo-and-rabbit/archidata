@@ -55,6 +55,8 @@
   position sauvée au nouveau worker sans en garder de copie.
 - `getWorkerStatuses()` rend de nouveau `RUNNING` pour un worker dont le flux s'est rouvert après une erreur. Avant, le
   statut restait `RECONNECTING` (ou `ERROR`) après la première reconnexion réussie, alors que le flux était lu.
+- `DataTools.uploadCoverFromUri` ajoute maintenant le `Data` au champ `covers` de l'entité, comme `uploadCover`. Avant, elle
+  levait une `DataAccessException` (« fieldName is null ») après avoir stocké le `Data` et le fichier, sans rien lier.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
