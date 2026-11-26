@@ -68,6 +68,12 @@
   renommé une fois ; il ne change plus ensuite quand une autre ressource gagne une méthode du même nom. Les surcharges
   d'un nom dans une ressource prennent `_2`, `_3`... dans l'ordre verbe HTTP, chemin, types des paramètres (et non plus
   dans l'ordre, non garanti, de la JVM). Un client généré à partir de la spécification voit ses fonctions renommées.
+- OpenAPI, `operationId` : unique dans la spécification. Le nom de la méthode reste tel quel quand aucun autre endpoint ne
+  l'a ; sinon tous ceux qui le partagent deviennent `<Ressource>_<méthode>` (et `_2`, `_3`... pour deux surcharges d'une
+  même ressource). Un client généré à partir de la spécification voit ses fonctions renommées pour ces endpoints.
+- Générateurs de clients, `Number` : un champ de modèle déclaré `Number` est généré comme un `Double` (nombre JSON)
+  dans tous les générateurs. Avant, `ModelGroup.add(Number.class)` rendait `null` et la génération s'arrêtait sur une
+  `NullPointerException` sans message.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

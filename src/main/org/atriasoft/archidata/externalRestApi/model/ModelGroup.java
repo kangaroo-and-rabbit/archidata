@@ -30,13 +30,17 @@ public class ModelGroup {
 
 	/**
 	 * Registers a class as a model, returning an existing model if already registered.
-	 * @param clazz the class to add (Response is mapped to Object, Number returns {@code null})
-	 * @return the class model for the given class, or {@code null} for Number
+	 * @param clazz the class to add (Response is mapped to Object, Number to Double: a JSON number)
+	 * @return the class model for the given class
 	 */
 	public ClassModel add(final Class<?> clazz) {
-		final Class<?> modelClass = clazz == Response.class ? Object.class : clazz;
-		if (modelClass == Number.class) {
-			return null;
+		final Class<?> modelClass;
+		if (clazz == Response.class) {
+			modelClass = Object.class;
+		} else if (clazz == Number.class) {
+			modelClass = Double.class;
+		} else {
+			modelClass = clazz;
 		}
 		for (final ClassModel value : this.models) {
 			if (value.isCompatible(modelClass)) {
