@@ -1,5 +1,15 @@
 # Migration Guide
 
+## Prochaine version (après v0.54.4) - `restore` atteint les documents supprimés (CORRECTION)
+
+- `restoreById(clazz, id)`, `restoreById(clazz, id, options)` et `restore(clazz, options)` retrouvent maintenant les
+  documents supprimés (`@DataDeleted`) sans que l'appelant ajoute `AccessDeletedItems`. Avant, le filtre gardait
+  `deleted == false` : une suppression douce n'était jamais annulée (retour 0), alors qu'un document vivant était
+  « restauré » (retour 1, `updatedAt` rafraîchi). Maintenant seuls les documents supprimés sont restaurés ; un document
+  vivant n'est plus touché et ne compte plus dans le retour. Passer `AccessDeletedItems` reste accepté et ne change rien.
+- Un code qui contournait l'ancien défaut (`restoreById(..., new AccessDeletedItems())`) n'a rien à changer. Un code
+  qui comptait sur `restoreById` d'un document vivant pour obtenir 1 obtient maintenant 0.
+
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 
 - `JWTWrapper.generateJWToken(..., timeoutInMinutes, extraClaims)` ajoute des claims au jeton ; les noms réservés

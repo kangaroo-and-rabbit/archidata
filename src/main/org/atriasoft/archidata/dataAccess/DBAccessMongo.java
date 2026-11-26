@@ -2671,25 +2671,21 @@ public final class DBAccessMongo implements Closeable {
 	}
 
 	/**
-	 * Clears the soft delete flag of the entity of this identifier, when the call matches it: without option it
-	 * does not match a soft-deleted entity, see below.
+	 * Clears the soft delete flag of the entity of this identifier.
 	 *
 	 * <p>
 	 * <strong>Requirement:</strong> the entity class must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
-	 * This overload takes no option, so it cannot carry {@link AccessDeletedItems}: its filter keeps the
-	 * entities whose deleted field is false. A soft-deleted entity is not matched and stays deleted. An entity
-	 * that is not deleted is matched: its flag is written to false again and its {@code @UpdateTimestamp} date
-	 * is refreshed. To restore a soft-deleted entity, use {@link #restoreById(Class, Object, QueryOption...)}
-	 * with {@code new AccessDeletedItems()}.
+	 * A restore acts on soft-deleted entities, so it reaches them without {@link AccessDeletedItems}. An entity
+	 * that is not deleted is not matched: it is left as it is, its {@code @UpdateTimestamp} date included.
 	 * </p>
 	 *
 	 * @param <ID_TYPE> The type of the ID
 	 * @param clazz     The class of the entity
 	 * @param id        The unique identifier of the entity to restore
-	 * @return the number of documents modified: 0 for a soft-deleted entity, see above
+	 * @return the number of entities restored (0 or 1)
 	 * @throws DataAccessException if the class has no deleted field or restore fails
 	 */
 	public <ID_TYPE> long restoreById(final Class<?> clazz, final ID_TYPE id) throws DataAccessException {
@@ -2709,9 +2705,9 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * The soft-delete filter applies to a restore like to any other write: a document whose deleted field is
-	 * {@code true} matches only when the call carries {@link AccessDeletedItems}. Without it, no soft-deleted
-	 * document matches, so the call restores nothing and returns 0.
+	 * A restore acts on soft-deleted entities: it reaches them whether or not the call carries
+	 * {@link AccessDeletedItems} (the option is accepted and changes nothing). A document that is not deleted
+	 * is not matched and is left as it is.
 	 * </p>
 	 *
 	 * <p>
@@ -2721,8 +2717,8 @@ public final class DBAccessMongo implements Closeable {
 	 * // Soft delete a task
 	 * db.deleteSoftById(Task.class, taskId);
 	 *
-	 * // Later, restore it: the option is needed to match the soft-deleted task
-	 * long restored = db.restoreById(Task.class, taskId, new AccessDeletedItems());
+	 * // Later, restore it
+	 * long restored = db.restoreById(Task.class, taskId);
 	 *
 	 * // The task is visible in normal queries again
 	 * Task task = db.getById(Task.class, taskId);
@@ -2756,13 +2752,13 @@ public final class DBAccessMongo implements Closeable {
 	 * </p>
 	 *
 	 * <p>
-	 * The soft-delete filter applies here like to any other write: a document whose deleted field is
-	 * {@code true} matches only when the call carries {@link AccessDeletedItems}. Without it, no soft-deleted
-	 * document matches, so the call restores nothing and returns 0.
+	 * Only the soft-deleted documents matching the condition are restored, whether or not the call carries
+	 * {@link AccessDeletedItems} (the option is accepted and changes nothing). A document that is not deleted
+	 * is not matched and is left as it is.
 	 * </p>
 	 *
 	 * @param clazz  The class of the entity
-	 * @param option Query options including conditions (required) and {@link AccessDeletedItems}
+	 * @param option Query options including conditions (required)
 	 * @return Number of entities restored
 	 * @throws DataAccessException if the class has no deleted field, no conditions provided, or restore fails
 	 */
@@ -2780,8 +2776,14 @@ public final class DBAccessMongo implements Closeable {
 		if (deletedFieldName == null) {
 			throw new DataAccessException("The class " + clazz.getCanonicalName() + " has no deleted field");
 		}
+		// A restore acts on the deleted documents: it reaches them without the caller asking for them, and
+		// leaves the others (no flag write, no update date refresh).
+		if (!options.exist(AccessDeletedItems.class)) {
+			options.add(new AccessDeletedItems());
+		}
 		final MongoCollection<Document> collection = this.db.getDatabase().getCollection(collectionName);
-		final Bson filters = matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName));
+		final Bson filters = Filters.and(Filters.eq(deletedFieldName, true),
+				matchAllIfNull(condition.getFilter(collectionName, options, deletedFieldName)));
 		QueryStatistics.record(collectionName, Operation.RESTORE, condition.getFilter(), null,
 				statisticSoftDeleteField(options, deletedFieldName));
 		// A change like a soft delete: what follows the update date, a delta backup first, has to see it.

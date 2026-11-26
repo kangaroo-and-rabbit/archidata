@@ -82,8 +82,7 @@ public class TestSoftDeleteFilter {
 		Assertions.assertEquals(0, ConfigureDb.da.gets(SoftDeleteNoDefault.class).size());
 		Assertions.assertEquals(1, ConfigureDb.da.gets(SoftDeleteNoDefault.class, new AccessDeletedItems()).size());
 
-		// AccessDeletedItems is required: without it the restore filter excludes the very documents
-		// it is meant to bring back.
+		// AccessDeletedItems is accepted but not needed: a restore reaches the deleted documents by itself.
 		ConfigureDb.da.restoreById(SoftDeleteNoDefault.class, id, new AccessDeletedItems());
 		Assertions.assertEquals(1, ConfigureDb.da.gets(SoftDeleteNoDefault.class).size());
 	}

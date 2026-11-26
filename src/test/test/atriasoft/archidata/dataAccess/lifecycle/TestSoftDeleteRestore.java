@@ -61,8 +61,7 @@ class TestSoftDeleteRestore {
 	@Order(3)
 	@Test
 	void testRestore() throws Exception {
-		// Note: AccessDeletedItems is required because the restore() method's
-		// filter excludes soft-deleted objects by default (framework bug).
+		// AccessDeletedItems is accepted but not needed: a restore reaches the deleted objects by itself.
 		final long restored = ConfigureDb.da.restoreById(Model.class, idOfTheObject, new AccessDeletedItems());
 		Assertions.assertTrue(restored > 0);
 

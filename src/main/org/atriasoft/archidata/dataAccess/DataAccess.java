@@ -672,32 +672,28 @@ public class DataAccess {
 	// ========================================================================
 
 	/**
-	 * Clears the soft delete flag of the entity of this identifier, when the call matches it: without option it
-	 * does not match a soft-deleted entity, see below.
+	 * Clears the soft delete flag of the entity of this identifier.
 	 *
 	 * <p>
 	 * <strong>Requirement:</strong> the entity must have a field annotated {@code @DataDeleted}.
 	 * </p>
 	 *
 	 * <p>
-	 * This overload takes no option, so it cannot carry {@code AccessDeletedItems}: its filter keeps the
-	 * entities whose deleted field is false. A soft-deleted entity is not matched and stays deleted. An entity
-	 * that is not deleted is matched: its flag is written to false again and its {@code @UpdateTimestamp} date
-	 * is refreshed. To restore a soft-deleted entity, use {@link #restoreById(Class, Object, QueryOption...)}
-	 * with {@code new AccessDeletedItems()}:
+	 * A restore acts on soft-deleted entities, so it reaches them without {@code AccessDeletedItems}. An entity
+	 * that is not deleted is not matched: it is left as it is, its {@code @UpdateTimestamp} date included.
 	 * </p>
 	 * <pre>
 	 * // Soft delete
 	 * DataAccess.deleteSoftById(Task.class, taskId);
 	 *
-	 * // Later, restore: the option is needed to match the soft-deleted task
-	 * long restored = DataAccess.restoreById(Task.class, taskId, new AccessDeletedItems());
+	 * // Later, restore
+	 * long restored = DataAccess.restoreById(Task.class, taskId);
 	 * </pre>
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     Entity class
 	 * @param id        Unique identifier (e.g., ObjectId)
-	 * @return the number of documents modified: 0 for a soft-deleted entity, see above
+	 * @return the number of entities restored (0 or 1)
 	 * @throws DataAccessException if entity has no deleted field or restore fails
 	 * @throws IOException         if I/O error occurs
 	 */
@@ -710,8 +706,9 @@ public class DataAccess {
 	}
 
 	/**
-	 * Restores (un-deletes) a soft-deleted entity by its ID with options. A soft-deleted entity matches only when
-	 * the options contain {@code AccessDeletedItems}; without it the call restores nothing and returns 0.
+	 * Restores (un-deletes) a soft-deleted entity by its ID with options. The soft-deleted entity is reached
+	 * whether or not the options contain {@code AccessDeletedItems} (accepted, it changes nothing); an entity
+	 * that is not deleted is left as it is.
 	 *
 	 * @param <ID_TYPE> The type of ID (e.g., ObjectId, UUID, Long)
 	 * @param clazz     Entity class
@@ -738,9 +735,8 @@ public class DataAccess {
 	 * </p>
 	 *
 	 * <p>
-	 * A document whose deleted field is {@code true} matches only when the call carries
-	 * {@code AccessDeletedItems}. Without it, no soft-deleted document matches: the call restores nothing and
-	 * returns 0.
+	 * Only the soft-deleted documents matching the condition are restored, whether or not the call carries
+	 * {@code AccessDeletedItems} (accepted, it changes nothing); a document that is not deleted is left as it is.
 	 * </p>
 	 *
 	 * <p>
@@ -748,9 +744,7 @@ public class DataAccess {
 	 * </p>
 	 * <pre>
 	 * // Restore the soft-deleted tasks of a given title
-	 * DataAccess.restore(Task.class,
-	 *     new Condition(Filters.eq("title", "Buy milk")),
-	 *     new AccessDeletedItems());
+	 * DataAccess.restore(Task.class, new Condition(Filters.eq("title", "Buy milk")));
 	 * </pre>
 	 *
 	 * @param clazz   Entity class

@@ -182,6 +182,20 @@ da.deleteSoftById(Article.class, articleId);  // sets deleted = true
 da.deleteHardById(Article.class, articleId);  // removes from MongoDB
 ```
 
+### Restore
+
+Undo a soft delete (the model needs a `@DataDeleted` field):
+
+```java
+da.restoreById(Article.class, articleId);
+da.restore(Article.class, new Condition(Filters.eq(Article::getStatus, "expired")));
+```
+
+A restore acts on soft-deleted documents, so it reaches them without `AccessDeletedItems` (the option is accepted
+and changes nothing). A document that is not deleted is not matched: it is left as it is, `updatedAt` included, and
+the returned count only counts the documents restored. Like any write, `restore` refuses a missing or empty
+`Condition` (see below).
+
 ### Count and Exists
 
 ```java
