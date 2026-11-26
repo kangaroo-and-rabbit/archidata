@@ -50,7 +50,12 @@ public class TsClassElement {
 	private final String declaration;
 	/** The file name (kebab-case) for the generated TypeScript file. */
 	public String fileName = null;
-	/** An optional comment/description for this element. */
+	/**
+	 * An optional comment/description for this element.
+	 *
+	 * @deprecated no generator reads it, and nothing in archidata writes it.
+	 */
+	@Deprecated(since = "0.55.0", forRemoval = true)
 	public String comment = null;
 	/** The position category of this type (native, basic, or normal). */
 	public DefinedPosition nativeType = DefinedPosition.NORMAL;
