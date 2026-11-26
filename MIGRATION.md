@@ -67,6 +67,9 @@
 - `DbIoFactory.create(config)` n'ajoute plus une référence à une connexion gardée (`DB_KEEP_CONNECTED=true`) à chaque
   réutilisation. Avant, après N `DBAccessMongo.createInterface()` puis `close()`, le compteur restait à N+1 : `DbIoFactory.close()`
   ne fermait jamais la connexion et `closeAllForceMode()` écrivait un « Force close: with N connection » trompeur.
+- `EncryptionKeyStore.reset()` lève une `IllegalStateException` une fois la configuration verrouillée (`ConfigBaseVariable.lock()`).
+  Avant, `reset()` puis `register(...)` remplaçaient une clé enregistrée à l'exécution, ce que `register` seul refuse. Un
+  test qui appelle `reset()` configuration verrouillée doit déverrouiller avant (`allowReconfiguration(true)`, `unlock()`).
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 

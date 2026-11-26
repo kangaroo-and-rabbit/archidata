@@ -48,6 +48,18 @@ class TestEncryptionHardening {
 	}
 
 	@Test
+	void testResetCannotBypassTheLockOnceLocked() {
+		final AesGcmCipherProvider tenant = aes();
+		EncryptionKeyStore.register("tenant-a", tenant);
+		ConfigBaseVariable.lock();
+		// reset() then register() would replace a runtime key that register() alone refuses to replace
+		Assertions.assertThrows(IllegalStateException.class, EncryptionKeyStore::reset);
+		Assertions.assertSame(tenant, EncryptionKeyStore.get("tenant-a"));
+		Assertions.assertThrows(IllegalStateException.class, () -> EncryptionKeyStore.register("tenant-a", aes()));
+		Assertions.assertSame(tenant, EncryptionKeyStore.get("tenant-a"));
+	}
+
+	@Test
 	void testRsaParametersStayCompatibleWithStoredData() throws Exception {
 		final KeyPair pair = EncryptionKeyGenerator.generateRsa(2048);
 		final RsaCipherProvider provider = new RsaCipherProvider(pair.getPublic(), pair.getPrivate());

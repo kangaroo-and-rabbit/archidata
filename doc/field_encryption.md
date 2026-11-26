@@ -79,6 +79,9 @@ EncryptionKeyStore.register("org42-priv", new X25519SealedBoxProvider(null, priv
 Once the configuration is locked (`ConfigBaseVariable.lock()`), `register` still accepts a new name but
 refuses to replace an existing key, `default` included (`IllegalStateException`): register the keys
 before locking. The check and the registration are atomic.
+`EncryptionKeyStore.reset()` is refused too once the configuration is locked (`IllegalStateException`): clearing the
+keys and registering them again would replace a key that `register` refuses to replace. Tests unlock the
+configuration first (`allowReconfiguration(true)`, then `unlock()`).
 
 ## Generating keys
 
