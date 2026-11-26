@@ -1,6 +1,6 @@
 # Migration Guide
 
-## Prochaine version (après v0.54.4) - `restore` atteint les documents supprimés (CORRECTION)
+## Prochaine version (après v0.54.4) - Corrections de la couche données
 
 - `restoreById(clazz, id)`, `restoreById(clazz, id, options)` et `restore(clazz, options)` retrouvent maintenant les
   documents supprimés (`@DataDeleted`) sans que l'appelant ajoute `AccessDeletedItems`. Avant, le filtre gardait
@@ -9,6 +9,10 @@
   vivant n'est plus touché et ne compte plus dans le retour. Passer `AccessDeletedItems` reste accepté et ne change rien.
 - Un code qui contournait l'ancien défaut (`restoreById(..., new AccessDeletedItems())`) n'a rien à changer. Un code
   qui comptait sur `restoreById` d'un document vivant pour obtenir 1 obtient maintenant 0.
+- `LinkRepairTools.repairLinks` sur une relation `@ManyToManyDoc` retire maintenant la référence inverse périmée (la
+  source n'a plus la cible dans sa liste, la cible a encore la source dans la sienne). Avant, elle retirait la clé de la
+  cible de sa propre liste (sans effet) mais comptait le lien comme corrigé : `getInconsistentLinksFixed()` ne change pas
+  de sens, mais le lien est vraiment réparé, et le détail nomme la source retirée.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

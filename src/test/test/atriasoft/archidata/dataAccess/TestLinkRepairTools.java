@@ -319,6 +319,42 @@ public class TestLinkRepairTools {
 		ConfigureDb.da.deleteById(TypeManyToOneDocOIDParentIgnore.class, insertedParent.getOid());
 	}
 
+	@Order(8)
+	@Test
+	public void testRepairManyToMany_sourceNoLongerListsRemote() throws Exception {
+		// The remote still lists the root, but the root no longer lists the remote: the stale reverse ref goes.
+		final TypeManyToManyDocOIDRoot root1 = ConfigureDb.da.insert(createM2MRoot("root_m2m_stale"));
+		final TypeManyToManyDocOIDRemote remote1 = ConfigureDb.da.insert(createM2MRemote("remote_m2m_stale"));
+		ManyToManyTools.addLink(ConfigureDb.da, TypeManyToManyDocOIDRoot.class, root1.getOid(), "remote",
+				remote1.getOid());
+
+		// Raw pull on the root side only
+		try (DataAccessConnectionContext ctx = new DataAccessConnectionContext()) {
+			final DBAccessMongo db = ctx.get();
+			final DbClassModel rootModel = DbClassModel.of(TypeManyToManyDocOIDRoot.class);
+			final String fieldColumn = rootModel.findByPropertyName("remote").getFieldName(null).inTable();
+			MongoLinkManager.removeFromList(db, TypeManyToManyDocOIDRoot.class, root1.getOid(), fieldColumn,
+					remote1.getOid());
+		}
+		final TypeManyToManyDocOIDRemote remoteBefore = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
+				remote1.getOid());
+		Assertions.assertTrue(remoteBefore.remoteToParent.contains(root1.getOid()));
+
+		final RepairReport report = LinkRepairTools.repairLinks(TypeManyToManyDocOIDRoot.class, "remote", false, false);
+		LOGGER.info("M2M source not listing report: {}", report);
+		Assertions.assertEquals(1, report.getInconsistentLinksFixed());
+
+		final TypeManyToManyDocOIDRemote remoteAfter = ConfigureDb.da.getById(TypeManyToManyDocOIDRemote.class,
+				remote1.getOid());
+		Assertions.assertTrue(
+				remoteAfter.remoteToParent == null || !remoteAfter.remoteToParent.contains(root1.getOid()),
+				"the stale reverse ref is still there: " + remoteAfter.remoteToParent);
+
+		// Cleanup
+		ConfigureDb.da.deleteById(TypeManyToManyDocOIDRoot.class, root1.getOid());
+		ConfigureDb.da.deleteById(TypeManyToManyDocOIDRemote.class, remote1.getOid());
+	}
+
 	// ==================== Helpers ====================
 
 	private static TypeManyToManyDocOIDRoot createM2MRoot(final String data) {

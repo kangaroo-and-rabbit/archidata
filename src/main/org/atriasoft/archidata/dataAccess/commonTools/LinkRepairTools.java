@@ -174,9 +174,9 @@ public class LinkRepairTools {
 						if (sourceDoc != null) {
 							final Object srcValue = localProp.getValue(sourceDoc);
 							if (!collectionContains(srcValue, remotePk)) {
-								toRemoveFromRemote.add(remotePk);
+								toRemoveFromRemote.add(sourceId);
 								report.incrementInconsistentLinksFixed();
-								report.addDetail("M2M: Removed orphaned reverse ref " + remotePk + " from "
+								report.addDetail("M2M: Removed orphaned reverse ref " + sourceId + " from "
 										+ remoteClass.getSimpleName() + "(" + remotePk + ")." + remoteFieldName
 										+ " (source " + sourceId + " no longer lists it)");
 							}
