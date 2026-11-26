@@ -19,6 +19,8 @@
 - `get(clazz, QueryOptions)` et `getRaw(clazz, QueryOptions)` ne laissent plus un `Limit(1)` dans le `QueryOptions` reçu.
   Avant, un second appel avec le même objet levait « Request with multiple 'limit' » et un `gets` suivant ne rendait
   qu'une ligne.
+- `count`, `insertBsonDocument`, `getBsonDocument`, `getBsonDocuments` et `updateBsonDocuments` gardent l'exception
+  du pilote comme `getCause()` de la `DataAccessException` qu'elles lèvent (message inchangé).
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

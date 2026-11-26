@@ -2476,7 +2476,7 @@ public final class DBAccessMongo implements Closeable {
 			return countAllIn(collection);
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to count documents: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Catch an Exception: " + ex.getMessage());
+			throw new DataAccessException("Catch an Exception: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -2909,7 +2909,7 @@ public final class DBAccessMongo implements Closeable {
 			throw ex;
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to insert BSON document: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to insert BSON document: " + ex.getMessage());
+			throw new DataAccessException("Failed to insert BSON document: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -2966,7 +2966,7 @@ public final class DBAccessMongo implements Closeable {
 			return null;
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to retrieve BSON document: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to retrieve BSON document: " + ex.getMessage());
+			throw new DataAccessException("Failed to retrieve BSON document: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -3032,7 +3032,7 @@ public final class DBAccessMongo implements Closeable {
 			return results;
 		} catch (final RuntimeException ex) {
 			LOGGER.error("Failed to retrieve BSON documents: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage());
+			throw new DataAccessException("Failed to retrieve BSON documents: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -3092,7 +3092,7 @@ public final class DBAccessMongo implements Closeable {
 			return result.getModifiedCount();
 		} catch (final Exception ex) {
 			LOGGER.error("Failed to update BSON documents: {}", ex.getMessage(), ex);
-			throw new DataAccessException("Failed to update BSON documents: " + ex.getMessage());
+			throw new DataAccessException("Failed to update BSON documents: " + ex.getMessage(), ex);
 		}
 	}
 

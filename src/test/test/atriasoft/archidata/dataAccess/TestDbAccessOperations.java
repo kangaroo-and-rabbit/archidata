@@ -198,6 +198,50 @@ public class TestDbAccessOperations {
 		Assertions.assertNotNull(ConfigureDb.da.get(SimpleTable.class, options));
 	}
 
+	// ---------------------------------------------------------------- the cause of a failure
+
+	/** A regular expression the server refuses: the query fails when it runs. */
+	private static Condition brokenRegex() {
+		return new Condition(Filters.regex("data", "("));
+	}
+
+	private static void assertHasACause(final DataAccessException ex) {
+		Assertions.assertNotNull(ex.getCause(), "the exception of the driver is dropped: " + ex.getMessage());
+	}
+
+	@Test
+	public void testCountKeepsTheCauseOfAFailure() throws Exception {
+		assertHasACause(Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.count(SimpleTable.class, brokenRegex())));
+	}
+
+	@Test
+	public void testGetBsonDocumentKeepsTheCauseOfAFailure() throws Exception {
+		assertHasACause(Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.getBsonDocument("SimpleTable", brokenRegex())));
+	}
+
+	@Test
+	public void testGetBsonDocumentsKeepsTheCauseOfAFailure() throws Exception {
+		assertHasACause(Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.getBsonDocuments("SimpleTable", brokenRegex())));
+	}
+
+	@Test
+	public void testUpdateBsonDocumentsKeepsTheCauseOfAFailure() throws Exception {
+		assertHasACause(Assertions.assertThrows(DataAccessException.class,
+				() -> ConfigureDb.da.updateBsonDocuments("SimpleTable",
+						new org.bson.Document("$set", new org.bson.Document("data", "x")), brokenRegex())));
+	}
+
+	@Test
+	public void testInsertBsonDocumentKeepsTheCauseOfAFailure() throws Exception {
+		final ObjectId id = new ObjectId();
+		ConfigureDb.da.insertBsonDocument("SimpleTable", new org.bson.Document("_id", id).append("data", "dup"));
+		assertHasACause(Assertions.assertThrows(DataAccessException.class, () -> ConfigureDb.da
+				.insertBsonDocument("SimpleTable", new org.bson.Document("_id", id).append("data", "dup"))));
+	}
+
 	// ---------------------------------------------------------------- listCollections
 
 	@Test
