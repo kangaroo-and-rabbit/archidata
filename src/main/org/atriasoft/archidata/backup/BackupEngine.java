@@ -903,56 +903,96 @@ public class BackupEngine {
 		final File[] files = sourceDir.listFiles();
 		if (files != null) {
 			for (final File file : files) {
-				if (!file.canRead()) {
-					LOGGER.warn("The file is not readable ==> ignored: {}", file.getAbsolutePath());
-					continue;
-				}
-				// Ignore the folder history_restore_* at the first data level
-				if (file.isDirectory() && basePath.equals("data/") && file.getName().startsWith("history_restore")) {
-					LOGGER.debug("Folder history_restore ignored: {}", file.getName());
-					continue;
-				}
-				final String entryName = basePath + file.getName();
-				try {
-					if (file.isDirectory()) {
-						final TarArchiveEntry dirEntry = new TarArchiveEntry(entryName + "/");
-						tarOut.putArchiveEntry(dirEntry);
-						tarOut.closeArchiveEntry();
-
-						addDirectoryToTar(tarOut, file, entryName + "/", modifiedSince);
-					} else {
-						if (!file.exists()) {
-							LOGGER.warn("Invalid file, ignored: {}", file.getAbsolutePath());
-							continue;
-						}
-						// Delta backup: only include files modified since the reference date
-						if (modifiedSince != null && file.lastModified() < modifiedSince.getTime()) {
-							continue;
-						}
-
-						final TarArchiveEntry fileEntry = new TarArchiveEntry(file, entryName);
-						tarOut.putArchiveEntry(fileEntry);
-
-						try (FileInputStream fis = new FileInputStream(file)) {
-							final byte[] buffer = new byte[8192];
-							int bytesRead;
-							while ((bytesRead = fis.read(buffer)) != -1) {
-								tarOut.write(buffer, 0, bytesRead);
-							}
-							tarOut.closeArchiveEntry();
-						} catch (final IOException e) {
-							LOGGER.error("Fail to read the file, ignored: {} - {}", file.getAbsolutePath(),
-									e.getMessage());
-							tarOut.closeArchiveEntry();
-						}
-					}
-				} catch (final IOException e) {
-					LOGGER.error("Fail to add data in the archive, element ignored: {} - {}", file.getAbsolutePath(),
-							e.getMessage());
-				}
+				addPathToTar(tarOut, file, basePath, modifiedSince);
 			}
 		} else {
 			LOGGER.warn("Fail to list the folder: {}", sourceDir.getAbsolutePath());
+		}
+	}
+
+	/**
+	 * Add one element found in a folder of the media to the archive, under {@code basePath}. An unreadable element and
+	 * the folder {@code history_restore*} of the first level are skipped with a log; a failure while adding the element
+	 * is logged and never thrown, the next element is still added.
+	 */
+	private void addPathToTar(
+			final TarArchiveOutputStream tarOut,
+			final File file,
+			final String basePath,
+			final Date modifiedSince) {
+		if (!file.canRead()) {
+			LOGGER.warn("The file is not readable ==> ignored: {}", file.getAbsolutePath());
+			return;
+		}
+		// Ignore the folder history_restore_* at the first data level
+		if (file.isDirectory() && basePath.equals("data/") && file.getName().startsWith("history_restore")) {
+			LOGGER.debug("Folder history_restore ignored: {}", file.getName());
+			return;
+		}
+		final String entryName = basePath + file.getName();
+		try {
+			if (file.isDirectory()) {
+				addFolderToTar(tarOut, file, entryName, modifiedSince);
+			} else {
+				addFileToTar(tarOut, file, entryName, modifiedSince);
+			}
+		} catch (final IOException e) {
+			LOGGER.error("Fail to add data in the archive, element ignored: {} - {}", file.getAbsolutePath(),
+					e.getMessage());
+		}
+	}
+
+	/** Write the entry of a folder ({@code entryName + "/"}) then, recursively, what it holds. */
+	private void addFolderToTar(
+			final TarArchiveOutputStream tarOut,
+			final File folder,
+			final String entryName,
+			final Date modifiedSince) throws IOException {
+		final TarArchiveEntry dirEntry = new TarArchiveEntry(entryName + "/");
+		tarOut.putArchiveEntry(dirEntry);
+		tarOut.closeArchiveEntry();
+
+		addDirectoryToTar(tarOut, folder, entryName + "/", modifiedSince);
+	}
+
+	/**
+	 * Write the entry and the content of a file, unless it vanished or, for a delta ({@code modifiedSince} not
+	 * {@code null}), it was modified before that date.
+	 */
+	private void addFileToTar(
+			final TarArchiveOutputStream tarOut,
+			final File file,
+			final String entryName,
+			final Date modifiedSince) throws IOException {
+		if (!file.exists()) {
+			LOGGER.warn("Invalid file, ignored: {}", file.getAbsolutePath());
+			return;
+		}
+		// Delta backup: only include files modified since the reference date
+		if (modifiedSince != null && file.lastModified() < modifiedSince.getTime()) {
+			return;
+		}
+
+		final TarArchiveEntry fileEntry = new TarArchiveEntry(file, entryName);
+		tarOut.putArchiveEntry(fileEntry);
+		copyFileToCurrentEntry(tarOut, file);
+	}
+
+	/**
+	 * Copy a file into the archive entry just opened, then close the entry. A read failure is logged and the entry is
+	 * closed anyway.
+	 */
+	private void copyFileToCurrentEntry(final TarArchiveOutputStream tarOut, final File file) throws IOException {
+		try (FileInputStream fis = new FileInputStream(file)) {
+			final byte[] buffer = new byte[8192];
+			int bytesRead;
+			while ((bytesRead = fis.read(buffer)) != -1) {
+				tarOut.write(buffer, 0, bytesRead);
+			}
+			tarOut.closeArchiveEntry();
+		} catch (final IOException e) {
+			LOGGER.error("Fail to read the file, ignored: {} - {}", file.getAbsolutePath(), e.getMessage());
+			tarOut.closeArchiveEntry();
 		}
 	}
 
