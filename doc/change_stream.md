@@ -94,10 +94,23 @@ MongoDB  ──change stream──>  ChangeStreamWorker (1 thread per collection
   order. For each event the manager calls the global listeners first, then the listeners of the
   collection. A client-side filter that returns `false` skips the listener; an exception thrown by a
   listener is caught and logged, and does not affect other listeners.
-- **Resume tokens.** The worker keeps the token of the last event it handled. If the stream errors
-  it re-opens with `resumeAfter(token)`. When a worker is stopped through `unwatchCollection(...)`
-  the token is saved by the manager and reused if the collection is watched again. Tokens live in
-  memory only: they do not survive a process restart or `stop()`.
+- **Resume tokens.** The worker keeps the token of the last event it read: if its stream errors it
+  re-opens with `resumeAfter(token)`. When `unwatchCollection(...)` stops a worker, the manager saves
+  another position: the token of the last event **dispatched** to the listeners (it moves once they
+  returned, under the manager's read lock, so a stop sees each event either dispatched in full or not
+  dispatched at all), or the position of the stream when it was last idle (a `getMore` that returned no
+  change: every event read before was handled), whichever is the latest. If the collection is watched
+  again, its new worker resumes from there: the writes made meanwhile are notified, and an event the
+  stopped worker had read but not dispatched is dispatched once, by the new worker. The writes made
+  meanwhile are replayed as long as that position is still in the oplog: after a long unwatch, every one
+  of them is dispatched on the new worker's thread, one after the other, a burst that holds back the
+  listeners of that collection (the new writes included) until it is drained.
+  **Exception:** a worker started without a saved token has no position until it dispatches an event
+  or sees its stream idle once (at most the server's await time after the stream opened, 1 s by
+  default): the driver gives no token for a stream just opened. Stopped before, it saves nothing, and
+  the next worker starts when its own stream opens: an event it had read and the writes made until the
+  next worker opens are not notified. Tokens live in memory only: they do not survive a process restart
+  or `stop()`.
 - **Error handling in the worker loop** (see `WorkerStatus`):
   `MongoInterruptedException` and `InvalidResumeToken` (code 260) reset the token and retry after
   1 s; other `MongoCommandException` / `MongoException` set `RECONNECTING` and retry after 5 s;
@@ -314,6 +327,10 @@ used by the other integration tests (`ConfigureDb.configure()`):
 - `ChangeNotificationIntegrationTest`: end-to-end behaviour including worker restarts.
 - `TestChangeStreamRestart`: a write right after `registerListener()` is notified, also after
   `stop()` then `start()` in the same JVM, and `stop()` returns once its workers have ended.
+- `TestChangeStreamNoEventLost`: an event read by a worker that `unwatchCollection()` stops before it
+  dispatches it reaches the listeners once, through the next worker, also when it is the first event of
+  that worker (the interleaving is forced through a database whose `getCollection()` runs code with the
+  manager's write lock held).
 - `TestHelper`: polling helpers (`waitForEvents`, `waitForCondition`,
   `waitForStreamInitialization`) used instead of `Thread.sleep`.
 

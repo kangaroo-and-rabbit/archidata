@@ -95,6 +95,8 @@ import com.mongodb.client.model.changestream.FullDocument;
  * The read lock is taken only by {@code notifyChange}, on the thread of
  * the worker that delivers an event: the listeners run on that thread with the read lock held, so a
  * listener must not call a method that takes the write lock (registering a listener, {@code stop()}...).
+ * Before it releases the read lock, {@code notifyChange} moves the worker's dispatched position (the token a stop
+ * saves) to the event it has just dispatched.
  * The accessors ({@code isRunning}, {@code isWatching}, {@code getWatchedCollections},
  * {@code getWorkerStatuses}, {@code getCollectionModes}, {@code getListenerCount},
  * {@code getTotalEventsProcessed}) take no lock: they read a volatile field, an atomic counter or a
@@ -112,7 +114,14 @@ import com.mongodb.client.model.changestream.FullDocument;
  * they watch are open (at most 10 s, a warning is logged beyond):
  * a write made after they return is notified. {@code stop()} returns only once its workers have ended
  * (bounded, an error names the workers still running), and an event read by a stopped worker is never
- * dispatched, so {@code stop()} then {@code start()} is safe.
+ * dispatched, so {@code stop()} then {@code start()} is safe. {@code unwatchCollection(...)} saves the position of
+ * the worker: the token of the last event dispatched to the listeners, or of the stream when it was last idle (the
+ * read lock makes the dispatch of an event and the move of that position one step for a stop). When the collection
+ * is watched again, its new worker resumes from it, so an event the stopped worker read but did not dispatch is
+ * dispatched once, by the new worker. Except for a worker started without a saved token, until it dispatches an
+ * event or sees its stream idle (a {@code getMore} with no change, at most the server's await time after the stream
+ * opened, 1 s by default): it has no position, nothing is saved, and the next worker starts when its own stream
+ * opens, so such an event and the writes made before that are not notified.
  * </p>
  *
  * @see ChangeEvent
@@ -144,6 +153,9 @@ public class ChangeNotificationManager {
 	private final Map<String, ChangeStreamWorker> workers = new ConcurrentHashMap<>();
 	// Resume token of the collections whose worker was stopped: a new worker of the collection resumes from it.
 	// Guarded by `lock` (write side): written by stopWorkerForCollection() and stop(), read by startWorkerForCollection().
+	// The token saved is the worker's position (the last event notifyChange() dispatched, recorded under the read
+	// lock, or the stream's position when it was last idle), not the last event it read: an event read and not
+	// dispatched is dispatched by the next worker. A worker with no position yet saves nothing (see getResumeToken()).
 	private final Map<String, org.bson.BsonDocument> resumeTokens = new ConcurrentHashMap<>();
 
 	// Server-side filtering pipelines by collection.
@@ -1014,7 +1026,15 @@ public class ChangeNotificationManager {
 	/**
 	 * Called by ChangeStreamWorker when an event arrives. An event read by a worker that is no longer the
 	 * worker of its collection (stopped by {@code stop()} or {@code unwatchCollection()}) is dropped: it must
-	 * not reach the listeners of a later start.
+	 * not reach the listeners of a later start. It is not lost either, once the worker has a position: the position
+	 * the manager saved when it stopped that worker is before the event, so the next worker of the collection
+	 * dispatches it (see {@link ChangeStreamWorker#getResumeToken()} for the worker that has no position yet).
+	 *
+	 * <p>
+	 * Once every listener returned, and before the read lock is released, the token of the event becomes the
+	 * worker's dispatched position ({@link ChangeStreamWorker#getResumeToken()}): a stop, which takes the write lock,
+	 * sees the event either not dispatched at all or dispatched in full.
+	 * </p>
 	 */
 	void notifyChange(final ChangeStreamWorker source, final ChangeEvent event) {
 		this.lock.readLock().lock();
@@ -1054,6 +1074,9 @@ public class ChangeNotificationManager {
 					}
 				}
 			}
+			// Still under the read lock: a stop of this worker saves this token, or the one before, never the
+			// token of an event read and not dispatched
+			source.eventDispatched(event.getResumeToken());
 		} finally {
 			this.lock.readLock().unlock();
 		}
@@ -1097,7 +1120,8 @@ public class ChangeNotificationManager {
 	private void stopWorkerForCollection(final String collectionName) {
 		final ChangeStreamWorker worker = this.workers.remove(collectionName);
 		if (worker != null) {
-			// Save the resume token before stopping
+			// Save the dispatched position before stopping. With the write lock held, no notifyChange() of this
+			// worker is half way: an event it has read and not dispatched comes after this token
 			final org.bson.BsonDocument token = worker.getResumeToken();
 			if (token != null) {
 				this.resumeTokens.put(collectionName, token);

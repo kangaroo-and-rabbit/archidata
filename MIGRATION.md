@@ -26,6 +26,19 @@
 - `WebApplicationExceptionCatcher` garde les en-têtes de la réponse de l'exception (`Retry-After` d'un 429,
   `WWW-Authenticate` d'un 401, `Allow` d'un 405...). Avant, seuls le statut et le corps JSON étaient renvoyés. Le
   corps JSON ne change pas.
+- `ChangeNotificationManager` : un événement lu par le worker d'une collection que `unwatchCollection` arrête avant
+  qu'il l'ait distribué n'est plus perdu. Le jeton sauvé était celui du dernier événement lu, et le worker suivant de la
+  collection reprenait après lui ; c'est maintenant celui du dernier événement distribué aux listeners, ou celui du flux
+  à sa dernière attente sans changement, et le worker suivant distribue cet événement, une seule fois.
+  `ChangeStreamWorker.getResumeToken()` rend cette position. Exception : un worker démarré sans jeton n'a pas de
+  position avant son premier événement distribué ou sa première attente vide (au plus 1 s par défaut après l'ouverture
+  du flux) ; arrêté avant, il ne sauve rien et le worker suivant part de l'ouverture de son propre flux.
+- Conséquence visible : un worker arrêté sans avoir rien distribué sauve maintenant une position (celle du flux à sa
+  dernière attente vide). Si la collection est surveillée de nouveau, les écritures faites entre `unwatchCollection` et
+  la reprise sont notifiées, comme elles l'étaient déjà quand un événement avait été distribué ; avant, elles étaient
+  perdues. Elles sont rejouées tant que cette position est encore dans l'oplog : après un long arrêt, toutes sont
+  distribuées à la reprise, une à une sur le thread du nouveau worker, une rafale qui retient les listeners de cette
+  collection (les nouvelles écritures comprises) jusqu'à ce qu'elle soit écoulée.
 
 ## Prochaine version (après v0.54.4) - Clients générés : correctifs (CHANGEMENT DE COMPORTEMENT)
 
