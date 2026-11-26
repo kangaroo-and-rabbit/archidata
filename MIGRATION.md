@@ -79,6 +79,7 @@ rappelle `asDeleteAction` par défaut : un add-on d'application qui redéfinit `
 `annotation` / `bean` / `model` :
 
 - `ApiAsyncType.tsComplement()` : sans remplaçant (aucun générateur ne la lit).
+- `TsClassElement.comment` (champ public) : sans remplaçant (aucun générateur ne le lit).
 - `AnnotationTools` : `hasAnnotation(Class, Class)`, les trois `gets(...)`, `getCollectionItemNotNull`,
   `getCollectionItemUnique`, `getCollectionNotEmpty` (`get(Field, Class)`), `isAnnotationGroup`, `getConstraintsNotNull`,
   `getPrimaryKeyField`, `getIdField`, `getFieldOfId` (trois recherches identiques de la clé primaire),

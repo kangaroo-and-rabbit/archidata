@@ -185,4 +185,10 @@
 		<Field name="key"/>
 		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
 	</Match>
+	<!-- Deprecated for removal: a public field no generator reads, kept until the next minor version. -->
+	<Match>
+		<Class name="org.atriasoft.archidata.externalRestApi.typescript.TsClassElement"/>
+		<Field name="comment"/>
+		<Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+	</Match>
 </FindBugsFilter>
