@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The FormDataOptional annotation is used to indicate that a form data parameter
+ * The ApiInputOptional annotation is used to indicate that a form data parameter
  * is optional when generating client code. By default, form data parameters are
  * required, but this annotation allows them to be optional, enabling the creation
  * of polymorphic APIs.
@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  *   processed by frameworks or libraries that handle code generation logic.
  *
  * <p>Behavior:
- * - When applied to a parameter, the FormDataOptional annotation specifies that
+ * - When applied to a parameter, the ApiInputOptional annotation specifies that
  *   the parameter is optional in the generated client code. This allows for
  *   more flexible API designs where certain inputs can be omitted.
  *
@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  *     @RolesAllowed("ADMIN")
  *     @Consumes({ MediaType.MULTIPART_FORM_DATA })
  *     @Operation(description = "Add a cover on a specific album")
- *     @TypeScriptProgress
+ *     @ApiTypeScriptProgress
  *     public Album uploadCover(@PathParam("id") final Long id,
  *                              @ApiInputOptional @FormDataParam("uri") final String uri,
  *                              @ApiInputOptional @FormDataParam("file") final InputStream fileInputStream,
@@ -43,7 +43,7 @@ import java.lang.annotation.Target;
  * }
  *
  *
- * Note: @FormDataParam must be allway at the last position.
+ * Note: @FormDataParam must always be at the last position.
  *
  * In this example, the uri, fileInputStream, and fileMetaData parameters are
  * marked as optional, allowing the client to omit them when calling the API.

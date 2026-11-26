@@ -35,7 +35,7 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * In this example, the createdAt field will be automatically set to the
- * current timestamp when a new User object is created in the database.
+ * current timestamp when a new MyEntity object is inserted in the database.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

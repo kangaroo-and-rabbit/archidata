@@ -6,11 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to explicitly define the nullability of a parameter in an API.
+ * Annotation to explicitly define the nullability of a field in an API.
  *
- * This annotation allows marking a parameter as required (non-null) or optional (nullable),
+ * This annotation allows marking a field as required (non-null) or optional (nullable),
  * overriding any other nullability considerations. It is useful in API generation frameworks
- * to ensure precise validation and documentation of method parameters.
+ * to ensure precise validation and documentation of the fields.
  *
  * <p>Usage:
  * - Target: This annotation can be applied to field.
@@ -18,13 +18,13 @@ import java.lang.annotation.Target;
  *   processed by frameworks or libraries that handle code generation logic.
  *
  * <p>Behavior:
- * - When applied to a parameter, it explicitly marks it as optional or required in the API.
+ * - When applied to a field, it explicitly marks it as optional or required in the API.
  *   This annotation overrides all other considerations regarding nullability.
  *
  * <p>Example:
  * <pre>{@code
  * public class User {
- *     @ReadOnlyField
+ *     @ApiReadOnly
  *     @ApiNotNull
  *     public String username;
  *     public String email;

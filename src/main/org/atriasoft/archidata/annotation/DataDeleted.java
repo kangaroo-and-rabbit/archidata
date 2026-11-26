@@ -17,8 +17,9 @@ import java.lang.annotation.Target;
  *   processed by frameworks or libraries that handle data retrieval logic.
  *
  * <p>Behavior:
- * - When a field is annotated with @DataDeleted, it will not be included in the
- *   default data retrieval process from the database if its value is false.
+ * - When a field is annotated with @DataDeleted, the default data retrieval process only
+ *   reads the documents whose value is false: the documents whose value is true are hidden,
+ *   and so are the documents without the field (the filter is an equality on false).
  * - To override this behavior and access deleted items, the query must include
  *   the option AccessDeletedItems.
  *
@@ -29,7 +30,7 @@ import java.lang.annotation.Target;
  *
  *     @DataDeleted
  *     @DataNotRead
- *     @InitValue("'0'")
+ *     @InitValue("false")
  *     public Boolean deleted = null;
  * }
  * }</pre>

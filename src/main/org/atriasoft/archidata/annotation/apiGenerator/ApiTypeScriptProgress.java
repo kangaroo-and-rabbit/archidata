@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The TypeScriptProgress annotation is used to specify that an API method
+ * The ApiTypeScriptProgress annotation is used to specify that an API method
  * will take a significant amount of time to complete, and thus requires a
  * callback API to provide more precise progress tracking, particularly for
  * upload operations.
@@ -17,7 +17,7 @@ import java.lang.annotation.Target;
  *   processed by frameworks or libraries that handle code generation logic.
  *
  * <p>Behavior:
- * - When applied to a method or parameter, the TypeScriptProgress annotation
+ * - When applied to a method or parameter, the ApiTypeScriptProgress annotation
  *   indicates that the client code generator should provide a callback API
  *   for tracking the progress of the operation.
  * - Note: The use of this annotation implies that the standard browser fetch
@@ -33,7 +33,7 @@ import java.lang.annotation.Target;
  *     @RolesAllowed("ADMIN")
  *     @Consumes(MediaType.MULTIPART_FORM_DATA)
  *     @Operation(description = "Upload a new season cover season", tags = "GLOBAL")
- *     @TypeScriptProgress
+ *     @ApiTypeScriptProgress
  *     public Season uploadCover(@PathParam("id") final Long id,
  *                               @FormDataParam("file") final InputStream fileInputStream,
  *                               @FormDataParam("file") final FormDataContentDisposition fileMetaData)

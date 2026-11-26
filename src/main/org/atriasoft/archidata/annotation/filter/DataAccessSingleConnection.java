@@ -17,9 +17,11 @@ import jakarta.ws.rs.NameBinding;
  * <p>This allows all calls to {@code DataAccessConnectionContext.getConnection()} within the request
  * to reuse the same database connection without manually managing connection lifecycle.</p>
  *
- * <p><b>Important:</b> For this annotation to have effect, the corresponding JAX-RS filter
- * (e.g., {@code DataAccessRetentionConnectionFilter}) must be registered in your application and annotated with
- * {@code @DataAccessSingleConnection} to bind the filter to this annotation.</p>
+ * <p><b>Important:</b> For this annotation to have effect, the filter
+ * {@code DataAccessRetentionConnectionFilter} must be registered in your application
+ * ({@code rc.register(DataAccessRetentionConnectionFilter.class)}). It already carries this annotation: put the
+ * annotation on the resource class or method, not on the filter. A filter of your own would have to carry it
+ * to be bound.</p>
  *
  * Example usage:
  * <pre>
@@ -29,9 +31,9 @@ import jakarta.ws.rs.NameBinding;
  *     &#64;GET
  *     &#64;Path("/{id}")
  *     &#64;DataAccessSingleConnection
- *     public User getUser(@PathParam("id") String id) {
+ *     public User getUser(@PathParam("id") ObjectId id) throws Exception {
  *         DBAccessMongo db = DataAccessConnectionContext.getConnection();
- *         return db.queryUserById(id);
+ *         return db.getById(User.class, id);
  *     }
  * }
  * </pre>

@@ -12,27 +12,26 @@ import java.lang.annotation.Target;
  * is needed to define the field that store the relation data value in the
  * remote elements.
  *
- * Technical note: The use of this annotation when unidirectional if not needed,
- * just use @Ref CheckForeignKey
+ * Technical note: this annotation is not needed for a unidirectional relation: use
+ * {@link org.atriasoft.archidata.annotation.checker.CheckForeignKey} alone.
  *
  * <p>
  * Example:
- * {@snippet :
- *
+ * <pre>{@code
  * public class ClassA {
- * 	&#64;Id
+ * 	@Id
  * 	ObjectId _id;
- * 	&#64;ManyToManyDoc(targetEntity = ClassB.class, remoteField = "remoteFieldClassB")
- * 	List<@CheckForeignKey(ClassB.class) ObjectId> remoteFieldClassA;
+ * 	@ManyToManyDoc(targetEntity = ClassB.class, remoteField = "remoteFieldClassB")
+ * 	List<@CheckForeignKey(target = ClassB.class) ObjectId> remoteFieldClassA;
  * }
  *
  * public class ClassB {
- * 	&#64;Id
+ * 	@Id
  * 	ObjectId _id;
- * 	&#64;OneToManyDoc(targetEntity = ClassA.class, remoteField = "remoteFieldClassA")
- * 	List<@CheckForeignKey(ClassA.class) ObjectId> remoteFieldClassB;
+ * 	@ManyToManyDoc(targetEntity = ClassA.class, remoteField = "remoteFieldClassA")
+ * 	List<@CheckForeignKey(target = ClassA.class) ObjectId> remoteFieldClassB;
  * }
- * }
+ * }</pre>
  */
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })

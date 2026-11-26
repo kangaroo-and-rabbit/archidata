@@ -18,8 +18,8 @@ import java.lang.annotation.Target;
  *
  * <p>Behavior:
  * - When a field is annotated with @UpdateTimestamp, it will automatically
- *   be updated to the current date and time whenever the object is modified
- *   in the database.
+ *   be set to the current date and time when the object is inserted, and updated
+ *   whenever the object is modified in the database.
  * - The base classes ({@code GenericTiming} and its subclasses) already declare
  *   it: an entity extending them does not need to repeat it.
  *
@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * In this example, the updatedAt field will be automatically set to the
- * current timestamp whenever the User object is modified in the database.
+ * current timestamp when the MyEntity object is inserted and whenever it is modified in the database.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

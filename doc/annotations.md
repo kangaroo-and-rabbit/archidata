@@ -100,7 +100,7 @@ public class Article extends OIDGenericDataSoftDelete { }
 attribute. Makes it the primary key (action `PRIMARY_KEY`). The key is generated on insert for an `ObjectId`, a `Long`
 (sequence in the `counters` collection) or a `UUID`; another type (`String`, `Integer`...) is set
 by the application and inserted with the `DirectPrimaryKey` option. Stored as `_id` when combined
-with `@Field("_id")`, as in `OIDGenericData` and `UUIDGenericData` (`GenericData` keeps `id`).
+with `@Field("_id")`, as in `OIDGenericData` (`GenericData` keeps `id`, `UUIDGenericData` keeps `uuid`).
 `OIDGenericData` also keeps the driver's `@BsonId`: the MongoDB POJO codec registered by
 `DbIoMongo` (`PojoCodecProvider.automatic(true)`) reads it to map the property to `_id`. That codec
 refuses to encode an object holding a `@DataNotRead` or `@DataEncrypt` field, which an `OIDGenericData`
@@ -297,8 +297,8 @@ private Date createdAt = null;
 ### @DataDeleted
 
 On a `Boolean` field. Marks the soft-delete flag: `delete` sets it to `true`, inserts initialize it
-to `false` (or to the `@InitValue`), and reads skip documents whose flag is true unless the
-`AccessDeletedItems` option is given. Only one such field per class.
+to `false` (or to the `@InitValue`), and reads only match documents whose flag is `false` (a document
+without the field is not read either) unless the `AccessDeletedItems` option is given. Only one such field per class.
 
 ### @DataAsyncHardDeleted
 
