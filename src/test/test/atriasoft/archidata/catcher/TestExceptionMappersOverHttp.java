@@ -179,6 +179,12 @@ public class TestExceptionMappersOverHttp {
 			throw new ConstraintViolationException("two wrong", validator().validate(new Invalid()));
 		}
 
+		@GET
+		@Path("char-query")
+		public String charQuery(@QueryParam("c") final char value) {
+			return "c=" + value;
+		}
+
 		@POST
 		@Path("body")
 		@Consumes(MediaType.APPLICATION_JSON)
@@ -377,6 +383,18 @@ public class TestExceptionMappersOverHttp {
 		Assertions.assertEquals("count", error.get("path").asText());
 		Assertions.assertTrue(error.get("message").asText().contains("abc"), error.toString());
 		Assertions.assertEquals(Set.of("argument", "path", "message"), keysOf(error));
+	}
+
+	@Test
+	public void testQueryParameterWithoutCauseIsBadRequest() throws Exception {
+		// Jersey wraps the cause of the failure, which is null for a char given more than one character
+		final HttpResponse<String> response = get("char-query?c=ab");
+		final JsonNode body = check(response, 400, "Bad Request", "Error on query input='c'", "Input parsing fail");
+		Assertions.assertEquals(1, body.get("inputError").size());
+		final JsonNode error = body.get("inputError").get(0);
+		Assertions.assertEquals("query", error.get("argument").asText());
+		Assertions.assertEquals("c", error.get("path").asText());
+		Assertions.assertEquals("Invalid value for a query parameter", error.get("message").asText());
 	}
 
 	@Test

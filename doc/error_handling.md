@@ -142,7 +142,8 @@ How `argument` and `path` are filled depends on the source:
   prefix, so `argument` is absent and `path` holds the property path.
 - `InputException(variable, message)`: a single entry, `path = variable`.
 - `QueryParamException`: a single entry with `argument = "query"` and
-  `path = <parameter name>`.
+  `path = <parameter name>`; its message is the one of the cause, or
+  `Invalid value for a query parameter` when Jersey gives no cause (a `char` parameter given several characters).
 
 `inputError` is sorted by `argument.path`, so the order is stable.
 
