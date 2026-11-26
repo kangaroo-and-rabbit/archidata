@@ -96,6 +96,17 @@ import com.mongodb.client.model.WriteModel;
  * the engine), and a SHA-256 sum is written next to it ({@code <archive>.sha256}) and checked before any
  * restore. Keep the archives on a storage reserved to the service, and encrypt them outside archidata if
  * they leave it (no archive encryption yet).
+ *
+ * <p>
+ * <b>Threads.</b> An instance is not synchronized. Its configuration (the setters, {@link #addClass},
+ * {@link #addCollection}) is held in plain fields and in a {@code LinkedHashSet}; the other methods (store,
+ * restore, snapshot, clean, list) only read it: none of them writes a field of the engine, each keeps its state
+ * in local variables. So configure the engine first, then hand it to the other threads through a safe
+ * publication (a {@code final} field, an executor submission, a lock): from then on several threads may call
+ * those methods, as {@code BackupService} does with its engine, configured in {@code createEngine} before the
+ * service holds it. A setter or a registration called while another thread runs is not seen reliably, and
+ * the registered collections are iterated while the set may change. Two runs that write the same archive name
+ * (same sequence) share the name of its temporary file: the caller must not start them together.
  */
 public class BackupEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(BackupEngine.class);

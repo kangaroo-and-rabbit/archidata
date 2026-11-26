@@ -60,20 +60,37 @@ import com.mongodb.client.model.changestream.OperationType;
 public class ChangeStreamWorker implements Runnable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeStreamWorker.class);
 
+	// Threads: the worker thread is the one the manager's executor runs run() on, one per worker. The
+	// threads that call the manager (and the listener-facing getters) call stop(), setResumeToken() and the getters.
+	// The five final fields below are set by the constructor and never change, so any thread reads them.
 	private final String collectionName;
 	private final MongoCollection<Document> collection;
 	private final ChangeNotificationManager manager;
 	private final FullDocument fullDocumentMode;
 	private final List<Bson> pipeline;
 
+	// Written by stop() (any thread, the manager calls it with its write lock held), read by the worker thread. Volatile.
 	private volatile boolean running = true;
+	// Written by the worker thread only (runLoop), read by any thread through getStatus(). Volatile.
 	private volatile WorkerStatus status = WorkerStatus.STARTING;
+	// Plain field, no lock. Written by the worker thread (runLoop and watchChangeStream) and by setResumeToken(),
+	// which the manager calls on its own thread before it submits the worker (the submission orders that write
+	// before the worker thread starts). Read by the worker thread, and by getResumeToken(), which the manager
+	// calls with its write lock held when it stops the worker. The worker writes the token of an event before
+	// it hands the event to notifyChange(), which takes the manager's read lock: the manager's read therefore
+	// sees at least the token of the last event notifyChange() returned for. It may also see the token of the
+	// event the worker is about to hand over. The manager then saves that token, notifyChange() does not
+	// dispatch the event because the worker is no longer registered, and a worker started later from the saved
+	// token resumes after that event.
 	private BsonDocument resumeToken = null;
+	// Incremented by the worker thread only, read by any thread through getEventsProcessed(). Atomic.
 	private final AtomicLong eventsProcessed = new AtomicLong(0);
 	/** Released when the first attempt to open the change stream is over, whether it opened it or failed. */
 	private final CountDownLatch firstOpenAttemptDone = new CountDownLatch(1);
 	/** Released when {@link #run()} returns. */
 	private final CountDownLatch ended = new CountDownLatch(1);
+	// Written by the worker thread only (true once the stream is open, false when it closes), read by
+	// awaitStreamOpen() on a manager thread. Volatile.
 	private volatile boolean streamOpen = false;
 
 	/**

@@ -74,6 +74,17 @@ import com.mongodb.client.model.UpdateOptions;
  * collection registered by name ({@link #addCollection}, {@link #runAll()}) has no model: declare its
  * sensitive fields with {@link #excludeFields(String, String...)}, and do not journalize token or session
  * collections at all.
+ *
+ * <p><b>Threads.</b> An instance is not synchronized: configure it ({@link #addClass}, {@link #addCollection},
+ * {@link #excludeFields}, the setters) before the first run, then run it from one thread at a time, which is what
+ * the {@link org.atriasoft.archidata.cron.CronScheduler} does (one consumer thread). The configuration is held in
+ * plain fields and in unsynchronized collections that a run reads (the registered collections are iterated by
+ * {@link #run()}), and a run writes the {@code indexesEnsured} flag, a plain {@code boolean} (a race on it makes
+ * two runs create the same idempotent indexes). Two runs at the same time, for instance {@link #run()} called from
+ * a request while the cron run is in progress, also share the markers: each reads the {@code totalCount} of a
+ * marker when it starts the collection and writes it back with {@code $set}, so the increment of one of them is
+ * lost, and the run that finishes last sets {@code lastSavedAt} to its own run date, which may be older than the
+ * other one (the next run then captures some documents twice, none is missed).
  */
 public final class ChangeJournalEngine {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeJournalEngine.class);

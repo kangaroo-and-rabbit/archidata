@@ -36,6 +36,13 @@ import com.mongodb.client.model.Indexes;
  * final ChangeJournalPurge purge = new ChangeJournalPurge();
  * scheduler.addTask("change-journal-purge", "30 3 * * *", purge.asCronTask(5, Duration.ofDays(90)));
  * </pre>
+ *
+ * <p><b>Threads.</b> An instance holds a final collection name and no other configuration; a run keeps its state
+ * in local variables, and the only field it writes is the {@code indexesEnsured} flag, a plain {@code boolean}
+ * (a race on it makes two threads create the same idempotent index). The instance is therefore usable from several
+ * threads, but it is not synchronized: two purges at the same time walk the same journal and ask for the same
+ * deletions, the second request deletes nothing and each report counts only what its own requests removed. The
+ * purge is meant to run as one cron task, one thread at a time.
  */
 public final class ChangeJournalPurge {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChangeJournalPurge.class);

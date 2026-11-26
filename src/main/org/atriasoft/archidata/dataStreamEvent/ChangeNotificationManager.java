@@ -86,6 +86,26 @@ import com.mongodb.client.model.changestream.FullDocument;
  * </p>
  *
  * <p>
+ * Which state the lock guards (the fields repeat it): every change of the state, the workers, the
+ * listeners, the pipelines, the resume tokens, {@code database}, {@code executorService} and
+ * {@code ownedMongoClient} is made with the write lock held, by {@code start}, {@code stop}, the
+ * (un)registration and (un)watch methods, {@code clearAllListeners}. {@code globalFullDocumentMode} is
+ * written with the write lock held by {@code start} and {@code stop}, and without it by
+ * {@code setDefaultFullDocumentMode}.
+ * The read lock is taken only by {@code notifyChange}, on the thread of
+ * the worker that delivers an event: the listeners run on that thread with the read lock held, so a
+ * listener must not call a method that takes the write lock (registering a listener, {@code stop()}...).
+ * The accessors ({@code isRunning}, {@code isWatching}, {@code getWatchedCollections},
+ * {@code getWorkerStatuses}, {@code getCollectionModes}, {@code getListenerCount},
+ * {@code getTotalEventsProcessed}) take no lock: they read a volatile field, an atomic counter or a
+ * concurrent collection, so each of those reads is safe but two of them are not a consistent snapshot.
+ * Two plain fields, neither volatile, are accessed without the lock: {@code watchAllCollections} reads
+ * {@code database}; {@code setDefaultFullDocumentMode} writes {@code globalFullDocumentMode}, and
+ * {@code getDefaultFullDocumentMode} and {@code computeEffectiveMode} (so {@code getCollectionModes}
+ * too) read it.
+ * </p>
+ *
+ * <p>
  * Lifecycle guarantees: a change stream begins when its worker opens it on the server, not when the
  * listener is registered. So {@code start(...)}, {@code registerListener(...)}, {@code register()} of a
  * listener builder and {@code watchCollection(...)} return only once the streams of the collections
@@ -111,36 +131,57 @@ public class ChangeNotificationManager {
 	/** Longest wait, in {@code stop()}, for the workers to end once interrupted. */
 	static final long STOP_AFTER_INTERRUPT_TIMEOUT_MS = 5_000;
 
-	// Thread pool for Change Stream workers
+	// Thread pool for Change Stream workers.
+	// Guarded by `lock` (write side): written by start(), read by stop() and, through
+	// startWorkerForCollection(), by the methods that hold the write lock. Plain field: stop() shuts the pool down
+	// but does not reset the field, the pool of the previous start stays referenced until the next start().
 	private ExecutorService executorService;
 
-	// Workers (one per collection)
+	// Workers (one per collection).
+	// Changed (put, remove, clear) only with `lock` held on its write side; read without lock by isWatching(),
+	// getWatchedCollections(), getWorkerStatuses() and getCollectionModes() (the ConcurrentHashMap makes each read
+	// safe), and with the read lock by notifyChange(), which compares the worker of the event with the registered one.
 	private final Map<String, ChangeStreamWorker> workers = new ConcurrentHashMap<>();
-	// Resume token of the collections whose worker was stopped: a new worker of the collection resumes from it
+	// Resume token of the collections whose worker was stopped: a new worker of the collection resumes from it.
+	// Guarded by `lock` (write side): written by stopWorkerForCollection() and stop(), read by startWorkerForCollection().
 	private final Map<String, org.bson.BsonDocument> resumeTokens = new ConcurrentHashMap<>();
 
-	// Server-side filtering pipelines by collection
+	// Server-side filtering pipelines by collection.
+	// Guarded by `lock` (write side): written by watchCollectionInternal() and unwatchCollection(), read by
+	// startAllWorkers() and startWorkerForCollection(). stop() does not clear it: the pipelines survive a restart.
 	private final Map<String, List<Bson>> collectionPipelines = new ConcurrentHashMap<>();
 
-	// Listeners by collection with their requested mode and client filter
+	// Listeners by collection with their requested mode and client filter.
+	// Changed only with `lock` held on its write side (registration, unregistration, clearAllListeners(), stop());
+	// iterated by notifyChange() with the read lock held, and read without lock by getListenerCount().
 	private final Map<String, Set<ListenerRegistration>> collectionListeners = new ConcurrentHashMap<>();
 
-	// Global listeners (all collections)
+	// Global listeners (all collections). Same rules as collectionListeners.
 	private final Set<ListenerRegistration> globalListeners = ConcurrentHashMap.newKeySet();
 
-	// MongoDB database reference
+	// MongoDB database reference.
+	// Guarded by `lock` (write side): written by start() and stop(), read by startWorkerForCollection().
+	// Plain field, also read WITHOUT the lock by watchAllCollections().
 	private MongoDatabase database;
-	// MongoDB client reference (for proper cleanup)
+	// MongoDB client reference (for proper cleanup).
+	// Guarded by `lock` (write side): set by start(), taken and reset to null by stop(); no other access.
 	private MongoClient ownedMongoClient;
 
-	// Global FullDocument mode set at startup (applies to all collections)
+	// Global FullDocument mode set at startup (applies to all collections).
+	// Plain field. Written with the write lock held by start() and stop(), and WITHOUT lock by
+	// setDefaultFullDocumentMode(); read with the write lock held by start() and startWorkerForCollection(), and
+	// WITHOUT lock by getDefaultFullDocumentMode() and computeEffectiveMode() (so by getCollectionModes()).
 	private FullDocument globalFullDocumentMode = FullDocument.UPDATE_LOOKUP;
 
-	// Lifecycle
+	// Lifecycle.
+	// Written with the write lock held by start() and stop(); volatile because isRunning() reads it without lock.
 	private volatile boolean running = false;
+	// Guards the fields above that say so. Write side: every change of state. Read side: notifyChange() only.
 	private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
-	// Statistics
+	// Statistics.
+	// Incremented by notifyChange() on the thread of the worker that delivers the event, with the read lock held;
+	// read by getTotalEventsProcessed(). Atomic, so it needs no lock. Never reset, not even by stop().
 	private final AtomicLong totalEventsProcessed = new AtomicLong(0);
 
 	/**
@@ -935,7 +976,8 @@ public class ChangeNotificationManager {
 
 	/**
 	 * Gets the total number of change events processed by all workers since the
-	 * manager started.
+	 * class was loaded: the counter is never reset, {@link #stop()} and a new
+	 * {@code start(...)} included. An event read by a worker that was stopped is not counted.
 	 *
 	 * @return The total event count
 	 */
