@@ -17,9 +17,10 @@ import com.mongodb.client.result.UpdateResult;
  * Transaction state of one {@link DBAccessMongo} and the driver calls that follow it.
  *
  * <p>
- * Owns the {@link ClientSession} of the connection: {@code null} while no transaction is active, set by
- * {@link #startTransaction()}, cleared by {@link #commitTransaction()}, {@link #abortTransaction()} and
- * {@link #close()}. The eight driver wrappers ({@code findOneAndUpdateIn}, {@code insertOneIn}, ...) read it on
+ * Owns the {@link ClientSession} of the connection: {@code null} until {@link #startTransaction()} opens one,
+ * cleared by {@link #commitTransaction()}, {@link #abortTransaction()} and {@link #close()}. When
+ * {@link #startTransaction()} fails after the session is opened, the session stays set with no transaction
+ * active. The eight driver wrappers ({@code findOneAndUpdateIn}, {@code insertOneIn}, ...) read it on
  * every call: they run the driver call inside the session when there is one, outside otherwise.
  * </p>
  *
