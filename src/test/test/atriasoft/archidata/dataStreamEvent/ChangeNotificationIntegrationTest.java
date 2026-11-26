@@ -395,39 +395,38 @@ public class ChangeNotificationIntegrationTest {
 
 		TestHelper.waitForStreamInitialization(manager, "TestChangeStreamEntity", 2000);
 
+		// value = 50: the predicate refuses the INSERT
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Eve", "user", 50);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture initial insert with value=50");
-
-		this.capturedEvents.clear();
-
-		// Update value to 150 - should be captured
+		// Update value to 150 - should be captured. The events arrive in the order of the writes: once it is there,
+		// the INSERT has been dispatched and refused.
 		inserted.value = 150;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
-			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update with value=150");
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update with value=150 only");
+			Assertions.assertTrue(this.capturedEvents.get(0).isUpdate());
 			Assertions.assertEquals(150, this.capturedEvents.get(0).getFullDocument().getInteger("value"));
+			this.capturedEvents.clear();
 		}
 
-		this.capturedEvents.clear();
-
-		// Update value to 80 - should NOT be captured
+		// Update value to 80 - should NOT be captured. The update to 200 written after it is the marker that must
+		// arrive.
 		inserted.value = 80;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture update with value=80");
+		inserted.value = 200;
+		ConfigureDb.da.updateById(inserted, inserted.getId());
+
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
+
+		synchronized (this.capturedEvents) {
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update with value=200 only");
+			Assertions.assertEquals(200, this.capturedEvents.get(0).getFullDocument().getInteger("value"));
+		}
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
@@ -472,15 +471,28 @@ public class ChangeNotificationIntegrationTest {
 		Assertions.assertTrue(manager.isWatching("TestChangeStreamEntity"),
 				"Collection should still be watched after listener removal");
 
-		// Insert another entity
+		// A second listener, registered after the first one went away, sees what the removed listener must not see.
+		final List<ChangeEvent> sentinelEvents = new ArrayList<>();
+		manager.createListenerBuilder(event -> {
+			synchronized (sentinelEvents) {
+				sentinelEvents.add(event);
+			}
+		}, "TestChangeStreamEntity").register();
+
+		// Insert another entity: the removed listener must not see it
 		final TestChangeStreamEntity entity2 = new TestChangeStreamEntity("Grace", "admin", 40);
 		ConfigureDb.da.insert(entity2);
 
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Removed listener should not receive events");
+		// The sentinel receives the insert of Grace and then the one of Heidi: the events arrive in the order of the
+		// writes, so once it has both, the insert of Grace has been dispatched to every listener registered.
+		final TestChangeStreamEntity entity3 = new TestChangeStreamEntity("Heidi", "admin", 41);
+		ConfigureDb.da.insert(entity3);
+
+		TestHelper.waitForEvents(sentinelEvents, 2, 2000);
+
+		synchronized (this.capturedEvents) {
+			Assertions.assertEquals(0, this.capturedEvents.size(), "Removed listener should not receive events");
+		}
 
 		// Verify collection is still being monitored
 		Assertions.assertTrue(manager.isWatching("TestChangeStreamEntity"),
@@ -619,26 +631,22 @@ public class ChangeNotificationIntegrationTest {
 			Assertions.assertTrue(this.capturedEvents.get(0).getUpdatedFields().contains("name"));
 		}
 
-		this.capturedEvents.clear();
+		synchronized (this.capturedEvents) {
+			this.capturedEvents.clear();
+		}
 
-		// Update only 'value' field - should NOT be captured
+		// Update only 'value' field - should NOT be captured. The update of 'name' and 'value' written after it is
+		// the marker that must arrive: the events come in the order of the writes, so once it is there, the
+		// value-only update has been dispatched and refused.
 		inserted.value = 120;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
-
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture value-only update");
-
-		this.capturedEvents.clear();
 
 		// Update both 'name' and 'value' - should be captured
 		inserted.name = "Iris Final";
 		inserted.value = 150;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		waitForEvents(1, 2);
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
 			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture update containing name field");
@@ -732,17 +740,14 @@ public class ChangeNotificationIntegrationTest {
 			Assertions.assertTrue(this.capturedEvents.get(0).isInsert());
 		}
 
-		this.capturedEvents.clear();
+		synchronized (this.capturedEvents) {
+			this.capturedEvents.clear();
+		}
 
-		// Update - should NOT be captured
+		// Update - should NOT be captured. The delete written after it is the marker that must arrive: the events
+		// come in the order of the writes, so once it is there, the update has been dispatched and refused.
 		inserted.name = "Kate Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
-
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture UPDATE");
 
 		// Delete - should be captured
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());

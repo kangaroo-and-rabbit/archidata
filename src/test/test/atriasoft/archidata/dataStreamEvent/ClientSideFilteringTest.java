@@ -69,37 +69,46 @@ public class ClientSideFilteringTest {
 
 		TestHelper.waitForStreamInitialization(manager, "TestChangeStreamEntity", 2000);
 
-		final TestChangeStreamEntity admin = new TestChangeStreamEntity("AdminUser", "admin", 100);
-		final TestChangeStreamEntity insertedAdmin = ConfigureDb.da.insert(admin);
-
+		// The change stream delivers the events in the order of the writes: the regular user is written first,
+		// so when the admin insert has arrived the filter has already had its say on the user insert.
 		final TestChangeStreamEntity user = new TestChangeStreamEntity("RegularUser", "user", 50);
 		final TestChangeStreamEntity insertedUser = ConfigureDb.da.insert(user);
+
+		final TestChangeStreamEntity admin = new TestChangeStreamEntity("AdminUser", "admin", 100);
+		final TestChangeStreamEntity insertedAdmin = ConfigureDb.da.insert(admin);
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
-			final long adminInsertCount = this.capturedEvents.stream().filter(
-					e -> e.isInsert() && e.hasFullDocument() && "admin".equals(e.getFullDocument().getString("role")))
-					.count();
-			Assertions.assertTrue(adminInsertCount >= 1, "Should capture at least 1 admin INSERT event");
-			final ChangeEvent adminEvent = this.capturedEvents.stream().filter(
-					e -> e.isInsert() && e.hasFullDocument() && "admin".equals(e.getFullDocument().getString("role")))
-					.findFirst().orElseThrow();
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Only the admin INSERT should be captured");
+			final ChangeEvent adminEvent = this.capturedEvents.get(0);
+			Assertions.assertTrue(adminEvent.isInsert());
+			Assertions.assertTrue(adminEvent.hasFullDocument());
+			Assertions.assertEquals("admin", adminEvent.getFullDocument().getString("role"));
 			Assertions.assertEquals("AdminUser", adminEvent.getFullDocument().getString("name"));
+			this.capturedEvents.clear();
 		}
 
-		this.capturedEvents.clear();
+		// The manager runs with UPDATE_LOOKUP: an UPDATE carries the full document, so the filter applies to it too.
+		// The user update is written first, the admin one is the marker that must arrive.
+		insertedUser.value = 75;
+		ConfigureDb.da.updateById(insertedUser, insertedUser.getId());
 
 		insertedAdmin.value = 150;
 		ConfigureDb.da.updateById(insertedAdmin, insertedAdmin.getId());
 
-		insertedUser.value = 75;
-		ConfigureDb.da.updateById(insertedUser, insertedUser.getId());
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
-		// Note: With DEFAULT mode, UPDATE events don't have full documents
-		// So we cannot filter by field values on UPDATE operations
-		// The filter will be skipped for UPDATE events without full documents
+		synchronized (this.capturedEvents) {
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Only the admin UPDATE should be captured");
+			final ChangeEvent updateEvent = this.capturedEvents.get(0);
+			Assertions.assertTrue(updateEvent.isUpdate());
+			Assertions.assertEquals("admin", updateEvent.getFullDocument().getString("role"));
+			Assertions.assertEquals(150, updateEvent.getFullDocument().getInteger("value"));
+		}
 
+		// A DELETE has no full document: the field filter drops it. Nothing can be written after it to mark the end
+		// of the dispatch, so it is only a clean-up here.
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedAdmin.getId());
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, insertedUser.getId());
 
@@ -117,29 +126,28 @@ public class ClientSideFilteringTest {
 
 		TestHelper.waitForStreamInitialization(manager, "TestChangeStreamEntity", 2000);
 
+		// value = 50: the predicate refuses the INSERT
 		final TestChangeStreamEntity entity = new TestChangeStreamEntity("Alice", "user", 50);
 		final TestChangeStreamEntity inserted = ConfigureDb.da.insert(entity);
 
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture initial insert with value=50");
-
-		this.capturedEvents.clear();
-
-		// Note: With DEFAULT mode, UPDATE events don't have full documents
-		// This test only verifies INSERT operations which have full documents
+		// The manager runs with UPDATE_LOOKUP: the UPDATE carries the full document (value = 150), so it passes the
+		// predicate. It is the marker of the test: the events arrive in the order of the writes, so once it is
+		// there, the INSERT has been dispatched and refused.
 		inserted.value = 150;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		// No events expected since UPDATE operations lack full documents for filtering
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "UPDATE events should not be captured without full documents");
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
+		synchronized (this.capturedEvents) {
+			Assertions.assertEquals(1, this.capturedEvents.size(),
+					"Only the UPDATE (value=150) should be captured, not the INSERT (value=50)");
+			final ChangeEvent event = this.capturedEvents.get(0);
+			Assertions.assertTrue(event.isUpdate());
+			Assertions.assertEquals(150, event.getFullDocument().getInteger("value"));
+		}
+
+		// A DELETE has no full document: the predicate refuses it. No later event can mark the end of the dispatch,
+		// so this is only the clean-up of the entity.
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		LOGGER.info("=== Lambda Predicate Filtering test completed ===");
@@ -161,28 +169,23 @@ public class ClientSideFilteringTest {
 		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
-			final long insertCount = this.capturedEvents.stream().filter(ChangeEvent::isInsert).count();
-			Assertions.assertTrue(insertCount >= 1, "Should capture INSERT");
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture exactly the INSERT");
+			Assertions.assertTrue(this.capturedEvents.get(0).isInsert());
+			this.capturedEvents.clear();
 		}
 
-		this.capturedEvents.clear();
-
+		// The UPDATE is refused by the filter. The DELETE written after it is the marker that must arrive: the
+		// events come in the order of the writes, so once it is there the UPDATE has been dispatched and refused.
 		inserted.name = "Bob Updated";
 		ConfigureDb.da.updateById(inserted, inserted.getId());
-
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture UPDATE");
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
 		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
-			final long deleteCount = this.capturedEvents.stream().filter(ChangeEvent::isDelete).count();
-			Assertions.assertTrue(deleteCount >= 1, "Should capture DELETE");
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture only the DELETE, not the UPDATE");
+			Assertions.assertTrue(this.capturedEvents.get(0).isDelete());
 		}
 
 		LOGGER.info("=== Operation Type Filtering test completed ===");
@@ -214,23 +217,34 @@ public class ClientSideFilteringTest {
 		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
 
 		synchronized (this.capturedEvents) {
-			Assertions.assertTrue(this.capturedEvents.size() >= 1, "Should capture name field update");
-			final ChangeEvent event = this.capturedEvents.stream().filter(ChangeEvent::isUpdate).findFirst()
-					.orElseThrow();
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture exactly the name field update");
+			final ChangeEvent event = this.capturedEvents.get(0);
+			Assertions.assertTrue(event.isUpdate());
 			Assertions.assertTrue(event.getUpdatedFields().contains("name"),
 					"Update event should have 'name' in updated fields");
 		}
 
-		this.capturedEvents.clear();
+		synchronized (this.capturedEvents) {
+			this.capturedEvents.clear();
+		}
 
+		// A value-only UPDATE is refused by the filter. The UPDATE of the name written after it is the marker that
+		// must arrive: the events come in the order of the writes, so once it is there the value-only UPDATE has
+		// been dispatched and refused.
 		inserted.value = 120;
 		ConfigureDb.da.updateById(inserted, inserted.getId());
 
-		TestHelper.waitForCondition(() -> {
-			synchronized (this.capturedEvents) {
-				return this.capturedEvents.size() == 0;
-			}
-		}, 500, "Should not capture value-only update");
+		inserted.name = "Charlie Final";
+		ConfigureDb.da.updateById(inserted, inserted.getId());
+
+		TestHelper.waitForEvents(this.capturedEvents, 1, 2000);
+
+		synchronized (this.capturedEvents) {
+			Assertions.assertEquals(1, this.capturedEvents.size(), "Should capture only the name update");
+			Assertions.assertTrue(this.capturedEvents.get(0).getUpdatedFields().contains("name"));
+			Assertions.assertFalse(this.capturedEvents.get(0).getUpdatedFields().contains("value"),
+					"The value did not change in this update");
+		}
 
 		ConfigureDb.da.deleteById(TestChangeStreamEntity.class, inserted.getId());
 
