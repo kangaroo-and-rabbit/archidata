@@ -1775,48 +1775,90 @@ public class BackupEngine {
 				continue;
 			} else if (!fileDate.isBefore(keepDailyLimit)) {
 				// Zone 2: daily dedup
-				dailyAll.add(file);
-				final BackupFileInfo existing = dailyBest.get(fileDate);
-				if (existing == null || file.compareTo(existing) > 0) {
-					dailyBest.put(fileDate, file);
-				}
+				keepBestOfDay(file, dailyAll, dailyBest);
 			} else if (!fileDate.isBefore(keepWeeklyLimit)) {
 				// Zone 3: weekly dedup
-				weeklyAll.add(file);
-				final int weekNumber = fileDate.get(weekFields.weekOfWeekBasedYear());
-				final int year = fileDate.get(weekFields.weekBasedYear());
-				final String weekKey = year + "-W" + weekNumber;
-				final BackupFileInfo existingWeek = weeklyBest.get(weekKey);
-				if (existingWeek == null || file.compareTo(existingWeek) > 0) {
-					weeklyBest.put(weekKey, file);
-				}
+				keepBestOfWeek(file, weekFields, weeklyAll, weeklyBest);
 			} else {
 				// Zone 4: delete
 				toDelete.add(file);
 			}
 		}
 
-		// Mark non-best daily files for deletion
-		for (final BackupFileInfo file : dailyAll) {
-			if (!file.equals(dailyBest.get(file.date()))) {
-				toDelete.add(file);
-			}
-		}
-
-		// Mark non-best weekly files for deletion
-		for (final BackupFileInfo file : weeklyAll) {
-			final int weekNumber = file.date().get(weekFields.weekOfWeekBasedYear());
-			final int year = file.date().get(weekFields.weekBasedYear());
-			final String weekKey = year + "-W" + weekNumber;
-			if (!file.equals(weeklyBest.get(weekKey))) {
-				toDelete.add(file);
-			}
-		}
+		markNonBestDailyForDeletion(dailyAll, dailyBest, toDelete);
+		markNonBestWeeklyForDeletion(weeklyAll, weeklyBest, weekFields, toDelete);
 
 		// Whatever the dates say (a clock that jumped, a server stopped for years, a partial archive later on the same
 		// day): the policy thins the archives out, it never leaves a base with nothing to restore.
 		toDelete.removeIf(file -> file.equals(latestFull));
 		return toDelete;
+	}
+
+	/**
+	 * Retention zone 2: remember a full backup of the daily zone and keep it as the best of its day when it is the
+	 * latest one seen. Fills {@code dailyAll} and {@code dailyBest}; deletes nothing.
+	 */
+	private static void keepBestOfDay(
+			final BackupFileInfo file,
+			final List<BackupFileInfo> dailyAll,
+			final Map<LocalDate, BackupFileInfo> dailyBest) {
+		final LocalDate fileDate = file.date();
+		dailyAll.add(file);
+		final BackupFileInfo existing = dailyBest.get(fileDate);
+		if (existing == null || file.compareTo(existing) > 0) {
+			dailyBest.put(fileDate, file);
+		}
+	}
+
+	/**
+	 * Retention zone 3: remember a full backup of the weekly zone and keep it as the best of its week when it is the
+	 * latest one seen. Fills {@code weeklyAll} and {@code weeklyBest}; deletes nothing.
+	 */
+	private static void keepBestOfWeek(
+			final BackupFileInfo file,
+			final WeekFields weekFields,
+			final List<BackupFileInfo> weeklyAll,
+			final Map<String, BackupFileInfo> weeklyBest) {
+		final LocalDate fileDate = file.date();
+		weeklyAll.add(file);
+		final String weekKey = weekKey(fileDate, weekFields);
+		final BackupFileInfo existingWeek = weeklyBest.get(weekKey);
+		if (existingWeek == null || file.compareTo(existingWeek) > 0) {
+			weeklyBest.put(weekKey, file);
+		}
+	}
+
+	/** @return the key of the week of a date, {@code <week based year>-W<week number>} */
+	private static String weekKey(final LocalDate date, final WeekFields weekFields) {
+		final int weekNumber = date.get(weekFields.weekOfWeekBasedYear());
+		final int year = date.get(weekFields.weekBasedYear());
+		return year + "-W" + weekNumber;
+	}
+
+	/** Add to {@code toDelete}, in the order of {@code dailyAll}, every file of the daily zone that is not the best of its day. */
+	private static void markNonBestDailyForDeletion(
+			final List<BackupFileInfo> dailyAll,
+			final Map<LocalDate, BackupFileInfo> dailyBest,
+			final List<BackupFileInfo> toDelete) {
+		for (final BackupFileInfo file : dailyAll) {
+			if (!file.equals(dailyBest.get(file.date()))) {
+				toDelete.add(file);
+			}
+		}
+	}
+
+	/** Add to {@code toDelete}, in the order of {@code weeklyAll}, every file of the weekly zone that is not the best of its week. */
+	private static void markNonBestWeeklyForDeletion(
+			final List<BackupFileInfo> weeklyAll,
+			final Map<String, BackupFileInfo> weeklyBest,
+			final WeekFields weekFields,
+			final List<BackupFileInfo> toDelete) {
+		for (final BackupFileInfo file : weeklyAll) {
+			final String weekKey = weekKey(file.date(), weekFields);
+			if (!file.equals(weeklyBest.get(weekKey))) {
+				toDelete.add(file);
+			}
+		}
 	}
 
 	/**
