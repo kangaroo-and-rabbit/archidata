@@ -21,6 +21,7 @@ import org.atriasoft.archidata.externalRestApi.model.ClassMapModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel;
 import org.atriasoft.archidata.externalRestApi.model.ClassObjectModel.FieldProperty;
+import org.atriasoft.archidata.externalRestApi.model.ClassPaginationModel;
 import org.atriasoft.archidata.externalRestApi.model.ParameterClassModelList;
 import org.atriasoft.archidata.externalRestApi.model.RestTypeRequest;
 import org.slf4j.Logger;
@@ -1171,6 +1172,9 @@ public class DrawioGenerateApi {
 			return "Map&lt;" + resolveTypeName(mapModel.keyModel) + ", " + resolveTypeName(mapModel.valueModel)
 					+ "&gt;";
 		}
+		if (model instanceof final ClassPaginationModel paginationModel) {
+			return "Pagination&lt;" + resolveTypeName(paginationModel.valueModel) + "&gt;";
+		}
 		return "Object";
 	}
 
@@ -1183,7 +1187,7 @@ public class DrawioGenerateApi {
 	}
 
 	/**
-	 * Resolves the "leaf" model for a potentially wrapped type (List, Map).
+	 * Resolves the "leaf" model for a potentially wrapped type (List, Map, Pagination).
 	 * Returns null if the leaf is a primitive/basic type.
 	 */
 	private static ClassModel resolveLeafModel(final ClassModel model) {
@@ -1192,6 +1196,9 @@ public class DrawioGenerateApi {
 		}
 		if (model instanceof ClassMapModel) {
 			return resolveLeafModel(((ClassMapModel) model).valueModel);
+		}
+		if (model instanceof final ClassPaginationModel paginationModel) {
+			return resolveLeafModel(paginationModel.valueModel);
 		}
 		if (model instanceof ClassObjectModel) {
 			final ClassObjectModel objModel = (ClassObjectModel) model;
@@ -1226,7 +1233,9 @@ public class DrawioGenerateApi {
 		}
 		// Filter out common value types that don't need their own box
 		if (clazz == java.util.Date.class || clazz == org.bson.types.ObjectId.class || clazz == org.bson.Document.class
-				|| clazz == CharSequence.class || clazz == java.io.InputStream.class) {
+				|| clazz == CharSequence.class || clazz == java.io.InputStream.class || clazz == java.util.UUID.class
+				|| clazz == java.time.LocalDate.class || clazz == java.time.LocalTime.class
+				|| clazz == java.time.Instant.class) {
 			return false;
 		}
 		return true;
