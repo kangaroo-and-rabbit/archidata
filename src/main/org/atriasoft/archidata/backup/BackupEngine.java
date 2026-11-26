@@ -1102,55 +1102,98 @@ public class BackupEngine {
 		TarArchiveEntry entry;
 		while ((entry = tarIn.getNextEntry()) != null) {
 			totalBytes = checkEntrySize(entry, totalBytes);
-			// Remove base folder in the backup "data/":
-			String entryName = entry.getName();
-			if (entryName.startsWith("data/")) {
-				entryName = entryName.substring(5);
-			} else {
-				// skip files not in this folder.
+			final String entryName = mediaEntryName(entry);
+			if (entryName == null) {
 				continue;
 			}
-			// Ignore empty
-			if (entryName.isEmpty()) {
-				continue;
-			}
-			// A link entry could point anywhere: never created (a backup made by the engine has none).
-			if (entry.isSymbolicLink() || entry.isLink()) {
-				LOGGER.warn("Input TAR link entry refused: {}", entry.getName());
-				continue;
-			}
-			if (!entry.isDirectory() && !entry.isFile()) {
-				LOGGER.warn("Input TAR special entry refused: {}", entry.getName());
-				continue;
-			}
-			// Path traversal: compare paths, not strings ("/data/media-other" starts with "/data/media").
-			final Path target = base.resolve(entryName).normalize();
-			if (!target.startsWith(base) || target.equals(base) || entryName.indexOf('\0') >= 0) {
-				LOGGER.warn("Input TAR too dangerous ignored: {}", entry.getName());
-				continue;
-			}
-			// An existing symbolic link (the target or one of its parents) must not redirect the write.
-			if (!resolvesInside(target, baseReal)) {
-				LOGGER.warn("Input TAR entry resolves outside the media folder, ignored: {}", entry.getName());
+			final Path target = safeMediaTarget(entry, entryName, base, baseReal);
+			if (target == null) {
 				continue;
 			}
 			if (entry.isDirectory()) {
 				Files.createDirectories(target);
 				continue;
 			}
-			final Path targetParent = target.getParent();
-			if (targetParent != null) {
-				Files.createDirectories(targetParent);
-			}
-			// Extract the file:
-			try (OutputStream fos = Files.newOutputStream(target, StandardOpenOption.CREATE,
-					StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
-				final long copied = tarIn.transferTo(fos);
-				LOGGER.debug("File extracted: {} size: {}", entryName, copied);
-			} catch (final IOException e) {
-				LOGGER.error("Fail to extract the file {} : {}", entryName, e.getMessage());
-				// continue with next file...
-			}
+			extractFileEntry(tarIn, target, entryName);
+		}
+	}
+
+	/**
+	 * Name of a media entry relative to the media folder (the {@code data/} prefix removed).
+	 * @return the name, or {@code null} for an entry to skip: outside {@code data/}, or {@code data/} itself
+	 */
+	private static String mediaEntryName(final TarArchiveEntry entry) {
+		// Remove base folder in the backup "data/":
+		String entryName = entry.getName();
+		if (entryName.startsWith("data/")) {
+			entryName = entryName.substring(5);
+		} else {
+			// skip files not in this folder.
+			return null;
+		}
+		// Ignore empty
+		if (entryName.isEmpty()) {
+			return null;
+		}
+		return entryName;
+	}
+
+	/**
+	 * Resolve where a media entry is written, and refuse what must not be written: links, special entries, a path
+	 * outside the media folder or the folder itself, a path that goes through a symbolic link leading outside. Each
+	 * refusal is logged as a warning. Writes nothing.
+	 * @param entryName the name of the entry relative to the media folder, as {@link #mediaEntryName} gives it
+	 * @param base the normalized absolute media folder
+	 * @param baseReal the real path of the media folder
+	 * @return the normalized target path, or {@code null} for an entry to skip
+	 */
+	private static Path safeMediaTarget(
+			final TarArchiveEntry entry,
+			final String entryName,
+			final Path base,
+			final Path baseReal) {
+		// A link entry could point anywhere: never created (a backup made by the engine has none).
+		if (entry.isSymbolicLink() || entry.isLink()) {
+			LOGGER.warn("Input TAR link entry refused: {}", entry.getName());
+			return null;
+		}
+		if (!entry.isDirectory() && !entry.isFile()) {
+			LOGGER.warn("Input TAR special entry refused: {}", entry.getName());
+			return null;
+		}
+		// Path traversal: compare paths, not strings ("/data/media-other" starts with "/data/media").
+		final Path target = base.resolve(entryName).normalize();
+		if (!target.startsWith(base) || target.equals(base) || entryName.indexOf('\0') >= 0) {
+			LOGGER.warn("Input TAR too dangerous ignored: {}", entry.getName());
+			return null;
+		}
+		// An existing symbolic link (the target or one of its parents) must not redirect the write.
+		if (!resolvesInside(target, baseReal)) {
+			LOGGER.warn("Input TAR entry resolves outside the media folder, ignored: {}", entry.getName());
+			return null;
+		}
+		return target;
+	}
+
+	/**
+	 * Write the current file entry of the archive to {@code target}: creates the missing parent folders, then the file
+	 * (created or truncated, symbolic links not followed). A failure while writing the file is logged and not thrown,
+	 * the next entry is still extracted.
+	 */
+	private static void extractFileEntry(final TarArchiveInputStream tarIn, final Path target, final String entryName)
+			throws IOException {
+		final Path targetParent = target.getParent();
+		if (targetParent != null) {
+			Files.createDirectories(targetParent);
+		}
+		// Extract the file:
+		try (OutputStream fos = Files.newOutputStream(target, StandardOpenOption.CREATE,
+				StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS)) {
+			final long copied = tarIn.transferTo(fos);
+			LOGGER.debug("File extracted: {} size: {}", entryName, copied);
+		} catch (final IOException e) {
+			LOGGER.error("Fail to extract the file {} : {}", entryName, e.getMessage());
+			// continue with next file...
 		}
 	}
 
