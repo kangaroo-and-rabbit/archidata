@@ -43,6 +43,10 @@
 - TypeScript, variantes d'un parent : le fichier d'un modèle parent exporte maintenant `ZodParentCreate` (etc.) dès
   qu'un enfant en a besoin, quel que soit l'ordre des fichiers (avant, le fichier du parent pouvait manquer l'export
   que le fichier de l'enfant importe). Comme en Python.
+- Python, `byte[]` et `CharSequence` : un `CharSequence` devient `str`, comme `String`, et un `byte[]` devient
+  `pydantic.Base64Bytes` dans un modèle ou une réponse JSON (Jackson l'écrit en base64 ; `bytes` de Pydantic v2 ne le
+  décode pas), `bytes` pour une réponse binaire (`@Produces` non JSON). Avant : un fichier `model/byte[].py` invalide et
+  un modèle `model/char_sequence.py` sans intérêt, importés par l'API.
 
 ## Prochaine version (après v0.54.2) - Claims en plus et jetons d'appareil (CHANGEMENT DE COMPORTEMENT)
 

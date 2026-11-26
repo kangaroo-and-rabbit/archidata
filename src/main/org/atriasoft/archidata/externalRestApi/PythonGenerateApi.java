@@ -337,7 +337,11 @@ public class PythonGenerateApi {
 		addNative(api, elements, List.of(Object.class), "Any", List.of(new ImportSpec("typing", "Any")));
 		// Map is bound to any ==> can not determine this complex model for now
 		addNative(api, elements, List.of(Map.class), "dict[str, Any]", List.of(new ImportSpec("typing", "Any")));
-		addNative(api, elements, List.of(String.class), "str", null);
+		addNative(api, elements, List.of(String.class, CharSequence.class), "str", null);
+		// Jackson writes a byte[] of a JSON body as base64 text, and pydantic "bytes" does not decode it.
+		// A binary (non JSON) answer is returned as plain "bytes" by the generated API function.
+		addNative(api, elements, List.of(byte[].class), "Base64Bytes",
+				List.of(new ImportSpec("pydantic", "Base64Bytes")));
 		addNative(api, elements, List.of(InputStream.class, FormDataContentDisposition.class, ContentDisposition.class),
 				"MultipartFile", List.of(new ImportSpec("rest_tools", "MultipartFile")));
 		addNative(api, elements, List.of(Boolean.class, boolean.class), "bool", null);

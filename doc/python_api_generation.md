@@ -58,6 +58,8 @@ Mapping rules
 | Java                                        | Python                                              |
 |---------------------------------------------|-----------------------------------------------------|
 | `String`, `Boolean`, `Object`               | `str`, `bool`, `Any`                                |
+| `CharSequence`                              | `str`                                               |
+| `byte[]`                                    | `Base64Bytes` (JSON, base64 text); `bytes` for a binary answer |
 | `Long/Integer/Short`, `Double/Float`        | `int`, `float`                                      |
 | `Date`, `Instant` / `LocalDate` / `LocalTime` | `datetime` / `date` / `time`                      |
 | `UUID`                                      | `uuid.UUID`                                         |
